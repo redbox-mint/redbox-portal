@@ -563,6 +563,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.componentDefArr?.forEach(mapEntry =>
           this.formService.updateValidators(mapEntry, enabledNames, validationGroups)
         );
+        this.broadcastFormStatus();
 
         this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
       });
@@ -611,6 +612,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!this.form) {
       return;
     }
+    this.form.updateValueAndValidity({ emitEvent: false });
     this.formGroupStatus.set(this.dataStatus);
     this.eventBus.publish(
       createFormValidationBroadcastEvent({

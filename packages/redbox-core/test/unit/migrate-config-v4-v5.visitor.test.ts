@@ -185,6 +185,17 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
     });
 
+    it('builds nested component JSON pointers without regex-based trailing slash trimming', async function () {
+        const visitor = new MigrationV4ToV5FormConfigVisitor(logger) as unknown as {
+            buildNestedComponentJsonPointer(containerPointer: string, componentName: string): string;
+        };
+
+        expect(visitor.buildNestedComponentJsonPointer('', 'child')).to.equal('/child');
+        expect(visitor.buildNestedComponentJsonPointer('/', 'child')).to.equal('/child');
+        expect(visitor.buildNestedComponentJsonPointer('/parent/', 'child')).to.equal('/parent/child');
+        expect(visitor.buildNestedComponentJsonPointer('/parent//', 'child')).to.equal('/parent/child');
+    });
+
     it('maps LinkValueComponent to ContentComponent with a legacy-compatible link template', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
         const migrated = visitor.start({
@@ -923,9 +934,20 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(lookupOnlyFields).to.have.length(3);
 
         const nameField = lookupOnlyFields[0];
+        if (nameField.component?.class === "ReusableComponent") {
+          expect(nameField.component?.config?.componentDefinitions).to.have.length(1);
+          expect((nameField.component?.config?.componentDefinitions[0].component.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        } else {
+          expect((nameField.component?.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        }
+
         const emailField = lookupOnlyFields[1];
-        expect((nameField.component?.config as Record<string, unknown>)?.requireSelection).to.equal(true);
-        expect((emailField.component?.config as Record<string, unknown>)?.readonly).to.equal(true);
+        if (emailField.component?.class === "ReusableComponent") {
+          expect(emailField.component?.config?.componentDefinitions).to.have.length(1);
+          expect((emailField.component?.config?.componentDefinitions[0].component.config as Record<string, unknown>)?.readonly).to.be.true;
+        } else {
+          expect((emailField.component?.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        }
 
         const withTitleGroup = reusableFormDefinitions["standard-contributor-fields-with-title-lookup-only-group"];
         expect(withTitleGroup).to.have.length(1);

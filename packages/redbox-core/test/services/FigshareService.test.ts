@@ -6,6 +6,7 @@ import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
+import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
 
 function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) {
   const config = new FigsharePublishing() as unknown as Record<string, unknown>;
@@ -501,5 +502,33 @@ describe('FigshareService', function () {
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
     expect(schema.properties.testing).to.equal(undefined);
+  });
+});
+
+describe('Figshare record field helpers', function () {
+  it('should get and set normal nested record fields', function () {
+    const record: Record<string, unknown> = { metadata: { title: 'Initial' } };
+
+    expect(getRecordField(record as any, 'metadata.title')).to.equal('Initial');
+    setRecordField(record as any, 'metadata.description.text', 'Description');
+
+    expect(getRecordField(record as any, 'metadata.description.text')).to.equal('Description');
+  });
+
+  it('should reject empty path segments when writing and return undefined when reading', function () {
+    const record: Record<string, unknown> = {};
+
+    expect(getRecordField(record as any, 'metadata..title')).to.equal(undefined);
+    expect(() => setRecordField(record as any, 'metadata..title', 'Title')).to.throw("Invalid record field path");
+  });
+
+  it('should reject prototype-polluting path segments', function () {
+    const record: Record<string, unknown> = {};
+
+    expect(getRecordField(record as any, '__proto__.polluted')).to.equal(undefined);
+    expect(() => setRecordField(record as any, '__proto__.polluted', true)).to.throw("Invalid record field path");
+    expect(() => setRecordField(record as any, 'constructor.prototype.polluted', true)).to.throw("Invalid record field path");
+    expect(() => setRecordField(record as any, 'metadata.prototype.polluted', true)).to.throw("Invalid record field path");
+    expect(({} as Record<string, unknown>).polluted).to.equal(undefined);
   });
 });

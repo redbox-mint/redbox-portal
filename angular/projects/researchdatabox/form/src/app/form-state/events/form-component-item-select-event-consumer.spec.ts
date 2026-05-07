@@ -112,6 +112,27 @@ describe('FormComponentItemSelectEventConsumer', () => {
     expect(control.touched).toBeTrue();
   });
 
+  it('should broadcast form status after silent item selection updates', async () => {
+    const { options } = createBindOptions('/record/contributors/0/funderName', {
+      rawPath: 'identifier',
+      clearValue: ''
+    });
+    const formComponent = {
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+    };
+
+    consumer.bind({ ...options, formComponent } as any);
+
+    emitEvent('/record/contributors/0/funderSearch', {
+      raw: {
+        identifier: 'https://example.org/funder/status'
+      }
+    });
+    await Promise.resolve();
+
+    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
   it('should fall back to selectedItem path when raw path is unavailable', () => {
     const { control, options } = createBindOptions('/record/contributors/0/funderName', {
       rawPath: 'identifier',

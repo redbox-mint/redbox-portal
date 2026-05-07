@@ -6,7 +6,6 @@ readonly RELEASE_KIND="${NPM_RELEASE_KIND:-}"
 readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
 readonly DRY_RUN="${NPM_PUBLISH_DRY_RUN:-false}"
-readonly REQUIRED_NPM_VERSION="11.5.1"
 readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-${CIRCLE_BUILD_NUM:-}}"
 
 readonly PACKAGE_PATHS=(
@@ -18,11 +17,24 @@ readonly PACKAGE_PATHS=(
   "packages/redbox-dev-tools"
 )
 
+readonly GENERATED_CORE_TYPES_PACKAGE_PATH="packages/redbox-core-types"
+
+readonly STAGED_PACKAGE_PATHS=(
+  "packages/raido"
+  "packages/rva-registry"
+  "packages/sails-ng-common"
+  "packages/redbox-core"
+  "$GENERATED_CORE_TYPES_PACKAGE_PATH"
+  "packages/sails-hook-redbox-storage-mongo"
+  "packages/redbox-dev-tools"
+)
+
 readonly INTERNAL_PACKAGES=(
   "@researchdatabox/raido-openapi-generated-node"
   "@researchdatabox/rva-registry-openapi-generated-node"
   "@researchdatabox/sails-ng-common"
   "@researchdatabox/redbox-core"
+  "@researchdatabox/redbox-core-types"
   "@researchdatabox/sails-hook-redbox-storage-mongo"
   "@researchdatabox/redbox-dev-tools"
 )
@@ -36,32 +48,7 @@ fail() {
   exit 1
 }
 
-version_ge() {
-  local current="$1"
-  local required="$2"
-
-  local current_major current_minor current_patch
-  local required_major required_minor required_patch
-  IFS=. read -r current_major current_minor current_patch <<< "$current"
-  IFS=. read -r required_major required_minor required_patch <<< "$required"
-
-  current_patch="${current_patch%%-*}"
-  required_patch="${required_patch%%-*}"
-
-  if (( current_major > required_major )); then return 0; fi
-  if (( current_major < required_major )); then return 1; fi
-  if (( current_minor > required_minor )); then return 0; fi
-  if (( current_minor < required_minor )); then return 1; fi
-  (( current_patch >= required_patch ))
-}
-
 validate_inputs() {
-  local npm_version
-  npm_version="$(npm --version)"
-  if ! version_ge "$npm_version" "$REQUIRED_NPM_VERSION"; then
-    fail "npm $REQUIRED_NPM_VERSION or newer is required for trusted publishing; found $npm_version."
-  fi
-
   case "$RELEASE_KIND" in
     beta)
       [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
@@ -121,12 +108,15 @@ stage_packages() {
     rm -rf "$STAGING_ROOT/$package_path/node_modules"
   done
 
+  mkdir -p "$STAGING_ROOT/$(dirname "$GENERATED_CORE_TYPES_PACKAGE_PATH")"
+  cp -R "$STAGING_ROOT/packages/redbox-core" "$STAGING_ROOT/$GENERATED_CORE_TYPES_PACKAGE_PATH"
+
   log "Rewriting staged package metadata for version $version."
-  node - "$STAGING_ROOT" "$version" "${#PACKAGE_PATHS[@]}" "${PACKAGE_PATHS[@]}" "${INTERNAL_PACKAGES[@]}" <<'NODE'
+  node - "$STAGING_ROOT" "$version" "$GENERATED_CORE_TYPES_PACKAGE_PATH" "${#STAGED_PACKAGE_PATHS[@]}" "${STAGED_PACKAGE_PATHS[@]}" "${INTERNAL_PACKAGES[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 
-const [stagingRoot, version, packageCountValue, ...values] = process.argv.slice(2);
+const [stagingRoot, version, generatedCoreTypesPackagePath, packageCountValue, ...values] = process.argv.slice(2);
 const packageCount = Number.parseInt(packageCountValue, 10);
 const packagePaths = values.slice(0, packageCount);
 const internalPackages = values.slice(packageCount);
@@ -142,9 +132,22 @@ function rewriteDependencyBlock(pkg, blockName) {
   }
 }
 
+function applyGeneratedCoreTypesMetadata(pkg) {
+  pkg.name = '@researchdatabox/redbox-core-types';
+  pkg.dependencies = {
+    ...(pkg.dependencies || {}),
+    ...(pkg.devDependencies || {}),
+  };
+  delete pkg.devDependencies;
+}
+
 for (const packagePath of packagePaths) {
   const packageJsonPath = path.join(stagingRoot, packagePath, 'package.json');
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+  if (packagePath === generatedCoreTypesPackagePath) {
+    applyGeneratedCoreTypesMetadata(pkg);
+  }
 
   pkg.version = version;
   pkg.publishConfig = {
@@ -189,7 +192,7 @@ package_version() {
 
 assert_no_staged_file_dependencies() {
   local package_path
-  for package_path in "${PACKAGE_PATHS[@]}"; do
+  for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
     if grep -R '"file:' "$STAGING_ROOT/$package_path/package.json" >/dev/null; then
       fail "Staged $package_path/package.json still contains a file: dependency."
     fi
@@ -201,7 +204,7 @@ assert_versions_not_published() {
   local attempt package_path package_name view_error view_output status
 
   log "Checking npm registry for existing $version package versions."
-  for package_path in "${PACKAGE_PATHS[@]}"; do
+  for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
 
     for attempt in 1 2 3; do
@@ -234,7 +237,7 @@ pack_dry_run() {
   local package_path package_name version
 
   log "Running npm pack --dry-run for staged packages."
-  for package_path in "${PACKAGE_PATHS[@]}"; do
+  for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
     version="$(package_version "$STAGING_ROOT/$package_path")"
     log "Packing $package_name@$version."
@@ -251,11 +254,11 @@ publish_packages() {
   fi
 
   log "Publishing staged backend packages with dist-tag $DIST_TAG."
-  for package_path in "${PACKAGE_PATHS[@]}"; do
+  for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
     version="$(package_version "$STAGING_ROOT/$package_path")"
     log "Publishing $package_name@$version."
-    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG" --provenance)
+    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG")
   done
 }
 

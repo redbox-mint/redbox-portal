@@ -100,9 +100,9 @@
     display: none !important;
   }
 
-  /* Hide interactive buttons, but NOT panel-heading / accordion toggle buttons
-     which contain the section title text we want to print. */
-  .btn:not(.rb-form-print-keep):not(.panel-heading .btn):not(.panel-title .btn):not(.panel-title > button),
+  /* Hide interactive buttons by default. Restore the panel-heading/title
+     toggles below so their section title text still prints. */
+  .btn:not(.rb-form-print-keep),
   .dropdown-menu,
   .modal,
   .modal-backdrop,
@@ -111,9 +111,8 @@
     display: none !important;
   }
 
-  /* The :not() chain above still fails in some browsers with descendant
-     selectors inside :not(). Explicitly restore display for panel-heading
-     buttons so their text (section titles) remains visible in print. */
+  /* Restore accordion toggle buttons hidden by the broad .btn rule above so
+     their section title text remains visible in print. */
   .panel-heading .btn,
   .panel-heading button,
   .panel-title > button,
