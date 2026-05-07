@@ -5,6 +5,7 @@
 import { Controllers as controllers } from '../CoreController';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
+import { getRouteParam } from '../utilities/RequestParamUtils';
 
 // sails is available globally via sails.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
@@ -29,7 +30,7 @@ export namespace Controllers {
     /** 9.1 Return current draft/active branding config + logo meta */
     async config(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = req.params['branding'];
+        const branding = getRouteParam(req, 'branding');
         const brand = BrandingService.getBrand(branding);
         if (!brand) return res.status(404).json({ error: 'branding-not-found' });
         return res.ok({ branding: brand });
@@ -41,7 +42,7 @@ export namespace Controllers {
 
     /** 9.2 Save draft variables */
     async draft(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
+      const branding = getRouteParam(req, 'branding');
       const actor = req.user;
       // Validate variables if provided
       const variablesInput = req.body?.variables;
@@ -65,8 +66,8 @@ export namespace Controllers {
 
     /** 9.3 Create preview token */
     async preview(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
-      const portal = req.params['portal'];
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
       try {
         const { token, url, hash } = await BrandingService.preview(branding, portal);
         let brandConfig: unknown = null;
@@ -86,8 +87,8 @@ export namespace Controllers {
 
     /** 9.4 Publish draft */
     async publish(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
-      const portal = req.params['portal'];
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
       const actor = req.user;
       try {
         const expectedVersion = req.body?.expectedVersion;
@@ -103,8 +104,8 @@ export namespace Controllers {
 
     /** 9.5 Upload logo */
     async logo(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
-      const portal = req.params['portal'];
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
       try {
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
           return res.badRequest({ error: 'no-file' });
