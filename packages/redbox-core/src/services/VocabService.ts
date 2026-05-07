@@ -20,6 +20,12 @@
 import { Observable, of, from } from 'rxjs';
 import { mergeMap as flatMap, last, concatMap, delay } from 'rxjs/operators';
 import { SearchService } from '../SearchService';
+import type {
+  VocabServiceLookupConfig,
+  VocabServiceLookupOption,
+  VocabServiceLookupRequest,
+  VocabServiceLookupResponse,
+} from '../config/vocab.config';
 import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
@@ -32,6 +38,19 @@ export namespace Services {
   type VocabUserContext = Record<string, unknown> & { additionalInfoFound?: AdditionalInfoRecord[]; additionalAttributes?: Record<string, unknown>; name?: string };
   type MintTriggerOptions = { sourceType?: string; queryString?: string; fieldsToMap?: string[] };
   type ExternalServiceParams = { options: Record<string, unknown>; postBody?: unknown };
+  type ServiceLookupRequestParams = {
+    search: string;
+    start: number;
+    rows: number;
+    branding: string;
+    portal: string;
+    brand: BrandingModel;
+    user?: Record<string, unknown> | null;
+  };
+  type ServiceLookupErrorCode =
+    | 'service-lookup-not-configured'
+    | 'service-lookup-invalid-target'
+    | 'service-lookup-invalid-response';
   type ManagedVocabulary = { id: string | number };
   type ManagedVocabularyEntry = {
     label?: unknown;
@@ -53,12 +72,13 @@ export namespace Services {
       'bootstrap',
       'getVocab',
       'loadCollection',
-      'findCollection',
-      'findInMint',
-      'findInExternalService',
-      'rvaGetResourceDetails',
-      'findInMintTriggerWrapper',
-      'findRecords'
+        'findCollection',
+        'findInMint',
+        'findInExternalService',
+        'findInServiceLookup',
+        'rvaGetResourceDetails',
+        'findInMintTriggerWrapper',
+        'findRecords'
     ];
 
     /** @deprecated Legacy bootstrap flow for deprecated vocab API. */
@@ -188,6 +208,53 @@ export namespace Services {
       return {};
     }
 
+    public async findInServiceLookup(serviceId: string, requestParams: ServiceLookupRequestParams): Promise<VocabServiceLookupResponse> {
+      const normalizedServiceId = String(serviceId ?? '').trim();
+      const serviceConfig = sails.config.vocab.services?.[normalizedServiceId] as VocabServiceLookupConfig | undefined;
+      if (!serviceConfig) {
+        throw this.createServiceLookupError(
+          'service-lookup-not-configured',
+          `No service lookup configured for '${normalizedServiceId}'.`
+        );
+      }
+
+      const serviceName = String(serviceConfig.serviceName ?? '').trim();
+      const methodName = String(serviceConfig.methodName ?? '').trim();
+      if (!serviceName || !methodName) {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-target',
+          `Service lookup '${normalizedServiceId}' has an invalid target configuration.`
+        );
+      }
+
+      const targetService = sails.services?.[serviceName.toLowerCase()] as Record<string, unknown> | undefined;
+      const targetMethod = targetService?.[methodName];
+      if (!targetService || typeof targetMethod !== 'function') {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-target',
+          `Service lookup '${normalizedServiceId}' could not resolve ${serviceName}.${methodName}().`
+        );
+      }
+
+      const lookupRequest: VocabServiceLookupRequest = {
+        serviceId: normalizedServiceId,
+        search: String(requestParams.search ?? ''),
+        start: requestParams.start,
+        rows: requestParams.rows,
+        branding: String(requestParams.branding ?? ''),
+        portal: String(requestParams.portal ?? ''),
+        brand: requestParams.brand,
+        user: this.isPlainObject(requestParams.user) ? requestParams.user : {},
+        options: serviceConfig.options ?? {},
+      };
+
+      const response = await (targetMethod as (request: VocabServiceLookupRequest) => Promise<unknown>).call(
+        targetService,
+        lookupRequest
+      );
+      return this.normalizeServiceLookupResponse(normalizedServiceId, response);
+    }
+
     buildNamedQueryParamMap(queryConfig: VocabQueryConfig, searchString: string, user: VocabUserContext): Record<string, unknown> {
       const paramMap: Record<string, unknown> = {}
       if (queryConfig.queryField.type == 'text') {
@@ -226,6 +293,110 @@ export namespace Services {
       }
 
       return query;
+    }
+
+    private normalizeServiceLookupResponse(serviceId: string, response: unknown): VocabServiceLookupResponse {
+      if (!this.isPlainObject(response)) {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' returned a non-object response.`
+        );
+      }
+
+      const data = response['data'];
+      if (!Array.isArray(data)) {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' response is missing a data array.`
+        );
+      }
+
+      const normalized: VocabServiceLookupResponse = {
+        data: data.map((item, index) => this.normalizeServiceLookupOption(serviceId, item, index)),
+      };
+
+      if (response['meta'] !== undefined) {
+        if (!this.isPlainObject(response['meta'])) {
+          throw this.createServiceLookupError(
+            'service-lookup-invalid-response',
+            `Service lookup '${serviceId}' response meta must be an object.`
+          );
+        }
+        normalized.meta = response['meta'];
+      }
+
+      return normalized;
+    }
+
+    private normalizeServiceLookupOption(serviceId: string, item: unknown, index: number): VocabServiceLookupOption {
+      if (!this.isPlainObject(item)) {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' returned a non-object option at index ${index}.`
+        );
+      }
+
+      const label = this.normalizeServiceLookupString(item['label']);
+      const value = this.normalizeServiceLookupString(item['value']);
+      if (!label || !value) {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' returned an option without a valid label/value at index ${index}.`
+        );
+      }
+
+      if (item['historical'] !== undefined && typeof item['historical'] !== 'boolean') {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' returned a non-boolean historical flag at index ${index}.`
+        );
+      }
+
+      if (item['disabled'] !== undefined && typeof item['disabled'] !== 'boolean') {
+        throw this.createServiceLookupError(
+          'service-lookup-invalid-response',
+          `Service lookup '${serviceId}' returned a non-boolean disabled flag at index ${index}.`
+        );
+      }
+
+      const normalized: VocabServiceLookupOption = {
+        label,
+        value,
+        sourceType: 'service',
+      };
+
+      if (item['historical'] === true) {
+        normalized.historical = true;
+      }
+      if (item['disabled'] === true) {
+        normalized.disabled = true;
+      }
+      if (Object.prototype.hasOwnProperty.call(item, 'raw')) {
+        normalized.raw = item['raw'];
+      }
+
+      return normalized;
+    }
+
+    private normalizeServiceLookupString(value: unknown): string | null {
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed ? trimmed : null;
+      }
+      if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+        return String(value);
+      }
+      return null;
+    }
+
+    private isPlainObject(value: unknown): value is Record<string, unknown> {
+      return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+
+    private createServiceLookupError(code: ServiceLookupErrorCode, message: string): Error & { code: ServiceLookupErrorCode } {
+      const error = new Error(message) as Error & { code: ServiceLookupErrorCode };
+      error.code = code;
+      return error;
     }
 
     getResultObjectMappings(results: Record<string, unknown>, queryConfig: VocabQueryConfig): Array<Record<string, unknown>> {

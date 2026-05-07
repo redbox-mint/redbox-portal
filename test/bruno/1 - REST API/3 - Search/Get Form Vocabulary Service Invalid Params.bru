@@ -1,0 +1,37 @@
+meta {
+  name: Get Form Vocabulary Service Invalid Params
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/default/rdmp/service/vocab/integrationContributors
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "search": "smith",
+    "start": -1,
+    "rows": 0
+  }
+}
+
+tests {
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Error code is invalid-query-params", function () {
+      const jsonData = res.getBody();
+      const err = jsonData.errors[0];
+      expect(err.code).to.equal('invalid-query-params');
+  });
+}

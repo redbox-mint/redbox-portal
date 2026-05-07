@@ -10,7 +10,8 @@ export namespace Controllers {
       'entries',
       'children',
       'getRecords',
-      'externalEntries'
+      'externalEntries',
+      'serviceEntries'
     ];
 
     public async get(req: Sails.Req, res: Sails.Res): Promise<unknown> {
@@ -232,6 +233,68 @@ export namespace Controllers {
         });
       } catch (error) {
         sails.log.verbose('Error getting external vocabulary entries:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'query-vocab-failed' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async serviceEntries(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      const serviceId = String(req.param('serviceId') ?? '').trim();
+      const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+        ? req.body as Record<string, unknown>
+        : {};
+      const rawStart = body['start'] ?? req.param('start') ?? 0;
+      const rawRows = body['rows'] ?? req.param('rows') ?? 25;
+      const search = String(body['search'] ?? req.param('search') ?? '');
+      const start = rawStart === '' ? 0 : Number(rawStart);
+      const rows = rawRows === '' ? 25 : Number(rawRows);
+
+      if (!serviceId || !Number.isInteger(start) || start < 0 || !Number.isInteger(rows) || rows <= 0) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-query-params' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const response = await VocabService.findInServiceLookup(serviceId, {
+          search,
+          start,
+          rows,
+          branding: String(req.param('branding') ?? req.session.branding ?? ''),
+          portal: String(req.param('portal') ?? ''),
+          brand,
+          user: req.user && typeof req.user === 'object' ? req.user as Record<string, unknown> : {}
+        });
+        return this.sendResp(req, res, {
+          data: response.data,
+          meta: response.meta,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'service-lookup-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (errorCode === 'service-lookup-invalid-target' || errorCode === 'service-lookup-invalid-response') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        sails.log.verbose('Error getting service vocabulary entries:');
         sails.log.verbose(error);
         return this.sendResp(req, res, {
           status: 500,

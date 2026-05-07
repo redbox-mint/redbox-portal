@@ -176,6 +176,21 @@ module.exports = {
       disabled: true
     }
   },
+  vocab: {
+    services: {
+      integrationContributors: {
+        serviceName: 'TestLookupService',
+        methodName: 'lookupContributors',
+        options: {
+          includeInactive: true
+        }
+      },
+      integrationInvalidResponse: {
+        serviceName: 'TestLookupService',
+        methodName: 'lookupInvalidResponse'
+      }
+    }
+  },
   companion: {
     enabled: isCompanionEnabledWithValidCredentials(),
     route: '/companion',

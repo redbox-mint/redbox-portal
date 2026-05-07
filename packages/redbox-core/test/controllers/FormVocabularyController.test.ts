@@ -27,6 +27,7 @@ describe('FormVocabularyController', () => {
         vocabservice: {
           findRecords: sinon.stub(),
           findInExternalService: sinon.stub(),
+          findInServiceLookup: sinon.stub(),
         },
         brandingservice: {
           getBrand: sinon.stub().returns({ id: 'default' }),
@@ -274,5 +275,81 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.status).to.equal(500);
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-failed');
+  });
+
+  it('returns 400 for serviceEntries when params are invalid', async () => {
+    const req = makeReq({ serviceId: '' }, { body: { start: -1, rows: 0 } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.serviceEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-query-params');
+  });
+
+  it('returns 404 when service lookup is not configured', async () => {
+    const error = new Error('missing') as Error & { code?: string };
+    error.code = 'service-lookup-not-configured';
+    (global as any).VocabService.findInServiceLookup.rejects(error);
+    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'missing' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.serviceEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('service-lookup-not-configured');
+  });
+
+  it('proxies serviceEntries to VocabService.findInServiceLookup', async () => {
+    (global as any).VocabService.findInServiceLookup.resolves({
+      data: [{ label: 'Jane Doe', value: 'party-1', sourceType: 'service' }],
+      meta: { total: 1 }
+    });
+    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 5, rows: 10 } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.serviceEntries(req, {} as Sails.Res);
+
+    expect((global as any).VocabService.findInServiceLookup.calledOnce).to.equal(true);
+    expect((global as any).VocabService.findInServiceLookup.firstCall.args[0]).to.equal('contributors');
+    expect((global as any).VocabService.findInServiceLookup.firstCall.args[1]).to.include({
+      search: 'jan',
+      start: 5,
+      rows: 10,
+      branding: 'default',
+      portal: 'rdmp'
+    });
+    expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
+    expect(sendResp.firstCall.args[2]?.meta?.total).to.equal(1);
+  });
+
+  it('returns 500 when service lookup target is invalid', async () => {
+    const error = new Error('bad target') as Error & { code?: string };
+    error.code = 'service-lookup-invalid-target';
+    (global as any).VocabService.findInServiceLookup.rejects(error);
+    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.serviceEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(500);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('service-lookup-invalid-target');
+  });
+
+  it('returns 500 when service lookup response is invalid', async () => {
+    const error = new Error('bad response') as Error & { code?: string };
+    error.code = 'service-lookup-invalid-response';
+    (global as any).VocabService.findInServiceLookup.rejects(error);
+    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.serviceEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(500);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('service-lookup-invalid-response');
   });
 });

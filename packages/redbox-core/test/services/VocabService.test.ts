@@ -26,6 +26,13 @@ describe('VocabService', function () {
               options: {}
             }
           },
+          services: {
+            testLookup: {
+              serviceName: 'LookupTestService',
+              methodName: 'lookupPeople',
+              options: { includeInactive: true }
+            }
+          },
           queries: {
             testQuery: {
               querySource: 'database',
@@ -75,6 +82,14 @@ describe('VocabService', function () {
       services: {
         solrsearchservice: {
           searchAdvanced: sinon.stub().resolves({ response: { docs: [] } })
+        },
+        lookuptestservice: {
+          lookupPeople: sinon.stub().resolves({
+            data: [
+              { label: 'Jane Doe', value: 'party-1', raw: { id: 'party-1' } }
+            ],
+            meta: { total: 1 }
+          })
         }
       }
     });
@@ -259,6 +274,118 @@ describe('VocabService', function () {
     });
   });
 
+  describe('findInServiceLookup', function () {
+    it('returns normalized service lookup response', async function () {
+      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [], supportAgreementInformation: { getYear: () => ({ agreedSupportDays: 0, usedSupportDays: 0 }) } };
+      const response = await VocabService.findInServiceLookup('testLookup', {
+        search: 'jan',
+        start: 0,
+        rows: 25,
+        branding: 'default',
+        portal: 'rdmp',
+        brand,
+        user: { username: 'user1' }
+      });
+
+      expect(response).to.deep.equal({
+        data: [
+          { label: 'Jane Doe', value: 'party-1', sourceType: 'service', raw: { id: 'party-1' } }
+        ],
+        meta: { total: 1 }
+      });
+      expect(mockSails.services.lookuptestservice.lookupPeople.calledOnce).to.be.true;
+      const requestArg = mockSails.services.lookuptestservice.lookupPeople.firstCall.args[0];
+      expect(requestArg).to.include({
+        serviceId: 'testLookup',
+        search: 'jan',
+        start: 0,
+        rows: 25,
+        branding: 'default',
+        portal: 'rdmp'
+      });
+      expect(requestArg.options).to.deep.equal({ includeInactive: true });
+    });
+
+    it('rejects unknown service lookup ids', async function () {
+      try {
+        await VocabService.findInServiceLookup('missingLookup', {
+          search: '',
+          start: 0,
+          rows: 25,
+          branding: 'default',
+          portal: 'rdmp',
+          brand: { id: 'brand-1' },
+          user: {}
+        });
+        throw new Error('Expected missing lookup to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('service-lookup-not-configured');
+      }
+    });
+
+    it('rejects missing target service methods', async function () {
+      mockSails.config.vocab.services.badTarget = {
+        serviceName: 'LookupTestService',
+        methodName: 'missingMethod'
+      };
+
+      try {
+        await VocabService.findInServiceLookup('badTarget', {
+          search: '',
+          start: 0,
+          rows: 25,
+          branding: 'default',
+          portal: 'rdmp',
+          brand: { id: 'brand-1' },
+          user: {}
+        });
+        throw new Error('Expected invalid target to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('service-lookup-invalid-target');
+      }
+    });
+
+    it('rejects invalid service lookup responses', async function () {
+      mockSails.services.lookuptestservice.lookupPeople.resolves({ meta: { total: 0 } });
+
+      try {
+        await VocabService.findInServiceLookup('testLookup', {
+          search: '',
+          start: 0,
+          rows: 25,
+          branding: 'default',
+          portal: 'rdmp',
+          brand: { id: 'brand-1' },
+          user: {}
+        });
+        throw new Error('Expected invalid response to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('service-lookup-invalid-response');
+      }
+    });
+
+    it('rejects invalid service lookup options', async function () {
+      mockSails.services.lookuptestservice.lookupPeople.resolves({
+        data: [{ label: '', value: 'party-1' }]
+      });
+
+      try {
+        await VocabService.findInServiceLookup('testLookup', {
+          search: '',
+          start: 0,
+          rows: 25,
+          branding: 'default',
+          portal: 'rdmp',
+          brand: { id: 'brand-1' },
+          user: {}
+        });
+        throw new Error('Expected invalid option to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('service-lookup-invalid-response');
+      }
+    });
+  });
+
   describe('getResultObjectMappings', function () {
     it('should map results using template', function () {
       const results = { records: [{ title: 'Title 1' }] };
@@ -285,6 +412,7 @@ describe('VocabService', function () {
       expect(exported).to.have.property('findCollection');
       expect(exported).to.have.property('findInMint');
       expect(exported).to.have.property('findInExternalService');
+      expect(exported).to.have.property('findInServiceLookup');
       expect(exported).to.have.property('rvaGetResourceDetails');
       expect(exported).to.have.property('findInMintTriggerWrapper');
       expect(exported).to.have.property('findRecords');
