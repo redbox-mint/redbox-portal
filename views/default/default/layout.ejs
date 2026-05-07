@@ -27,6 +27,9 @@
   <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
   <% } %>
+  <!-- Print stylesheet served as a static asset so it can be updated independently of the
+       MongoDB-cached theme.css (which only refreshes on admin republish). -->
+  <link rel="stylesheet" media="print" href="<%= BrandingService.getRootContext() %>/styles/print.css">
 
   <!-- Current latest jQuery -->
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>

@@ -18,18 +18,18 @@ describe('FormVocabularyController', () => {
   beforeEach(() => {
     (global as any).sails = {
       log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() },
-        services: {
-          vocabularyservice: {
-            getByIdOrSlug: sinon.stub(),
-            getEntries: sinon.stub(),
-            getChildren: sinon.stub(),
-          },
-          vocabservice: {
-            findRecords: sinon.stub(),
-            findInExternalService: sinon.stub(),
-          },
-          brandingservice: {
-            getBrand: sinon.stub().returns({ id: 'default' }),
+      services: {
+        vocabularyservice: {
+          getByIdOrSlug: sinon.stub(),
+          getEntries: sinon.stub(),
+          getChildren: sinon.stub(),
+        },
+        vocabservice: {
+          findRecords: sinon.stub(),
+          findInExternalService: sinon.stub(),
+        },
+        brandingservice: {
+          getBrand: sinon.stub().returns({ id: 'default' }),
         },
       },
       config: { auth: { defaultBrand: 'default' } },
@@ -108,6 +108,20 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
     expect(sendResp.firstCall.args[2]?.meta?.vocabularyId).to.equal('v1');
+  });
+
+  it('forwards includeHistoricalValues to entries service when requested', async () => {
+    (global as any).VocabularyService.getEntries.resolves({
+      entries: [{ id: 'e1', label: 'Open', value: 'open' }],
+      meta: { total: 1, limit: 200, offset: 0, vocabularyId: 'v1' },
+    });
+    const req = makeReq({ branding: 'default', vocabIdOrSlug: 'access-rights', includeHistoricalValues: 'true' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.entries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect((global as any).VocabularyService.getEntries.firstCall.args[2]?.includeHistoricalValues).to.equal(true);
   });
 
   it('returns 400 for children when vocabIdOrSlug is missing', async () => {

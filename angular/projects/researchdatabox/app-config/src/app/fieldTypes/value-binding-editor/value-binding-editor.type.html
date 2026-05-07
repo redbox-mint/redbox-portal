@@ -1,0 +1,111 @@
+<div
+  class="card binding-card mb-2"
+  [class.configured]="isConfigured"
+  [class.has-default-only]="!isConfigured && hasDefault"
+>
+  <!-- Clickable header row: collapse toggle + field label + summary -->
+  <div
+    class="binding-header d-flex align-items-center py-2 px-3"
+    role="button"
+    tabindex="0"
+    (click)="toggleCollapsed()"
+    (keydown.enter)="toggleCollapsed()"
+    (keydown.space)="$event.preventDefault(); toggleCollapsed()"
+  >
+    <i class="fa fa-fw me-1" [class.fa-chevron-right]="collapsed" [class.fa-chevron-down]="!collapsed"></i>
+    <div class="d-flex flex-column">
+      <span class="fw-semibold">{{ fieldLabel }}</span>
+      <span class="small text-muted text-uppercase">Field Key: {{ fieldKey }}</span>
+    </div>
+    @if (collapsed) { @if (isConfigured) {
+    <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
+      <span class="text-truncate" style="max-width: 400px">&larr; {{ summarySource }}</span>
+      @if (kind !== 'path') {
+      <span class="badge bg-secondary binding-badge">{{ kind }}</span>
+      } @if (hasDefault) {
+      <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+      }
+    </span>
+    } @else { @if (hasDefault) {
+    <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
+      <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+    </span>
+    } @else {
+    <span class="text-muted ms-auto fst-italic small">not mapped</span>
+    } } }
+  </div>
+
+  <!-- Expanded editor body -->
+  @if (!collapsed) {
+  <div class="card-body pt-2 pb-3 px-3 border-top">
+    @if (showAdvanced || kind !== 'path') {
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-kind'">Binding Type</label>
+      <select
+        class="form-select form-select-sm"
+        [attr.id]="fieldKey + '-kind'"
+        [value]="kind"
+        (change)="updateField('kind', $any($event.target).value)"
+      >
+        @for (bindingKind of bindingKinds; track bindingKind) {
+        <option [value]="bindingKind">{{ bindingKind }}</option>
+        }
+      </select>
+    </div>
+    } @if (kind === 'path') {
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-path'">Record Path</label>
+      <input
+        [attr.id]="fieldKey + '-path'"
+        class="form-control form-control-sm"
+        type="text"
+        [value]="value.path || ''"
+        (input)="updateField('path', $any($event.target).value)"
+        placeholder="e.g. record.metadata.field_name"
+      />
+    </div>
+    } @if (kind === 'handlebars') {
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-template'">Handlebars Template</label>
+      <textarea
+        [attr.id]="fieldKey + '-template'"
+        class="form-control form-control-sm"
+        rows="2"
+        [value]="value.template || ''"
+        (input)="updateField('template', $any($event.target).value)"
+      ></textarea>
+    </div>
+    } @if (kind === 'jsonata') {
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-expression'">JSONata Expression</label>
+      <textarea
+        [attr.id]="fieldKey + '-expression'"
+        class="form-control form-control-sm"
+        rows="2"
+        [value]="value.expression || ''"
+        (input)="updateField('expression', $any($event.target).value)"
+      ></textarea>
+    </div>
+    }
+
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-default-value'">Default Value</label>
+      <input
+        [attr.id]="fieldKey + '-default-value'"
+        class="form-control form-control-sm"
+        type="text"
+        [value]="value.defaultValue || ''"
+        (input)="updateField('defaultValue', $any($event.target).value)"
+      />
+    </div>
+
+    @if (!showAdvanced && kind === 'path') {
+    <div class="text-end mt-1">
+      <button type="button" class="btn btn-link btn-sm text-muted p-0" (click)="toggleAdvanced()">
+        <i class="fa fa-cog me-1"></i>Advanced
+      </button>
+    </div>
+    }
+  </div>
+  }
+</div>

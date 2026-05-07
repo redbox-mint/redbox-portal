@@ -191,6 +191,16 @@ describe('FormsService', function () {
       expect(result).to.deep.equal(form);
     });
 
+    it('should fall back to the default branding when none is provided', async function () {
+      const form = { name: 'form1', fields: [] };
+      mockForm.findOne.returns(createQueryObject(form));
+
+      const result = await FormsService.getFormByName('form1', false).toPromise();
+
+      expect(mockForm.findOne.calledWith({ name: 'form1', branding: 'default-brand' })).to.be.true;
+      expect(result).to.deep.equal(form);
+    });
+
     it('should return null if form not found', async function () {
       mockForm.findOne.returns(createQueryObject(null));
 

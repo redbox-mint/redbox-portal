@@ -1,5 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService, ModifyOptions } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventConsumer } from './form-component-change-event-consumer';
@@ -27,7 +27,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     });
 
     eventStream$ = new Subject();
-    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$']);
+    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
     eventBus.select$.and.returnValue(eventStream$.asObservable());
 
     consumer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventConsumer(eventBus));
@@ -114,6 +114,45 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(control.value).toBe('newValue');
   }));
 
+  it('should broadcast form status after silent model updates', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'model-update-broadcast-status',
+      config: {
+        target: 'model.value',
+        condition: 'otherField',
+        conditionKind: ExpressionsConditionKind.JSONPointer,
+        template: ''
+      }
+    };
+    const { control, definition, component } = createSetup([expr]);
+    control.addValidators(Validators.required);
+    control.updateValueAndValidity();
+    const formComponent = {
+      getQuerySource: () => undefined,
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+    };
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    consumer.formComponent = formComponent as any;
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'newValue',
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(control.value).toBe('newValue');
+    expect(control.valid).toBeTrue();
+    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+  }));
+
   it('should not update model value if unchanged', fakeAsync(() => {
     const expr: FormExpressionsConfigFrame = {
       name: 'model-update',
@@ -126,9 +165,14 @@ describe('FormComponentValueChangeEventConsumer', () => {
     };
     const { control, definition, component } = createSetup([expr]);
     control.setValue('sameValue');
+    const formComponent = {
+      getQuerySource: () => undefined,
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
+    };
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
     const setValueSpy = spyOn(control, 'setValue').and.callThrough();
+    consumer.formComponent = formComponent as any;
 
     consumer.bind({ component, definition });
 
@@ -144,6 +188,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     tick();
 
     expect(setValueSpy).not.toHaveBeenCalled();
+    expect(formComponent.broadcastFormStatus).not.toHaveBeenCalled();
   }));
 
   it('should resync component display after silent model updates', fakeAsync(() => {

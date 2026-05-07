@@ -8,6 +8,7 @@ import { DefaultLayoutComponent } from './component/default-layout.component';
 import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
+import { SuggestedValidationSummaryFieldComponent } from './component/suggested-validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
 import { ContentComponent } from './component/content.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
@@ -69,6 +70,7 @@ import {
   ContentComponentName,
   SimpleInputComponentName,
   ValidationSummaryComponentName,
+  SuggestedValidationSummaryComponentName,
   TabContentComponentName,
   TabComponentName,
   CheckboxInputComponentName,
@@ -117,6 +119,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [ContentComponentName]: ContentComponent,
   [SimpleInputComponentName]: SimpleInputComponent,
   [ValidationSummaryComponentName]: ValidationSummaryFieldComponent,
+  [SuggestedValidationSummaryComponentName]: SuggestedValidationSummaryFieldComponent,
   [TabContentComponentName]: TabContentComponent,
   [TabComponentName]: TabComponent,
   [AccordionComponentName]: AccordionComponent,

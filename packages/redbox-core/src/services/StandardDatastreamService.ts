@@ -10,12 +10,8 @@ import type { Services as StorageManagerServices } from './StorageManagerService
 
 type IDisk = StorageManagerServices.IDisk;
 
-type FormLookup = {
-  attachmentFields: string[];
-};
-
 type RecordWithMetadata = {
-  metaMetadata: { form: string; attachmentFields?: string[] };
+  metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
   metadata: Record<string, unknown>;
 };
 
@@ -40,13 +36,6 @@ export namespace Services {
 
     protected logHeader: string = 'StandardDatastreamService::';
 
-    private getFormsService(): { getFormByName(formName: string, editMode: boolean): Observable<FormLookup | null> } {
-      const svc = FormsService as { getFormByName(formName: string, editMode: boolean): Observable<FormLookup | null> };
-      if (!svc) {
-        throw new Error(`${this.logHeader} FormsService is not available`);
-      }
-      return svc;
-    }
 
     /**
      * Build the storage key for a file: `{oid}/{fileId}`
@@ -98,39 +87,40 @@ export namespace Services {
       const typedRecord = this.coerceRecord(record);
       const typedNewMetadata = this.coerceMetadata(newMetadata);
 
-      return this.getFormsService()
-        .getFormByName(typedRecord.metaMetadata.form, true)
+      return FormsService
+        .getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId)
         .pipe(
           mergeMap(form => {
-            const safeForm = form ?? { attachmentFields: [] };
+
             const reqs: Promise<unknown>[] = [];
-            typedRecord.metaMetadata.attachmentFields = safeForm.attachmentFields;
+            if (form?.attachmentFields) {
+              typedRecord.metaMetadata.attachmentFields = form.attachmentFields;
 
-            for (const attField of safeForm.attachmentFields) {
-              const perFieldFileIdsAdded: Datastream[] = [];
-              const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
-              const newAttachments = this.getAttachments(typedNewMetadata, attField);
-              const removeIds: Datastream[] = [];
+              for (const attField of form.attachmentFields) {
+                const perFieldFileIdsAdded: Datastream[] = [];
+                const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
+                const newAttachments = this.getAttachments(typedNewMetadata, attField);
+                const removeIds: Datastream[] = [];
 
-              const toRemove = this.diffAttachments(oldAttachments, newAttachments);
-              for (const removeAtt of toRemove) {
-                if (this.isAttachment(removeAtt)) {
-                  removeIds.push(new Datastream(removeAtt));
+                const toRemove = this.diffAttachments(oldAttachments, newAttachments);
+                for (const removeAtt of toRemove) {
+                  if (this.isAttachment(removeAtt)) {
+                    removeIds.push(new Datastream(removeAtt));
+                  }
                 }
-              }
 
-              const toAdd = this.diffAttachments(newAttachments, oldAttachments);
-              for (const addAtt of toAdd) {
-                if (this.isAttachment(addAtt)) {
-                  perFieldFileIdsAdded.push(new Datastream(addAtt));
+                const toAdd = this.diffAttachments(newAttachments, oldAttachments);
+                for (const addAtt of toAdd) {
+                  if (this.isAttachment(addAtt)) {
+                    perFieldFileIdsAdded.push(new Datastream(addAtt));
+                  }
                 }
+
+                fileIdsAdded.push(...perFieldFileIdsAdded);
+
+                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
               }
-
-              fileIdsAdded.push(...perFieldFileIdsAdded);
-
-              reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
             }
-
             return of(reqs);
           })
         );
@@ -144,11 +134,12 @@ export namespace Services {
       const metaMetadata = rec.metaMetadata as Record<string, unknown> | undefined;
       const metadata = rec.metadata as Record<string, unknown> | undefined;
       const form = typeof metaMetadata?.form === 'string' ? metaMetadata.form : '';
+      const brandId = typeof metaMetadata?.brandId === 'string' ? metaMetadata.brandId : undefined;
       const attachmentFields = Array.isArray(metaMetadata?.attachmentFields)
         ? (metaMetadata?.attachmentFields as string[])
         : undefined;
       return {
-        metaMetadata: { form, attachmentFields },
+        metaMetadata: { form, brandId, attachmentFields },
         metadata: metadata ?? {},
       };
     }

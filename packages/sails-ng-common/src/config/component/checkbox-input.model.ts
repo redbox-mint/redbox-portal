@@ -1,14 +1,15 @@
-import {FieldModelConfig, FieldModelDefinition} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
+import { FieldModelConfig, FieldModelDefinition } from "../field-model.model";
+import { FormComponentDefinition } from "../form-component.model";
+import { FormConfigVisitorOutline } from "../visitor/base.outline";
 import {
     FieldComponentConfigKind,
     FieldComponentDefinitionKind,
     FieldModelConfigKind,
     FieldModelDefinitionKind, FormComponentDefinitionKind
 } from "../shared.outline";
-import {FieldComponentConfig, FieldComponentDefinition} from "../field-component.model";
-import {AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FieldComponentConfig, FieldComponentDefinition } from "../field-component.model";
+import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import type { HistoricalVocabMode } from "./dropdown-input.outline";
 import {
     CheckboxInputComponentName,
     CheckboxInputFieldComponentConfigOutline,
@@ -27,6 +28,7 @@ export class CheckboxInputFieldComponentConfig extends FieldComponentConfig impl
     multipleValues?: boolean;
     vocabRef?: string;
     inlineVocab?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 
     constructor() {
         super();
@@ -88,11 +90,11 @@ export class CheckboxInputFormComponentDefinition extends FormComponentDefinitio
 }
 
 export const CheckboxInputMap = [
-    {kind: FieldComponentConfigKind, def: CheckboxInputFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: CheckboxInputFieldComponentDefinition, class: CheckboxInputComponentName},
-    {kind: FieldModelConfigKind, def: CheckboxInputFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: CheckboxInputFieldModelDefinition, class: CheckboxInputModelName},
-    {kind: FormComponentDefinitionKind, def: CheckboxInputFormComponentDefinition, class: CheckboxInputComponentName},
+    { kind: FieldComponentConfigKind, def: CheckboxInputFieldComponentConfig },
+    { kind: FieldComponentDefinitionKind, def: CheckboxInputFieldComponentDefinition, class: CheckboxInputComponentName },
+    { kind: FieldModelConfigKind, def: CheckboxInputFieldModelConfig },
+    { kind: FieldModelDefinitionKind, def: CheckboxInputFieldModelDefinition, class: CheckboxInputModelName },
+    { kind: FormComponentDefinitionKind, def: CheckboxInputFormComponentDefinition, class: CheckboxInputComponentName },
 ];
 export const CheckboxInputDefaults = {
     [FormComponentDefinitionKind]: {

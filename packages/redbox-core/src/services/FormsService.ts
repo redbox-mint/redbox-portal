@@ -226,8 +226,9 @@ export namespace Services {
 
     public getFormByName = (formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null> => {
       const query: Record<string, unknown> = { name: formName };
-      if (brandingId) {
-        query.branding = brandingId;
+      const resolvedBrandingId = brandingId?.trim() || BrandingService.getDefault()?.id?.toString().trim() || '';
+      if (resolvedBrandingId) {
+        query.branding = resolvedBrandingId;
       }
       return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
         if (form) {
@@ -608,7 +609,9 @@ export namespace Services {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-      await vocabVisitor.resolveVocabs(constructed, branding);
+      await vocabVisitor.resolveVocabs(constructed, branding, {
+        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+      });
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config

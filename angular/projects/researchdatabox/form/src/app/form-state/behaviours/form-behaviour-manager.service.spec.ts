@@ -96,6 +96,7 @@ describe('FormBehaviourManager', () => {
         },
       }),
       requestParams: () => ({}),
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus'),
     } as any;
 
     const setValueSpy = spyOn(targetControl, 'setValue').and.callThrough();
@@ -111,6 +112,7 @@ describe('FormBehaviourManager', () => {
     tick();
 
     expect(setValueSpy).toHaveBeenCalledWith('copied', { emitEvent: false });
+    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
   }));
 
   it('runs fetchMetadata processors and emits onError actions when a processor fails', fakeAsync(() => {

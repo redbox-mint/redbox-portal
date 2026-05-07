@@ -3,27 +3,25 @@ import {
     FormConfigFrame,
     FormModesConfig,
     ReusableFormDefinitions,
+  FormOverride,
+  GroupFieldComponentConfig,
+  GroupFieldComponentDefinition,
+  GroupFieldModelConfig,
+  GroupFieldModelDefinition,
+  GroupFormComponentDefinition,
+  PublishDataLocationSelectorFieldComponentConfig,
+  PublishDataLocationSelectorFieldComponentDefinition,
+  PublishDataLocationSelectorFieldModelConfig,
+  PublishDataLocationSelectorFieldModelDefinition,
+  PublishDataLocationSelectorFormComponentDefinition,
+  RepeatableFieldComponentConfig,
+  RepeatableFieldComponentDefinition,
+  RepeatableFieldModelConfig,
+  RepeatableFieldModelDefinition,
+  RepeatableFormComponentDefinition,
 } from "@researchdatabox/sails-ng-common";
-import {
-    FormOverride,
-    GroupFieldComponentConfig,
-    GroupFieldComponentDefinition,
-    GroupFieldModelConfig,
-    GroupFieldModelDefinition,
-    GroupFormComponentDefinition,
-    PublishDataLocationSelectorFieldComponentConfig,
-    PublishDataLocationSelectorFieldComponentDefinition,
-    PublishDataLocationSelectorFieldModelConfig,
-    PublishDataLocationSelectorFieldModelDefinition,
-    PublishDataLocationSelectorFormComponentDefinition,
-    RepeatableFieldComponentConfig,
-    RepeatableFieldComponentDefinition,
-    RepeatableFieldModelConfig,
-    RepeatableFieldModelDefinition,
-    RepeatableFormComponentDefinition,
-} from "../../../sails-ng-common/src";
 import { ConstructFormConfigVisitor } from "../../src";
-import { formConfigExample2 } from "./example-data";
+import {formConfigExample2, reusableFormDefinitionsExample2} from "./example-data";
 import { logger } from "./helpers";
 import {reusableFormDefinitions} from "../../src";
 
@@ -539,7 +537,7 @@ describe("Construct Visitor", async () => {
                 {
                     title: "expand reusable form config to standard form config in view mode",
                     args: {
-                        reusableFormDefs: reusableFormDefinitions,
+                        reusableFormDefs: reusableFormDefinitionsExample2,
                         formConfig: formConfigExample2,
                         formMode: "view",
                     },
@@ -566,7 +564,7 @@ describe("Construct Visitor", async () => {
                 {
                     title: "expand reusable form config to standard form config in edit mode",
                     args: {
-                        reusableFormDefs: reusableFormDefinitions,
+                        reusableFormDefs: reusableFormDefinitionsExample2,
                         formConfig: formConfigExample2,
                         formMode: "edit",
                     },
@@ -668,7 +666,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, `Repeatable element template overrides must result in exactly one item, got 3`);
@@ -694,7 +692,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
@@ -733,7 +731,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
@@ -762,7 +760,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
@@ -790,7 +788,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error);
@@ -820,7 +818,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -852,7 +850,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
@@ -881,7 +879,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
@@ -913,7 +911,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
@@ -954,7 +952,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             }
                 ;
@@ -989,7 +987,7 @@ describe("Construct Visitor", async () => {
                                 }
                             }
                         ]
-                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitions
+                    }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
             expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +

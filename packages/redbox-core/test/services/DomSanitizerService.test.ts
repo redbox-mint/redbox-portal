@@ -2,6 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { safeHtmlUriRegexp } from '../../src/config/dompurify.config';
 
 describe('DomSanitizerService', function() {
   let mockSails: any;
@@ -234,6 +235,24 @@ describe('DomSanitizerService', function() {
       const result = DomSanitizerService.sanitize(nestedSvg);
       
       expect(result.errors).to.include('excessive-nesting');
+    });
+  });
+
+  describe('safeHtmlUriRegexp', function() {
+    it('should allow expected safe absolute and relative URLs', function() {
+      expect(safeHtmlUriRegexp.test('https://example.org/path')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('http://example.org/path')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('ftp://example.org/file')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('ftps://example.org/file')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('mailto:test@example.org')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('tel:+61123456789')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('/relative/path')).to.equal(true);
+      expect(safeHtmlUriRegexp.test('../relative/path')).to.equal(true);
+    });
+
+    it('should block scriptable or embedded-data protocols', function() {
+      expect(safeHtmlUriRegexp.test('javascript:alert(1)')).to.equal(false);
+      expect(safeHtmlUriRegexp.test('data:text/html,<script>alert(1)</script>')).to.equal(false);
     });
   });
 });

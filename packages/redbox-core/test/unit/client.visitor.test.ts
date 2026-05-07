@@ -6,264 +6,510 @@ import {
   RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
-import { ClientFormConfigVisitor } from "../../src/visitor/client.visitor";
-import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
-import {reusableFormDefinitions, VocabInlineFormConfigVisitor} from "../../src";
+import {
+  reusableFormDefinitions, VocabInlineFormConfigVisitor,
+  ClientFormConfigVisitor, ConstructFormConfigVisitor, buildRelatedObjectsFieldDefinition,
+} from "../../src";
 
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
-  it(`should preserve repeatable zero-row config in client output`, async function () {
-    const args: FormConfigFrame = {
-      name: "repeatable-config-preserve",
-      componentDefinitions: [
-        {
-          name: "legacy_repeatable",
-          component: {
-            class: "RepeatableComponent",
-            config: {
-              addButtonShow: false,
-              allowZeroRows: true,
-              hideWhenZeroRows: true,
-              elementTemplate: {
-                name: "",
-                component: {
-                  class: "SimpleInputComponent",
+  describe("Repeatable Component", async () => {
+    it(`should preserve repeatable zero-row config in client output`, async function () {
+      const args: FormConfigFrame = {
+        name: "repeatable-config-preserve",
+        componentDefinitions: [
+          {
+            name: "legacy_repeatable",
+            component: {
+              class: "RepeatableComponent",
+              config: {
+                addButtonShow: false,
+                allowZeroRows: true,
+                hideWhenZeroRows: true,
+                elementTemplate: {
+                  name: "",
+                  component: {
+                    class: "SimpleInputComponent",
+                  },
                 },
               },
-            } as RepeatableFieldComponentConfigFrame,
-          },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: "edit",
-      reusableFormDefs: reusableFormDefinitions,
-    });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
-
-    expect(repeatableConfig.addButtonShow).to.equal(false);
-    expect(repeatableConfig.allowZeroRows).to.equal(true);
-    expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
-  });
-
-  it('should propagate syncSources through sharedPopulateFieldComponentConfig', () => {
-    const args: FormConfigFrame = {
-      name: 'repeatable-sync-sources-preserve',
-      componentDefinitions: [
-        {
-          name: 'contributor_dmp_permissions',
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              syncSources: [
-                {
-                  fieldName: 'contributor_ci_rhd',
-                  visibilityConditionField: 'project-type',
-                  visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
-                },
-                {
-                  fieldName: 'contributor_ci_not_rhd',
-                  visibilityConditionField: 'project-type',
-                  visibilityConditionValues: [
-                    '@dmpt-project-type-staff-val',
-                    '@dmpt-project-type-other-val',
-                  ],
-                },
-              ],
-              elementTemplate: {
-                name: '',
-                component: {
-                  class: 'SimpleInputComponent',
-                },
-              },
-            } as RepeatableFieldComponentConfigFrame,
-          },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: 'edit',
-      reusableFormDefs: reusableFormDefinitions,
-    });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
-
-    expect(repeatableConfig.syncSources).to.deep.equal([
-      {
-        fieldName: 'contributor_ci_rhd',
-        visibilityConditionField: 'project-type',
-        visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
-      },
-      {
-        fieldName: 'contributor_ci_not_rhd',
-        visibilityConditionField: 'project-type',
-        visibilityConditionValues: [
-          '@dmpt-project-type-staff-val',
-          '@dmpt-project-type-other-val',
-        ],
-      },
-    ]);
-  });
-
-  it('should keep numeric-like string values in repeatable group data', async function () {
-    const args: FormConfigFrame = {
-      name: 'repeatable-group-numeric-like',
-      componentDefinitions: [
-        {
-          name: 'dc:subject_anzsrc:for-2008',
-          model: {
-            class: 'RepeatableModel',
-            config: {
-              defaultValue: [
-                {
-                  'rdf:resource': 'http://purl.org/asc/1297.0/2008/seo/960808',
-                  type: 'for',
-                  name: '960808 - Marine Flora, Fauna and Biodiversity',
-                  label: 'Marine Flora, Fauna and Biodiversity',
-                  notation: '960808',
-                  geneaology: ['96', '9608'],
-                },
-              ],
             },
           },
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              addButtonShow: false,
-              allowZeroRows: true,
-              hideWhenZeroRows: true,
-              elementTemplate: {
-                name: '',
-                component: {
-                  class: 'GroupComponent',
-                  config: {
-                    componentDefinitions: [
-                      {
-                        name: 'name',
-                        component: { class: 'SimpleInputComponent' },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                      {
-                        name: 'rdf:resource',
-                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                      {
-                        name: 'type',
-                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                      {
-                        name: 'label',
-                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                      {
-                        name: 'notation',
-                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                      {
-                        name: 'geneaology',
-                        component: {
-                          class: 'RepeatableComponent',
-                          config: {
-                            addButtonShow: false,
-                            allowZeroRows: true,
-                            hideWhenZeroRows: true,
-                            elementTemplate: {
-                              name: '',
-                              component: {
-                                class: 'SimpleInputComponent',
-                                config: { type: 'hidden' },
-                              },
-                              model: {
-                                class: 'SimpleInputModel',
-                                config: {},
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: "edit",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
+
+      expect(repeatableConfig.addButtonShow).to.equal(false);
+      expect(repeatableConfig.allowZeroRows).to.equal(true);
+      expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
+    });
+
+    it('should propagate syncSources through sharedPopulateFieldComponentConfig', () => {
+      const args: FormConfigFrame = {
+        name: 'repeatable-sync-sources-preserve',
+        componentDefinitions: [
+          {
+            name: 'contributor_dmp_permissions',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                syncSources: [
+                  {
+                    fieldName: 'contributor_ci_rhd',
+                    visibilityConditionField: 'project-type',
+                    visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
+                  },
+                  {
+                    fieldName: 'contributor_ci_not_rhd',
+                    visibilityConditionField: 'project-type',
+                    visibilityConditionValues: [
+                      '@dmpt-project-type-staff-val',
+                      '@dmpt-project-type-other-val',
+                    ],
+                  },
+                ],
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'SimpleInputComponent',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
+
+      expect(repeatableConfig.syncSources).to.deep.equal([
+        {
+          fieldName: 'contributor_ci_rhd',
+          visibilityConditionField: 'project-type',
+          visibilityConditionValues: ['@dmpt-project-type-rhd-val'],
+        },
+        {
+          fieldName: 'contributor_ci_not_rhd',
+          visibilityConditionField: 'project-type',
+          visibilityConditionValues: [
+            '@dmpt-project-type-staff-val',
+            '@dmpt-project-type-other-val',
+          ],
+        },
+      ]);
+    });
+
+    it('should keep numeric-like string values in repeatable group data', async function () {
+      const args: FormConfigFrame = {
+        name: 'repeatable-group-numeric-like',
+        componentDefinitions: [
+          {
+            name: 'dc:subject_anzsrc:for-2008',
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                defaultValue: [
+                  {
+                    'rdf:resource': 'http://purl.org/asc/1297.0/2008/seo/960808',
+                    type: 'for',
+                    name: '960808 - Marine Flora, Fauna and Biodiversity',
+                    label: 'Marine Flora, Fauna and Biodiversity',
+                    notation: '960808',
+                    geneaology: ['96', '9608'],
+                  },
+                ],
+              },
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                addButtonShow: false,
+                allowZeroRows: true,
+                hideWhenZeroRows: true,
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: {class: 'SimpleInputComponent'},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                        {
+                          name: 'rdf:resource',
+                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                        {
+                          name: 'type',
+                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                        {
+                          name: 'label',
+                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                        {
+                          name: 'notation',
+                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                        {
+                          name: 'geneaology',
+                          component: {
+                            class: 'RepeatableComponent',
+                            config: {
+                              addButtonShow: false,
+                              allowZeroRows: true,
+                              hideWhenZeroRows: true,
+                              elementTemplate: {
+                                name: '',
+                                component: {
+                                  class: 'SimpleInputComponent',
+                                  config: {type: 'hidden'},
+                                },
+                                model: {
+                                  class: 'SimpleInputModel',
+                                  config: {},
+                                },
                               },
                             },
                           },
+                          model: {
+                            class: 'RepeatableModel',
+                            config: {},
+                          },
                         },
-                        model: {
-                          class: 'RepeatableModel',
-                          config: {},
+                      ],
+                    },
+                  },
+                  model: {
+                    class: 'GroupModel',
+                    config: {},
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
+
+      expect(value).to.have.length(1);
+      expect(value[0]).to.containSubset({
+        'rdf:resource': 'http://purl.org/asc/1297.0/2008/seo/960808',
+        type: 'for',
+        name: '960808 - Marine Flora, Fauna and Biodiversity',
+        label: 'Marine Flora, Fauna and Biodiversity',
+        notation: '960808',
+        geneaology: ['96', '9608'],
+      });
+    });
+
+    it('should map legacy value property to name for repeatable group rows', async function () {
+      const args: FormConfigFrame = {
+        name: 'repeatable-group-legacy-value-key',
+        componentDefinitions: [
+          {
+            name: 'dc:subject_anzsrc:for-2008',
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                defaultValue: [
+                  {
+                    value: '960808 - Marine Flora, Fauna and Biodiversity',
+                    notation: '960808',
+                  },
+                ],
+              },
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                addButtonShow: false,
+                allowZeroRows: true,
+                hideWhenZeroRows: true,
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: {class: 'SimpleInputComponent'},
+                          model: {class: 'SimpleInputModel', config: {}},
                         },
-                      },
-                    ],
+                        {
+                          name: 'notation',
+                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                      ],
+                    },
+                  },
+                  model: {
+                    class: 'GroupModel',
+                    config: {},
                   },
                 },
-                model: {
-                  class: 'GroupModel',
-                  config: {},
-                },
               },
-            } as RepeatableFieldComponentConfigFrame,
-          },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: 'edit',
-      reusableFormDefs: reusableFormDefinitions,
-    });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
-
-    expect(value).to.have.length(1);
-    expect(value[0]).to.containSubset({
-      'rdf:resource': 'http://purl.org/asc/1297.0/2008/seo/960808',
-      type: 'for',
-      name: '960808 - Marine Flora, Fauna and Biodiversity',
-      label: 'Marine Flora, Fauna and Biodiversity',
-      notation: '960808',
-      geneaology: ['96', '9608'],
-    });
-  });
-
-  it('should map legacy value property to name for repeatable group rows', async function () {
-    const args: FormConfigFrame = {
-      name: 'repeatable-group-legacy-value-key',
-      componentDefinitions: [
-        {
-          name: 'dc:subject_anzsrc:for-2008',
-          model: {
-            class: 'RepeatableModel',
-            config: {
-              defaultValue: [
-                {
-                  value: '960808 - Marine Flora, Fauna and Biodiversity',
-                  notation: '960808',
-                },
-              ],
             },
           },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
+
+      expect(value).to.have.length(1);
+      expect(value[0]).to.containSubset({
+        name: '960808 - Marine Flora, Fauna and Biodiversity',
+        notation: '960808',
+      });
+    });
+
+    it('should hide repeatable layout at zero rows when hideWhenZeroRows is true', async function () {
+      const args: FormConfigFrame = {
+        name: 'repeatable-zero-row-layout-hidden',
+        componentDefinitions: [
+          {
+            name: 'legacy_repeatable',
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                defaultValue: [],
+              },
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                visible: true,
+                addButtonShow: false,
+                allowZeroRows: true,
+                hideWhenZeroRows: true,
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: {class: 'SimpleInputComponent'},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                      ],
+                    },
+                  },
+                  model: {
+                    class: 'GroupModel',
+                    config: {},
+                  },
+                },
+              },
+            },
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                visible: true,
+                label: 'Repeatable Legacy',
+              },
+            },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const repeatable = actual.componentDefinitions?.[0];
+
+      expect(repeatable.component?.config?.visible).to.equal(false);
+      expect(repeatable.layout?.config?.visible).to.equal(false);
+    });
+
+    it('should normalize null repeatable rows and null new entry values', async function () {
+      const args: FormConfigFrame = {
+        name: 'repeatable-null-values',
+        componentDefinitions: [
+          {
+            name: 'legacy_repeatable',
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                defaultValue: [null],
+              },
+            },
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: {class: 'SimpleInputComponent'},
+                          model: {class: 'SimpleInputModel', config: {}},
+                        },
+                      ],
+                    },
+                  },
+                  model: {
+                    class: 'GroupModel',
+                    config: {
+                    // @ts-ignore: testing that null is normalised
+                      newEntryValue: null,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({form: constructed});
+      const repeatable = actual.componentDefinitions?.[0];
+      const repeatableValue = repeatable?.model?.config?.value as unknown[] | undefined;
+      const repeatableConfig = repeatable?.component?.config as RepeatableFieldComponentConfigFrame | undefined;
+      const newEntryValue = repeatableConfig?.elementTemplate?.model?.config?.newEntryValue;
+
+      expect(repeatableValue).to.have.length(1);
+      expect(repeatableValue?.[0]).to.deep.equal({});
+      expect(newEntryValue).to.deep.equal({});
+    });
+
+    it('should update repeatable data model that includes json type def optional properties', async () => {
+      const args: FormConfigFrame = {
+        name: 'update-repeatable-with-jsontypedef-optional-properties',
+        componentDefinitions: [
+          {
+            name: 'repeatable1',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: {class: 'TypeaheadInputComponent', config: {valueMode: 'optionObject'}},
+                        },
+                        {
+                          name: "dataRecord",
+                          component: {
+                            "class": "RecordSelectorComponent",
+                            config: {
+                              label: "@dataPublication-selector-label",
+                              columnTitle: "Record title",
+                              recordType: "dataRecord",
+                              workflowState: "",
+                              filterMode: "regex",
+                              filterFields: ["metadata.title"]
+                            }
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({
+        data: args,
+        reusableFormDefs: reusableFormDefinitions,
+        formMode: 'edit',
+        record: {
+          repeatable1: [{
+            name: {label: "name_label", value: "name_value", sourceType: "namedQuery"},
+            dataRecord: {oid: "abc123", title: "ABC 123 Title"}
+          }]
+        }
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = visitor.start({
+        form: constructed,
+        reusableFormDefs: reusableFormDefinitions,
+        formMode: 'edit',
+      });
+
+      expect(actual).to.containSubset({
+        componentDefinitions: [{
+          name: "repeatable1",
           component: {
-            class: 'RepeatableComponent',
-            config: {
-              addButtonShow: false,
-              allowZeroRows: true,
-              hideWhenZeroRows: true,
+            "class": "RepeatableComponent", config: {
               elementTemplate: {
                 name: '',
                 component: {
@@ -272,171 +518,31 @@ describe("Client Visitor", async () => {
                     componentDefinitions: [
                       {
                         name: 'name',
-                        component: { class: 'SimpleInputComponent' },
-                        model: { class: 'SimpleInputModel', config: {} },
+                        component: {class: 'TypeaheadInputComponent', config: {valueMode: 'optionObject'}},
                       },
                       {
-                        name: 'notation',
-                        component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                    ],
-                  },
+                        name: "dataRecord",
+                        component: {
+                          "class": "RecordSelectorComponent",
+                        }
+                      }]
+                  }
                 },
-                model: {
-                  class: 'GroupModel',
-                  config: {},
-                },
-              },
-            } as RepeatableFieldComponentConfigFrame,
+                model: {class: "GroupModel", config: {newEntryValue: {}}}
+              }
+            }
           },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: 'edit',
-      reusableFormDefs: reusableFormDefinitions,
-    });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
-
-    expect(value).to.have.length(1);
-    expect(value[0]).to.containSubset({
-      name: '960808 - Marine Flora, Fauna and Biodiversity',
-      notation: '960808',
-    });
-  });
-
-  it('should hide repeatable layout at zero rows when hideWhenZeroRows is true', async function () {
-    const args: FormConfigFrame = {
-      name: 'repeatable-zero-row-layout-hidden',
-      componentDefinitions: [
-        {
-          name: 'legacy_repeatable',
           model: {
-            class: 'RepeatableModel',
-            config: {
-              defaultValue: [],
-            },
-          },
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              visible: true,
-              addButtonShow: false,
-              allowZeroRows: true,
-              hideWhenZeroRows: true,
-              elementTemplate: {
-                name: '',
-                component: {
-                  class: 'GroupComponent',
-                  config: {
-                    componentDefinitions: [
-                      {
-                        name: 'name',
-                        component: { class: 'SimpleInputComponent' },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                    ],
-                  },
-                },
-                model: {
-                  class: 'GroupModel',
-                  config: {},
-                },
-              },
-            } as RepeatableFieldComponentConfigFrame,
-          },
-          layout: {
-            class: 'DefaultLayout',
-            config: {
-              visible: true,
-              label: 'Repeatable Legacy',
-            },
-          },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: 'edit',
-      reusableFormDefs: reusableFormDefinitions,
+            "class": "RepeatableModel", config: {
+              value: [{
+                name: {label: "name_label", value: "name_value", sourceType: "namedQuery"},
+                dataRecord: {oid: "abc123", title: "ABC 123 Title"}
+              }]
+            }
+          }
+        }]
+      });
     });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const repeatable = actual.componentDefinitions?.[0];
-
-    expect(repeatable.component?.config?.visible).to.equal(false);
-    expect(repeatable.layout?.config?.visible).to.equal(false);
-  });
-
-  it('should normalize null repeatable rows and null new entry values', async function () {
-    const args: FormConfigFrame = {
-      name: 'repeatable-null-values',
-      componentDefinitions: [
-        {
-          name: 'legacy_repeatable',
-          model: {
-            class: 'RepeatableModel',
-            config: {
-              defaultValue: [null],
-            },
-          },
-          component: {
-            class: 'RepeatableComponent',
-            config: {
-              elementTemplate: {
-                name: '',
-                component: {
-                  class: 'GroupComponent',
-                  config: {
-                    componentDefinitions: [
-                      {
-                        name: 'name',
-                        component: { class: 'SimpleInputComponent' },
-                        model: { class: 'SimpleInputModel', config: {} },
-                      },
-                    ],
-                  },
-                },
-                model: {
-                  class: 'GroupModel',
-                  config: {
-                    newEntryValue: null,
-                  },
-                },
-              },
-            } as unknown as RepeatableFieldComponentConfigFrame,
-          },
-        },
-      ],
-    };
-
-    const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
-      data: args,
-      formMode: 'edit',
-      reusableFormDefs: reusableFormDefinitions,
-    });
-
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed });
-    const repeatable = actual.componentDefinitions?.[0];
-    const repeatableValue = repeatable?.model?.config?.value as unknown[] | undefined;
-    const repeatableConfig = repeatable?.component?.config as RepeatableFieldComponentConfigFrame | undefined;
-    const newEntryValue = repeatableConfig?.elementTemplate?.model?.config?.newEntryValue;
-
-    expect(repeatableValue).to.have.length(1);
-    expect(repeatableValue?.[0]).to.deep.equal({});
-    expect(newEntryValue).to.deep.equal({});
   });
 
   it(`should create full example form config`, async function () {
@@ -1947,5 +2053,133 @@ describe("Client Visitor", async () => {
       expect(result.componentDefinitions).to.have.length(3);
       const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
       expect(qt.component.config?.componentDefinitions).to.have.length(4);
+  });
+
+  it("should construct the related publications fields", async () => {
+    const data: FormConfigFrame = {
+      name: 'related-objects-test',
+      componentDefinitions: [
+        ...buildRelatedObjectsFieldDefinition({
+          fieldName: "related_publications",
+          fieldLabel: "@dmpt-related-publication",
+          fieldHelp: "@dmpt-related-publication-help",
+          titleLabel: "@dataPublication-related-publication-title",
+          titlePlaceholder: "Full citation or publication title",
+          urlLabel: "@dataPublication-related-publication-url",
+          urlPlaceholder: "https://doi.org/...",
+          notesLabel: "@dataPublication-related-publication-notes",
+          notesPlaceholder: "Open access, in press, or other context",
+        })
+      ],
+    };
+    const expected: FormConfigFrame = {
+      name: 'related-objects-test',
+      componentDefinitions: [
+        {
+          component: {
+            "class": "RepeatableComponent",
+            config: {
+              addButtonShow: true,
+              allowZeroRows: false,
+              elementTemplate: {
+                component: {
+                  "class": "GroupComponent",
+                  config: {
+                    componentDefinitions: [
+                      {
+                        component: {
+                          "class": "SimpleInputComponent",
+                          config: {
+                            label: "@dataPublication-related-publication-title",
+                            placeholder: "Full citation or publication title",
+                            type: "text",
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          }
+                        },
+                        layout: {
+                          "class": "InlineLayout",
+                          config: {label: "@dataPublication-related-publication-title"}
+                        },
+                        model: {"class": "SimpleInputModel"},
+                        name: "related_title",
+                      },
+                      {
+                        component: {
+                          "class": "SimpleInputComponent",
+                          config: {
+                            label: "@dataPublication-related-publication-url",
+                            placeholder: "https://doi.org/...",
+                            type: "text",
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          },
+                        },
+                        layout: {"class": "InlineLayout", config: {label: "@dataPublication-related-publication-url"}},
+                        model: {"class": "SimpleInputModel"},
+                        name: "related_url",
+                      },
+                      {
+                        component: {
+                          "class": "TextAreaComponent",
+                          config: {
+                            cols: 20,
+                            label: "@dataPublication-related-publication-notes",
+                            placeholder: "Open access, in press, or other context",
+                            rows: 1,
+                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                          }
+                        },
+                        layout: {
+                          "class": "InlineLayout",
+                          config: {label: "@dataPublication-related-publication-notes"}
+                        },
+                        model: {"class": "TextAreaModel"},
+                        name: "related_notes",
+                      }
+                    ],
+                    hostCssClasses: "rb-form-related-link-inline",
+                  }
+                },
+                layout: {
+                  "class": "RepeatableElementLayout",
+                  config: {
+                    alignment: "end",
+                    containerCssClass: "rb-form-action-row",
+                    hostCssClasses: "rb-form-action-row-layout",
+                    slotCssClass: "rb-form-action-slot",
+                  }
+                },
+                model: {
+                  "class": "GroupModel", config: {newEntryValue: {}}
+                },
+                name: "",
+              }
+            }
+          },
+          layout: {
+            "class": "DefaultLayout",
+            config: {helpText: "@dmpt-related-publication-help", label: "@dmpt-related-publication"}
+          },
+          model: {"class": "RepeatableModel"},
+          name: "related_publications"
+        }
+      ]
+    };
+
+    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructForm = constructVisitor.start({
+      data,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+    // expect(constructForm).to.containSubset(expected);
+
+    const clientFormVisitor = new ClientFormConfigVisitor(logger);
+    const clientForm = clientFormVisitor.start({
+      form: constructForm,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    expect(clientForm).to.containSubset(expected);
   });
 });

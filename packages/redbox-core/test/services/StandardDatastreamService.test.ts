@@ -344,7 +344,7 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       const record = {
-        metaMetadata: { form: 'test-form-1.0-draft' },
+        metaMetadata: { form: 'test-form-1.0-draft', brandId: 'brand-1' },
         metadata: {
           dataLocations: [
             { fileId: 'existing-file', type: 'attachment' },
@@ -367,6 +367,7 @@ describe('StandardDatastreamService', function () {
           // FormsService should have been called
           expect(mockFormsService.getFormByName.calledOnce).to.be.true;
           expect(mockFormsService.getFormByName.firstCall.args[0]).to.equal('test-form-1.0-draft');
+          expect(mockFormsService.getFormByName.firstCall.args[2]).to.equal('brand-1');
 
           // new-file should have been added to fileIdsAdded
           const addedFileIds = fileIdsAdded.map((ds: any) => ds.fileId);

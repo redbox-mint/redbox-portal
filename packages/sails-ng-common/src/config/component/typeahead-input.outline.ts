@@ -22,8 +22,9 @@ import {
     FieldModelDefinitionFrame,
     FieldModelDefinitionOutline
 } from "../field-model.outline";
-import {FormComponentDefinitionFrame, FormComponentDefinitionOutline} from "../form-component.outline";
-import {AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines} from "../dictionary.outline";
+import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from "../form-component.outline";
+import { AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import type { HistoricalVocabMode } from "./dropdown-input.outline";
 
 /* Typeahead Input Component */
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
@@ -37,6 +38,17 @@ export interface TypeaheadOption {
     label: string;
     value: string;
     sourceType?: TypeaheadStoredSourceType;
+    /**
+     * Indicates the option came from a historical/deprecated vocabulary entry.
+     * This source metadata is preserved even when the option remains selectable.
+     */
+    historical?: boolean;
+    /**
+     * Indicates the option should be shown but cannot be selected in the current UI state.
+     * Historical vocabulary values are disabled in `historicalVocabMode: 'disable'`, but
+     * non-historical options may also be disabled for unrelated reasons.
+     */
+    disabled?: boolean;
     raw?: unknown;
 }
 
@@ -59,6 +71,7 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     multiSelect?: boolean;
     placeholder?: string;
     readOnlyAfterSelect?: boolean;
+    historicalVocabMode?: HistoricalVocabMode;
 }
 
 export interface TypeaheadInputFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigFrame, FieldComponentConfigOutline {

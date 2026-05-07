@@ -6,7 +6,7 @@ describe('storage-mongo hook exports', function () {
   it('registers models, services, and config from the package entrypoint', function () {
     const hook = require('../src');
 
-    expect(hook.registerRedboxModels()).to.have.keys(['Record', 'DeletedRecord', 'RecordAudit']);
+    expect(hook.registerRedboxModels()).to.have.keys(['Record', 'DeletedRecord', 'RecordAudit', 'IntegrationAudit']);
     expect(hook.registerRedboxServices()).to.have.property('MongoStorageService');
     expect(hook.ServiceExports).to.have.property('MongoStorageService');
     expect(hook.registerRedboxConfig()).to.deep.equal({
