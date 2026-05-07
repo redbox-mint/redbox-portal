@@ -358,7 +358,8 @@ describe("DataLocationComponent", () => {
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
-        (component as any).isDisabled = true;
+        component.updateDraftLocation("https://example.com");
+        spyOnProperty(component, "isDisabled", "get").and.returnValue(true);
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
@@ -391,7 +392,9 @@ describe("DataLocationComponent", () => {
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
-        (component as any).isReadonly = true;
+        component.updateDraftLocation("https://example.com");
+        spyOn(component, "isEditMode").and.returnValue(true);
+        spyOnProperty(component, "isReadonly", "get").and.returnValue(true);
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
