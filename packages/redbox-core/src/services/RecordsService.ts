@@ -33,7 +33,7 @@ import { StorageService } from '../StorageService';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { RecordAuditParams } from '../RecordAuditParams';
 import { RBValidationError } from '../model/RBValidationError';
-import { RecordModel } from '../model/storage/RecordModel';
+import { RecordMetaMetadata, RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
@@ -396,7 +396,7 @@ export namespace Services {
 
         const createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
         if (createResponse.isSuccessful()) {
-          if (this.searchService && typeof this.searchService.index === 'function') {
+          if (this.searchService && typeof this.searchService.index === 'function' && recordTypeObj.searchable !== false) {
             this.searchService.index(createResponse['oid'], recordObj);
           }
           await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -581,12 +581,16 @@ export namespace Services {
           sails.log.warn(
             `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
           );
-          this.searchService.index(createResponse['oid'], recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(createResponse['oid'], recordObj);
+          }
         } else {
           if (createResponse['oid'] !== recordOid) {
             sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
           }
-          this.searchService.index(recordOid, recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(recordOid, recordObj);
+          }
         }
 
         await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -837,7 +841,9 @@ export namespace Services {
             }
           }
         }
-        this.searchService.index(oid, record);
+        if (recordType?.searchable !== false) {
+          this.searchService.index(oid, record);
+        }
         await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
@@ -1552,10 +1558,14 @@ export namespace Services {
     }
 
     async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const record = await this.storageService.restoreRecord(oid);
-      this.searchService.index(oid, record as unknown as Record<string, unknown>);
+      const record = await this.storageService.restoreRecord(oid) as unknown as RecordModel;
+      const brand = await BrandingService.getBrandById(record.metaMetadata.brandId)
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+      if (recordType?.searchable !== false) {
+        this.searchService.index(oid, record as unknown as Record<string, unknown>);
+      }
       await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.restored);
-      return record;
+      return record as unknown as StorageServiceResponse;
     }
 
     async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
