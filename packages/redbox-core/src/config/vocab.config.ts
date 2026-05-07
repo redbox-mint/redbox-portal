@@ -145,7 +145,26 @@ export const vocab: VocabConfig = {
             }
         }
     },
-    services: {},
+    services: {
+        dataciteDois: {
+            serviceName: 'DoiService',
+            methodName: 'lookupDataciteDois',
+            options: {
+                baseUrl: 'https://api.datacite.org',
+                timeoutMs: 10000,
+                maxRows: 25,
+                defaultParams: {
+                    'disable-facets': true,
+                    state: 'findable',
+                    sort: 'relevance'
+                },
+                fields: ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'],
+                valueField: 'doi',
+                includeRaw: true,
+                allowEmptySearch: false
+            }
+        }
+    },
     nonAnds: {},
     collection: {}
 };

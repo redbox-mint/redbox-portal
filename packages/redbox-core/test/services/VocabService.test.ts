@@ -31,6 +31,24 @@ describe('VocabService', function () {
               serviceName: 'LookupTestService',
               methodName: 'lookupPeople',
               options: { includeInactive: true }
+            },
+            dataciteDois: {
+              serviceName: 'DoiService',
+              methodName: 'lookupDataciteDois',
+              options: {
+                baseUrl: 'https://api.datacite.org',
+                timeoutMs: 10000,
+                maxRows: 25,
+                defaultParams: {
+                  'disable-facets': true,
+                  state: 'findable',
+                  sort: 'relevance'
+                },
+                fields: ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'],
+                valueField: 'doi',
+                includeRaw: true,
+                allowEmptySearch: false
+              }
             }
           },
           queries: {
@@ -89,6 +107,14 @@ describe('VocabService', function () {
               { label: 'Jane Doe', value: 'party-1', raw: { id: 'party-1' } }
             ],
             meta: { total: 1 }
+          })
+        },
+        doiservice: {
+          lookupDataciteDois: sinon.stub().resolves({
+            data: [
+              { label: 'Example DOI', value: '10.1000/example', raw: { id: '10.1000/example' } }
+            ],
+            meta: { total: 1, source: 'datacite' }
           })
         }
       }
@@ -383,6 +409,36 @@ describe('VocabService', function () {
       } catch (error) {
         expect((error as { code?: string }).code).to.equal('service-lookup-invalid-response');
       }
+    });
+
+    it('resolves the default dataciteDois provider to DoiService.lookupDataciteDois', async function () {
+      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [], supportAgreementInformation: { getYear: () => ({ agreedSupportDays: 0, usedSupportDays: 0 }) } };
+
+      const response = await VocabService.findInServiceLookup('dataciteDois', {
+        search: 'climate data',
+        start: 0,
+        rows: 25,
+        branding: 'default',
+        portal: 'rdmp',
+        brand,
+        user: { username: 'user1' }
+      });
+
+      expect(response).to.deep.equal({
+        data: [
+          { label: 'Example DOI', value: '10.1000/example', sourceType: 'service', raw: { id: '10.1000/example' } }
+        ],
+        meta: { total: 1, source: 'datacite' }
+      });
+      expect(mockSails.services.doiservice.lookupDataciteDois.calledOnce).to.be.true;
+      expect(mockSails.services.doiservice.lookupDataciteDois.firstCall.args[0]).to.include({
+        serviceId: 'dataciteDois',
+        search: 'climate data',
+        start: 0,
+        rows: 25,
+        branding: 'default',
+        portal: 'rdmp'
+      });
     });
   });
 
