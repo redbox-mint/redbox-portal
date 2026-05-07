@@ -293,6 +293,17 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/api-docs.apib': 'BrandingController.renderApiB',
     'get /:branding/:portal/api-docs.json': 'BrandingController.renderSwaggerJSON',
     'get /:branding/:portal/api-docs.yaml': 'BrandingController.renderSwaggerYAML',
+    'get /:branding/:portal/admin/api-docs': {
+        controller: 'RenderViewController',
+        action: 'render',
+        policy: ['noCache', 'brandingAndPortal', 'checkBrandingValid', 'setLang', 'prepWs', 'i18nLanguages', 'menuResolver', 'isWebServiceAuthenticated', 'checkAuth'],
+        locals: { 'view': 'admin/api-docs', 'layout': false }
+    },
+    'get /redoc/:asset': {
+        controller: 'RedocAssetController',
+        action: 'asset',
+    },
+    'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
 
     // User key management
     'post /:branding/:portal/user/genKey': 'UserController.generateUserKey',

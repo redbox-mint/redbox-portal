@@ -75,6 +75,9 @@ export const policies: PoliciesConfig = {
     RenderViewController: {
         'render': noCachePlusDefaultPolicies
     },
+    RedocAssetController: {
+        '*': ['noCache']
+    },
     RecordController: {
         '*': noCachePlusDefaultPolicies,
         // companionAttachmentUploadAuth runs before checkAuth; bypass is route-scoped
