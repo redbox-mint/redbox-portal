@@ -26,23 +26,6 @@ export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
 chmod 777 "$NYC_OUTPUT" || true
 
-# Run the redbox-core loader to generate shims before tests start
-# This is crucial because test files require services/models at top-level
-echo "Generating shims via redbox-core loader..."
-node -e "
-  const { generateAllShims } = require('@researchdatabox/redbox-core');
-  generateAllShims(process.cwd(), {
-    forceRegenerate: true,
-    verbose: true
-  }).catch(err => {
-    console.error('Shim generation failed:', err);
-    process.exit(1);
-  });
-"
-
-bootstrap_test=test/bootstrap.test.ts
-
-
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
   mapfile -t env_test_args <<< "${RBPORTAL_MOCHA_TEST_PATHS}"
@@ -62,6 +45,31 @@ if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
   echo "Test dependencies not found. Running npm install..."
   npm install
 fi
+
+# Redoc pulls in `should` through oas-validator. Sails' moduleloader scans node_modules
+# recursively during shim generation and boot, and `should` exposes multiple same-basename
+# files that trip include-all's duplicate filename guard.
+# Remove those packages from the installed test tree; the app only needs the redoc browser
+# bundle, not the `should` dependency tree.
+while IFS= read -r -d '' dir; do
+  rm -rf "$dir"
+done < <(find node_modules -type d \( -name 'should' -o -name 'should-*' \) -print0 2>/dev/null || true)
+
+# Run the redbox-core loader to generate shims before tests start
+# This is crucial because test files require services/models at top-level
+echo "Generating shims via redbox-core loader..."
+node -e "
+  const { generateAllShims } = require('@researchdatabox/redbox-core');
+  generateAllShims(process.cwd(), {
+    forceRegenerate: true,
+    verbose: true
+  }).catch(err => {
+    console.error('Shim generation failed:', err);
+    process.exit(1);
+  });
+"
+
+bootstrap_test=test/bootstrap.test.ts
 
 mocha_cmd=(node_modules/.bin/mocha)
 nyc_cmd=(node_modules/.bin/nyc)

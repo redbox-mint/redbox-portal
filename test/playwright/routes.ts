@@ -94,7 +94,7 @@ export const smokeRoutes: SmokeRoute[] = [
     path: '/default/rdmp/admin/api-docs',
     auth: 'admin',
     type: 'ejs',
-    rootSelector: 'redoc',
+    rootSelector: '#redoc',
     requiredSelectors: ['#redoc'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: ['/redoc/redoc.standalone.js', '/redoc/admin-api-docs-bootstrap.js', '/redoc/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
