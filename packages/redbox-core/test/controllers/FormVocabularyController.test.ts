@@ -24,7 +24,7 @@ describe('FormVocabularyController', () => {
           getEntries: sinon.stub(),
           getChildren: sinon.stub(),
         },
-        vocabservice: {
+        formvocabularyservice: {
           findRecords: sinon.stub(),
           findInExternalService: sinon.stub(),
           findInServiceLookup: sinon.stub(),
@@ -36,7 +36,7 @@ describe('FormVocabularyController', () => {
       config: { auth: { defaultBrand: 'default' } },
     };
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
-    (global as any).VocabService = (global as any).sails.services.vocabservice;
+    (global as any).FormVocabularyService = (global as any).sails.services.formvocabularyservice;
     (global as any).BrandingService = (global as any).sails.services.brandingservice;
 
     controller = new Controllers.FormVocabulary();
@@ -45,7 +45,7 @@ describe('FormVocabularyController', () => {
   afterEach(() => {
     sinon.restore();
     delete (global as any).VocabularyService;
-    delete (global as any).VocabService;
+    delete (global as any).FormVocabularyService;
     delete (global as any).BrandingService;
     delete (global as any).sails;
   });
@@ -218,20 +218,20 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-query-params');
   });
 
-  it('proxies getRecords to VocabService.findRecords', async () => {
-    (global as any).VocabService.findRecords.resolves({ response: { docs: [] } });
+  it('proxies getRecords to FormVocabularyService.findRecords', async () => {
+    (global as any).FormVocabularyService.findRecords.resolves({ response: { docs: [] } });
     const req = makeReq({ queryId: 'related', search: 'abc', start: '0', rows: '10' });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.getRecords(req, {} as Sails.Res);
 
-    expect((global as any).VocabService.findRecords.calledOnce).to.equal(true);
+    expect((global as any).FormVocabularyService.findRecords.calledOnce).to.equal(true);
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data?.response).to.not.equal(undefined);
   });
 
   it('returns 500 and query-vocab-failed when getRecords throws', async () => {
-    (global as any).VocabService.findRecords.rejects(new Error('failed'));
+    (global as any).FormVocabularyService.findRecords.rejects(new Error('failed'));
     const req = makeReq({ queryId: 'related', start: '0', rows: '10' });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -253,20 +253,20 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('invalid-query-params');
   });
 
-  it('proxies externalEntries to VocabService.findInExternalService', async () => {
-    (global as any).VocabService.findInExternalService.resolves({ response: { docs: [{ utf8_name: ['Australia'] }] } });
+  it('proxies externalEntries to FormVocabularyService.findInExternalService', async () => {
+    (global as any).FormVocabularyService.findInExternalService.resolves({ response: { docs: [{ utf8_name: ['Australia'] }] } });
     const req = makeReq({ provider: 'geonamesCountries' }, { body: { options: { query: 'Aus' } } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.externalEntries(req, {} as Sails.Res);
 
-    expect((global as any).VocabService.findInExternalService.calledOnceWith('geonamesCountries', { options: { query: 'Aus' } })).to.equal(true);
+    expect((global as any).FormVocabularyService.findInExternalService.calledOnceWith('geonamesCountries', { options: { query: 'Aus' } })).to.equal(true);
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data?.response).to.not.equal(undefined);
   });
 
   it('returns 500 and query-vocab-failed when externalEntries throws', async () => {
-    (global as any).VocabService.findInExternalService.rejects(new Error('failed'));
+    (global as any).FormVocabularyService.findInExternalService.rejects(new Error('failed'));
     const req = makeReq({ provider: 'geonamesCountries' }, { body: { options: { query: 'Aus' } } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -291,7 +291,7 @@ describe('FormVocabularyController', () => {
   it('returns 404 when service lookup is not configured', async () => {
     const error = new Error('missing') as Error & { code?: string };
     error.code = 'service-lookup-not-configured';
-    (global as any).VocabService.findInServiceLookup.rejects(error);
+    (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
     const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'missing' }, { body: { search: 'jan', start: 0, rows: 25 } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -302,8 +302,8 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('service-lookup-not-configured');
   });
 
-  it('proxies serviceEntries to VocabService.findInServiceLookup', async () => {
-    (global as any).VocabService.findInServiceLookup.resolves({
+  it('proxies serviceEntries to FormVocabularyService.findInServiceLookup', async () => {
+    (global as any).FormVocabularyService.findInServiceLookup.resolves({
       data: [{ label: 'Jane Doe', value: 'party-1', sourceType: 'service' }],
       meta: { total: 1 }
     });
@@ -312,9 +312,9 @@ describe('FormVocabularyController', () => {
 
     await controller.serviceEntries(req, {} as Sails.Res);
 
-    expect((global as any).VocabService.findInServiceLookup.calledOnce).to.equal(true);
-    expect((global as any).VocabService.findInServiceLookup.firstCall.args[0]).to.equal('contributors');
-    expect((global as any).VocabService.findInServiceLookup.firstCall.args[1]).to.include({
+    expect((global as any).FormVocabularyService.findInServiceLookup.calledOnce).to.equal(true);
+    expect((global as any).FormVocabularyService.findInServiceLookup.firstCall.args[0]).to.equal('contributors');
+    expect((global as any).FormVocabularyService.findInServiceLookup.firstCall.args[1]).to.include({
       search: 'jan',
       start: 5,
       rows: 10,
@@ -328,7 +328,7 @@ describe('FormVocabularyController', () => {
   it('returns 500 when service lookup target is invalid', async () => {
     const error = new Error('bad target') as Error & { code?: string };
     error.code = 'service-lookup-invalid-target';
-    (global as any).VocabService.findInServiceLookup.rejects(error);
+    (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
     const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -342,7 +342,7 @@ describe('FormVocabularyController', () => {
   it('returns 500 when service lookup response is invalid', async () => {
     const error = new Error('bad response') as Error & { code?: string };
     error.code = 'service-lookup-invalid-response';
-    (global as any).VocabService.findInServiceLookup.rejects(error);
+    (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
     const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 

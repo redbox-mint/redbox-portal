@@ -2,6 +2,9 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { toBoolean } from '@researchdatabox/sails-ng-common';
 
+type FormVocabularyUserContext = Record<string, unknown>;
+type FormVocabularyExternalServiceParams = Parameters<typeof FormVocabularyService.findInExternalService>[1];
+
 export namespace Controllers {
   export class FormVocabulary extends controllers.Core.Controller {
 
@@ -189,13 +192,13 @@ export namespace Controllers {
 
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       try {
-        const response = await VocabService.findRecords(
+        const response = await FormVocabularyService.findRecords(
           queryId,
           brand,
           searchString,
           start,
           rows,
-          req.user! as Parameters<typeof VocabService.findRecords>[5]
+          req.user! as FormVocabularyUserContext
         );
         return this.sendResp(req, res, {
           data: response,
@@ -223,9 +226,9 @@ export namespace Controllers {
       }
 
       try {
-        const response = await VocabService.findInExternalService(
+        const response = await FormVocabularyService.findInExternalService(
           provider,
-          req.body as Parameters<typeof VocabService.findInExternalService>[1]
+          req.body as FormVocabularyExternalServiceParams
         );
         return this.sendResp(req, res, {
           data: response,
@@ -263,7 +266,7 @@ export namespace Controllers {
 
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const response = await VocabService.findInServiceLookup(serviceId, {
+        const response = await FormVocabularyService.findInServiceLookup(serviceId, {
           search,
           start,
           rows,
