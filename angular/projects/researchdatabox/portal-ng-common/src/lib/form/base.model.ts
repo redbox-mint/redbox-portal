@@ -162,7 +162,19 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * True if this model is disabled, false if enabled.
    */
   public get isDisabled(): boolean {
-    return this.formControl?.disabled ?? false;
+    const configState = this.fieldConfig.config?.disabled;
+    const formControlState = this.formControl?.disabled ?? false;
+    if (configState !== formControlState) {
+      console.warn(`${this.logName}: config disabled value '${configState}' does not match form control disabled values '${formControlState}'.`);
+    }
+    return formControlState
+  }
+
+  /**
+   * True if this model is enabled, false if disabled.
+   */
+  public get isEnabled(): boolean {
+    return !this.isDisabled;
   }
 
   /**
@@ -171,9 +183,14 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    if (!disabled && this.formControl?.disabled) {
+    // Set config disabled state first so it is consistent if form control event is emitted.
+    if (this.fieldConfig.config) {
+      this.fieldConfig.config.disabled = disabled;
+    }
+    // Set form control disabled state.
+    if (!disabled && this.isDisabled) {
       this.formControl?.enable(opts);
-    } else if (disabled && this.formControl?.enabled) {
+    } else if (disabled && this.isEnabled) {
       this.formControl?.disable(opts);
     }
   }

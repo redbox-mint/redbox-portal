@@ -249,25 +249,16 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    const currentDisabled = this.isDisabled;
+    super.setDisabled(disabled, opts);
+
     try {
-      if (!disabled && this.formControl?.disabled) {
-        this.formControl.enable(opts);
-      } else if (disabled && this.formControl?.enabled) {
-        this.formControl.disable(opts);
-      }
-      if (!disabled && this.displayControl.disabled) {
-        this.displayControl.enable(opts);
-      } else if (disabled && this.displayControl.enabled) {
-        this.displayControl.disable(opts);
-      }
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = disabled;
+      // Also disable and enable the display formControl.
+      if (!disabled && this.displayControl?.disabled) {
+        this.displayControl?.enable(opts);
+      } else if (disabled && this.displayControl?.enabled) {
+        this.displayControl?.disable(opts);
       }
     } catch (error) {
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = currentDisabled;
-      }
       this.loggerService.error(
         `Could not set typeahead disabled state with value ${disabled} and opts ${JSON.stringify(opts)}.`,
         error
@@ -302,17 +293,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   public onDropdownHidden(): void {
     this.isOpen = false;
-  }
-
-
-  override setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    super.setDisabled(disabled, opts);
-    // Also disable and enable the display formControl.
-    if (!disabled && this.displayControl?.disabled) {
-      this.displayControl?.enable(opts);
-    } else if (disabled && this.displayControl?.enabled) {
-      this.displayControl?.disable(opts);
-    }
   }
 
   private validateConfiguration(): boolean {

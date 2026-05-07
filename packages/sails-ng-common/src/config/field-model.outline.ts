@@ -7,10 +7,6 @@ import { RepeatableModelValueType } from "./component/repeatable.outline";
  */
 export interface FieldModelConfigFrame<ValueType> {
     /**
-     * TODO: What is this for? And rename to `bindingDisabled` or `disabledBinding`.
-     */
-    disableFormBinding?: boolean;
-    /**
      * The current value of this model.
      *
      * The 'value' is only available after the form config has been processed,

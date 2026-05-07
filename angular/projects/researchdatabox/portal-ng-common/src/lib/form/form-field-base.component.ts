@@ -158,16 +158,12 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    const current = this.isDisabled;
     try {
       this.model?.setDisabled(disabled, opts);
       if (this.componentDefinition?.config) {
         this.componentDefinition.config.disabled = disabled;
       }
     } catch (error) {
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = current;
-      }
       this.loggerService.error(
         `Could not set model disabled state with value ${disabled} and opts ${opts}.`, error);
     }
