@@ -249,17 +249,17 @@
         <div class="tx-editor-head">
           <label class="small text-uppercase text-muted mb-0">Translation value</label>
           <div class="tx-editor-mode-group" role="group" aria-label="Editor mode">
-            <button type="button" class="btn btn-sm"
+            <button *ngIf="editContentFormat === 'plain'" type="button" class="btn btn-sm"
                     [ngClass]="editorMode === 'text' ? 'btn-info text-white' : 'btn-light'"
                     (click)="setEditorMode('text')">
               <i class="fa fa-font" aria-hidden="true"></i>Plain text
             </button>
-            <button type="button" class="btn btn-sm"
+            <button *ngIf="editContentFormat === 'html'" type="button" class="btn btn-sm"
                     [ngClass]="editorMode === 'rich' ? 'btn-info text-white' : 'btn-light'"
                     (click)="setEditorMode('rich')">
               <i class="fa fa-eye" aria-hidden="true"></i>Rich text
             </button>
-            <button type="button" class="btn btn-sm"
+            <button *ngIf="editContentFormat === 'html'" type="button" class="btn btn-sm"
                     [ngClass]="editorMode === 'html' ? 'btn-info text-white' : 'btn-light'"
                     (click)="setEditorMode('html')">
               <i class="fa fa-code" aria-hidden="true"></i>HTML source

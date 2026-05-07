@@ -308,6 +308,45 @@ describe('AppComponent (translation)', () => {
     expect(comp.editContentFormat).toBe('plain');
   });
 
+  it('shows only the plain text editor control for plain content', async () => {
+    const { comp, fixture } = create();
+    const mockEditor = {
+      getHTML: () => 'Progress',
+      getText: () => 'Progress',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'asynch-completion', value: 'Progress', contentFormat: 'plain' });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Plain text');
+    expect(text).not.toContain('Rich text');
+    expect(text).not.toContain('HTML source');
+  });
+
+  it('shows only rich text and HTML source controls for HTML content', async () => {
+    const { comp, fixture } = create();
+    const mockEditor = {
+      getHTML: () => '<p>Progress</p>',
+      getText: () => 'Progress',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'asynch-completion', value: '<p>Progress</p>', contentFormat: 'html' });
+    comp.setEditorMode('html');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).not.toContain('Plain text');
+    expect(text).toContain('Rich text');
+    expect(text).toContain('HTML source');
+  });
+
   it('saving updates local entry content format', async () => {
     const { comp } = create();
     comp.selectedLang = 'en';
