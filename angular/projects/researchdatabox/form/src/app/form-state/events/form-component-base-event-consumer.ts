@@ -12,12 +12,14 @@ import {
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
   FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
+  FormExpressionsTargetModelDisabled,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { AbstractControl } from '@angular/forms';
 import {isTypeFormValidationGroupsChangeRequestInfo, setControlValue} from "../custom-set-value.control";
 import { syncComponentDisplayFromModel } from "../custom-display-sync.control";
+import { FormFieldModel } from "@researchdatabox/portal-ng-common";
 /**
  * Options main bag for matching events against conditions
  */
@@ -82,7 +84,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	 */
 	override destroy(): void {
 		super.destroy();
-		this.control = undefined;
+		this.model = undefined;
 		this.compiledItemsCache = undefined;
 	}
 
@@ -265,12 +267,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 			return;
 		}
 		this.expressions = expressions;
-		// FormControl is optional for some components
-		const control: AbstractControl | undefined = options.definition?.model?.formControl ?? options.component?.model?.formControl;
-		if (!control) {
-			this.logDebug(`${this.constructor.name}: No form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+
+		// Model is optional for some components
+		const model:  FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
+		if (!model || !model?.formControl) {
+			this.logDebug(`${this.constructor.name}: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
 		} else {
-			this.control = control;
+			this.model = model;
 		}
 
 		this.setupQuerySourceUpdateListener();
@@ -381,7 +384,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 	* re-implementing model/layout/component update rules.
 	*
    * Supported targets:
-   * - `model.value` → this.control.setValue
+   * - `model.value` → this.model?.formControl.setValue
    * - `layout.* →` this.options.definition.layout.componentDefinition.config.*
    * - `component.* →` this.options.definition.component.componentDefinition.config.*
    * - `form.enabledValidationGroups` → create an event indicating the change
@@ -393,8 +396,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    */
   protected async setTarget(targetValue: unknown, exprTarget: string, event: FormComponentEvent, expression: FormExpressionsConfigFrame) {
     if (exprTarget === FormExpressionsTargetModelValue) {
-      if (this.control && this.control.value !== targetValue) {
-        await setControlValue(this.control, targetValue, { emitEvent: false });
+      if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
+        await setControlValue(this.model.formControl, targetValue, {emitEvent: false});
         await syncComponentDisplayFromModel(this.options?.component);
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
@@ -403,6 +406,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         // becoming populated), and the Save button stays disabled. Re-emit the
         // current form status so signal-effect consumers can re-evaluate.
         this.formComp?.broadcastFormStatus();
+      }
+    } else if (exprTarget === FormExpressionsTargetModelDisabled) {
+      const disabled = toBoolean(targetValue);
+      if (this.model?.isDisabled !== disabled) {
+        this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
       }
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
       const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);

@@ -93,6 +93,15 @@ interface FormExpressionsTargetModelValueConfigFrame {
   target: FormExpressionsTargetModelValueType;
 }
 
+export const FormExpressionsTargetModelDisabled = "model.disabled" as const;
+type FormExpressionsTargetModelDisabledType = typeof FormExpressionsTargetModelDisabled;
+interface FormExpressionsTargetModelDisabledConfigFrame {
+  /**
+   * The component's model disabled property will receive the result of the expression.
+   */
+  target: FormExpressionsTargetModelDisabledType;
+}
+
 export const FormExpressionsTargetLayoutPrefix = "layout." as const;
 interface FormExpressionsTargetLayoutConfigFrame {
   /**
@@ -130,6 +139,12 @@ export interface FormExpressionsOperationModelValueConfigFrame extends FormExpre
 export interface FormExpressionsTemplateModelValueConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetModelValueConfigFrame {
 }
 
+export interface FormExpressionsOperationModelDisabledConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetModelDisabledConfigFrame {
+}
+
+export interface FormExpressionsTemplateModelDisabledConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetModelDisabledConfigFrame {
+}
+
 export interface FormExpressionsOperationLayoutConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetLayoutConfigFrame {
 }
 
@@ -156,6 +171,8 @@ export type FormExpressionsOptionsConfigFrame =
   | FormExpressionsTemplateNoTargetConfigFrame
   | FormExpressionsOperationModelValueConfigFrame
   | FormExpressionsTemplateModelValueConfigFrame
+  | FormExpressionsOperationModelDisabledConfigFrame
+  | FormExpressionsTemplateModelDisabledConfigFrame
   | FormExpressionsOperationLayoutConfigFrame
   | FormExpressionsTemplateLayoutConfigFrame
   | FormExpressionsOperationComponentConfigFrame

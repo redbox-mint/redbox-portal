@@ -1,6 +1,5 @@
 import { FormValidatorConfig } from "../validation/form.model";
 import { FieldDefinitionFrame, FieldDefinitionOutline } from "./field.outline";
-import { RepeatableModelValueType } from "./component/repeatable.outline";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
@@ -45,6 +44,9 @@ export interface FieldModelConfigFrame<ValueType> {
      * Whether the form control should be disabled.
      *
      * Disabled controls are excluded from the parent form's value.
+     *
+     * Note that disabled here affects only the model's disabled state.
+     * Components can be disabled or not and readonly or not, independent of this property.
      */
     disabled?: boolean;
 }

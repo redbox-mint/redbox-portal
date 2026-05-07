@@ -1,7 +1,11 @@
 import { Subscription } from 'rxjs';
-import { AbstractControl } from '@angular/forms';
 import { inject, Injector } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  LoggerService
+} from '@researchdatabox/portal-ng-common';
 import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
 import { JSONataQuerySource, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -62,7 +66,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
   protected componentDefQuerySource?: JSONataQuerySource;
   protected formComp?: FormComponent;
   protected options?: FormComponentEventBindingOptions;
-  protected control?: AbstractControl;
+  protected model?: FormFieldModel<unknown>;
   protected expressions?: FormExpressionsConfigFrame[];
 
   constructor(eventBus: FormComponentEventBus) {

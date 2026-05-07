@@ -41,6 +41,9 @@ export interface SyncSourceEntry {
 export interface BaseFieldComponentConfigFrame {
     /**
      * Whether the component is read-only or not.
+     *
+     * Note that readonly affects only the component's interactivity.
+     * If there is an associated model, it can be disabled or not independently.
      */
     readonly?: boolean;
     /**
@@ -69,6 +72,9 @@ export interface BaseFieldComponentConfigFrame {
     wrapperCssClasses?: KeyValueStringProperty;
     /**
      * Whether the component is disabled or not.
+     *
+     * Note that disabled affects only the component's interactivity.
+     * If there is an associated model, it can be disabled or not independently.
      */
     disabled?: boolean;
     /**
