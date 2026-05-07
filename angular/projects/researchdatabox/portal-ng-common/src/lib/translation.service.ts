@@ -251,7 +251,7 @@ export class TranslationService extends HttpClientService implements Service {
 
   // ===== Admin translation API (Angular app) =====
   /** List i18n entries for the current branding */
-  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string }>> {
+  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string; contentFormat?: 'plain' | 'html' }>> {
     await this.waitForInit();
     const params = new URLSearchParams({ locale, namespace });
     if (keyPrefix) params.set('keyPrefix', keyPrefix);
@@ -261,7 +261,7 @@ export class TranslationService extends HttpClientService implements Service {
   }
 
   /** Create/update a single entry for the current branding */
-  public async setEntry(locale: string, namespace: string, key: string, body: { value: any; category?: string; description?: string }): Promise<any> {
+  public async setEntry(locale: string, namespace: string, key: string, body: { value: any; category?: string; contentFormat?: 'plain' | 'html'; description?: string }): Promise<any> {
     await this.waitForInit();
     const url = `${this.brandingAndPortalUrl}/app/i18n/entries/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
     const req$ = this.http.post(url, body, this.requestOptions).pipe(map(res => res));

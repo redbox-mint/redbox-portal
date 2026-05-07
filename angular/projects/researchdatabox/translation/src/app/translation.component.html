@@ -201,6 +201,7 @@
                 </a>
               </td>
               <td>
+                <span *ngIf="e.contentFormat === 'html'" class="badge badge-light mr-1" title="HTML translation">HTML</span>
                 <div class="tx-cell-val" [title]="e.value">{{ e.value }}</div>
               </td>
               <td class="text-right text-nowrap">

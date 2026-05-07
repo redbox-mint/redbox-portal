@@ -28,7 +28,8 @@ export namespace Services {
 
 export type Bundle = I18nBundleAttributes;
 type I18nData = Record<string, unknown>;
-type MetaEntry = { category?: string; description?: string };
+type TranslationContentFormat = 'plain' | 'html';
+type MetaEntry = { category?: string; description?: string; contentFormat?: unknown };
 type MetaMap = Record<string, MetaEntry>;
 
 export function isBundle(obj: unknown): obj is Bundle {
@@ -215,7 +216,7 @@ private resolveBrandingId(branding: BrandingModel | string | { id?: string | num
       namespace: string,
       key: string,
       value: unknown,
-      options?: { bundleId?: string; category?: string; description?: string; noReload?: boolean }
+      options?: { bundleId?: string; category?: string; contentFormat?: unknown; description?: string; noReload?: boolean }
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
@@ -229,6 +230,8 @@ private resolveBrandingId(branding: BrandingModel | string | { id?: string | num
       if (options?.bundleId) updates.bundle = options.bundleId;
       if (options?.category !== undefined) updates.category = options.category;
       if (options?.description !== undefined) updates.description = options.description;
+      const contentFormat = this.normalizeContentFormat(options?.contentFormat);
+      if (contentFormat !== undefined) updates.contentFormat = contentFormat;
 
       const saved = (existing
         ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
@@ -425,7 +428,13 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
         if (val === null || val === undefined) {
           val = key; // preserve intentional empty strings, but avoid nullish bundle values
         }
-        await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, { bundleId: bundleId != null ? String(bundleId) : undefined, category: meta?.[key]?.category, description: meta?.[key]?.description, noReload: true });
+        await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, {
+          bundleId: bundleId != null ? String(bundleId) : undefined,
+          category: meta?.[key]?.category,
+          contentFormat: meta?.[key]?.contentFormat,
+          description: meta?.[key]?.description,
+          noReload: true
+        });
       }
       for (const obsoleteKey of existingKeysSet) {
         try {
@@ -440,6 +449,10 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
       } catch (_e) {
         // ignore reload failures after the write has completed
       }
+    }
+
+    private normalizeContentFormat(value: unknown): TranslationContentFormat | undefined {
+      return value === 'html' || value === 'plain' ? value : undefined;
     }
 
 

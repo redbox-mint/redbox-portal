@@ -12,11 +12,14 @@ import Link from '@tiptap/extension-link';
 import { TiptapEditorDirective } from 'ngx-tiptap';
 import { TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
 
+type TranslationContentFormat = 'plain' | 'html';
+
 type TranslationEntry = {
   key: string;
   value: any;
   description?: string;
   category?: string;
+  contentFormat?: TranslationContentFormat;
 };
 
 type TranslationEditorMode = 'rich' | 'text' | 'html';
@@ -508,6 +511,7 @@ export class AppComponent implements OnInit, OnDestroy {
   editDescription: string | undefined;
   richTextEditor: Editor | null = null;
   editorMode: TranslationEditorMode = 'rich';
+  editContentFormat: TranslationContentFormat = 'plain';
   isHtmlSourceMode = false;
   htmlSourceValue = '';
   plainTextValue = '';
@@ -694,13 +698,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroyRichTextEditor();
     this.editKey = entry.key;
     const value = this.normalizeHtmlValue(String(entry.value ?? ''));
+    this.editContentFormat = this.normalizeContentFormat(entry.contentFormat);
     this.editValue = value;
     this.editDescription = entry.description;
     this.htmlSourceValue = value;
     this.plainTextValue = value;
-    this.editorMode = this.looksLikeHtml(value) ? 'rich' : 'text';
+    this.editorMode = this.editContentFormat === 'html' ? 'rich' : 'text';
     this.isHtmlSourceMode = false;
-    this.richTextEditor = this.createRichTextEditor(this.looksLikeHtml(value) ? value : this.escapeHtml(value));
+    this.richTextEditor = this.createRichTextEditor(this.editContentFormat === 'html' ? value : this.escapeHtml(value));
     this.modalOpen.set(true);
   }
 
@@ -708,11 +713,13 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.editorMode === mode) {
       return;
     }
+    const previousMode = this.editorMode;
     this.syncValueFromCurrentEditor();
     this.editorMode = mode;
+    this.editContentFormat = mode === 'text' ? 'plain' : 'html';
     this.isHtmlSourceMode = mode === 'html';
     if (mode === 'rich' && this.richTextEditor) {
-      const source = this.looksLikeHtml(this.editValue) ? this.editValue : this.escapeHtml(this.editValue);
+      const source = previousMode === 'text' ? this.escapeHtml(this.editValue) : this.editValue;
       this.richTextEditor.commands.setContent(source);
     }
   }
@@ -768,9 +775,10 @@ export class AppComponent implements OnInit, OnDestroy {
   this.saveSuccess.set(false);
   this.saveError.set(false);
   const value = this.getEditorValueForSave();
-  await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value });
+  const contentFormat = this.editContentFormat;
+  await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
       // Update local state
-  const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value } : e);
+  const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value, contentFormat } : e);
   this.entries.set(updated);
   this.refreshDerived();
   this.destroyRichTextEditor();
@@ -793,6 +801,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroyRichTextEditor();
     this.isHtmlSourceMode = false;
     this.editorMode = 'rich';
+    this.editContentFormat = 'plain';
     this.htmlSourceValue = '';
     this.plainTextValue = '';
     this.editValue = '';
@@ -1072,8 +1081,8 @@ export class AppComponent implements OnInit, OnDestroy {
     return value === '<p></p>' ? '' : value;
   }
 
-  private looksLikeHtml(value: string) {
-    return /<\/?[a-z][\s\S]*>/i.test(value);
+  private normalizeContentFormat(value: unknown): TranslationContentFormat {
+    return value === 'html' || value === 'plain' ? value : 'plain';
   }
 
   private escapeHtml(value: string) {
