@@ -50,7 +50,7 @@ export namespace Controllers {
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        await AppConfigService.createOrUpdateConfig(brand, configKey, body as string);
+        await AppConfigService.createOrUpdateConfig(brand, configKey, body as Record<string, unknown>);
 
         const response = new APIActionResponse('App configuration updated successfully');
 

@@ -42,7 +42,7 @@ export namespace Controllers {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId = params.appConfigId as string;
         const appConfig = body;
-        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig as string);
+        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig as Record<string, unknown>);
         return this.apiRespond(req, res, appConfig, 200);
       } catch (error: unknown) {
         sails.log.error(error);

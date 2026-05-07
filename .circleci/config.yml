@@ -690,10 +690,10 @@ jobs:
           - release
       release_version:
         type: string
-        default: ""
+        default: ''
       dist_tag:
         type: string
-        default: "latest"
+        default: 'latest'
     docker:
       - image: 'cimg/node:24.14.1'
     resource_class: medium
@@ -965,7 +965,7 @@ parameters:
     default: none
   npm_publish_version:
     type: string
-    default: ""
+    default: ''
   npm_publish_dist_tag:
     type: enum
     enum:
@@ -976,7 +976,7 @@ parameters:
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1174,7 +1174,7 @@ workflows:
               ignore: /^dependabot.*/
   build_test_dependabot:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1279,7 +1279,7 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1534,7 +1534,7 @@ workflows:
               ignore: /.*/
       - npm-publish-backend:
           release_kind: release
-          release_version: ""
+          release_version: ''
           dist_tag: latest
           context:
             - npm-publish
@@ -1554,7 +1554,7 @@ workflows:
               ignore: /.*/
   npm_beta_publish:
     when:
-      equal: [ beta, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta
