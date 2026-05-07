@@ -266,6 +266,142 @@ describe("DataLocationComponent", () => {
         expect(component.draftLocation.notes).toBe("");
     });
 
+    it("disables location input and add button when placeholder data type is selected", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder_ui_disabled",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        fixture.detectChanges();
+
+        const nativeEl = fixture.nativeElement as HTMLElement;
+        const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
+        const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
+
+        expect(locationInput.disabled).toBeTrue();
+        expect(addButton.disabled).toBeTrue();
+    });
+
+    it("enables location input and add button after selecting a valid data type", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_placeholder_ui_enabled",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            dataTypePlaceholder: "Please select"
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.onDraftTypeChange("url");
+        component.updateDraftLocation("https://example.com");
+        fixture.detectChanges();
+
+        const nativeEl = fixture.nativeElement as HTMLElement;
+        const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
+        const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
+
+        expect(locationInput.disabled).toBeFalse();
+        expect(addButton.disabled).toBeFalse();
+    });
+
+    it("disables location input and add button when component is disabled", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_ui_disabled_state",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.isDisabled = true;
+        fixture.detectChanges();
+
+        const nativeEl = fixture.nativeElement as HTMLElement;
+        const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
+        const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
+
+        expect(locationInput.disabled).toBeTrue();
+        expect(addButton.disabled).toBeTrue();
+    });
+
+    it("disables location input and add button when component is readonly", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_ui_readonly_state",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.isReadonly = true;
+        fixture.detectChanges();
+
+        const nativeEl = fixture.nativeElement as HTMLElement;
+        const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
+        const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
+
+        expect(locationInput.disabled).toBeTrue();
+        expect(addButton.disabled).toBeTrue();
+    });
+
     it("adds non-attachment locations to the form model", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
