@@ -79,7 +79,7 @@
     "pino-logfmt": "1.1.4",
     "reflect-metadata": "0.2.2",
     "resolve-url-loader": "5.0.0",
-    "ro-crate": "3.7.0",
+    "ro-crate": "3.7.1",
     "rxjs": "7.8.2",
     "sails": "1.5.17",
     "sails-mongo": "2.1.2",
