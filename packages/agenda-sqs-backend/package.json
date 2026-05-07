@@ -22,7 +22,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -b",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest"

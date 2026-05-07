@@ -274,6 +274,40 @@ export namespace Services {
       }
     }
 
+    private toSerializableJobData(value: unknown, seen = new WeakSet<object>()): unknown {
+      if (_.isNil(value) || typeof value !== 'object') {
+        return value;
+      }
+      if (value instanceof Date || Buffer.isBuffer(value)) {
+        return value;
+      }
+
+      const bsonLikeValue = value as { _bsontype?: unknown; toHexString?: () => string; toJSON?: () => unknown };
+      if (_.isString(bsonLikeValue._bsontype)) {
+        if (typeof bsonLikeValue.toHexString === 'function') {
+          return bsonLikeValue.toHexString();
+        }
+        if (typeof bsonLikeValue.toJSON === 'function') {
+          return this.toSerializableJobData(bsonLikeValue.toJSON(), seen);
+        }
+      }
+
+      if (seen.has(value)) {
+        return undefined;
+      }
+      seen.add(value);
+
+      if (Array.isArray(value)) {
+        return value.map((item) => this.toSerializableJobData(item, seen));
+      }
+
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .map(([key, item]) => [key, this.toSerializableJobData(item, seen)])
+          .filter(([, item]) => !_.isUndefined(item))
+      );
+    }
+
     private applyCommonAgendaOptions(
       agendaOptions: {
         backend: unknown;
@@ -463,21 +497,22 @@ export namespace Services {
 
     public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
       this.ensureRecurringScheduleSupported(jobName);
-      void this.getAgendaForJobName(jobName).every(interval, jobName, data, options);
+      void this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options);
     }
 
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.ensureScheduleSupported(jobName, schedule, data);
-      void this.getAgendaForJobName(jobName).schedule(schedule, jobName, data);
+      void this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
     public async now(jobName: string, data: unknown = undefined) {
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
-      return await this.getAgendaForJobName(jobName).now(jobName, data).catch((e) => {
+      const queuedJob = this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data));
+      queuedJob.catch((e) => {
         sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
         sails.log.error(e);
-        throw e;
       });
+      return await queuedJob;
     }
 
     public async jobs(query?: LegacyAgendaJobsQuery): Promise<JobsResult> {
