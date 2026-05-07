@@ -46,14 +46,11 @@ if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
   npm install
 fi
 
-# Redoc pulls in `should` through oas-validator. Sails' moduleloader scans node_modules
-# recursively during shim generation and boot, and `should` exposes multiple same-basename
-# files that trip include-all's duplicate filename guard.
-# Remove those packages from the installed test tree; the app only needs the redoc browser
-# bundle, not the `should` dependency tree.
-while IFS= read -r -d '' dir; do
-  rm -rf "$dir"
-done < <(find node_modules -type d \( -name 'should' -o -name 'should-*' \) -print0 2>/dev/null || true)
+npm run webpack
+
+# Redoc is only needed to build the browser bundle. Remove it before Sails boots so
+# moduleloader does not scan its transitive `should` package.
+rm -rf node_modules/redoc
 
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level

@@ -15,7 +15,6 @@ import * as ExportControllerModule from './ExportController';
 import * as RecordAuditControllerModule from './RecordAuditController';
 import * as RecordControllerModule from './RecordController';
 import * as RenderViewControllerModule from './RenderViewController';
-import * as RedocAssetControllerModule from './RedocAssetController';
 import * as ReportControllerModule from './ReportController';
 import * as ReportsControllerModule from './ReportsController';
 import * as TranslationControllerModule from './TranslationController';
@@ -62,7 +61,6 @@ export const ControllerExports: Record<string, unknown> = {
     get RecordAuditController() { return getOrCreate('RecordAuditController', () => new RecordAuditControllerModule.Controllers.RecordAudit().exports()); },
     get RecordController() { return getOrCreate('RecordController', () => new RecordControllerModule.Controllers.Record().exports()); },
     get RenderViewController() { return getOrCreate('RenderViewController', () => new RenderViewControllerModule.Controllers.RenderView().exports()); },
-    get RedocAssetController() { return getOrCreate('RedocAssetController', () => new RedocAssetControllerModule.Controllers.RedocAsset().exports()); },
     get ReportController() { return getOrCreate('ReportController', () => new ReportControllerModule.Controllers.Report().exports()); },
     get ReportsController() { return getOrCreate('ReportsController', () => new ReportsControllerModule.Controllers.Reports().exports()); },
     get TranslationController() { return getOrCreate('TranslationController', () => new TranslationControllerModule.Controllers.Translation().exports()); },
@@ -106,7 +104,6 @@ export const ControllerNames = [
     'RecordAuditController',
     'RecordController',
     'RenderViewController',
-    'RedocAssetController',
     'ReportController',
     'ReportsController',
     'TranslationController',

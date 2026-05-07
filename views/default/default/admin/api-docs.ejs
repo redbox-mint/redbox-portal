@@ -1,6 +1,6 @@
 <%
-  const rootContext = BrandingService.getRootContext();
   const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
+  const rootContext = BrandingService.getRootContext();
   const headingKey = 'admin-api-docs-heading';
   const loadingKey = 'admin-api-docs-loading';
   const headingText = TranslationService.t(headingKey) === headingKey ? 'API Documentation' : TranslationService.t(headingKey);
@@ -38,8 +38,8 @@
         min-height: 100vh;
       }
     </style>
-    <script src="<%= rootContext %>/redoc/admin-api-docs-init.js" type="text/javascript"></script>
-    <script src="<%= rootContext %>/redoc/redoc.standalone.js" type="text/javascript"></script>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript"></script>
+    <script src="<%= rootContext %>/default/default/js/redoc.standalone.js" type="text/javascript"></script>
   </head>
   <body>
     <div id="redoc" data-openapi-url="<%= brandPortalPath %>/admin/api-docs/openapi.json">
@@ -47,6 +47,6 @@
         <img class="center-block" src="<%= rootContext %>/images/loading.svg" alt="<%= loadingText %>">
       </div>
     </div>
-    <script src="<%= rootContext %>/redoc/admin-api-docs-bootstrap.js" type="text/javascript"></script>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-bootstrap.js" type="text/javascript"></script>
   </body>
 </html>

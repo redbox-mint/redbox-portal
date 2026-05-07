@@ -299,10 +299,6 @@ export const routes: RoutesConfig = {
         policy: ['noCache', 'brandingAndPortal', 'checkBrandingValid', 'setLang', 'prepWs', 'i18nLanguages', 'menuResolver', 'isWebServiceAuthenticated', 'checkAuth'],
         locals: { 'view': 'admin/api-docs', 'layout': false }
     },
-    'get /redoc/:asset': {
-        controller: 'RedocAssetController',
-        action: 'asset',
-    },
     'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
 
     // User key management

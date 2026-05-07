@@ -73,6 +73,10 @@ export const webpack: WebpackConfig = {
                         {
                             from: './node_modules/jquery/dist/jquery.min.js',
                             to: './default/default/js/'
+                        },
+                        {
+                            from: './node_modules/redoc/bundles/redoc.standalone.js',
+                            to: './default/default/js/'
                         }
                     ],
                 }),

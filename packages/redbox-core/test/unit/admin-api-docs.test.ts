@@ -51,10 +51,6 @@ describe('admin API docs', function () {
             policy: ['noCache', 'brandingAndPortal', 'checkBrandingValid', 'setLang', 'prepWs', 'i18nLanguages', 'menuResolver', 'isWebServiceAuthenticated', 'checkAuth'],
             locals: { view: 'admin/api-docs', layout: false },
         });
-        expect(routes['get /redoc/:asset']).to.deep.equal({
-            controller: 'RedocAssetController',
-            action: 'asset',
-        });
         expect(routes['get /:branding/:portal/admin/api-docs/openapi.json']).to.equal('BrandingController.renderSwaggerJSON');
     });
 
@@ -99,17 +95,18 @@ describe('admin API docs', function () {
         const contents = fs.readFileSync(viewPath, 'utf8');
 
         expect(contents).to.include('<!doctype html>');
-        expect(contents).to.include('/redoc/admin-api-docs-init.js');
-        expect(contents).to.include('/redoc/admin-api-docs-bootstrap.js');
+        expect(contents).to.include('/default/default/js/admin-api-docs-init.js');
+        expect(contents).to.include('/default/default/js/admin-api-docs-bootstrap.js');
         expect(contents).to.include('/admin/api-docs/openapi.json');
-        expect(contents).to.include('/redoc/redoc.standalone.js');
+        expect(contents).to.include('/default/default/js/redoc.standalone.js');
         expect(contents).to.not.include('cdn.redoc.ly');
     });
 
-    it('routes redoc assets through the npm package bundle', function () {
-        const controllerPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/controllers/RedocAssetController.ts');
-        const contents = fs.readFileSync(controllerPath, 'utf8');
+    it('copies the redoc bundle into the webpack public output', function () {
+        const webpackConfigPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/config/webpack.config.ts');
+        const contents = fs.readFileSync(webpackConfigPath, 'utf8');
 
-        expect(contents).to.include("require.resolve('redoc/bundles/redoc.standalone.js')");
+        expect(contents).to.include("from: './node_modules/redoc/bundles/redoc.standalone.js'");
+        expect(contents).to.include("to: './default/default/js/'");
     });
 });

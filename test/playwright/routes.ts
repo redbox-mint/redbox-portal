@@ -97,7 +97,7 @@ export const smokeRoutes: SmokeRoute[] = [
     rootSelector: '#redoc',
     requiredSelectors: ['#redoc'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
-    requiredAssetIncludes: ['/redoc/redoc.standalone.js', '/redoc/admin-api-docs-bootstrap.js', '/redoc/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
+    requiredAssetIncludes: ['/default/default/js/redoc.standalone.js', '/default/default/js/admin-api-docs-bootstrap.js', '/default/default/js/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
   },
   {
     path: '/default/rdmp/admin/reports',
