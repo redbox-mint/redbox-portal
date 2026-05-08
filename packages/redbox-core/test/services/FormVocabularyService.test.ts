@@ -160,6 +160,59 @@ describe('FormVocabularyService', function () {
 
       expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
     });
+
+    it('rejects unknown query vocabularies', async function () {
+      const brand = { id: 'brand-1' };
+      const user = { username: 'testuser' };
+
+      try {
+        await FormVocabularyService.findRecords('missing-source', brand, 'query', 0, 10, user);
+        throw new Error('Expected missing query vocabulary to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('query-vocab-not-configured');
+      }
+    });
+  });
+
+  describe('findInExternalService', function () {
+    it('interpolates simple property paths without executing code', function () {
+      const interpolate = (FormVocabularyService as any).getTemplateStringFunction(
+        'https://external.example.com/search?q=${query}&dept=${user.department}&id=${results.0.id}',
+        'testProvider'
+      );
+
+      const actual = interpolate({
+        query: 'smith',
+        user: { department: 'science' },
+        results: [{ id: 42 }]
+      });
+
+      expect(actual).to.equal('https://external.example.com/search?q=smith&dept=science&id=42');
+    });
+
+    it('rejects unknown external providers', async function () {
+      try {
+        await FormVocabularyService.findInExternalService('missingProvider', { options: { query: 'smith' } });
+        throw new Error('Expected missing external provider to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('external-vocab-not-configured');
+      }
+    });
+
+    it('rejects unsafe external template expressions', async function () {
+      mockSails.config.vocab.external.badTemplate = {
+        url: 'https://external.example.com/search?q=${query.toUpperCase()}',
+        method: 'get',
+        options: {}
+      };
+
+      try {
+        await FormVocabularyService.findInExternalService('badTemplate', { options: { query: 'smith' } });
+        throw new Error('Expected unsafe template to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('external-vocab-invalid-config');
+      }
+    });
   });
 
   describe('findInServiceLookup', function () {

@@ -242,6 +242,20 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-failed');
   });
 
+  it('returns 404 when getRecords query config is not found', async () => {
+    const error = new Error('missing query') as Error & { code?: string };
+    error.code = 'query-vocab-not-configured';
+    (global as any).FormVocabularyService.findRecords.rejects(error);
+    const req = makeReq({ queryId: 'missing', start: '0', rows: '10' });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getRecords(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-not-configured');
+  });
+
   it('returns 400 for externalEntries when provider is missing', async () => {
     const req = makeReq({ provider: '' }, { body: { options: { query: 'Aus' } } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
@@ -275,6 +289,34 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.status).to.equal(500);
     expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('query-vocab-failed');
+  });
+
+  it('returns 404 when external provider config is not found', async () => {
+    const error = new Error('missing external provider') as Error & { code?: string };
+    error.code = 'external-vocab-not-configured';
+    (global as any).FormVocabularyService.findInExternalService.rejects(error);
+    const req = makeReq({ provider: 'missing' }, { body: { options: { query: 'Aus' } } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.externalEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('external-vocab-not-configured');
+  });
+
+  it('returns 500 when external provider config is invalid', async () => {
+    const error = new Error('bad external provider config') as Error & { code?: string };
+    error.code = 'external-vocab-invalid-config';
+    (global as any).FormVocabularyService.findInExternalService.rejects(error);
+    const req = makeReq({ provider: 'broken' }, { body: { options: { query: 'Aus' } } });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.externalEntries(req, {} as Sails.Res);
+
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.status).to.equal(500);
+    expect(sendResp.firstCall.args[2]?.displayErrors?.[0]?.code).to.equal('external-vocab-invalid-config');
   });
 
   it('returns 400 for serviceEntries when params are invalid', async () => {

@@ -205,6 +205,22 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'query-vocab-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (errorCode === 'query-vocab-invalid-config') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
         sails.log.verbose('Error getting internal records:');
         sails.log.verbose(error);
         return this.sendResp(req, res, {
@@ -235,6 +251,22 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'external-vocab-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (errorCode === 'external-vocab-invalid-config') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
         sails.log.verbose('Error getting external vocabulary entries:');
         sails.log.verbose(error);
         return this.sendResp(req, res, {

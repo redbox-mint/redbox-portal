@@ -19,6 +19,7 @@
 
 import { SearchService } from '../SearchService';
 import type {
+  VocabExternalEndpoint,
   VocabServiceLookupConfig,
   VocabServiceLookupOption,
   VocabServiceLookupRequest,
@@ -45,6 +46,11 @@ export namespace Services {
     | 'service-lookup-not-configured'
     | 'service-lookup-invalid-target'
     | 'service-lookup-invalid-response';
+  type FormVocabularyErrorCode =
+    | 'external-vocab-invalid-config'
+    | 'external-vocab-not-configured'
+    | 'query-vocab-invalid-config'
+    | 'query-vocab-not-configured';
 
   export class FormVocabulary extends services.Core.Service {
 
@@ -57,12 +63,25 @@ export namespace Services {
     ];
 
     public async findRecords(sourceType: string, brand: BrandingModel, searchString: string, start: number, rows: number, user: FormVocabularyUserContext): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
-
-      const queryConfig = sails.config.vocab.queries[sourceType] as unknown as VocabQueryConfig;
+      const normalizedSourceType = String(sourceType ?? '').trim();
+      const queryConfig = sails.config.vocab.queries?.[normalizedSourceType] as VocabQueryConfig | undefined;
+      if (!this.isPlainObject(queryConfig)) {
+        throw this.createFormVocabularyError(
+          'query-vocab-not-configured',
+          `No query vocabulary configured for '${normalizedSourceType}'.`
+        );
+      }
 
       if (queryConfig.querySource == 'database') {
+        const queryName = String(queryConfig.databaseQuery?.queryName ?? '').trim();
+        if (!queryName) {
+          throw this.createFormVocabularyError(
+            'query-vocab-invalid-config',
+            `Query vocabulary '${normalizedSourceType}' is missing a database query name.`
+          );
+        }
 
-        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
+        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
         const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         if (queryConfig.resultObjectMapping) {
@@ -71,32 +90,59 @@ export namespace Services {
           return dbResults as unknown as Record<string, unknown>;
         }
       } else if (queryConfig.querySource == 'solr') {
+        const searchCore = String(queryConfig.searchQuery?.searchCore ?? '').trim();
+        if (!searchCore) {
+          throw this.createFormVocabularyError(
+            'query-vocab-invalid-config',
+            `Query vocabulary '${normalizedSourceType}' is missing a search core.`
+          );
+        }
         const solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json', user);
-        const solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, '', solrQuery);
+        const solrResults = await this.getSearchService().searchAdvanced(searchCore, '', solrQuery);
         if (queryConfig.resultObjectMapping) {
           return this.getResultObjectMappings(solrResults, queryConfig);
         } else {
           return solrResults;
         }
       }
-      return {};
+
+      throw this.createFormVocabularyError(
+        'query-vocab-invalid-config',
+        `Query vocabulary '${normalizedSourceType}' has unsupported querySource '${String(queryConfig.querySource ?? '')}'.`
+      );
     }
 
     public async findInExternalService(providerName: string, params: ExternalServiceParams): Promise<Record<string, unknown>> {
-      const method = sails.config.vocab.external[providerName].method;
-      let url = sails.config.vocab.external[providerName].url;
+      const normalizedProviderName = String(providerName ?? '').trim();
+      const providerConfig = sails.config.vocab.external?.[normalizedProviderName] as VocabExternalEndpoint | undefined;
+      if (!this.isPlainObject(providerConfig)) {
+        throw this.createFormVocabularyError(
+          'external-vocab-not-configured',
+          `No external vocabulary provider configured for '${normalizedProviderName}'.`
+        );
+      }
 
-      const templateFunction = this.getTemplateStringFunction(url);
-      url = templateFunction(params.options);
+      const method = providerConfig.method;
+      let url = String(providerConfig.url ?? '').trim();
+      if (!url || (method !== 'get' && method !== 'post')) {
+        throw this.createFormVocabularyError(
+          'external-vocab-invalid-config',
+          `External vocabulary provider '${normalizedProviderName}' has an invalid method or URL.`
+        );
+      }
+
+      const templateFunction = this.getTemplateStringFunction(url, normalizedProviderName);
+      const optionMap = this.isPlainObject(params?.options) ? params.options : {};
+      url = templateFunction(optionMap);
 
       sails.log.info(url);
-      const options = sails.config.vocab.external[providerName].options;
+      const options = this.isPlainObject(providerConfig.options) ? providerConfig.options : {};
 
       if (method == 'post') {
         const post = {
           method: method,
           url: url,
-          data: params.postBody,
+          data: params?.postBody,
           params: options
         };
         sails.log.verbose(post);
@@ -248,14 +294,19 @@ export namespace Services {
       return _.get(variables, templateOrPath);
     }
 
-    private getTemplateStringFunction(template: string) {
-      const sanitized = template
-        .replace(/\$\{([\s]*[^;\s{]+[\s]*)\}/g, function (_: string, match: string) {
-          return `\${map.${match.trim()}}`;
-        })
-        .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
+    private getTemplateStringFunction(template: string, providerName: string) {
+      return (map: Record<string, unknown>) => template.replace(/\$\{([^}]+)\}/g, (_match: string, rawPath: string) => {
+        const propertyPath = String(rawPath ?? '').trim();
+        if (!this.isSafeTemplatePath(propertyPath)) {
+          throw this.createFormVocabularyError(
+            'external-vocab-invalid-config',
+            `External vocabulary provider '${providerName}' contains unsupported template path '${propertyPath}'.`
+          );
+        }
 
-      return Function('map', `return \`${sanitized}\``);
+        const value = _.get(map, propertyPath);
+        return this.normalizeTemplateValue(value);
+      });
     }
 
     private normalizeServiceLookupResponse(serviceId: string, response: unknown): VocabServiceLookupResponse {
@@ -354,6 +405,32 @@ export namespace Services {
 
     private isPlainObject(value: unknown): value is Record<string, unknown> {
       return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+
+    private isSafeTemplatePath(propertyPath: string): boolean {
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.(?:[A-Za-z_$][A-Za-z0-9_$]*|\d+))*$/.test(propertyPath)) {
+        return false;
+      }
+
+      return propertyPath
+        .split('.')
+        .every(segment => !['__proto__', 'constructor', 'prototype'].includes(segment));
+    }
+
+    private normalizeTemplateValue(value: unknown): string {
+      if (typeof value === 'string') {
+        return value;
+      }
+      if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+        return String(value);
+      }
+      return '';
+    }
+
+    private createFormVocabularyError(code: FormVocabularyErrorCode, message: string): Error & { code: FormVocabularyErrorCode } {
+      const error = new Error(message) as Error & { code: FormVocabularyErrorCode };
+      error.code = code;
+      return error;
     }
 
     private createServiceLookupError(code: ServiceLookupErrorCode, message: string): Error & { code: ServiceLookupErrorCode } {
