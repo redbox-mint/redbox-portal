@@ -69,7 +69,7 @@ export abstract class FormComponentEventBaseProducerConsumer {
   protected model?: FormFieldModel<unknown>;
   protected expressions?: FormExpressionsConfigFrame[];
 
-  constructor(eventBus: FormComponentEventBus) {
+  protected constructor(eventBus: FormComponentEventBus) {
     this.eventBus = eventBus;
   }
 

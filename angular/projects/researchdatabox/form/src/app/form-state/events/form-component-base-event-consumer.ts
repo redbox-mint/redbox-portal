@@ -423,28 +423,28 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     } else if (exprTarget === FormExpressionsTargetModelDisabled) {
       // The model.disabled property must be handled specially.
       const disabled = toBoolean(targetValue);
-      this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
+      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
 
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
       const name = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      this.options?.definition?.layout?.setProperty(name, targetValue);
+      this.options?.definition?.layout?.setProperty?.(name, targetValue);
 
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
       const name = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      this.options?.definition?.component?.setProperty(name, targetValue);
+      this.options?.definition?.component?.setProperty?.(name, targetValue);
 
     } else if (exprTarget === FormExpressionsTargetFieldVisible) {
       const name = 'visible';
       const visible = toBoolean(targetValue);
-      this.options?.definition?.component?.setProperty(name, visible);
-      this.options?.definition?.layout?.setProperty(name, visible);
+      this.options?.definition?.component?.setProperty?.(name, visible);
+      this.options?.definition?.layout?.setProperty?.(name, visible);
 
     } else if (exprTarget === FormExpressionsTargetFieldDisabled) {
       const name = 'disabled';
       const disabled = toBoolean(targetValue);
-      this.options?.definition?.component?.setProperty(name, disabled);
-      this.options?.definition?.layout?.setProperty(name, disabled);
-      this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
+      this.options?.definition?.component?.setProperty?.(name, disabled);
+      this.options?.definition?.layout?.setProperty?.(name, disabled);
+      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
 
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {

@@ -799,4 +799,44 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
   }));
 
+  it('should disable add and remove buttons when the repeatable is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_disabled_buttons_also_disabled',
+      componentDefinitions: [
+        {
+          name: 'repeatable_disabled',
+          model: {
+            class: 'RepeatableModel',
+            config: {value: ['one'], disabled: true}
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              disabled: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const removeButtons = (compiled.querySelectorAll('.rb-form-repeatable-item__remove')  as NodeListOf<HTMLButtonElement>);
+    const addButtons = (compiled.querySelectorAll('.rb-form-repeatable__add')  as NodeListOf<HTMLButtonElement>);
+    expect(Array.from(removeButtons).map(i => i.disabled)).toEqual([true]);
+    expect(Array.from(addButtons).map(i => i.disabled)).toEqual([true]);
+  });
 });
