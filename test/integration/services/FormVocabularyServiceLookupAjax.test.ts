@@ -1,9 +1,16 @@
 import supertest from "supertest";
+import sinon from "sinon";
 
 describe("Form vocabulary service lookup AJAX routes", function () {
   this.timeout(30_000);
 
   let agent: supertest.Agent;
+  let lookupStub: sinon.SinonStub | undefined;
+
+  afterEach(function () {
+    lookupStub?.restore();
+    lookupStub = undefined;
+  });
 
   before(async function () {
     const app = (sails as any).hooks.http.app;
@@ -22,33 +29,65 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns service-backed typeahead results", async function () {
+    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+      data: [
+        {
+          label: "DataCite Metadata Schema Documentation (10.5438/0014) - DataCite, 2017",
+          value: "10.5438/0014",
+          sourceType: "service",
+          raw: {
+            id: "10.5438/0014",
+            attributes: {
+              doi: "10.5438/0014"
+            }
+          }
+        }
+      ],
+      meta: {
+        total: 1,
+        start: 0,
+        rows: 10,
+        source: "datacite"
+      }
+    });
+
     const response = await agent
-      .post("/default/rdmp/service/vocab/integrationContributors")
+      .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
-        search: "smith",
+        search: "10.5438/0014",
         start: 0,
         rows: 10
       })
       .expect(200);
 
+    expect(lookupStub.calledOnce).to.equal(true);
+    expect(lookupStub.firstCall.args[0]).to.include({
+      serviceId: "dataciteDois",
+      search: "10.5438/0014",
+      start: 0,
+      rows: 10,
+      branding: "default",
+      portal: "rdmp"
+    });
     expect(response.body.data).to.be.an("array");
     expect(response.body.data[0]).to.include({
-      label: "Jane Smith",
-      value: "party-123",
+      label: "DataCite Metadata Schema Documentation (10.5438/0014) - DataCite, 2017",
+      value: "10.5438/0014",
       sourceType: "service"
     });
-    expect(response.body.meta.total).to.equal(2);
+    expect(response.body.meta.total).to.equal(1);
+    expect(response.body.meta.source).to.equal("datacite");
   });
 
   it("returns 400 for invalid paging params", async function () {
     const response = await agent
-      .post("/default/rdmp/service/vocab/integrationContributors")
+      .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
-        search: "smith",
+        search: "10.5438/0014",
         start: -1,
         rows: 0
       })
@@ -73,12 +112,21 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns 500 for invalid service responses", async function () {
+    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+      data: [
+        {
+          label: "",
+          value: "10.5438/broken"
+        }
+      ]
+    });
+
     const response = await agent
-      .post("/default/rdmp/service/vocab/integrationInvalidResponse")
+      .post("/default/rdmp/service/vocab/dataciteDois")
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
-        search: "smith",
+        search: "10.5438/broken",
         start: 0,
         rows: 10
       })
