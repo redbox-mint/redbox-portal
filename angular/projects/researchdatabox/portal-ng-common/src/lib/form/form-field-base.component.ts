@@ -112,6 +112,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
     }
+
+    // If the component is disabled, set the component to disabled again, after the model is available.
+    // This allows components that have to link their model disabled property to
+    // be initialised in the correct state.
+    const isComponentDisabled = this.isDisabled;
+    if (isComponentDisabled) {
+      this.setDisabled(isComponentDisabled, {emitEvent: false, onlySelf: true});
+    }
+
   }
 
   ngAfterViewInit() {
@@ -159,9 +168,6 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   /**
    * Get whether this component is disabled or not.
-   *
-   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl (e.g. [disabled]="isDisabled").
-   *       The formControl sets the disabled state on the HTML element DOM.
    */
   public get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
@@ -169,17 +175,13 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   /**
    * Set this component to be disabled or enabled.
-   *
-   * The 'model.disabled' property is also set,
-   * because the Angular formControl manages the HTML element disabled property.
-   *
    * @param disabled True for disabled, false for enabled.
+   * @param opts The modify options.
    */
-  public setDisabled(disabled: boolean) {
+  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
     if (this.componentDefinition?.config) {
       this.componentDefinition.config.disabled = disabled;
     }
-    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
   }
 
   get label(): string {

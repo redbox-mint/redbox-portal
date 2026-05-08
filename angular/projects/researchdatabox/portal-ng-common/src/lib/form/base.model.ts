@@ -167,7 +167,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     if (configState !== formControlState) {
       console.warn(`${this.logName}: config disabled value '${configState}' does not match form control disabled values '${formControlState}'.`);
     }
-    return formControlState
+    return formControlState;
   }
 
   /**
@@ -179,12 +179,6 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
 
   /**
    * Set this model to be disabled or enabled.
-   *
-   * Component 'disabled' must be set as well,
-   * because the Angular formControl manages the HTML element disabled property.
-   *
-   * Use component.setDisabled instead of this method.
-   *
    * @param disabled Set the disabled status.
    * @param opts The modify options.
    */

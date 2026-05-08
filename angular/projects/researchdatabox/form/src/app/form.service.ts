@@ -369,14 +369,6 @@ export class FormService extends HttpClientService {
 
     if (ModelType && modelConfig) {
       compMapEntry.model = new ModelType(modelConfig);
-
-      // TODO: If the component.config.disabled property sets the model disabled state,
-      //       then why are there separate component and model disabled properties?
-      const isComponentDisabled = compMapEntry.compConfigJson.component.config?.disabled ?? false;
-      if (isComponentDisabled !== compMapEntry.model.isDisabled) {
-        compMapEntry.model.setDisabled(isComponentDisabled, {onlySelf: true, emitEvent: false});
-      }
-
       const formControl = compMapEntry.model.formControl;
       const validators = compMapEntry.model.validators;
       this.setValidators(formControl, validators, enabledValidationGroups, validationGroups);

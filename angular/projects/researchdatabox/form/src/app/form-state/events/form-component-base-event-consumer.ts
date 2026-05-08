@@ -442,10 +442,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     } else if (exprTarget === FormExpressionsTargetFieldDisabled) {
       const name = 'disabled';
       const disabled = toBoolean(targetValue);
-      // Note that because Angular manages the HTML element disabled attribute,
-      // only the component's disabled property needs to be set.
       this.options?.definition?.component?.setProperty(name, disabled);
       this.options?.definition?.layout?.setProperty(name, disabled);
+      this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
 
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {

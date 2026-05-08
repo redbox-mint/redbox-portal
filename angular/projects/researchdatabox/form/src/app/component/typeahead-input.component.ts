@@ -25,6 +25,21 @@ type TypeaheadStatus = 'idle' | 'loading' | 'no-results' | 'error' | 'misconfigu
 
 export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValueType> {
   protected override logName = TypeaheadInputModelName;
+
+  /**
+   * Set this model to be disabled or enabled.
+   *
+   * Component 'disabled' must be set as well,
+   * because the Angular formControl manages the HTML element disabled property.
+   *
+   * Use component.setDisabled instead of this method.
+   *
+   * @param disabled Set the disabled status.
+   * @param opts The modify options.
+   */
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts)
+  }
 }
 
 @Component({
@@ -176,9 +191,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
     this.applyInitialDisplayFromModel();
     this.bindModelValueSync();
-    if (this.isDisabled) {
-      this.setDisabled(true, { emitEvent: false, onlySelf: true });
-    }
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       if (this.programmaticDisplayUpdate) {
         return;
@@ -248,8 +260,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.setModelFromFreeText(text);
   }
 
+  public override get isDisabled(): boolean {
+    return super.isDisabled || this.model?.isDisabled || false;
+  }
+
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
+
+    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
 
     try {
       // Also disable and enable the display formControl.

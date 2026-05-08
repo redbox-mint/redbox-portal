@@ -113,7 +113,7 @@ interface FormExpressionsTargetLayoutConfigFrame {
 }
 
 export const FormExpressionsTargetComponentPrefix = "component." as const;
-type FormExpressionsTargetComponentPrefixType = typeof FormExpressionsTargetLayoutPrefix;
+type FormExpressionsTargetComponentPrefixType = typeof FormExpressionsTargetComponentPrefix;
 type FormExpressionsTargetComponentPropertyType = `${FormExpressionsTargetComponentPrefixType}${string}`;
 interface FormExpressionsTargetComponentConfigFrame {
   /**
