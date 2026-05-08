@@ -62,7 +62,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     // Model is optional for some components
     const model:  FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
     if (!model || !model?.formControl) {
-      this.logDebug(`FormComponentItemSelectEventConsumer: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
+      this.logDebug(`FormComponentItemSelectEventConsumer: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Item select may or may not be properly consumed.`, options.definition);
     } else {
       this.model = model;
     }

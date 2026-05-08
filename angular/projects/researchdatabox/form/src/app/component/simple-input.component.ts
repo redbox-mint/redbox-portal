@@ -1,10 +1,5 @@
 import { Component, Input } from '@angular/core';
-import {
-  FormFieldBaseComponent,
-  FormFieldCompMapEntry,
-  FormFieldModel,
-  ModifyOptions
-} from "@researchdatabox/portal-ng-common";
+import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   SimpleInputComponentName,
   SimpleInputFieldComponentConfig,
@@ -14,21 +9,6 @@ import { isUndefined as _isUndefined, isEmpty as _isEmpty } from 'lodash-es';
 
 export class SimpleInputModel extends FormFieldModel<string> {
   protected override logName = SimpleInputModelName;
-
-  /**
-   * Set this model to be disabled or enabled.
-   *
-   * Component 'disabled' must be set as well,
-   * because the Angular formControl manages the HTML element disabled property.
-   *
-   * Use component.setDisabled instead of this method.
-   *
-   * @param disabled Set the disabled status.
-   * @param opts The modify options.
-   */
-  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    super.setDisabled(disabled, opts)
-  }
 }
 
 /**
@@ -60,11 +40,6 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
   public placeholder: string | undefined = '';
 
   /**
-   * The model associated with this component.
-   */
-  @Input() public override model?: SimpleInputModel;
-
-  /**
    * Override to set additional properties required by the wrapper component.
    *
    * @param formFieldCompMapEntry
@@ -79,12 +54,9 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
   }
 
-  override get isDisabled(): boolean {
-    return super.isDisabled || this.model?.isDisabled || false;
-  }
+  /**
+   * The model associated with this component.
+   */
+  @Input() public override model?: SimpleInputModel;
 
-  override setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    super.setDisabled(disabled);
-    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
-  }
 }

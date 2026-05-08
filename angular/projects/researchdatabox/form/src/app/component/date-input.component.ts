@@ -82,21 +82,6 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
     }
   }
 
-  /**
-   * Set this model to be disabled or enabled.
-   *
-   * Component 'disabled' must be set as well,
-   * because the Angular formControl manages the HTML element disabled property.
-   *
-   * Use component.setDisabled instead of this method.
-   *
-   * @param disabled Set the disabled status.
-   * @param opts The modify options.
-   */
-  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    super.setDisabled(disabled, opts)
-  }
-
   private stripTimeFromJSDate(date: Date): string {
     if (!_isUndefined(date) && !_isNull(date)) {
       let formatted = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd');
@@ -160,8 +145,6 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private containerClass: string = 'theme-dark-blue';
   private bsFullConfig: any = {};
   public enableTimePickerDefault: boolean = false;
-
-  @Input() public override model?: DateInputModel;
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
 
@@ -254,12 +237,5 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     return this.model?.enableTimePicker ?? this.enableTimePickerDefault;
   }
 
-  override get isDisabled(): boolean {
-    return super.isDisabled || this.model?.isDisabled || false;
-  }
-
-  override setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    super.setDisabled(disabled);
-    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
-  }
+  @Input() public override model?: DateInputModel;
 }

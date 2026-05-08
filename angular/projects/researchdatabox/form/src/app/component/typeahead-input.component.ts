@@ -5,7 +5,8 @@ import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
   FormFieldModel,
-  HandlebarsTemplateService, ModifyOptions,
+  HandlebarsTemplateService,
+  ModifyOptions,
 } from '@researchdatabox/portal-ng-common';
 import {
   DynamicScriptResponse,
@@ -25,21 +26,6 @@ type TypeaheadStatus = 'idle' | 'loading' | 'no-results' | 'error' | 'misconfigu
 
 export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValueType> {
   protected override logName = TypeaheadInputModelName;
-
-  /**
-   * Set this model to be disabled or enabled.
-   *
-   * Component 'disabled' must be set as well,
-   * because the Angular formControl manages the HTML element disabled property.
-   *
-   * Use component.setDisabled instead of this method.
-   *
-   * @param disabled Set the disabled status.
-   * @param opts The modify options.
-   */
-  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    super.setDisabled(disabled, opts)
-  }
 }
 
 @Component({
@@ -266,8 +252,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
-
-    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
 
     try {
       // Also disable and enable the display formControl.

@@ -163,7 +163,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   get isReadonly(): boolean {
-    return this.componentDefinition?.config?.readonly ?? false;
+    return this.model?.isDisabled || this.componentDefinition?.config?.readonly || false;
   }
 
   /**
@@ -174,7 +174,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   }
 
   /**
-   * Set this component to be disabled or enabled.
+   * Set this component to be disabled or enabled. Also updates the model.
+   *
+   * If a component needs to manage the model differently,
+   * override this method in the component class.
+   *
+   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl.
+   *       The formControl sets the disabled state on the HTML element DOM.
+   *       This means that `[disabled]="isDisabled"` cannot be used together with `[formControl]="formControl"`.
+   *
    * @param disabled True for disabled, false for enabled.
    * @param opts The modify options.
    */
@@ -182,6 +190,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (this.componentDefinition?.config) {
       this.componentDefinition.config.disabled = disabled;
     }
+    this.model?.setDisabled(disabled, opts);
   }
 
   get label(): string {
