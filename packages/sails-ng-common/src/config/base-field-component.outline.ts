@@ -43,7 +43,7 @@ export interface BaseFieldComponentConfigFrame {
      * Whether the component is read-only or not.
      *
      * Note that readonly affects only the component's interactivity.
-     * If there is an associated model, it can be disabled or not independently.
+     * Readonly is separate from disabled, they can be set independently.
      */
     readonly?: boolean;
     /**
@@ -74,7 +74,7 @@ export interface BaseFieldComponentConfigFrame {
      * Whether the component is disabled or not.
      *
      * Note that disabled affects only the component's interactivity.
-     * If there is an associated model, it can be disabled or not independently.
+     * Disabled is separate from readonly, they can be set independently.
      */
     disabled?: boolean;
     /**

@@ -10,13 +10,18 @@ import {
   getLastSegmentFromJSONPointer,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
-  FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
+  FormExpressionsTargetModelValue,
+  FormExpressionsTargetLayoutPrefix,
+  FormExpressionsTargetComponentPrefix,
+  FormExpressionsTargetValidationGroups,
+  DynamicScriptResponse,
+  toBoolean,
   FormExpressionsTargetModelDisabled,
+  FormExpressionsTargetFieldVisible,
+  FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
 import jsonata from 'jsonata';
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
-import { AbstractControl } from '@angular/forms';
+import { isEmpty as _isEmpty } from 'lodash-es';
 import {isTypeFormValidationGroupsChangeRequestInfo, setControlValue} from "../custom-set-value.control";
 import { syncComponentDisplayFromModel } from "../custom-display-sync.control";
 import { FormFieldModel } from "@researchdatabox/portal-ng-common";
@@ -379,15 +384,21 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Sets the expression target property to the value.
    *
-	* Centralising target application here keeps specialised consumers, such as
-	* the sync-source consumer, focused on their matching semantics rather than
-	* re-implementing model/layout/component update rules.
-	*
+   * Centralising target application here keeps specialised consumers, such as
+   * the sync-source consumer, focused on their matching semantics rather than
+   * re-implementing model/layout/component update rules.
+   *
    * Supported targets:
-   * - `model.value` → this.model?.formControl.setValue
-   * - `layout.* →` this.options.definition.layout.componentDefinition.config.*
-   * - `component.* →` this.options.definition.component.componentDefinition.config.*
-   * - `form.enabledValidationGroups` → create an event indicating the change
+   * - `model.value` → `this.model?.formControl.setValue`
+   * - `model.disabled` → `this.model?.formControl.disabled`
+   * - `layout.[prop]` → `this.options.definition.layout.componentDefinition.config.[prop]`
+   * - `component.[prop]` → `this.options.definition.component.componentDefinition.config.[prop]`
+   * - `field.visible` → a convenience target that sets both `component.visible` and `layout.visible`
+   * - `field.disabled` → a convenience target that sets all of `component.disabled`, `layout.disabled`, and `model.disabled`
+   * - `form.enabledValidationGroups` → create an event requesting the change to the form's enabledValidationGroups
+   *
+   * The types are defined by FormExpressionsBaseConfigFrame and the interfaces that extend it.
+   *
    * @param targetValue The new value to set.
    * @param exprTarget The target property to update.
    * @param event The event associated with this change.
@@ -396,6 +407,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    */
   protected async setTarget(targetValue: unknown, exprTarget: string, event: FormComponentEvent, expression: FormExpressionsConfigFrame) {
     if (exprTarget === FormExpressionsTargetModelValue) {
+      // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
         await setControlValue(this.model.formControl, targetValue, {emitEvent: false});
         await syncComponentDisplayFromModel(this.options?.component);
@@ -407,17 +419,34 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         // current form status so signal-effect consumers can re-evaluate.
         this.formComp?.broadcastFormStatus();
       }
+
     } else if (exprTarget === FormExpressionsTargetModelDisabled) {
+      // The model.disabled property must be handled specially.
       const disabled = toBoolean(targetValue);
-      if (this.model?.isDisabled !== disabled) {
-        this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
-      }
+      this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
+
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
-      const propPath = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      await this.setTargetComponentProp(targetValue, propPath, "layout");
+      const name = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
+      this.options?.definition?.layout?.setProperty(name, targetValue);
+
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
-      const propPath = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      await this.setTargetComponentProp(targetValue, propPath, "component");
+      const name = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
+      this.options?.definition?.component?.setProperty(name, targetValue);
+
+    } else if (exprTarget === FormExpressionsTargetFieldVisible) {
+      const name = 'visible';
+      const visible = toBoolean(targetValue);
+      this.options?.definition?.component?.setProperty(name, visible);
+      this.options?.definition?.layout?.setProperty(name, visible);
+
+    } else if (exprTarget === FormExpressionsTargetFieldDisabled) {
+      const name = 'disabled';
+      const disabled = toBoolean(targetValue);
+      // Note that because Angular manages the HTML element disabled attribute,
+      // only the component's disabled property needs to be set.
+      this.options?.definition?.component?.setProperty(name, disabled);
+      this.options?.definition?.layout?.setProperty(name, disabled);
+
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
         // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
@@ -436,50 +465,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
           {event, expression}
         );
       }
+
     } else {
       this.loggerService.warn(
         `FormComponentBaseEventConsumer: Unknown target '${exprTarget}' in expression config.`,
         expression
       );
     }
-
-  }
-
-  protected async setTargetComponentProp(
-    targetValue: unknown, propPath: string, targetKind: "component" | "layout"
-  ) {
-
-    // For a component, all config properties except 'disabled' can be set directly.
-    if (targetKind === "component" && propPath !== 'disabled') {
-      const config = this.options?.definition?.component?.componentDefinition?.config;
-      if (config && propPath) {
-        _set(config, propPath, targetValue);
-      }
-      return;
-    }
-
-    // For a component, the disabled property must be handled specially to satisfy angular.
-    if (targetKind === "component" && propPath === 'disabled') {
-      const component = this.options?.component;
-      if (component) {
-        component.setDisabled(toBoolean(targetValue));
-      }
-      return;
-    }
-
-    // For a layout, there is no need for specific handling of the 'disabled' property.
-    // This is because the 'disabled' property has no general meaning and is specific to each layout.
-    if (targetKind === "layout") {
-      const config = this.options?.definition?.layout?.componentDefinition?.config;
-      if (config && propPath) {
-        _set(config, propPath, targetValue);
-      }
-      return;
-    }
-
-    this.loggerService.warn(
-      `FormComponentBaseEventConsumer: Don't know what to do with target '${targetKind}' property path '${propPath}' value '${targetValue}' (type ${guessType(targetValue)}) in expression config.`
-    );
   }
 
   /**

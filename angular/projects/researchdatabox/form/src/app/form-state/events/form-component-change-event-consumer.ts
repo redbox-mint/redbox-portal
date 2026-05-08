@@ -9,6 +9,8 @@ import {  FormExpressionsConfigFrame} from '@researchdatabox/sails-ng-common';
 
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
+ *
+ * Supported targets are specified in FormComponentEventBaseConsumer.setTarget.
  */
 export class FormComponentValueChangeEventConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType: FormComponentEventTypeValue =

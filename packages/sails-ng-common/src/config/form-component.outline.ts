@@ -103,19 +103,40 @@ interface FormExpressionsTargetModelDisabledConfigFrame {
 }
 
 export const FormExpressionsTargetLayoutPrefix = "layout." as const;
+type FormExpressionsTargetLayoutPrefixType = typeof FormExpressionsTargetLayoutPrefix;
+type FormExpressionsTargetLayoutPropertyType = `${FormExpressionsTargetLayoutPrefixType}${string}`;
 interface FormExpressionsTargetLayoutConfigFrame {
   /**
    * Layout property name that will receive the result of the expression.
    */
-  target: `layout.${string}`;
+  target: FormExpressionsTargetLayoutPropertyType;
 }
 
 export const FormExpressionsTargetComponentPrefix = "component." as const;
+type FormExpressionsTargetComponentPrefixType = typeof FormExpressionsTargetLayoutPrefix;
+type FormExpressionsTargetComponentPropertyType = `${FormExpressionsTargetComponentPrefixType}${string}`;
 interface FormExpressionsTargetComponentConfigFrame {
   /**
    * Component property name that will receive the result of the expression.
    */
-  target: `component.${string}` ;
+  target: FormExpressionsTargetComponentPropertyType;
+}
+
+export const FormExpressionsTargetFieldVisible = "field.visible" as const;
+type FormExpressionsTargetFieldVisibleType = typeof FormExpressionsTargetFieldVisible;
+interface FormExpressionsTargetFieldVisibleConfigFrame {
+  /**
+   * A convenience target that sets both `component.visible` and `layout.visible`.
+   */
+  target: FormExpressionsTargetFieldVisibleType;
+}
+export const FormExpressionsTargetFieldDisabled = "field.disabled" as const;
+type FormExpressionsTargetFieldDisabledType = typeof FormExpressionsTargetFieldDisabled;
+interface FormExpressionsTargetFieldDisabledConfigFrame {
+  /**
+   * A convenience target that sets all of `component.visible`, `layout.visible`, and `model.disabled`.
+   */
+  target: FormExpressionsTargetFieldDisabledType;
 }
 
 export const FormExpressionsTargetValidationGroups = "form.enabledValidationGroups" as const;
@@ -127,11 +148,19 @@ interface FormExpressionsTargetValidationGroupsConfigFrame {
   target: FormExpressionsTargetValidationGroupsType;
 }
 
+/*
+ * Expression with either operation or template and no target.
+ */
+
 export interface FormExpressionsOperationNoTargetConfigFrame extends FormExpressionsBaseConfigFrame, FormExpressionsOperationConfigFrame {
 }
 
 export interface FormExpressionsTemplateNoTargetConfigFrame extends FormExpressionsBaseConfigFrame, FormExpressionsTemplateConfigFrame {
 }
+
+/*
+ * Expression with either operation or template and model.value target.
+ */
 
 export interface FormExpressionsOperationModelValueConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetModelValueConfigFrame {
 }
@@ -139,11 +168,19 @@ export interface FormExpressionsOperationModelValueConfigFrame extends FormExpre
 export interface FormExpressionsTemplateModelValueConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetModelValueConfigFrame {
 }
 
+/*
+ * Expression with either operation or template and model.disabled target.
+ */
+
 export interface FormExpressionsOperationModelDisabledConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetModelDisabledConfigFrame {
 }
 
 export interface FormExpressionsTemplateModelDisabledConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetModelDisabledConfigFrame {
 }
+
+/*
+ * Expression with either operation or template and layout.* target.
+ */
 
 export interface FormExpressionsOperationLayoutConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetLayoutConfigFrame {
 }
@@ -151,17 +188,46 @@ export interface FormExpressionsOperationLayoutConfigFrame extends FormExpressio
 export interface FormExpressionsTemplateLayoutConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetLayoutConfigFrame {
 }
 
+/*
+ * Expression with either operation or template and component.* target.
+ */
+
 export interface FormExpressionsOperationComponentConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetComponentConfigFrame {
 }
 
 export interface FormExpressionsTemplateComponentConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetComponentConfigFrame {
 }
 
+/*
+ * Expression with either operation or template and field.visible target.
+ */
+
+export interface FormExpressionsOperationFieldVisibleConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetFieldVisibleConfigFrame {
+}
+
+export interface FormExpressionsTemplateFieldVisibleConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetFieldVisibleConfigFrame {
+}
+
+/*
+ * Expression with either operation or template and field.disabled target.
+ */
+
+export interface FormExpressionsOperationFieldDisabledConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetFieldDisabledConfigFrame {
+}
+
+export interface FormExpressionsTemplateFieldDisabledConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetFieldDisabledConfigFrame {
+}
+
+/*
+ * Expression with either operation or template and form.enabledValidationGroups target.
+ */
+
 export interface FormExpressionsOperationValidationGroupsConfigFrame extends FormExpressionsOperationNoTargetConfigFrame, FormExpressionsTargetValidationGroupsConfigFrame {
 }
 
 export interface FormExpressionsTemplateValidationGroupsConfigFrame extends FormExpressionsTemplateNoTargetConfigFrame, FormExpressionsTargetValidationGroupsConfigFrame {
 }
+
 
 /**
  * The available form expression configuration structures.
@@ -177,6 +243,10 @@ export type FormExpressionsOptionsConfigFrame =
   | FormExpressionsTemplateLayoutConfigFrame
   | FormExpressionsOperationComponentConfigFrame
   | FormExpressionsTemplateComponentConfigFrame
+  | FormExpressionsOperationFieldVisibleConfigFrame
+  | FormExpressionsTemplateFieldVisibleConfigFrame
+  | FormExpressionsOperationFieldDisabledConfigFrame
+  | FormExpressionsTemplateFieldDisabledConfigFrame
   | FormExpressionsOperationValidationGroupsConfigFrame
   | FormExpressionsTemplateValidationGroupsConfigFrame
 ;

@@ -6,7 +6,7 @@ import {
   EffectRef, Injector, ApplicationRef
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
-import {  isEmpty as _isEmpty, get as _get } from 'lodash-es';
+import {  isEmpty as _isEmpty, get as _get, set as _set } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
   FormComponentDefinitionFrame,
@@ -15,6 +15,7 @@ import {
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
+  toBoolean,
 } from '@researchdatabox/sails-ng-common';
 
 export interface FormFieldFocusRequestOptions {
@@ -134,6 +135,20 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return _get(this.componentDefinition?.config, name, '');
   }
 
+  public setProperty(name: string, value: unknown): void {
+    // TODO: Can (and should) the name be restricted to only known / available properties?
+    if (this.componentDefinition?.config) {
+      if (name === 'disabled') {
+        this.setDisabled(toBoolean(value));
+      } else {
+        const currentValue = _get(this.componentDefinition?.config, name);
+        if (currentValue !== value) {
+          _set(this.componentDefinition.config, name, value);
+        }
+      }
+    }
+  }
+
   get isVisible(): boolean {
     return this.componentDefinition?.config?.visible ?? true;
   }
@@ -154,19 +169,17 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
 
   /**
    * Set this component to be disabled or enabled.
+   *
+   * The 'model.disabled' property is also set,
+   * because the Angular formControl manages the HTML element disabled property.
+   *
    * @param disabled True for disabled, false for enabled.
-   * @param opts The modify options.
    */
-  public setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    try {
-      this.model?.setDisabled(disabled, opts);
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = disabled;
-      }
-    } catch (error) {
-      this.loggerService.error(
-        `Could not set model disabled state with value ${disabled} and opts ${opts}.`, error);
+  public setDisabled(disabled: boolean) {
+    if (this.componentDefinition?.config) {
+      this.componentDefinition.config.disabled = disabled;
     }
+    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
   }
 
   get label(): string {
