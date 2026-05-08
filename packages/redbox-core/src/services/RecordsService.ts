@@ -1558,14 +1558,15 @@ export namespace Services {
     }
 
     async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const record = await this.storageService.restoreRecord(oid) as unknown as RecordModel;
+      const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
+      const record = recordStorageServiceResponse.metadata as RecordModel;
       const brand = await BrandingService.getBrandById(record.metaMetadata.brandId)
       const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
       if (recordType?.searchable !== false) {
         this.searchService.index(oid, record as unknown as Record<string, unknown>);
       }
-      await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.restored);
-      return record as unknown as StorageServiceResponse;
+      await this.auditRecord(oid, recordStorageServiceResponse as unknown as AnyRecord, user, RecordAuditActionType.restored);
+      return recordStorageServiceResponse as unknown as StorageServiceResponse;
     }
 
     async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
