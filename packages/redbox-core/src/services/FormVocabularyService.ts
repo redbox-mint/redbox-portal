@@ -135,7 +135,8 @@ export namespace Services {
         );
       }
 
-      const targetService = sails.services?.[serviceName.toLowerCase()] as Record<string, unknown> | undefined;
+      const servicesRegistry = sails.services as Record<string, Record<string, unknown>> | undefined;
+      const targetService = servicesRegistry?.[serviceName] ?? servicesRegistry?.[serviceName.toLowerCase()];
       const targetMethod = targetService?.[methodName];
       if (!targetService || typeof targetMethod !== 'function') {
         throw this.createServiceLookupError(
