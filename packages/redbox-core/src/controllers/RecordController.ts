@@ -24,6 +24,7 @@ import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
+  DashboardViewResponseModel,
   Controllers as controllers,
   DatastreamService,
   RecordsService,
@@ -116,10 +117,13 @@ export namespace Controllers {
       'listWorkspaces',
       'getAllDashboardTypes',
       'getDashboardType',
+      'getDashboardView',
+      'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
       'restoreRecord',
       'destroyDeletedRecord',
+      'renderDashboardView',
     ];
 
     /**
@@ -1082,6 +1086,23 @@ export namespace Controllers {
       });
     }
 
+    public getDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewParam = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewParam)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      try {
+        const dashboardView = DashboardTypesService.getDashboardView(dashboardViewParam);
+        if (!dashboardView) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+        }
+        return this.sendResp(req, res, { data: new DashboardViewResponseModel(dashboardView) });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+      }
+    }
+
     protected tusServer: TusServer | null = null;
 
     protected initTusServer() {
@@ -1516,11 +1537,13 @@ export namespace Controllers {
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
+      let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
         }
+        dashboardType = 'workspace';
         if (titleLabel == '') {
           titleLabel = 'workspaces';
         }
@@ -1543,9 +1566,37 @@ export namespace Controllers {
       return this.sendView(req, res, 'dashboard', {
         recordType: recordType,
         packageType: packageType,
+        dashboardType: dashboardType,
+        dashboardView: '',
         titleLabel: titleLabel,
         showAdminSideBar: showAdminSideBar
       });
+    }
+
+    public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewName)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      const dashboardView = DashboardTypesService.getDashboardView(dashboardViewName);
+      if (!dashboardView) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+      }
+
+      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: dashboardView.sourceRecordType,
+        packageType: '',
+        dashboardType: dashboardView.dashboardType,
+        dashboardView: dashboardView.name,
+        titleLabel,
+        showAdminSideBar: dashboardView.showAdminSideBar === true
+      });
+    }
+
+    public redirectLegacyConsolidatedDashboard(req: Sails.Req, res: Sails.Res) {
+      return res.redirect(`${BrandingService.getFullPath(req)}/dashboard-view/consolidated`);
     }
 
 

@@ -110,6 +110,24 @@ export interface RecordTypeDefinitionResponse {
   relatedTo?: RecordTypeRelationship[];
 }
 
+export interface DashboardViewStepDefinitionResponse {
+  name: string;
+  sourceRecordType: string;
+  sourceWorkflowStage?: string;
+  fetchMode: 'allForRecordType' | 'workflowStage';
+  dashboardTable: Record<string, unknown>;
+  baseRecordType?: string;
+}
+
+export interface DashboardViewDefinitionResponse {
+  name: string;
+  titleLabelKey: string;
+  showAdminSideBar?: boolean;
+  dashboardType: string;
+  sourceRecordType: string;
+  steps: DashboardViewStepDefinitionResponse[];
+}
+
 export interface IntegrationAuditTraceEvent {
   id: string;
   redboxOid: string;
@@ -562,6 +580,13 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  public async getDashboardView(name: string): Promise<DashboardViewDefinitionResponse> {
+    const url = `${this.brandingAndPortalUrl}/dashboard/view/${name}`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    const result = await firstValueFrom(result$) as Record<string, unknown>;
+    return ((_get(result, 'data') ?? result) as DashboardViewDefinitionResponse);
   }
 
   public async getAllDashboardTypes() {

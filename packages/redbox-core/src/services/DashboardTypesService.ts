@@ -4,6 +4,8 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { DashboardTypeModel } from '../model/storage/DashboardTypeModel';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import type { DashboardTypeDefinition } from '../config/dashboardtype.config';
+import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
+import type { DashboardTableConfig as WorkflowDashboardTableConfig } from '../config/workflow.config';
 
 
 export namespace Services {
@@ -23,13 +25,7 @@ export namespace Services {
   /**
    * Dashboard table configuration interface
    */
-  export interface DashboardTableConfig {
-    rowConfig?: DashboardRowConfig[];
-    rowRulesConfig?: DashboardRuleSet[];
-    groupRowConfig?: DashboardRowConfig[];
-    groupRowRulesConfig?: DashboardRuleSet[];
-    formatRules?: Record<string, unknown>;
-  }
+  export type DashboardTableConfig = WorkflowDashboardTableConfig;
 
   /**
    * Top-level dashboard configuration interface for a record type
@@ -43,14 +39,22 @@ export namespace Services {
   export interface DashboardRule {
     renderItemTemplate?: string;
     evaluateRulesTemplate?: string;
-    [key: string]: unknown;
+    name?: string;
+    action?: string;
+    mode?: string;
   }
 
   export interface DashboardRuleSet {
     ruleSetName: string;
+    applyRuleSet?: boolean;
     rules?: DashboardRule[];
-    [key: string]: unknown;
+    type?: string;
+    separator?: string;
+    mode?: string;
   }
+
+  export type DashboardViewConfig = DashboardViewDefinition;
+  export type DashboardViewStepConfig = DashboardViewStepDefinition;
 
   type DashboardTypeConfig = DashboardTypeDefinition & {
     searchFilters?: unknown;
@@ -69,7 +73,10 @@ export namespace Services {
       'getAll',
       'getDashboardTableConfig',
       'getRecordTypeDashboardConfig',
-      'extractDashboardTemplates'
+      'extractDashboardTemplates',
+      'getDashboardView',
+      'getDashboardViewStep',
+      'extractDashboardViewTemplates'
     ];
 
     protected dashboardTypes: DashboardTypeModel[] = [];
@@ -236,104 +243,40 @@ export namespace Services {
       }
     }
 
-    /**
-     * Extract templates from dashboard configuration and prepare them for pre-compilation.
-     * Converts dashboard row templates to TemplateCompileInput format for Handlebars pre-compilation.
-     * 
-     * @param brand The branding model
-     * @param recordType The record type name
-     * @param workflowStage The workflow stage name
-     * @param dashboardType The dashboard type name (default: standard)
-     * @returns Array of templates ready for compilation
-     */
-    public async extractDashboardTemplates(brand: BrandingModel, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<TemplateCompileInput[]> {
-      const entries: TemplateCompileInput[] = [];
+    public getDashboardView(name: string): DashboardViewConfig | null {
+      const dashboardView = _.get(sails.config.dashboardview, name) as DashboardViewConfig | undefined;
+      if (dashboardView == null) {
+        sails.log.warn(`Dashboard view not found: ${name}`);
+        return null;
+      }
+      return dashboardView;
+    }
 
-      const dashboardConfig = await this.getDashboardTableConfig(brand, recordType, workflowStage);
-
-      // Extract templates from rowConfig
-      if (dashboardConfig) {
-        const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultRowConfig;
-        sails.log.verbose(`DashboardTypesService: extracting ${rowConfig.length} row templates. Using default? ${_.isEmpty(dashboardConfig.rowConfig)}`);
-        for (let i = 0; i < rowConfig.length; i++) {
-          const row = rowConfig[i] as DashboardRowConfig;
-          if (row.template) {
-            entries.push({
-              key: [recordType, workflowStage, 'rowConfig', i.toString(), row.variable],
-              kind: 'handlebars',
-              value: row.template
-            });
-          }
-        }
-
-        // Extract templates from groupRowConfig  
-        const groupRowConfig = dashboardConfig.groupRowConfig || [];
-        for (let i = 0; i < groupRowConfig.length; i++) {
-          const row = groupRowConfig[i];
-          if (row.template) {
-            entries.push({
-              key: [recordType, workflowStage, 'groupRowConfig', i.toString(), row.variable],
-              kind: 'handlebars',
-              value: row.template
-            });
-          }
-        }
-
-        // Extract templates from rowRulesConfig
-        const rowRulesConfig = dashboardConfig.rowRulesConfig || [];
-        for (let ruleSetIdx = 0; ruleSetIdx < rowRulesConfig.length; ruleSetIdx++) {
-          const ruleSet = rowRulesConfig[ruleSetIdx];
-          const rules = ruleSet.rules || [];
-          for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
-            const rule = rules[ruleIdx];
-            if (rule.renderItemTemplate) {
-              entries.push({
-                key: [recordType, workflowStage, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
-                kind: 'handlebars',
-                value: rule.renderItemTemplate
-              });
-            }
-            if (rule.evaluateRulesTemplate) {
-              entries.push({
-                key: [recordType, workflowStage, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
-                kind: 'handlebars',
-                value: rule.evaluateRulesTemplate
-              });
-            }
-          }
-        }
-
-        // Extract templates from groupRowRulesConfig
-        const groupRowRulesConfig = dashboardConfig.groupRowRulesConfig || [];
-        for (let ruleSetIdx = 0; ruleSetIdx < groupRowRulesConfig.length; ruleSetIdx++) {
-          const ruleSet = groupRowRulesConfig[ruleSetIdx];
-          const rules = ruleSet.rules || [];
-          for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
-            const rule = rules[ruleIdx];
-            if (rule.renderItemTemplate) {
-              entries.push({
-                key: [recordType, workflowStage, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
-                kind: 'handlebars',
-                value: rule.renderItemTemplate
-              });
-            }
-            if (rule.evaluateRulesTemplate) {
-              entries.push({
-                key: [recordType, workflowStage, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
-                kind: 'handlebars',
-                value: rule.evaluateRulesTemplate
-              });
-            }
-          }
-        }
+    public getDashboardViewStep(name: string, stepName: string): DashboardViewStepConfig | null {
+      const dashboardView = this.getDashboardView(name);
+      if (!dashboardView) {
+        return null;
       }
 
-      // Extract templates from queryFilters (DashboardType config)
+      const dashboardStep = (dashboardView.steps || []).find((step) => step.name === stepName) ?? null;
+      if (!dashboardStep) {
+        sails.log.warn(`Dashboard view step not found: ${name}/${stepName}`);
+      }
+      return dashboardStep;
+    }
+
+    private async extractQueryFilterTemplates(
+      brand: BrandingModel,
+      queryRecordType: string,
+      dashboardType: string,
+      templateKeyPrefix: string[]
+    ): Promise<TemplateCompileInput[]> {
+      const entries: TemplateCompileInput[] = [];
       try {
         const dashboardTypeModel = await firstValueFrom(this.get(brand, dashboardType));
         if (dashboardTypeModel) {
           const formatRules = dashboardTypeModel.formatRules;
-          const queryFilters = _.get(formatRules, `queryFilters.${recordType}`);
+          const queryFilters = _.get(formatRules, `queryFilters.${queryRecordType}`);
           if (_.isArray(queryFilters)) {
             for (let i = 0; i < queryFilters.length; i++) {
               const queryFilter = queryFilters[i];
@@ -342,7 +285,7 @@ export namespace Services {
                   const filterField = queryFilter.filterFields[j];
                   if (filterField.template) {
                     entries.push({
-                      key: [recordType, dashboardType, 'filters', i.toString(), 'fields', j.toString(), 'template'],
+                      key: [...templateKeyPrefix, dashboardType, 'filters', i.toString(), 'fields', j.toString(), 'template'],
                       kind: 'handlebars',
                       value: filterField.template
                     });
@@ -355,8 +298,121 @@ export namespace Services {
       } catch (e) {
         sails.log.warn(`Could not load dashboard type ${dashboardType} for template extraction`, e);
       }
+      return entries;
+    }
+
+    private extractDashboardTableTemplates(configKeyPrefix: string[], dashboardConfig: DashboardTableConfig | null): TemplateCompileInput[] {
+      const entries: TemplateCompileInput[] = [];
+
+      if (!dashboardConfig) {
+        return entries;
+      }
+
+      const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultRowConfig;
+      sails.log.verbose(`DashboardTypesService: extracting ${rowConfig.length} row templates. Using default? ${_.isEmpty(dashboardConfig.rowConfig)}`);
+      for (let i = 0; i < rowConfig.length; i++) {
+        const row = rowConfig[i] as DashboardRowConfig;
+        if (row.template) {
+          entries.push({
+            key: [...configKeyPrefix, 'rowConfig', i.toString(), row.variable],
+            kind: 'handlebars',
+            value: row.template
+          });
+        }
+      }
+
+      const groupRowConfig = dashboardConfig.groupRowConfig || [];
+      for (let i = 0; i < groupRowConfig.length; i++) {
+        const row = groupRowConfig[i];
+        if (row.template) {
+          entries.push({
+            key: [...configKeyPrefix, 'groupRowConfig', i.toString(), row.variable],
+            kind: 'handlebars',
+            value: row.template
+          });
+        }
+      }
+
+      const rowRulesConfig = dashboardConfig.rowRulesConfig || [];
+      for (let ruleSetIdx = 0; ruleSetIdx < rowRulesConfig.length; ruleSetIdx++) {
+        const ruleSet = rowRulesConfig[ruleSetIdx];
+        const rules = ruleSet.rules || [];
+        for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
+          const rule = rules[ruleIdx];
+          if (rule.renderItemTemplate) {
+            entries.push({
+              key: [...configKeyPrefix, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
+              kind: 'handlebars',
+              value: rule.renderItemTemplate
+            });
+          }
+          if (rule.evaluateRulesTemplate) {
+            entries.push({
+              key: [...configKeyPrefix, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
+              kind: 'handlebars',
+              value: rule.evaluateRulesTemplate
+            });
+          }
+        }
+      }
+
+      const groupRowRulesConfig = dashboardConfig.groupRowRulesConfig || [];
+      for (let ruleSetIdx = 0; ruleSetIdx < groupRowRulesConfig.length; ruleSetIdx++) {
+        const ruleSet = groupRowRulesConfig[ruleSetIdx];
+        const rules = ruleSet.rules || [];
+        for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
+          const rule = rules[ruleIdx];
+          if (rule.renderItemTemplate) {
+            entries.push({
+              key: [...configKeyPrefix, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
+              kind: 'handlebars',
+              value: rule.renderItemTemplate
+            });
+          }
+          if (rule.evaluateRulesTemplate) {
+            entries.push({
+              key: [...configKeyPrefix, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
+              kind: 'handlebars',
+              value: rule.evaluateRulesTemplate
+            });
+          }
+        }
+      }
+
+      return entries;
+    }
+
+    /**
+     * Extract templates from dashboard configuration and prepare them for pre-compilation.
+     * Converts dashboard row templates to TemplateCompileInput format for Handlebars pre-compilation.
+     * 
+     * @param brand The branding model
+     * @param recordType The record type name
+     * @param workflowStage The workflow stage name
+     * @param dashboardType The dashboard type name (default: standard)
+     * @returns Array of templates ready for compilation
+     */
+    public async extractDashboardTemplates(brand: BrandingModel, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<TemplateCompileInput[]> {
+      const dashboardConfig = await this.getDashboardTableConfig(brand, recordType, workflowStage);
+      const entries = this.extractDashboardTableTemplates([recordType, workflowStage], dashboardConfig);
+      entries.push(...await this.extractQueryFilterTemplates(brand, recordType, dashboardType, [recordType]));
 
       sails.log.verbose(`Extracted ${entries.length} dashboard templates for ${recordType}/${workflowStage}`);
+      return entries;
+    }
+
+    public async extractDashboardViewTemplates(brand: BrandingModel, dashboardView: string, stepName: string, dashboardType?: string): Promise<TemplateCompileInput[]> {
+      const dashboardViewConfig = this.getDashboardView(dashboardView);
+      const dashboardStepConfig = this.getDashboardViewStep(dashboardView, stepName);
+      if (!dashboardViewConfig || !dashboardStepConfig) {
+        return [];
+      }
+
+      const resolvedDashboardType = dashboardType || dashboardViewConfig.dashboardType;
+      const entries = this.extractDashboardTableTemplates([dashboardView, stepName], dashboardStepConfig.dashboardTable ?? null);
+      entries.push(...await this.extractQueryFilterTemplates(brand, dashboardStepConfig.sourceRecordType, resolvedDashboardType, [dashboardView]));
+
+      sails.log.verbose(`Extracted ${entries.length} dashboard templates for dashboard view ${dashboardView}/${stepName}`);
       return entries;
     }
   }

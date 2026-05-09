@@ -530,6 +530,24 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Encode user-controlled URL path values while preserving path separators.
+   * Trailing slashes are trimmed so prefixed paths can be safely concatenated.
+   *
+   * @example {{urlEncode oid}}
+   */
+  urlEncode: function (value: unknown): string {
+    const text = String(value ?? '').replace(/\/+$/, '');
+    if (!text) {
+      return '';
+    }
+
+    return text
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+  },
+
+  /**
    * Concatenate strings.
    * Note: The last argument is the Handlebars options hash, which is removed.
    *

@@ -168,6 +168,21 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
   });
 
+  it('pageChanged skips dashboard view pagination when no workflow steps are loaded', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardView = 'consolidated';
+    dashboardComponent.dashboardTypeSelected = 'consolidated';
+    dashboardComponent.workflowSteps = [];
+    dashboardComponent.recordType = 'rdmp';
+    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
+
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'consolidated');
+
+    expect(initStepSpy).not.toHaveBeenCalled();
+    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
+  });
+
   // getSecondarySortStringFromSortMap tests
   describe('getSecondarySortStringFromSortMap', () => {
     it('returns empty string when sortFields is empty', () => {

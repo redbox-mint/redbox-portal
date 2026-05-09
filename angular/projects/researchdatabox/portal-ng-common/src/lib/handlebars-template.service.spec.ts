@@ -60,6 +60,24 @@ describe('HandlebarsTemplateService', () => {
         });
     });
 
+    describe('loadDashboardViewTemplates', () => {
+        it('should load dashboard view module via utility service and register it', async () => {
+            const mockModule = {
+                evaluate: jasmine.createSpy('evaluate')
+            };
+            utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
+
+            await service.loadDashboardViewTemplates('default', 'portal', 'consolidated', 'consolidated', 'consolidated');
+
+            expect(utilityServiceSpy.getDynamicImport).toHaveBeenCalledWith(
+                jasmine.any(String),
+                ['dynamicAsset', 'dashboardViewTemplates', 'consolidated', 'consolidated'],
+                { dashboardType: 'consolidated' }
+            );
+            expect(loggerServiceSpy.debug).toHaveBeenCalledWith(jasmine.stringMatching(/Loaded templates for/));
+        });
+    });
+
     describe('compileAndRunTemplate', () => {
         it('should execute precompiled template from loaded module if keys provided', async () => {
             // Create a real template spec using the full Handlebars (imported in test)

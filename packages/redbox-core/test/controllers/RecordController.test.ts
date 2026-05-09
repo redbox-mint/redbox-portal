@@ -10,12 +10,14 @@ describe('RecordController getWorkflowSteps', () => {
   let originalBrandingService: any;
   let originalRecordTypesService: any;
   let originalWorkflowStepsService: any;
+  let originalDashboardTypesService: any;
 
   beforeEach(() => {
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalRecordTypesService = (global as any).RecordTypesService;
     originalWorkflowStepsService = (global as any).WorkflowStepsService;
+    originalDashboardTypesService = (global as any).DashboardTypesService;
 
     (global as any).sails = {
       config: {},
@@ -38,6 +40,9 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).WorkflowStepsService = {
       getAllForRecordType: sinon.stub(),
     };
+    (global as any).DashboardTypesService = {
+      getDashboardView: sinon.stub(),
+    };
 
     controller = new Controllers.Record();
   });
@@ -48,6 +53,7 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).BrandingService = originalBrandingService;
     (global as any).RecordTypesService = originalRecordTypesService;
     (global as any).WorkflowStepsService = originalWorkflowStepsService;
+    (global as any).DashboardTypesService = originalDashboardTypesService;
   });
 
   it('returns 400 when record type is missing after normalization', async () => {
@@ -108,5 +114,64 @@ describe('RecordController getWorkflowSteps', () => {
     expect((global as any).WorkflowStepsService.getAllForRecordType.calledWith(recordType)).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.equal({ data: wfSteps });
+  });
+
+  it('returns dashboard view metadata for a valid dashboard view', async () => {
+    const req = {
+      param: sinon.stub().withArgs('dashboardView').returns('consolidated'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    const dashboardView = {
+      name: 'consolidated',
+      titleLabelKey: 'consolidated',
+      dashboardType: 'consolidated',
+      sourceRecordType: 'rdmp',
+      showAdminSideBar: true,
+      steps: [
+        {
+          name: 'consolidated',
+          sourceRecordType: 'rdmp',
+          fetchMode: 'allForRecordType',
+          dashboardTable: { rowConfig: [] },
+        },
+      ],
+    };
+    (global as any).DashboardTypesService.getDashboardView.returns(dashboardView);
+
+    await controller.getDashboardView(req, res);
+
+    expect((global as any).DashboardTypesService.getDashboardView.calledWithExactly('consolidated')).to.be.true;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2].data).to.deep.include({
+      name: 'consolidated',
+      titleLabelKey: 'consolidated',
+      dashboardType: 'consolidated',
+      sourceRecordType: 'rdmp',
+      showAdminSideBar: true,
+    });
+    expect(sendRespStub.firstCall.args[2].data.steps).to.deep.equal([
+      {
+        name: 'consolidated',
+        sourceRecordType: 'rdmp',
+        sourceWorkflowStage: undefined,
+        fetchMode: 'allForRecordType',
+        dashboardTable: { rowConfig: [] },
+        baseRecordType: undefined,
+      },
+    ]);
+  });
+
+  it('redirects the legacy consolidated dashboard route', () => {
+    const req = {} as Sails.Req;
+    const res = {
+      redirect: sinon.stub()
+    } as unknown as Sails.Res;
+    (global as any).BrandingService.getFullPath = sinon.stub().returns('/default/rdmp');
+
+    controller.redirectLegacyConsolidatedDashboard(req, res);
+
+    expect((res.redirect as any).calledWith('/default/rdmp/dashboard-view/consolidated')).to.be.true;
   });
 });
