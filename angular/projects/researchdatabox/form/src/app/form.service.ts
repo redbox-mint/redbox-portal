@@ -78,8 +78,15 @@ import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
-// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
-declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
+// Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
+// `formValidatorDefinitions` is the historical synchronous accessor and is preserved
+// for any external consumer that still reads it, but the form app now prefers
+// `getFormValidatorDefinitions()` so the heavy sails-ng-common deps (jsonata, lodash,
+// luxon, marked) load in a separate chunk on demand instead of on every page open.
+declare var redboxClientScript: {
+  formValidatorDefinitions?: FormValidatorDefinition[];
+  getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]>;
+};
 
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
@@ -169,6 +176,28 @@ export class FormService extends HttpClientService {
    * Returns:
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
+  /**
+   * Bridge to the `redboxClientScript` global exposed by index.bundle.js.
+   *
+   * Prefers the lazy `getFormValidatorDefinitions()` getter so heavy deps
+   * (jsonata, lodash, luxon, marked) load in their own chunk on demand. Falls
+   * back to the pre-existing eager `formValidatorDefinitions` array for
+   * backwards compatibility with hosts that still expose only the synchronous
+   * shape (older builds, the unit-test setup in `helpers.spec.ts`).
+   */
+  private async resolveValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
+    const bridge = (typeof redboxClientScript !== 'undefined' ? redboxClientScript : undefined) as
+      | { formValidatorDefinitions?: FormValidatorDefinition[]; getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]> }
+      | undefined;
+    if (bridge?.getFormValidatorDefinitions) {
+      return bridge.getFormValidatorDefinitions();
+    }
+    if (Array.isArray(bridge?.formValidatorDefinitions)) {
+      return bridge.formValidatorDefinitions;
+    }
+    throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
+  }
+
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
@@ -203,7 +232,8 @@ export class FormService extends HttpClientService {
     formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(redboxClientScript.formValidatorDefinitions);
+      const definitions = await this.resolveValidatorDefinitions();
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 
