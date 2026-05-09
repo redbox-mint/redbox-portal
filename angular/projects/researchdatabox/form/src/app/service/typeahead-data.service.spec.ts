@@ -148,4 +148,43 @@ describe("TypeaheadDataService", () => {
         expect(result[0].value).toBe("Australia");
         expect(result[0].sourceType).toBe("external");
     });
+
+    describe("in-flight request dedup", () => {
+        it("collapses concurrent identical named-query lookups into a single request", async () => {
+            const p1 = service.searchNamedQuery("party", "Clair Meade", 0, 25);
+            const p2 = service.searchNamedQuery("party", "Clair Meade", 0, 25);
+            await Promise.resolve();
+
+            const req = httpTesting.expectOne((request) =>
+                request.method === "GET" &&
+                request.url.includes("/query/vocab/party") &&
+                request.params.get("search") === "Clair Meade"
+            );
+            req.flush({ records: [{ label: "Clair Meade", value: "u-1" }] });
+
+            const [r1, r2] = await Promise.all([p1, p2]);
+            expect(r1[0].label).toBe("Clair Meade");
+            expect(r2[0].label).toBe("Clair Meade");
+        });
+
+        it("re-fetches once the in-flight request has resolved (no result caching)", async () => {
+            const p1 = service.searchVocabularyEntries("access-rights", "op", 10, 0);
+            await Promise.resolve();
+            const req1 = httpTesting.expectOne((request) =>
+                request.url.includes("/vocab/access-rights/entries") && request.params.get("search") === "op"
+            );
+            req1.flush([{ label: "Open", value: "open" }]);
+            await p1;
+
+            const p2 = service.searchVocabularyEntries("access-rights", "op", 10, 0);
+            await Promise.resolve();
+            // Same key, but the first request has resolved — expect a fresh network call.
+            const req2 = httpTesting.expectOne((request) =>
+                request.url.includes("/vocab/access-rights/entries") && request.params.get("search") === "op"
+            );
+            req2.flush([{ label: "Open (updated)", value: "open" }]);
+            const result = await p2;
+            expect(result[0].label).toBe("Open (updated)");
+        });
+    });
 });

@@ -231,6 +231,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private readonly expandedNodeIds = new Set<string>();
   private readonly loadingNodeIds = new Set<string>();
   private readonly loadedNodeIds = new Set<string>();
+  // Concurrent callers of loadChildren for the same node await the same promise
+  // rather than racing — needed since expandToSelectedNodes runs chains in parallel
+  // and sibling chains can hit the same shared ancestor at the same time.
+  private readonly inFlightChildLoads = new Map<string, Promise<void>>();
   private modelSubscriptionInitialised = false;
 
   private leafOnly = true;
@@ -446,22 +450,28 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     }
   }
 
-  private async loadChildren(parent: CheckboxTreeRenderNode): Promise<void> {
-    if (this.loadingNodeIds.has(parent.id)) {
-      return;
+  private loadChildren(parent: CheckboxTreeRenderNode): Promise<void> {
+    const existing = this.inFlightChildLoads.get(parent.id);
+    if (existing) {
+      return existing;
     }
     this.loadingNodeIds.add(parent.id);
     this.loadErrors.delete(parent.id);
-    try {
-      const response = await this.vocabTreeService.getChildren(this.vocabRef, parent.id);
-      parent.children = this.toRenderNodes(response.data);
-      this.loadedNodeIds.add(parent.id);
-      this.rebuildIndexes(parent.children, parent.id);
-    } catch (error) {
-      this.loadErrors.set(parent.id, this.describeLoadError(error));
-    } finally {
-      this.loadingNodeIds.delete(parent.id);
-    }
+    const pending = (async () => {
+      try {
+        const response = await this.vocabTreeService.getChildren(this.vocabRef, parent.id);
+        parent.children = this.toRenderNodes(response.data);
+        this.loadedNodeIds.add(parent.id);
+        this.rebuildIndexes(parent.children, parent.id);
+      } catch (error) {
+        this.loadErrors.set(parent.id, this.describeLoadError(error));
+      } finally {
+        this.loadingNodeIds.delete(parent.id);
+        this.inFlightChildLoads.delete(parent.id);
+      }
+    })();
+    this.inFlightChildLoads.set(parent.id, pending);
+    return pending;
   }
 
   private toRenderNodes(nodes: VocabTreeApiNode[]): CheckboxTreeRenderNode[] {
@@ -633,7 +643,11 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       };
       expandAncestors(this.rootNodes);
     } else {
-      for (const selected of this.selectedByNotation.values()) {
+      // Each genealogy is sequential (the next parentId depends on the previous response),
+      // but the chains for different selections are independent and can run in parallel.
+      // The vocab service dedupes concurrent identical (vocabRef, parentId) requests, so
+      // selections that share ancestors only trigger one network call per shared parent.
+      const expansions = Array.from(this.selectedByNotation.values()).map(async (selected) => {
         const genealogy = selected.genealogy ?? [];
         let currentNodes = this.rootNodes;
 
@@ -649,7 +663,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
           }
           currentNodes = node.children ?? [];
         }
-      }
+      });
+      await Promise.all(expansions);
     }
   }
 

@@ -92,4 +92,60 @@ describe("VocabTreeService", () => {
     expect(result.meta.parentId).toBeNull();
     expect(result.meta.total).toBe(2);
   });
+
+  it("dedupes concurrent identical getChildren calls into a single HTTP request", async () => {
+    const p1 = service.getChildren("anzsrc-2020-for", "r1");
+    const p2 = service.getChildren("anzsrc-2020-for", "r1");
+    await Promise.resolve();
+
+    const req = httpTesting.expectOne((request) => {
+      return request.method === "GET" &&
+        request.url.includes("/vocab/anzsrc-2020-for/children") &&
+        request.params.get("parentId") === "r1";
+    });
+    req.flush({
+      data: [{ id: "c1", label: "Child", value: "0101", parent: "r1", hasChildren: false }],
+      meta: { vocabularyId: "v1", parentId: "r1", total: 1 },
+    });
+
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toBe(r2);
+  });
+
+  it("serves subsequent identical calls from cache without re-hitting the network", async () => {
+    const p1 = service.getChildren("anzsrc-2020-for");
+    await Promise.resolve();
+    const req = httpTesting.expectOne((request) => request.url.includes("/vocab/anzsrc-2020-for/children"));
+    req.flush({
+      data: [{ id: "r1", label: "Root", value: "01", hasChildren: true }],
+      meta: { vocabularyId: "v1", parentId: null, total: 1 },
+    });
+    await p1;
+
+    const r2 = await service.getChildren("anzsrc-2020-for");
+    httpTesting.expectNone((request) => request.url.includes("/vocab/anzsrc-2020-for/children"));
+    expect(r2.data.length).toBe(1);
+  });
+
+  it("does not cache failed requests so subsequent callers can retry", async () => {
+    const p1 = service.getChildren("anzsrc-2020-for", "r1");
+    await Promise.resolve();
+    const req1 = httpTesting.expectOne((request) =>
+      request.url.includes("/vocab/anzsrc-2020-for/children") && request.params.get("parentId") === "r1"
+    );
+    req1.flush("boom", { status: 500, statusText: "Server Error" });
+    await expectAsync(p1).toBeRejected();
+
+    const p2 = service.getChildren("anzsrc-2020-for", "r1");
+    await Promise.resolve();
+    const req2 = httpTesting.expectOne((request) =>
+      request.url.includes("/vocab/anzsrc-2020-for/children") && request.params.get("parentId") === "r1"
+    );
+    req2.flush({
+      data: [{ id: "c1", label: "Child", value: "0101", parent: "r1", hasChildren: false }],
+      meta: { vocabularyId: "v1", parentId: "r1", total: 1 },
+    });
+    const result = await p2;
+    expect(result.data.length).toBe(1);
+  });
 });

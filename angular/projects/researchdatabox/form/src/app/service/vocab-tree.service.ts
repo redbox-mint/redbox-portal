@@ -28,6 +28,11 @@ type ApiResponse = VocabTreeChildrenResponse | WrappedResponse | VocabTreeApiNod
 
 @Injectable({ providedIn: "root" })
 export class VocabTreeService extends HttpClientService {
+  // Vocab taxonomies are static for the lifetime of a form session, so we cache resolved
+  // children responses indefinitely and dedupe concurrent requests for the same key.
+  // Cleared by clearCache() if a caller ever needs to force a refresh.
+  private readonly childrenCache = new Map<string, Promise<VocabTreeChildrenResponse>>();
+
   constructor(
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -44,17 +49,36 @@ export class VocabTreeService extends HttpClientService {
   }
 
   public async getChildren(vocabRef: string, parentId?: string): Promise<VocabTreeChildrenResponse> {
-    await this.waitForInit();
     const trimmedVocabRef = String(vocabRef ?? "").trim();
     if (!trimmedVocabRef) {
       throw new Error("vocabRef is required");
     }
-
-    const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(trimmedVocabRef)}/children`;
-    const params: Record<string, string> = {};
     const trimmedParentId = String(parentId ?? "").trim();
-    if (trimmedParentId) {
-      params["parentId"] = trimmedParentId;
+    const cacheKey = `${trimmedVocabRef}::${trimmedParentId}`;
+
+    const cached = this.childrenCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const pending = this.fetchChildren(trimmedVocabRef, trimmedParentId);
+    this.childrenCache.set(cacheKey, pending);
+    // Drop the cached promise on failure so the next caller gets a fresh attempt.
+    pending.catch(() => this.childrenCache.delete(cacheKey));
+    return pending;
+  }
+
+  public clearCache(): void {
+    this.childrenCache.clear();
+  }
+
+  private async fetchChildren(vocabRef: string, parentId: string): Promise<VocabTreeChildrenResponse> {
+    await this.waitForInit();
+
+    const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(vocabRef)}/children`;
+    const params: Record<string, string> = {};
+    if (parentId) {
+      params["parentId"] = parentId;
     }
 
     const response = await firstValueFrom(
@@ -70,8 +94,8 @@ export class VocabTreeService extends HttpClientService {
       return {
         data: response,
         meta: {
-          vocabularyId: trimmedVocabRef,
-          parentId: trimmedParentId || null,
+          vocabularyId: vocabRef,
+          parentId: parentId || null,
           total: response.length
         }
       };
