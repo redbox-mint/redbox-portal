@@ -10,6 +10,7 @@ import {
   registerMigrateFigshareConfigCommand,
   registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
 } from './commands/form-config';
+import { registerFormComponentDocsCommand } from './commands/form-component-docs';
 import { generateCompletionScript } from './completion';
 import {
   parseAttributes,
@@ -126,6 +127,7 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+registerFormComponentDocsCommand(program);
 
 program
   .command('init [name]')

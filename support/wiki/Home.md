@@ -21,6 +21,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[TUS and Uppy Companion Setup](https://github.com/redbox-mint/redbox-portal/wiki/TUS-and-Uppy-Companion-Setup)**: Configure resumable uploads and cloud-provider imports, including security behavior.
 - **[Uppy and TUS Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Uppy-and-TUS-Architecture)**: End-to-end architecture and orchestration flows for local and provider-backed uploads.
 - **[Form Configuration Internals](https://github.com/redbox-mint/redbox-portal/wiki/Form-Configuration-Internals)**: Form config types, conventions, visitors, and validation details.
+- **[Configurable Form Components](Configurable-Form-Components.md)**: Generated reference for built-in configurable form components and their config properties.
 - **[Configuring Form Expressions](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Form-Expressions)**: Event-driven expressions for dynamic form behavior using JSONata.
 - **[Form Event Bus Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Form-Event-Bus-Architecture)**: Technical documentation of the event bus system for developers.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.

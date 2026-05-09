@@ -137,6 +137,8 @@ Where <> are property labels that are variables.
 
 The form and view layout is configured via the `config/form.js` file.
 
+The built-in component reference is now generated from the core component registry in `packages/sails-ng-common/src/config`. See [Configurable Form Components](Configurable-Form-Components.md) for the current list of supported core components and their config properties.
+
 The structure of the configuration file is as follows:
 
 ```
@@ -199,10 +201,10 @@ The fields section lays out the components to appear in the form.
 | Field      | Description                                                                                   | Required               | Example |
 |------------|-----------------------------------------------------------------------------------------------|------------------------|---------|
 | class      |                                                                                               | Yes                    |         |
-| compClass  | The component class name. See the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) for a list of available components and how to configure them | Yes                    | TextBlockComponent      |
+| compClass  | The component class name. See [Configurable Form Components](Configurable-Form-Components.md) for the current built-in component list and configuration details | Yes                    | TextBlockComponent      |
 | viewOnly   | When set to true, this component will only appear in the view (details) rendition of the form | No (defaults to false) | true    |
 | editOnly   | When set to true, this component will only appear in the edit (details) rendition of the form | No (defaults to false) | true    |
-| definition | Configuration that is specific for the component being added. How to configure a component is described in the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) | Yes                    | value: '@dmpt-data-collection-heading' |
+| definition | Configuration that is specific for the component being added. Component-specific options are documented in [Configurable Form Components](Configurable-Form-Components.md) | Yes                    | value: '@dmpt-data-collection-heading' |
 
 ### Example
 
