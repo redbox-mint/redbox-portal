@@ -1886,6 +1886,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('columnTitle', item.config, {
       columnTitle: String(definition.columnTitle ?? 'Record title'),
     });
+    this.sharedProps.setPropOverride('relationshipId', item.config, {
+      relationshipId: typeof definition.relationshipId === 'string' ? definition.relationshipId : undefined,
+    });
     this.sharedProps.setPropOverride('recordType', item.config, {
       recordType: typeof definition.recordType === 'string' ? definition.recordType : undefined,
     });

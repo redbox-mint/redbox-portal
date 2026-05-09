@@ -332,7 +332,16 @@ describe('MongoStorageService', function () {
 
     const result = await service.getRelatedRecords('oid-1', { id: 'brand-1' });
 
-    expect(result.processedRelationships).to.deep.equal(['parent', 'child']);
+    expect(result.rootOid).to.equal('oid-1');
+    expect(result.edges).to.deep.equal([
+      {
+        relationId: 'parent__child__parentId',
+        label: undefined,
+        sourceOid: 'oid-1',
+        targetOid: 'child-1',
+        targetRecordType: 'child'
+      }
+    ]);
     expect(result.relatedObjects.parent).to.have.length(1);
     expect(result.relatedObjects.child).to.have.length(1);
     expect(Record.find.calledOnce).to.be.true;

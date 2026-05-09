@@ -1,5 +1,6 @@
 import StorageServiceResponse from "./StorageServiceResponse";
 import { RecordModel, UserModel } from "./model";
+import { NormalizedRecordRelation } from "./config/recordtype.config";
 
 type AnyRecord = Record<string, unknown>;
 type RecordInput = RecordModel | Record<string, unknown>;
@@ -13,6 +14,45 @@ export type ResolvedRecordPermissions = {
   editRoles: string[];
   viewRoles: string[];
 };
+
+export interface RecordRelationshipExpandOptions {
+  depth?: number;
+  includeRecordTypes?: string[];
+  includeRelationIds?: string[];
+  fields?: 'summary' | 'full';
+}
+
+export interface RecordRelationshipEdge {
+  relationId: string;
+  label?: string;
+  sourceOid: string;
+  targetOid: string;
+  targetRecordType: string;
+}
+
+export interface RecordRelationshipGraph {
+  rootOid: string;
+  edges: RecordRelationshipEdge[];
+  relatedObjects: Record<string, unknown[]>;
+  omittedByAccess: Record<string, number>;
+}
+
+export interface LegacyRelatedRecordsResponse extends RecordRelationshipGraph {
+  processedRelationships: string[];
+}
+
+export interface RecordMetaWithRelationships {
+  metadata: RecordModel;
+  relationships: RecordRelationshipGraph;
+}
+
+export interface RecordTypeLookupSummary {
+  name: string;
+  packageType: string;
+  searchFilters: unknown[];
+  searchable: boolean;
+  relatedTo?: NormalizedRecordRelation[];
+}
 
 /**
  * Service interface for Records operations.
@@ -41,7 +81,8 @@ export interface RecordsService {
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
-  getRelatedRecords(oid: unknown, brand: unknown): Promise<unknown>;
+  getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
+  getMetaWithRelationships(oid: string, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordMetaWithRelationships>;
   exportAllPlans(username: unknown, roles: AnyRecord[], brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): unknown;
   bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service

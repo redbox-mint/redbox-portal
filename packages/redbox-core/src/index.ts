@@ -37,6 +37,15 @@ export {
     RecordsService
 }
     from "./RecordsService";
+export type {
+    RecordRelationshipExpandOptions,
+    RecordRelationshipGraph,
+    RecordRelationshipEdge,
+    RecordMetaWithRelationships,
+    LegacyRelatedRecordsResponse,
+    RecordTypeLookupSummary,
+}
+    from "./RecordsService";
 export {
     SearchService
 }

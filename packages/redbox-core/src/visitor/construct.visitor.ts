@@ -1783,6 +1783,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
     this.sharedProps.setPropOverride('columnTitle', item.config, config);
+    this.sharedProps.setPropOverride('relationshipId', item.config, config);
     this.sharedProps.setPropOverride('recordType', item.config, config);
     this.sharedProps.setPropOverride('workflowState', item.config, config);
     this.sharedProps.setPropOverride('filterMode', item.config, config);

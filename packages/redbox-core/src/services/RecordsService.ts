@@ -52,6 +52,13 @@ import { isObservable } from 'rxjs';
 
 import { Readable } from 'stream';
 import { FormAttributes } from '../waterline-models';
+import { normalizeRecordRelations } from '../config/recordtype.config';
+import {
+  RecordRelationshipExpandOptions,
+  RecordRelationshipGraph,
+  RecordMetaWithRelationships,
+  RecordTypeLookupSummary,
+} from '../RecordsService';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -293,6 +300,8 @@ export namespace Services {
       'provideUserAccessAndRemovePendingAccess',
       'searchFuzzy',
       'getRelatedRecords',
+      'getMetaWithRelationships',
+      'getRecordTypeSummary',
       'delete',
       'restoreRecord',
       'destroyDeletedRecord',
@@ -959,8 +968,33 @@ export namespace Services {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
 
-    getRelatedRecords(oid: string, brand: unknown): Promise<unknown> {
-      return this.storageService.getRelatedRecords(oid, brand);
+    getRelatedRecords(oid: string, brand: unknown, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+      return this.storageService.getRelatedRecords(oid, brand, options);
+    }
+
+    async getMetaWithRelationships(
+      oid: string,
+      brand: unknown,
+      options: RecordRelationshipExpandOptions = {}
+    ): Promise<RecordMetaWithRelationships> {
+      const metadata = await this.getMeta(oid);
+      const relationships = await this.getRelatedRecords(oid, brand, options);
+      return { metadata, relationships };
+    }
+
+    async getRecordTypeSummary(brand: BrandingModel, recordTypeName: string): Promise<RecordTypeLookupSummary | null> {
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, recordTypeName));
+      if (_.isEmpty(recordType)) {
+        return null;
+      }
+
+      return {
+        name: String(_.get(recordType, 'name', recordTypeName)),
+        packageType: String(_.get(recordType, 'packageType', '')),
+        searchFilters: (_.get(recordType, 'searchFilters', []) ?? []) as unknown[],
+        searchable: Boolean(_.get(recordType, 'searchable', true)),
+        relatedTo: normalizeRecordRelations(String(_.get(recordType, 'name', recordTypeName)), _.get(recordType, 'relatedTo', [])),
+      };
     }
 
     async delete(oid: string, permanentlyDelete: boolean, currentRec: unknown, recordType: unknown, user: AnyRecord) {
