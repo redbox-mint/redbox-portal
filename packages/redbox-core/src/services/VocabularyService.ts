@@ -132,6 +132,8 @@ export namespace Services {
       'getByIdOrSlug',
       'getEntries',
       'getChildren',
+      'getEntryByNotation',
+      'getAncestorChain',
       'bootstrapData',
       'create',
       'update',
@@ -350,6 +352,61 @@ export namespace Services {
           total: responseEntries.length
         }
       };
+    }
+
+    public async getEntryByNotation(
+      branding: string,
+      vocabIdOrSlug: string,
+      notation: string
+    ): Promise<VocabularyEntryAttributes | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      const normalizedNotation = String(notation ?? '').trim();
+      if (!vocabulary || !normalizedNotation) {
+        return null;
+      }
+
+      return await VocabularyEntry.findOne({
+        vocabulary: String(vocabulary.id),
+        or: [
+          { identifier: normalizedNotation },
+          { value: normalizedNotation }
+        ]
+      }) as VocabularyEntryAttributes | null;
+    }
+
+    public async getAncestorChain(
+      branding: string,
+      vocabIdOrSlug: string,
+      notation: string
+    ): Promise<VocabularyEntryAttributes[]> {
+      const entry = await this.getEntryByNotation(branding, vocabIdOrSlug, notation);
+      if (!entry) {
+        return [];
+      }
+
+      const chain: VocabularyEntryAttributes[] = [];
+      const seenIds = new Set<string>();
+      let cursor: VocabularyEntryAttributes | null = entry;
+
+      while (cursor) {
+        const cursorId = String(cursor.id ?? '').trim();
+        if (!cursorId || seenIds.has(cursorId)) {
+          break;
+        }
+        seenIds.add(cursorId);
+        chain.unshift(cursor);
+
+        const parentId = String(cursor.parent ?? '').trim();
+        if (!parentId) {
+          break;
+        }
+        cursor = await VocabularyEntry.findOne({
+          id: parentId,
+          vocabulary: String(cursor.vocabulary)
+        }) as VocabularyEntryAttributes | null;
+      }
+
+      return chain;
     }
 
     public async create(input: VocabularyInput): Promise<VocabularyAttributes> {

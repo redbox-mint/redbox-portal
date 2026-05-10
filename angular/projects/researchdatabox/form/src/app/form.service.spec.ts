@@ -17,11 +17,14 @@ import { HttpTestingController, provideHttpClientTesting } from "@angular/common
 import {
   FormConfigFrame,
   FormFieldValidationGroup,
+  formValidatorsSharedDefinitions,
   FormModesConfig,
   FormValidationGroups,
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
 import {FormValidationGroupsChangeInitial} from "./form-state";
+import { VocabTreeService } from "./service/vocab-tree.service";
+import { TypeaheadDataService } from "./service/typeahead-data.service";
 
 
 describe('The FormService', () => {
@@ -30,6 +33,7 @@ describe('The FormService', () => {
   let service: FormService;
   let httpTesting: HttpTestingController;
   beforeEach(() => {
+    (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
     TestBed.configureTestingModule({
       providers: [
         {
@@ -321,5 +325,34 @@ describe('The FormService', () => {
     expect(req.request.method).toBe('GET');
     req.flush({data: basicFormConfig, meta: meta});
     expect((await result).formConfigMeta).toEqual(meta);
+  });
+
+  it("should seed prehydrate caches before creating form components", async function () {
+    const basicFormConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      componentDefinitions: []
+    };
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+    const seedVocabSpy = spyOn(vocabTreeService, 'seedFromPayload');
+    const seedTypeaheadSpy = spyOn(typeaheadDataService, 'seedFromPayload');
+    const createSpy = spyOn(service, 'createFormComponentsMap').and.resolveTo({ formConfigMeta: {} } as any);
+
+    const promise = service.downloadFormComponents('oid', 'auto', false, '', []);
+    const req = httpTesting.expectOne((request) =>
+      request.url.startsWith('http://localhost/default/rdmp/record/form/auto/oid'));
+    req.flush({
+      data: basicFormConfig,
+      meta: {},
+      prehydrate: { typeaheadLabels: { 'k': { label: 'L', value: 'V' } } }
+    });
+    await promise;
+
+    expect(seedVocabSpy).toHaveBeenCalled();
+    expect(seedTypeaheadSpy).toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalled();
+    expect(seedVocabSpy).toHaveBeenCalledWith({ typeaheadLabels: { 'k': { label: 'L', value: 'V' } } });
+    expect(seedTypeaheadSpy).toHaveBeenCalledWith({ typeaheadLabels: { 'k': { label: 'L', value: 'V' } } });
   });
 });

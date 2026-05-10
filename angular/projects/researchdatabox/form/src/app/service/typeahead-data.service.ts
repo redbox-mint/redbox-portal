@@ -4,7 +4,7 @@ import { Inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { get as _get } from "lodash-es";
 import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
-import { TypeaheadOption } from "@researchdatabox/sails-ng-common";
+import { FormPrehydratePayload, TypeaheadOption } from "@researchdatabox/sails-ng-common";
 
 type WrappedResponse<T> = { data?: T };
 
@@ -16,6 +16,7 @@ export class TypeaheadDataService extends HttpClientService {
     // user-typed terms while still collapsing the burst of identical lookups that fire when
     // multiple typeahead instances on the same form initialise with the same stored value.
     private readonly inFlight = new Map<string, Promise<TypeaheadOption[]>>();
+    private readonly prehydratedLabels = new Map<string, TypeaheadOption>();
 
     constructor(
         @Inject(HttpClient) protected override http: HttpClient,
@@ -66,6 +67,11 @@ export class TypeaheadDataService extends HttpClientService {
             return Promise.reject(new Error("vocabRef is required"));
         }
         const trimmedSearch = String(search ?? "");
+        const prehydrated = this.prehydratedLabels.get(this.getVocabularyPrehydrateKey(trimmedVocabRef, "label", "value", trimmedSearch))
+            ?? this.prehydratedLabels.get(this.getVocabularyPrehydrateKey(trimmedVocabRef, "label", "identifier", trimmedSearch));
+        if (offset === 0 && trimmedSearch && prehydrated && (prehydrated.value === trimmedSearch || prehydrated.label === trimmedSearch)) {
+            return Promise.resolve([prehydrated]);
+        }
         const key = `vocab|${trimmedVocabRef}|${trimmedSearch}|${limit}|${offset}|${includeHistoricalValues ? 1 : 0}`;
         return this.dedupe(key, () => this.fetchVocabularyEntries(trimmedVocabRef, trimmedSearch, limit, offset, includeHistoricalValues));
     }
@@ -117,8 +123,22 @@ export class TypeaheadDataService extends HttpClientService {
         const trimmedSearch = String(search ?? "");
         const resolvedLabelField = String(labelField ?? "").trim() || "label";
         const resolvedValueField = String(valueField ?? "").trim() || "value";
+        const prehydrated = this.prehydratedLabels.get(this.getNamedQueryPrehydrateKey(trimmedQueryId, resolvedLabelField, resolvedValueField, trimmedSearch));
+        if (start === 0 && trimmedSearch && prehydrated && (prehydrated.value === trimmedSearch || prehydrated.label === trimmedSearch)) {
+            return Promise.resolve([prehydrated]);
+        }
         const key = `namedQuery|${trimmedQueryId}|${trimmedSearch}|${start}|${rows}|${resolvedLabelField}|${resolvedValueField}`;
         return this.dedupe(key, () => this.fetchNamedQuery(trimmedQueryId, trimmedSearch, start, rows, resolvedLabelField, resolvedValueField));
+    }
+
+    public seedFromPayload(prehydrate?: FormPrehydratePayload): void {
+        const labels = prehydrate?.typeaheadLabels ?? {};
+        for (const [key, option] of Object.entries(labels)) {
+            if (!option) {
+                continue;
+            }
+            this.prehydratedLabels.set(key, option);
+        }
     }
 
     private async fetchNamedQuery(
@@ -255,5 +275,13 @@ export class TypeaheadDataService extends HttpClientService {
             return undefined;
         }
         return _get(record, path);
+    }
+
+    private getNamedQueryPrehydrateKey(queryId: string, labelField: string, valueField: string, storedValue: string): string {
+        return `namedQuery:${queryId}:${labelField}:${valueField}:${storedValue}`;
+    }
+
+    private getVocabularyPrehydrateKey(vocabRef: string, labelField: string, valueField: string, storedValue: string): string {
+        return `vocabulary:${vocabRef}:${labelField}:${valueField}:${storedValue}`;
     }
 }

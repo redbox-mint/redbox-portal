@@ -148,4 +148,31 @@ describe("VocabTreeService", () => {
     const result = await p2;
     expect(result.data.length).toBe(1);
   });
+
+  it("seeds cached root and child responses from prehydrate payload", async () => {
+    service.seedFromPayload({
+      vocabTrees: {
+        "anzsrc-2020-for": {
+          selectedNotations: ["0101"],
+          childrenByParentId: {
+            __root__: {
+              data: [{ id: "r1", label: "Root", value: "01", hasChildren: true }],
+              meta: { vocabularyId: "v1", parentId: null, total: 1 }
+            },
+            r1: {
+              data: [{ id: "c1", label: "Child", value: "0101", parent: "r1", hasChildren: false }],
+              meta: { vocabularyId: "v1", parentId: "r1", total: 1 }
+            }
+          }
+        }
+      }
+    });
+
+    const root = await service.getChildren("anzsrc-2020-for");
+    const child = await service.getChildren("anzsrc-2020-for", "r1");
+
+    httpTesting.expectNone((request) => request.url.includes("/vocab/anzsrc-2020-for/children"));
+    expect(root.data[0].id).toBe("r1");
+    expect(child.data[0].parent).toBe("r1");
+  });
 });

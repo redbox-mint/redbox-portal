@@ -3,6 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { Inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
+import { FormPrehydratePayload, FormPrehydrateRootKey, VocabTreeChildrenResponse as SharedVocabTreeChildrenResponse } from "@researchdatabox/sails-ng-common";
 
 export interface VocabTreeApiNode {
   id: string;
@@ -70,6 +71,18 @@ export class VocabTreeService extends HttpClientService {
 
   public clearCache(): void {
     this.childrenCache.clear();
+  }
+
+  public seedFromPayload(prehydrate?: FormPrehydratePayload): void {
+    const vocabTrees = prehydrate?.vocabTrees ?? {};
+    for (const [vocabRef, treePayload] of Object.entries(vocabTrees)) {
+      const childrenByParentId = treePayload?.childrenByParentId ?? {};
+      for (const [parentKey, response] of Object.entries(childrenByParentId)) {
+        const parentId = parentKey === FormPrehydrateRootKey ? "" : parentKey;
+        const cacheKey = `${String(vocabRef).trim()}::${parentId}`;
+        this.childrenCache.set(cacheKey, Promise.resolve(response as SharedVocabTreeChildrenResponse as VocabTreeChildrenResponse));
+      }
+    }
   }
 
   private async fetchChildren(vocabRef: string, parentId: string): Promise<VocabTreeChildrenResponse> {

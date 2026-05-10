@@ -17,6 +17,7 @@ import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
+import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateService';
 import * as FormsServiceModule from './FormsService';
 import * as IntegrationAuditServiceModule from './IntegrationAuditService';
 import * as I18nEntriesServiceModule from './I18nEntriesService';
@@ -63,6 +64,7 @@ export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
 export { FigshareServiceModule as FigshareService };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
+export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
 export { FormsServiceModule as FormsService };
 export { IntegrationAuditServiceModule as IntegrationAuditService };
 export { I18nEntriesServiceModule as I18nEntriesService };
@@ -163,6 +165,11 @@ export const ServiceExports = {
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>
       new FormRecordConsistencyServiceModule.Services.FormRecordConsistency().exports()
+    );
+  },
+  get FormPayloadPrehydrateService() {
+    return getOrCreateService('FormPayloadPrehydrateService', () =>
+      new FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService().exports()
     );
   },
   get FormsService() {

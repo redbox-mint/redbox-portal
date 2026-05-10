@@ -468,6 +468,11 @@ export namespace Controllers {
           String(brand?.name ?? ''),
           contextVariablesMap
         );
+        const prehydrate = await FormPayloadPrehydrateService.build({
+          branding: brand,
+          formConfig: mergedForm,
+          user: (req.user ?? {}) as AnyRecord
+        });
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
@@ -480,6 +485,7 @@ export namespace Controllers {
               workflow: recordData?.workflow,
               contextVariables: contextVariablesMap
             },
+            prehydrate,
           });
         } else {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;

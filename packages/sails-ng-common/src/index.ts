@@ -13,6 +13,7 @@ export * from './config/dictionary.model';
 export * from './config/shared.outline';
 export * from './config/form-config.outline';
 export * from './config/form-config.model';
+export * from './config/form-prehydrate.outline';
 // Form behaviours are exported from the shared package so both server visitors
 // and Angular runtime code consume the same v1 config contract.
 export * from './config/form-behaviour.outline';

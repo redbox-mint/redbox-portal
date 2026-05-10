@@ -62,6 +62,7 @@ import {
   FormValidatorDefinition,
   FormValidatorFn,
   FormValidatorSummaryErrors,
+  FormPrehydratePayload,
   getObjectWithJsonPointer,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
@@ -76,6 +77,8 @@ import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
+import { VocabTreeService } from './service/vocab-tree.service';
+import { TypeaheadDataService } from './service/typeahead-data.service';
 
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
@@ -126,6 +129,8 @@ export class FormService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(VocabTreeService) private vocabTreeService: VocabTreeService,
+    @Inject(TypeaheadDataService) private typeaheadDataService: TypeaheadDataService,
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -207,6 +212,9 @@ export class FormService extends HttpClientService {
     if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
+
+    this.vocabTreeService.seedFromPayload(formConfigResp?.prehydrate);
+    this.typeaheadDataService.seedFromPayload(formConfigResp?.prehydrate);
 
     // This form config is the top of the lineage.
     const parentLineagePaths = this.buildLineagePaths({
@@ -797,7 +805,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown> };
+    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };
     const rawResp = this.http.get<rawRespType>(url.href, this.requestOptions);
     const result = await firstValueFrom(rawResp);
     this.loggerService.info(`Get form fields from url: ${url}`, result);
