@@ -51,6 +51,7 @@ describe('The FormService', () => {
         },
         Title,
         FormService,
+        VocabTreeService,
         providePortalI18nTesting(),
         provideHttpClient(),
         provideHttpClientTesting(),

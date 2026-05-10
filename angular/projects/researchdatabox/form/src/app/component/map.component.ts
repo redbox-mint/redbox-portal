@@ -208,6 +208,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   // Resolved on first ngAfterViewInit; held as an instance ref so render/import
   // helpers can use leaflet etc. without re-awaiting the shared module promise.
   private mapDeps?: MapDependencies;
+  private _destroyed = false;
   private visibilityObserver?: IntersectionObserver;
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
@@ -252,6 +253,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     // terra-draw chunks only download when a record actually has a map field.
     void loadMapDependencies()
       .then((deps) => {
+        if (this._destroyed) {
+          return;
+        }
         this.mapDeps = deps;
         this.initialiseMap();
       })
@@ -264,6 +268,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   ngOnDestroy(): void {
+    this._destroyed = true;
     this.visibilityObserver?.disconnect();
     this.visibilityObserver = undefined;
     try {

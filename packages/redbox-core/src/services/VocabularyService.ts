@@ -361,6 +361,7 @@ export namespace Services {
     ): Promise<VocabularyEntryAttributes | null> {
       const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
       const normalizedNotation = String(notation ?? '').trim();
+      const normalizedNotationLower = normalizedNotation.toLowerCase();
       if (!vocabulary || !normalizedNotation) {
         return null;
       }
@@ -369,7 +370,7 @@ export namespace Services {
         vocabulary: String(vocabulary.id),
         or: [
           { identifier: normalizedNotation },
-          { value: normalizedNotation }
+          { valueLower: normalizedNotationLower }
         ]
       }) as VocabularyEntryAttributes | null;
     }

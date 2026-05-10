@@ -3,7 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { Inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
-import { FormPrehydratePayload, FormPrehydrateRootKey, VocabTreeChildrenResponse as SharedVocabTreeChildrenResponse } from "@researchdatabox/sails-ng-common";
+import { FormPrehydratePayload, FormPrehydrateRootKey } from "@researchdatabox/sails-ng-common";
 
 export interface VocabTreeApiNode {
   id: string;
@@ -80,9 +80,27 @@ export class VocabTreeService extends HttpClientService {
       for (const [parentKey, response] of Object.entries(childrenByParentId)) {
         const parentId = parentKey === FormPrehydrateRootKey ? "" : parentKey;
         const cacheKey = `${String(vocabRef).trim()}::${parentId}`;
-        this.childrenCache.set(cacheKey, Promise.resolve(response as SharedVocabTreeChildrenResponse as VocabTreeChildrenResponse));
+        if (this.isValidVocabTreeChildrenResponse(response)) {
+          this.childrenCache.set(cacheKey, Promise.resolve(response));
+        } else {
+          console.warn(
+            `Skipping invalid prehydrate vocab tree response for vocabRef=${String(vocabRef)} parentId=${String(parentKey)} (${FormPrehydrateRootKey})`
+          );
+        }
       }
     }
+  }
+
+  private isValidVocabTreeChildrenResponse(response: unknown): response is VocabTreeChildrenResponse {
+    if (!response || typeof response !== "object") {
+      return false;
+    }
+    const candidate = response as Partial<VocabTreeChildrenResponse>;
+    return Array.isArray(candidate.data)
+      && !!candidate.meta
+      && typeof candidate.meta.vocabularyId === "string"
+      && ("parentId" in candidate.meta)
+      && typeof candidate.meta.total === "number";
   }
 
   private async fetchChildren(vocabRef: string, parentId: string): Promise<VocabTreeChildrenResponse> {
@@ -114,8 +132,8 @@ export class VocabTreeService extends HttpClientService {
       };
     }
 
-    if (Array.isArray((response as VocabTreeChildrenResponse).data) && (response as VocabTreeChildrenResponse).meta) {
-      return response as VocabTreeChildrenResponse;
+    if (this.isValidVocabTreeChildrenResponse(response)) {
+      return response;
     }
 
     const wrapped = response as WrappedResponse;

@@ -1,5 +1,4 @@
-let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
@@ -42,6 +41,7 @@ describe('FormPayloadPrehydrateService', function () {
       getAncestorChain: sinon.stub().resolves([
         { id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null },
         { id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' },
+      ]),
     };
 
     const { Services } = require('../../src/services/FormPayloadPrehydrateService');

@@ -43,6 +43,7 @@ import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -468,7 +469,8 @@ export namespace Controllers {
           String(brand?.name ?? ''),
           contextVariablesMap
         );
-        const prehydrate = await FormPayloadPrehydrateService.build({
+        const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
+        const prehydrate = await prehydrateService.build({
           branding: brand,
           formConfig: mergedForm
         });

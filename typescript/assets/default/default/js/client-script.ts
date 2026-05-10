@@ -26,7 +26,17 @@ export function getFormValidatorDefinitions(): Promise<FormValidatorDefinition[]
     formValidatorDefinitionsPromise = import(
       /* webpackChunkName: "sails-ng-common-validators" */
       "@researchdatabox/sails-ng-common"
-    ).then((mod) => mod.formValidatorsSharedDefinitions);
+    ).then((mod) => {
+      const definitions = (mod as { formValidatorsSharedDefinitions?: unknown }).formValidatorsSharedDefinitions;
+      if (!Array.isArray(definitions)) {
+        throw new Error("Invalid form validator definitions export");
+      }
+      return definitions as FormValidatorDefinition[];
+    }).catch((error) => {
+      formValidatorDefinitionsPromise = undefined;
+      console.error("Failed to load form validator definitions", error);
+      throw error;
+    });
   }
   return formValidatorDefinitionsPromise;
 }

@@ -396,7 +396,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private applyInitialDisplayFromModel(): void {
     const value = this.model?.getValue();
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      this.setHistoricalLookupState(false);
+      this.setHistoricalLookupState((value.sourceType as string | undefined) === 'historical');
       this.setDisplayValue(value.label);
       return;
     }
