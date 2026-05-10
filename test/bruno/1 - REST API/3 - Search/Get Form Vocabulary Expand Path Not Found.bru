@@ -31,6 +31,10 @@ tests {
         return;
       }
       var jsonData = res.getBody();
+      expect(Array.isArray(jsonData.errors) && jsonData.errors.length > 0).to.equal(
+        true,
+        "Expected jsonData.errors to be a non-empty array before accessing first error"
+      );
       var err = jsonData.errors[0];
       expect(err).to.have.property('code');
       expect(err.code).to.equal('vocabulary-not-found');

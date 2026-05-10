@@ -18,19 +18,16 @@ headers {
 tests {
   test("Status code is 400", function () {
       const status = res.getStatus();
-      if (status !== 400) {
-        console.warn(`[WARN] Vocabulary expandPath too-many-notations endpoint returned ${status}; skipping strict assertion because vocabulary seed/downstream dependencies may be unavailable.`);
-        return;
-      }
       expect(status).to.equal(400);
   });
 
   test("Error code is too-many-notations", function () {
-      if (res.getStatus() !== 400) {
-        console.warn("[WARN] Skipping too-many-notations assertion because response status is not 400.");
-        return;
-      }
+      expect(res.getStatus()).to.equal(400, "Expected status 400 before validating too-many-notations error payload");
       var jsonData = res.getBody();
+      expect(jsonData && Array.isArray(jsonData.errors) && jsonData.errors.length > 0).to.equal(
+        true,
+        "Expected jsonData.errors to be a non-empty array before accessing first error"
+      );
       var err = jsonData.errors[0];
       expect(err).to.have.property('code');
       expect(err.code).to.equal('too-many-notations');

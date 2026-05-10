@@ -17,6 +17,7 @@ export interface VocabTreeApiNode {
 
 export interface VocabTreeChildrenResponse {
   data: VocabTreeApiNode[];
+  partial?: boolean;
   meta: {
     vocabularyId: string;
     parentId: string | null;
@@ -67,7 +68,11 @@ export class VocabTreeService extends HttpClientService {
 
     const cached = this.childrenCache.get(cacheKey);
     if (cached) {
-      return cached;
+      const response = await cached;
+      if (!response.partial) {
+        return response;
+      }
+      this.clearChildrenCacheEntry(trimmedVocabRef, trimmedParentId);
     }
 
     const pending = this.fetchChildren(trimmedVocabRef, trimmedParentId);
@@ -213,6 +218,7 @@ export class VocabTreeService extends HttpClientService {
         if (!existing) {
           const response: VocabTreeChildrenResponse = {
             data: [node],
+            partial: true,
             meta: {
               vocabularyId: trimmedVocabRef,
               parentId: parentKey || null,
@@ -231,6 +237,9 @@ export class VocabTreeService extends HttpClientService {
       return false;
     }
     const candidate = response as Partial<VocabTreeChildrenResponse>;
+    if (candidate.partial !== undefined && typeof candidate.partial !== "boolean") {
+      return false;
+    }
     return Array.isArray(candidate.data)
       && !!candidate.meta
       && typeof candidate.meta.vocabularyId === "string"
