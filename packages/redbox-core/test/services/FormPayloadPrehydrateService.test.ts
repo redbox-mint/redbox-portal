@@ -13,7 +13,6 @@ describe('FormPayloadPrehydrateService', function () {
         form: {
           prehydrate: {
             enabled: true,
-            maxTypeaheadValues: 50,
             maxVocabSelections: 50,
           }
         }
@@ -28,9 +27,6 @@ describe('FormPayloadPrehydrateService', function () {
       }
     });
     setupServiceTestGlobals(mockSails);
-    (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'default', name: 'default' })
-    };
     (global as any).VocabularyService = {
       getChildren: sinon.stub().resolves({
         entries: [{ id: 'e1', label: 'Root', value: '01', identifier: '01', hasChildren: true }],
@@ -46,18 +42,6 @@ describe('FormPayloadPrehydrateService', function () {
       getAncestorChain: sinon.stub().resolves([
         { id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null },
         { id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' },
-      ]),
-      getByIdOrSlug: sinon.stub().resolves({ id: 'v1' })
-    };
-    (global as any).VocabService = {
-      findRecords: sinon.stub().resolves({
-        records: [
-          { person: { display: { label: 'Jane Doe' }, id: 'user-1' } }
-        ]
-      })
-    };
-    (global as any).VocabularyEntry = {
-      findOne: sinon.stub().resolves({ label: 'Open', value: 'open', identifier: 'open', historical: false })
     };
 
     const { Services } = require('../../src/services/FormPayloadPrehydrateService');
@@ -66,14 +50,11 @@ describe('FormPayloadPrehydrateService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
     delete (global as any).VocabularyService;
-    delete (global as any).VocabService;
-    delete (global as any).VocabularyEntry;
     sinon.restore();
   });
 
-  it('extracts checkbox tree and typeahead targets from nested component definitions', function () {
+  it('extracts checkbox tree targets from nested component definitions', function () {
     const extracted = service.extractTargets({
       name: 'test-form',
       componentDefinitions: [
@@ -87,11 +68,6 @@ describe('FormPayloadPrehydrateService', function () {
                   name: 'tree',
                   component: { class: 'CheckboxTreeComponent', config: { vocabRef: 'anzsrc' } },
                   model: { config: { value: [{ notation: '0101', genealogy: ['01'] }] } }
-                },
-                {
-                  name: 'typeahead',
-                  component: { class: 'TypeaheadInputComponent', config: { sourceType: 'namedQuery', queryId: 'party', labelField: 'person.display.label', valueField: 'person.id' } },
-                  model: { config: { value: 'user-1' } }
                 }
               ]
             }
@@ -100,13 +76,11 @@ describe('FormPayloadPrehydrateService', function () {
       ]
     });
 
-    expect(extracted.checkboxTrees).to.have.length(1);
-    expect(extracted.checkboxTrees[0].vocabRef).to.equal('anzsrc');
-    expect(extracted.typeaheads).to.have.length(1);
-    expect(extracted.typeaheads[0].sourceRef).to.equal('party');
+    expect(extracted).to.have.length(1);
+    expect(extracted[0].vocabRef).to.equal('anzsrc');
   });
 
-  it('builds vocab tree and typeahead payloads', async function () {
+  it('builds checkbox tree payloads', async function () {
     const payload = await service.build({
       branding: { id: 'default', name: 'default' },
       formConfig: {
@@ -116,19 +90,13 @@ describe('FormPayloadPrehydrateService', function () {
             name: 'tree',
             component: { class: 'CheckboxTreeComponent', config: { vocabRef: 'anzsrc' } },
             model: { config: { value: [{ notation: '0101', genealogy: ['01'] }] } }
-          },
-          {
-            name: 'typeahead',
-            component: { class: 'TypeaheadInputComponent', config: { sourceType: 'namedQuery', queryId: 'party', labelField: 'person.display.label', valueField: 'person.id' } },
-            model: { config: { value: 'user-1' } }
           }
         ]
       },
-      user: {}
     });
 
     expect(payload?.vocabTrees?.anzsrc?.selectedNotations).to.deep.equal(['0101']);
     expect(payload?.vocabTrees?.anzsrc?.childrenByParentId.__root__).to.exist;
-    expect(payload?.typeaheadLabels?.['namedQuery:party:person.display.label:person.id:user-1']?.label).to.equal('Jane Doe');
+    expect(payload).to.not.have.property('typeaheadLabels');
   });
 });

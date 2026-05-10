@@ -422,22 +422,9 @@ describe("TypeaheadInputComponent", () => {
         );
     });
 
-    it("resolves pre-populated historical vocabulary labels in hide mode", async () => {
+    it("displays saved vocabulary scalar values directly without init lookup", async () => {
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
-        spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
-            _vocabRef: string,
-            search: string,
-            _limit: number,
-            _offset: number,
-            includeHistoricalValues?: boolean
-        ) => {
-            if (includeHistoricalValues && search === "legacy") {
-                return [
-                    { label: "Legacy Label", value: "legacy", sourceType: "vocabulary", historical: true }
-                ];
-            }
-            return [];
-        });
+        const searchVocabularyEntries = spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([]);
 
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -468,8 +455,8 @@ describe("TypeaheadInputComponent", () => {
         fixture.detectChanges();
 
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
-        expect(input.value).toBe("Legacy Label");
-        expect(typeaheadDataService.searchVocabularyEntries).toHaveBeenCalledWith("access-rights", "legacy", 25, 0, true);
+        expect(input.value).toBe("legacy");
+        expect(searchVocabularyEntries).not.toHaveBeenCalled();
     });
 
     it("hides historical vocabulary suggestions by default", async () => {
@@ -550,7 +537,7 @@ describe("TypeaheadInputComponent", () => {
         await fixture.whenStable();
         fixture.detectChanges();
 
-        searchVocabularyEntries.calls.reset();
+        expect(searchVocabularyEntries).not.toHaveBeenCalled();
 
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("leg");

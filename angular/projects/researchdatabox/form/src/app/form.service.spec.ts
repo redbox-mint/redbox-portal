@@ -24,7 +24,6 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 import { VocabTreeService } from "./service/vocab-tree.service";
-import { TypeaheadDataService } from "./service/typeahead-data.service";
 
 
 describe('The FormService', () => {
@@ -327,16 +326,14 @@ describe('The FormService', () => {
     expect((await result).formConfigMeta).toEqual(meta);
   });
 
-  it("should seed prehydrate caches before creating form components", async function () {
+  it("should seed vocab-tree prehydrate payload before creating form components", async function () {
     const basicFormConfig: FormConfigFrame = {
       name: 'testing',
       debugValue: true,
       componentDefinitions: []
     };
     const vocabTreeService = TestBed.inject(VocabTreeService);
-    const typeaheadDataService = TestBed.inject(TypeaheadDataService);
     const seedVocabSpy = spyOn(vocabTreeService, 'seedFromPayload');
-    const seedTypeaheadSpy = spyOn(typeaheadDataService, 'seedFromPayload');
     const createSpy = spyOn(service, 'createFormComponentsMap').and.resolveTo({ formConfigMeta: {} } as any);
 
     const promise = service.downloadFormComponents('oid', 'auto', false, '', []);
@@ -345,14 +342,12 @@ describe('The FormService', () => {
     req.flush({
       data: basicFormConfig,
       meta: {},
-      prehydrate: { typeaheadLabels: { 'k': { label: 'L', value: 'V' } } }
+      prehydrate: { vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } }
     });
     await promise;
 
     expect(seedVocabSpy).toHaveBeenCalled();
-    expect(seedTypeaheadSpy).toHaveBeenCalled();
     expect(createSpy).toHaveBeenCalled();
-    expect(seedVocabSpy).toHaveBeenCalledWith({ typeaheadLabels: { 'k': { label: 'L', value: 'V' } } });
-    expect(seedTypeaheadSpy).toHaveBeenCalledWith({ typeaheadLabels: { 'k': { label: 'L', value: 'V' } } });
+    expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
   });
 });

@@ -470,8 +470,7 @@ export namespace Controllers {
         );
         const prehydrate = await FormPayloadPrehydrateService.build({
           branding: brand,
-          formConfig: mergedForm,
-          user: (req.user ?? {}) as AnyRecord
+          formConfig: mergedForm
         });
 
         // return the form config

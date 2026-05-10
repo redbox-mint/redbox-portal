@@ -188,37 +188,4 @@ describe("TypeaheadDataService", () => {
         });
     });
 
-    it("serves exact named-query lookups from prehydrated labels", async () => {
-        service.seedFromPayload({
-            typeaheadLabels: {
-                "namedQuery:party:person.display.label:person.id:u-1": {
-                    label: "Clair Meade",
-                    value: "u-1",
-                    sourceType: "namedQuery"
-                }
-            }
-        });
-
-        const result = await service.searchNamedQuery("party", "u-1", 0, 25, "person.display.label", "person.id");
-
-        httpTesting.expectNone((request) => request.url.includes("/query/vocab/party"));
-        expect(result).toEqual([{ label: "Clair Meade", value: "u-1", sourceType: "namedQuery" }]);
-    });
-
-    it("serves exact vocabulary lookups from prehydrated labels", async () => {
-        service.seedFromPayload({
-            typeaheadLabels: {
-                "vocabulary:access-rights:label:value:open": {
-                    label: "Open",
-                    value: "open",
-                    sourceType: "vocabulary"
-                }
-            }
-        });
-
-        const result = await service.searchVocabularyEntries("access-rights", "open", 10, 0);
-
-        httpTesting.expectNone((request) => request.url.includes("/vocab/access-rights/entries"));
-        expect(result).toEqual([{ label: "Open", value: "open", sourceType: "vocabulary" }]);
-    });
 });

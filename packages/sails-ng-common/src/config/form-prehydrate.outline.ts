@@ -1,5 +1,4 @@
 import { CheckboxTreeNode } from './component/checkbox-tree.outline';
-import { TypeaheadOption } from './component/typeahead-input.outline';
 
 export const FormPrehydrateRootKey = '__root__' as const;
 
@@ -19,5 +18,4 @@ export interface FormPrehydrateVocabTreePayload {
 
 export interface FormPrehydratePayload {
   vocabTrees?: Record<string, FormPrehydrateVocabTreePayload>;
-  typeaheadLabels?: Record<string, TypeaheadOption>;
 }
