@@ -619,7 +619,15 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private getNotation(node: CheckboxTreeRenderNode): string {
-    return String(node.notation ?? node.value ?? "").trim();
+    const notation = String(node.notation ?? "").trim();
+    const value = String(node.value ?? "").trim();
+    if (!notation) {
+      return value;
+    }
+    if (value && (notation.includes("://") || notation.endsWith(`/${value}`) || notation.endsWith(`#${value}`))) {
+      return value;
+    }
+    return notation;
   }
 
   private hasSelectedDescendant(node: CheckboxTreeRenderNode): boolean {
@@ -655,7 +663,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       const notations = Array.from(this.selectedByNotation.keys());
       try {
         const response = await this.vocabTreeService.expandPath(this.vocabRef, notations);
-        for (const chain of Object.values(response.data ?? {})) {
+        const chains = Object.values(response.data ?? {});
+        for (const chain of chains) {
           this.attachExpandedPath(chain);
         }
         this.rootError = null;
@@ -702,52 +711,105 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return;
     }
 
-    let parentNode: CheckboxTreeRenderNode | null = null;
-    for (let index = 0; index < chain.length; index += 1) {
-      const renderNode = this.toRenderNode(chain[index]);
-      if (!renderNode) {
+    const rootNode = this.attachExpandedSubtree(chain[0]);
+    if (!rootNode) {
+      return;
+    }
+
+    const rootIndex = this.rootNodes.findIndex((root) => root.id === rootNode.id);
+    if (rootIndex === -1) {
+      this.rootNodes.push(rootNode);
+    } else {
+      this.rootNodes[rootIndex] = this.mergeRenderNodes(this.rootNodes[rootIndex], rootNode);
+    }
+
+    for (let index = 0; index < chain.length - 1; index += 1) {
+      const nodeId = String(chain[index]?.id ?? "").trim();
+      if (nodeId) {
+        this.expandedNodeIds.add(nodeId);
+      }
+    }
+    this.pathHydratedNodeIds.add(rootNode.id);
+    if ((rootNode.children?.length ?? 0) > 0) {
+      this.loadedNodeIds.add(rootNode.id);
+    }
+  }
+
+  private attachExpandedSubtree(node: VocabTreeApiNode, seen = new Set<string>()): CheckboxTreeRenderNode | null {
+    const renderNode = this.toRenderNode(node);
+    if (!renderNode) {
+      return null;
+    }
+
+    if (seen.has(renderNode.id)) {
+      return this.nodeById.get(renderNode.id) ?? renderNode;
+    }
+    seen.add(renderNode.id);
+
+    const existing = this.nodeById.get(renderNode.id);
+    const currentNode = existing ?? renderNode;
+    if (existing) {
+      existing.label = renderNode.label;
+      existing.value = renderNode.value;
+      existing.notation = renderNode.notation;
+      existing.parent = renderNode.parent;
+      existing.hasChildren = Boolean(existing.hasChildren || renderNode.hasChildren);
+      existing.disabled = renderNode.disabled;
+      existing.displayLabel = this.renderDisplayLabel(existing);
+    } else {
+      this.nodeById.set(currentNode.id, currentNode);
+    }
+
+    const childNodes: CheckboxTreeRenderNode[] = [];
+    for (const child of node.children ?? []) {
+      const attachedChild = this.attachExpandedSubtree(child, seen);
+      if (attachedChild) {
+        childNodes.push(attachedChild);
+      }
+    }
+
+    if (childNodes.length > 0) {
+      currentNode.children = this.mergeChildNodes(currentNode.children ?? [], childNodes);
+      currentNode.hasChildren = true;
+      this.loadedNodeIds.add(currentNode.id);
+      this.pathHydratedNodeIds.add(currentNode.id);
+    }
+
+    currentNode.displayLabel = this.renderDisplayLabel(currentNode);
+    return currentNode;
+  }
+
+  private mergeChildNodes(existingChildren: CheckboxTreeRenderNode[], incomingChildren: CheckboxTreeRenderNode[]): CheckboxTreeRenderNode[] {
+    const merged = [...existingChildren];
+    for (const incoming of incomingChildren) {
+      const incomingId = String(incoming.id ?? "").trim();
+      if (!incomingId) {
         continue;
       }
-
-      const existing = this.nodeById.get(renderNode.id);
-      const currentNode = existing ?? renderNode;
+      const existing = merged.find((child) => child.id === incomingId);
       if (existing) {
-        existing.label = renderNode.label;
-        existing.value = renderNode.value;
-        existing.notation = renderNode.notation;
-        existing.parent = renderNode.parent;
-        existing.hasChildren = Boolean(existing.hasChildren || renderNode.hasChildren);
-        existing.displayLabel = this.renderDisplayLabel(existing);
+        this.mergeRenderNodes(existing, incoming);
       } else {
-        this.nodeById.set(currentNode.id, currentNode);
+        merged.push(incoming);
       }
-
-      if (parentNode) {
-        parentNode.children = parentNode.children ?? [];
-        const childIndex = parentNode.children.findIndex((child) => child.id === currentNode.id);
-        if (childIndex === -1) {
-          parentNode.children.push(currentNode);
-        } else {
-          parentNode.children[childIndex] = currentNode;
-        }
-        this.parentById.set(currentNode.id, parentNode.id);
-        this.pathHydratedNodeIds.add(parentNode.id);
-      } else {
-        const rootIndex = this.rootNodes.findIndex((root) => root.id === currentNode.id);
-        if (rootIndex === -1) {
-          this.rootNodes.push(currentNode);
-        } else {
-          this.rootNodes[rootIndex] = currentNode;
-        }
-        this.parentById.set(currentNode.id, null);
-      }
-
-      if (index < chain.length - 1) {
-        this.expandedNodeIds.add(currentNode.id);
-      }
-
-      parentNode = currentNode;
     }
+    return merged;
+  }
+
+  private mergeRenderNodes(target: CheckboxTreeRenderNode, source: CheckboxTreeRenderNode): CheckboxTreeRenderNode {
+    target.label = source.label;
+    target.value = source.value;
+    target.notation = source.notation;
+    target.parent = source.parent;
+    target.hasChildren = Boolean(target.hasChildren || source.hasChildren || (source.children?.length ?? 0) > 0);
+    target.disabled = source.disabled;
+    target.displayLabel = this.renderDisplayLabel(target);
+    target.children = this.mergeChildNodes(target.children ?? [], source.children ?? []);
+    if ((target.children?.length ?? 0) > 0) {
+      this.loadedNodeIds.add(target.id);
+      this.pathHydratedNodeIds.add(target.id);
+    }
+    return target;
   }
 
   private getGenealogy(node: CheckboxTreeRenderNode): string[] {

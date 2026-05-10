@@ -13,6 +13,7 @@ export interface VocabTreeApiNode {
   parent?: string | null;
   hasChildren: boolean;
   disabled?: boolean;
+  children?: VocabTreeApiNode[];
 }
 
 export interface VocabTreeChildrenResponse {
@@ -154,16 +155,18 @@ export class VocabTreeService extends HttpClientService {
       throw new Error("Unexpected response from vocabulary expandPath endpoint");
     }
 
-    const candidate = response as Partial<VocabTreeExpandPathResponse> & { data?: unknown; meta?: { notations?: unknown; vocabularyId?: unknown } };
-    if (!candidate.data || typeof candidate.data !== "object" || Array.isArray(candidate.data)) {
-      throw new Error("Unexpected response from vocabulary expandPath endpoint");
-    }
-    if (!candidate.meta || !Array.isArray(candidate.meta.notations) || typeof candidate.meta.vocabularyId !== "string") {
+    const candidate = response as Partial<VocabTreeExpandPathResponse> & {
+      data?: unknown;
+      meta?: { notations?: unknown; vocabularyId?: unknown };
+    };
+
+    const rawData = candidate.data ?? response;
+    if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
       throw new Error("Unexpected response from vocabulary expandPath endpoint");
     }
 
     const data: Record<string, VocabTreeApiNode[]> = {};
-    for (const [notation, nodes] of Object.entries(candidate.data as Record<string, unknown>)) {
+    for (const [notation, nodes] of Object.entries(rawData as Record<string, unknown>)) {
       if (!Array.isArray(nodes)) {
         continue;
       }
@@ -172,11 +175,18 @@ export class VocabTreeService extends HttpClientService {
         .filter((node): node is VocabTreeApiNode => !!node);
     }
 
+    const metaNotations = Array.isArray(candidate.meta?.notations)
+      ? candidate.meta!.notations.map((notation) => String(notation ?? "").trim()).filter((notation) => notation.length > 0)
+      : Object.keys(data);
+    const vocabularyId = typeof candidate.meta?.vocabularyId === "string" && candidate.meta.vocabularyId.trim()
+      ? candidate.meta.vocabularyId.trim()
+      : vocabRef;
+
     return {
       data,
       meta: {
-        vocabularyId: String(candidate.meta.vocabularyId ?? vocabRef),
-        notations: candidate.meta.notations.map((notation) => String(notation ?? "").trim()).filter((notation) => notation.length > 0)
+        vocabularyId,
+        notations: metaNotations
       }
     };
   }
@@ -190,14 +200,20 @@ export class VocabTreeService extends HttpClientService {
     if (!id) {
       return null;
     }
+    const value = String(candidate.value ?? "").trim();
+    const notation = value || String(candidate.notation ?? "").trim() || undefined;
+    const children = Array.isArray(candidate.children)
+      ? candidate.children.map((child) => this.normalizeNode(child)).filter((child): child is VocabTreeApiNode => !!child)
+      : undefined;
     return {
       id,
       label: String(candidate.label ?? ""),
-      value: String(candidate.value ?? ""),
-      notation: String(candidate.notation ?? candidate.value ?? "").trim() || undefined,
+      value,
+      notation,
       parent: candidate.parent === undefined || candidate.parent === null ? null : String(candidate.parent).trim() || null,
       hasChildren: candidate.hasChildren === true,
-      disabled: candidate.disabled === true
+      disabled: candidate.disabled === true,
+      children
     };
   }
 
@@ -216,13 +232,14 @@ export class VocabTreeService extends HttpClientService {
         const cacheKey = `${trimmedVocabRef}::${parentKey}`;
         const existing = this.childrenCache.get(cacheKey);
         if (!existing) {
+          const children = Array.isArray(node.children) ? node.children : [];
           const response: VocabTreeChildrenResponse = {
-            data: [node],
+            data: children.length > 0 ? children : [node],
             partial: true,
             meta: {
               vocabularyId: trimmedVocabRef,
               parentId: parentKey || null,
-              total: 1
+              total: children.length > 0 ? children.length : 1
             }
           };
           this.childrenCache.set(cacheKey, Promise.resolve(response));

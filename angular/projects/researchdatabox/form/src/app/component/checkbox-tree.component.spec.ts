@@ -525,18 +525,29 @@ describe("CheckboxTreeComponent", () => {
 
   it("hydrates selected vocab paths with a single expandPath request", async () => {
     const vocabTreeService = TestBed.inject(VocabTreeService);
+    const getChildren = spyOn(vocabTreeService, "getChildren").and.resolveTo({
+      data: [{ id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true }],
+      meta: { vocabularyId: "v1", parentId: null, total: 1 }
+    } as any);
     const expandPath = spyOn(vocabTreeService, "expandPath").and.resolveTo({
       data: {
         "0801": [
-          { id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true },
+          {
+            id: "root",
+            label: "Root",
+            value: "08",
+            notation: "08",
+            parent: null,
+            hasChildren: true,
+            children: [
+              { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false },
+              { id: "sibling", label: "Sibling", value: "0802", notation: "0802", parent: "root", hasChildren: false }
+            ]
+          },
           { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
         ]
       },
       meta: { vocabularyId: "v1", notations: ["0801"] }
-    });
-    spyOn(vocabTreeService, "getChildren").and.resolveTo({
-      data: [{ id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true }],
-      meta: { vocabularyId: "v1", parentId: null, total: 1 }
     });
 
     const formConfig: FormConfigFrame = {
@@ -572,8 +583,10 @@ describe("CheckboxTreeComponent", () => {
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(expandPath).toHaveBeenCalledOnceWith("anzsrc-2020-for", ["0801"]);
-    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(2);
+    expect(getChildren).toHaveBeenCalledTimes(1);
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(3);
     expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+    expect((compiled.textContent ?? "").includes("Sibling")).toBeTrue();
   });
 
   it("falls back to sequential loading when expandPath returns 404", async () => {

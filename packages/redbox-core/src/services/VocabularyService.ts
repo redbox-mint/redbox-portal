@@ -67,6 +67,7 @@ export namespace Services {
     notation?: string;
     parent?: string | null;
     hasChildren: boolean;
+    children?: VocabularyChildrenNode[];
   }
 
   export interface VocabularyChildrenResponse {
@@ -460,6 +461,7 @@ export namespace Services {
 
       const chainIds = Array.from(chainEntries.keys());
       const hasChildrenById = new Map<string, boolean>();
+      const childrenByParentId = new Map<string, VocabularyEntryAttributes[]>();
       if (chainIds.length > 0) {
         const descendants = await VocabularyEntry.find({
           vocabulary: vocabularyId,
@@ -470,15 +472,50 @@ export namespace Services {
           const descendantParent = String(descendant.parent ?? '').trim();
           if (descendantParent) {
             hasChildrenById.set(descendantParent, true);
+            const existing = childrenByParentId.get(descendantParent) ?? [];
+            existing.push(descendant);
+            childrenByParentId.set(descendantParent, existing);
           }
         }
       }
 
-      for (const { notation, chain } of orderedChains) {
-        paths[notation] = chain.map((entry) => this.toVocabularyChildrenNode(
+      const nodeCache = new Map<string, VocabularyChildrenNode>();
+      const buildNode = (entry: VocabularyEntryAttributes): VocabularyChildrenNode => {
+        const entryId = String(entry.id ?? '').trim();
+        if (!entryId) {
+          return this.toVocabularyChildrenNode(entry, hasChildrenById.get(entryId) === true);
+        }
+
+        const cached = nodeCache.get(entryId);
+        if (cached) {
+          return cached;
+        }
+
+        const node: VocabularyChildrenNode = this.toVocabularyChildrenNode(
           entry,
-          hasChildrenById.get(String(entry.id ?? '').trim()) === true
-        ));
+          hasChildrenById.get(entryId) === true
+        );
+        nodeCache.set(entryId, node);
+
+        const directChildren = childrenByParentId.get(entryId) ?? [];
+        if (directChildren.length > 0) {
+          node.children = directChildren.map((child) => {
+            const childNode = buildNode(child);
+            if (chainEntries.has(String(child.id ?? '').trim())) {
+              return childNode;
+            }
+            return {
+              ...childNode,
+              children: childNode.children ?? []
+            };
+          });
+        }
+
+        return node;
+      };
+
+      for (const { notation, chain } of orderedChains) {
+        paths[notation] = chain.map((entry) => buildNode(entry));
       }
 
       return {

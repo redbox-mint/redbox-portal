@@ -9,7 +9,7 @@ import {
   LoggerService,
   UtilityService,
 } from "@researchdatabox/portal-ng-common";
-import { VocabTreeService } from "./vocab-tree.service";
+import { VocabTreeChildrenResponse, VocabTreeService } from "./vocab-tree.service";
 
 describe("VocabTreeService", () => {
   let service: VocabTreeService;
@@ -172,11 +172,38 @@ describe("VocabTreeService", () => {
     const result = await promise;
     expect(result.meta.notations).toEqual(["0801", "0802"]);
 
-    const root = await service.getChildren("anzsrc-2020-for");
-    const child = await service.getChildren("anzsrc-2020-for", "root");
-    httpTesting.expectNone((request) => request.url.includes("/vocab/anzsrc-2020-for/children"));
+    const cache = (service as any).childrenCache as Map<string, Promise<VocabTreeChildrenResponse>>;
+    expect(cache.has("anzsrc-2020-for::")).toBeTrue();
+    expect(cache.has("anzsrc-2020-for::root")).toBeTrue();
+
+    const root = await cache.get("anzsrc-2020-for::")!;
+    const child = await cache.get("anzsrc-2020-for::root")!;
+    expect(root.partial).toBeTrue();
+    expect(child.partial).toBeTrue();
     expect(root.data[0].id).toBe("root");
     expect(child.data[0].id).toBe("leaf");
+  });
+
+  it("accepts a raw notation map response and synthesizes expandPath meta", async () => {
+    const promise = service.expandPath("anzsrc-2020-for", ["0801"]);
+    await Promise.resolve();
+    const req = httpTesting.expectOne((request) => {
+      return request.method === "GET" &&
+        request.url.includes("/vocab/anzsrc-2020-for/expandPath") &&
+        request.params.get("notation") === "0801";
+    });
+
+    req.flush({
+      "0801": [
+        { id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true },
+        { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
+      ]
+    });
+
+    const result = await promise;
+    expect(result.meta.vocabularyId).toBe("anzsrc-2020-for");
+    expect(result.meta.notations).toEqual(["0801"]);
+    expect(result.data["0801"].length).toBe(2);
   });
 
   it("rejects expandPath without notations", async () => {
