@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, Injector, Input, OnDestroy, ViewChild, inject} from "@angular/core";
+import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
 import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
@@ -22,7 +22,7 @@ const mapMarkerIconPath = "assets/leaflet/marker-icon.png";
 const mapMarkerIconRetinaPath = "assets/leaflet/marker-icon-2x.png";
 const mapMarkerShadowPath = "assets/leaflet/marker-shadow.png";
 
-interface MapDependencies {
+export interface MapDependencies {
   L: typeof L;
   terraDraw: typeof TerraDrawLibrary;
   terraDrawLeafletAdapter: typeof TerraDrawLeafletAdapterLibrary;
@@ -74,6 +74,11 @@ function loadMapDependencies(): Promise<MapDependencies> {
   }
   return mapDependenciesPromise;
 }
+
+export const MAP_DEPENDENCIES_LOADER = new InjectionToken<() => Promise<MapDependencies>>("MAP_DEPENDENCIES_LOADER", {
+  providedIn: "root",
+  factory: () => loadMapDependencies
+});
 
 const emptyFeatureCollection = (): MapModelValueType => ({
   type: "FeatureCollection",
@@ -191,6 +196,7 @@ export class MapModel extends FormFieldModel<MapModelValueType> {
 })
 export class MapComponent extends FormFieldBaseComponent<MapModelValueType> implements AfterViewInit, OnDestroy {
   protected override logName = MapComponentName;
+  private readonly loadMapDependencies = inject(MAP_DEPENDENCIES_LOADER);
 
   @Input() public override model?: MapModel;
   @ViewChild("mapHost", {static: false}) private mapHost?: ElementRef<HTMLDivElement>;
@@ -251,7 +257,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     // Kick off lazy load of the map runtime. The component remains in the
     // eager Angular bundle (registered as a form component) but the leaflet/
     // terra-draw chunks only download when a record actually has a map field.
-    void loadMapDependencies()
+    void this.loadMapDependencies()
       .then((deps) => {
         if (this._destroyed) {
           return;
@@ -389,10 +395,6 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private getTerraDrawDependencies(): TerraDrawDependencies {
-    const testDeps = (globalThis as Record<string, unknown>)["__redboxMapTerraDrawDeps"];
-    if (testDeps && typeof testDeps === "object") {
-      return testDeps as TerraDrawDependencies;
-    }
     if (!this.mapDeps) {
       return {};
     }
