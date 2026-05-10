@@ -3,7 +3,6 @@ import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { signal } from '@angular/core';
-import { Editor } from '@tiptap/core';
 // Portal common services / stubs
 import {
   ConfigService,
@@ -234,7 +233,6 @@ describe('AppComponent (translation)', () => {
     expect(comp.modalOpen()).toBeTrue();
     expect(comp.editorMode).toBe('rich');
     expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
-    expect(comp.isHtmlSourceMode).toBeFalse();
     comp.closeModal();
     expect(mockEditor.destroy).toHaveBeenCalled();
     expect(comp.modalOpen()).toBeFalse();
@@ -253,8 +251,70 @@ describe('AppComponent (translation)', () => {
     spyOn<any>(comp, 'createRichTextEditor').and.returnValue(null);
     comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>', contentFormat: 'html' });
     expect(comp.richTextEditor).toBeNull();
-    expect(comp.isHtmlSourceMode).toBeFalse();
+    expect(comp.editorMode).toBe('rich');
     expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
+  });
+
+  it('openEdit keeps plain text values unchanged when value is <p></p>', async () => {
+    const { comp } = create();
+    const mockEditor = {
+      getHTML: () => '&lt;p&gt;&lt;/p&gt;',
+      getText: () => '<p></p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'greet.hello', value: '<p></p>', contentFormat: 'plain' });
+
+    expect(comp.editValue).toBe('<p></p>');
+    expect(comp.editorMode).toBe('text');
+  });
+
+  it('toggleLink rejects unsafe protocols', async () => {
+    const { comp } = create();
+    const setLink = jasmine.createSpy('setLink').and.returnValue({ run: jasmine.createSpy('run') });
+    const unsetLink = jasmine.createSpy('unsetLink').and.returnValue({ run: jasmine.createSpy('run') });
+    const chain = {
+      focus: () => chain,
+      extendMarkRange: () => chain,
+      setLink,
+      unsetLink
+    } as any;
+    comp.richTextEditor = {
+      getAttributes: () => ({ href: '' }),
+      chain: () => chain
+    } as any;
+    spyOn(window, 'prompt').and.returnValue('javascript:alert(1)');
+    spyOn(window, 'alert');
+
+    comp.toggleLink();
+
+    expect(window.alert).toHaveBeenCalled();
+    expect(setLink).not.toHaveBeenCalled();
+    expect(unsetLink).not.toHaveBeenCalled();
+  });
+
+  it('toggleLink allows safe protocols', async () => {
+    const { comp } = create();
+    const runSpy = jasmine.createSpy('run');
+    const setLink = jasmine.createSpy('setLink').and.returnValue({ run: runSpy });
+    const chain = {
+      focus: () => chain,
+      extendMarkRange: () => chain,
+      setLink,
+      unsetLink: jasmine.createSpy('unsetLink').and.returnValue({ run: jasmine.createSpy('run') })
+    } as any;
+    comp.richTextEditor = {
+      getAttributes: () => ({ href: '' }),
+      chain: () => chain
+    } as any;
+    spyOn(window, 'prompt').and.returnValue('https://example.com/path');
+
+    comp.toggleLink();
+
+    expect(setLink).toHaveBeenCalledWith({ href: 'https://example.com/path' });
+    expect(runSpy).toHaveBeenCalled();
   });
 
   it('saveEdit preserves plain text values when plain text mode is active', async () => {

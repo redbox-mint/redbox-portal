@@ -512,7 +512,6 @@ export class AppComponent implements OnInit, OnDestroy {
   richTextEditor: Editor | null = null;
   editorMode: TranslationEditorMode = 'rich';
   editContentFormat: TranslationContentFormat = 'plain';
-  isHtmlSourceMode = false;
   htmlSourceValue = '';
   plainTextValue = '';
 
@@ -574,7 +573,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private async loadAvailableLanguagesFromBundles() {
     try {
       const enabledLanguages: string[] = [];
-      
+
       // Load bundle information for each language to check enabled status
       for (const lang of this.languages()) {
         try {
@@ -588,7 +587,7 @@ export class AppComponent implements OnInit, OnDestroy {
           enabledLanguages.push(lang.code);
         }
       }
-      
+
       this.availableLanguages.set(enabledLanguages);
     } catch (e) {
       console.error('Failed to load available languages from bundles', e);
@@ -605,7 +604,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // Load individual entries with metadata for the selected language
   private async loadEntries() {
     try {
-  const data = await this.svc.listEntries(this.selectedLang, this.namespace);
+      const data = await this.svc.listEntries(this.selectedLang, this.namespace);
       this.entries.set(Array.isArray(data) ? data : []);
       // Reset category filter on language change
       this.selectedCategory = '';
@@ -671,8 +670,8 @@ export class AppComponent implements OnInit, OnDestroy {
       return av.localeCompare(bv) * dir;
     });
     this.viewEntries.set(sorted);
-  // Reinitialize tooltips after DOM updates
-  this.initTooltipsAsync();
+    // Reinitialize tooltips after DOM updates
+    this.initTooltipsAsync();
   }
 
   onCategoryChange() {
@@ -697,14 +696,14 @@ export class AppComponent implements OnInit, OnDestroy {
   openEdit(entry: TranslationEntry) {
     this.destroyRichTextEditor();
     this.editKey = entry.key;
-    const value = this.normalizeHtmlValue(String(entry.value ?? ''));
     this.editContentFormat = this.normalizeContentFormat(entry.contentFormat);
+    const rawValue = String(entry.value ?? '');
+    const value = this.editContentFormat === 'html' ? this.normalizeHtmlValue(rawValue) : rawValue;
     this.editValue = value;
     this.editDescription = entry.description;
     this.htmlSourceValue = value;
     this.plainTextValue = value;
     this.editorMode = this.editContentFormat === 'html' ? 'rich' : 'text';
-    this.isHtmlSourceMode = false;
     this.richTextEditor = this.createRichTextEditor(this.editContentFormat === 'html' ? value : this.escapeHtml(value));
     this.modalOpen.set(true);
   }
@@ -717,7 +716,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.syncValueFromCurrentEditor();
     this.editorMode = mode;
     this.editContentFormat = mode === 'text' ? 'plain' : 'html';
-    this.isHtmlSourceMode = mode === 'html';
     if (mode === 'rich' && this.richTextEditor) {
       const source = previousMode === 'text' ? this.escapeHtml(this.editValue) : this.editValue;
       this.richTextEditor.commands.setContent(source);
@@ -738,15 +736,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.editValue = value;
   }
 
-  onRichTextUpdate() {
-    if (!this.richTextEditor) {
-      return;
-    }
-    this.htmlSourceValue = this.normalizeHtmlValue(this.richTextEditor.getHTML());
-    this.plainTextValue = this.richTextEditor.getText();
-    this.editValue = this.htmlSourceValue;
-  }
-
   toggleBold() { this.richTextEditor?.chain().focus().toggleBold().run(); }
   toggleItalic() { this.richTextEditor?.chain().focus().toggleItalic().run(); }
   toggleHeading() { this.richTextEditor?.chain().focus().toggleHeading({ level: 2 }).run(); }
@@ -761,45 +750,50 @@ export class AppComponent implements OnInit, OnDestroy {
     const previous = this.richTextEditor.getAttributes('link')?.['href'] ?? '';
     const url = window.prompt('Enter URL (leave blank to remove the link)', previous);
     if (url === null) return;
-    if (url === '') {
+    const validatedUrl = this.normalizeAndValidateLinkUrl(url);
+    if (validatedUrl === null) {
+      window.alert('Invalid URL. Only http, https, and mailto links are allowed.');
+      return;
+    }
+
+    if (validatedUrl === '') {
       this.richTextEditor.chain().focus().extendMarkRange('link').unsetLink().run();
     } else {
-      this.richTextEditor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+      this.richTextEditor.chain().focus().extendMarkRange('link').setLink({ href: validatedUrl }).run();
     }
   }
 
   async saveEdit() {
     if (!this.selectedLang || !this.editKey) return;
     try {
-  this.saving.set(true);
-  this.saveSuccess.set(false);
-  this.saveError.set(false);
-  const value = this.getEditorValueForSave();
-  const contentFormat = this.editContentFormat;
-  await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
+      this.saving.set(true);
+      this.saveSuccess.set(false);
+      this.saveError.set(false);
+      const value = this.getEditorValueForSave();
+      const contentFormat = this.editContentFormat;
+      await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
       // Update local state
-  const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value, contentFormat } : e);
-  this.entries.set(updated);
-  this.refreshDerived();
-  this.destroyRichTextEditor();
-  this.modalOpen.set(false);
-  this.saving.set(false);
-  this.saveSuccess.set(true);
-  // Auto-hide success after a short delay
-  setTimeout(() => this.saveSuccess.set(false), 5000);
+      const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value, contentFormat } : e);
+      this.entries.set(updated);
+      this.refreshDerived();
+      this.destroyRichTextEditor();
+      this.modalOpen.set(false);
+      this.saving.set(false);
+      this.saveSuccess.set(true);
+      // Auto-hide success after a short delay
+      setTimeout(() => this.saveSuccess.set(false), 5000);
     } catch (e) {
       console.error('Failed to save entry', e);
-  this.saving.set(false);
-  this.saveError.set(true);
-  // Auto-hide error after delay (leave longer than success)
-  setTimeout(() => this.saveError.set(false), 8000);
+      this.saving.set(false);
+      this.saveError.set(true);
+      // Auto-hide error after delay (leave longer than success)
+      setTimeout(() => this.saveError.set(false), 8000);
     }
   }
 
   closeModal() {
     this.modalOpen.set(false);
     this.destroyRichTextEditor();
-    this.isHtmlSourceMode = false;
     this.editorMode = 'rich';
     this.editContentFormat = 'plain';
     this.htmlSourceValue = '';
@@ -841,10 +835,10 @@ export class AppComponent implements OnInit, OnDestroy {
       // Create the new language by copying from source, with optional display name
       const displayName = this.newLanguageDisplayName.trim() || undefined;
       await this.svc.createLanguage(this.newLanguageCode.trim(), this.sourceLanguage, this.namespace, displayName);
-      
+
       // Refresh the language list
       await this.loadLanguages();
-      
+
       // Update available languages to include the new one (new languages are enabled by default)
       const currentAvailable = this.availableLanguages();
       const newLangCode = this.newLanguageCode.trim();
@@ -854,13 +848,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
       this.creatingLanguage.set(false);
       this.languageCreateSuccess.set(true);
-      
+
       // Auto-hide success after delay
       setTimeout(() => {
         this.languageCreateSuccess.set(false);
         this.closeLanguageModal();
       }, 3000);
-      
+
     } catch (e) {
       console.error('Failed to create language', e);
       this.creatingLanguage.set(false);
@@ -871,11 +865,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   openDisplayNameModal() {
     if (!this.selectedLang) return;
-    
+
     // Load current display name for the language
     this.editDisplayName = this.selectedLang; // Default to language code
     this.displayNameModalOpen.set(true);
-    
+
     // Try to get the current display name from the bundle
     this.loadCurrentDisplayName();
   }
@@ -914,16 +908,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
       // Update the display name
       await this.svc.updateLanguageDisplayName(this.selectedLang, this.namespace, this.editDisplayName.trim());
-      
+
       this.updatingDisplayName.set(false);
       this.displayNameUpdateSuccess.set(true);
-      
+
       // Auto-hide success after delay
       setTimeout(() => {
         this.displayNameUpdateSuccess.set(false);
         this.closeDisplayNameModal();
       }, 3000);
-      
+
     } catch (e) {
       console.error('Failed to update display name', e);
       this.updatingDisplayName.set(false);
@@ -957,29 +951,29 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async saveLanguages() {
     if (this.savingLanguages()) return;
-    
+
     try {
       this.savingLanguages.set(true);
       this.saveLanguagesSuccess.set(false);
       this.saveLanguagesError.set(false);
-      
+
       // Update enabled status for each language bundle
       const updatePromises = this.languages().map(lang => {
         const enabled = this.isLanguageAvailable(lang.code);
         return this.svc.updateBundleEnabled(lang.code, 'translation', enabled);
       });
-      
+
       await Promise.all(updatePromises);
-      
+
       this.savingLanguages.set(false);
       this.saveLanguagesSuccess.set(true);
       // Auto-hide success after a short delay
       setTimeout(() => this.saveLanguagesSuccess.set(false), 5000);
-      
+
       // Refresh the languages list and available languages to get updated data
       await this.loadLanguages();
       await this.loadAvailableLanguagesFromBundles();
-      
+
     } catch (e) {
       console.error('Failed to save language settings', e);
       this.savingLanguages.set(false);
@@ -1073,8 +1067,29 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private destroyRichTextEditor() {
-    this.richTextEditor?.destroy();
+    const destroy = this.richTextEditor?.destroy;
+    if (typeof destroy === 'function') {
+      destroy.call(this.richTextEditor);
+    }
     this.richTextEditor = null;
+  }
+
+  private normalizeAndValidateLinkUrl(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    try {
+      const parsed = new URL(trimmed);
+      const protocol = parsed.protocol.toLowerCase();
+      if (protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:') {
+        return trimmed;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   private normalizeHtmlValue(value: string) {
