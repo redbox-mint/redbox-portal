@@ -523,6 +523,117 @@ describe("CheckboxTreeComponent", () => {
     expect((compiled.textContent ?? "").includes("Unable to load vocabulary tree.")).toBeFalse();
   });
 
+  it("hydrates selected vocab paths with a single expandPath request", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const expandPath = spyOn(vocabTreeService, "expandPath").and.resolveTo({
+      data: {
+        "0801": [
+          { id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true },
+          { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
+        ]
+      },
+      meta: { vocabularyId: "v1", notations: ["0801"] }
+    });
+    spyOn(vocabTreeService, "getChildren").and.resolveTo({
+      data: [{ id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true }],
+      meta: { vocabularyId: "v1", parentId: null, total: 1 }
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [
+                {
+                  notation: "0801",
+                  label: "Leaf",
+                  name: "0801 - Leaf",
+                  genealogy: ["08"]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(expandPath).toHaveBeenCalledOnceWith("anzsrc-2020-for", ["0801"]);
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(2);
+    expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+  });
+
+  it("falls back to sequential loading when expandPath returns 404", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const expandPath = spyOn(vocabTreeService, "expandPath").and.rejectWith({ status: 404 });
+    const getChildren = spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
+      if (!parentId) {
+        return Promise.resolve({
+          data: [{ id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true }],
+          meta: { vocabularyId: "v1", parentId: null, total: 1 }
+        } as any);
+      }
+      if (parentId === "root") {
+        return Promise.resolve({
+          data: [{ id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }],
+          meta: { vocabularyId: "v1", parentId: "root", total: 1 }
+        } as any);
+      }
+      return Promise.resolve({ data: [], meta: { vocabularyId: "v1", parentId: parentId ?? null, total: 0 } } as any);
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [
+                {
+                  notation: "0801",
+                  label: "Leaf",
+                  name: "0801 - Leaf",
+                  genealogy: ["08"]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(expandPath).toHaveBeenCalledOnceWith("anzsrc-2020-for", ["0801"]);
+    expect(getChildren).toHaveBeenCalledWith("anzsrc-2020-for");
+    expect(getChildren).toHaveBeenCalledWith("anzsrc-2020-for", "root");
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(2);
+    expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+  });
+
   it("deduplicates duplicate node ids in inline tree data", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",

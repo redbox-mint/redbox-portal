@@ -24,6 +24,14 @@ export interface VocabTreeChildrenResponse {
   };
 }
 
+export interface VocabTreeExpandPathResponse {
+  data: Record<string, VocabTreeApiNode[]>;
+  meta: {
+    vocabularyId: string;
+    notations: string[];
+  };
+}
+
 type WrappedResponse = { data?: VocabTreeApiNode[]; meta?: VocabTreeChildrenResponse["meta"] };
 type ApiResponse = VocabTreeChildrenResponse | WrappedResponse | VocabTreeApiNode[];
 
@@ -73,6 +81,51 @@ export class VocabTreeService extends HttpClientService {
     this.childrenCache.clear();
   }
 
+  public clearChildrenCacheEntry(vocabRef: string, parentId?: string): void {
+    const trimmedVocabRef = String(vocabRef ?? "").trim();
+    if (!trimmedVocabRef) {
+      return;
+    }
+    const trimmedParentId = String(parentId ?? "").trim();
+    this.childrenCache.delete(`${trimmedVocabRef}::${trimmedParentId}`);
+  }
+
+  public async expandPath(vocabRef: string, notations: string[]): Promise<VocabTreeExpandPathResponse> {
+    const trimmedVocabRef = String(vocabRef ?? "").trim();
+    if (!trimmedVocabRef) {
+      throw new Error("vocabRef is required");
+    }
+
+    const normalizedNotations = Array.from(
+      new Set(
+        (notations ?? [])
+          .map((notation) => String(notation ?? "").trim())
+          .filter((notation) => notation.length > 0)
+      )
+    );
+    if (normalizedNotations.length === 0) {
+      throw new Error("notation is required");
+    }
+
+    await this.waitForInit();
+
+    const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(trimmedVocabRef)}/expandPath`;
+    const response = await firstValueFrom(
+      this.http.get<unknown>(url, {
+        responseType: "json",
+        observe: "body",
+        context: this.httpContext,
+        params: {
+          notation: normalizedNotations.join(",")
+        }
+      })
+    );
+
+    const parsed = this.parseExpandPathResponse(response, trimmedVocabRef);
+    this.seedExpandPathCache(trimmedVocabRef, parsed.data);
+    return parsed;
+  }
+
   public seedFromPayload(prehydrate?: FormPrehydratePayload): void {
     const vocabTrees = prehydrate?.vocabTrees ?? {};
     for (const [vocabRef, treePayload] of Object.entries(vocabTrees)) {
@@ -87,6 +140,88 @@ export class VocabTreeService extends HttpClientService {
             `Skipping invalid prehydrate vocab tree response for vocabRef=${String(vocabRef)} parentId=${String(parentKey)} (${FormPrehydrateRootKey})`
           );
         }
+      }
+    }
+  }
+
+  private parseExpandPathResponse(response: unknown, vocabRef: string): VocabTreeExpandPathResponse {
+    if (!response || typeof response !== "object") {
+      throw new Error("Unexpected response from vocabulary expandPath endpoint");
+    }
+
+    const candidate = response as Partial<VocabTreeExpandPathResponse> & { data?: unknown; meta?: { notations?: unknown; vocabularyId?: unknown } };
+    if (!candidate.data || typeof candidate.data !== "object" || Array.isArray(candidate.data)) {
+      throw new Error("Unexpected response from vocabulary expandPath endpoint");
+    }
+    if (!candidate.meta || !Array.isArray(candidate.meta.notations) || typeof candidate.meta.vocabularyId !== "string") {
+      throw new Error("Unexpected response from vocabulary expandPath endpoint");
+    }
+
+    const data: Record<string, VocabTreeApiNode[]> = {};
+    for (const [notation, nodes] of Object.entries(candidate.data as Record<string, unknown>)) {
+      if (!Array.isArray(nodes)) {
+        continue;
+      }
+      data[notation] = nodes
+        .map((node) => this.normalizeNode(node))
+        .filter((node): node is VocabTreeApiNode => !!node);
+    }
+
+    return {
+      data,
+      meta: {
+        vocabularyId: String(candidate.meta.vocabularyId ?? vocabRef),
+        notations: candidate.meta.notations.map((notation) => String(notation ?? "").trim()).filter((notation) => notation.length > 0)
+      }
+    };
+  }
+
+  private normalizeNode(node: unknown): VocabTreeApiNode | null {
+    if (!node || typeof node !== "object") {
+      return null;
+    }
+    const candidate = node as Partial<VocabTreeApiNode>;
+    const id = String(candidate.id ?? "").trim();
+    if (!id) {
+      return null;
+    }
+    return {
+      id,
+      label: String(candidate.label ?? ""),
+      value: String(candidate.value ?? ""),
+      notation: String(candidate.notation ?? candidate.value ?? "").trim() || undefined,
+      parent: candidate.parent === undefined || candidate.parent === null ? null : String(candidate.parent).trim() || null,
+      hasChildren: candidate.hasChildren === true,
+      disabled: candidate.disabled === true
+    };
+  }
+
+  private seedExpandPathCache(vocabRef: string, chains: Record<string, VocabTreeApiNode[]>): void {
+    const trimmedVocabRef = String(vocabRef ?? "").trim();
+    if (!trimmedVocabRef) {
+      return;
+    }
+
+    for (const chain of Object.values(chains)) {
+      if (!Array.isArray(chain) || chain.length === 0) {
+        continue;
+      }
+      let parentKey = "";
+      for (const node of chain) {
+        const cacheKey = `${trimmedVocabRef}::${parentKey}`;
+        const existing = this.childrenCache.get(cacheKey);
+        if (!existing) {
+          const response: VocabTreeChildrenResponse = {
+            data: [node],
+            meta: {
+              vocabularyId: trimmedVocabRef,
+              parentId: parentKey || null,
+              total: 1
+            }
+          };
+          this.childrenCache.set(cacheKey, Promise.resolve(response));
+        }
+        parentKey = node.id;
       }
     }
   }

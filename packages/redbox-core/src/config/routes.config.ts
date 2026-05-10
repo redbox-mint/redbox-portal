@@ -250,6 +250,10 @@ export const routes: RoutesConfig = {
         controller: 'FormVocabularyController',
         action: 'get'
     },
+    'get /:branding/:portal/vocab/:vocabIdOrSlug/expandPath': {
+        controller: 'FormVocabularyController',
+        action: 'expandPath'
+    },
     'get /:branding/:portal/vocab/:vocabIdOrSlug/entries': {
         controller: 'FormVocabularyController',
         action: 'entries'

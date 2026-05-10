@@ -78,6 +78,14 @@ export namespace Services {
     };
   }
 
+  export interface VocabularyExpandPathResponse {
+    paths: Record<string, VocabularyChildrenNode[]>;
+    meta: {
+      vocabularyId: string;
+      notations: string[];
+    };
+  }
+
   export class InvalidParentIdError extends Error {
     public readonly code: 'invalid-parent-id';
 
@@ -134,6 +142,7 @@ export namespace Services {
       'getChildren',
       'getEntryByNotation',
       'getAncestorChain',
+      'expandPaths',
       'bootstrapData',
       'create',
       'update',
@@ -330,19 +339,9 @@ export namespace Services {
         }
       }
 
-      const responseEntries: VocabularyChildrenNode[] = entries.map((entry) => {
-        const id = String(entry.id);
-        const parent = entry.parent ? String(entry.parent) : null;
-        const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
-        return {
-          id,
-          label: String(entry.label ?? ''),
-          value: String(entry.value ?? ''),
-          notation: notation || undefined,
-          parent,
-          hasChildren: hasChildrenById.get(id) === true
-        };
-      });
+      const responseEntries: VocabularyChildrenNode[] = entries.map((entry) =>
+        this.toVocabularyChildrenNode(entry, hasChildrenById.get(String(entry.id)) === true)
+      );
 
       return {
         entries: responseEntries,
@@ -350,6 +349,143 @@ export namespace Services {
           vocabularyId: String(vocabulary.id),
           parentId: normalizedParentId || null,
           total: responseEntries.length
+        }
+      };
+    }
+
+    public async expandPaths(
+      branding: string,
+      vocabIdOrSlug: string,
+      notations: string[]
+    ): Promise<VocabularyExpandPathResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const normalizedNotations = Array.from(
+        new Set(
+          (notations ?? [])
+            .map((notation) => String(notation ?? '').trim())
+            .filter((notation) => notation.length > 0)
+        )
+      );
+      if (normalizedNotations.length === 0) {
+        return {
+          paths: {},
+          meta: {
+            vocabularyId: String(vocabulary.id),
+            notations: []
+          }
+        };
+      }
+
+      const vocabularyId = String(vocabulary.id);
+      const entryCache = new Map<string, VocabularyEntryAttributes | null>();
+      const notationCache = new Map<string, VocabularyEntryAttributes | null>();
+      const paths: Record<string, VocabularyChildrenNode[]> = {};
+      const chainEntries = new Map<string, VocabularyEntryAttributes>();
+      const orderedChains: Array<{ notation: string; chain: VocabularyEntryAttributes[] }> = [];
+
+      const loadEntryById = async (entryId: string): Promise<VocabularyEntryAttributes | null> => {
+        const normalizedEntryId = String(entryId ?? '').trim();
+        if (!normalizedEntryId) {
+          return null;
+        }
+        if (entryCache.has(normalizedEntryId)) {
+          return entryCache.get(normalizedEntryId) ?? null;
+        }
+        const entry = await VocabularyEntry.findOne({
+          id: normalizedEntryId,
+          vocabulary: vocabularyId
+        }) as VocabularyEntryAttributes | null;
+        entryCache.set(normalizedEntryId, entry);
+        return entry;
+      };
+
+      const loadEntryByNotation = async (notation: string): Promise<VocabularyEntryAttributes | null> => {
+        const normalizedNotation = String(notation ?? '').trim();
+        if (!normalizedNotation) {
+          return null;
+        }
+        if (notationCache.has(normalizedNotation)) {
+          return notationCache.get(normalizedNotation) ?? null;
+        }
+
+        const normalizedNotationLower = normalizedNotation.toLowerCase();
+        const exactMatch = await VocabularyEntry.findOne({
+          vocabulary: vocabularyId,
+          identifier: normalizedNotation
+        }) as VocabularyEntryAttributes | null;
+        if (exactMatch) {
+          notationCache.set(normalizedNotation, exactMatch);
+          entryCache.set(String(exactMatch.id), exactMatch);
+          return exactMatch;
+        }
+
+        const lowerMatch = await VocabularyEntry.findOne({
+          vocabulary: vocabularyId,
+          valueLower: normalizedNotationLower
+        }) as VocabularyEntryAttributes | null;
+        notationCache.set(normalizedNotation, lowerMatch);
+        if (lowerMatch) {
+          entryCache.set(String(lowerMatch.id), lowerMatch);
+        }
+        return lowerMatch;
+      };
+
+      for (const notation of normalizedNotations) {
+        const chain: VocabularyEntryAttributes[] = [];
+        const seenIds = new Set<string>();
+        let cursor = await loadEntryByNotation(notation);
+
+        while (cursor) {
+          const cursorId = String(cursor.id ?? '').trim();
+          if (!cursorId || seenIds.has(cursorId)) {
+            break;
+          }
+          seenIds.add(cursorId);
+          chain.unshift(cursor);
+          chainEntries.set(cursorId, cursor);
+
+          const parentId = String(cursor.parent ?? '').trim();
+          if (!parentId) {
+            break;
+          }
+          cursor = await loadEntryById(parentId);
+        }
+
+        orderedChains.push({ notation, chain });
+      }
+
+      const chainIds = Array.from(chainEntries.keys());
+      const hasChildrenById = new Map<string, boolean>();
+      if (chainIds.length > 0) {
+        const descendants = await VocabularyEntry.find({
+          vocabulary: vocabularyId,
+          parent: { in: chainIds }
+        }) as VocabularyEntryAttributes[];
+
+        for (const descendant of descendants) {
+          const descendantParent = String(descendant.parent ?? '').trim();
+          if (descendantParent) {
+            hasChildrenById.set(descendantParent, true);
+          }
+        }
+      }
+
+      for (const { notation, chain } of orderedChains) {
+        paths[notation] = chain.map((entry) => this.toVocabularyChildrenNode(
+          entry,
+          hasChildrenById.get(String(entry.id ?? '').trim()) === true
+        ));
+      }
+
+      return {
+        paths,
+        meta: {
+          vocabularyId,
+          notations: normalizedNotations
         }
       };
     }
@@ -408,6 +544,23 @@ export namespace Services {
       }
 
       return chain;
+    }
+
+    private toVocabularyChildrenNode(
+      entry: VocabularyEntryAttributes,
+      hasChildren: boolean
+    ): VocabularyChildrenNode {
+      const id = String(entry.id);
+      const parent = entry.parent ? String(entry.parent) : null;
+      const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
+      return {
+        id,
+        label: String(entry.label ?? ''),
+        value: String(entry.value ?? ''),
+        notation: notation || undefined,
+        parent,
+        hasChildren
+      };
     }
 
     public async create(input: VocabularyInput): Promise<VocabularyAttributes> {

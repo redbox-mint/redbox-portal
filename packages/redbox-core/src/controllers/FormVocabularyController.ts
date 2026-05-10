@@ -9,9 +9,17 @@ export namespace Controllers {
       'get',
       'entries',
       'children',
+      'expandPath',
       'getRecords',
       'externalEntries'
     ];
+
+    private parseNotationList(rawNotation: unknown): string[] {
+      const values = Array.isArray(rawNotation)
+        ? rawNotation.flatMap((item) => String(item ?? '').split(','))
+        : String(rawNotation ?? '').split(',');
+      return Array.from(new Set(values.map((item) => String(item ?? '').trim()).filter((item) => item.length > 0)));
+    }
 
     public async get(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const branding = String(req.param('branding') ?? '').trim();
@@ -160,6 +168,59 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'vocabulary-children-failed' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+    }
+
+    public async expandPath(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      const branding = String(req.param('branding') ?? '').trim();
+      const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
+      if (!vocabIdOrSlug) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      const notations = this.parseNotationList(req.param('notation'));
+      if (notations.length === 0) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-query-params' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+      if (notations.length > 100) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'too-many-notations' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const result = await VocabularyService.expandPaths(branding, vocabIdOrSlug, notations);
+        if (!result) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: 'vocabulary-not-found' }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        return this.sendResp(req, res, {
+          data: result.paths,
+          meta: result.meta,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        sails.log.verbose('Error expanding vocabulary path:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'vocabulary-expand-path-failed' }],
           headers: this.getNoCacheHeaders()
         });
       }

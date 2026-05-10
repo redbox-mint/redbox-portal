@@ -149,6 +149,40 @@ describe("VocabTreeService", () => {
     expect(result.data.length).toBe(1);
   });
 
+  it("requests expandPath once and seeds path buckets into the children cache", async () => {
+    const promise = service.expandPath("anzsrc-2020-for", ["0801", "0802", "0801"]);
+    await Promise.resolve();
+    const req = httpTesting.expectOne((request) => {
+      return request.method === "GET" &&
+        request.url.includes("/vocab/anzsrc-2020-for/expandPath") &&
+        request.params.get("notation") === "0801,0802";
+    });
+
+    req.flush({
+      data: {
+        "0801": [
+          { id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true },
+          { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
+        ],
+        "0802": []
+      },
+      meta: { vocabularyId: "v1", notations: ["0801", "0802"] }
+    });
+
+    const result = await promise;
+    expect(result.meta.notations).toEqual(["0801", "0802"]);
+
+    const root = await service.getChildren("anzsrc-2020-for");
+    const child = await service.getChildren("anzsrc-2020-for", "root");
+    httpTesting.expectNone((request) => request.url.includes("/vocab/anzsrc-2020-for/children"));
+    expect(root.data[0].id).toBe("root");
+    expect(child.data[0].id).toBe("leaf");
+  });
+
+  it("rejects expandPath without notations", async () => {
+    await expectAsync(service.expandPath("anzsrc-2020-for", [])).toBeRejectedWithError("notation is required");
+  });
+
   it("seeds cached root and child responses from prehydrate payload", async () => {
     service.seedFromPayload({
       vocabTrees: {

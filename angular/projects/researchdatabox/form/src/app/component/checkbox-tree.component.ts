@@ -231,6 +231,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private readonly expandedNodeIds = new Set<string>();
   private readonly loadingNodeIds = new Set<string>();
   private readonly loadedNodeIds = new Set<string>();
+  private readonly pathHydratedNodeIds = new Set<string>();
   // Concurrent callers of loadChildren for the same node await the same promise
   // rather than racing — needed since expandToSelectedNodes runs chains in parallel
   // and sibling chains can hit the same shared ancestor at the same time.
@@ -344,7 +345,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return;
     }
     this.expandedNodeIds.add(node.id);
-    if (!this.inlineVocab && node.hasChildren && (node.children?.length ?? 0) === 0 && !this.loadedNodeIds.has(node.id)) {
+    if (!this.inlineVocab && node.hasChildren && !this.loadedNodeIds.has(node.id)) {
+      if (this.pathHydratedNodeIds.has(node.id)) {
+        this.vocabTreeService.clearChildrenCacheEntry(this.vocabRef, node.id);
+      }
       await this.loadChildren(node);
     }
   }
@@ -462,6 +466,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         const response = await this.vocabTreeService.getChildren(this.vocabRef, parent.id);
         parent.children = this.toRenderNodes(response.data);
         this.loadedNodeIds.add(parent.id);
+        this.pathHydratedNodeIds.delete(parent.id);
         this.rebuildIndexes(parent.children, parent.id);
       } catch (error) {
         this.loadErrors.set(parent.id, this.describeLoadError(error));
@@ -478,23 +483,12 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     const seen = new Set<string>();
     const normalized: CheckboxTreeRenderNode[] = [];
     for (const node of nodes) {
-      const id = String(node.id ?? "").trim();
-      if (!id || seen.has(id)) {
+      const renderNode = this.toRenderNode(node);
+      if (!renderNode || seen.has(renderNode.id)) {
         continue;
       }
-      seen.add(id);
-      normalized.push({
-        id,
-        label: String(node.label ?? ""),
-        displayLabel: "",
-        value: String(node.value ?? ""),
-        notation: String(node.notation ?? node.value ?? ""),
-        parent: String(node.parent ?? "").trim() || null,
-        hasChildren: Boolean(node.hasChildren),
-        disabled: node.disabled === true,
-        children: []
-      });
-      normalized[normalized.length - 1].displayLabel = this.renderDisplayLabel(normalized[normalized.length - 1]);
+      seen.add(renderNode.id);
+      normalized.push(renderNode);
     }
     return normalized;
   }
@@ -507,20 +501,35 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         continue;
       }
       seen.add(id);
-      normalized.push({
-        id,
-        label: String(node.label ?? ""),
-        displayLabel: "",
-        value: String(node.value ?? ""),
-        notation: String(node.notation ?? node.value ?? ""),
-        parent: String(node.parent ?? "").trim() || null,
-        hasChildren: Boolean(node.hasChildren || (node.children?.length ?? 0) > 0),
-        disabled: node.disabled === true,
-        children: this.normalizeNodes(node.children ?? [], seen)
-      });
-      normalized[normalized.length - 1].displayLabel = this.renderDisplayLabel(normalized[normalized.length - 1]);
+      const renderNode = this.toRenderNode(node);
+      if (!renderNode) {
+        continue;
+      }
+      renderNode.hasChildren = Boolean(node.hasChildren || (node.children?.length ?? 0) > 0);
+      renderNode.children = this.normalizeNodes(node.children ?? [], seen);
+      normalized.push(renderNode);
     }
     return normalized;
+  }
+
+  private toRenderNode(node: VocabTreeApiNode | CheckboxTreeNode): CheckboxTreeRenderNode | null {
+    const id = String(node.id ?? "").trim();
+    if (!id) {
+      return null;
+    }
+    const renderNode: CheckboxTreeRenderNode = {
+      id,
+      label: String(node.label ?? ""),
+      displayLabel: "",
+      value: String(node.value ?? ""),
+      notation: String(node.notation ?? node.value ?? ""),
+      parent: String(node.parent ?? "").trim() || null,
+      hasChildren: Boolean(node.hasChildren),
+      disabled: node.disabled === true,
+      children: []
+    };
+    renderNode.displayLabel = this.renderDisplayLabel(renderNode);
+    return renderNode;
   }
 
   private async prepareLabelTemplate(): Promise<void> {
@@ -643,28 +652,101 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       };
       expandAncestors(this.rootNodes);
     } else {
-      // Each genealogy is sequential (the next parentId depends on the previous response),
-      // but the chains for different selections are independent and can run in parallel.
-      // The vocab service dedupes concurrent identical (vocabRef, parentId) requests, so
-      // selections that share ancestors only trigger one network call per shared parent.
-      const expansions = Array.from(this.selectedByNotation.values()).map(async (selected) => {
-        const genealogy = selected.genealogy ?? [];
-        let currentNodes = this.rootNodes;
-
-        for (const notation of genealogy) {
-          const node = currentNodes.find(n => this.getNotation(n) === notation);
-          if (!node) {
-            break;
-          }
-
-          this.expandedNodeIds.add(node.id);
-          if (node.hasChildren && (node.children?.length ?? 0) === 0 && !this.loadedNodeIds.has(node.id)) {
-            await this.loadChildren(node);
-          }
-          currentNodes = node.children ?? [];
+      const notations = Array.from(this.selectedByNotation.keys());
+      try {
+        const response = await this.vocabTreeService.expandPath(this.vocabRef, notations);
+        for (const chain of Object.values(response.data ?? {})) {
+          this.attachExpandedPath(chain);
         }
-      });
-      await Promise.all(expansions);
+        this.rootError = null;
+        this.applyDisplayLabels(this.rootNodes);
+        this.rebuildIndexes(this.rootNodes, null);
+      } catch (error) {
+        if (this.isNotFoundError(error)) {
+          await this.expandToSelectedNodesLegacy();
+          this.rootError = null;
+          return;
+        }
+        this.rootError = this.describeLoadError(error);
+      }
+    }
+  }
+
+  private async expandToSelectedNodesLegacy(): Promise<void> {
+    // Each genealogy is sequential (the next parentId depends on the previous response),
+    // but the chains for different selections are independent and can run in parallel.
+    // The vocab service dedupes concurrent identical (vocabRef, parentId) requests, so
+    // selections that share ancestors only trigger one network call per shared parent.
+    const expansions = Array.from(this.selectedByNotation.values()).map(async (selected) => {
+      const genealogy = selected.genealogy ?? [];
+      let currentNodes = this.rootNodes;
+
+      for (const notation of genealogy) {
+        const node = currentNodes.find(n => this.getNotation(n) === notation);
+        if (!node) {
+          break;
+        }
+
+        this.expandedNodeIds.add(node.id);
+        if (node.hasChildren && (node.children?.length ?? 0) === 0 && !this.loadedNodeIds.has(node.id)) {
+          await this.loadChildren(node);
+        }
+        currentNodes = node.children ?? [];
+      }
+    });
+    await Promise.all(expansions);
+  }
+
+  private attachExpandedPath(chain: VocabTreeApiNode[]): void {
+    if (!Array.isArray(chain) || chain.length === 0) {
+      return;
+    }
+
+    let parentNode: CheckboxTreeRenderNode | null = null;
+    for (let index = 0; index < chain.length; index += 1) {
+      const renderNode = this.toRenderNode(chain[index]);
+      if (!renderNode) {
+        continue;
+      }
+
+      const existing = this.nodeById.get(renderNode.id);
+      const currentNode = existing ?? renderNode;
+      if (existing) {
+        existing.label = renderNode.label;
+        existing.value = renderNode.value;
+        existing.notation = renderNode.notation;
+        existing.parent = renderNode.parent;
+        existing.hasChildren = Boolean(existing.hasChildren || renderNode.hasChildren);
+        existing.displayLabel = this.renderDisplayLabel(existing);
+      } else {
+        this.nodeById.set(currentNode.id, currentNode);
+      }
+
+      if (parentNode) {
+        parentNode.children = parentNode.children ?? [];
+        const childIndex = parentNode.children.findIndex((child) => child.id === currentNode.id);
+        if (childIndex === -1) {
+          parentNode.children.push(currentNode);
+        } else {
+          parentNode.children[childIndex] = currentNode;
+        }
+        this.parentById.set(currentNode.id, parentNode.id);
+        this.pathHydratedNodeIds.add(parentNode.id);
+      } else {
+        const rootIndex = this.rootNodes.findIndex((root) => root.id === currentNode.id);
+        if (rootIndex === -1) {
+          this.rootNodes.push(currentNode);
+        } else {
+          this.rootNodes[rootIndex] = currentNode;
+        }
+        this.parentById.set(currentNode.id, null);
+      }
+
+      if (index < chain.length - 1) {
+        this.expandedNodeIds.add(currentNode.id);
+      }
+
+      parentNode = currentNode;
     }
   }
 
@@ -719,5 +801,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   private describeLoadError(error: unknown): string {
     return (error as Error)?.message || "Unable to load vocabulary tree.";
+  }
+
+  private isNotFoundError(error: unknown): boolean {
+    const candidate = error as { status?: number; response?: { status?: number } } | null;
+    return candidate?.status === 404 || candidate?.response?.status === 404;
   }
 }
