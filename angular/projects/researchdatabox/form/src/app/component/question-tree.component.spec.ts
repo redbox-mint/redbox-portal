@@ -759,14 +759,15 @@ describe('QuestionTreeComponent', async () => {
       // the current component lifecycle rehydrates child controls and re-runs expressions.
       questionTree.model?.setValue(loadedQuestionTreeValue);
 
-      fixture.detectChanges();
-      await fixture.whenStable();
-      fixture.detectChanges();
-      await fixture.whenStable();
-
       const qtElements = element.querySelectorAll('redbox-questiontreefield');
       expect(qtElements).toHaveSize(1);
       const qtElement = qtElements[0];
+
+      await waitForCondition(
+        fixture,
+        () => qtElement.querySelectorAll('input').length === 4,
+        'loaded question tree state to show question_2 after rehydration'
+      );
 
       // initial state
       const inputElementsInitial = qtElement.querySelectorAll('input');
