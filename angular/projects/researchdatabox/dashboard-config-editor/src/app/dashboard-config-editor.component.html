@@ -1,0 +1,53 @@
+<div class="dashboard-config-editor">
+  <h2>Dashboard Configuration</h2>
+  <div *ngIf="message" class="alert alert-success">{{ message }}</div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div class="row">
+    <div class="col-md-3">
+      <div class="panel panel-default">
+        <div class="panel-heading">Record Types</div>
+        <div class="panel-body">
+          <div *ngFor="let rt of configInfo?.recordTypes">
+            <strong>{{ rt.name }}</strong>
+            <ul class="list-unstyled">
+              <li *ngFor="let step of rt.steps">
+                <a href="javascript:void(0)" (click)="selectRecordType(rt.name, step)">{{ step }}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="panel panel-default">
+        <div class="panel-heading">Views</div>
+        <div class="panel-body">
+          <div *ngFor="let v of configInfo?.views">
+            <strong>{{ v.name }}</strong>
+            <ul class="list-unstyled">
+              <li *ngFor="let step of v.steps">
+                <a href="javascript:void(0)" (click)="selectView(v.name, step)">{{ step }}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <div *ngIf="loading" class="text-center">
+        <img src="/images/loading.svg" alt="Loading..." />
+      </div>
+      <div *ngIf="!loading && selectedContext">
+        <h3>{{ contextLabel }}</h3>
+        <table-config-editor [(config)]="currentConfig"></table-config-editor>
+        <div class="actions">
+          <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="!loading && !selectedContext" class="text-muted">
+        Select a record type step or view step to edit its dashboard configuration.
+      </div>
+    </div>
+  </div>
+</div>

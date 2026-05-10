@@ -183,7 +183,16 @@ export namespace Services {
      */
     public async getDashboardTableConfig(brand: BrandingModel, recordType: string, workflowStage: string): Promise<DashboardTableConfig | null> {
       try {
-        // Get record type
+        // Prefer merged config from DashboardConfigService if available
+        if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardTableConfig) {
+          const mergedConfig = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
+          if (mergedConfig) {
+            sails.log.verbose(`DashboardTypesService: using merged config for ${recordType}/${workflowStage}`);
+            return mergedConfig;
+          }
+        }
+
+        // Fallback to raw workflow config
         const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
         if (!recType) {
           sails.log.warn(`Record type not found: ${recordType}`);
@@ -191,7 +200,6 @@ export namespace Services {
         }
         sails.log.verbose(`DashboardTypesService: Found record type ${recordType}`);
 
-        // Get workflow step config
         const workflowStep = await firstValueFrom(WorkflowStepsService.get(recType, workflowStage));
         if (!workflowStep) {
           sails.log.warn(`Workflow step not found: ${workflowStage} for record type: ${recordType}`);
@@ -199,13 +207,8 @@ export namespace Services {
         }
         sails.log.verbose(`DashboardTypesService: Found workflow step ${workflowStage}`);
 
-        // Extract dashboard table config from workflow step
         const dashboardConfig = _.get(workflowStep, 'config.dashboard.table', {}) as DashboardTableConfig;
         sails.log.verbose(`DashboardTypesService: loaded config for ${recordType}/${workflowStage}, keys: ${Object.keys(dashboardConfig)}`);
-
-        // TODO: In future, merge with user-configurable overrides from AppConfigService
-        // const userOverrides = await AppConfigService.getAppConfigByBrandAndKey(brand.id, `dashboardTable_${recordType}_${workflowStage}`);
-        // return _.merge({}, dashboardConfig, userOverrides);
 
         return dashboardConfig;
       } catch (error) {
@@ -409,7 +412,14 @@ export namespace Services {
       }
 
       const resolvedDashboardType = dashboardType || dashboardViewConfig.dashboardType;
-      const entries = this.extractDashboardTableTemplates([dashboardView, stepName], dashboardStepConfig.dashboardTable ?? null);
+
+      // Use merged config if DashboardConfigService is available
+      let mergedTableConfig: DashboardTableConfig | null = dashboardStepConfig.dashboardTable ?? null;
+      if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardViewTableConfig) {
+        mergedTableConfig = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, dashboardView, stepName);
+      }
+
+      const entries = this.extractDashboardTableTemplates([dashboardView, stepName], mergedTableConfig);
       entries.push(...await this.extractQueryFilterTemplates(brand, dashboardStepConfig.sourceRecordType, resolvedDashboardType, [dashboardView]));
 
       sails.log.verbose(`Extracted ${entries.length} dashboard templates for dashboard view ${dashboardView}/${stepName}`);

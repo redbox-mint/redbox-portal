@@ -10,6 +10,7 @@ import {
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel
 } from './DoiPublishing';
+import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -34,7 +35,8 @@ export type ConfigModelKey =
     | 'homePanels'
     | 'adminSidebar'
     | 'figsharePublishing'
-    | 'doiPublishing';
+    | 'doiPublishing'
+    | 'dashboardTableConfig';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -92,6 +94,13 @@ export class ConfigModels {
                 toForm: toDoiPublishingFormModel,
                 fromForm: fromDoiPublishingFormModel
             }
+        }],
+        ['dashboardTableConfig', {
+            modelName: 'DashboardTableOverrideConfig',
+            title: 'Dashboard Table Configuration',
+            class: DashboardTableOverrideConfig,
+            schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
         }],
     ]);
 

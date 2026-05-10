@@ -105,6 +105,10 @@ export const routes: RoutesConfig = {
         action: 'supportAgreementIndex',
         skipAssets: true
     },
+    'get /:branding/:portal/admin/dashboard-config': {
+        controller: 'DashboardConfigController',
+        action: 'editor'
+    },
     'get /:branding/:portal/admin/vocabulary/manager': {
         controller: 'VocabularyController',
         action: 'manager'
@@ -381,6 +385,15 @@ export const routes: RoutesConfig = {
     // REST API routes - Forms
     'get /:branding/:portal/api/forms/get': { controller: 'webservice/FormManagementController', action: 'getForm', csrf: false },
     'get /:branding/:portal/api/forms': { controller: 'webservice/FormManagementController', action: 'listForms', csrf: false },
+
+    // REST API routes - Dashboard Config
+    'get /:branding/:portal/api/dashboard-config/info': { controller: 'webservice/DashboardConfigController', action: 'getConfigInfo', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/defaults': { controller: 'webservice/DashboardConfigController', action: 'getDefaults', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/overrides': { controller: 'webservice/DashboardConfigController', action: 'getOverrides', csrf: false },
+    'put /:branding/:portal/api/dashboard-config/overrides': { controller: 'webservice/DashboardConfigController', action: 'saveOverrides', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage': { controller: 'webservice/DashboardConfigController', action: 'getMergedConfig', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName': { controller: 'webservice/DashboardConfigController', action: 'getMergedViewConfig', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/merged-type/:dashboardType': { controller: 'webservice/DashboardConfigController', action: 'getMergedTypeFormatRules', csrf: false },
 
     // REST API routes - Vocabulary
     'get /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'list', csrf: false },
