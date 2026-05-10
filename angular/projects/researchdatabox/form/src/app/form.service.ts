@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Inject, Injectable, WritableSignal} from '@angular/core';
-import {AbstractControl, FormControl} from '@angular/forms';
+import { Inject, Injectable, WritableSignal } from '@angular/core';
+import { AbstractControl, FormControl } from '@angular/forms';
 import {
   isEmpty as _isEmpty,
   isFinite as _isFinite,
@@ -45,7 +45,7 @@ import {
   TranslationService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
-import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
+import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
   buildLineagePaths as buildLineagePathsHelper, DynamicScriptResponse,
   FieldModelDefinitionKind,
@@ -73,10 +73,10 @@ import {
   queryJSONata,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
-import {HttpClient} from "@angular/common/http";
-import {APP_BASE_HREF} from "@angular/common";
-import {firstValueFrom} from "rxjs";
-import {FormValidationGroupsChangeInitial} from "./form-state";
+import { HttpClient } from "@angular/common/http";
+import { APP_BASE_HREF } from "@angular/common";
+import { firstValueFrom } from "rxjs";
+import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from './service/vocab-tree.service';
 
 
@@ -97,6 +97,11 @@ interface SuggestedValidatorSummaryCacheEntry {
   errors: FormValidatorComponentErrors[];
 }
 
+interface DynamicImportCacheEntry {
+  promise: Promise<DynamicScriptResponse>;
+  createdAt: number;
+}
+
 /**
  *
  * Responsible for retrieving form configuration and building form components.
@@ -112,6 +117,9 @@ interface SuggestedValidatorSummaryCacheEntry {
 )
 export class FormService extends HttpClientService {
   protected logName = "FormService";
+  private static readonly MAX_DYNAMIC_IMPORT_CACHE_SIZE = 100;
+  // Set to a positive number to enable time-based expiry.
+  private static readonly DYNAMIC_IMPORT_CACHE_TTL_MS = 0;
   protected compClassMap: AllComponentClassMapType = {};
   protected modelClassMap: AllModelClassMapType = {};
   protected layoutClassMap: AllLayoutClassMapType = {};
@@ -120,7 +128,7 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
-  private dynamicImportFormCompiledItemsPromises = new Map<string, Promise<DynamicScriptResponse>>();
+  private dynamicImportFormCompiledItemsPromises = new Map<string, DynamicImportCacheEntry>();
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
   private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
@@ -876,7 +884,7 @@ export class FormService extends HttpClientService {
   ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
     const cacheKey = JSON.stringify([normalizedRecordType, oid ?? '', formMode ?? '']);
-    const cachedPromise = this.dynamicImportFormCompiledItemsPromises.get(cacheKey);
+    const cachedPromise = this.getDynamicImportFormCompiledItemsPromise(cacheKey);
     if (cachedPromise) {
       return cachedPromise;
     }
@@ -890,8 +898,51 @@ export class FormService extends HttpClientService {
         this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
         throw error;
       });
-    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, promise);
+    this.setDynamicImportFormCompiledItemsPromise(cacheKey, promise);
     return await promise;
+  }
+
+  /**
+   * Clear dynamic import cache manually, e.g. after runtime asset refresh.
+   */
+  public clearDynamicImportFormCompiledItemsCache(): void {
+    this.dynamicImportFormCompiledItemsPromises.clear();
+  }
+
+  private getDynamicImportFormCompiledItemsPromise(cacheKey: string): Promise<DynamicScriptResponse> | undefined {
+    const cacheEntry = this.dynamicImportFormCompiledItemsPromises.get(cacheKey);
+    if (!cacheEntry) {
+      return undefined;
+    }
+
+    if (FormService.DYNAMIC_IMPORT_CACHE_TTL_MS > 0) {
+      const ageMs = Date.now() - cacheEntry.createdAt;
+      if (ageMs > FormService.DYNAMIC_IMPORT_CACHE_TTL_MS) {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        return undefined;
+      }
+    }
+
+    // Refresh insertion order so this key becomes MRU.
+    this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, cacheEntry);
+    return cacheEntry.promise;
+  }
+
+  private setDynamicImportFormCompiledItemsPromise(cacheKey: string, promise: Promise<DynamicScriptResponse>): void {
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, {
+      promise,
+      createdAt: Date.now()
+    });
+
+    if (this.dynamicImportFormCompiledItemsPromises.size <= FormService.MAX_DYNAMIC_IMPORT_CACHE_SIZE) {
+      return;
+    }
+
+    const lruCacheKey = this.dynamicImportFormCompiledItemsPromises.keys().next().value;
+    if (lruCacheKey) {
+      this.dynamicImportFormCompiledItemsPromises.delete(lruCacheKey);
+    }
   }
 
   /**
@@ -1076,11 +1127,11 @@ export class FormService extends HttpClientService {
     validationGroups: FormValidationGroups,
     initial?: FormValidationGroupsChangeInitial,
     groups?: FormFieldValidationGroup
-  ): string[]{
+  ): string[] {
     let enabledNames = [...currentValidationGroups];
     // Initial is 'current' by default.
     initial = initial ?? "current";
-    switch(initial) {
+    switch (initial) {
       case "all":
         enabledNames = Object.keys(validationGroups);
         break;

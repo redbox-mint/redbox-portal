@@ -15,8 +15,7 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
-const assetMode = process.env.REDBOX_ASSET_MODE || (process.env.NODE_ENV === 'docker' ? 'development' : 'production');
-const isDevelopmentAssetMode = assetMode === 'development';
+const isDevelopmentAssetMode = process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
 
 export interface WebpackConfig {
     config: Configuration[];

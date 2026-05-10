@@ -4,6 +4,7 @@ import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
 import * as crypto from 'crypto';
 import * as fs from 'graceful-fs';
 import * as path from 'path';
+const CleanCSS = require('clean-css');
 
 // sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
@@ -12,8 +13,17 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
+    private static readonly CSS_CACHE_MAX_SIZE = 100;
+    private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
     private mongoUri!: string;
     private blobAdapter: unknown;
+    private readonly cssMinifier = new CleanCSS({
+      level: {
+        1: { all: true },
+        2: { all: false }
+      }
+    });
+    private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
 
     /**
      * Generate a weak ETag for the given content hash or string.
@@ -34,12 +44,45 @@ export namespace Controllers {
     }
 
     private minifyCss(css: string): string {
-      return css
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\s+/g, ' ')
-        .replace(/\s*([{}:;,>+~])\s*/g, '$1')
-        .replace(/;}/g, '}')
-        .trim();
+      const result = this.cssMinifier.minify(css);
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(`CSS minification failed: ${result.errors.join('; ')}`);
+      }
+      return result.styles;
+    }
+
+    private getCssCacheControlHeader(): string {
+      // theme.css URL is not content-versioned, so avoid immutable year-long caching.
+      return 'public, max-age=300, must-revalidate';
+    }
+
+    private getCachedCssResponse(cacheKey: string): { css: string; etag: string } | undefined {
+      const entry = this.cssResponseCache.get(cacheKey);
+      if (!entry) {
+        return undefined;
+      }
+
+      if ((Date.now() - entry.createdAt) > Branding.CSS_CACHE_TTL_MS) {
+        this.cssResponseCache.delete(cacheKey);
+        return undefined;
+      }
+
+      // Mark as most-recently-used.
+      this.cssResponseCache.delete(cacheKey);
+      this.cssResponseCache.set(cacheKey, entry);
+      return { css: entry.css, etag: entry.etag };
+    }
+
+    private setCachedCssResponse(cacheKey: string, css: string, etag: string): void {
+      this.cssResponseCache.set(cacheKey, { css, etag, createdAt: Date.now() });
+
+      while (this.cssResponseCache.size > Branding.CSS_CACHE_MAX_SIZE) {
+        const lruKey = this.cssResponseCache.keys().next().value;
+        if (!lruKey) {
+          break;
+        }
+        this.cssResponseCache.delete(lruKey);
+      }
     }
 
     /**
@@ -80,16 +123,25 @@ export namespace Controllers {
         if (!brand || !brand.css) {
           const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
           try {
-            const css = fs.readFileSync(defaultCssPath, 'utf8');
-            const minifiedCss = this.minifyCss(css);
-            const etag = this.generateETag(minifiedCss);
+            const fileStat = fs.statSync(defaultCssPath);
+            const defaultCssCacheKey = `default:${defaultCssPath}:${fileStat.mtimeMs}`;
+            let cachedDefaultCss = this.getCachedCssResponse(defaultCssCacheKey);
+            if (!cachedDefaultCss) {
+              const css = fs.readFileSync(defaultCssPath, 'utf8');
+              const minifiedCss = this.minifyCss(css);
+              const etag = this.generateETag(minifiedCss);
+              this.setCachedCssResponse(defaultCssCacheKey, minifiedCss, etag);
+              cachedDefaultCss = { css: minifiedCss, etag };
+            }
+
+            const { css: minifiedCss, etag } = cachedDefaultCss;
             res.set('ETag', etag);
             if (req.headers['if-none-match'] === etag) {
               return res.status(304).end();
             }
-            res.set('Cache-Control', 'public, max-age=31536000, immutable');
+            res.set('Cache-Control', this.getCssCacheControlHeader());
             res.removeHeader('Pragma');
-            res.set('Expires', new Date(Date.now() + 31536000 * 1000).toUTCString());
+            res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
             return res.send(minifiedCss);
           } catch (_fsError) {
             // Fallback to minimal CSS if default file cannot be read
@@ -99,21 +151,41 @@ export namespace Controllers {
             if (req.headers['if-none-match'] === etag) {
               return res.status(304).end();
             }
-            res.set('Cache-Control', 'public, max-age=60');
+            res.set('Cache-Control', this.getCssCacheControlHeader());
             return res.send(css);
           }
         }
-        // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
-        const minifiedCss = this.minifyCss(brand.css);
-        const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(minifiedCss).digest('hex');
-        const etag = this.generateETag(safeHash);
+        const sourceHash = crypto.createHash('sha256').update(brand.css).digest('hex');
+        const brandCssCacheKey = `brand:${brand.id}:${brand.hash || ''}:${sourceHash}`;
+        let cachedBrandCss = this.getCachedCssResponse(brandCssCacheKey);
+        if (!cachedBrandCss) {
+          const minifiedCss = this.minifyCss(brand.css);
+          const minifiedHash = crypto.createHash('sha256').update(minifiedCss).digest('hex').substring(0, 32);
+          const hasValidStoredHash = Boolean(brand.hash && /^[a-f0-9]+$/.test(brand.hash) && brand.hash === minifiedHash);
+          const safeHash = hasValidStoredHash ? brand.hash! : minifiedHash;
+
+          if (!hasValidStoredHash && brand.id) {
+            try {
+              await BrandingConfig.update({ id: brand.id }, { hash: safeHash });
+            } catch (updateError) {
+              sails.log.warn('Failed to persist corrected branding hash:', updateError);
+            }
+          }
+
+          const etag = this.generateETag(safeHash);
+          this.setCachedCssResponse(brandCssCacheKey, minifiedCss, etag);
+          cachedBrandCss = { css: minifiedCss, etag };
+        }
+
+        const { css: minifiedCss } = cachedBrandCss;
+        const { etag } = cachedBrandCss;
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) {
           return res.status(304).end();
         }
-        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('Cache-Control', this.getCssCacheControlHeader());
         res.removeHeader('Pragma');
-        res.set('Expires', new Date(Date.now() + 31536000 * 1000).toUTCString());
+        res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
         return res.send(minifiedCss);
       } catch (e) {
         sails.log.error('Error serving CSS:', e);
@@ -226,7 +298,7 @@ export namespace Controllers {
         // Try persistent storage first (GridFS), then in-memory cache
         let buf: Buffer | null = null;
         buf = await BrandingLogoService.getBinaryAsync(id);
-        
+
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
