@@ -96,10 +96,7 @@ export namespace Services {
           }
         }
 
-        const nestedDefinitions = Array.isArray(componentConfig?.componentDefinitions)
-          ? componentConfig.componentDefinitions as AnyRecord[]
-          : [];
-        for (const nestedDefinition of nestedDefinitions) {
+        for (const nestedDefinition of this.getNestedComponentDefinitions(componentConfig)) {
           visit(nestedDefinition);
         }
       };
@@ -109,6 +106,23 @@ export namespace Services {
       }
 
       return checkboxTrees;
+    }
+
+    private getNestedComponentDefinitions(componentConfig: AnyRecord): AnyRecord[] {
+      const nestedDefinitions: AnyRecord[] = [];
+      if (Array.isArray(componentConfig?.componentDefinitions)) {
+        nestedDefinitions.push(...componentConfig.componentDefinitions as AnyRecord[]);
+      }
+
+      const tabs = Array.isArray(componentConfig?.tabs) ? componentConfig.tabs as AnyRecord[] : [];
+      for (const tab of tabs) {
+        const tabDefinitions = ((tab?.component as AnyRecord | undefined)?.config as AnyRecord | undefined)?.componentDefinitions;
+        if (Array.isArray(tabDefinitions)) {
+          nestedDefinitions.push(...tabDefinitions as AnyRecord[]);
+        }
+      }
+
+      return nestedDefinitions;
     }
 
     public async resolveVocabTrees(

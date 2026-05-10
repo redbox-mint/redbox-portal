@@ -275,6 +275,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (!this.inlineVocab && this.rootNodes.length === 0 && this.vocabRef) {
       await this.loadRootNodes();
     }
+    this.syncSelectionFromModel();
     await this.expandToSelectedNodes();
     const visible = this.getVisibleNodes();
     this.focusedNodeId = visible[0]?.id ?? null;
@@ -285,7 +286,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public isSelected(node: CheckboxTreeRenderNode): boolean {
-    return this.selectedByNotation.has(this.getNotation(node));
+    return Array.from(this.selectedByNotation.keys()).some((notation) => this.nodeMatchesNotation(node, notation));
   }
 
   public isSelectable(node: CheckboxTreeRenderNode): boolean {
@@ -630,6 +631,22 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     return notation;
   }
 
+  private nodeMatchesNotation(node: CheckboxTreeRenderNode, notation: string): boolean {
+    const candidate = String(notation ?? "").trim();
+    if (!candidate) {
+      return false;
+    }
+
+    const values = [
+      String(node.notation ?? "").trim(),
+      String(node.value ?? "").trim(),
+      this.getNotation(node),
+    ];
+    return values.some((value) =>
+      !!value && (value === candidate || value.endsWith(`/${candidate}`) || value.endsWith(`#${candidate}`))
+    );
+  }
+
   private hasSelectedDescendant(node: CheckboxTreeRenderNode): boolean {
     const children = node.children ?? [];
     for (const child of children) {
@@ -661,6 +678,14 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       expandAncestors(this.rootNodes);
     } else {
       const notations = Array.from(this.selectedByNotation.keys());
+      const canHydrateFromLoadedChildren = Array.from(this.selectedByNotation.values()).every((selected) =>
+        Array.isArray(selected.genealogy) && selected.genealogy.length > 0
+      );
+      if (canHydrateFromLoadedChildren) {
+        await this.expandToSelectedNodesLegacy();
+        this.rootError = null;
+        return;
+      }
       try {
         const response = await this.vocabTreeService.expandPath(this.vocabRef, notations);
         const chains = Object.values(response.data ?? {});
@@ -691,7 +716,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       let currentNodes = this.rootNodes;
 
       for (const notation of genealogy) {
-        const node = currentNodes.find(n => this.getNotation(n) === notation);
+        const node = currentNodes.find(n => this.nodeMatchesNotation(n, notation));
         if (!node) {
           break;
         }

@@ -80,6 +80,43 @@ describe('FormPayloadPrehydrateService', function () {
     expect(extracted[0].vocabRef).to.equal('anzsrc');
   });
 
+  it('extracts checkbox tree targets from tab component definitions', function () {
+    const extracted = service.extractTargets({
+      name: 'test-form',
+      componentDefinitions: [
+        {
+          name: 'tabs',
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  name: 'project',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'for',
+                          component: { class: 'CheckboxTreeComponent', config: { vocabRef: 'anzsrc-2020-for' } },
+                          model: { config: { value: [{ notation: '320101', genealogy: ['32', '3201'] }] } }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    });
+
+    expect(extracted).to.have.length(1);
+    expect(extracted[0].vocabRef).to.equal('anzsrc-2020-for');
+    expect(extracted[0].selectedValues[0]).to.deep.equal({ notation: '320101', genealogy: ['32', '3201'] });
+  });
+
   it('builds checkbox tree payloads', async function () {
     const payload = await service.build({
       branding: { id: 'default', name: 'default' },
