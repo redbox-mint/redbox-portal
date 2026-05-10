@@ -16,7 +16,10 @@ export function buildRedboxSessionOptions(sessionConfig: session.SessionOptions 
 
     // set the isSessionDisabled function as a property of the defaultSessionConfig object before merging with caller-supplied config
     defaultSessionConfig.isSessionDisabled = function (req: { path: string; _sails: { LOOKS_LIKE_ASSET_RX: RegExp } }) {
-        return !!req.path.match(req._sails.LOOKS_LIKE_ASSET_RX);
+        const path = req.path || '';
+        return !!path.match(req._sails.LOOKS_LIKE_ASSET_RX) ||
+            /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(path) ||
+            /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(path);
     };
 
     return _.merge({}, defaultSessionConfig, sessionConfig);
@@ -31,5 +34,5 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
     }
 
     // configure express-session using the sessionConfig object
-    return session(sessionConfig);
+    return session(sessionConfig) as unknown as RequestHandler;
 }

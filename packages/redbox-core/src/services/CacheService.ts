@@ -107,36 +107,43 @@ export namespace Services {
 
     public async buildNgAppFileHash() {
       this.ngFileAppHash = {};
-      if (_.isEmpty(sails.config.angularDev) || sails.config.angularDev == 'false') {
-        const ngRootPath = `${sails.config.appPath}/assets/angular/`;
-        const ngAppDirs = await readdir(ngRootPath);
-        const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
-        for (const appName of ngAppDirs) {
-          let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
-          try {
-            await access(`${ngPath}/browser`);
-            ngPath = `${ngPath}/browser`;
-          } catch (_error) {
-            sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
-            continue;
+      const ngRootPath = `${sails.config.appPath}/assets/angular/`;
+      try {
+        await access(ngRootPath);
+      } catch (_error) {
+        sails.log.verbose(`Angular app asset directory not found: ${ngRootPath}`);
+        sails.log.verbose(JSON.stringify(this.ngFileAppHash));
+        return;
+      }
+      const ngAppDirs = await readdir(ngRootPath);
+      const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
+      for (const appName of ngAppDirs) {
+        let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
+        try {
+          await access(`${ngPath}/browser`);
+          ngPath = `${ngPath}/browser`;
+        } catch (_error) {
+          sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
+          continue;
+        }
+        const ngFiles = await readdir(ngPath);
+        for (const fileNamePrefix of targetFilesPrefix) {
+          const fileName = _.find(ngFiles, (file: string) => {
+            return _.startsWith(file, `${fileNamePrefix}.`) || _.startsWith(file, `${fileNamePrefix}-`);
+          });
+          const nameParts = _.split(fileName, '.');
+          let appHash = '';
+          //legacy angular app cache path
+          if (nameParts && nameParts.length == 3) {
+            appHash = nameParts[1];
           }
-          const ngFiles = await readdir(ngPath);
-          for (const fileNamePrefix of targetFilesPrefix) {
-            const fileName = _.find(ngFiles, (file: string) => { return _.startsWith(file, fileNamePrefix) });
-            const nameParts = _.split(fileName, '.');
-            let appHash = '';
-            //legacy angular app cache path
-            if (nameParts && nameParts.length == 3) {
-              appHash = nameParts[1];
-            } 
-            //angular 18+ cache path
-            if (nameParts && nameParts.length == 2 && nameParts[0].indexOf('-') > 0) {
-              const hashParts = _.split(nameParts[0], '-');
-              appHash = hashParts[1];
-            }   
+          //angular 18+ cache path
+          if (nameParts && nameParts.length == 2 && nameParts[0].indexOf('-') > 0) {
+            const hashParts = _.split(nameParts[0], '-');
+            appHash = hashParts[1];
+          }
 
-            _.set(this.ngFileAppHash, `${appName}.${fileNamePrefix}`, appHash);
-          }
+          _.set(this.ngFileAppHash, `${appName}.${fileNamePrefix}`, appHash);
         }
       }
       sails.log.verbose(JSON.stringify(this.ngFileAppHash));

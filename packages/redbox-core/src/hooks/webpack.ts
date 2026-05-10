@@ -60,13 +60,15 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
                 return;
             }
 
-            // Enable minimization of CSS when explicitly told so
-            if (process.env.WEBPACK_CSS_MINI === 'true') {
+            // Enable production-grade asset output explicitly for docker/dev lifts.
+            if (process.env.WEBPACK_CSS_MINI === 'true' || process.env.REDBOX_ASSET_MODE === 'production') {
                 if (sailsInstance.config.webpack.config?.[0]) {
                     sailsInstance.config.webpack.config[0].optimization = sailsInstance.config.webpack.config[0].optimization || {};
                     sailsInstance.config.webpack.config[0].optimization.minimize = true;
+                    sailsInstance.config.webpack.config[0].mode = 'production';
+                    sailsInstance.config.webpack.config[0].devtool = false;
                 }
-                sailsInstance.log.info(`Webpack hook is configured for CSS minimization.`);
+                sailsInstance.log.info(`Webpack hook is configured for production asset minimization.`);
             }
 
             const compiler = _webpack(sailsInstance.config.webpack.config);

@@ -33,6 +33,15 @@ export namespace Controllers {
       return `W/"${prefix}${hash}"`;
     }
 
+    private minifyCss(css: string): string {
+      return css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([{}:;,>+~])\s*/g, '$1')
+        .replace(/;}/g, '}')
+        .trim();
+    }
+
     /**
      * Exported methods, accessible from internet.
      */
@@ -72,13 +81,16 @@ export namespace Controllers {
           const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
           try {
             const css = fs.readFileSync(defaultCssPath, 'utf8');
-            const etag = this.generateETag(css);
+            const minifiedCss = this.minifyCss(css);
+            const etag = this.generateETag(minifiedCss);
             res.set('ETag', etag);
             if (req.headers['if-none-match'] === etag) {
               return res.status(304).end();
             }
-            res.set('Cache-Control', 'public, max-age=300'); // Cache default CSS longer
-            return res.send(css);
+            res.set('Cache-Control', 'public, max-age=31536000, immutable');
+            res.removeHeader('Pragma');
+            res.set('Expires', new Date(Date.now() + 31536000 * 1000).toUTCString());
+            return res.send(minifiedCss);
           } catch (_fsError) {
             // Fallback to minimal CSS if default file cannot be read
             const css = ':root{}';
@@ -92,14 +104,17 @@ export namespace Controllers {
           }
         }
         // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
-        const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(brand.css).digest('hex');
+        const minifiedCss = this.minifyCss(brand.css);
+        const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(minifiedCss).digest('hex');
         const etag = this.generateETag(safeHash);
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) {
           return res.status(304).end();
         }
-        res.set('Cache-Control', 'public, max-age=300');
-        return res.send(brand.css);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.removeHeader('Pragma');
+        res.set('Expires', new Date(Date.now() + 31536000 * 1000).toUTCString());
+        return res.send(minifiedCss);
       } catch (e) {
         sails.log.error('Error serving CSS:', e);
         return res.status(500).send('/* error serving theme */');

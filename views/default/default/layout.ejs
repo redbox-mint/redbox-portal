@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="<%= typeof description == 'undefined' ? 'ReDBox research data management portal' : description %>">
   <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="<%= BrandingService.getRootContext() %>/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="<%= BrandingService.getRootContext() %>/favicon-16x16.png">
@@ -16,9 +17,9 @@
   </title>
 
   <!-- Google Fonts -->
-  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>
 
 
   <!-- Custom CSS -->
@@ -32,10 +33,10 @@
   <link rel="stylesheet" media="print" href="<%= BrandingService.getRootContext() %>/styles/print.css">
 
   <!-- Current latest jQuery -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
+  <script defer src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
   <!-- Current latest Bootstrap JS  -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
+  <script defer src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
+  <script defer src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
 
 
     <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>" ></angular-bootstrap>

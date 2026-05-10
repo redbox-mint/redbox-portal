@@ -111,7 +111,27 @@ describe('Webpack Hook', () => {
             await initialize(noop);
 
             expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
-            expect(sailsMock.log.info.calledWithMatch(/CSS minimization/)).to.be.true;
+            expect(sailsMock.config.webpack.config[0].mode).to.equal('production');
+            expect(sailsMock.config.webpack.config[0].devtool).to.equal(false);
+            expect(sailsMock.log.info.calledWithMatch(/production asset minimization/)).to.be.true;
+        });
+
+        it('should enable production asset output if REDBOX_ASSET_MODE is production', async () => {
+            process.env.REDBOX_ASSET_MODE = 'production';
+            const hook = defineWebpackHook(sailsMock, webpackMock);
+            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
+
+            webpackCompilerMock.run.yields(null, {
+                hasErrors: () => false,
+                toString: () => 'stats'
+            });
+
+            await initialize(noop);
+
+            expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
+            expect(sailsMock.config.webpack.config[0].mode).to.equal('production');
+            expect(sailsMock.config.webpack.config[0].devtool).to.equal(false);
+            expect(sailsMock.log.info.calledWithMatch(/production asset minimization/)).to.be.true;
         });
 
         it('should compile successfully', async () => {

@@ -15,6 +15,8 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
+const assetMode = process.env.REDBOX_ASSET_MODE || (process.env.NODE_ENV === 'docker' ? 'development' : 'production');
+const isDevelopmentAssetMode = assetMode === 'development';
 
 export interface WebpackConfig {
     config: Configuration[];
@@ -32,9 +34,8 @@ export const webpack: WebpackConfig = {
             stats: {
                 loggingDebug: ["sass-loader"],
             },
-            // webpack no longer runs in production mode, assume non-'docker' values to be production mode
-            mode: process.env.NODE_ENV === 'docker' ? 'development' : 'production',
-            devtool: process.env.NODE_ENV === 'docker' ? 'inline-cheap-source-map' : undefined,
+            mode: isDevelopmentAssetMode ? 'development' : 'production',
+            devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
             entry: './assets/default/default/js/client-script.js',
             output: {
                 filename: './default/default/js/index.bundle.js',
@@ -105,12 +106,10 @@ export const webpack: WebpackConfig = {
             },
             optimization: {
                 minimizer: [
-                    // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
-                    // `...`,
+                    `...`,
                     new CssMinimizerPlugin(),
                 ],
-                // disabled by default for local development
-                minimize: false,
+                minimize: !isDevelopmentAssetMode,
             },
             ignoreWarnings: [
                 {

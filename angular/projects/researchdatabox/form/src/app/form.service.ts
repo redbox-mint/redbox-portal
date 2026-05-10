@@ -120,6 +120,7 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
+  private dynamicImportFormCompiledItemsPromises = new Map<string, Promise<DynamicScriptResponse>>();
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
   private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
@@ -874,12 +875,23 @@ export class FormService extends HttpClientService {
     recordType: string, oid?: string, formMode?: FormModesConfig
   ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
+    const cacheKey = JSON.stringify([normalizedRecordType, oid ?? '', formMode ?? '']);
+    const cachedPromise = this.dynamicImportFormCompiledItemsPromises.get(cacheKey);
+    if (cachedPromise) {
+      return cachedPromise;
+    }
     const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
-    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
+    const promise = this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params)
+      .catch((error) => {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        throw error;
+      });
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, promise);
+    return await promise;
   }
 
   /**
