@@ -78,9 +78,10 @@ export namespace Controllers {
         const key = req.param('key');
         const value = req.body?.value;
         const category = req.body?.category;
+        const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
 
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
         try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setEntry] reload failed', err.message); }
         return this.apiRespond(req, res, saved, 200);
