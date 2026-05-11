@@ -16,6 +16,7 @@ x-rbportal-env: &rbportal-env
   - datacite_username=${datacite_username:-}
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}
+  - RUN_LIVE_INTEGRATION_TESTS=${RUN_LIVE_INTEGRATION_TESTS:-false}
   - CI=${CI:-false}
   - RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
@@ -33,10 +34,6 @@ x-rbportal-depends: &rbportal-depends
 x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
   pull_policy: 'missing'
-  ports:
-    - "1500:1500"
-    # Debugging port
-    # - "9876:9876"
   volumes:
     - "../../test:/opt/redbox-portal/test"
     - "../../support:/opt/redbox-portal/support"
@@ -84,8 +81,6 @@ services:
       main:
         aliases:
           - mongodb
-    ports:
-       - "27017:27017"
     healthcheck:
       test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
       interval: '10s'
@@ -97,8 +92,6 @@ services:
     pull_policy: 'always'
     expose:
       - "8983"
-    ports:
-      - "8983:8983"
     healthcheck:
       test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
       interval: '10s'
@@ -120,8 +113,6 @@ services:
     pull_policy: 'always'
     expose:
       - "8080"
-    ports:
-      - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
       interval: '10s'
@@ -143,9 +134,6 @@ services:
     expose:
       - '1025'
       - '8025'
-    ports:
-      - '8025:8025'
-      - '1025:1025'
     environment:
       MP_MAX_MESSAGES: 5000
       MP_DATABASE: '/data/mailpit.db'

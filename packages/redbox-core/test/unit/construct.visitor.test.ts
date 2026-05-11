@@ -318,6 +318,35 @@ describe("Construct Visitor", async () => {
             expect(cfg?.cacheResults).to.equal(true);
         });
 
+        it("should preserve service typeahead config and disable caching by default", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "service_lookup",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "service",
+                                    serviceId: "contributors"
+                                }
+                            },
+                            model: { class: "TypeaheadInputModel", config: {} }
+                        }
+                    ]
+                }
+            });
+            const cfg = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            expect(cfg?.sourceType).to.equal("service");
+            expect(cfg?.serviceId).to.equal("contributors");
+            expect(cfg?.labelField).to.equal("label");
+            expect(cfg?.valueField).to.equal("value");
+            expect(cfg?.cacheResults).to.equal(false);
+        });
+
         it("should normalize repeatable elementTemplate layout to RepeatableElementLayout", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = visitor.start({
