@@ -52,8 +52,9 @@ export namespace Controllers {
 
     async preview(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
-      const branding = BrandingService.getBrandNameFromReq(req);
-      const portal = req.params['portal'];
+      const { params } = validated;
+      const branding = params.branding as string;
+      const portal = params.portal as string;
       try {
         const { token, url, hash } = await BrandingService.preview(branding, portal);
         // Fetch current draft (variables) so response matches test expectation body.branding.variables
@@ -126,6 +127,10 @@ export namespace Controllers {
       }
     }
     async logo(req: Sails.Req, res: Sails.Res) {
+      const validated = getValidatedApiRequest(req);
+      const { params } = validated;
+      const branding = params.branding as string;
+      const portal = params.portal as string;
       try {
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
         if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
@@ -153,11 +158,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const validated = getValidatedApiRequest(req);
         req.apiRequest = { ...validated, files: { logo: files } };
-        const { params } = validated;
-        const branding = params.branding as string;
-        const portal = params.portal as string;
         const f = files[0];
         const fs = require('fs').promises;
         const buf = await fs.readFile(f.fd);

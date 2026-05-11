@@ -3,6 +3,8 @@
  * Auto-generated from config/vocab.js
  */
 
+import { BrandingModel } from '../model/storage/BrandingModel';
+
 export interface VocabExternalEndpoint {
     method: 'get' | 'post';
     url: string;
@@ -46,6 +48,38 @@ export interface VocabCollectionConfig {
     processingTime: number;
 }
 
+export interface VocabServiceLookupConfig {
+    serviceName: string;
+    methodName: string;
+    options?: Record<string, unknown>;
+}
+
+export interface VocabServiceLookupRequest {
+    serviceId: string;
+    search: string;
+    start: number;
+    rows: number;
+    branding: string;
+    portal: string;
+    brand: BrandingModel;
+    user: Record<string, unknown>;
+    options: Record<string, unknown>;
+}
+
+export interface VocabServiceLookupOption {
+    label: string;
+    value: string;
+    sourceType?: 'service';
+    historical?: boolean;
+    disabled?: boolean;
+    raw?: unknown;
+}
+
+export interface VocabServiceLookupResponse {
+    data: VocabServiceLookupOption[];
+    meta?: Record<string, unknown>;
+}
+
 export interface VocabConfig {
     clientUri: string;
     collectionUri: string;
@@ -57,6 +91,7 @@ export interface VocabConfig {
     cacheExpiry: number;
     external: Record<string, VocabExternalEndpoint>;
     queries: Record<string, VocabQuery>;
+    services: Record<string, VocabServiceLookupConfig>;
     nonAnds: Record<string, { url: string }>;
     collection: Record<string, VocabCollectionConfig>;
 }
@@ -107,6 +142,26 @@ export const vocab: VocabConfig = {
             queryField: {
                 property: 'title',
                 type: 'text'
+            }
+        }
+    },
+    services: {
+        dataciteDois: {
+            serviceName: 'DoiService',
+            methodName: 'lookupDataciteDois',
+            options: {
+                baseUrl: 'https://api.datacite.org',
+                timeoutMs: 10000,
+                maxRows: 25,
+                defaultParams: {
+                    'disable-facets': true,
+                    state: 'findable',
+                    sort: 'relevance'
+                },
+                fields: ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'],
+                valueField: 'doi',
+                includeRaw: true,
+                allowEmptySearch: false
             }
         }
     },

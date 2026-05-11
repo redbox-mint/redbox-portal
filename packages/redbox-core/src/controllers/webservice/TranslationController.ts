@@ -97,10 +97,12 @@ export namespace Controllers {
         const bodyObj = body as Record<string, unknown>;
         const value = bodyObj?.value;
         const category = bodyObj?.category as string | undefined;
+        const contentFormat = bodyObj?.contentFormat as string | undefined;
         const description = bodyObj?.description as string | undefined;
 
         const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, {
           category,
+          contentFormat,
           description,
         });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking

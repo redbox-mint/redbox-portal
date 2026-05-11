@@ -54,8 +54,8 @@ class RichMockTranslationService {
     this.setEntryCalls.push({ code, ns, key, payload });
     const list = this.entriesMap[`${code}:${ns}`] || (this.entriesMap[`${code}:${ns}`] = []);
     const idx = list.findIndex(e => e.key === key);
-    if (idx >= 0) list[idx] = { ...list[idx], value: payload.value };
-    else list.push({ key, value: payload.value });
+    if (idx >= 0) list[idx] = { ...list[idx], value: payload.value, contentFormat: payload.contentFormat };
+    else list.push({ key, value: payload.value, contentFormat: payload.contentFormat });
     return { success: true } as any;
   }
   async createLanguage(newCode: string, fromCode: string, ns: string, displayName?: string) {
@@ -157,17 +157,273 @@ describe('AppComponent (translation)', () => {
     expect(list[0].category).toBe('A');
   });
 
+  it('filter matches key and value case-insensitively and combines with category', async () => {
+    const { comp } = create();
+    comp.entries.set([
+      { key: 'app.title', value: 'Main Title', category: 'meta' },
+      { key: 'app.subtitle', value: 'Secondary', category: 'meta' },
+      { key: 'greet.hello', value: 'Hello', category: 'greetings' }
+    ]);
+    comp.selectedCategory = 'meta';
+    comp.filterText = 'Main';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(1);
+    expect(comp.viewEntries()[0].key).toBe('app.title');
+
+    comp.filterText = 'HELLO';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(0);
+
+    comp.selectedCategory = '';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().length).toBe(1);
+    expect(comp.viewEntries()[0].key).toBe('greet.hello');
+  });
+
+  it('sorting still applies after text filtering and clearFilter restores the list', async () => {
+    const { comp } = create();
+    comp.entries.set([
+      { key: 'b.key', value: '2', category: 'c2' },
+      { key: 'a.key', value: '1', category: 'c1' },
+      { key: 'c.key', value: 'match', category: 'c3' }
+    ]);
+    comp.sortBy = 'value';
+    comp.setSort('key');
+    comp.filterText = 'key';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['a.key', 'b.key', 'c.key']);
+
+    comp.filterText = 'match';
+    (comp as any).refreshDerived();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['c.key']);
+
+    comp.clearFilter();
+    expect(comp.viewEntries().map(e => e.key)).toEqual(['a.key', 'b.key', 'c.key']);
+  });
+
   it('openEdit and saveEdit update entry value', async () => {
     const { comp } = create();
     comp.selectedLang = 'en';
     comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Hi</p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
     comp.openEdit({ key: 'greet.hello', value: 'Hello' });
     expect(comp.modalOpen()).toBeTrue();
-    comp.editValue = 'Hi';
+    comp.toggleHtmlSourceMode();
+    comp.htmlSourceValue = '<p>Hi</p>';
     await comp.saveEdit();
     const updated = comp.entries().find(e => e.key === 'greet.hello');
-    expect(updated?.value).toBe('Hi');
+    expect(updated?.value).toBe('<p>Hi</p>');
     expect(translationService.setEntryCalls.length).toBe(1);
+  });
+
+  it('openEdit initializes rich text state and closeModal destroys editor', async () => {
+    const { comp } = create();
+    const mockEditor = {
+      getHTML: () => '<p>Hello</p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>', description: 'desc', contentFormat: 'html' });
+    expect(comp.modalOpen()).toBeTrue();
+    expect(comp.editorMode).toBe('rich');
+    expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
+    comp.closeModal();
+    expect(mockEditor.destroy).toHaveBeenCalled();
+    expect(comp.modalOpen()).toBeFalse();
+  });
+
+  it('ngOnDestroy destroys active editor', async () => {
+    const { comp } = create();
+    const editor = { destroy: jasmine.createSpy('destroy') } as any;
+    comp.richTextEditor = editor;
+    comp.ngOnDestroy();
+    expect(editor.destroy).toHaveBeenCalled();
+  });
+
+  it('falls back to source editing if editor creation fails', async () => {
+    const { comp } = create();
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(null);
+    comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>', contentFormat: 'html' });
+    expect(comp.richTextEditor).toBeNull();
+    expect(comp.editorMode).toBe('rich');
+    expect(comp.htmlSourceValue).toBe('<p>Hello</p>');
+  });
+
+  it('openEdit keeps plain text values unchanged when value is <p></p>', async () => {
+    const { comp } = create();
+    const mockEditor = {
+      getHTML: () => '&lt;p&gt;&lt;/p&gt;',
+      getText: () => '<p></p>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'greet.hello', value: '<p></p>', contentFormat: 'plain' });
+
+    expect(comp.editValue).toBe('<p></p>');
+    expect(comp.editorMode).toBe('text');
+  });
+
+  it('toggleLink rejects unsafe protocols', async () => {
+    const { comp } = create();
+    const setLink = jasmine.createSpy('setLink').and.returnValue({ run: jasmine.createSpy('run') });
+    const unsetLink = jasmine.createSpy('unsetLink').and.returnValue({ run: jasmine.createSpy('run') });
+    const chain = {
+      focus: () => chain,
+      extendMarkRange: () => chain,
+      setLink,
+      unsetLink
+    } as any;
+    comp.richTextEditor = {
+      getAttributes: () => ({ href: '' }),
+      chain: () => chain
+    } as any;
+    spyOn(window, 'prompt').and.returnValue('javascript:alert(1)');
+    spyOn(window, 'alert');
+
+    comp.toggleLink();
+
+    expect(window.alert).toHaveBeenCalled();
+    expect(setLink).not.toHaveBeenCalled();
+    expect(unsetLink).not.toHaveBeenCalled();
+  });
+
+  it('toggleLink allows safe protocols', async () => {
+    const { comp } = create();
+    const runSpy = jasmine.createSpy('run');
+    const setLink = jasmine.createSpy('setLink').and.returnValue({ run: runSpy });
+    const chain = {
+      focus: () => chain,
+      extendMarkRange: () => chain,
+      setLink,
+      unsetLink: jasmine.createSpy('unsetLink').and.returnValue({ run: jasmine.createSpy('run') })
+    } as any;
+    comp.richTextEditor = {
+      getAttributes: () => ({ href: '' }),
+      chain: () => chain
+    } as any;
+    spyOn(window, 'prompt').and.returnValue('https://example.com/path');
+
+    comp.toggleLink();
+
+    expect(setLink).toHaveBeenCalledWith({ href: 'https://example.com/path' });
+    expect(runSpy).toHaveBeenCalled();
+  });
+
+  it('saveEdit preserves plain text values when plain text mode is active', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Edited</p>',
+      getText: () => 'Edited',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: 'Hello' });
+    await comp.saveEdit();
+    expect(translationService.setEntryCalls[0].payload.value).toBe('Hello');
+    expect(translationService.setEntryCalls[0].payload.contentFormat).toBe('plain');
+  });
+
+  it('saveEdit uses the active rich text editor HTML when rich text mode is active', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Edited</p>',
+      getText: () => 'Edited',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+    comp.openEdit({ key: 'greet.hello', value: 'Hello', contentFormat: 'html' });
+    comp.setEditorMode('rich');
+    await comp.saveEdit();
+    expect(translationService.setEntryCalls[0].payload.value).toBe('<p>Edited</p>');
+    expect(translationService.setEntryCalls[0].payload.contentFormat).toBe('html');
+  });
+
+  it('opens plain content in text mode even when value contains tag-like text', async () => {
+    const { comp } = create();
+    const mockEditor = {
+      getHTML: () => '&lt;strong&gt;Not HTML&lt;/strong&gt;',
+      getText: () => '<strong>Not HTML</strong>',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'greet.hello', value: '<strong>Not HTML</strong>', contentFormat: 'plain' });
+
+    expect(comp.editorMode).toBe('text');
+    expect(comp.editContentFormat).toBe('plain');
+  });
+
+  it('shows only the plain text editor control for plain content', async () => {
+    const { comp, fixture } = create();
+    const mockEditor = {
+      getHTML: () => 'Progress',
+      getText: () => 'Progress',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'asynch-completion', value: 'Progress', contentFormat: 'plain' });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Plain text');
+    expect(text).not.toContain('Rich text');
+    expect(text).not.toContain('HTML source');
+  });
+
+  it('shows only rich text and HTML source controls for HTML content', async () => {
+    const { comp, fixture } = create();
+    const mockEditor = {
+      getHTML: () => '<p>Progress</p>',
+      getText: () => 'Progress',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'asynch-completion', value: '<p>Progress</p>', contentFormat: 'html' });
+    comp.setEditorMode('html');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).not.toContain('Plain text');
+    expect(text).toContain('Rich text');
+    expect(text).toContain('HTML source');
+  });
+
+  it('saving updates local entry content format', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings', contentFormat: 'plain' }]);
+    const mockEditor = {
+      getHTML: () => '<p>Edited</p>',
+      getText: () => 'Edited',
+      destroy: jasmine.createSpy('destroy'),
+      commands: { setContent: jasmine.createSpy('setContent') }
+    } as any;
+    spyOn<any>(comp, 'createRichTextEditor').and.returnValue(mockEditor);
+
+    comp.openEdit({ key: 'greet.hello', value: '<p>Hello</p>', contentFormat: 'html' });
+    await comp.saveEdit();
+
+    const updated = comp.entries().find(e => e.key === 'greet.hello');
+    expect(updated?.contentFormat).toBe('html');
   });
 
   it('createNewLanguage adds language and updates lists', async () => {

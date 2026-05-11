@@ -104,8 +104,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
-  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' = 'static';
+  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' | 'service' = 'static';
   private queryId = '';
+  private serviceId = '';
   private vocabRef = '';
   private provider = '';
   private resultArrayProperty = '';
@@ -151,6 +152,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.placeholder = String(cfg.placeholder ?? '');
     this.sourceType = cfg.sourceType ?? 'static';
     this.queryId = String(cfg.queryId ?? '').trim();
+    this.serviceId = String(cfg.serviceId ?? '').trim();
     this.vocabRef = String(cfg.vocabRef ?? '').trim();
     this.provider = String(cfg.provider ?? '').trim();
     this.resultArrayProperty = String(cfg.resultArrayProperty ?? '').trim();
@@ -169,7 +171,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
     this.allowFreeText = cfg.requireSelection !== true;
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
-    this.cacheResults = cfg.cacheResults ?? this.sourceType !== 'namedQuery';
+    this.cacheResults = cfg.cacheResults ?? (this.sourceType !== 'namedQuery' && this.sourceType !== 'service');
     this.historicalVocabMode = cfg.historicalVocabMode === 'disable' ? 'disable' : 'hide';
     this.hasHistoricalOrUnknownModelValue = false;
     this.readOnlyAfterSelectLocked = Boolean(cfg.readOnlyAfterSelect) && Boolean(this.model?.getValue());
@@ -316,6 +318,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.statusMessage = 'Missing queryId for namedQuery typeahead source';
       return false;
     }
+    if (this.sourceType === 'service' && !this.serviceId) {
+      this.searchState = 'misconfigured';
+      this.statusMessage = 'Missing serviceId for service typeahead source';
+      return false;
+    }
     if (this.sourceType === 'external' && !this.provider) {
       this.searchState = 'misconfigured';
       this.statusMessage = 'Missing provider for external typeahead source';
@@ -367,6 +374,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
           this.resultArrayProperty,
           this.labelField,
           this.valueField
+        );
+      } else if (this.sourceType === 'service') {
+        options = await this.typeaheadDataService.searchService(
+          this.serviceId,
+          trimmedTerm,
+          0,
+          this.maxResults
         );
       } else {
         options = await this.typeaheadDataService.searchNamedQuery(

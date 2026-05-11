@@ -2010,6 +2010,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
+    } else if (sourceType === 'service') {
+      const serviceId = String(definition.serviceId ?? '').trim();
+      if (serviceId) {
+        this.sharedProps.setPropOverride('serviceId', item.config, { serviceId });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing serviceId at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
     } else if (sourceType === 'external') {
       const provider = String(definition.provider ?? '').trim();
       if (provider) {
@@ -3195,12 +3204,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   }
 
-  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' {
+  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' | 'service' {
     const legacySourceType = String(definition.sourceType ?? '')
       .trim()
       .toLowerCase();
     if (legacySourceType === 'query' || legacySourceType === 'namedquery') {
       return 'namedQuery';
+    }
+    if (legacySourceType === 'service') {
+      return 'service';
     }
     if (legacySourceType === 'external') {
       return 'external';
@@ -3216,6 +3228,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     if (definition.vocabRef || definition.vocabId) {
       return 'vocabulary';
+    }
+    if (definition.serviceId) {
+      return 'service';
     }
     if (definition.provider) {
       return 'external';

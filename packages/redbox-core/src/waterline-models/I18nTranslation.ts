@@ -73,6 +73,9 @@ export class I18nTranslationClass {
   @Attr({ type: 'string', allowNull: true })
   public description?: string;
 
+  @Attr({ type: 'string', allowNull: true })
+  public contentFormat?: 'plain' | 'html';
+
   @BelongsTo('brandingconfig')
   public branding?: string | number;
 
@@ -91,6 +94,7 @@ export interface I18nTranslationAttributes extends Sails.WaterlineAttributes {
   branding?: string | number | BrandingConfigAttributes;
   bundle?: string | number | I18nBundleAttributes;
   category?: string;
+  contentFormat?: 'plain' | 'html';
   description?: string;
   key: string;
   locale: string;

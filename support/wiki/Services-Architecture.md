@@ -164,7 +164,7 @@ export const ServiceExports = {
 | `DomSanitizerService` | SVG content sanitization |
 | `ContrastService` | Color contrast calculations |
 | `SassCompilerService` | SASS/SCSS compilation |
-| `VocabService` | Controlled vocabulary lookups |
+| `FormVocabularyService` | Form vocabulary lookups for named-query, external, and service-backed typeaheads |
 | `NavigationService` | Menu and navigation building |
 
 ### Background Job Services
