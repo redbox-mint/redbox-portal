@@ -1672,8 +1672,8 @@ export namespace Services {
 
         // update authorizations based on workflow...
         const configAuth = config.authorization as AnyRecord;
-        currentRecObj.authorization.viewRoles = configAuth.viewRoles;
-        currentRecObj.authorization.editRoles = configAuth.editRoles;
+        currentRecObj.authorization.viewRoles = currentRecObj.authorization.viewRoles ?? configAuth.viewRoles;
+        currentRecObj.authorization.editRoles = currentRecObj.authorization.editRoles ?? configAuth.editRoles;
       }
       sails.log.verbose(
         `transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`
