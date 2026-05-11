@@ -28,6 +28,8 @@ describe('ContentComponent', () => {
     utilityService = TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService as any);
     translationService.translationMap['@dmpt-project-title'] = 'Project name';
+    translationService.translationMap['@html-like-plain'] = '<strong>Project name</strong>';
+    translationService.translationMap['@html-content'] = '<strong>Project name</strong>';
     spyOn(translationService, 't').and.callFake((key: string) => translationService.translationMap[key] ?? key);
 
     setUpDynamicAssets({
@@ -151,6 +153,68 @@ describe('ContentComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const element = compiled.querySelector('span');
     expect((element as HTMLSpanElement)?.textContent).toEqual('Project name');
+  });
+
+  it('should escape translated plain text that contains HTML-like content', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: '@html-like-plain',
+              contentIsTranslationCode: true,
+              translationContentFormat: 'plain'
+            } as any
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span') as HTMLSpanElement;
+    expect(element.textContent).toEqual('<strong>Project name</strong>');
+    expect(element.querySelector('strong')).toBeNull();
+  });
+
+  it('should render translated HTML when translationContentFormat is html', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: '@html-content',
+              contentIsTranslationCode: true,
+              translationContentFormat: 'html'
+            } as any
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const element = compiled.querySelector('span') as HTMLSpanElement;
+    expect(element.textContent).toEqual('Project name');
+    expect(element.querySelector('strong')?.textContent).toEqual('Project name');
   });
 
   it('should pass translationService into template context', async () => {

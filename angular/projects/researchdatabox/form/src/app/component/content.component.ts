@@ -70,6 +70,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const template = config?.template ?? '';
     const content = config?.content ?? '';
     const contentIsTranslationCode = (config as { contentIsTranslationCode?: boolean } | undefined)?.contentIsTranslationCode === true;
+    const translationContentFormat = (config as { translationContentFormat?: 'plain' | 'html' } | undefined)?.translationContentFormat === 'html'
+      ? 'html'
+      : 'plain';
 
     if (content && template) {
       // If there is both a content and template, retrieve the template and provide the content as context.
@@ -120,7 +123,12 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       }
     } else if (content && !template && guessType(content) === "string") {
       // If there is content and no template, and the content is a string, display the content.
-      this.content = contentIsTranslationCode ? this.translate(content as string) : content as string;
+      if (contentIsTranslationCode) {
+        const translatedContent = this.translate(content as string);
+        this.content = translationContentFormat === 'html' ? translatedContent : this.escapeHtml(translatedContent);
+      } else {
+        this.content = content as string;
+      }
     } else {
       // If no content or template, display a blank string.
       this.content = '';
@@ -129,6 +137,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
   private translate(value: string): string {
     return this.formService.translate(value);
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {

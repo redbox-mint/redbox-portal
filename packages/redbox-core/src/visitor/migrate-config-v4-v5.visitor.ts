@@ -1659,6 +1659,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'columns',
       'notesHeader',
       'dataTypes',
+      'dataTypePlaceholder',
       'dataTypeLookup',
       'hideNotesForLocationTypes',
       'allowUploadWithoutSave',

@@ -17,6 +17,7 @@ x-rbportal-env: &rbportal-env
   - datacite_password=${datacite_password:-}
   - datacite_doiPrefix=${datacite_doiPrefix:-}
   - CI=${CI:-false}
+  - RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
 
 x-rbportal-depends: &rbportal-depends

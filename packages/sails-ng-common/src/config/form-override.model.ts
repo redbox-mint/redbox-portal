@@ -689,6 +689,19 @@ export class FormOverride {
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
     this.commonContentPlain(source, target);
+
+    const sourceConfig = source.component?.config as { type?: string } | undefined;
+    if (sourceConfig?.type === 'hidden') {
+      if (target.component.config) {
+        target.component.config.visible = false;
+      }
+
+      const targetLayoutConfig = target.layout?.config as { visible?: boolean } | undefined;
+      if (targetLayoutConfig) {
+        targetLayoutConfig.visible = false;
+      }
+    }
+
     return target;
   }
 
@@ -1175,7 +1188,7 @@ export class FormOverride {
       return `<div class="rb-view-repeatable rb-view-repeatable-list"></div>`;
     }
 
-    const groupChildren = this.getGroupChildren(elementTemplate);
+    const groupChildren = this.getRenderableGroupChildren(elementTemplate);
     const tableEligible = !!groupChildren && this.isTableEligibleGroupChildren(groupChildren);
     this.logger.debug(
       `Repeatable view transform '${component.name}' using ${tableEligible ? 'table' : 'fallback'} layout.`
@@ -1188,7 +1201,7 @@ export class FormOverride {
   }
 
   private generateGroupTemplate(component: GroupFormComponentDefinitionOutline, rootExpr: string): string {
-    const children = component?.component?.config?.componentDefinitions ?? [];
+    const children = this.getRenderableGroupChildren(component) ?? [];
     const rows = children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     const template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.groupContainer,
@@ -1224,7 +1237,7 @@ export class FormOverride {
   private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
     const className = component?.component?.class;
     if (className === GroupFieldComponentName) {
-      const children = this.getGroupChildren(component) ?? [];
+      const children = this.getRenderableGroupChildren(component) ?? [];
       return children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
     }
     if (className === RepeatableComponentName) {
@@ -1345,6 +1358,24 @@ export class FormOverride {
           .componentDefinitions
         : [];
     return componentDefinitions ?? [];
+  }
+
+  private isViewRenderableComponent(component: AllFormComponentDefinitionOutlines): boolean {
+    const componentConfig = component?.component?.config as { visible?: boolean; type?: string } | undefined;
+    if (componentConfig?.visible === false || componentConfig?.type === 'hidden') {
+      return false;
+    }
+
+    const layoutConfig = component?.layout?.config as { visible?: boolean } | undefined;
+    return layoutConfig?.visible !== false;
+  }
+
+  private getRenderableGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {
+    const children = this.getGroupChildren(component);
+    if (!children) {
+      return null;
+    }
+    return children.filter(child => this.isViewRenderableComponent(child));
   }
 
   private isTableEligibleGroupChildren(children: AllFormComponentDefinitionOutlines[]): boolean {
