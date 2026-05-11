@@ -40,7 +40,6 @@
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
 import type { AgendaJobDefinition, AgendaQueueBackend, AgendaQueueOptions } from '../config/agendaQueue.config';
-
 import type { Agenda, Job, JobsQueryOptions, JobsResult } from 'agenda';
 import type { Db } from '@agendajs/mongo-backend';
 
