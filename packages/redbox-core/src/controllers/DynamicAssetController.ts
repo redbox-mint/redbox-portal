@@ -46,11 +46,9 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'get',
       'getFormCompiledItems',
-      'getFormStructureValidations',
-      'getFormDataValidations',
-      'getFormExpressions',
       'getAdminReportTemplates',
       'getRecordDashboardTemplates',
+      'getValidatorDefinitions',
     ];
 
     private _recordTypeAuto = "auto";
@@ -119,18 +117,6 @@ export namespace Controllers {
           });
         }
         const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
-        // Add the validator definitions that are used to build the form and component validators.
-        for (const validatorDefinition of sails.config.validators.definitions) {
-          entries.push({
-            key: ["commonValidatorDefinition", validatorDefinition.class],
-            kind: "commonValidatorDefinition",
-            value: JSON.stringify({
-              class: validatorDefinition.class,
-              message: validatorDefinition.message,
-              create: validatorDefinition.create.toString()
-            }),
-          })
-        }
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
@@ -139,41 +125,6 @@ export namespace Controllers {
           displayErrors: [{ detail: "Could not get form data." }],
         });
       }
-    }
-
-    /**
-    * Provide the client script that can validate the form data model matches the form config.
-    * @param req
-    * @param res
-    */
-    public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO: implement getFormStructureValidations
-      //  Similar to FormRecordConsistency.validateRecordSchema.
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    /**
-    * Provide the client script that can validate the form data model values match the form config types.
-    * Similar to FormRecordConsistency.validateRecordValues.
-    * @param req
-    * @param res
-    */
-    public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO: implement getFormDataValidations
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    /**
-    * Provide the client script that can run the form expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
-    public getFormExpressions(req: Sails.Req, res: Sails.Res) {
-      // TODO: implement getFormExpressions
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
     }
 
     /**
@@ -219,12 +170,31 @@ export namespace Controllers {
       }
     }
 
-    private isNewRecord(recordType: string, oid: string): boolean {
-      return !!(!oid && recordType && recordType !== this._recordTypeAuto);
-    }
-
-    private isExistingRecord(recordType: string, oid: string): boolean {
-      return !!oid && (recordType === this._recordTypeAuto || !!recordType);
+    /**
+     * Get the validator definitions defined for this site.
+     */
+    public getValidatorDefinitions(req: Sails.Req, res: Sails.Res) {
+      try {
+        const entries: TemplateCompileInput[] = [{
+          key: ['formValidatorDefinitions'],
+          kind: "raw",
+          // Create validator definitions in stringified format that retains the create function.
+          value: `[${sails.config.validators.definitions.map(validatorDefinition => {
+            return `{
+              "class":${JSON.stringify(validatorDefinition.class)},
+              "message":${JSON.stringify(validatorDefinition.message)},
+              "create":${validatorDefinition.create.toString()}
+              }`;
+          }).join(',')}]`,
+        }];
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{detail: "Could not get validator definitions."}],
+        });
+      }
     }
 
     private sendClientMappingJavascript(res: Sails.Res, inputs: TemplateCompileInput[]) {

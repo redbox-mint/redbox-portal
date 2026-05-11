@@ -35,7 +35,7 @@ type TemplateFunction = (context: any) => string;
 /**
  * Service for managing pre-compiled Handlebars templates from the server.
  * Fetches compiled templates from the dashboard endpoint and executes them client-side.
- * 
+ *
  * This service replaces the lodash template approach to support Content Security Policy
  * by using pre-compiled Handlebars templates.
  */
@@ -84,9 +84,9 @@ export class HandlebarsTemplateService extends HttpClientService {
     /**
      * Load pre-compiled templates from the server for a specific record type and workflow stage.
      * Templates are loaded as ES modules using dynamic import.
-     * 
+     *
      * @param branding The branding name
-     * @param portal The portal name  
+     * @param portal The portal name
      * @param recordType The record type name
      * @param workflowStage The workflow stage name
      * @param dashboardType Optional dashboard type to load specific configuration
@@ -97,12 +97,13 @@ export class HandlebarsTemplateService extends HttpClientService {
         try {
             const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
             // path array for getDynamicImport
-            const urlPath = ['dynamicAsset', 'recordDashboardTemplates', recordType, `${workflowStage}?dashboardType=${dashboardType}`];
+            const urlPath = ['dynamicAsset', 'recordDashboardTemplates', recordType, workflowStage];
+            const urlParams = {'dashboardType': dashboardType};
 
             this.loggerService.debug(`Loading dashboard templates module for ${dashboardHintPath}`);
 
             // Load module
-            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
+            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, urlParams);
 
             if (module && typeof module.evaluate === 'function') {
                 // Register the module using keys derived from the configuration context
@@ -121,7 +122,7 @@ export class HandlebarsTemplateService extends HttpClientService {
     /**
      * Load pre-compiled templates from the server for a specific report.
      * Templates are loaded as ES modules using dynamic import.
-     * 
+     *
      * @param branding The branding name
      * @param portal The portal name
      * @param reportName The name of the report
@@ -168,7 +169,7 @@ export class HandlebarsTemplateService extends HttpClientService {
      * Compile and run a template.
      * Tries to use pre-compiled template first if keyParts are provided.
      * Fallbacks to runtime compilation (if CSP allows) for inline strings.
-     * 
+     *
      * @param templateString The template string (used as fallback or for valid inline templates)
      * @param context The context for the template
      * @param keyParts Optional key parts to look up pre-compiled template
@@ -194,7 +195,7 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     /**
      * Execute a pre-compiled template if available.
-     * 
+     *
      * @param keyParts The template key parts array
      * @param context The template context/data
      * @returns The rendered template string or null if not found
@@ -205,13 +206,13 @@ export class HandlebarsTemplateService extends HttpClientService {
             return null;
         }
 
-        // Standardised lookup: try to find a module matching the key parts, 
+        // Standardised lookup: try to find a module matching the key parts,
         // starting from the most specific (longest key) down to the least specific.
         // This supports keys of any length (e.g. recordType__workflowStage or just reportName).
         for (let i = keyParts.length; i > 0; i--) {
             const key = buildKeyString(keyParts.slice(0, i));
             const module = this.moduleRegistry.get(key);
-            
+
             if (module) {
                 try {
                     // The evaluate function compiles and runs the template with the context
@@ -230,7 +231,7 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     /**
      * Check if a template is loaded in the cache.
-     * 
+     *
      * @param key The template string or key
      * @returns true if the template exists in cache
      */
@@ -241,7 +242,7 @@ export class HandlebarsTemplateService extends HttpClientService {
     /**
      * Build a template key string from key parts (same format as server).
      * Delegates to the shared function from sails-ng-common.
-     * 
+     *
      * @param keyParts Array of key parts
      * @returns The formatted key string
      */

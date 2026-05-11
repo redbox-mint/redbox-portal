@@ -1,6 +1,6 @@
 import {LineagePath} from "./config/names/naming-helpers";
 
-export const templateCompileKind = ["jsonata", "handlebars", "formValidatorDefinitions"] as const;
+export const templateCompileKind = ["jsonata", "handlebars", "raw"] as const;
 
 export type TemplateCompileKind = typeof templateCompileKind[number];
 

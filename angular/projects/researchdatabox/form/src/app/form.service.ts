@@ -76,6 +76,7 @@ import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
+import jsonata from 'jsonata';
 
 
 interface SuggestedValidatorSummaryCacheEntry {
@@ -200,7 +201,7 @@ export class FormService extends HttpClientService {
     formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      const validatorDefinitions: FormValidatorDefinition[] = []; // TODO redboxClientScript.formValidatorDefinitions
+      const validatorDefinitions = await this.getValidatorDefinitions();
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
@@ -794,39 +795,6 @@ export class FormService extends HttpClientService {
     return result?.['data'] ?? {};
   }
 
-  // /**
-  //  * TODO: Use this script to validate the form data model structure matches the form config.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
-
-  // /**
-  //  * TODO: Use this script to validate the form data model values match the form config.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
-
-  // /**
-  //  * TODO: Use this script to run the form data model expressions.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormExpressions(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
-
   /**
    * Get all the compiled items for the form.
    * @param recordType The form record type.
@@ -843,6 +811,24 @@ export class FormService extends HttpClientService {
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
     return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
+  }
+
+  /**
+   * Get all the validator definitions for the site from the dynamic import.
+   */
+  public async getDynamicImportSiteValidatorDefinitions(): Promise<DynamicScriptResponse> {
+    const path = ['dynamicAsset', 'formCompiledItems', 'validatorDefinitions'];
+    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
+  }
+
+  /**
+   Get all the validator definitions for the site after they have been evaluated.
+   */
+  public async getValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
+    const compiledItems = await this.getDynamicImportSiteValidatorDefinitions();
+    const context = {};
+    const extras = {libraries: {jsonata}};
+    return compiledItems.evaluate(['formValidatorDefinitions'], context, extras) as FormValidatorDefinition[];
   }
 
   /**

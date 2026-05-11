@@ -1,11 +1,11 @@
 meta {
-  name: Get dynamic branded formDataValidations
+  name: Get dynamic branded validatorDefinitions
   type: http
-  seq: 4
+  seq: 8
 }
 
 get {
-  url: {{host}}/default/rdmp/dynamicAsset/formDataValidations/rdmp
+  url: {{host}}/default/rdmp/dynamicAsset/validatorDefinitions
   body: none
   auth: none
 }
@@ -21,7 +21,9 @@ tests {
   test("Has expected content", function () {
     var body = res.getBody();
     // console.log(body);
+    expect(body).to.contain("export function evaluate");
+    expect(body).to.contain("switch (key)");
+    expect(body).to.match(/\bcase\s+"formValidatorDefinitions":/);
     expect(body).to.contain("default:");
-    expect(body).to.not.contain(" case ");
   });
 }
