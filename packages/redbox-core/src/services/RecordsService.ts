@@ -1561,7 +1561,7 @@ export namespace Services {
       const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
       if (recordStorageServiceResponse.isSuccessful() && !_.isNil(recordStorageServiceResponse.metadata)) {
         const record = recordStorageServiceResponse.metadata as RecordModel;
-        const metaMetadata = (record?.metaMetadata ?? {}) as Record<string, unknown>;
+        const metaMetadata = (record?.metaMetadata ?? {}) as unknown as Record<string, unknown>;
         const brandId = _.get(metaMetadata, 'brandId');
         const recordTypeName = _.get(metaMetadata, 'type');
 
