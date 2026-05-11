@@ -394,8 +394,6 @@ export namespace Services {
       }
 
       for (const relationship of relatedTo) {
-        this.assertSupportedRelationshipSemantics(currentRecordTypeName, relationship);
-
         if (includeRelationIds.size > 0 && !includeRelationIds.has(relationship.id)) {
           continue;
         }
@@ -421,35 +419,36 @@ export namespace Services {
         sails.log.verbose(`${this.logHeader} Finding related records criteria:`);
         sails.log.verbose(JSON.stringify(criteria));
 
-        const relatedRecords = await Record.find(criteria).meta({ enableExperimentalDeepTargets: true });
+        const relatedRecords = await this.findRelatedRecords(relationship, criteria);
         sails.log.verbose(`${this.logHeader} Got related records:`);
         sails.log.verbose(JSON.stringify(relatedRecords));
 
         for (const relatedRecord of relatedRecords as JsonMap[]) {
-          const targetOid = String(_.get(relatedRecord, 'redboxOid', '')).trim();
-          if (!targetOid) {
+          const edge = this.buildRelationshipEdge(relationship, currentRecordTypeName, normalizedOid, relatedRecord);
+          if (_.isNil(edge)) {
             continue;
           }
+          const relatedRecordOid = edge.relatedRecordOid;
 
           this.addRelatedObject(mappingContext, relationship.recordType, relatedRecord as MongoRecordDocument);
           if (!_.includes(mappingContext.processedRelationships, relationship.recordType)) {
             mappingContext.processedRelationships.push(relationship.recordType);
           }
 
-          const edgeKey = `${relationship.id}::${normalizedOid}::${targetOid}`;
+          const edgeKey = `${relationship.id}::${edge.sourceOid}::${edge.targetOid}`;
           if (!mappingContext.visitedEdgeKeys.has(edgeKey)) {
             mappingContext.visitedEdgeKeys.add(edgeKey);
             mappingContext.edges.push({
               relationId: relationship.id,
               label: relationship.label,
-              sourceOid: normalizedOid,
-              targetOid,
-              targetRecordType: relationship.recordType,
+              sourceOid: edge.sourceOid,
+              targetOid: edge.targetOid,
+              targetRecordType: edge.targetRecordType,
             });
           }
 
           mappingContext = await this.walkRelatedRecords(
-            targetOid,
+            relatedRecordOid,
             brand,
             options,
             null,
@@ -501,20 +500,60 @@ export namespace Services {
       return criteria;
     }
 
-    private assertSupportedRelationshipSemantics(sourceRecordTypeName: string, relationship: NormalizedRecordRelation): void {
-      if (relationship.direction !== 'outbound') {
-        throw new Error(
-          `Record relationship '${relationship.id}' on '${sourceRecordTypeName}' uses unsupported direction '${relationship.direction}'. ` +
-          `Only 'outbound' direction is currently supported.`
-        );
+    private async findRelatedRecords(relationship: NormalizedRecordRelation, criteria: JsonMap): Promise<JsonMap[]> {
+      const query = Record.find(criteria) as {
+        sort?: (value: string) => unknown;
+        limit?: (value: number) => unknown;
+        meta: (value: JsonMap) => Promise<JsonMap[]>;
+      };
+
+      if (relationship.cardinality === 'one' && typeof query.sort === 'function' && typeof query.limit === 'function') {
+        const chainedQuery = query.sort('redboxOid ASC') as {
+          limit?: (value: number) => unknown;
+          meta: (value: JsonMap) => Promise<JsonMap[]>;
+        };
+        if (typeof chainedQuery.limit === 'function') {
+          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> })
+            .meta({ enableExperimentalDeepTargets: true });
+        }
       }
 
-      if (relationship.cardinality !== 'many') {
-        throw new Error(
-          `Record relationship '${relationship.id}' on '${sourceRecordTypeName}' uses unsupported cardinality '${relationship.cardinality}'. ` +
-          `Only 'many' cardinality is currently supported.`
-        );
+      const relatedRecords = await query.meta({ enableExperimentalDeepTargets: true });
+      if (relationship.cardinality !== 'one') {
+        return relatedRecords;
       }
+
+      return [...relatedRecords]
+        .sort((left, right) => String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', ''))))
+        .slice(0, 1);
+    }
+
+    private buildRelationshipEdge(
+      relationship: NormalizedRecordRelation,
+      currentRecordTypeName: string,
+      currentOid: string,
+      relatedRecord: JsonMap
+    ): { relatedRecordOid: string; sourceOid: string; targetOid: string; targetRecordType: string } | undefined {
+      const relatedRecordOid = String(_.get(relatedRecord, 'redboxOid', '')).trim();
+      if (!relatedRecordOid) {
+        return undefined;
+      }
+
+      if (relationship.direction === 'inbound') {
+        return {
+          relatedRecordOid,
+          sourceOid: relatedRecordOid,
+          targetOid: currentOid,
+          targetRecordType: currentRecordTypeName,
+        };
+      }
+
+      return {
+        relatedRecordOid,
+        sourceOid: currentOid,
+        targetOid: relatedRecordOid,
+        targetRecordType: relationship.recordType,
+      };
     }
 
     public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {
