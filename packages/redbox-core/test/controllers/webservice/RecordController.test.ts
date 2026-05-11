@@ -38,6 +38,7 @@ describe('Webservice RecordController getMeta', () => {
     (global as any)._ = require('lodash');
 
     controller = new Controllers.Record();
+    controller.init();
   });
 
   afterEach(() => {
@@ -106,10 +107,10 @@ describe('Webservice RecordController getMeta', () => {
     (global as any).sails.services.recordsservice.getMeta.resolves(record);
     (global as any).sails.services.recordsservice.getRelatedRecords.resolves(relationships);
     (global as any).sails.services.recordsservice.hasViewAccess
-      .withArgs(sinon.match.any, sinon.match.any, sinon.match({ redboxOid: 'oid-2', title: 'Visible' }))
+      .withArgs(sinon.match.any, sinon.match.any, sinon.match.any, sinon.match({ redboxOid: 'oid-2', title: 'Visible' }))
       .returns(true);
     (global as any).sails.services.recordsservice.hasViewAccess
-      .withArgs(sinon.match.any, sinon.match.any, sinon.match({ redboxOid: 'oid-3', title: 'Hidden' }))
+      .withArgs(sinon.match.any, sinon.match.any, sinon.match.any, sinon.match({ redboxOid: 'oid-3', title: 'Hidden' }))
       .returns(false);
 
     await controller.getMeta(req, res);
