@@ -135,7 +135,7 @@ export namespace Controllers {
       };
     }
 
-    private async hasViewAccess(brand: BrandingModel, user: globalThis.Record<string, unknown> | undefined, record: globalThis.Record<string, unknown>): Promise<boolean> {
+    private hasViewAccess(brand: BrandingModel, user: globalThis.Record<string, unknown> | undefined, record: globalThis.Record<string, unknown>): boolean {
       const currentUser = user ?? {};
       const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
       return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
