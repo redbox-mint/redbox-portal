@@ -19,7 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import { BrandingModel } from '../model/storage/BrandingModel';
+import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
@@ -119,6 +119,18 @@ export namespace Controllers {
           });
         }
         const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        // Add the validator definitions that are used to build the form and component validators.
+        for (const validatorDefinition of sails.config.validators.definitions) {
+          entries.push({
+            key: ["commonValidatorDefinition", validatorDefinition.class],
+            kind: "commonValidatorDefinition",
+            value: JSON.stringify({
+              class: validatorDefinition.class,
+              message: validatorDefinition.message,
+              create: validatorDefinition.create.toString()
+            }),
+          })
+        }
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
@@ -135,7 +147,7 @@ export namespace Controllers {
     * @param res
     */
     public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
+      // TODO: implement getFormStructureValidations
       //  Similar to FormRecordConsistency.validateRecordSchema.
       const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
@@ -148,7 +160,7 @@ export namespace Controllers {
     * @param res
     */
     public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
+      // TODO: implement getFormDataValidations
       const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
     }
@@ -159,7 +171,7 @@ export namespace Controllers {
     * @param res
     */
     public getFormExpressions(req: Sails.Req, res: Sails.Res) {
-      // TODO:
+      // TODO: implement getFormExpressions
       const entries: TemplateCompileInput[] = [];
       return this.sendClientMappingJavascript(res, entries);
     }

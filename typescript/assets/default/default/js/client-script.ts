@@ -5,8 +5,6 @@
 import "../../../styles/style.scss";
 // import "../../../styles/default.css";
 
-export const formValidatorDefinitions = sails.config.validators.definitions;
-
 function safeStorageGet(key: string): any {
   try {
     if (!window.localStorage) {

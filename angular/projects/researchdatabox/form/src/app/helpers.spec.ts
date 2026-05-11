@@ -46,7 +46,7 @@ import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import {ApplicationRef, ComponentRef} from "@angular/core";
 
 // provide to test the same way as provided to browser
-(window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
+// (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
 
 export interface FormComponentProps {
   oid: string;

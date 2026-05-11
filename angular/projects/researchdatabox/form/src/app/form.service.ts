@@ -78,9 +78,6 @@ import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 
 
-// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
-declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
-
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
   valueKey: string;
@@ -203,7 +200,8 @@ export class FormService extends HttpClientService {
     formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(redboxClientScript.formValidatorDefinitions);
+      const validatorDefinitions: FormValidatorDefinition[] = []; // TODO redboxClientScript.formValidatorDefinitions
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
 

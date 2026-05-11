@@ -80,6 +80,12 @@ export namespace Services {
                             value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
                         });
                         break;
+                    case "formValidatorDefinitions":
+                        result.push({
+                            key: input.key,
+                            value: input.value?.toString(),
+                        });
+                        break;
                     default:
                         throw new Error(`Unknown input kind '${input.kind}' expected one of: '${templateCompileKind.join(', ')}'`);
                 }
