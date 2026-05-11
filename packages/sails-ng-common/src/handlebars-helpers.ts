@@ -530,6 +530,22 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * URL-encode path segments while preserving path separators.
+   *
+   * @example {{urlEncode "path with spaces/to file"}}
+   */
+  urlEncode: function (value: unknown): string {
+    const text = String(value ?? '');
+    if (!text) {
+      return '';
+    }
+    return text.replace(/\/+$/, '')
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+  },
+
+  /**
    * Concatenate strings.
    * Note: The last argument is the Handlebars options hash, which is removed.
    *

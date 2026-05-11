@@ -16,6 +16,11 @@ export interface S3DriverOptions {
   bucket: string;
   region: string;
   endpoint?: string;
+  forcePathStyle?: boolean;
+  bucketEndpoint?: boolean;
+  tls?: boolean;
+  useAccelerateEndpoint?: boolean;
+  supportsACL?: boolean;
   visibility?: string;
   [key: string]: unknown;
 }
@@ -31,6 +36,8 @@ export interface StorageConfig {
   stagingDisk?: string;
   /** Name of the primary disk (where files are permanently stored) */
   primaryDisk?: string;
+  /** Prefix for object keys in the primary disk */
+  keyPrefix?: string;
   /** Map of disk names to their driver configurations */
   disks?: {
     [key: string]: DiskConfig;
@@ -42,6 +49,7 @@ export const storage: StorageConfig = {
   defaultDisk: 'primary',
   stagingDisk: 'staging',
   primaryDisk: 'primary',
+  keyPrefix: 'attachments/',
   disks: {
     staging: {
       driver: 'fs',
