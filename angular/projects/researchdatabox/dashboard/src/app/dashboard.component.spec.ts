@@ -250,6 +250,30 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.isProcessingPageChange).toBeFalse();
   });
 
+  it('pageChanged preserves workflow-stage step names for dashboard view pagination', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardView = 'consolidated';
+    dashboardComponent.dashboardTypeSelected = 'consolidated';
+    dashboardComponent.workflowSteps = [
+      {
+        name: 'consolidated',
+        dashboardViewStep: {
+          fetchMode: 'workflowStage',
+          sourceWorkflowStage: 'draft',
+          sourceRecordType: 'rdmp',
+        },
+      },
+    ] as any;
+    dashboardComponent.recordType = 'rdmp';
+    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
+
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'consolidated');
+
+    expect(initStepSpy).toHaveBeenCalledWith('draft', 'consolidated', 'rdmp', '', 2, {});
+    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
+  });
+
   // getSecondarySortStringFromSortMap tests
   describe('getSecondarySortStringFromSortMap', () => {
     it('returns empty string when sortFields is empty', () => {

@@ -163,6 +163,29 @@ describe('RecordController getWorkflowSteps', () => {
     ]);
   });
 
+  it('returns 404 when dashboard view config is malformed', async () => {
+    const req = {
+      param: sinon.stub().withArgs('dashboardView').returns('malformed'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (global as any).DashboardTypesService.getDashboardView.returns({
+      titleLabelKey: 'malformed',
+      dashboardType: 'consolidated',
+      sourceRecordType: 'rdmp',
+      steps: [],
+    });
+
+    await controller.getDashboardView(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]).to.deep.equal({
+      status: 404,
+      displayErrors: [{ detail: 'Dashboard view provided is not valid' }],
+    });
+  });
+
   it('redirects the legacy consolidated dashboard route', () => {
     const req = {} as Sails.Req;
     const res = {

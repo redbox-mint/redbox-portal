@@ -49,10 +49,10 @@ export const dashboardview: DashboardViewConfig = {
                         {
                             title: 'Record Title',
                             variable: 'metadata.title',
-                            template: `<a href='{{urlEncode rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/view/{{urlEncode oid}}'>{{metadata.title}}</a>
+                            template: `<a href='{{rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/view/{{urlEncode oid}}'>{{metadata.title}}</a>
                               <span class="dashboard-controls">
                                 {{#if hasEditAccess}}
-                                                                    <a href='{{urlEncode rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/edit/{{urlEncode oid}}' aria-label='{{t "edit-link-label"}} {{metadata.title}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+                                                                    <a href='{{rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/edit/{{urlEncode oid}}' aria-label='{{t "edit-link-label"}} {{metadata.title}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
                                 {{/if}}
                               </span>
                             `
@@ -98,7 +98,7 @@ export const dashboardview: DashboardViewConfig = {
                                 {
                                     name: 'Edit',
                                     action: 'show',
-                                    renderItemTemplate: `<a href='{{urlEncode rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/edit/{{urlEncode oid}}'>{{name}}</a>`,
+                                    renderItemTemplate: `<a href='{{rootContext}}/{{urlEncode branding}}/{{urlEncode portal}}/record/edit/{{urlEncode oid}}'>{{name}}</a>`,
                                     evaluateRulesTemplate: `{{eq (get workflow "stage") "draft"}}`
                                 },
                                 {

@@ -879,7 +879,9 @@ export class DashboardComponent extends BaseComponent {
       const currentStep = _find(workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || workflowSteps[0];
       const evaluateStepName = this.getStepKey(currentStep) || step;
       const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
-      await this.initStep('', evaluateStepName, recordType, '', event.page, {});
+      const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+      const stepName = dashboardViewStep.fetchMode == 'workflowStage' ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName) : '';
+      await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       this.isProcessingPageChange = false;
     }
   }

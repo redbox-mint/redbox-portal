@@ -45,6 +45,7 @@ import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
 type AnyRecord = Record<string, unknown>;
@@ -1070,6 +1071,25 @@ export namespace Controllers {
       });
     }
 
+    private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
+      if (!dashboardView || !_.isObject(dashboardView)) {
+        return false;
+      }
+
+      const view = dashboardView as DashboardViewDefinition;
+      return _.isString(view.name)
+        && !_.isEmpty(view.name.trim())
+        && _.isString(view.titleLabelKey)
+        && !_.isEmpty(view.titleLabelKey.trim())
+        && _.isString(view.dashboardType)
+        && !_.isEmpty(view.dashboardType.trim())
+        && _.isString(view.sourceRecordType)
+        && !_.isEmpty(view.sourceRecordType.trim())
+        && _.isArray(view.steps)
+        && view.steps.length > 0
+        && view.steps.every((step) => _.isObject(step) && _.isString((step as DashboardViewStepDefinition).name) && !_.isEmpty((step as DashboardViewStepDefinition).name.trim()));
+    }
+
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
@@ -1094,7 +1114,7 @@ export namespace Controllers {
 
       try {
         const dashboardView = DashboardTypesService.getDashboardView(dashboardViewParam);
-        if (!dashboardView) {
+        if (!this.isValidDashboardViewDefinition(dashboardView)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
         }
         return this.sendResp(req, res, { data: new DashboardViewResponseModel(dashboardView) });
@@ -1580,7 +1600,7 @@ export namespace Controllers {
       }
 
       const dashboardView = DashboardTypesService.getDashboardView(dashboardViewName);
-      if (!dashboardView) {
+      if (!this.isValidDashboardViewDefinition(dashboardView)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
       }
 
