@@ -210,7 +210,7 @@ export class RecordService extends HttpClientService {
 
     const requestOptions = this.getHttpOptions();
     const httpOptions = {
-      context: requestOptions?.context,
+      ...requestOptions,
       observe: 'body' as const,
       responseType: 'json' as const,
       params,
@@ -372,14 +372,14 @@ export class RecordService extends HttpClientService {
 
     const requestOptions = this.getHttpOptions();
     const httpOptions = {
-      context: requestOptions?.context,
+      ...requestOptions,
       observe: 'body' as const,
       responseType: 'json' as const,
       params,
     };
     const url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
     const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
-    const response = await firstValueFrom(result$) as Record<string, unknown>;
+    const response = await firstValueFrom(result$) as unknown as Record<string, unknown>;
     const graph = (_get(response, 'data') ?? response) as Record<string, unknown>;
 
     return {
@@ -552,8 +552,9 @@ export class RecordService extends HttpClientService {
 
   public async getType(recordType: string): Promise<RecordTypeDefinitionResponse> {
     const url = `${this.brandingAndPortalUrl}/record/type/${recordType}`;
-    const result$ = this.http.get(url).pipe(map(res => res));
-    const result = await firstValueFrom(result$) as Record<string, unknown>;
+    const requestOptions = this.getHttpOptions();
+    const result$ = this.http.get(url, requestOptions).pipe(map(res => res));
+    const result = await firstValueFrom(result$) as unknown as Record<string, unknown>;
     return ((_get(result, 'data') ?? result) as RecordTypeDefinitionResponse);
   }
 
@@ -573,17 +574,17 @@ export class RecordService extends HttpClientService {
 
   public async create(record: any, recordType: string, targetStep: string = '') {
     const httpOptions = this.getHttpOptions();
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${this.getTargetStepParam(targetStep, '?')}`;
     const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
-    let result:unknown = await firstValueFrom(result$);
+    let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
 
   public async update(oid: string, record: any, targetStep: string = '') {
     const httpOptions = this.getHttpOptions();
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${this.getTargetStepParam(targetStep, '?')}`;
     const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
-    let result:unknown = await firstValueFrom(result$);
+    let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
 
@@ -600,7 +601,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
-  success:boolean = false;
+  success: boolean = false;
   oid: string = '';
   message: string = '';
   // TODO: placeholder for incremental setting of data unto the form, etc.

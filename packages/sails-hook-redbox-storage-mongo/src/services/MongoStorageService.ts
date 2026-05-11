@@ -394,6 +394,8 @@ export namespace Services {
       }
 
       for (const relationship of relatedTo) {
+        this.assertSupportedRelationshipSemantics(currentRecordTypeName, relationship);
+
         if (includeRelationIds.size > 0 && !includeRelationIds.has(relationship.id)) {
           continue;
         }
@@ -497,6 +499,22 @@ export namespace Services {
         : { in: localValues };
 
       return criteria;
+    }
+
+    private assertSupportedRelationshipSemantics(sourceRecordTypeName: string, relationship: NormalizedRecordRelation): void {
+      if (relationship.direction !== 'outbound') {
+        throw new Error(
+          `Record relationship '${relationship.id}' on '${sourceRecordTypeName}' uses unsupported direction '${relationship.direction}'. ` +
+          `Only 'outbound' direction is currently supported.`
+        );
+      }
+
+      if (relationship.cardinality !== 'many') {
+        throw new Error(
+          `Record relationship '${relationship.id}' on '${sourceRecordTypeName}' uses unsupported cardinality '${relationship.cardinality}'. ` +
+          `Only 'many' cardinality is currently supported.`
+        );
+      }
     }
 
     public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {

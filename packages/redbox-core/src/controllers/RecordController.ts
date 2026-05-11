@@ -168,7 +168,7 @@ export namespace Controllers {
       return include.split(',').includes('relationships') || includeRelationships === 'true';
     }
 
-    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth?: number): RecordRelationshipExpandOptions {
+    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
       const parseCsv = (value: unknown): string[] | undefined => {
         const normalized = String(value ?? '').trim();
         if (!normalized) {

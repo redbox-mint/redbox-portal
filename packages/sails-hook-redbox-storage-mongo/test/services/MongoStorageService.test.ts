@@ -348,6 +348,18 @@ describe('MongoStorageService', function () {
     expect(metaQuery.meta.calledOnce).to.be.true;
   });
 
+  it('throws for unsupported relationship direction/cardinality semantics', async function () {
+    sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
+    (global as any).RecordTypesService.get.callsFake(() =>
+      of({ relatedTo: [{ recordType: 'child', foreignField: 'parentId', direction: 'inbound', cardinality: 'one' }] })
+    );
+
+    await expectRejects(
+      () => service.getRelatedRecords('oid-1', { id: 'brand-1' }),
+      'Only \u0027outbound\u0027 direction is currently supported.'
+    );
+  });
+
   it('soft-deletes records by copying them into DeletedRecord first', async function () {
     sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', metadata: {} });
 
