@@ -43,18 +43,6 @@ import type { AgendaJobDefinition, AgendaQueueBackend, AgendaQueueOptions } from
 import type { Agenda, Job, JobsQueryOptions, JobsResult } from 'agenda';
 import type { Db } from '@agendajs/mongo-backend';
 
-type AgendaJob = {
-  name: string;
-  fnName: string;
-  options?: unknown;
-  schedule?: {
-    method: string;
-    intervalOrSchedule?: string;
-    data?: unknown;
-    opts?: unknown;
-  };
-};
-
 type AgendaJobHandler = (job: Job) => Promise<void>;
 type AgendaMap = Partial<Record<AgendaQueueBackend, Agenda>>;
 type LegacyAgendaJobsQuery = {
