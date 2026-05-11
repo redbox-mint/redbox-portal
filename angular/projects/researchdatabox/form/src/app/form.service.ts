@@ -817,7 +817,7 @@ export class FormService extends HttpClientService {
    * Get all the validator definitions for the site from the dynamic import.
    */
   public async getDynamicImportSiteValidatorDefinitions(): Promise<DynamicScriptResponse> {
-    const path = ['dynamicAsset', 'formCompiledItems', 'validatorDefinitions'];
+    const path = ['dynamicAsset', 'validatorDefinitions'];
     return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
   }
 

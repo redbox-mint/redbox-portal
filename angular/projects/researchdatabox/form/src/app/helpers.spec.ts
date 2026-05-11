@@ -242,32 +242,76 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   }
 }
 
-export function setUpDynamicAssets(opts?: {
+
+export type useDefaultValidatorDefinitions = {
+  includeDefaultValidatorDefinitions?: boolean,
+}
+export type DynamicAssetEntry = {
   urlKeyStart?: string,
-  callable?: (keyString: string, key: (string | number)[], context: any, extra?: any) => void
-}) {
+  callable?: (keyString: string, key: (string | number)[], context: any, extra?: any) => void,
+};
+export type DynamicAssetOptions = {
+  entries: DynamicAssetEntry[],
+} & useDefaultValidatorDefinitions
+
+export function setUpDynamicAssets(
+  opts?: (DynamicAssetEntry & useDefaultValidatorDefinitions) | DynamicAssetOptions
+) {
   if (!opts) {
-    opts = {};
+    opts = {entries: []};
   }
-  if (!opts.urlKeyStart) {
-    opts.urlKeyStart = "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-";
+  if (!('entries' in opts)) {
+    opts = {
+      includeDefaultValidatorDefinitions: opts?.includeDefaultValidatorDefinitions,
+      entries: [{
+        urlKeyStart: opts?.urlKeyStart ?? "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+        callable: opts?.callable,
+      }]
+    };
   }
+
   const utilityService = TestBed.inject(UtilityService);
   spyOn(utilityService, "getDynamicImport").and.callFake(
-    async (brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }): Promise<DynamicScriptResponse> => {
+    async (brandingAndPortalUrl: string, urlPath: string[], params?: {
+      [key: string]: any
+    }): Promise<DynamicScriptResponse> => {
       const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
-      if (!opts.urlKeyStart || !urlKey.startsWith(opts.urlKeyStart)) {
-        throw new Error(`Expected url key '${opts.urlKeyStart}', but got unknown url key: ${urlKey}`);
+
+      const entries = opts?.entries ?? [];
+
+      // provide the default validator definitions unless told not to or other definitions are provided
+      const validatorDefinitionsKey = `${brandingAndPortalUrl}/validatorDefinitions`;
+      if (opts?.includeDefaultValidatorDefinitions !== false && urlKey.startsWith(validatorDefinitionsKey)) {
+        const entry = entries.find(i => i.urlKeyStart?.startsWith(validatorDefinitionsKey));
+        if (!entry) {
+          return {
+            evaluate: function (
+              key: DynamicScriptResponseEvaluateKey,
+              context: DynamicScriptResponseEvaluateContext,
+              extra?: DynamicScriptResponseEvaluateExtra
+            ): unknown {
+              return formValidatorsSharedDefinitions;
+            }
+          }
+        }
       }
 
-      return {
-        evaluate: function(key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
-          const keyStr = buildKeyString(key as string[]);
-          if (opts.callable) {
-            return opts.callable(keyStr, key, context, extra);
-          }
-          throw new Error(`Unknown key: ${keyStr}`);
+      for (const entry of opts.entries) {
+        if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {
+          continue;
         }
-      };
+
+        return {
+          evaluate: function (key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
+            const keyStr = buildKeyString(key as string[]);
+            if (entry.callable) {
+              return entry.callable(keyStr, key, context, extra);
+            }
+            throw new Error(`Unknown evaluate key '${keyStr}' for url key '${urlKey}'.`);
+          }
+        };
+      }
+
+      throw new Error(`Url key '${urlKey}' did not match any available keys ${opts?.entries?.map(i => i.urlKeyStart)}`);
     });
 }
