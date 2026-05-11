@@ -482,6 +482,7 @@ describe('StorageManagerService', function () {
       expect(capturedOpts).to.not.have.property('tls');
       expect(capturedOpts).to.not.have.property('useAccelerateEndpoint');
       expect(capturedOpts).to.not.have.property('supportsACL');
+      expect(capturedOpts.visibility).to.equal('public');
     });
   });
 });

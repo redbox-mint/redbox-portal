@@ -39,10 +39,20 @@ export namespace Services {
     /**
      * Build the storage key for a file under the configured prefix.
      */
-    private storageKey(oid: string, fileId: string): string {
+    private normalizedKeyPrefix(): string {
       const storageConfig = StorageManagerService.getMergedStorageConfig();
       const keyPrefix = storageConfig.keyPrefix ?? '';
-      return `${keyPrefix}${oid}/${fileId}`;
+      if (_.isEmpty(keyPrefix)) {
+        return '';
+      }
+      return `${keyPrefix.replace(/\/+$/, '')}/`;
+    }
+
+    /**
+     * Build the storage key for a file under the configured prefix.
+     */
+    private storageKey(oid: string, fileId: string): string {
+      return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
     }
 
     // ----------------------------------------------------------------
@@ -305,9 +315,7 @@ export namespace Services {
       }
 
       // List all files under the oid prefix
-      const storageConfig = StorageManagerService.getMergedStorageConfig();
-      const keyPrefix = storageConfig.keyPrefix ?? '';
-      const prefix = `${keyPrefix}${oid}/`;
+      const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
       const files: Record<string, unknown>[] = [];
       for (const obj of result.objects) {
