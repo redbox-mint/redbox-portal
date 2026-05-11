@@ -214,6 +214,17 @@ describe('FormComponent', () => {
     }
   });
 
+  it('broadcastFormStatus is a no-op when the form has not been created yet', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const bus = TestBed.inject(FormComponentEventBus);
+    const publishSpy = spyOn(bus, 'publish').and.callThrough();
+
+    formComponent.broadcastFormStatus();
+
+    expect(publishSpy).not.toHaveBeenCalled();
+  });
+
   it('broadcasts refreshed validation status after validation groups change', async () => {
     const formConfig: FormConfigFrame = {
       name: 'validation-group-status-broadcast',

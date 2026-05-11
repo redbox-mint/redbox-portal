@@ -237,6 +237,22 @@ describe('FormComponentItemSelectEventConsumer', () => {
     expect(control.value).toBe('');
   });
 
+  it('should ignore sibling events when the consumer pointer has no parent scope', () => {
+    const { control, options } = createBindOptions('/funderName', {
+      rawPath: 'identifier',
+      clearValue: ''
+    });
+
+    consumer.bind(options as any);
+
+    emitEvent('/record/contributors/0/funderSearch', {
+      raw: { identifier: 'other-value' }
+    });
+
+    expect(control.value).toBe('');
+    expect(eventBus.scoped).not.toHaveBeenCalled();
+  });
+
   it('should ignore events outside sibling scope', () => {
     const { control, options } = createBindOptions('/record/contributors/0/funderName', {
       rawPath: 'identifier',
