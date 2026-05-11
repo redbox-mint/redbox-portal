@@ -54,6 +54,7 @@ jobs:
 
             ./support/development/refreshRootPackageLock.sh \
               . \
+              packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
               packages/sails-hook-redbox-storage-mongo
@@ -336,7 +337,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -449,7 +450,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
       - run:
           name: Install packages
           command: |
@@ -473,6 +474,31 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core/support/junit
+  test-agenda-sqs-backend:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install agenda SQS backend dependencies
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run agenda SQS backend tests
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm test
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-redbox-dev-tools-cli:
     machine:
       image: ubuntu-2204:current
@@ -490,7 +516,7 @@ jobs:
           name: Compile shared packages
           command: |
             nvm install
-            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core
       - run:
           name: Install redbox-dev-tools dependencies
           command: |
@@ -553,6 +579,7 @@ jobs:
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
             npm run compile:core
       - run:
           name: Run storage-mongo package tests with coverage
@@ -656,10 +683,10 @@ jobs:
           - release
       release_version:
         type: string
-        default: ""
+        default: ''
       dist_tag:
         type: string
-        default: "latest"
+        default: 'latest'
     docker:
       - image: 'cimg/node:24.14.1'
     resource_class: medium
@@ -924,7 +951,7 @@ parameters:
     default: none
   npm_publish_version:
     type: string
-    default: ""
+    default: ''
   npm_publish_dist_tag:
     type: enum
     enum:
@@ -935,7 +962,7 @@ parameters:
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1002,6 +1029,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1016,6 +1046,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1029,6 +1060,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1043,6 +1075,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1057,6 +1090,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1071,6 +1105,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1092,6 +1127,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1113,6 +1149,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1127,7 +1164,7 @@ workflows:
               ignore: /^dependabot.*/
   build_test_dependabot:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1183,6 +1220,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1197,6 +1237,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1210,6 +1251,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1224,7 +1266,7 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1323,6 +1365,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-agenda-sqs-backend:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1347,6 +1397,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1361,6 +1412,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1376,6 +1428,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1391,6 +1444,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1406,6 +1460,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1430,6 +1485,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1454,6 +1510,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1471,7 +1528,7 @@ workflows:
               ignore: /.*/
       - npm-publish-backend:
           release_kind: release
-          release_version: ""
+          release_version: ''
           dist_tag: latest
           context:
             - npm-publish
@@ -1482,6 +1539,7 @@ workflows:
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1491,7 +1549,7 @@ workflows:
               ignore: /.*/
   npm_beta_publish:
     when:
-      equal: [ beta, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta

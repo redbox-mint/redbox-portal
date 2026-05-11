@@ -151,6 +151,7 @@ FormsService.js
 RecordsService.js
 WorkflowStepsService.js
 .tscache
+**/tsconfig.tsbuildinfo
 AsynchsService.js
 !assets/angular/**/rollup-config.js
 api/services/*.js
