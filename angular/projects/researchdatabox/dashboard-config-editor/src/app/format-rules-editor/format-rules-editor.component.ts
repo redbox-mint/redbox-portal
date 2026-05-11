@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { DashboardFormatRules } from '../dashboard-config-api.service';
 
 @Component({
@@ -26,7 +26,7 @@ import { DashboardFormatRules } from '../dashboard-config-api.service';
   `,
   standalone: false
 })
-export class FormatRulesEditorComponent {
+export class FormatRulesEditorComponent implements OnChanges {
   @Input() formatRules: DashboardFormatRules = {};
   @Output() formatRulesChange = new EventEmitter<DashboardFormatRules>();
 
@@ -34,6 +34,16 @@ export class FormatRulesEditorComponent {
   sortGroupByJson = '';
 
   ngOnInit(): void {
+    this.syncJson();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['formatRules']) {
+      this.syncJson();
+    }
+  }
+
+  private syncJson(): void {
     this.filterByJson = this.formatRules.filterBy ? JSON.stringify(this.formatRules.filterBy, null, 2) : '';
     this.sortGroupByJson = this.formatRules.sortGroupBy ? JSON.stringify(this.formatRules.sortGroupBy, null, 2) : '';
   }

@@ -1,18 +1,35 @@
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom, from } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { DashboardTypeModel } from '../model/storage/DashboardTypeModel';
-import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
-import type { DashboardTypeDefinition } from '../config/dashboardtype.config';
+import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import type { DashboardTableConfig as WorkflowDashboardTableConfig } from '../config/workflow.config';
+import type { DashboardTypeConfigData, WorkflowStateDashboardConfig, RecordTypeOverride, ViewOverride } from '../configmodels/DashboardTableOverrideConfig';
 
+type DashboardTypeDefinition = {
+  name: string;
+  description?: string;
+  formatRules: Record<string, unknown>;
+  tableConfig?: WorkflowDashboardTableConfig;
+  searchable?: boolean;
+  system?: boolean;
+};
+
+type DashboardTypeInput = {
+  name?: string;
+  description?: string;
+  formatRules?: Record<string, unknown>;
+  tableConfig?: WorkflowDashboardTableConfig;
+  searchable?: boolean;
+  system?: boolean;
+};
+
+type DashboardTypeCreateInput = DashboardTypeInput & { name: string };
+
+type DashboardTypeUpdateInput = DashboardTypeInput;
 
 export namespace Services {
-
-  /**
-   * Dashboard row configuration interface
-   */
   export interface DashboardRowConfig {
     title: string;
     variable: string;
@@ -22,17 +39,9 @@ export namespace Services {
     secondarySort?: string;
   }
 
-  /**
-   * Dashboard table configuration interface
-   */
   export type DashboardTableConfig = WorkflowDashboardTableConfig;
 
-  /**
-   * Top-level dashboard configuration interface for a record type
-   * This is configured at the recordtype level (not workflow-specific)
-   */
   export interface RecordTypeDashboardConfig {
-    /** Whether to show the admin sidebar on the dashboard page */
     showAdminSideBar?: boolean;
   }
 
@@ -56,21 +65,19 @@ export namespace Services {
   export type DashboardViewConfig = DashboardViewDefinition;
   export type DashboardViewStepConfig = DashboardViewStepDefinition;
 
-  type DashboardTypeConfig = DashboardTypeDefinition & {
-    searchFilters?: unknown;
-    searchable?: boolean;
-  };
+  export type DashboardTypeConfig = Omit<DashboardTypeDefinition, 'name'> & DashboardTypeConfigData;
 
-  /**
-   * Dashboard Types related functions...
-   */
   export class DashboardTypes extends services.Core.Service {
-
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
+      'createDashboardType',
       'get',
       'getAll',
+      'getAllDashboardTypeDefinitions',
+      'getDashboardTypeDefinition',
+      'updateDashboardType',
+      'deleteDashboardType',
       'getDashboardTableConfig',
       'getRecordTypeDashboardConfig',
       'extractDashboardTemplates',
@@ -81,6 +88,116 @@ export namespace Services {
 
     protected dashboardTypes: DashboardTypeModel[] = [];
 
+    private defaultTableConfig(): DashboardTableConfig {
+      return {
+        rowConfig: [
+          {
+            title: 'Record Title',
+            variable: 'metadata.title',
+            template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
+            <span class="dashboard-controls">
+              {{#if hasEditAccess}}
+                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+              {{/if}}
+            </span>
+          `,
+            initialSort: 'desc'
+          },
+          {
+            title: 'header-ci',
+            variable: 'metadata.contributor_ci.text_full_name',
+            template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
+            initialSort: 'desc'
+          },
+          {
+            title: 'header-data-manager',
+            variable: 'metadata.contributor_data_manager.text_full_name',
+            template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
+            initialSort: 'desc'
+          },
+          {
+            title: 'header-created',
+            variable: 'metaMetadata.createdOn',
+            template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
+            initialSort: 'desc'
+          },
+          {
+            title: 'header-modified',
+            variable: 'metaMetadata.lastSaveDate',
+            template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
+            initialSort: 'desc',
+            defaultSort: true
+          }
+        ]
+      };
+    }
+
+    private normalizeTableConfig(config: DashboardTableConfig | null | undefined): DashboardTableConfig {
+      return _.isEmpty(config) ? this.defaultTableConfig() : (_.cloneDeep(config) as DashboardTableConfig);
+    }
+
+    private normalizeDashboardTypeRecord(type: DashboardTypeModel | null | undefined): DashboardTypeModel | null {
+      if (!type) {
+        return null;
+      }
+      return {
+        ...type,
+        description: type.description,
+        formatRules: _.cloneDeep(type.formatRules ?? {}),
+        tableConfig: this.normalizeTableConfig(type.tableConfig),
+        searchable: type.searchable ?? true,
+        system: type.system ?? false
+      };
+    }
+
+    private normalizeDashboardTypeInput(input: DashboardTypeInput): DashboardTypeInput {
+      return {
+        ...input,
+        formatRules: _.cloneDeep(input.formatRules ?? {}) as Record<string, unknown>,
+        tableConfig: this.normalizeTableConfig(input.tableConfig),
+        searchable: input.searchable ?? true,
+        system: input.system ?? false
+      };
+    }
+
+    private async findDashboardTypeRecord(brand: BrandingModel, name: string): Promise<DashboardTypeModel | null> {
+      const record = await firstValueFrom(this.get(brand, name));
+      return this.normalizeDashboardTypeRecord(record);
+    }
+
+    private async listAssignedDashboardTypeNames(brand: BrandingModel): Promise<Set<string>> {
+      const overrides = await AppConfigService.getAppConfigByBrandAndKey(String(brand.id), 'dashboardTableConfig') as Partial<{ recordTypes: Record<string, RecordTypeOverride>; views: Record<string, ViewOverride> }>;
+      const assigned = new Set<string>();
+      for (const recordType of Object.values(overrides.recordTypes ?? {}) as Array<RecordTypeOverride>) {
+        if (recordType.default?.dashboardType) {
+          assigned.add(recordType.default.dashboardType);
+        }
+        for (const step of Object.values(recordType.steps ?? {}) as Array<WorkflowStateDashboardConfig>) {
+          if (step.dashboardType) {
+            assigned.add(step.dashboardType);
+          }
+        }
+      }
+      for (const view of Object.values(overrides.views ?? {}) as Array<ViewOverride>) {
+        if (view.default?.dashboardType) {
+          assigned.add(view.default.dashboardType);
+        }
+        for (const step of Object.values(view.steps ?? {}) as Array<WorkflowStateDashboardConfig>) {
+          if (step.dashboardType) {
+            assigned.add(step.dashboardType);
+          }
+        }
+      }
+      if (sails.config.dashboardview) {
+        for (const viewDef of Object.values(sails.config.dashboardview) as DashboardViewDefinition[]) {
+          if (viewDef.dashboardType) {
+            assigned.add(viewDef.dashboardType);
+          }
+        }
+      }
+      return assigned;
+    }
+
     public async bootstrap(defBrand: BrandingModel): Promise<DashboardTypeModel[]> {
       let dashboardTypes = await DashboardType.find({ branding: defBrand.id }) as DashboardTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
@@ -88,38 +205,55 @@ export namespace Services {
         dashboardTypes = [];
       }
 
-      // if (_.isUndefined(dashboardTypes)) {
-      //   dashboardTypes = [];
-      // }
-      sails.log.verbose(`DashboardTypes found: ${dashboardTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
+      sails.log.verbose(`DashboardTypes found: ${dashboardTypes.length} and bootstrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
       if (_.isEmpty(dashboardTypes)) {
         const dashTypes: DashboardTypeModel[] = [];
-        sails.log.verbose("Bootstrapping DashboardTypes definitions... ");
-        for (const dashboardType in sails.config.dashboardtype) {
-          const config = sails.config.dashboardtype[dashboardType];
-          const createdDashboardType = await firstValueFrom(this.create(defBrand, dashboardType, config));
-          dashTypes.push(createdDashboardType);
-        };
-        this.dashboardTypes = dashTypes;
-        return dashTypes;
+        for (const dashboardTypeName in sails.config.dashboardtype) {
+          const config = sails.config.dashboardtype[dashboardTypeName] as DashboardTypeConfig;
+          const created = await firstValueFrom(this.create(defBrand, dashboardTypeName, {
+            formatRules: config.formatRules,
+            description: config.description,
+            searchable: config.searchable,
+            system: true,
+            tableConfig: config.tableConfig ?? this.defaultTableConfig()
+          }));
+          dashTypes.push(created);
+        }
+        this.dashboardTypes = dashTypes.map((type) => this.normalizeDashboardTypeRecord(type) as DashboardTypeModel);
+        return this.dashboardTypes;
       }
-      sails.log.verbose("Default DashboardTypes definition(s) exist.");
-      sails.log.verbose(JSON.stringify(dashboardTypes));
-      this.dashboardTypes = dashboardTypes;
-      return dashboardTypes
+
+      this.dashboardTypes = dashboardTypes
+        .map((type) => this.normalizeDashboardTypeRecord(type))
+        .filter((type): type is DashboardTypeModel => type !== null);
+      return this.dashboardTypes;
     }
 
     public create(brand: BrandingModel, name: string, config: DashboardTypeConfig): Observable<DashboardTypeModel> {
+      return this.createDashboardType(brand, { name, ...config });
+    }
 
-      sails.log.verbose(JSON.stringify(config));
-
-      return super.getObservable<DashboardTypeModel>(DashboardType.create({
-        name: name,
-        branding: brand.id,
-        searchFilters: config.searchFilters,
-        formatRules: config.formatRules,
-        searchable: config.searchable
-      }));
+    public createDashboardType(brand: BrandingModel, input: DashboardTypeCreateInput): Observable<DashboardTypeModel> {
+      return from((async () => {
+        const normalized = this.normalizeDashboardTypeInput(input);
+        if (!normalized.name) {
+          throw new Error('Dashboard type name is required');
+        }
+        const existing = await this.findDashboardTypeRecord(brand, normalized.name);
+        if (existing) {
+          throw new Error(`Dashboard type '${normalized.name}' already exists for brand '${brand.name}'`);
+        }
+        const created = await DashboardType.create({
+          name: normalized.name,
+          branding: brand.id,
+          description: normalized.description,
+          formatRules: normalized.formatRules,
+          tableConfig: normalized.tableConfig,
+          searchable: normalized.searchable,
+          system: normalized.system
+        });
+        return this.normalizeDashboardTypeRecord(created as unknown as DashboardTypeModel) as DashboardTypeModel;
+      })());
     }
 
     public get(brand: BrandingModel, name: string): Observable<DashboardTypeModel | null> {
@@ -132,113 +266,104 @@ export namespace Services {
       return super.getObservable<DashboardTypeModel[]>(DashboardType.find(criteria));
     }
 
-    private defaultRowConfig: DashboardRowConfig[] = [
-      {
-        title: 'Record Title',
-        variable: 'metadata.title',
-        template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
-            <span class="dashboard-controls">
-              {{#if hasEditAccess}}
-                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-              {{/if}}
-            </span>
-          `,
-        initialSort: 'desc'
-      },
-      {
-        title: 'header-ci',
-        variable: 'metadata.contributor_ci.text_full_name',
-        template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
-        initialSort: 'desc'
-      },
-      {
-        title: 'header-data-manager',
-        variable: 'metadata.contributor_data_manager.text_full_name',
-        template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
-        initialSort: 'desc'
-      },
-      {
-        title: 'header-created',
-        variable: 'metaMetadata.createdOn',
-        template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
-        initialSort: 'desc'
-      },
-      {
-        title: 'header-modified',
-        variable: 'metaMetadata.lastSaveDate',
-        template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
-        initialSort: 'desc',
-        defaultSort: true
-      }
-    ];
+    public async getAllDashboardTypeDefinitions(brand: BrandingModel): Promise<DashboardTypeModel[]> {
+      const types = await firstValueFrom(this.getAll(brand));
+      return types.map((type) => this.normalizeDashboardTypeRecord(type) as DashboardTypeModel);
+    }
 
-    /**
-     * Get the dashboard table configuration for a specific record type and workflow stage.
-     * Resolves configuration from workflow config, merging with any branding-specific overrides.
-     * 
-     * @param brand The branding model
-     * @param recordType The record type name
-     * @param workflowStage The workflow stage name
-     * @returns The dashboard table configuration
-     */
+    public async getDashboardTypeDefinition(brand: BrandingModel, name: string): Promise<DashboardTypeModel | null> {
+      const type = await this.findDashboardTypeRecord(brand, name);
+      return type;
+    }
+
+    public updateDashboardType(brand: BrandingModel, name: string, input: DashboardTypeUpdateInput): Observable<DashboardTypeModel> {
+      return from((async () => {
+        const current = await this.findDashboardTypeRecord(brand, name);
+        if (!current) {
+          throw new Error(`Dashboard type '${name}' was not found for brand '${brand.name}'`);
+        }
+        if (input.name != null && input.name !== name) {
+          throw new Error('Dashboard type name is immutable once created');
+        }
+        if (current.system && input.system === false) {
+          throw new Error('System dashboard types cannot be converted to non-system types');
+        }
+
+        const updateData: Partial<DashboardTypeModel> = {
+          description: input.description ?? current.description,
+          formatRules: this.normalizeDashboardTypeInput({ ...current, ...input }).formatRules,
+          tableConfig: this.normalizeTableConfig(input.tableConfig ?? current.tableConfig),
+          searchable: input.searchable ?? current.searchable,
+          system: input.system ?? current.system
+        };
+
+        const updated = await DashboardType.updateOne({ branding: brand.id, name }).set(updateData);
+        if (!updated) {
+          throw new Error(`Dashboard type '${name}' was not updated`);
+        }
+        return this.normalizeDashboardTypeRecord(updated as unknown as DashboardTypeModel) as DashboardTypeModel;
+      })());
+    }
+
+    public deleteDashboardType(brand: BrandingModel, name: string): Observable<{ deleted: boolean }> {
+      return from((async () => {
+        const current = await this.findDashboardTypeRecord(brand, name);
+        if (!current) {
+          throw new Error(`Dashboard type '${name}' was not found for brand '${brand.name}'`);
+        }
+        if (current.system) {
+          throw new Error(`System dashboard type '${name}' cannot be deleted`);
+        }
+
+        const assigned = await this.listAssignedDashboardTypeNames(brand);
+        if (assigned.has(name)) {
+          throw new Error(`Dashboard type '${name}' is assigned to one or more workflow states or dashboard views`);
+        }
+
+        await DashboardType.destroy({ branding: brand.id, name });
+        return { deleted: true };
+      })());
+    }
+
     public async getDashboardTableConfig(brand: BrandingModel, recordType: string, workflowStage: string): Promise<DashboardTableConfig | null> {
       try {
-        // Prefer merged config from DashboardConfigService if available
         if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardTableConfig) {
           const mergedConfig = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
           if (mergedConfig) {
             sails.log.verbose(`DashboardTypesService: using merged config for ${recordType}/${workflowStage}`);
-            return mergedConfig;
+            return mergedConfig.mergedConfig;
           }
         }
 
-        // Fallback to raw workflow config
         const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
         if (!recType) {
           sails.log.warn(`Record type not found: ${recordType}`);
           return null;
         }
-        sails.log.verbose(`DashboardTypesService: Found record type ${recordType}`);
 
         const workflowStep = await firstValueFrom(WorkflowStepsService.get(recType, workflowStage));
         if (!workflowStep) {
           sails.log.warn(`Workflow step not found: ${workflowStage} for record type: ${recordType}`);
           return null;
         }
-        sails.log.verbose(`DashboardTypesService: Found workflow step ${workflowStage}`);
 
         const dashboardConfig = _.get(workflowStep, 'config.dashboard.table', {}) as DashboardTableConfig;
-        sails.log.verbose(`DashboardTypesService: loaded config for ${recordType}/${workflowStage}, keys: ${Object.keys(dashboardConfig)}`);
-
-        return dashboardConfig;
+        return this.normalizeTableConfig(dashboardConfig);
       } catch (error) {
         sails.log.error(`Error getting dashboard table config for ${recordType}/${workflowStage}:`, error);
         return null;
       }
     }
 
-    /**
-     * Get the top-level dashboard configuration for a specific record type.
-     * This configuration is stored at the recordtype level, not the workflow step level.
-     * 
-     * @param brand The branding model
-     * @param recordType The record type name
-     * @returns The record type dashboard configuration, or null if not found
-     */
     public async getRecordTypeDashboardConfig(brand: BrandingModel, recordType: string): Promise<RecordTypeDashboardConfig | null> {
       try {
-        // Get record type - need full config, so not limiting fields
         const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
         if (!recType) {
           sails.log.warn(`Record type not found: ${recordType}`);
           return null;
         }
 
-        // Extract top-level dashboard config from record type
-        // This is different from the workflow-specific table config
         const dashboardConfig = _.get(recType, 'dashboard', {}) as RecordTypeDashboardConfig;
-        sails.log.verbose(`DashboardTypesService: loaded record type dashboard config for ${recordType}: ${JSON.stringify(dashboardConfig)}`);
-
         return dashboardConfig;
       } catch (error) {
         sails.log.error(`Error getting record type dashboard config for ${recordType}:`, error);
@@ -276,23 +401,22 @@ export namespace Services {
     ): Promise<TemplateCompileInput[]> {
       const entries: TemplateCompileInput[] = [];
       try {
-        const dashboardTypeModel = await firstValueFrom(this.get(brand, dashboardType));
-        if (dashboardTypeModel) {
-          const formatRules = dashboardTypeModel.formatRules;
-          const queryFilters = _.get(formatRules, `queryFilters.${queryRecordType}`);
-          if (_.isArray(queryFilters)) {
-            for (let i = 0; i < queryFilters.length; i++) {
-              const queryFilter = queryFilters[i];
-              if (_.isArray(queryFilter.filterFields)) {
-                for (let j = 0; j < queryFilter.filterFields.length; j++) {
-                  const filterField = queryFilter.filterFields[j];
-                  if (filterField.template) {
-                    entries.push({
-                      key: [...templateKeyPrefix, dashboardType, 'filters', i.toString(), 'fields', j.toString(), 'template'],
-                      kind: 'handlebars',
-                      value: filterField.template
-                    });
-                  }
+        const dashboardTypeModel = typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardTypeFormatRules
+          ? await DashboardConfigService.getMergedDashboardTypeFormatRules(brand, dashboardType)
+          : (await firstValueFrom(this.get(brand, dashboardType)))?.formatRules;
+        const queryFilters = _.get(dashboardTypeModel as Record<string, unknown> | null, `queryFilters.${queryRecordType}`) as Array<{ filterFields?: Array<{ template?: string }> }> | undefined;
+        if (_.isArray(queryFilters)) {
+          for (let i = 0; i < queryFilters.length; i++) {
+            const queryFilter = queryFilters[i];
+            if (_.isArray(queryFilter.filterFields)) {
+              for (let j = 0; j < queryFilter.filterFields.length; j++) {
+                const filterField = queryFilter.filterFields[j];
+                if (filterField.template) {
+                  entries.push({
+                    key: [...templateKeyPrefix, dashboardType, 'filters', i.toString(), 'fields', j.toString(), 'template'],
+                    kind: 'handlebars',
+                    value: filterField.template
+                  });
                 }
               }
             }
@@ -311,8 +435,7 @@ export namespace Services {
         return entries;
       }
 
-      const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultRowConfig;
-      sails.log.verbose(`DashboardTypesService: extracting ${rowConfig.length} row templates. Using default? ${_.isEmpty(dashboardConfig.rowConfig)}`);
+      const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultTableConfig().rowConfig;
       for (let i = 0; i < rowConfig.length; i++) {
         const row = rowConfig[i] as DashboardRowConfig;
         if (row.template) {
@@ -385,22 +508,10 @@ export namespace Services {
       return entries;
     }
 
-    /**
-     * Extract templates from dashboard configuration and prepare them for pre-compilation.
-     * Converts dashboard row templates to TemplateCompileInput format for Handlebars pre-compilation.
-     * 
-     * @param brand The branding model
-     * @param recordType The record type name
-     * @param workflowStage The workflow stage name
-     * @param dashboardType The dashboard type name (default: standard)
-     * @returns Array of templates ready for compilation
-     */
     public async extractDashboardTemplates(brand: BrandingModel, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<TemplateCompileInput[]> {
       const dashboardConfig = await this.getDashboardTableConfig(brand, recordType, workflowStage);
       const entries = this.extractDashboardTableTemplates([recordType, workflowStage], dashboardConfig);
       entries.push(...await this.extractQueryFilterTemplates(brand, recordType, dashboardType, [recordType]));
-
-      sails.log.verbose(`Extracted ${entries.length} dashboard templates for ${recordType}/${workflowStage}`);
       return entries;
     }
 
@@ -412,17 +523,14 @@ export namespace Services {
       }
 
       const resolvedDashboardType = dashboardType || dashboardViewConfig.dashboardType;
-
-      // Use merged config if DashboardConfigService is available
       let mergedTableConfig: DashboardTableConfig | null = dashboardStepConfig.dashboardTable ?? null;
       if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardViewTableConfig) {
-        mergedTableConfig = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, dashboardView, stepName);
+        const mergedConfig = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, dashboardView, stepName);
+        mergedTableConfig = mergedConfig?.mergedConfig ?? mergedTableConfig;
       }
 
       const entries = this.extractDashboardTableTemplates([dashboardView, stepName], mergedTableConfig);
       entries.push(...await this.extractQueryFilterTemplates(brand, dashboardStepConfig.sourceRecordType, resolvedDashboardType, [dashboardView]));
-
-      sails.log.verbose(`Extracted ${entries.length} dashboard templates for dashboard view ${dashboardView}/${stepName}`);
       return entries;
     }
   }

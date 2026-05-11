@@ -1,11 +1,163 @@
 .dashboard-config-editor {
-  padding: 1rem;
+  padding: 16px;
+}
 
-  .panel-body ul {
-    margin-left: 1rem;
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.toolbar h2 {
+  margin: 0;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.nav-pane {
+  border-right: 1px solid #ddd;
+  padding-right: 16px;
+}
+
+.nav-pane section + section {
+  margin-top: 24px;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.nav-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nav-item.active {
+  border-color: #337ab7;
+  background: #f5f9ff;
+}
+
+.nav-group + .nav-group {
+  margin-top: 10px;
+}
+
+.nav-group-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.editor-pane {
+  min-width: 0;
+}
+
+.editor-section {
+  display: grid;
+  gap: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 4px;
+}
+
+.split-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.config-preview {
+  min-height: 120px;
+  max-height: 320px;
+  overflow: auto;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin: 0;
+}
+
+.config-preview-container {
+  min-height: 120px;
+  max-height: 320px;
+  overflow: auto;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 12px;
+}
+
+.editor-block {
+  display: grid;
+  gap: 8px;
+}
+
+.override-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.loading-state,
+.empty-state {
+  padding: 24px;
+  color: #666;
+}
+
+@media (max-width: 960px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
   }
 
-  .actions {
-    margin-top: 1rem;
+  .nav-pane {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 16px;
+  }
+
+  .form-grid,
+  .split-preview {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,10 +1,26 @@
-export class DashboardTypeResponseModel{
+import type { DashboardTableConfig } from '../config/workflow.config';
 
-    name:string;
-    formatRules:Record<string, unknown>;
+export class DashboardTypeResponseModel {
+    name: string;
+    description?: string;
+    formatRules: Record<string, unknown>;
+    tableConfig: DashboardTableConfig;
+    searchable: boolean;
+    system: boolean;
 
-    constructor(name:string,formatRules:Record<string, unknown>) {
-        this.name = name;
-        this.formatRules = formatRules;
+    constructor(input: {
+      name: string;
+      description?: string;
+      formatRules: Record<string, unknown>;
+      tableConfig?: DashboardTableConfig;
+      searchable?: boolean;
+      system?: boolean;
+    }) {
+        this.name = input.name;
+        this.description = input.description;
+        this.formatRules = input.formatRules;
+        this.tableConfig = input.tableConfig ?? { rowConfig: [] };
+        this.searchable = input.searchable ?? true;
+        this.system = input.system ?? false;
     }
 }

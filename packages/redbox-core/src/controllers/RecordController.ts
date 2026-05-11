@@ -1061,9 +1061,14 @@ export namespace Controllers {
       const dashboardTypeParam = req.param('dashboardType') || '';
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
-        const name = String(_.get(dashboardType, 'name', ''));
-        const formatRules = (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>;
-        const dashboardTypeModel = new DashboardTypeResponseModel(name, formatRules);
+        const dashboardTypeModel = new DashboardTypeResponseModel({
+          name: String(_.get(dashboardType, 'name', '')),
+          description: _.get(dashboardType, 'description'),
+          formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+          tableConfig: _.get(dashboardType, 'tableConfig'),
+          searchable: _.get(dashboardType, 'searchable'),
+          system: _.get(dashboardType, 'system')
+        });
         this.sendResp(req, res, { data: dashboardTypeModel });
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
@@ -1076,7 +1081,14 @@ export namespace Controllers {
         const dashboardTypesModel = { dashboardTypes: [] };
         const dashboardTypesModelList = [];
         for (const dashboardType of dashboardTypes) {
-          const dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
+          const dashboardTypeModel = new DashboardTypeResponseModel({
+            name: _.get(dashboardType, 'name'),
+            description: _.get(dashboardType, 'description'),
+            formatRules: _.get(dashboardType, 'formatRules'),
+            tableConfig: _.get(dashboardType, 'tableConfig'),
+            searchable: _.get(dashboardType, 'searchable'),
+            system: _.get(dashboardType, 'system')
+          });
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);

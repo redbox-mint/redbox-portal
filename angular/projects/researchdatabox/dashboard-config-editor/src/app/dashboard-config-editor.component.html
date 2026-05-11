@@ -1,53 +1,136 @@
 <div class="dashboard-config-editor">
-  <h2>Dashboard Configuration</h2>
+  <div class="toolbar">
+    <h2>Dashboard Configuration</h2>
+    <div class="toolbar-actions">
+      <button type="button" class="btn btn-default" (click)="startNewDashboardType()">New type</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving || loading">
+        {{ saving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </div>
+
   <div *ngIf="message" class="alert alert-success">{{ message }}</div>
   <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
 
-  <div class="row">
-    <div class="col-md-3">
-      <div class="panel panel-default">
-        <div class="panel-heading">Record Types</div>
-        <div class="panel-body">
-          <div *ngFor="let rt of configInfo?.recordTypes">
-            <strong>{{ rt.name }}</strong>
-            <ul class="list-unstyled">
-              <li *ngFor="let step of rt.steps">
-                <a href="javascript:void(0)" (click)="selectRecordType(rt.name, step)">{{ step }}</a>
-              </li>
-            </ul>
+  <div class="dashboard-layout">
+    <aside class="nav-pane">
+      <section>
+        <h3>Dashboard Types</h3>
+        <ul class="nav-list">
+          <li *ngFor="let type of typeList">
+            <button type="button" class="nav-item" [class.active]="isSelectedDashboardType(type.name)" (click)="selectDashboardType(type.name)">
+              <span>{{ type.name }}</span>
+              <small *ngIf="type.system">system</small>
+            </button>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Record Types</h3>
+        <div *ngFor="let recordType of selectedRecordTypes" class="nav-group">
+          <div class="nav-group-title">{{ recordType.name }}</div>
+          <ul class="nav-list">
+            <li *ngFor="let step of recordType.steps">
+              <button type="button" class="nav-item" [class.active]="isSelectedRecordType(recordType.name, step)" (click)="selectRecordType(recordType.name, step)">
+                {{ step }}
+              </button>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h3>Views</h3>
+        <div *ngFor="let view of selectedViews" class="nav-group">
+          <div class="nav-group-title">{{ view.name }}</div>
+          <ul class="nav-list">
+            <li *ngFor="let step of view.steps">
+              <button type="button" class="nav-item" [class.active]="isSelectedView(view.name, step)" (click)="selectView(view.name, step)">
+                {{ step }}
+              </button>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </aside>
+
+    <main class="editor-pane">
+      <div *ngIf="loading" class="loading-state">Loading…</div>
+
+      <div *ngIf="!loading && selectedContext && selectedContext.type === 'dashboardType'" class="editor-section">
+        <div class="section-header">
+          <h3>{{ contextLabel }}</h3>
+          <div class="section-actions">
+            <button type="button" class="btn btn-default" (click)="duplicateDashboardType()" [disabled]="dashboardTypeIsNew || !dashboardTypeForm.name">Duplicate</button>
+            <button type="button" class="btn btn-danger" (click)="deleteDashboardType()" [disabled]="dashboardTypeIsNew || !!currentTypeDefinition?.system">Delete</button>
           </div>
         </div>
+
+        <div class="form-grid">
+          <label>
+            <span>Name</span>
+            <input type="text" class="form-control" [(ngModel)]="dashboardTypeForm.name" [readonly]="!dashboardTypeIsNew" />
+          </label>
+          <label>
+            <span>Description</span>
+            <input type="text" class="form-control" [(ngModel)]="dashboardTypeForm.description" />
+          </label>
+          <label>
+            <span>Searchable</span>
+            <input type="checkbox" [(ngModel)]="dashboardTypeForm.searchable" />
+          </label>
+          <label>
+            <span>System</span>
+            <input type="checkbox" [(ngModel)]="dashboardTypeForm.system" [disabled]="true" />
+          </label>
+        </div>
+
+        <format-rules-editor [formatRules]="dashboardTypeForm.formatRules" (formatRulesChange)="dashboardTypeForm.formatRules = $event"></format-rules-editor>
+        <table-config-editor [config]="dashboardTypeForm.tableConfig" (configChange)="dashboardTypeForm.tableConfig = $event"></table-config-editor>
       </div>
-      <div class="panel panel-default">
-        <div class="panel-heading">Views</div>
-        <div class="panel-body">
-          <div *ngFor="let v of configInfo?.views">
-            <strong>{{ v.name }}</strong>
-            <ul class="list-unstyled">
-              <li *ngFor="let step of v.steps">
-                <a href="javascript:void(0)" (click)="selectView(v.name, step)">{{ step }}</a>
-              </li>
-            </ul>
+
+      <div *ngIf="!loading && selectedContext && selectedContext.type !== 'dashboardType'" class="editor-section">
+        <div class="section-header">
+          <h3>{{ contextLabel }}</h3>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            <span>Dashboard Type</span>
+            <select class="form-control" [(ngModel)]="currentDashboardTypeName">
+              <option *ngFor="let type of typeList" [value]="type.name">{{ type.name }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="split-preview">
+          <section>
+            <h4>Inherited Type Config</h4>
+            <div class="config-preview-container">
+              <table-config-preview [config]="selectedMergedConfig?.inheritedTypeConfig || null"></table-config-preview>
+            </div>
+          </section>
+          <section>
+            <h4>Workflow / View Config</h4>
+            <div class="config-preview-container">
+              <table-config-preview [config]="selectedMergedConfig?.workflowConfig || null"></table-config-preview>
+            </div>
+          </section>
+        </div>
+
+        <div class="editor-block">
+          <h4>Local Override</h4>
+          <div class="override-actions">
+            <button type="button" class="btn btn-default" (click)="currentOverrideConfig = {}">Reset local override</button>
           </div>
+          <table-config-editor [config]="currentOverrideConfig" (configChange)="currentOverrideConfig = $event"></table-config-editor>
         </div>
       </div>
-    </div>
-    <div class="col-md-9">
-      <div *ngIf="loading" class="text-center">
-        <img src="/images/loading.svg" alt="Loading..." />
+
+      <div *ngIf="!loading && !selectedContext" class="empty-state">
+        Select a dashboard type, workflow state, or view step to edit.
       </div>
-      <div *ngIf="!loading && selectedContext">
-        <h3>{{ contextLabel }}</h3>
-        <table-config-editor [(config)]="currentConfig"></table-config-editor>
-        <div class="actions">
-          <button class="btn btn-primary" (click)="save()" [disabled]="saving">
-            {{ saving ? 'Saving...' : 'Save' }}
-          </button>
-        </div>
-      </div>
-      <div *ngIf="!loading && !selectedContext" class="text-muted">
-        Select a record type step or view step to edit its dashboard configuration.
-      </div>
-    </div>
+    </main>
   </div>
 </div>

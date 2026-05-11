@@ -1,9 +1,9 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { of } from 'rxjs';
 import { Services } from '../../src/services/DashboardConfigService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { of } from 'rxjs';
 
 describe('DashboardConfigService', function () {
   let service: Services.DashboardConfig;
@@ -32,63 +32,10 @@ describe('DashboardConfigService', function () {
       }
     };
     mockSails.config.dashboardtype = {
-      standard: { searchFilters: [], formatRules: { filterBy: {} } }
+      standard: { formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } },
+      consolidated: { formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } }
     };
-    mockSails.config.workflow = {
-      rdmp: {
-        draft: {
-          config: {
-            workflow: { stage: 'draft', stageLabel: 'Draft' },
-            authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
-            form: 'default-1.0-draft',
-            dashboard: {
-              table: {
-                rowConfig: [
-                  { title: 'Record Title', variable: 'metadata.title', template: '<a href="/view/{{oid}}">{{title}}</a>' }
-                ],
-                formatRules: { sortBy: 'metaMetadata.lastSaveDate' }
-              }
-            }
-          },
-          starting: true
-        }
-      }
-    };
-
     setupServiceTestGlobals(mockSails);
-
-    const mockDeferred = (result: unknown) => {
-      const p: any = Promise.resolve(result);
-      p.exec = sinon.stub().yields(null, result);
-      return p;
-    };
-
-    (global as any).RecordType = {
-      find: sinon.stub().callsFake(() => mockDeferred([])),
-      findOne: sinon.stub().callsFake(() => mockDeferred(null))
-    };
-
-    (global as any).WorkflowStep = {
-      find: sinon.stub().callsFake(() => mockDeferred([])),
-      findOne: sinon.stub().callsFake(() => mockDeferred(null))
-    };
-
-    (global as any).DashboardType = {
-      find: sinon.stub().callsFake(() => mockDeferred([])),
-      findOne: sinon.stub().callsFake(() => mockDeferred(null)),
-      create: sinon.stub().callsFake(() => mockDeferred({}))
-    };
-
-    (global as any).AppConfig = {
-      find: sinon.stub().callsFake(() => mockDeferred([])),
-      create: sinon.stub().callsFake((data: any) => mockDeferred(data)),
-      updateOne: sinon.stub().returns({ set: sinon.stub().callsFake(() => mockDeferred({ configData: {} })) })
-    };
-
-    (global as any).AppConfigService = {
-      getAppConfigByBrandAndKey: sinon.stub().resolves({ recordTypes: {}, views: {}, dashboardTypes: {} }),
-      createOrUpdateConfig: sinon.stub().resolves({ recordTypes: {}, views: {}, dashboardTypes: {} })
-    };
 
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', id: 'rt1' })),
@@ -113,15 +60,31 @@ describe('DashboardConfigService', function () {
     };
 
     (global as any).DashboardTypesService = {
-      get: sinon.stub().returns(of({ name: 'standard', formatRules: { filterBy: {} } }))
+      getDashboardTypeDefinition: sinon.stub().resolves({
+        name: 'standard',
+        formatRules: { filterBy: {}, queryFilters: { rdmp: [{ filterFields: [{ template: '{{metadata.title}}' }] }] } },
+        tableConfig: { rowConfig: [{ title: 'Type Title', variable: 'metadata.title', template: '{{metadata.title}}' }] }
+      }),
+      getAllDashboardTypeDefinitions: sinon.stub().resolves([
+        {
+          name: 'standard',
+          formatRules: { filterBy: {} },
+          tableConfig: { rowConfig: [] },
+          searchable: true,
+          system: true
+        }
+      ]),
+      getMergedDashboardTypeFormatRules: sinon.stub().resolves({ filterBy: {}, queryFilters: { rdmp: [{ filterFields: [{ template: '{{metadata.title}}' }] }] } })
+    };
+
+    (global as any).AppConfigService = {
+      getAppConfigByBrandAndKey: sinon.stub().resolves({ recordTypes: {}, views: {} }),
+      createOrUpdateConfig: sinon.stub().resolves({ recordTypes: {}, views: {} })
     };
 
     (global as any).BrandingService = {
-      getBrandNameFromReq: sinon.stub().returns('default'),
-      getBrand: sinon.stub().returns({ id: 'brand1', name: 'default' }),
-      getAvailable: sinon.stub().returns(['default']),
-      getDefault: sinon.stub().returns({ id: 'brand1', name: 'default' }),
-      getBrandFromReq: sinon.stub().returns({ id: 'brand1', name: 'default' })
+      getBrandFromReq: sinon.stub().returns({ id: 'brand1', name: 'default' }),
+      getDefault: sinon.stub().returns({ id: 'brand1', name: 'default' })
     };
 
     service = new Services.DashboardConfig();
@@ -129,177 +92,85 @@ describe('DashboardConfigService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).RecordType;
-    delete (global as any).WorkflowStep;
-    delete (global as any).DashboardType;
-    delete (global as any).AppConfig;
-    delete (global as any).AppConfigService;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
     delete (global as any).DashboardTypesService;
+    delete (global as any).AppConfigService;
     delete (global as any).BrandingService;
     sinon.restore();
   });
 
-  describe('getDashboardConfigInfo', function () {
-    it('should return config info for a brand', async function () {
-      const brand = { id: 'brand1' };
-      const info = await service.getDashboardConfigInfo(brand as any);
-      expect(info.recordTypes).to.be.an('array');
-      expect(info.views).to.be.an('array');
-      expect(info.dashboardTypes).to.be.an('array');
-    });
+  it('returns dashboard config info with dashboard types', async function () {
+    const info = await service.getDashboardConfigInfo({ id: 'brand1' } as any);
+    expect(info.recordTypes).to.have.length(1);
+    expect(info.views).to.have.length(1);
+    expect(info.dashboardTypes).to.have.length(1);
   });
 
-  describe('getDashboardOverrides', function () {
-    it('should return empty overrides when none exist', async function () {
-      const brand = { id: 'brand1' };
-      const overrides = await service.getDashboardOverrides(brand as any);
-      expect(overrides).to.deep.equal({ recordTypes: {}, views: {}, dashboardTypes: {} });
-    });
+  it('returns strict empty overrides by default', async function () {
+    const overrides = await service.getDashboardOverrides({ id: 'brand1' } as any);
+    expect(overrides).to.deep.equal({ recordTypes: {}, views: {} });
   });
 
-  describe('saveDashboardOverrides', function () {
-    it('should save overrides via AppConfigService', async function () {
-      const brand = { id: 'brand1' };
-      const newOverrides = { recordTypes: { rdmp: { default: { rowConfig: [] } } }, views: {}, dashboardTypes: {} };
-      const saved = await service.saveDashboardOverrides(brand as any, newOverrides);
-      expect((global as any).AppConfigService.createOrUpdateConfig.calledOnce).to.be.true;
-    });
-  });
-
-  describe('getMergedDashboardTableConfig', function () {
-    it('should return workflow config when no overrides exist', async function () {
-      const brand = { id: 'brand1' };
-      const config = await service.getMergedDashboardTableConfig(brand as any, 'rdmp', 'draft');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig).to.be.an('array');
-      expect(config!.rowConfig![0].title).to.equal('Record Title');
-    });
-
-    it('should return default dashboard rows when workflow table config is missing', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).WorkflowStepsService.get = sinon.stub().returns(of({
-        name: 'draft',
-        config: {
-          workflow: { stage: 'draft', stageLabel: 'Draft' },
-          authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
-          form: 'dataRecord-1.0-draft'
+  it('saves strict overrides without dashboardTypes', async function () {
+    const saved = await service.saveDashboardOverrides({ id: 'brand1' } as any, {
+      recordTypes: {
+        rdmp: {
+          default: { dashboardType: 'standard' }
         }
-      }));
-
-      const config = await service.getMergedDashboardTableConfig(brand as any, 'dataRecord', 'draft');
-
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig).to.be.an('array');
-      expect(config!.rowConfig!.length).to.be.greaterThan(0);
-      expect(config!.rowConfig![0].title).to.equal('Record Title');
+      }
     });
 
-    it('should merge step-level override over workflow config', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
-        recordTypes: {
-          rdmp: {
-            steps: {
-              draft: {
-                rowConfig: [
-                  { title: 'Overridden Title', variable: 'metadata.title', template: 'override' }
-                ]
-              }
-            }
-          }
-        },
-        views: {},
-        dashboardTypes: {}
-      });
-
-      const config = await service.getMergedDashboardTableConfig(brand as any, 'rdmp', 'draft');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig![0].title).to.equal('Overridden Title');
-    });
-
-    it('should apply record-type default override when no step override exists', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
-        recordTypes: {
-          rdmp: {
-            default: {
-              rowConfig: [
-                { title: 'Default Override', variable: 'metadata.title', template: 'default-override' }
-              ]
-            }
-          }
-        },
-        views: {},
-        dashboardTypes: {}
-      });
-
-      const config = await service.getMergedDashboardTableConfig(brand as any, 'rdmp', 'draft');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig![0].title).to.equal('Default Override');
-    });
-
-    it('should let step override win over record-type default', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
-        recordTypes: {
-          rdmp: {
-            default: {
-              rowConfig: [{ title: 'Default', variable: 'metadata.title', template: 'default' }]
-            },
-            steps: {
-              draft: {
-                rowConfig: [{ title: 'Step Override', variable: 'metadata.title', template: 'step' }]
-              }
-            }
-          }
-        },
-        views: {},
-        dashboardTypes: {}
-      });
-
-      const config = await service.getMergedDashboardTableConfig(brand as any, 'rdmp', 'draft');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig![0].title).to.equal('Step Override');
-    });
+    expect(saved.recordTypes?.rdmp?.default?.dashboardType).to.equal('standard');
+    expect((global as any).AppConfigService.createOrUpdateConfig.calledOnce).to.be.true;
   });
 
-  describe('getMergedDashboardViewTableConfig', function () {
-    it('should return view config when no overrides exist', async function () {
-      const brand = { id: 'brand1' };
-      const config = await service.getMergedDashboardViewTableConfig(brand as any, 'consolidated', 'consolidated');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig![0].title).to.equal('View Title');
-    });
-
-    it('should merge view step override', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
-        recordTypes: {},
-        views: {
-          consolidated: {
-            steps: {
-              consolidated: {
-                rowConfig: [{ title: 'View Override', variable: 'metadata.title', template: 'view-override' }]
-              }
-            }
+  it('merges dashboard type, workflow config, and workflow override', async function () {
+    (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
+      recordTypes: {
+        rdmp: {
+          default: { dashboardType: 'standard', tableConfig: { rowConfig: [{ title: 'Default', variable: 'metadata.title', template: 'default' }] } },
+          steps: {
+            draft: { dashboardType: 'standard', tableConfig: { rowConfig: [{ title: 'Override', variable: 'metadata.title', template: 'override' }] } }
           }
-        },
-        dashboardTypes: {}
-      });
-
-      const config = await service.getMergedDashboardViewTableConfig(brand as any, 'consolidated', 'consolidated');
-      expect(config).to.not.be.null;
-      expect(config!.rowConfig![0].title).to.equal('View Override');
+        }
+      },
+      views: {}
     });
+
+    const result = await service.getMergedDashboardTableConfig({ id: 'brand1' } as any, 'rdmp', 'draft');
+    expect(result).to.not.be.null;
+    expect(result!.dashboardType).to.equal('standard');
+    expect(result!.inheritedTypeConfig.rowConfig).to.be.an('array');
+    expect(result!.workflowConfig).to.not.be.null;
+    expect(result!.overrideConfig).to.not.be.null;
+    expect(result!.mergedConfig.rowConfig?.[0].title).to.equal('Override');
   });
 
-  describe('getMergedDashboardTypeFormatRules', function () {
-    it('should return dashboard type format rules when no overrides exist', async function () {
-      const brand = { id: 'brand1' };
-      const rules = await service.getMergedDashboardTypeFormatRules(brand as any, 'standard');
-      expect(rules).to.not.be.null;
+  it('merges dashboard view type and override config', async function () {
+    (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
+      recordTypes: {},
+      views: {
+        consolidated: {
+          default: { dashboardType: 'consolidated', tableConfig: { rowConfig: [{ title: 'View Default', variable: 'metadata.title', template: 'view-default' }] } },
+          steps: {
+            consolidated: { dashboardType: 'consolidated', tableConfig: { rowConfig: [{ title: 'View Override', variable: 'metadata.title', template: 'view-override' }] } }
+          }
+        }
+      }
     });
+
+    const result = await service.getMergedDashboardViewTableConfig({ id: 'brand1' } as any, 'consolidated', 'consolidated');
+    expect(result).to.not.be.null;
+    expect(result!.dashboardType).to.equal('consolidated');
+    expect(result!.workflowConfig).to.not.be.null;
+    expect(result!.overrideConfig).to.not.be.null;
+    expect(result!.mergedConfig.rowConfig?.[0].title).to.equal('View Override');
+  });
+
+  it('returns merged dashboard type format rules', async function () {
+    const rules = await service.getMergedDashboardTypeFormatRules({ id: 'brand1' } as any, 'standard');
+    expect(rules).to.not.be.null;
+    expect(rules?.filterBy).to.deep.equal({});
   });
 });

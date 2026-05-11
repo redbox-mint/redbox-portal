@@ -14,11 +14,13 @@ import { RuleSetEditorComponent } from './rule-set-editor/rule-set-editor.compon
 import { RuleEditorComponent } from './rule-set-editor/rule-editor.component';
 import { TemplatePreviewComponent } from './template-preview/template-preview.component';
 import { TemplatePreviewService } from './template-preview/template-preview.service';
+import { TableConfigPreviewComponent } from './table-config-preview/table-config-preview.component';
 
 @NgModule({
   declarations: [
     DashboardConfigEditorComponent,
     TableConfigEditorComponent,
+    TableConfigPreviewComponent,
     ColumnEditorComponent,
     ColumnDetailComponent,
     FormatRulesEditorComponent,

@@ -4,20 +4,6 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 
-export interface DashboardConfigInfo {
-  recordTypes: Array<{ name: string; steps: string[] }>;
-  views: Array<{ name: string; steps: string[] }>;
-  dashboardTypes: string[];
-}
-
-export interface DashboardTableConfig {
-  rowConfig?: DashboardRowConfig[];
-  formatRules?: DashboardFormatRules;
-  rowRulesConfig?: DashboardRulesConfig[];
-  groupRowConfig?: DashboardRowConfig[];
-  groupRowRulesConfig?: DashboardRulesConfig[];
-}
-
 export interface DashboardRowConfig {
   title: string;
   variable: string;
@@ -25,13 +11,6 @@ export interface DashboardRowConfig {
   initialSort?: 'asc' | 'desc';
   defaultSort?: boolean;
   secondarySort?: string;
-}
-
-export interface DashboardFormatRules {
-  filterBy?: Record<string, unknown>;
-  sortBy?: string;
-  groupBy?: string;
-  sortGroupBy?: Array<{ rowLevel: number; compareFieldValue: string }>;
 }
 
 export interface DashboardRowRule {
@@ -51,10 +30,57 @@ export interface DashboardRulesConfig {
   rules: DashboardRowRule[];
 }
 
+export interface DashboardFormatRules {
+  filterBy?: Record<string, unknown>;
+  filterWorkflowStepsBy?: string[];
+  recordTypeFilterBy?: string;
+  queryFilters?: Record<string, unknown>;
+  sortBy?: string;
+  groupBy?: string;
+  sortGroupBy?: Array<Record<string, unknown>>;
+  hideWorkflowStepTitleForRecordType?: string[];
+}
+
+export interface DashboardTableConfig {
+  rowConfig?: DashboardRowConfig[];
+  formatRules?: DashboardFormatRules;
+  rowRulesConfig?: DashboardRulesConfig[];
+  groupRowConfig?: DashboardRowConfig[];
+  groupRowRulesConfig?: DashboardRulesConfig[];
+}
+
+export interface DashboardTypeDefinition {
+  name: string;
+  description?: string;
+  searchable?: boolean;
+  system?: boolean;
+  formatRules: DashboardFormatRules;
+  tableConfig: DashboardTableConfig;
+}
+
+export interface DashboardConfigInfo {
+  recordTypes: Array<{ name: string; steps: string[] }>;
+  views: Array<{ name: string; steps: string[] }>;
+  dashboardTypes: DashboardTypeDefinition[];
+}
+
+export interface WorkflowStateDashboardConfig {
+  dashboardType: string;
+  tableConfig?: DashboardTableConfig;
+}
+
 export interface DashboardTableOverrideConfigData {
-  recordTypes?: Record<string, { default?: DashboardTableConfig; steps?: Record<string, DashboardTableConfig> }>;
-  views?: Record<string, { steps?: Record<string, DashboardTableConfig> }>;
-  dashboardTypes?: Record<string, { formatRules?: DashboardFormatRules }>;
+  recordTypes?: Record<string, { default?: WorkflowStateDashboardConfig; steps?: Record<string, WorkflowStateDashboardConfig> }>;
+  views?: Record<string, { default?: WorkflowStateDashboardConfig; steps?: Record<string, WorkflowStateDashboardConfig> }>;
+}
+
+export interface MergedDashboardConfigResult {
+  dashboardType: string;
+  inheritedTypeConfig: DashboardTableConfig;
+  workflowConfig: DashboardTableConfig | null;
+  overrideConfig: DashboardTableConfig | null;
+  mergedConfig: DashboardTableConfig;
+  formatRules: DashboardFormatRules;
 }
 
 type ApiResponse<T> = { data: T };
@@ -117,13 +143,48 @@ export class DashboardConfigApiService extends HttpClientService {
     return this.unwrap(response);
   }
 
-  async getMergedConfig(recordType: string, workflowStage: string): Promise<DashboardTableConfig | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardTableConfig | null>>(this.apiUrl(`/merged/${encodeURIComponent(recordType)}/${encodeURIComponent(workflowStage)}`), this.getJsonRequestOptions()));
+  async getDashboardTypes(): Promise<DashboardTypeDefinition[]> {
+    const response = await firstValueFrom(this.http.get<ApiResponse<{ dashboardTypes: DashboardTypeDefinition[] }>>(this.apiUrl('/dashboard-types'), this.getJsonRequestOptions()));
+    return this.unwrap(response).dashboardTypes;
+  }
+
+  async getDashboardType(name: string): Promise<DashboardTypeDefinition | null> {
+    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardTypeDefinition | null>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), this.getJsonRequestOptions()));
     return this.unwrap(response);
   }
 
-  async getMergedViewConfig(viewName: string, stepName: string): Promise<DashboardTableConfig | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardTableConfig | null>>(this.apiUrl(`/merged-view/${encodeURIComponent(viewName)}/${encodeURIComponent(stepName)}`), this.getJsonRequestOptions()));
+  async createDashboardType(input: Partial<DashboardTypeDefinition> & { name: string }): Promise<DashboardTypeDefinition> {
+    const response = await firstValueFrom(this.http.post<ApiResponse<DashboardTypeDefinition>>(this.apiUrl('/dashboard-types'), input, this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async updateDashboardType(name: string, input: Partial<DashboardTypeDefinition>): Promise<DashboardTypeDefinition> {
+    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTypeDefinition>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), input, this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async deleteDashboardType(name: string): Promise<{ deleted: boolean }> {
+    const response = await firstValueFrom(this.http.delete<ApiResponse<{ deleted: boolean }>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async saveWorkflowStateDashboardConfig(recordType: string, workflowStage: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
+    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/record-types/${encodeURIComponent(recordType)}/steps/${encodeURIComponent(workflowStage)}`), config, this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async saveDashboardViewStepConfig(viewName: string, stepName: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
+    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/views/${encodeURIComponent(viewName)}/steps/${encodeURIComponent(stepName)}`), config, this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async getMergedConfig(recordType: string, workflowStage: string): Promise<MergedDashboardConfigResult | null> {
+    const response = await firstValueFrom(this.http.get<ApiResponse<MergedDashboardConfigResult | null>>(this.apiUrl(`/merged/${encodeURIComponent(recordType)}/${encodeURIComponent(workflowStage)}`), this.getJsonRequestOptions()));
+    return this.unwrap(response);
+  }
+
+  async getMergedViewConfig(viewName: string, stepName: string): Promise<MergedDashboardConfigResult | null> {
+    const response = await firstValueFrom(this.http.get<ApiResponse<MergedDashboardConfigResult | null>>(this.apiUrl(`/merged-view/${encodeURIComponent(viewName)}/${encodeURIComponent(stepName)}`), this.getJsonRequestOptions()));
     return this.unwrap(response);
   }
 

@@ -1,33 +1,42 @@
 import { firstValueFrom } from 'rxjs';
 import { Controllers as controllers } from '../../CoreController';
-import type { DashboardTableOverrideConfigData } from '../../configmodels/DashboardTableOverrideConfig';
-import type { DashboardTableConfig, DashboardFormatRules } from '../../config/workflow.config';
+import type { DashboardTableOverrideConfigData, WorkflowStateDashboardConfig } from '../../configmodels/DashboardTableOverrideConfig';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
 export namespace Controllers {
   export class DashboardConfig extends controllers.Core.Controller {
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     protected override _exportedMethods: string[] = [
       'getConfigInfo',
       'getDefaults',
       'getOverrides',
       'saveOverrides',
+      'getDashboardTypes',
+      'createDashboardType',
+      'getDashboardType',
+      'updateDashboardType',
+      'deleteDashboardType',
+      'saveWorkflowStateDashboardConfig',
+      'saveDashboardViewStepConfig',
       'getMergedConfig',
       'getMergedViewConfig',
       'getMergedTypeFormatRules'
     ];
 
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
     private resolveBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
     }
 
+    private getParam(req: Sails.Req, name: string): string {
+      return String(req.param(name) || '').trim();
+    }
+
     public async getConfigInfo(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand = this.resolveBrand(req);
-        const info = await DashboardConfigService.getDashboardConfigInfo(brand);
+        const info = await DashboardConfigService.getDashboardConfigInfo(this.resolveBrand(req));
         return this.sendResp(req, res, { data: info, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -36,35 +45,26 @@ export namespace Controllers {
 
     public async getDefaults(req: Sails.Req, res: Sails.Res) {
       try {
-        const recordType = String(req.param('recordType') || '');
-        const workflowStage = String(req.param('workflowStage') || '');
-        const viewName = String(req.param('viewName') || '');
-        const stepName = String(req.param('stepName') || '');
-        const dashboardType = String(req.param('dashboardType') || '');
-
         const brand = this.resolveBrand(req);
+        const recordType = this.getParam(req, 'recordType');
+        const workflowStage = this.getParam(req, 'workflowStage');
+        const viewName = this.getParam(req, 'viewName');
+        const stepName = this.getParam(req, 'stepName');
+        const dashboardType = this.getParam(req, 'dashboardType');
         const defaults: Record<string, unknown> = {};
 
         if (recordType && workflowStage) {
-          const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
-          if (recType) {
-            const workflowStep = await firstValueFrom(WorkflowStepsService.get(recType, workflowStage));
-            if (workflowStep) {
-              const tableConfig = _.get(workflowStep, 'config.dashboard.table');
-              defaults.tableConfig = _.isEmpty(tableConfig) ? DashboardConfigService.getDefaultDashboardTableConfig() : tableConfig;
-            }
-          }
+          const merged = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
+          defaults.recordType = merged;
         }
 
         if (viewName && stepName) {
-          const viewDef = sails.config.dashboardview?.[viewName];
-          const stepDef = viewDef?.steps?.find((s: { name: string }) => s.name === stepName);
-          defaults.viewTableConfig = stepDef?.dashboardTable ?? null;
+          const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, viewName, stepName);
+          defaults.view = merged;
         }
 
         if (dashboardType) {
-          const dtModel = await firstValueFrom(DashboardTypesService.get(brand, dashboardType));
-          defaults.formatRules = dtModel?.formatRules ?? null;
+          defaults.dashboardType = await firstValueFrom(DashboardTypesService.get(brand, dashboardType));
         }
 
         return this.sendResp(req, res, { data: defaults, headers: this.getNoCacheHeaders() });
@@ -75,8 +75,7 @@ export namespace Controllers {
 
     public async getOverrides(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand = this.resolveBrand(req);
-        const overrides = await DashboardConfigService.getDashboardOverrides(brand);
+        const overrides = await DashboardConfigService.getDashboardOverrides(this.resolveBrand(req));
         return this.sendResp(req, res, { data: overrides, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -94,15 +93,103 @@ export namespace Controllers {
       }
     }
 
+    public async getDashboardTypes(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const dashboardTypes = await DashboardTypesService.getAllDashboardTypeDefinitions(brand);
+        return this.sendResp(req, res, { data: { dashboardTypes }, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async createDashboardType(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const saved = await firstValueFrom(DashboardTypesService.createDashboardType(brand, req.body));
+        return this.sendResp(req, res, { status: 201, data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async getDashboardType(req: Sails.Req, res: Sails.Res) {
+      try {
+        const dashboardType = this.getParam(req, 'dashboardType');
+        if (!dashboardType) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+        }
+        const brand = this.resolveBrand(req);
+        const saved = await DashboardTypesService.getDashboardTypeDefinition(brand, dashboardType);
+        if (!saved) {
+          return this.sendResp(req, res, { status: 404, errors: [new Error(`Dashboard type '${dashboardType}' not found`)], headers: this.getNoCacheHeaders() });
+        }
+        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async updateDashboardType(req: Sails.Req, res: Sails.Res) {
+      try {
+        const dashboardType = this.getParam(req, 'dashboardType');
+        if (!dashboardType) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+        }
+        const brand = this.resolveBrand(req);
+        const saved = await firstValueFrom(DashboardTypesService.updateDashboardType(brand, dashboardType, req.body));
+        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async deleteDashboardType(req: Sails.Req, res: Sails.Res) {
+      try {
+        const dashboardType = this.getParam(req, 'dashboardType');
+        if (!dashboardType) {
+          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+        }
+        const brand = this.resolveBrand(req);
+        const saved = await firstValueFrom(DashboardTypesService.deleteDashboardType(brand, dashboardType));
+        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async saveWorkflowStateDashboardConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const recordType = this.getParam(req, 'recordType');
+        const workflowStage = this.getParam(req, 'workflowStage');
+        const saved = await DashboardConfigService.saveWorkflowStateDashboardConfig(brand, recordType, workflowStage, req.body as WorkflowStateDashboardConfig);
+        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async saveDashboardViewStepConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const viewName = this.getParam(req, 'viewName');
+        const stepName = this.getParam(req, 'stepName');
+        const saved = await DashboardConfigService.saveDashboardViewStepConfig(brand, viewName, stepName, req.body as WorkflowStateDashboardConfig);
+        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      }
+    }
+
     public async getMergedConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const recordType = String(req.param('recordType') || '');
-        const workflowStage = String(req.param('workflowStage') || '');
+        const recordType = this.getParam(req, 'recordType');
+        const workflowStage = this.getParam(req, 'workflowStage');
         if (!recordType || !workflowStage) {
           return this.sendResp(req, res, { status: 400, errors: [new Error('recordType and workflowStage are required')], headers: this.getNoCacheHeaders() });
         }
-        const brand = this.resolveBrand(req);
-        const merged = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
+        const merged = await DashboardConfigService.getMergedDashboardTableConfig(this.resolveBrand(req), recordType, workflowStage);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -111,13 +198,12 @@ export namespace Controllers {
 
     public async getMergedViewConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const viewName = String(req.param('viewName') || '');
-        const stepName = String(req.param('stepName') || '');
+        const viewName = this.getParam(req, 'viewName');
+        const stepName = this.getParam(req, 'stepName');
         if (!viewName || !stepName) {
           return this.sendResp(req, res, { status: 400, errors: [new Error('viewName and stepName are required')], headers: this.getNoCacheHeaders() });
         }
-        const brand = this.resolveBrand(req);
-        const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, viewName, stepName);
+        const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(this.resolveBrand(req), viewName, stepName);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
@@ -126,12 +212,11 @@ export namespace Controllers {
 
     public async getMergedTypeFormatRules(req: Sails.Req, res: Sails.Res) {
       try {
-        const dashboardType = String(req.param('dashboardType') || '');
+        const dashboardType = this.getParam(req, 'dashboardType');
         if (!dashboardType) {
           return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
         }
-        const brand = this.resolveBrand(req);
-        const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(brand, dashboardType);
+        const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(this.resolveBrand(req), dashboardType);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
