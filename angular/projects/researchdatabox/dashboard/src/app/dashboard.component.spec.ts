@@ -1,16 +1,29 @@
 import { TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
-import { FormsModule } from "@angular/forms";
+import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
-import { ConfigService, HandlebarsTemplateService, I18NextPipe, LoggerService, RecordService, TranslationService, UserService, UtilityService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService, getStubRecordService, getStubUserService } from '@researchdatabox/portal-ng-common';
+import {
+  ConfigService,
+  HandlebarsTemplateService,
+  I18NextPipe,
+  LoggerService,
+  RecordService,
+  TranslationService,
+  UserService,
+  UtilityService,
+} from '@researchdatabox/portal-ng-common';
+import {
+  getStubConfigService,
+  getStubTranslationService,
+  getStubRecordService,
+  getStubUserService,
+} from '@researchdatabox/portal-ng-common';
 
 const username = 'testUser';
 const password = 'some-password';
 const dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
 let recordDataStandard = {
-  dashboardType:
-  {
+  dashboardType: {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: [],
@@ -21,30 +34,32 @@ let recordDataStandard = {
             filterFields: [
               {
                 name: 'Title',
-                path: 'metadata.title'
-              }
-            ]
-          }
-        ]
+                path: 'metadata.title',
+              },
+            ],
+          },
+        ],
       },
       groupBy: '',
       sortGroupBy: [],
-      hideWorkflowStepTitleForRecordType: []
-    }
+      hideWorkflowStepTitleForRecordType: [],
+    },
   },
-  step: [{
-    name: 'draft',
-    config: {
-      workflow: {
-        stage: 'draft'
+  step: [
+    {
+      name: 'draft',
+      config: {
+        workflow: {
+          stage: 'draft',
+        },
+        dashboard: {
+          table: {
+            dummyRowConfig: ['dummy'], //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
+          },
+        },
       },
-      dashboard: {
-        table: {
-          dummyRowConfig: ['dummy'] //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
-        }
-      }
-    }
-  }],
+    },
+  ],
   records: {
     items: [
       {
@@ -55,25 +70,25 @@ let recordDataStandard = {
         metadata: {
           metaMetadata: {
             type: 'rdmp',
-            lastSaveDate: ''
+            lastSaveDate: '',
           },
           metadata: { title: 'test' },
           packageType: 'rdmp',
           workflow: '',
           hasEditAccess: '',
-          recordType: 'rdmp'
-        }
-      }
+          recordType: 'rdmp',
+        },
+      },
     ],
     totalItems: 0,
     currentPage: 1,
-    noItems: 10
+    noItems: 10,
   },
   paginationData: {
     itemsPerPage: 10,
     page: 2,
-    step: 'draft'
-  }
+    step: 'draft',
+  },
 };
 
 describe('DashboardComponent standard', () => {
@@ -84,45 +99,41 @@ describe('DashboardComponent standard', () => {
     let userService = getStubUserService(username, password);
 
     const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextPipe
-      ],
+      declarations: [DashboardComponent],
+      imports: [FormsModule, I18NextPipe],
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: RecordService,
-          useValue: recordService
+          useValue: recordService,
         },
         {
           provide: UserService,
-          useValue: userService
+          useValue: userService,
         },
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result',
-            'compileAndRunTemplate': 'Template Result'
-          })
-        }
-      ]
+            loadDashboardTemplates: Promise.resolve(),
+            loadDashboardViewTemplates: Promise.resolve(),
+            runTemplate: 'Template Result',
+            compileAndRunTemplate: 'Template Result',
+          }),
+        },
+      ],
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
@@ -157,15 +168,71 @@ describe('DashboardComponent standard', () => {
       secondarySort: '',
       step: 'draft',
       title: '',
-      variable: 'metaMetadata.lastSaveDate'
+      variable: 'metaMetadata.lastSaveDate',
     };
     await dashboardComponent.initStep('draft', 'draft', 'rdmp', '', 1, defaultSortObject);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records'], 'rdmp');
+    let planTable = dashboardComponent.evaluatePlanTableColumns(
+      {},
+      {},
+      {},
+      'draft',
+      recordDataStandard['records'],
+      'rdmp'
+    );
     expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.sortMap['draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
+  });
+
+  it('initializes a dashboard view and loads view templates', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const handlebarsTemplateService = TestBed.inject(
+      HandlebarsTemplateService
+    ) as jasmine.SpyObj<HandlebarsTemplateService>;
+
+    spyOn(recordService, 'getDashboardView').and.returnValue(
+      Promise.resolve({
+        sourceRecordType: 'rdmp',
+        dashboardType: 'workspace',
+        steps: [
+          {
+            name: 'draft',
+            baseRecordType: 'rdmp',
+            dashboardTable: {
+              rowConfig: [
+                {
+                  title: 'Record Title',
+                  variable: 'metadata.title',
+                  template: '{{title}}',
+                },
+              ],
+            },
+            fetchMode: 'workflowStage',
+            sourceWorkflowStage: 'draft',
+            sourceRecordType: 'rdmp',
+          },
+        ],
+      } as any)
+    );
+    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
+    spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
+
+    await dashboardComponent.initDashboardView('workspace-dashboard');
+
+    expect(dashboardComponent.dashboardViewConfig?.sourceRecordType).toBe('rdmp');
+    expect(dashboardComponent.dashboardTypeSelected).toBe('workspace');
+    expect(handlebarsTemplateService.loadDashboardViewTemplates).toHaveBeenCalledWith(
+      dashboardComponent.branding,
+      dashboardComponent.portal,
+      'workspace-dashboard',
+      'draft',
+      'workspace'
+    );
+    expect(dashboardComponent.initStep).toHaveBeenCalledWith('draft', 'draft', 'rdmp', '', 1, jasmine.any(Object));
   });
 
   it('pageChanged skips dashboard view pagination when no workflow steps are loaded', async () => {
@@ -221,7 +288,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'otherField': { sort: 'desc', secondarySort: 'date' } };
+      const sortMapAtStep = { otherField: { sort: 'desc', secondarySort: 'date' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('');
     });
@@ -230,7 +297,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: 'dateCreated' } };
+      const sortMapAtStep = { title: { sort: 'desc', secondarySort: 'dateCreated' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('dateCreated:-1');
     });
@@ -239,7 +306,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'asc', secondarySort: 'dateCreated' } };
+      const sortMapAtStep = { title: { sort: 'asc', secondarySort: 'dateCreated' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('dateCreated:1');
     });
@@ -248,7 +315,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: '' } };
+      const sortMapAtStep = { title: { sort: 'desc', secondarySort: '' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('');
     });
@@ -257,7 +324,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'asc', secondarySort: '' } };
+      const sortMapAtStep = { title: { sort: 'asc', secondarySort: '' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('');
     });
@@ -266,7 +333,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: null, secondarySort: 'dateCreated' } };
+      const sortMapAtStep = { title: { sort: null, secondarySort: 'dateCreated' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('');
     });
@@ -284,7 +351,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc', secondarySort: 'dateCreated' } };
+      const sortMapAtStep = { title: { sort: 'desc', secondarySort: 'dateCreated' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'nonexistent');
       expect(secondarySort).toEqual('');
     });
@@ -294,9 +361,9 @@ describe('DashboardComponent standard', () => {
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
       const sortMapAtStep = {
-        'title': { sort: null, secondarySort: 'field1' },
-        'date': { sort: 'asc', secondarySort: 'field2' },
-        'name': { sort: 'desc', secondarySort: 'field3' }
+        title: { sort: null, secondarySort: 'field1' },
+        date: { sort: 'asc', secondarySort: 'field2' },
+        name: { sort: 'desc', secondarySort: 'field3' },
       };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('field2:1');
@@ -306,7 +373,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const sortMapAtStep = { title: { sort: 'desc' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
       expect(secondarySort).toEqual('');
     });
@@ -350,7 +417,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'otherField': { sort: 'desc' } };
+      const sortMapAtStep = { otherField: { sort: 'desc' } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
       expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
     });
@@ -359,7 +426,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const sortMapAtStep = { title: { sort: 'desc' } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
       expect(sortString).toEqual('title:-1');
     });
@@ -368,7 +435,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'asc' } };
+      const sortMapAtStep = { title: { sort: 'asc' } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
       expect(sortString).toEqual('title:1');
     });
@@ -377,7 +444,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: null } };
+      const sortMapAtStep = { title: { sort: null } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
       expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
     });
@@ -386,7 +453,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc', defaultSort: true } };
+      const sortMapAtStep = { title: { sort: 'desc', defaultSort: true } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
       expect(sortString).toEqual('title:-1');
     });
@@ -395,7 +462,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'asc', defaultSort: true } };
+      const sortMapAtStep = { title: { sort: 'asc', defaultSort: true } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
       expect(sortString).toEqual('title:1');
     });
@@ -405,8 +472,8 @@ describe('DashboardComponent standard', () => {
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title', 'date'] };
       const sortMapAtStep = {
-        'title': { sort: 'desc', defaultSort: false },
-        'date': { sort: 'asc', defaultSort: true }
+        title: { sort: 'desc', defaultSort: false },
+        date: { sort: 'asc', defaultSort: true },
       };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
       expect(sortString).toEqual('date:1');
@@ -416,7 +483,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc', defaultSort: false } };
+      const sortMapAtStep = { title: { sort: 'desc', defaultSort: false } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
       expect(sortString).toEqual('title:-1');
     });
@@ -426,9 +493,9 @@ describe('DashboardComponent standard', () => {
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
       const sortMapAtStep = {
-        'title': { sort: null },
-        'date': { sort: 'asc' },
-        'name': { sort: 'desc' }
+        title: { sort: null },
+        date: { sort: 'asc' },
+        name: { sort: 'desc' },
       };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
       expect(sortString).toEqual('name:-1');
@@ -447,7 +514,7 @@ describe('DashboardComponent standard', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { 'title': { sort: 'desc' } };
+      const sortMapAtStep = { title: { sort: 'desc' } };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'nonexistent');
       expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
     });
@@ -455,8 +522,7 @@ describe('DashboardComponent standard', () => {
 });
 
 let recordDataWorkspace = {
-  dashboardType:
-  {
+  dashboardType: {
     formatRules: {
       filterBy: [],
       recordTypeFilterBy: 'existing-locations',
@@ -468,30 +534,32 @@ let recordDataWorkspace = {
             filterFields: [
               {
                 name: 'Title',
-                path: 'metadata.title'
-              }
-            ]
-          }
-        ]
+                path: 'metadata.title',
+              },
+            ],
+          },
+        ],
       },
       groupBy: '',
       sortGroupBy: [],
-      hideWorkflowStepTitleForRecordType: []
-    }
+      hideWorkflowStepTitleForRecordType: [],
+    },
   },
-  step: [{
-    name: 'existing-locations-draft',
-    config: {
-      workflow: {
-        stage: 'existing-locations-draft'
+  step: [
+    {
+      name: 'existing-locations-draft',
+      config: {
+        workflow: {
+          stage: 'existing-locations-draft',
+        },
+        dashboard: {
+          table: {
+            dummyRowConfig: ['dummy'], //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
+          },
+        },
       },
-      dashboard: {
-        table: {
-          dummyRowConfig: ['dummy'] //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
-        }
-      }
-    }
-  }],
+    },
+  ],
   records: {
     items: [
       {
@@ -502,25 +570,25 @@ let recordDataWorkspace = {
         metadata: {
           metaMetadata: {
             type: 'rdmp',
-            lastSaveDate: ''
+            lastSaveDate: '',
           },
           metadata: { title: 'test' },
           packageType: 'workspace',
           workflow: '',
           hasEditAccess: '',
-          recordType: 'existing-locations'
-        }
-      }
+          recordType: 'existing-locations',
+        },
+      },
     ],
     totalItems: 0,
     currentPage: 1,
-    noItems: 10
+    noItems: 10,
   },
   paginationData: {
     itemsPerPage: 10,
     page: 2,
-    step: 'existing-locations-draft'
-  }
+    step: 'existing-locations-draft',
+  },
 };
 
 describe('DashboardComponent workspace', () => {
@@ -531,45 +599,40 @@ describe('DashboardComponent workspace', () => {
     let userService = getStubUserService(username, password);
 
     const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextPipe
-      ],
+      declarations: [DashboardComponent],
+      imports: [FormsModule, I18NextPipe],
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: RecordService,
-          useValue: recordService
+          useValue: recordService,
         },
         {
           provide: UserService,
-          useValue: userService
+          useValue: userService,
         },
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result',
-            'compileAndRunTemplate': 'Template Result'
-          })
-        }
-      ]
+            loadDashboardTemplates: Promise.resolve(),
+            runTemplate: 'Template Result',
+            compileAndRunTemplate: 'Template Result',
+          }),
+        },
+      ],
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
@@ -606,10 +669,17 @@ describe('DashboardComponent workspace', () => {
       secondarySort: '',
       step: 'draft',
       title: '',
-      variable: 'metaMetadata.lastSaveDate'
+      variable: 'metaMetadata.lastSaveDate',
     };
     await dashboardComponent.initStep('', 'existing-locations-draft', '', 'workspace', 1, defaultSortObject);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records'], 'existing-locations');
+    let planTable = dashboardComponent.evaluatePlanTableColumns(
+      {},
+      {},
+      {},
+      'existing-locations-draft',
+      recordDataWorkspace['records'],
+      'existing-locations'
+    );
     expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.sortMap['existing-locations-draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
@@ -619,8 +689,7 @@ describe('DashboardComponent workspace', () => {
 });
 
 let recordDataConsolidated = {
-  dashboardType:
-  {
+  dashboardType: {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: ['consolidated'],
@@ -631,68 +700,70 @@ let recordDataConsolidated = {
             filterFields: [
               {
                 name: 'Title',
-                path: 'metadata.title'
-              }
-            ]
-          }
-        ]
+                path: 'metadata.title',
+              },
+            ],
+          },
+        ],
       },
       sortBy: '',
       groupBy: 'groupedByRecordType',
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
-      hideWorkflowStepTitleForRecordType: []
-    }
+      hideWorkflowStepTitleForRecordType: [],
+    },
   },
-  step: [{
-    name: 'consolidated',
-    config: {
-      workflow: {
-        stage: 'consolidated'
+  step: [
+    {
+      name: 'consolidated',
+      config: {
+        workflow: {
+          stage: 'consolidated',
+        },
+        baseRecordType: 'rdmp',
+        dashboard: {
+          table: {
+            rowRulesConfig: [
+              {
+                ruleSetName: 'dashboardActionsPerRow',
+                applyRuleSet: true,
+                type: 'multi-item-rendering',
+                rules: [
+                  {
+                    name: 'Edit',
+                    action: 'show',
+                    renderItemTemplate: `<%= name %>`,
+                    evaluateRulesTemplate: `<%= true %>`,
+                  },
+                ],
+              },
+            ],
+            groupRowConfig: [
+              {
+                title: 'Actions',
+                variable: '',
+                template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`,
+              },
+            ],
+            groupRowRulesConfig: [
+              {
+                ruleSetName: 'dashboardActionsPerGroupRow',
+                applyRuleSet: true,
+                rules: [
+                  {
+                    name: 'Send for Conferral',
+                    action: 'show',
+                    mode: 'alo',
+                    renderItemTemplate: `<%= name %>`,
+                    evaluateRulesTemplate: `<%= true %>`,
+                  },
+                ],
+              },
+            ],
+          },
+        },
       },
-      baseRecordType: 'rdmp',
-      dashboard: {
-        table: {
-          rowRulesConfig: [
-            {
-              ruleSetName: 'dashboardActionsPerRow',
-              applyRuleSet: true,
-              type: 'multi-item-rendering',
-              rules: [
-                {
-                  name: 'Edit',
-                  action: 'show',
-                  renderItemTemplate: `<%= name %>`,
-                  evaluateRulesTemplate: `<%= true %>`
-                }
-              ]
-            }
-          ],
-          groupRowConfig: [
-            {
-              title: 'Actions',
-              variable: '',
-              template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
-            }
-          ],
-          groupRowRulesConfig: [
-            {
-              ruleSetName: 'dashboardActionsPerGroupRow',
-              applyRuleSet: true,
-              rules: [
-                {
-                  name: 'Send for Conferral',
-                  action: 'show',
-                  mode: 'alo',
-                  renderItemTemplate: `<%= name %>`,
-                  evaluateRulesTemplate: `<%= true %>`
-                }
-              ]
-            }
-          ]
-        }
-      }
-    }
-  }],
+    },
+  ],
   records: {
     items: [
       {
@@ -703,55 +774,54 @@ let recordDataConsolidated = {
         metadata: {
           metaMetadata: {
             type: 'rdmp',
-            lastSaveDate: ''
+            lastSaveDate: '',
           },
           metadata: { title: 'test' },
           packageType: 'rdmp',
           workflow: '',
           hasEditAccess: '',
-          recordType: 'rdmp'
-        }
-      }
+          recordType: 'rdmp',
+        },
+      },
     ],
     totalItems: 0,
     currentPage: 1,
-    noItems: 10
+    noItems: 10,
   },
   groupedRecords: {
     totalItems: 1,
     currentPage: 1,
     noItems: 10,
     itemsByGroup: true,
-    groupedItems:
-      [
-        {
-          items: [
-            {
-              oid: '1234567890',
-              title: 'test',
-              dateCreated: 'dateCreated',
-              dateModified: 'dateModified',
-              metadata: {
-                metaMetadata: {
-                  type: 'rdmp',
-                  lastSaveDate: ''
-                },
-                metadata: { title: 'test' },
-                packageType: 'rdmp',
-                workflow: '',
-                hasEditAccess: '',
-                recordType: 'rdmp'
-              }
-            }
-          ]
-        }
-      ]
+    groupedItems: [
+      {
+        items: [
+          {
+            oid: '1234567890',
+            title: 'test',
+            dateCreated: 'dateCreated',
+            dateModified: 'dateModified',
+            metadata: {
+              metaMetadata: {
+                type: 'rdmp',
+                lastSaveDate: '',
+              },
+              metadata: { title: 'test' },
+              packageType: 'rdmp',
+              workflow: '',
+              hasEditAccess: '',
+              recordType: 'rdmp',
+            },
+          },
+        ],
+      },
+    ],
   },
   paginationData: {
     itemsPerPage: 10,
     page: 2,
-    step: 'consolidated'
-  }
+    step: 'consolidated',
+  },
 };
 
 describe('DashboardComponent consolidated group by record type', () => {
@@ -762,45 +832,40 @@ describe('DashboardComponent consolidated group by record type', () => {
     let userService = getStubUserService(username, password);
 
     const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextPipe
-      ],
+      declarations: [DashboardComponent],
+      imports: [FormsModule, I18NextPipe],
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: RecordService,
-          useValue: recordService
+          useValue: recordService,
         },
         {
           provide: UserService,
-          useValue: userService
+          useValue: userService,
         },
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result',
-            'compileAndRunTemplate': 'Template Result'
-          })
-        }
-      ]
+            loadDashboardTemplates: Promise.resolve(),
+            runTemplate: 'Template Result',
+            compileAndRunTemplate: 'Template Result',
+          }),
+        },
+      ],
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
@@ -844,28 +909,43 @@ describe('DashboardComponent consolidated group by record type', () => {
     let defaultSortObject = {};
     await dashboardComponent.initStep('', 'consolidated', 'rdmp', '', 1, defaultSortObject);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
-    let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig,
+    let planTable = dashboardComponent.evaluatePlanTableColumns(
+      dashboardComponent.groupRowConfig,
       dashboardComponent.groupRowRules,
       dashboardComponent.rowLevelRules,
       'consolidated',
-      groupedRecords, 'rdmp');
+      groupedRecords,
+      'rdmp'
+    );
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules,
+    dashboardComponent.evaluateRowLevelRules(
+      dashboardComponent.rowLevelRules,
       recordDataConsolidated['records'].items[0].metadata.metadata,
       recordDataConsolidated['records'].items[0].metadata.metaMetadata,
       recordDataConsolidated['records'].items[0].metadata.workflow,
       recordDataConsolidated['records'].items[0].oid,
-      'dashboardActionsPerRow', 'rdmp', 'consolidated');
-    dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules, groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow', 'rdmp', 'consolidated');
-    dashboardComponent.pageChanged(recordDataConsolidated['paginationData'], recordDataConsolidated['paginationData'].step);
+      'dashboardActionsPerRow',
+      'rdmp',
+      'consolidated'
+    );
+    dashboardComponent.evaluateGroupRowRules(
+      dashboardComponent.groupRowRules,
+      groupedRecords['groupedItems'][0].items,
+      'dashboardActionsPerGroupRow',
+      'rdmp',
+      'consolidated'
+    );
+    dashboardComponent.pageChanged(
+      recordDataConsolidated['paginationData'],
+      recordDataConsolidated['paginationData'].step
+    );
     expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
     expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
   });
 });
 
 let recordDataConsolidatedRelationships = {
-  dashboardType:
-  {
+  dashboardType: {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: ['consolidated'],
@@ -876,68 +956,70 @@ let recordDataConsolidatedRelationships = {
             filterFields: [
               {
                 name: 'Title',
-                path: 'metadata.title'
-              }
-            ]
-          }
-        ]
+                path: 'metadata.title',
+              },
+            ],
+          },
+        ],
       },
       sortBy: '',
       groupBy: 'groupedByRelationships',
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
-      hideWorkflowStepTitleForRecordType: []
-    }
+      hideWorkflowStepTitleForRecordType: [],
+    },
   },
-  step: [{
-    name: 'consolidated',
-    config: {
-      workflow: {
-        stage: 'consolidated'
+  step: [
+    {
+      name: 'consolidated',
+      config: {
+        workflow: {
+          stage: 'consolidated',
+        },
+        baseRecordType: 'rdmp',
+        dashboard: {
+          table: {
+            rowRulesConfig: [
+              {
+                ruleSetName: 'dashboardActionsPerRow',
+                applyRuleSet: true,
+                type: 'multi-item-rendering',
+                rules: [
+                  {
+                    name: 'Edit',
+                    action: 'show',
+                    renderItemTemplate: `<%= name %>`,
+                    evaluateRulesTemplate: `<%= true %>`,
+                  },
+                ],
+              },
+            ],
+            groupRowConfig: [
+              {
+                title: 'Actions',
+                variable: '',
+                template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`,
+              },
+            ],
+            groupRowRulesConfig: [
+              {
+                ruleSetName: 'dashboardActionsPerGroupRow',
+                applyRuleSet: true,
+                rules: [
+                  {
+                    name: 'Send for Conferral',
+                    action: 'show',
+                    mode: 'alo',
+                    renderItemTemplate: `<%= name %>`,
+                    evaluateRulesTemplate: `<%= true %>`,
+                  },
+                ],
+              },
+            ],
+          },
+        },
       },
-      baseRecordType: 'rdmp',
-      dashboard: {
-        table: {
-          rowRulesConfig: [
-            {
-              ruleSetName: 'dashboardActionsPerRow',
-              applyRuleSet: true,
-              type: 'multi-item-rendering',
-              rules: [
-                {
-                  name: 'Edit',
-                  action: 'show',
-                  renderItemTemplate: `<%= name %>`,
-                  evaluateRulesTemplate: `<%= true %>`
-                }
-              ]
-            }
-          ],
-          groupRowConfig: [
-            {
-              title: 'Actions',
-              variable: '',
-              template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
-            }
-          ],
-          groupRowRulesConfig: [
-            {
-              ruleSetName: 'dashboardActionsPerGroupRow',
-              applyRuleSet: true,
-              rules: [
-                {
-                  name: 'Send for Conferral',
-                  action: 'show',
-                  mode: 'alo',
-                  renderItemTemplate: `<%= name %>`,
-                  evaluateRulesTemplate: `<%= true %>`
-                }
-              ]
-            }
-          ]
-        }
-      }
-    }
-  }],
+    },
+  ],
   records: {
     items: [
       {
@@ -948,74 +1030,75 @@ let recordDataConsolidatedRelationships = {
         metadata: {
           metaMetadata: {
             type: 'rdmp',
-            lastSaveDate: ''
+            lastSaveDate: '',
           },
           metadata: { title: 'test' },
           packageType: 'rdmp',
           workflow: '',
           hasEditAccess: '',
-          recordType: 'rdmp'
-        }
-      }
+          recordType: 'rdmp',
+        },
+      },
     ],
     totalItems: 0,
     currentPage: 1,
-    noItems: 10
+    noItems: 10,
   },
   groupedRecords: {
     totalItems: 1,
     currentPage: 1,
     noItems: 10,
     itemsByGroup: true,
-    groupedItems:
-      [
-        {
-          items: [
-            {
-              oid: '1234567890',
-              title: 'test',
-              dateCreated: 'dateCreated',
-              dateModified: 'dateModified',
-              metadata: {
-                metaMetadata: {
-                  type: 'rdmp',
-                  lastSaveDate: ''
-                },
-                metadata: { title: 'test' },
-                packageType: 'rdmp',
-                workflow: '',
-                hasEditAccess: '',
-                recordType: 'rdmp'
-              }
-            }
-          ]
-        }
-      ]
+    groupedItems: [
+      {
+        items: [
+          {
+            oid: '1234567890',
+            title: 'test',
+            dateCreated: 'dateCreated',
+            dateModified: 'dateModified',
+            metadata: {
+              metaMetadata: {
+                type: 'rdmp',
+                lastSaveDate: '',
+              },
+              metadata: { title: 'test' },
+              packageType: 'rdmp',
+              workflow: '',
+              hasEditAccess: '',
+              recordType: 'rdmp',
+            },
+          },
+        ],
+      },
+    ],
   },
   paginationData: {
     itemsPerPage: 10,
     page: 2,
-    step: 'consolidated'
+    step: 'consolidated',
   },
   relatedRecords: {
-    items: [{
-      oid: '1234567890',
-      title: 'test',
-      dateCreated: 'dateCreated',
-      dateModified: 'dateModified',
-      metadata: {
-        metaMetadata: {
-          type: 'rdmp',
-          lastSaveDate: ''
+    items: [
+      {
+        oid: '1234567890',
+        title: 'test',
+        dateCreated: 'dateCreated',
+        dateModified: 'dateModified',
+        metadata: {
+          metaMetadata: {
+            type: 'rdmp',
+            lastSaveDate: '',
+          },
+          metadata: { title: 'test' },
+          packageType: 'rdmp',
+          workflow: '',
+          hasEditAccess: '',
+          recordType: 'rdmp',
         },
-        metadata: { title: 'test' },
-        packageType: 'rdmp',
-        workflow: '',
-        hasEditAccess: '',
-        recordType: 'rdmp'
-      }
-    }]
-  }
+      },
+    ],
+  },
 };
 
 describe('DashboardComponent consolidated group by relationships', () => {
@@ -1026,45 +1109,40 @@ describe('DashboardComponent consolidated group by relationships', () => {
     let userService = getStubUserService(username, password);
 
     const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextPipe
-      ],
+      declarations: [DashboardComponent],
+      imports: [FormsModule, I18NextPipe],
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: RecordService,
-          useValue: recordService
+          useValue: recordService,
         },
         {
           provide: UserService,
-          useValue: userService
+          useValue: userService,
         },
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            'loadDashboardTemplates': Promise.resolve(),
-            'runTemplate': 'Template Result',
-            'compileAndRunTemplate': 'Template Result'
-          })
-        }
-      ]
+            loadDashboardTemplates: Promise.resolve(),
+            runTemplate: 'Template Result',
+            compileAndRunTemplate: 'Template Result',
+          }),
+        },
+      ],
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
@@ -1100,20 +1178,36 @@ describe('DashboardComponent consolidated group by relationships', () => {
     let defaultSortObject = {};
     await dashboardComponent.initStep('', 'consolidated', 'rdmp', '', 1, defaultSortObject);
     let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];
-    let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig,
+    let planTable = dashboardComponent.evaluatePlanTableColumns(
+      dashboardComponent.groupRowConfig,
       dashboardComponent.groupRowRules,
       dashboardComponent.rowLevelRules,
       'consolidated',
-      groupedRecords, 'rdmp');
+      groupedRecords,
+      'rdmp'
+    );
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules,
+    dashboardComponent.evaluateRowLevelRules(
+      dashboardComponent.rowLevelRules,
       recordDataConsolidatedRelationships['records'].items[0].metadata.metadata,
       recordDataConsolidatedRelationships['records'].items[0].metadata.metaMetadata,
       recordDataConsolidatedRelationships['records'].items[0].metadata.workflow,
       recordDataConsolidatedRelationships['records'].items[0].oid,
-      'dashboardActionsPerRow', 'rdmp', 'consolidated');
-    dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules, groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow', 'rdmp', 'consolidated');
-    dashboardComponent.pageChanged(recordDataConsolidatedRelationships['paginationData'], recordDataConsolidatedRelationships['paginationData'].step);
+      'dashboardActionsPerRow',
+      'rdmp',
+      'consolidated'
+    );
+    dashboardComponent.evaluateGroupRowRules(
+      dashboardComponent.groupRowRules,
+      groupedRecords['groupedItems'][0].items,
+      'dashboardActionsPerGroupRow',
+      'rdmp',
+      'consolidated'
+    );
+    dashboardComponent.pageChanged(
+      recordDataConsolidatedRelationships['paginationData'],
+      recordDataConsolidatedRelationships['paginationData'].step
+    );
     expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
     expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
   });
