@@ -56,7 +56,7 @@ describe('The RecordsService', function () {
     createdUserIds.push(String(editor.id), String(viewer.id));
 
     const brand = BrandingService.getDefault();
-    const recordType = await RecordTypesService.get(brand, 'rdmp');
+    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
     const requestedOid = `records-service-permissions-${suffix}`;
 
     const createResponse = await recordsService.create(

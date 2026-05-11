@@ -33,7 +33,7 @@ import { StorageService } from '../StorageService';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { RecordAuditParams } from '../RecordAuditParams';
 import { RBValidationError } from '../model/RBValidationError';
-import { RecordMetaMetadata, RecordModel } from '../model/storage/RecordModel';
+import { RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
@@ -842,7 +842,7 @@ export namespace Services {
           }
         }
         if (recordType?.searchable !== false) {
-          this.searchService.index(oid, record);
+          this.searchService.index(oid, recordObj);
         }
         await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
       } else {
@@ -1559,11 +1559,23 @@ export namespace Services {
 
     async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
       const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
-      const record = recordStorageServiceResponse.metadata as RecordModel;
-      const brand = await BrandingService.getBrandById(record.metaMetadata.brandId)
-      const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
-      if (recordType?.searchable !== false) {
-        this.searchService.index(oid, record as unknown as Record<string, unknown>);
+      if (recordStorageServiceResponse.isSuccessful() && !_.isNil(recordStorageServiceResponse.metadata)) {
+        const record = recordStorageServiceResponse.metadata as RecordModel;
+        const metaMetadata = (record?.metaMetadata ?? {}) as Record<string, unknown>;
+        const brandId = _.get(metaMetadata, 'brandId');
+        const recordTypeName = _.get(metaMetadata, 'type');
+
+        if (!_.isNil(brandId) && !_.isNil(recordTypeName)) {
+          const brand = await BrandingService.getBrandById(String(brandId));
+          const recordType = await firstValueFrom(RecordTypesService.get(brand, String(recordTypeName)));
+          if (
+            this.searchService &&
+            typeof this.searchService.index === 'function' &&
+            recordType?.searchable !== false
+          ) {
+            this.searchService.index(oid, record as unknown as Record<string, unknown>);
+          }
+        }
       }
       await this.auditRecord(oid, recordStorageServiceResponse as unknown as AnyRecord, user, RecordAuditActionType.restored);
       return recordStorageServiceResponse as unknown as StorageServiceResponse;
