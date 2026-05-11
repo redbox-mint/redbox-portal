@@ -235,6 +235,56 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.initStep).toHaveBeenCalledWith('draft', 'draft', 'rdmp', '', 1, jasmine.any(Object));
   });
 
+  it('initializes through initComponent when a dashboard view is configured', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const handlebarsTemplateService = TestBed.inject(
+      HandlebarsTemplateService
+    ) as jasmine.SpyObj<HandlebarsTemplateService>;
+
+    dashboardComponent.dashboardView = 'workspace-dashboard';
+    dashboardComponent.dashboardTypeSelected = 'workspace';
+    (recordService as any).getConfig = jasmine.createSpy('getConfig').and.returnValue({
+      baseUrl: 'http://localhost',
+      branding: 'default',
+      portal: 'rdmp',
+    } as any);
+    spyOn(recordService, 'getDashboardView').and.returnValue(
+      Promise.resolve({
+        name: 'workspace-dashboard',
+        titleLabelKey: 'workspace-dashboard',
+        dashboardType: 'workspace',
+        sourceRecordType: 'rdmp',
+        steps: [
+          {
+            name: 'workspace-dashboard-step',
+            sourceRecordType: 'rdmp',
+            fetchMode: 'allForRecordType',
+            dashboardTable: {
+              rowConfig: [],
+            },
+          },
+        ],
+      } as any)
+    );
+    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
+    spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
+
+    await (dashboardComponent as any).initComponent();
+
+    expect(dashboardComponent.dashboardViewConfig?.name).toBe('workspace-dashboard');
+    expect(handlebarsTemplateService.loadDashboardViewTemplates).toHaveBeenCalledWith(
+      dashboardComponent.branding,
+      dashboardComponent.portal,
+      'workspace-dashboard',
+      'workspace-dashboard-step',
+      'workspace'
+    );
+    expect(dashboardComponent.initStep).toHaveBeenCalledWith('', 'workspace-dashboard-step', 'rdmp', '', 1, {});
+    expect(dashboardComponent.records['workspace-dashboard-step']).toBeUndefined();
+  });
+
   it('pageChanged skips dashboard view pagination when no workflow steps are loaded', async () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
@@ -271,6 +321,29 @@ describe('DashboardComponent standard', () => {
     await dashboardComponent.pageChanged({ page: 2 } as any, 'consolidated');
 
     expect(initStepSpy).toHaveBeenCalledWith('draft', 'consolidated', 'rdmp', '', 2, {});
+    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
+  });
+
+  it('pageChanged keeps all-for-record-type dashboard view steps on the fallback step name', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardView = 'consolidated';
+    dashboardComponent.dashboardTypeSelected = 'consolidated';
+    dashboardComponent.workflowSteps = [
+      {
+        name: 'consolidated',
+        dashboardViewStep: {
+          fetchMode: 'allForRecordType',
+          sourceRecordType: 'rdmp',
+        },
+      },
+    ] as any;
+    dashboardComponent.recordType = 'rdmp';
+    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
+
+    await dashboardComponent.pageChanged({ page: 3 } as any, 'consolidated');
+
+    expect(initStepSpy).toHaveBeenCalledWith('', 'consolidated', 'rdmp', '', 3, {});
     expect(dashboardComponent.isProcessingPageChange).toBeFalse();
   });
 
