@@ -605,6 +605,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       return wrapperRef;
     }
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
+    layoutInstance.repeatableDisabled = this.isDisabled;
     layoutInstance.canRemove = this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
       : this.compDefMapEntries.length > 0;
@@ -673,6 +674,15 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (const entry of this.compDefMapEntries) {
       if (entry.layoutInstance) {
         entry.layoutInstance.canRemove = canRemove;
+      }
+    }
+  }
+
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    for (const entry of this.compDefMapEntries) {
+      if (entry.layoutInstance) {
+        entry.layoutInstance.repeatableDisabled = disabled;
       }
     }
   }
@@ -768,6 +778,11 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
   public canRemove = false;
+  public repeatableDisabled = false;
+
+  public override get isDisabled(): boolean {
+    return this.repeatableDisabled || super.isDisabled;
+  }
 
   protected get isContributorInline(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
