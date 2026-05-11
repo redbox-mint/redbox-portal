@@ -250,6 +250,9 @@ describe('DashboardComponent standard', () => {
       branding: 'default',
       portal: 'rdmp',
     } as any);
+    (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy('getInfo').and.returnValue(Promise.resolve({
+      username,
+    }));
     spyOn(recordService, 'getDashboardView').and.returnValue(
       Promise.resolve({
         name: 'workspace-dashboard',
