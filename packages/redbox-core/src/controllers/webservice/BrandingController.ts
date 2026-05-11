@@ -1,4 +1,5 @@
 import { Controllers as controllers } from '../../index';
+import { getRouteParam } from '../../utilities/RequestParamUtils';
 
 function mapError(e: unknown): { status: number; body: unknown } {
   const msg = (e instanceof Error ? e.message : String(e)) || '';
@@ -17,7 +18,7 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'history'];
 
     async draft(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
+      const branding = getRouteParam(req, 'branding');
       const actor = req.user;
       try {
         const variables = req.body?.variables || {};
@@ -31,7 +32,7 @@ export namespace Controllers {
 
     async preview(req: Sails.Req, res: Sails.Res) {
       const branding = BrandingService.getBrandNameFromReq(req);
-      const portal = req.params['portal'];
+      const portal = getRouteParam(req, 'portal');
       try {
         const { token, url, hash } = await BrandingService.preview(branding, portal);
         // Fetch current draft (variables) so response matches test expectation body.branding.variables
@@ -60,8 +61,8 @@ export namespace Controllers {
       }
     }
     async publish(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
-      const portal = req.params['portal'];
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
       const actor = req.user;
       try {
         const expectedVersion = req.body?.expectedVersion;
@@ -75,7 +76,7 @@ export namespace Controllers {
       }
     }
     async rollback(req: Sails.Req, res: Sails.Res) {
-      const versionId = req.params['versionId'];
+      const versionId = getRouteParam(req, 'versionId');
       const actor = req.user;
       try {
         const { version, hash } = await BrandingService.rollback(versionId, actor);
@@ -86,8 +87,8 @@ export namespace Controllers {
       }
     }
     async logo(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
-      const portal = req.params['portal'];
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
       try {
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
         if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
@@ -109,7 +110,7 @@ export namespace Controllers {
       }
     }
     async history(req: Sails.Req, res: Sails.Res) {
-      const branding = req.params['branding'];
+      const branding = getRouteParam(req, 'branding');
 
       try {
         const brand = await BrandingService.getBrand(branding);

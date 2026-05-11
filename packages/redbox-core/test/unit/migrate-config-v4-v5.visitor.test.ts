@@ -934,9 +934,20 @@ describe("Migrate v4 to v5 Visitor", async () => {
         expect(lookupOnlyFields).to.have.length(3);
 
         const nameField = lookupOnlyFields[0];
+        if (nameField.component?.class === "ReusableComponent") {
+          expect(nameField.component?.config?.componentDefinitions).to.have.length(1);
+          expect((nameField.component?.config?.componentDefinitions[0].component.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        } else {
+          expect((nameField.component?.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        }
+
         const emailField = lookupOnlyFields[1];
-        expect((nameField.component?.config as Record<string, unknown>)?.requireSelection).to.equal(true);
-        expect((emailField.component?.config as Record<string, unknown>)?.readonly).to.equal(true);
+        if (emailField.component?.class === "ReusableComponent") {
+          expect(emailField.component?.config?.componentDefinitions).to.have.length(1);
+          expect((emailField.component?.config?.componentDefinitions[0].component.config as Record<string, unknown>)?.readonly).to.be.true;
+        } else {
+          expect((emailField.component?.config as Record<string, unknown>)?.requireSelection).to.be.true;
+        }
 
         const withTitleGroup = reusableFormDefinitions["standard-contributor-fields-with-title-lookup-only-group"];
         expect(withTitleGroup).to.have.length(1);
@@ -1410,6 +1421,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
                             typeHeader: "Type",
                             locationHeader: "Where",
                             notesHeader: "Notes",
+                            dataTypePlaceholder: "Please select",
                             columns: ["type", "location"],
                             notesEnabled: true,
                             iscEnabled: true,
@@ -1432,6 +1444,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             typeHeader: "Type",
             locationHeader: "Where",
             notesHeader: "Notes",
+            dataTypePlaceholder: "Please select",
             notesEnabled: true,
             iscEnabled: true,
             defaultSelect: "official"

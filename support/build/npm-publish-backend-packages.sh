@@ -6,7 +6,7 @@ readonly RELEASE_KIND="${NPM_RELEASE_KIND:-}"
 readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
 readonly DRY_RUN="${NPM_PUBLISH_DRY_RUN:-false}"
-readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-${CIRCLE_BUILD_NUM:-}}"
+readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-}"
 
 readonly PACKAGE_PATHS=(
   "packages/raido"
@@ -56,7 +56,7 @@ validate_inputs() {
       [[ "$DIST_TAG" =~ ^(beta|next|alpha)$ ]] \
         || fail "NPM_DIST_TAG must be beta, next, or alpha for beta publishes."
       [[ -n "$PIPELINE_NUMBER" ]] \
-        || fail "CIRCLE_PIPELINE_NUMBER or CIRCLE_BUILD_NUM is required to generate beta package versions."
+        || fail "CIRCLE_PIPELINE_NUMBER is required to generate beta package versions."
       ;;
     release)
       [[ "${CIRCLE_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
@@ -212,7 +212,9 @@ assert_versions_not_published() {
       view_output="$(mktemp)"
       view_error="$(mktemp)"
       status=0
-      npm view "$package_name@$version" version >"$view_output" 2>"$view_error" || status=$?
+      npm view "$package_name@$version" version \
+        --registry=https://registry.npmjs.org/ \
+        --prefer-online >"$view_output" 2>"$view_error" || status=$?
       if [[ "$status" -eq 0 ]]; then
         cat "$view_output"
         rm -f "$view_output" "$view_error"
@@ -235,19 +237,24 @@ assert_versions_not_published() {
 }
 
 pack_dry_run() {
-  local package_path package_name version
+  local package_path package_name version package_dir pack_output_file pack_summary
 
   log "Running npm pack --dry-run for staged packages."
   for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
-    package_name="$(package_name "$STAGING_ROOT/$package_path")"
-    version="$(package_version "$STAGING_ROOT/$package_path")"
+    package_dir="$STAGING_ROOT/$package_path"
+    package_name="$(package_name "$package_dir")"
+    version="$(package_version "$package_dir")"
     log "Packing $package_name@$version."
-    (cd "$STAGING_ROOT/$package_path" && npm pack --dry-run)
+    pack_output_file="$(mktemp)"
+    (cd "$package_dir" && npm pack --dry-run --json >"$pack_output_file")
+    pack_summary="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8'))[0]; console.log([data.filename, data.files.length + ' files', data.size + ' bytes packed', data.unpackedSize + ' bytes unpacked', data.integrity].join(', '))" "$pack_output_file")"
+    rm -f "$pack_output_file"
+    log "$pack_summary"
   done
 }
 
 publish_packages() {
-  local package_path package_name version
+  local package_path package_name version package_dir pack_output_file tarball_filename tarball_path expected_integrity actual_integrity
 
   if [[ "$DRY_RUN" == "true" ]]; then
     log "NPM_PUBLISH_DRY_RUN=true; skipping npm publish."
@@ -256,11 +263,48 @@ publish_packages() {
 
   log "Publishing staged backend packages with dist-tag $DIST_TAG."
   for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
+    package_dir="$STAGING_ROOT/$package_path"
     package_name="$(package_name "$STAGING_ROOT/$package_path")"
     version="$(package_version "$STAGING_ROOT/$package_path")"
-    log "Publishing $package_name@$version."
-    (cd "$STAGING_ROOT/$package_path" && npm publish --access public --tag "$DIST_TAG")
+    log "Packing $package_name@$version for publish."
+    pack_output_file="$(mktemp)"
+    (cd "$package_dir" && npm pack --json >"$pack_output_file")
+    tarball_filename="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(data[0].filename)" "$pack_output_file")"
+    expected_integrity="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(data[0].integrity)" "$pack_output_file")"
+    rm -f "$pack_output_file"
+    tarball_path="$package_dir/$tarball_filename"
+
+    log "Publishing $package_name@$version from $tarball_filename."
+    npm publish "$tarball_path" --access public --tag "$DIST_TAG"
+
+    actual_integrity="$(published_integrity "$package_name" "$version")"
+    if [[ "$actual_integrity" != "$expected_integrity" ]]; then
+      fail "$package_name@$version registry integrity mismatch. Packed $expected_integrity but registry reports $actual_integrity."
+    fi
   done
+}
+
+published_integrity() {
+  local package_name="$1"
+  local version="$2"
+  local attempt actual_integrity status
+
+  for attempt in {1..12}; do
+    status=0
+    actual_integrity="$(npm view "$package_name@$version" dist.integrity \
+      --registry=https://registry.npmjs.org/ \
+      --prefer-online 2>/dev/null)" || status=$?
+
+    if [[ "$status" -eq 0 && -n "$actual_integrity" ]]; then
+      printf '%s\n' "$actual_integrity"
+      return 0
+    fi
+
+    printf '[npm-publish] Waiting for %s@%s to become readable from npm registry (attempt %s/12).\n' "$package_name" "$version" "$attempt" >&2
+    sleep 10
+  done
+
+  fail "Unable to read $package_name@$version dist.integrity from npm after publish."
 }
 
 main() {

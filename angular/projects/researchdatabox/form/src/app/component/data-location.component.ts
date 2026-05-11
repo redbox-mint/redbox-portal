@@ -108,6 +108,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         { label: "File path", value: "file" },
         { label: "Attachment", value: "attachment" }
     ];
+    public dataTypePlaceholder = "";
     public dataTypeLookup: Record<string, string> = {
         url: "URL",
         physical: "Physical location",
@@ -157,6 +158,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         this.applyEditNotesButtonText = String(cfg.applyEditNotesButtonText ?? "Apply");
         this.editNotesCssClasses = String(cfg.editNotesCssClasses ?? "form-control");
         this.dataTypes = Array.isArray(cfg.dataTypes) && cfg.dataTypes.length > 0 ? cfg.dataTypes : this.dataTypes;
+        this.dataTypePlaceholder = String(cfg.dataTypePlaceholder ?? "");
         this.dataTypeLookup = cfgRecord["dataTypeLookup"] && typeof cfgRecord["dataTypeLookup"] === "object"
             ? { ...this.dataTypeLookup, ...(cfgRecord["dataTypeLookup"] as Record<string, string>) }
             : this.dataTypeLookup;
@@ -194,12 +196,27 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return this.hideNotesForLocationTypes.includes(String(type ?? ""));
     }
 
+    public hasSelectedDraftType(): boolean {
+        return this.isSupportedDraftType(this.draftLocation.type);
+    }
+
     public onDraftTypeChange(nextType: string): void {
+        const type = String(nextType ?? "");
+        if (!this.isSupportedDraftType(type)) {
+            this.draftLocation = {
+                ...this.draftLocation,
+                type,
+                location: "",
+                notes: ""
+            };
+            return;
+        }
+
         this.draftLocation = {
             ...this.draftLocation,
-            type: String(nextType ?? "url"),
-            location: nextType === "attachment" ? "" : this.draftLocation.location,
-            notes: this.isNotesHiddenForLocationType(nextType) ? "" : this.draftLocation.notes
+            type,
+            location: type === "attachment" ? "" : this.draftLocation.location,
+            notes: this.isNotesHiddenForLocationType(type) ? "" : this.draftLocation.notes
         };
     }
 
@@ -216,7 +233,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     }
 
     public addLocation(): void {
-        if (!this.isEditMode() || this.isDisabled || this.isReadonly || this.draftLocation.type === "attachment") {
+        if (!this.isEditMode() || this.isDisabled || this.isReadonly || !this.isManualDraftType(this.draftLocation.type)) {
             return;
         }
         const location = this.draftLocation.location.trim();
@@ -224,7 +241,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             return;
         }
         const newValue: DataLocationValueType = {
-            type: this.isSupportedDraftType(this.draftLocation.type) ? this.draftLocation.type : "url",
+            type: this.draftLocation.type,
             location,
             notes: this.notesEnabled && !this.isNotesHiddenForLocationType(this.draftLocation.type)
                 ? this.optionalString(this.draftLocation.notes)
@@ -466,11 +483,15 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
     private createDraftLocation(): DraftLocation {
         return {
-            type: "url",
+            type: this.dataTypePlaceholder ? "" : this.defaultDraftType(),
             location: "",
             notes: "",
             isc: this.iscEnabled ? this.defaultSelect : undefined
         };
+    }
+
+    private defaultDraftType(): string {
+        return this.dataTypes[0]?.value ?? "url";
     }
 
     private translateText(value: string): string {
@@ -575,7 +596,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
                 }
 
                 return {
-                    type: this.isSupportedDraftType(type) ? type : "url",
+                    type: this.isManualDraftType(type) ? type : "url",
                     location: String(item.location ?? ""),
                     notes: this.optionalString(item.notes),
                     isc: this.optionalString(item.isc)
@@ -778,7 +799,11 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return trimmed || undefined;
     }
 
-    private isSupportedDraftType(type: string): type is "url" | "physical" | "file" {
+    private isSupportedDraftType(type: string): type is DataLocationValueType["type"] {
+        return type === "url" || type === "physical" || type === "file" || type === "attachment";
+    }
+
+    private isManualDraftType(type: string): type is "url" | "physical" | "file" {
         return type === "url" || type === "physical" || type === "file";
     }
 }
