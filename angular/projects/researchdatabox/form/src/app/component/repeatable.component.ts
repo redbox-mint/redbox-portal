@@ -576,6 +576,22 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.model = model;
     }
 
+    // Use the disabled state of the repeatable component to set the initial disabled state of the new element's
+    // layout and component.
+    const isDisabled = this.isDisabled;
+    if (elemEntry.compConfigJson?.layout) {
+      if (!elemEntry.compConfigJson.layout.config) {
+        elemEntry.compConfigJson.layout.config = {};
+      }
+      elemEntry.compConfigJson.layout.config.disabled = isDisabled;
+    }
+    if (elemEntry.compConfigJson?.component) {
+      if (!elemEntry.compConfigJson.component.config) {
+        elemEntry.compConfigJson.component.config = {};
+      }
+      elemEntry.compConfigJson.component.config.disabled = isDisabled;
+    }
+
     // Note that the repeatable elementTemplate does not have a 'name' property.
     // This means that the array elements do not have to have a 'top-level key', like most other components.
     // This is done to enable the array to be strings or numbers (using e.g. input component), as well as objects (using e.g. group component).
@@ -598,14 +614,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-    const layoutInstance = elemFieldEntry.layoutRef?.instance as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
+    const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
       elemEntry.wrapperRef = wrapperRef;
       return wrapperRef;
     }
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
-    layoutInstance.repeatableDisabled = this.isDisabled;
     layoutInstance.canRemove = this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
       : this.compDefMapEntries.length > 0;
@@ -680,9 +695,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
+    // Also update the child repeatable's elements - both layout and component.
+    // The component will set the model's disabled state if it needs to.
     for (const entry of this.compDefMapEntries) {
-      if (entry.layoutInstance) {
-        entry.layoutInstance.repeatableDisabled = disabled;
+      if (entry.defEntry?.layout) {
+        entry.defEntry.layout.setDisabled(disabled, opts);
+      }
+      if (entry.defEntry?.component) {
+        entry.defEntry.component.setDisabled(disabled, opts);
       }
     }
   }
@@ -740,6 +760,9 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 export interface RepeatableElementEntry {
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
+  /**
+   * A convenience for accessing 'defEntry.layout' as the 'RepeatableElementLayoutComponent' type.
+   */
   layoutInstance?: RepeatableElementLayoutComponent<unknown>;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
   localUniqueId?: string;
@@ -778,11 +801,6 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   protected override logName = RepeatableElementLayoutName;
   public removeFn?: () => void;
   public canRemove = false;
-  public repeatableDisabled = false;
-
-  public override get isDisabled(): boolean {
-    return this.repeatableDisabled || super.isDisabled;
-  }
 
   protected get isContributorInline(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
