@@ -1087,7 +1087,16 @@ export namespace Controllers {
         && !_.isEmpty(view.sourceRecordType.trim())
         && _.isArray(view.steps)
         && view.steps.length > 0
-        && view.steps.every((step) => _.isObject(step) && _.isString((step as DashboardViewStepDefinition).name) && !_.isEmpty((step as DashboardViewStepDefinition).name.trim()));
+        && view.steps.every((step) => {
+          const dashboardViewStep = step as DashboardViewStepDefinition;
+          return _.isObject(step)
+            && _.isString(dashboardViewStep.name)
+            && !_.isEmpty(dashboardViewStep.name.trim())
+            && _.isString(dashboardViewStep.sourceRecordType)
+            && !_.isEmpty(dashboardViewStep.sourceRecordType.trim())
+            && (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
+            && _.isObject(dashboardViewStep.dashboardTable);
+        });
     }
 
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
