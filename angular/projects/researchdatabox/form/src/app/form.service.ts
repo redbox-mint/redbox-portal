@@ -70,6 +70,7 @@ import {
   KindNameDefaultsMapType,
   LineagePaths,
   queryJSONata,
+  validatorCustomLibrary,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
@@ -827,7 +828,7 @@ export class FormService extends HttpClientService {
   public async getValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
     const compiledItems = await this.getDynamicImportSiteValidatorDefinitions();
     const context = {};
-    const extras = {libraries: {jsonata}};
+    const extras = {libraries: {jsonata, customLibrary: validatorCustomLibrary}};
     return compiledItems.evaluate(['formValidatorDefinitions'], context, extras) as FormValidatorDefinition[];
   }
 
