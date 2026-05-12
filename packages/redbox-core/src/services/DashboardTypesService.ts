@@ -245,7 +245,7 @@ export namespace Services {
 
     public getDashboardView(name: string): DashboardViewConfig | null {
       const dashboardView = _.get(sails.config.dashboardview, name) as DashboardViewConfig | undefined;
-      if (!this.isValidDashboardViewConfig(dashboardView)) {
+      if (_.isUndefined(dashboardView)) {
         sails.log.warn(`Dashboard view not found: ${name}`);
         return null;
       }
