@@ -17,8 +17,24 @@ export class SearchFilter {
 }
 
 export class RelatedTo {
+    id?: string;
+    label?: string;
     recordType: string = '';
+    localField?: string;
     foreignField: string = '';
+    cardinality: 'one' | 'many' = 'many';
+    direction: 'outbound' | 'inbound' = 'outbound';
+    formHints?: {
+        componentNames?: string[];
+        sourceField?: string;
+        targetField?: string;
+        inferWhen?: 'missingConfigOnly' | 'always';
+    };
+    dashboard?: {
+        rowLevel?: number;
+        compareField?: string;
+    };
+    includeByDefault?: boolean;
 }
 
 export class RecordTypeHooks {

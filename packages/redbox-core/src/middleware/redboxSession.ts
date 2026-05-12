@@ -31,5 +31,5 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
     }
 
     // configure express-session using the sessionConfig object
-    return session(sessionConfig);
+    return session(sessionConfig) as unknown as RequestHandler;
 }

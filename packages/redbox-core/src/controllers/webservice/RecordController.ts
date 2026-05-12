@@ -33,6 +33,7 @@ import {
   SearchService,
   UserModel
 } from '../../index';
+import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -105,6 +106,84 @@ export namespace Controllers {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
+    }
+
+    private shouldIncludeRelationships(req: Sails.Req): boolean {
+      const include = String(req.param('include') ?? req.query.include ?? '').trim().toLowerCase();
+      const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '').trim().toLowerCase();
+      return include.split(',').includes('relationships') || includeRelationships === 'true';
+    }
+
+    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
+      const parseCsv = (value: unknown): string[] | undefined => {
+        const normalized = String(value ?? '').trim();
+        if (!normalized) {
+          return undefined;
+        }
+        return normalized.split(',').map((item) => item.trim()).filter(Boolean);
+      };
+
+      const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
+      const parsedDepth = Number(depthValue);
+      const fields = String(req.param('fields') ?? req.query.fields ?? '').trim().toLowerCase();
+
+      return {
+        depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
+        includeRelationIds: parseCsv(req.param('relationshipIds') ?? req.query.relationshipIds),
+        includeRecordTypes: parseCsv(req.param('recordTypes') ?? req.query.recordTypes),
+        fields: fields === 'summary' ? 'summary' : 'full',
+      };
+    }
+
+    private hasViewAccess(brand: BrandingModel, user: globalThis.Record<string, unknown> | undefined, record: globalThis.Record<string, unknown>): boolean {
+      const currentUser = user ?? {};
+      const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
+      return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
+    }
+
+    private async filterRelationshipGraphByAccess(
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown> | undefined,
+      graph: RecordRelationshipGraph
+    ): Promise<RecordRelationshipGraph> {
+      const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
+      const allowedTargetOids = new Set<string>();
+      const omittedByAccess: globalThis.Record<string, number> = { ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>) };
+
+      for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
+        const keptRecords: unknown[] = [];
+        for (const recordValue of (records ?? []) as unknown[]) {
+          const record = (recordValue ?? {}) as globalThis.Record<string, unknown>;
+          const recordOid = String(record.redboxOid ?? '').trim();
+          if (!recordOid) {
+            continue;
+          }
+          const hasAccess = recordOid === graph.rootOid || await this.hasViewAccess(brand, user, record);
+          if (hasAccess) {
+            allowedTargetOids.add(recordOid);
+            keptRecords.push(record);
+          }
+        }
+
+        if (keptRecords.length > 0) {
+          filteredRelatedObjects[recordType] = keptRecords;
+        }
+      }
+
+      const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
+        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+          return true;
+        }
+        omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
+        return false;
+      });
+
+      return {
+        rootOid: graph.rootOid,
+        edges: filteredEdges,
+        relatedObjects: filteredRelatedObjects,
+        omittedByAccess,
+      };
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
@@ -287,6 +366,7 @@ export namespace Controllers {
 
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
         const record = await this.RecordsService.getMeta(oid);
@@ -296,7 +376,18 @@ export namespace Controllers {
             displayErrors: [{ detail: `Failed to get meta, cannot find existing record with oid: ${oid}` }]
           });
         }
-        return this.sendResp(req, res, { data: record["metadata"] });
+        if (!this.shouldIncludeRelationships(req)) {
+          return this.sendResp(req, res, { data: record["metadata"] });
+        }
+
+        const relationships = await this.RecordsService.getRelatedRecords(oid, brand, this.parseRelationshipExpandOptions(req, 1));
+        const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
+        return this.sendResp(req, res, {
+          data: {
+            metadata: record["metadata"],
+            relationships: filteredRelationships,
+          }
+        });
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],

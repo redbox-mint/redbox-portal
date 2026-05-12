@@ -43,6 +43,8 @@ import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import { normalizeRecordRelations } from '../config/recordtype.config';
+import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -160,6 +162,89 @@ export namespace Controllers {
       return BrandingService.getBrand(req.session.branding as string ?? '');
     }
 
+    private shouldIncludeRelationships(req: Sails.Req): boolean {
+      const include = String(req.param('include') ?? req.query.include ?? '').trim().toLowerCase();
+      const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '').trim().toLowerCase();
+      return include.split(',').includes('relationships') || includeRelationships === 'true';
+    }
+
+    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
+      const parseCsv = (value: unknown): string[] | undefined => {
+        const normalized = String(value ?? '').trim();
+        if (!normalized) {
+          return undefined;
+        }
+        return normalized.split(',').map((item) => item.trim()).filter(Boolean);
+      };
+
+      const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
+      const parsedDepth = Number(depthValue);
+      const fields = String(req.param('fields') ?? req.query.fields ?? '').trim().toLowerCase();
+
+      return {
+        depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
+        includeRelationIds: parseCsv(req.param('relationshipIds') ?? req.query.relationshipIds),
+        includeRecordTypes: parseCsv(req.param('recordTypes') ?? req.query.recordTypes),
+        fields: fields === 'summary' ? 'summary' : 'full',
+      };
+    }
+
+    private async filterRelationshipGraphByAccess(
+      brand: BrandingModel,
+      user: AnyRecord | undefined,
+      graph: RecordRelationshipGraph
+    ): Promise<RecordRelationshipGraph> {
+      const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
+      const allowedTargetOids = new Set<string>();
+      const omittedByAccess: globalThis.Record<string, number> = { ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>) };
+
+      for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
+        const keptRecords: unknown[] = [];
+        for (const recordValue of records ?? []) {
+          const record = (recordValue ?? {}) as AnyRecord;
+          const recordOid = String(record.redboxOid ?? '').trim();
+          if (!recordOid) {
+            continue;
+          }
+          if (recordOid === graph.rootOid) {
+            keptRecords.push(record);
+            allowedTargetOids.add(recordOid);
+            continue;
+          }
+          const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
+          if (hasAccess) {
+            keptRecords.push(record);
+            allowedTargetOids.add(recordOid);
+          }
+        }
+        if (keptRecords.length > 0) {
+          filteredRelatedObjects[recordType] = keptRecords;
+        }
+      }
+
+      const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
+        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+          return true;
+        }
+        omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
+        return false;
+      });
+
+      return {
+        rootOid: graph.rootOid,
+        edges: filteredEdges,
+        relatedObjects: filteredRelatedObjects,
+        omittedByAccess,
+      };
+    }
+
+    private buildLegacyRelatedRecordsResponse(graph: RecordRelationshipGraph) {
+      return {
+        ...graph,
+        processedRelationships: Object.keys(graph.relatedObjects ?? {}),
+      };
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ?? '';
@@ -219,7 +304,18 @@ export namespace Controllers {
             }
           }
 
-          return this.sendResp(req, res, { data: record.metadata, meta: { oid: record.redboxOid }, v1: record.metadata });
+          if (!this.shouldIncludeRelationships(req)) {
+            return this.sendResp(req, res, { data: record.metadata, meta: { oid: record.redboxOid }, v1: record.metadata });
+          }
+
+          const relationshipOptions = this.parseRelationshipExpandOptions(req, 1);
+          const relationships = await this.recordsService.getRelatedRecords(record.redboxOid, brand, relationshipOptions);
+          const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
+          return this.sendResp(req, res, {
+            data: record.metadata,
+            meta: { oid: record.redboxOid, relationships: filteredRelationships },
+            v1: { ...record.metadata, relationships: filteredRelationships },
+          });
         } else {
           return this.sendResp(req, res, {
             status: 403,
@@ -917,7 +1013,13 @@ export namespace Controllers {
       const recordType = req.param('recordType');
       const brand: BrandingModel = this.getReqBrand(req);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        const recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
+        const recordTypeModel = new RecordTypeResponseModel(
+          _.get(recordType, 'name'),
+          _.get(recordType, 'packageType'),
+          _.get(recordType, 'searchFilters'),
+          _.get(recordType, 'searchable'),
+          normalizeRecordRelations(String(_.get(recordType, 'name', _.get(recordType, 'id', ''))), _.get(recordType, 'relatedTo'))
+        );
         this.sendResp(req, res, { data: recordTypeModel });
       }, error => {
         this.sendResp(req, res, {
@@ -936,7 +1038,13 @@ export namespace Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         const recordTypeModels = [];
         for (const recType of recordTypes) {
-          const recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'), _.get(recType, 'searchFilters'), _.get(recType, 'searchable'));
+          const recordTypeModel = new RecordTypeResponseModel(
+            _.get(recType, 'name'),
+            _.get(recType, 'packageType'),
+            _.get(recType, 'searchFilters'),
+            _.get(recType, 'searchable'),
+            normalizeRecordRelations(String(_.get(recType, 'name', '')), _.get(recType, 'relatedTo'))
+          );
           recordTypeModels.push(recordTypeModel);
         }
         this.sendResp(req, res, { data: recordTypeModels });
@@ -1305,8 +1413,10 @@ export namespace Controllers {
       //let record = await this.getRecord(oid).toPromise();
       //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
       //plus some additional rules/logic that may be applied to filter the records
-      const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand);
-      return relatedRecords;
+      const relationshipOptions = this.parseRelationshipExpandOptions(req);
+      const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
+      const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);
+      return this.buildLegacyRelatedRecordsResponse(filteredRelationships);
     }
 
     public async getPermissionsInternal(req: Sails.Req, _res: Sails.Res) {
