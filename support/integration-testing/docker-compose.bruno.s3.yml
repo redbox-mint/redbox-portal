@@ -124,10 +124,6 @@ services:
       - '../../:/opt/redbox-portal:delegated'
       - '../../.tmp/attachments:/attachments'
       - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
-      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/JCUTriggerService.js'
-      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/MetadataOutputsTriggerService.js'
-      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/pdfservice.js'
-      - '../../test/resources/api/controllers/empty-controller.js:/opt/redbox-portal/api/controllers/LegacyMappingController.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
       test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
