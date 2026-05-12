@@ -530,18 +530,30 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
-   * URL-encode path segments while preserving path separators.
+   * Encode user-controlled URL path values while preserving path separators.
+   * Trailing slashes are trimmed so prefixed paths can be safely concatenated.
    *
-   * @example {{urlEncode "path with spaces/to file"}}
+   * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
-    const text = String(value ?? '');
+    const rawText = String(value ?? '');
+    if (!rawText) {
+      return '';
+    }
+
+    let endIndex = rawText.length;
+    while (endIndex > 0 && rawText[endIndex - 1] === '/') {
+      endIndex--;
+    }
+
+    const text = rawText.slice(0, endIndex);
     if (!text) {
       return '';
     }
-    return text.replace(/\/+$/, '')
+
+    return text
       .split('/')
-      .map(segment => encodeURIComponent(segment))
+      .map((segment) => encodeURIComponent(segment))
       .join('/');
   },
 

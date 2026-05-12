@@ -22,8 +22,8 @@ export class RelatedTo {
     recordType: string = '';
     localField?: string;
     foreignField: string = '';
-    cardinality: 'one' | 'many' = 'many';
-    direction: 'outbound' | 'inbound' = 'outbound';
+    cardinality?: 'one' | 'many' = 'many';
+    direction?: 'outbound' | 'inbound' = 'outbound';
     formHints?: {
         componentNames?: string[];
         sourceField?: string;

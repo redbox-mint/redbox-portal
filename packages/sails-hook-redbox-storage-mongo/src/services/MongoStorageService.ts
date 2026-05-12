@@ -555,7 +555,6 @@ export namespace Services {
         targetRecordType: relationship.recordType,
       };
     }
-
     public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 

@@ -60,6 +60,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/user/find(/*)', role: 'Researcher', can_read: true },
         { path: '/:branding/:portal/user/profile', role: 'Researcher', can_read: true },
         { path: '/:branding/:portal/dashboard(/*)', role: 'Researcher', can_update: true },
+        { path: '/:branding/:portal/dashboard-view(/*)', role: 'Researcher', can_read: true },
         { path: '/:branding/:portal/researcher/home', role: 'Researcher', can_update: true },
         { path: '/:branding/:portal/researcher/home', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/export(/*)', role: 'Librarians', can_update: true },

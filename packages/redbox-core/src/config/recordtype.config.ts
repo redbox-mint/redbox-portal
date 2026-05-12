@@ -808,13 +808,6 @@ export const recordtype: RecordTypeConfig = {
             }
         }
     },
-    "consolidated": {
-        "searchable": false,
-        "packageType": "rdmp",
-        "packageName": "consolidated",
-        "searchFilters": [],
-        hooks: {}
-    },
     "party": {
         packageType: "party",
         dashboard: {

@@ -170,6 +170,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
     'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
+    'get /:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName': 'DynamicAssetController.getDashboardViewTemplates',
 
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
@@ -214,6 +215,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
     'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
     'get /:branding/:portal/dashboard/type': 'RecordController.getAllDashboardTypes',
+    'get /:branding/:portal/dashboard/view/:dashboardView': 'RecordController.getDashboardView',
     'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
     'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
     'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
@@ -241,7 +243,9 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
     'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
     'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
+    'get /:branding/:portal/dashboard/consolidated': 'RecordController.redirectLegacyConsolidatedDashboard',
     'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
+    'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
     'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
     'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 

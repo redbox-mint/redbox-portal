@@ -110,6 +110,23 @@ export interface RecordTypeDefinitionResponse {
   relatedTo?: RecordTypeRelationship[];
 }
 
+export interface DashboardViewStepDefinitionResponse {
+  name: string;
+  sourceRecordType: string;
+  sourceWorkflowStage?: string;
+  fetchMode: 'allForRecordType' | 'workflowStage';
+  dashboardTable: Record<string, unknown>;
+  baseRecordType?: string;
+}
+
+export interface DashboardViewDefinitionResponse {
+  name: string;
+  titleLabelKey: string;
+  showAdminSideBar?: boolean;
+  dashboardType: string;
+  sourceRecordType: string;
+  steps: DashboardViewStepDefinitionResponse[];
+}
 export interface IntegrationAuditTraceEvent {
   id: string;
   redboxOid: string;
@@ -209,13 +226,13 @@ export class RecordService extends HttpClientService {
     }
 
     const requestOptions = this.getHttpOptions();
+    const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
     const httpOptions = {
       ...requestOptions,
       observe: 'body' as const,
       responseType: 'json' as const,
       params,
     };
-    const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
     const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
@@ -371,15 +388,14 @@ export class RecordService extends HttpClientService {
     }
 
     const requestOptions = this.getHttpOptions();
-    const httpOptions = {
-      ...requestOptions,
-      observe: 'body' as const,
-      responseType: 'json' as const,
-      params,
-    };
     const url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
-    const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
-    const response = await firstValueFrom(result$) as unknown as Record<string, unknown>;
+    const result$ = this.http.get<Record<string, unknown>>(url, {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+      params,
+    });
+    const response = await firstValueFrom(result$);
     const graph = (_get(response, 'data') ?? response) as Record<string, unknown>;
 
     return {
@@ -553,8 +569,17 @@ export class RecordService extends HttpClientService {
   public async getType(recordType: string): Promise<RecordTypeDefinitionResponse> {
     const url = `${this.brandingAndPortalUrl}/record/type/${recordType}`;
     const requestOptions = this.getHttpOptions();
-    const result$ = this.http.get(url, requestOptions).pipe(map(res => res));
-    const result = await firstValueFrom(result$) as unknown as Record<string, unknown>;
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
     return ((_get(result, 'data') ?? result) as RecordTypeDefinitionResponse);
   }
 
@@ -563,6 +588,23 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  public async getDashboardView(name: string): Promise<DashboardViewDefinitionResponse> {
+    const url = `${this.brandingAndPortalUrl}/dashboard/view/${name}`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
+    return ((_get(result, 'data') ?? result) as DashboardViewDefinitionResponse);
   }
 
   public async getAllDashboardTypes() {

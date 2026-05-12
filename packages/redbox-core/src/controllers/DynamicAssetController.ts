@@ -51,6 +51,7 @@ export namespace Controllers {
       'getFormExpressions',
       'getAdminReportTemplates',
       'getRecordDashboardTemplates',
+      'getDashboardViewTemplates',
     ];
 
     private _recordTypeAuto = "auto";
@@ -203,6 +204,26 @@ export namespace Controllers {
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         sails.log.error("Could not build dashboard templates:", error);
+        return res.serverError();
+      }
+    }
+
+    public async getDashboardViewTemplates(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const dashboardView = req.param("dashboardView") || "";
+      const stepName = req.param("stepName") || "";
+      const dashboardType = req.param("dashboardType") || "";
+
+      if (!dashboardView || !stepName) {
+        sails.log.warn(`getDashboardViewTemplates called without dashboardView or stepName`);
+        return this.sendClientMappingJavascript(res, []);
+      }
+
+      try {
+        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, dashboardType);
+        return this.sendClientMappingJavascript(res, entries);
+      } catch (error) {
+        sails.log.error("Could not build dashboard view templates:", error);
         return res.serverError();
       }
     }

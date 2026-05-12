@@ -24,6 +24,7 @@ import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
+  DashboardViewResponseModel,
   Controllers as controllers,
   DatastreamService,
   RecordsService,
@@ -44,6 +45,7 @@ import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
 type AnyRecord = Record<string, unknown>;
@@ -116,10 +118,13 @@ export namespace Controllers {
       'listWorkspaces',
       'getAllDashboardTypes',
       'getDashboardType',
+      'getDashboardView',
+      'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
       'restoreRecord',
       'destroyDeletedRecord',
+      'renderDashboardView',
     ];
 
     /**
@@ -1066,6 +1071,34 @@ export namespace Controllers {
       });
     }
 
+    private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
+      if (!dashboardView || !_.isObject(dashboardView)) {
+        return false;
+      }
+
+      const view = dashboardView as DashboardViewDefinition;
+      return _.isString(view.name)
+        && !_.isEmpty(view.name.trim())
+        && _.isString(view.titleLabelKey)
+        && !_.isEmpty(view.titleLabelKey.trim())
+        && _.isString(view.dashboardType)
+        && !_.isEmpty(view.dashboardType.trim())
+        && _.isString(view.sourceRecordType)
+        && !_.isEmpty(view.sourceRecordType.trim())
+        && _.isArray(view.steps)
+        && view.steps.length > 0
+        && view.steps.every((step) => {
+          const dashboardViewStep = step as DashboardViewStepDefinition;
+          return _.isObject(step)
+            && _.isString(dashboardViewStep.name)
+            && !_.isEmpty(dashboardViewStep.name.trim())
+            && _.isString(dashboardViewStep.sourceRecordType)
+            && !_.isEmpty(dashboardViewStep.sourceRecordType.trim())
+            && (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
+            && _.isObject(dashboardViewStep.dashboardTable);
+        });
+    }
+
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
@@ -1080,6 +1113,23 @@ export namespace Controllers {
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
       });
+    }
+
+    public getDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewParam = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewParam)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      try {
+        const dashboardView = DashboardTypesService.getDashboardView(dashboardViewParam);
+        if (!this.isValidDashboardViewDefinition(dashboardView)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+        }
+        return this.sendResp(req, res, { data: new DashboardViewResponseModel(dashboardView) });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+      }
     }
 
     protected tusServer: TusServer | null = null;
@@ -1516,11 +1566,13 @@ export namespace Controllers {
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
+      let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
         }
+        dashboardType = 'workspace';
         if (titleLabel == '') {
           titleLabel = 'workspaces';
         }
@@ -1543,9 +1595,37 @@ export namespace Controllers {
       return this.sendView(req, res, 'dashboard', {
         recordType: recordType,
         packageType: packageType,
+        dashboardType: dashboardType,
+        dashboardView: '',
         titleLabel: titleLabel,
         showAdminSideBar: showAdminSideBar
       });
+    }
+
+    public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewName)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      const dashboardView = DashboardTypesService.getDashboardView(dashboardViewName);
+      if (!this.isValidDashboardViewDefinition(dashboardView)) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+      }
+
+      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: dashboardView.sourceRecordType,
+        packageType: '',
+        dashboardType: dashboardView.dashboardType,
+        dashboardView: dashboardView.name,
+        titleLabel,
+        showAdminSideBar: dashboardView.showAdminSideBar === true
+      });
+    }
+
+    public redirectLegacyConsolidatedDashboard(req: Sails.Req, res: Sails.Res) {
+      return res.redirect(`${BrandingService.getFullPath(req)}/dashboard-view/consolidated`);
     }
 
 
