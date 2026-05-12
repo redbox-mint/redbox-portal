@@ -66,7 +66,7 @@ x-rbportal-depends: &rbportal-depends
   minio:
     condition: 'service_healthy'
   minio-init:
-    condition: 'service_completed_successfully'
+    condition: 'service_healthy'
 
 x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
@@ -228,6 +228,12 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'mc ls local/test-aws-redbox-jcu-attachments >/dev/null 2>&1']
+      interval: '5s'
+      timeout: '5s'
+      retries: 20
+      start_period: '5s'
     networks:
       main:
     entrypoint:
@@ -236,3 +242,4 @@ services:
       - |
         mc alias set local http://minio:9000 minioadmin minioadmin
         mc mb --ignore-existing local/test-aws-redbox-jcu-attachments
+        tail -f /dev/null

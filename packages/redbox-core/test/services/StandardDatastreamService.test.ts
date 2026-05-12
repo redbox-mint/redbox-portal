@@ -6,6 +6,15 @@ import { Readable } from 'node:stream';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { Datastream } from '../../src/Datastream';
 
+async function waitFor(predicate: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+}
+
 describe('StandardDatastreamService', function () {
   let mockSails: any;
   let mockStorageManager: any;
@@ -91,6 +100,8 @@ describe('StandardDatastreamService', function () {
   });
 
   afterEach(function () {
+    const { Services } = require('../../src/services/StandardDatastreamService');
+    (Services.StandardDatastream as any).promotionGuards?.clear?.();
     cleanupServiceTestGlobals();
     sinon.restore();
   });
@@ -384,8 +395,7 @@ describe('StandardDatastreamService', function () {
       const firstRead = service.getDatastream('oid-123', 'file-123');
       const secondRead = service.getDatastream('oid-123', 'file-123');
 
-      await Promise.resolve();
-      await Promise.resolve();
+      await waitFor(() => mockPrimaryDisk.putStream.calledOnce);
 
       expect(mockStagingDisk.getStream.calledOnce).to.be.true;
       expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
