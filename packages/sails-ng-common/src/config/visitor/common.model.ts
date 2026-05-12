@@ -155,12 +155,13 @@ export class PropertiesHelper {
    * @param config Get the value of the named properties from this config.
    */
   public sharedPopulateFieldModelConfig(item: FieldModelConfigFrame<unknown>, config?: FieldModelConfigFrame<unknown>) {
-    this.setPropOverride('disableFormBinding', item, config);
     this.setPropOverride('value', item, config);
     this.setPropOverride('defaultValue', item, config);
+    this.setPropOverride('newEntryValue', item, config);
     this.setPropOverride('validators', item, config);
     this.setPropOverride('wrapperCssClasses', item, config);
     this.setPropOverride('editCssClasses', item, config);
+    this.setPropOverride('disabled', item, config);
   }
 
   /**

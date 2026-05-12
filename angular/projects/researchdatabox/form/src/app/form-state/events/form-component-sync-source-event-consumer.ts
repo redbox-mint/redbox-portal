@@ -20,6 +20,8 @@ import { FormComponentEventBindingOptions } from './form-component-base-event-pr
  *
  * This supports additive contributor-permission sync where typeahead keystrokes
  * must not wipe repeatable rows before the user commits a selection.
+ *
+ * Supported targets are specified in FormComponentEventBaseConsumer.setTarget.
  */
 export class FormComponentSyncSourceEventConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType: FormComponentEventTypeValue =
@@ -30,7 +32,7 @@ export class FormComponentSyncSourceEventConsumer extends FormComponentEventBase
   }
 
   override bind(options: FormComponentEventBindingOptions): void {
-    super.bind(options);    
+    super.bind(options);
   }
 
   protected override async consumeEvent(

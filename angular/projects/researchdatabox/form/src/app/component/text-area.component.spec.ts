@@ -42,6 +42,39 @@ describe('TextAreaComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('textarea');
     expect((inputElement as HTMLTextAreaElement).value).toEqual('Text area hello world test text');
+    expect(inputElement?.disabled).toBeFalse();
   });
 
+
+  it('should disable Textarea component', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'textarea_test',
+          model: {
+            class: 'TextAreaModel',
+            config: {
+              value: 'Text area hello world test text'
+            }
+          },
+          component: {
+            class: 'TextAreaComponent', config: { disabled: true, rows: 10, cols: 10}
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement: HTMLTextAreaElement | null = compiled.querySelector('textarea');
+    expect(inputElement?.value).toEqual('Text area hello world test text');
+    expect(inputElement?.disabled).toBeTrue();
+  });
 });

@@ -10,10 +10,7 @@ import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
  * This mirrors `FormComponentValueChangeEventConsumer` but reacts to UI
  * attribute changes (visibility, readonly, disabled) rather than value changes.
  *
- * Supported targets:
- *   - `model.value`    → sets the form control value
- *   - `layout.*`       → mutates layout component config
- *   - `component.*`    → mutates component config
+ * Supported targets are specified in FormComponentEventBaseConsumer.setTarget.
  */
 export class FormComponentUIAttributeChangeEventConsumer extends FormComponentEventBaseConsumer {
 

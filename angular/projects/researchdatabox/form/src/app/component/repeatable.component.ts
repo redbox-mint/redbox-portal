@@ -22,7 +22,7 @@ import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {FormComponent} from "../form.component";
-import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
+import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
 type RepeatableSetValueOptions = ModifyOptions;
 
@@ -68,7 +68,11 @@ class RepeatableFormArray
         <ng-container #repeatableContainer></ng-container>
       </div>
       @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
-        <button type="button" class="rb-form-repeatable__add btn btn-success" (click)="appendNewElement()" [attr.aria-label]="'add-button-label' | i18next">
+        <button type="button"
+                class="rb-form-repeatable__add btn btn-success"
+                (click)="appendNewElement()"
+                [attr.aria-label]="'add-button-label' | i18next"
+                [disabled]="isDisabled">
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
         </button>
@@ -559,6 +563,28 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.compConfigJson.layout.name = `${baseName}-layout-${localUniqueId}`;
     }
 
+    // Use the disabled state of the repeatable component to set the initial disabled state
+    // of the new element's layout, component, and model.
+    const isDisabled = this.isDisabled;
+    if (elemEntry.compConfigJson?.layout) {
+      if (!elemEntry.compConfigJson.layout.config) {
+        elemEntry.compConfigJson.layout.config = {};
+      }
+      elemEntry.compConfigJson.layout.config.disabled = isDisabled;
+    }
+    if (elemEntry.compConfigJson?.component) {
+      if (!elemEntry.compConfigJson.component.config) {
+        elemEntry.compConfigJson.component.config = {};
+      }
+      elemEntry.compConfigJson.component.config.disabled = isDisabled;
+    }
+    if (elemEntry.compConfigJson?.model) {
+      if (!elemEntry.compConfigJson.model.config) {
+        elemEntry.compConfigJson.model.config = {};
+      }
+      elemEntry.compConfigJson.model.config.disabled = isDisabled;
+    }
+
     // Create new form field.
     const model = this.formService.createFormFieldModelInstance(
       elemEntry, this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups);
@@ -594,7 +620,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
-    const layoutInstance = elemFieldEntry.layoutRef?.instance as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
+    const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
       elemEntry.wrapperRef = wrapperRef;
@@ -672,6 +698,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       }
     }
   }
+
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    // Also update the child repeatable's elements - both layout and component.
+    // The component will set the model's disabled state if it needs to.
+    for (const entry of this.compDefMapEntries) {
+      if (entry.defEntry?.layout) {
+        entry.defEntry.layout.setDisabled(disabled, opts);
+      }
+      if (entry.defEntry?.component) {
+        entry.defEntry.component.setDisabled(disabled, opts);
+      }
+    }
+  }
 }
 
 
@@ -726,6 +766,9 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 export interface RepeatableElementEntry {
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
+  /**
+   * A convenience for accessing 'defEntry.layout' as the 'RepeatableElementLayoutComponent' type.
+   */
   layoutInstance?: RepeatableElementLayoutComponent<unknown>;
   // The unique ID of the repeatable element, used to identify it in the form. This is not meant to be persisted in the database, but rather to be used for dynamic operations in the form.
   localUniqueId?: string;
@@ -741,7 +784,12 @@ export interface RepeatableElementEntry {
       <ng-container #componentContainer></ng-container>
     </div>
     @if (isVisible && canRemove) {
-      <button type="button" class="rb-form-repeatable-item__remove btn btn-danger" (click)="clickedRemove()" [attr.aria-label]="'remove-button-label' | i18next">
+      <button
+        type="button"
+        class="rb-form-repeatable-item__remove btn btn-danger"
+        (click)="clickedRemove()"
+        [attr.aria-label]="'remove-button-label' | i18next"
+        [disabled]="isDisabled">
         <span class="fa fa-minus-circle" aria-hidden="true"></span>
       </button>
     }

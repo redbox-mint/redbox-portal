@@ -1,6 +1,10 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  LoggerService,
+} from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentUIAttributeChangeEventConsumer } from './form-component-ui-attribute-change-event-consumer';
 import {
@@ -10,6 +14,7 @@ import {
 import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Subject } from 'rxjs';
 import { CustomSetValueControl } from '../custom-set-value.control';
+import {createSetup} from "./spec-helper";
 
 describe('FormComponentUIAttributeChangeEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -36,24 +41,6 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
   afterEach(() => {
     consumer.destroy();
   });
-
-  function createSetup(expressions: FormExpressionsConfigFrame[]) {
-    const control = new FormControl<any>('');
-    const definition = {
-      model: { formControl: control },
-      expressions: expressions,
-      lineagePaths: { formConfig: ['root'] },
-      layout: { componentDefinition: { config: {} } },
-      component: { componentDefinition: { config: {} } }
-    } as unknown as FormFieldCompMapEntry;
-
-    const component = {
-      formFieldConfigName: () => 'test-field',
-      model: { formControl: control }
-    } as unknown as FormFieldBaseComponent<unknown>;
-
-    return { control, definition, component };
-  }
 
   function createUIEvent(overrides: Partial<FieldUIAttributeChangedEvent> = {}): FieldUIAttributeChangedEvent {
     return {
@@ -189,6 +176,9 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(
       Promise.resolve([expr])
     );
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
 
     consumer.bind({ component, definition });
 
@@ -196,8 +186,9 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     eventStream$.next(createUIEvent({ meta }));
     tick();
 
-    const config = definition.layout?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['someProp']).toEqual(meta);
+    expect(layoutSetPropertySpy).toHaveBeenCalledOnceWith('someProp', meta);
+    expect(componentSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
   }));
 
   it('should update component config when target starts with "component."', fakeAsync(() => {
@@ -214,6 +205,9 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(
       Promise.resolve([expr])
     );
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
 
     consumer.bind({ component, definition });
 
@@ -221,8 +215,10 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     eventStream$.next(createUIEvent({ meta }));
     tick();
 
-    const config = definition.component?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['someSetting']).toEqual(meta);
+
+    expect(layoutSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(componentSetPropertySpy).toHaveBeenCalledOnceWith('someSetting', meta);
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
   }));
 
   it('should use template evaluation when hasTemplate is true', fakeAsync(() => {
