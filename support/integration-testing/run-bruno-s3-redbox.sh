@@ -6,6 +6,7 @@ set -o xtrace
 cd /opt/redbox-portal
 
 npm install --ignore-scripts --strict-peer-deps
+npm --prefix packages/redbox-core exec -- tsc --noEmitOnError false || true
 
 mkdir -p /opt/redbox-portal/coverage/bruno-s3
 rm -rf /opt/redbox-portal/coverage/bruno-s3/*

@@ -189,7 +189,7 @@ describe('StorageManagerService', function () {
           config: {
             key: 'AK',
             secret: 'SK',
-            bucket: 'test-aws-redbox-jcu-attachments',
+            bucket: 'test-aws-redbox-attachments',
             region: 'us-east-1',
             endpoint: 'http://minio:9000',
             forcePathStyle: true,
@@ -229,7 +229,7 @@ describe('StorageManagerService', function () {
       expect(capturedDrivers).to.have.length(2);
       expect(service.stagingDisk()).to.equal(mockStagingDisk);
       expect(service.primaryDisk()).to.equal(mockPrimaryDisk);
-      expect(capturedS3Opts.bucket).to.equal('test-aws-redbox-jcu-attachments');
+      expect(capturedS3Opts.bucket).to.equal('test-aws-redbox-attachments');
       expect(capturedS3Opts.region).to.equal('us-east-1');
       expect(capturedS3Opts.endpoint).to.equal('http://minio:9000');
       expect(capturedS3Opts.forcePathStyle).to.equal(true);
@@ -248,7 +248,7 @@ describe('StorageManagerService', function () {
           config: {
             key: 'AK',
             secret: 'SK',
-            bucket: 'test-aws-redbox-jcu-attachments',
+            bucket: 'test-aws-redbox-attachments',
             region: 'us-east-1',
           },
         },

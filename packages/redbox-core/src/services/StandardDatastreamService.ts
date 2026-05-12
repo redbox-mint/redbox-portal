@@ -57,6 +57,23 @@ export namespace Services {
       return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
     }
 
+    private fileIdFromStorageKey(key: string): string {
+      return key.split('/').filter(Boolean).pop() ?? key;
+    }
+
+    private datastreamListEntry(key: string, details: Record<string, unknown> = {}): Record<string, unknown> {
+      const fileId = this.fileIdFromStorageKey(key);
+      return {
+        filename: key,
+        ...details,
+        metadata: {
+          fileId,
+          name: fileId,
+          ...((details['metadata'] as Record<string, unknown> | undefined) ?? {}),
+        },
+      };
+    }
+
     private isStorageNotFoundError(err: unknown): boolean {
       if (!err || typeof err !== 'object') {
         return false;
@@ -400,16 +417,15 @@ export namespace Services {
         try {
           const meta = await primaryDisk.getMetaData(destKey);
           return [
-            {
-              filename: destKey,
+            this.datastreamListEntry(destKey, {
               contentType: meta.contentType,
               contentLength: meta.contentLength,
               lastModified: meta.lastModified,
               etag: meta.etag,
-            },
+            }),
           ];
         } catch {
-          return [{ filename: destKey }];
+          return [this.datastreamListEntry(destKey)];
         }
       }
 
@@ -419,10 +435,8 @@ export namespace Services {
       const files: Record<string, unknown>[] = [];
       for (const obj of result.objects) {
         const fileObj = obj as Record<string, unknown>;
-        files.push({
-          filename: fileObj['key'] ?? fileObj['name'] ?? String(obj),
-          ...fileObj,
-        });
+        const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
+        files.push(this.datastreamListEntry(key, fileObj));
       }
       return files;
     }

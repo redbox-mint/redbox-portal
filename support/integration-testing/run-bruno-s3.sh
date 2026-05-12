@@ -19,9 +19,9 @@ node_modules/.bin/bru run "7 - S3 Attachment Storage" \
   --output /opt/junit/backend-bruno/backend-bruno-s3.xml
 
 status=$?
-wget -qO- http://redboxportal:1599 || true
+wget -qO- --timeout=5 --tries=1 http://redboxportal:1599 || true
 
-if wget -qO- http://redboxportal:1500/default/rdmp/home >/dev/null 2>&1; then
+if wget -qO- --timeout=5 --tries=1 http://redboxportal:1500/default/rdmp/home >/dev/null 2>&1; then
   echo "redboxportal is still responding"
 fi
 

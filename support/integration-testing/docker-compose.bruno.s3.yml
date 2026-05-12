@@ -37,19 +37,20 @@ x-rbportal-env: &rbportal-env
   - LOAD_DEFAULT_FORMS=true
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
-  - sails_storage__serviceName=standarddatastreamservice
+  - sails_storage__serviceName=mongostorageservice
+  - sails_record__datastreamService=standarddatastreamservice
   - sails_storage__defaultDisk=primary
   - sails_storage__stagingDisk=staging
   - sails_storage__primaryDisk=primary
   - sails_storage__keyPrefix=attachments/
   - sails_storage__disks__staging__driver=fs
-  - sails_storage__disks__staging__config__root=/attachments
+  - sails_storage__disks__staging__config__root=/attachments/staging
   - sails_storage__disks__primary__driver=s3
-  - sails_storage__disks__primary__config__key=minioadmin
-  - sails_storage__disks__primary__config__secret=minioadmin
-  - sails_storage__disks__primary__config__bucket=test-aws-redbox-jcu-attachments
+  - sails_storage__disks__primary__config__key=s3mock
+  - sails_storage__disks__primary__config__secret=s3mock
+  - sails_storage__disks__primary__config__bucket=test-aws-redbox-attachments
   - sails_storage__disks__primary__config__region=us-east-1
-  - sails_storage__disks__primary__config__endpoint=http://minio:9000
+  - sails_storage__disks__primary__config__endpoint=http://s3mock:9090
   - sails_storage__disks__primary__config__forcePathStyle=true
   - sails_storage__disks__primary__config__visibility=private
   - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
@@ -63,9 +64,7 @@ x-rbportal-depends: &rbportal-depends
     condition: 'service_healthy'
   email:
     condition: 'service_healthy'
-  minio:
-    condition: 'service_healthy'
-  minio-init:
+  s3mock:
     condition: 'service_healthy'
 
 x-rbportal-service: &rbportal-service
@@ -125,6 +124,10 @@ services:
       - '../../:/opt/redbox-portal:delegated'
       - '../../.tmp/attachments:/attachments'
       - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/JCUTriggerService.js'
+      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/MetadataOutputsTriggerService.js'
+      - '../../test/resources/api/services/empty-service.js:/opt/redbox-portal/api/services/pdfservice.js'
+      - '../../test/resources/api/controllers/empty-controller.js:/opt/redbox-portal/api/controllers/LegacyMappingController.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
       test: ['CMD-SHELL', 'curl http://localhost:1500/default/rdmp/home']
@@ -202,18 +205,15 @@ services:
       main:
         aliases:
           - 'email'
-  minio:
-    image: minio/minio:latest
+  s3mock:
+    image: adobe/s3mock:latest
     pull_policy: 'missing'
-    command: server /data --console-address ':9001'
     expose:
-      - '9000'
-      - '9001'
+      - '9090'
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: test-aws-redbox-attachments
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:9000/minio/health/live']
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:9090/']
       interval: '5s'
       timeout: '5s'
       retries: 20
@@ -221,25 +221,4 @@ services:
     networks:
       main:
         aliases:
-          - minio
-  minio-init:
-    image: minio/mc:latest
-    pull_policy: 'missing'
-    depends_on:
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'mc ls local/test-aws-redbox-jcu-attachments >/dev/null 2>&1']
-      interval: '5s'
-      timeout: '5s'
-      retries: 20
-      start_period: '5s'
-    networks:
-      main:
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        mc alias set local http://minio:9000 minioadmin minioadmin
-        mc mb --ignore-existing local/test-aws-redbox-jcu-attachments
-        tail -f /dev/null
+          - s3mock
