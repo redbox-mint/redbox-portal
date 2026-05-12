@@ -226,10 +226,15 @@ export class RecordService extends HttpClientService {
     }
 
     const requestOptions = this.getHttpOptions();
-    const httpOptions = {
-      ...requestOptions,
-      observe: 'body' as const,
-      responseType: 'json' as const,
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+      params: HttpParams;
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
       params,
     };
     const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
@@ -395,8 +400,8 @@ export class RecordService extends HttpClientService {
       params,
     };
     const url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
-    const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
-    const response = await firstValueFrom(result$) as Record<string, unknown>;
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const response = await firstValueFrom(result$);
     const graph = (_get(response, 'data') ?? response) as Record<string, unknown>;
 
     return {
@@ -570,8 +575,17 @@ export class RecordService extends HttpClientService {
   public async getType(recordType: string): Promise<RecordTypeDefinitionResponse> {
     const url = `${this.brandingAndPortalUrl}/record/type/${recordType}`;
     const requestOptions = this.getHttpOptions();
-    const result$ = this.http.get(url, requestOptions).pipe(map(res => res));
-    const result = await firstValueFrom(result$) as Record<string, unknown>;
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
     return ((_get(result, 'data') ?? result) as RecordTypeDefinitionResponse);
   }
 
@@ -584,8 +598,18 @@ export class RecordService extends HttpClientService {
 
   public async getDashboardView(name: string): Promise<DashboardViewDefinitionResponse> {
     const url = `${this.brandingAndPortalUrl}/dashboard/view/${name}`;
-    const result$ = this.http.get(url).pipe(map(res => res));
-    const result = await firstValueFrom(result$) as Record<string, unknown>;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
     return ((_get(result, 'data') ?? result) as DashboardViewDefinitionResponse);
   }
 
