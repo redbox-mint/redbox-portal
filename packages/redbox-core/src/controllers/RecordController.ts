@@ -1021,12 +1021,12 @@ export namespace Controllers {
         datastore,
         respectForwardedHeaders: true,
         disableTerminationForFinishedUploads: true,
-        generateUrl(req, { host, path, id }) {
+        generateUrl(req, { host, id }) {
           const tusReq = req as unknown as TusRequestExtension;
           const baseUrl = (tusReq._tusBaseUrl ?? '').replace(/\/+$/, '');
-          const cleanPath = path.startsWith('/') ? path : `/${path}`;
-          // Preserve historical behavior expected by integration clients/tests (scheme-relative URL).
-          return `//${host}${baseUrl}${cleanPath}/${id}`;
+          // The datastore path is an internal TUS mount. Clients must continue
+          // chunking through the routed RecordController attachment endpoint.
+          return `//${host}${baseUrl}/attach/${id}`;
         },
       });
 

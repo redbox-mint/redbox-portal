@@ -188,6 +188,7 @@ export namespace Services {
       }
 
       const storageConfig = this.getMergedStorageConfig();
+      const disks = new Map<string, IDisk>();
 
       if (!storageConfig.disks || Object.keys(storageConfig.disks).length === 0) {
         throw new Error('StorageManagerService: no disks configured in storage.disks and no defaults available');
@@ -211,12 +212,13 @@ export namespace Services {
         const driver = this.createDriver(name, diskConf);
         if (this._DiskConstructor) {
           const disk = new this._DiskConstructor(driver);
-          this._disks.set(name, disk);
+          disks.set(name, disk);
         } else {
           throw new Error('StorageManagerService: Flydrive Disk constructor unavailable');
         }
       }
 
+      this._disks = disks;
       this._bootstrapped = true;
       this.logger.verbose(`${this.logHeader} Bootstrapped with disks: ${Array.from(this._disks.keys()).join(', ')}`);
     }

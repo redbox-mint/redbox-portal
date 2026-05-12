@@ -1,0 +1,26 @@
+meta {
+  name: List S3 attachments
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{s3AttachmentRecordOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Attachment list includes uploaded file id", function () {
+    expect(JSON.stringify(res.getBody())).to.include(bru.getEnvVar("s3AttachmentId"));
+  });
+}

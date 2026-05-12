@@ -55,6 +55,20 @@ export namespace Services {
       return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
     }
 
+    private async promoteFromStaging(fileId: string, destKey: string): Promise<boolean> {
+      const stagingDisk = StorageManagerService.stagingDisk();
+      const primaryDisk = StorageManagerService.primaryDisk();
+      const existsInStaging = await stagingDisk.exists(fileId);
+      if (!existsInStaging) {
+        return false;
+      }
+      const readable = await stagingDisk.getStream(fileId);
+      await primaryDisk.putStream(destKey, readable);
+      await stagingDisk.delete(fileId);
+      this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Promoted: ${destKey}`);
+      return true;
+    }
+
     // ----------------------------------------------------------------
     // DatastreamService interface implementation
     // ----------------------------------------------------------------
@@ -192,18 +206,14 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
 
-      const exists = await effectiveStagingDisk.exists(fileId);
-      if (!exists) {
+      const existsInStaging = await effectiveStagingDisk.exists(fileId);
+      if (!existsInStaging) {
         throw new Error(`Attachment not found in staging: ${fileId}`);
       }
 
-      try {
-        await effectiveStagingDisk.move(fileId, destKey);
-      } catch {
-        const readable = await effectiveStagingDisk.getStream(fileId);
-        await primaryDisk.putStream(destKey, readable);
-        await effectiveStagingDisk.delete(fileId);
-      }
+      const readable = await effectiveStagingDisk.getStream(fileId);
+      await primaryDisk.putStream(destKey, readable);
+      await effectiveStagingDisk.delete(fileId);
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
       return { success: true, key: destKey };
@@ -260,7 +270,10 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
 
       // Check existence
-      const exists = await primaryDisk.exists(destKey);
+      let exists = await primaryDisk.exists(destKey);
+      if (!exists) {
+        exists = await this.promoteFromStaging(fileId, destKey);
+      }
       if (!exists) {
         throw new Error(`Attachment not found: ${destKey}`);
       }

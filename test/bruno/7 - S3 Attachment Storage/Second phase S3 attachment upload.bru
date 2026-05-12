@@ -1,0 +1,39 @@
+meta {
+  name: Second phase S3 attachment upload
+  type: http
+  seq: 4
+}
+
+patch {
+  url: http:{{s3AttachmentLocation}}
+  body: file
+  auth: none
+}
+
+body:file {
+  file: @file(attachment.png) @contentType(application/offset+octet-stream)
+}
+
+headers {
+  Origin: {{host}}
+  X-CSRF-Token:
+  Tus-Resumable: 1.0.0
+  Connection: keep-alive
+  Pragma: no-cache
+  Content-Type: application/offset+octet-stream
+  Accept: */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/record/edit/{{s3AttachmentRecordOid}}
+  Upload-Offset: 0
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 204", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
