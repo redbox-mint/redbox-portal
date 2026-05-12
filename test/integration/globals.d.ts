@@ -43,7 +43,7 @@ declare const TemplateService: any;
 declare const TriggerService: any;
 
 declare const UsersService: any;
-declare const VocabService: any;
+declare const FormVocabularyService: any;
 
 declare const WorkflowStepsService: any;
 

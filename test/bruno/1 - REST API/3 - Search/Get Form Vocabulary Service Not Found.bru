@@ -1,0 +1,37 @@
+meta {
+  name: Get Form Vocabulary Service Not Found
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/default/rdmp/service/vocab/notConfigured
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "search": "smith",
+    "start": 0,
+    "rows": 10
+  }
+}
+
+tests {
+  test("Status code is 404", function () {
+      expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Error code is service-lookup-not-configured", function () {
+      const jsonData = res.getBody();
+      const err = jsonData.errors[0];
+      expect(err.code).to.equal('service-lookup-not-configured');
+  });
+}

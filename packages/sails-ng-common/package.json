@@ -51,7 +51,7 @@
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "serialize-javascript": "7.0.5",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "nyc": {
     "check-coverage": true,
@@ -72,7 +72,7 @@
     ]
   },
   "dependencies": {
-    "@jsonjoy.com/json-pointer": "18.5.0",
+    "@jsonjoy.com/json-pointer": "18.15.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
     "luxon": "3.7.2",

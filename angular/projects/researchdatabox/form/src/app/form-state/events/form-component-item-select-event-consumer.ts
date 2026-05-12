@@ -1,4 +1,3 @@
-import { AbstractControl } from '@angular/forms';
 import { get as _get } from 'lodash-es';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
@@ -12,6 +11,7 @@ import { FormComponentEventBaseConsumer } from './form-component-base-event-cons
 import { FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { setControlValue } from '../custom-set-value.control';
+import {FormFieldModel} from "@researchdatabox/portal-ng-common";
 
 /**
  * Consumes `field.item.selected` events from the `FormComponentEventBus`.
@@ -59,15 +59,13 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return;
     }
 
-    const control: AbstractControl | undefined =
-      options.definition?.model?.formControl ?? options.component?.model?.formControl;
-    if (!control) {
-      this.logDebug(
-        'FormComponentItemSelectEventConsumer: No form control found. Item select events will not be consumed.'
-      );
-      return;
+    // Model is optional for some components
+    const model:  FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
+    if (!model || !model?.formControl) {
+      this.logDebug(`FormComponentItemSelectEventConsumer: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Item select may or may not be properly consumed.`, options.definition);
+    } else {
+      this.model = model;
     }
-    this.control = control;
 
     const sub = this.eventBus
       .select$(FormComponentEventType.FIELD_ITEM_SELECTED)
@@ -97,7 +95,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * value rather than a piecemeal child-field mutation.
    */
   protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
-    const control = this.control;
+    const control = this.model?.formControl;
     if (!control || !this.onItemSelect) {
       return;
     }
@@ -142,7 +140,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * for cross-tree expressions listening on the parent group JSON pointer.
    */
   private publishParentValueChanged(previousValue: unknown): void {
-    const parentControl = this.control?.parent;
+    const parentControl = this.model?.formControl?.parent;
     const ownPointer = this.ownPointer;
     if (!parentControl || !ownPointer) {
       return;

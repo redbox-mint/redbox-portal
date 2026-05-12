@@ -7,13 +7,12 @@ import { FieldModelConfigOutline, FieldModelDefinitionOutline } from "./field-mo
  * The common form field model config properties.
  */
 export abstract class FieldModelConfig<ValueType> implements FieldModelConfigOutline<ValueType> {
+    value?: ValueType;
     defaultValue?: ValueType;
     newEntryValue?: ValueType;
-    disableFormBinding?: boolean;
-    editCssClasses?: string;
     validators?: FormValidatorConfig[];
-    value?: ValueType;
     wrapperCssClasses?: string;
+    editCssClasses?: string;
     disabled?: boolean;
 }
 

@@ -405,7 +405,7 @@ export namespace Services {
 
         const createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
         if (createResponse.isSuccessful()) {
-          if (this.searchService && typeof this.searchService.index === 'function') {
+          if (this.searchService && typeof this.searchService.index === 'function' && recordTypeObj.searchable !== false) {
             this.searchService.index(createResponse['oid'], recordObj);
           }
           await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -590,12 +590,16 @@ export namespace Services {
           sails.log.warn(
             `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
           );
-          this.searchService.index(createResponse['oid'], recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(createResponse['oid'], recordObj);
+          }
         } else {
           if (createResponse['oid'] !== recordOid) {
             sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
           }
-          this.searchService.index(recordOid, recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(recordOid, recordObj);
+          }
         }
 
         await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -846,7 +850,9 @@ export namespace Services {
             }
           }
         }
-        this.searchService.index(oid, record);
+        if (recordType?.searchable !== false) {
+          this.searchService.index(oid, recordObj);
+        }
         await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
@@ -1586,10 +1592,27 @@ export namespace Services {
     }
 
     async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const record = await this.storageService.restoreRecord(oid);
-      this.searchService.index(oid, record as unknown as Record<string, unknown>);
-      await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.restored);
-      return record;
+      const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
+      if (recordStorageServiceResponse.isSuccessful() && !_.isNil(recordStorageServiceResponse.metadata)) {
+        const record = recordStorageServiceResponse.metadata as RecordModel;
+        const metaMetadata = (record?.metaMetadata ?? {}) as unknown as Record<string, unknown>;
+        const brandId = _.get(metaMetadata, 'brandId');
+        const recordTypeName = _.get(metaMetadata, 'type');
+
+        if (!_.isNil(brandId) && !_.isNil(recordTypeName)) {
+          const brand = await BrandingService.getBrandById(String(brandId));
+          const recordType = await firstValueFrom(RecordTypesService.get(brand, String(recordTypeName)));
+          if (
+            this.searchService &&
+            typeof this.searchService.index === 'function' &&
+            recordType?.searchable !== false
+          ) {
+            this.searchService.index(oid, record as unknown as Record<string, unknown>);
+          }
+        }
+      }
+      await this.auditRecord(oid, recordStorageServiceResponse as unknown as AnyRecord, user, RecordAuditActionType.restored);
+      return recordStorageServiceResponse as unknown as StorageServiceResponse;
     }
 
     async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
@@ -1683,8 +1706,8 @@ export namespace Services {
 
         // update authorizations based on workflow...
         const configAuth = config.authorization as AnyRecord;
-        currentRecObj.authorization.viewRoles = configAuth.viewRoles;
-        currentRecObj.authorization.editRoles = configAuth.editRoles;
+        currentRecObj.authorization.viewRoles = currentRecObj.authorization.viewRoles ?? configAuth.viewRoles;
+        currentRecObj.authorization.editRoles = currentRecObj.authorization.editRoles ?? configAuth.editRoles;
       }
       sails.log.verbose(
         `transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`

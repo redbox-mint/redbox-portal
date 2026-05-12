@@ -336,6 +336,73 @@ describe("DataLocationComponent", () => {
         expect(addButton.disabled).toBeFalse();
     });
 
+    it("clears draft fields for unsupported draft types and reports no selected draft type", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_invalid_draft_type",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.updateDraftLocation("keep me");
+        component.updateDraftNotes("keep me too");
+        component.onDraftTypeChange("unsupported");
+
+        expect(component.hasSelectedDraftType()).toBeFalse();
+        expect(component.draftLocation.type).toBe("unsupported");
+        expect(component.draftLocation.location).toBe("");
+        expect(component.draftLocation.notes).toBe("");
+    });
+
+    it("updates draft isc and blocks manual adds for attachment draft types", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing_attachment_add_guard",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent"
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+
+        component.updateDraftIsc("protected");
+        component.onDraftTypeChange("attachment");
+        component.updateDraftLocation("should-not-save");
+        component.addLocation();
+
+        await fixture.whenStable();
+
+        expect(component.hasSelectedDraftType()).toBeTrue();
+        expect(component.draftLocation.isc).toBe("protected");
+        expect(component.dataLocations).toEqual([]);
+        expect((formComponent as any).form.value.dataLocations).toBeNull();
+    });
+
     it("disables location input and add button when component is disabled", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing_ui_disabled_state",

@@ -4,10 +4,16 @@
 //    Version 2, June 1991
 
 import { of } from 'rxjs';
+import axios from 'axios';
 import _ from 'lodash';
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import type {
+  VocabServiceLookupOption,
+  VocabServiceLookupRequest,
+  VocabServiceLookupResponse
+} from '../config/vocab.config';
 import { evaluateBinding, asTrimmedString } from './doi-v2/bindings';
 import { completeDoiAudit, failDoiAudit, startDoiAudit } from './doi-v2/audit';
 import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync, resolveDoiPublishingConfigForBrand } from './doi-v2/config';
@@ -29,6 +35,54 @@ type DoiAction = 'create' | 'update';
 type DoiAuditOptions = Record<string, unknown> & {
   auditContext?: IntegrationAuditContext | null;
 };
+type DataciteLookupValueField = 'doi' | 'id' | 'url';
+type DataciteLookupParamValue = string | number | boolean | Array<string | number | boolean>;
+
+interface DataciteDoiLookupOptions {
+  baseUrl?: string;
+  timeoutMs?: number;
+  maxRows?: number;
+  defaultParams?: Record<string, DataciteLookupParamValue>;
+  fields?: string[];
+  labelTemplate?: string;
+  valueField?: DataciteLookupValueField;
+  includeRaw?: boolean;
+  allowEmptySearch?: boolean;
+}
+
+interface NormalizedDataciteDoiLookupOptions {
+  baseUrl: string;
+  timeoutMs: number;
+  maxRows: number;
+  defaultParams: Record<string, DataciteLookupParamValue>;
+  fields: string[];
+  labelTemplate?: string;
+  valueField: DataciteLookupValueField;
+  includeRaw: boolean;
+  allowEmptySearch: boolean;
+}
+
+interface DataciteDoiItem {
+  id?: string;
+  attributes?: {
+    doi?: string;
+    titles?: Array<{ title?: string }>;
+    publisher?: string | { name?: string };
+    publicationYear?: number;
+    types?: { resourceTypeGeneral?: string; resourceType?: string };
+    url?: string;
+  };
+}
+
+interface DataciteDoiLookupApiResponse {
+  data?: DataciteDoiItem[];
+  meta?: {
+    total?: number;
+    totalPages?: number;
+    page?: number;
+  };
+  links?: Record<string, unknown>;
+}
 
 export namespace Services {
   export class Doi extends services.Core.Service {
@@ -40,6 +94,7 @@ export namespace Services {
       'updateDoiTriggerSync',
       'deleteDoi',
       'changeDoiState',
+      'lookupDataciteDois',
       'getAuthenticationString',
       'addDoiDataToRecord'
     ];
@@ -128,6 +183,74 @@ export namespace Services {
       const username = String(config?.connection.username ?? '');
       const password = String(config?.connection.password ?? '');
       return Buffer.from(`${username}:${password}`).toString('base64');
+    }
+
+    public async lookupDataciteDois(request: VocabServiceLookupRequest): Promise<VocabServiceLookupResponse> {
+      const options = this.normalizeDataciteLookupOptions(request.options);
+      const requestedRows = Number.isInteger(request.rows) ? request.rows : 0;
+      const start = Number.isInteger(request.start) && request.start > 0 ? request.start : 0;
+
+      if (requestedRows <= 0) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            start,
+            rows: 0,
+            source: 'datacite'
+          }
+        };
+      }
+
+      const rows = Math.min(requestedRows, options.maxRows);
+      const search = String(request.search ?? '').trim().slice(0, 300);
+      if (search === '' && !options.allowEmptySearch) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            start,
+            rows,
+            source: 'datacite'
+          }
+        };
+      }
+
+      const params = new URLSearchParams();
+      if (search !== '') {
+        params.set('query', search);
+      }
+      params.set('page[number]', String(Math.floor(start / rows) + 1));
+      params.set('page[size]', String(rows));
+      this.appendDataciteParams(params, options.defaultParams);
+      if (options.fields.length > 0) {
+        params.set('fields[dois]', options.fields.join(','));
+      }
+
+      try {
+        const response = await axios.get<DataciteDoiLookupApiResponse>(`${options.baseUrl}/dois`, {
+          timeout: options.timeoutMs,
+          headers: {
+            Accept: 'application/vnd.api+json'
+          },
+          params
+        });
+        return this.mapDataciteLookupResponse(response.data, request, rows, options);
+      } catch (error) {
+        if (this.isDataciteLookupError(error)) {
+          throw error;
+        }
+
+        const statusCode = axios.isAxiosError(error) ? error.response?.status : undefined;
+        sails.log.warn(
+          `DataCite DOI lookup failed for provider '${request.serviceId}' with status '${statusCode ?? 'unknown'}' and query length ${search.length}.`
+        );
+        throw this.createDataciteLookupError(
+          `DataCite DOI lookup request failed${statusCode != null ? ` with status ${statusCode}` : ''}.`,
+          statusCode,
+          error
+        );
+      }
     }
 
     private async publishV2Doi(
@@ -383,6 +506,187 @@ export namespace Services {
         }
       }
       return record;
+    }
+
+    private normalizeDataciteLookupOptions(options: Record<string, unknown>): NormalizedDataciteDoiLookupOptions {
+      const rawOptions = _.isPlainObject(options) ? options as DataciteDoiLookupOptions : {};
+      const baseUrl = String(rawOptions.baseUrl ?? 'https://api.datacite.org').trim().replace(/\/+$/, '');
+      const timeoutMs = Number.isInteger(rawOptions.timeoutMs) && Number(rawOptions.timeoutMs) > 0
+        ? Number(rawOptions.timeoutMs)
+        : 10000;
+      const maxRows = Number.isInteger(rawOptions.maxRows) && Number(rawOptions.maxRows) > 0
+        ? Number(rawOptions.maxRows)
+        : 25;
+      const fields = Array.isArray(rawOptions.fields)
+        ? rawOptions.fields.map(field => String(field ?? '').trim()).filter(field => field !== '')
+        : ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'];
+      const valueField = rawOptions.valueField === 'id' || rawOptions.valueField === 'url'
+        ? rawOptions.valueField
+        : 'doi';
+
+      return {
+        baseUrl: baseUrl || 'https://api.datacite.org',
+        timeoutMs,
+        maxRows,
+        defaultParams: this.normalizeDataciteDefaultParams(rawOptions.defaultParams),
+        fields,
+        labelTemplate: typeof rawOptions.labelTemplate === 'string' ? rawOptions.labelTemplate : undefined,
+        valueField,
+        includeRaw: rawOptions.includeRaw !== false,
+        allowEmptySearch: rawOptions.allowEmptySearch === true
+      };
+    }
+
+    private normalizeDataciteDefaultParams(value: unknown): Record<string, DataciteLookupParamValue> {
+      const defaults: Record<string, DataciteLookupParamValue> = {
+        'disable-facets': true,
+        state: 'findable',
+        sort: 'relevance'
+      };
+      if (!_.isPlainObject(value)) {
+        return defaults;
+      }
+
+      const providedDefaults = value as Record<string, unknown>;
+
+      for (const [key, rawValue] of Object.entries(providedDefaults)) {
+        const normalizedKey = String(key ?? '').trim();
+        if (!normalizedKey) {
+          continue;
+        }
+        if (Array.isArray(rawValue)) {
+          defaults[normalizedKey] = rawValue
+            .filter(item => ['string', 'number', 'boolean'].includes(typeof item)) as Array<string | number | boolean>;
+          continue;
+        }
+        if (typeof rawValue === 'string' || typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+          defaults[normalizedKey] = rawValue;
+        }
+      }
+      return defaults;
+    }
+
+    private appendDataciteParams(params: URLSearchParams, values: Record<string, DataciteLookupParamValue>): void {
+      for (const [key, value] of Object.entries(values)) {
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            params.append(key, String(item));
+          }
+          continue;
+        }
+        params.set(key, String(value));
+      }
+    }
+
+    private mapDataciteLookupResponse(
+      response: DataciteDoiLookupApiResponse | undefined,
+      request: VocabServiceLookupRequest,
+      rows: number,
+      options: NormalizedDataciteDoiLookupOptions
+    ): VocabServiceLookupResponse {
+      const candidate = response as DataciteDoiLookupApiResponse | undefined;
+      if (!candidate || !_.isPlainObject(candidate) || !Array.isArray(candidate.data)) {
+        throw this.createDataciteLookupError('DataCite DOI lookup returned an invalid response.');
+      }
+
+      const validResponse = candidate as DataciteDoiLookupApiResponse & { data: DataciteDoiItem[] };
+
+      const data = validResponse.data
+        .map(item => this.mapDataciteLookupItem(item, options))
+        .filter((item): item is VocabServiceLookupOption => item != null);
+
+      return {
+        data,
+        meta: {
+          total: typeof validResponse.meta?.total === 'number' ? validResponse.meta.total : data.length,
+          totalPages: validResponse.meta?.totalPages,
+          page: validResponse.meta?.page,
+          start: request.start,
+          rows,
+          source: 'datacite',
+          links: _.isPlainObject(validResponse.links) ? validResponse.links : undefined
+        }
+      };
+    }
+
+    private mapDataciteLookupItem(
+      item: DataciteDoiItem,
+      options: NormalizedDataciteDoiLookupOptions
+    ): VocabServiceLookupOption | null {
+      const id = this.asNonEmptyString(item?.id);
+      const doi = this.asNonEmptyString(item?.attributes?.doi) ?? id;
+      if (!doi) {
+        return null;
+      }
+
+      const value = this.selectDataciteLookupValue(item, options.valueField);
+      if (!value) {
+        return null;
+      }
+
+      const title = Array.isArray(item.attributes?.titles)
+        ? item.attributes?.titles.map(entry => this.asNonEmptyString(entry?.title)).find(Boolean)
+        : undefined;
+      const publisher = typeof item.attributes?.publisher === 'string'
+        ? this.asNonEmptyString(item.attributes.publisher)
+        : this.asNonEmptyString(item.attributes?.publisher?.name);
+      const year = item.attributes?.publicationYear != null ? String(item.attributes.publicationYear) : undefined;
+      const details = [publisher, year].filter((part): part is string => Boolean(part));
+      const label = title
+        ? `${title} (${doi})${details.length > 0 ? ` - ${details.join(', ')}` : ''}`
+        : doi;
+
+      return {
+        label,
+        value,
+        sourceType: 'service',
+        ...(options.includeRaw ? { raw: item } : {})
+      };
+    }
+
+    private selectDataciteLookupValue(item: DataciteDoiItem, valueField: DataciteLookupValueField): string | null {
+      const doi = this.asNonEmptyString(item.attributes?.doi);
+      const id = this.asNonEmptyString(item.id);
+      const url = this.asNonEmptyString(item.attributes?.url);
+
+      switch (valueField) {
+        case 'id':
+          return id ?? doi ?? null;
+        case 'url':
+          return url ?? doi ?? id ?? null;
+        case 'doi':
+        default:
+          return doi ?? id ?? null;
+      }
+    }
+
+    private asNonEmptyString(value: unknown): string | undefined {
+      const normalized = String(value ?? '').trim();
+      return normalized !== '' ? normalized : undefined;
+    }
+
+    private createDataciteLookupError(message: string, statusCode?: number, cause?: unknown): Error & {
+      code: 'datacite-lookup-failed';
+      statusCode?: number;
+      cause?: unknown;
+    } {
+      const error = new Error(message) as Error & {
+        code: 'datacite-lookup-failed';
+        statusCode?: number;
+        cause?: unknown;
+      };
+      error.code = 'datacite-lookup-failed';
+      if (statusCode != null) {
+        error.statusCode = statusCode;
+      }
+      if (cause !== undefined) {
+        error.cause = cause;
+      }
+      return error;
+    }
+
+    private isDataciteLookupError(error: unknown): error is Error & { code: 'datacite-lookup-failed' } {
+      return _.isObject(error) && (error as { code?: string }).code === 'datacite-lookup-failed';
     }
   }
 }

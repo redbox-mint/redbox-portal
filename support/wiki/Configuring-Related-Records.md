@@ -1,5 +1,7 @@
 In ReDBox, the `relatedTo` configuration allows for the establishment of relationships between different types of records. This feature is critical for linking associated data, ensuring coherence and navigability within the platform, and facilitating richer data management workflows.
 
+For details on recent runtime changes to related-record traversal, access filtering, and supported relationship semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
+
 ## Overview of `relatedTo`
 
 The `relatedTo` attribute defines how different record types are connected within the system. For example, a data management plan (DMP) record might be related to multiple data records, or a publication record could be related to the dataset it references. By configuring these relationships, users can easily navigate between related records and maintain an organized data structure.
@@ -44,6 +46,8 @@ module.exports.recordtype = {
 - **`localField`**: (Optional) The field within the current record that links to the related record. If omitted, the system assumes the records oid.
 
 - **`foreignField`**: The field within the related record that corresponds to the ID or unique identifier in the current record.
+- **`cardinality`**: The relationship multiplicity. ReDBox currently supports `many` for runtime traversal.
+- **`direction`**: The direction of the relationship. ReDBox currently supports `outbound` for runtime traversal.
 
 ### Best Practices for Configuring Relationships
 

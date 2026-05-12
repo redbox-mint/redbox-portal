@@ -90,6 +90,7 @@ build_packages() {
   npm run compile:raido
   npm run compile:rva
   npm run compile:sails-ng-common
+  npm run compile:agenda-sqs
   npm run compile:core
   npm run compile:storage-mongo
   npm run compile:dev-tools

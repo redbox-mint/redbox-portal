@@ -472,9 +472,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
         const config = item.config;
-        const sourceType = config?.sourceType;
+        const sourceType = String(config?.sourceType ?? "");
 
-        if (!sourceType || !["static", "vocabulary", "namedQuery", "external"].includes(sourceType)) {
+        if (!sourceType || !["static", "vocabulary", "namedQuery", "external", "service"].includes(sourceType)) {
             configErrors.push({
                 class: "typeaheadSourceType",
                 message: "@validator-error-typeahead-source-type",
@@ -500,6 +500,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             configErrors.push({
                 class: "typeaheadQueryId",
                 message: "@validator-error-typeahead-query-id",
+                params: { sourceType }
+            });
+        }
+        const serviceId = String((config as Record<string, unknown> | undefined)?.["serviceId"] ?? "").trim();
+        if (sourceType === "service" && !serviceId) {
+            configErrors.push({
+                class: "typeaheadServiceId",
+                message: "@validator-error-typeahead-service-id",
                 params: { sourceType }
             });
         }

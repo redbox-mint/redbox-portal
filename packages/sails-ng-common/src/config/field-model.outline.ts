@@ -1,15 +1,10 @@
 import { FormValidatorConfig } from "../validation/form.model";
 import { FieldDefinitionFrame, FieldDefinitionOutline } from "./field.outline";
-import { RepeatableModelValueType } from "./component/repeatable.outline";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.
  */
 export interface FieldModelConfigFrame<ValueType> {
-    /**
-     * TODO: What is this for? And rename to `bindingDisabled` or `disabledBinding`.
-     */
-    disableFormBinding?: boolean;
     /**
      * The current value of this model.
      *
@@ -49,6 +44,10 @@ export interface FieldModelConfigFrame<ValueType> {
      * Whether the form control should be disabled.
      *
      * Disabled controls are excluded from the parent form's value.
+     *
+     * Note that disabled here affects only the model's disabled state.
+     * Components can be disabled or not and readonly or not, independent of this property.
+     * Some components must link the component and model disabled state due to angular FormControl requirements.
      */
     disabled?: boolean;
 }

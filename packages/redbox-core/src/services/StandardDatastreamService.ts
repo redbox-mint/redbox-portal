@@ -20,7 +20,7 @@ type RecordWithMetadata = {
  *
  * Implements the DatastreamService interface using Flydrive v2 disks
  * managed by StorageManagerService. Files are read from the staging disk
- * and written to the primary disk under the key `{oid}/{fileId}`.
+ * and written to the primary disk under the configured key prefix.
  */
 export namespace Services {
   export class StandardDatastream extends services.Core.Service implements DatastreamService {
@@ -36,12 +36,23 @@ export namespace Services {
 
     protected logHeader: string = 'StandardDatastreamService::';
 
+    /**
+     * Build the storage key for a file under the configured prefix.
+     */
+    private normalizedKeyPrefix(): string {
+      const storageConfig = StorageManagerService.getMergedStorageConfig();
+      const keyPrefix = storageConfig.keyPrefix ?? '';
+      if (_.isEmpty(keyPrefix)) {
+        return '';
+      }
+      return `${keyPrefix.replace(/\/+$/, '')}/`;
+    }
 
     /**
-     * Build the storage key for a file: `{oid}/{fileId}`
+     * Build the storage key for a file under the configured prefix.
      */
     private storageKey(oid: string, fileId: string): string {
-      return `${oid}/${fileId}`;
+      return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
     }
 
     // ----------------------------------------------------------------
@@ -304,7 +315,7 @@ export namespace Services {
       }
 
       // List all files under the oid prefix
-      const prefix = `${oid}/`;
+      const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
       const files: Record<string, unknown>[] = [];
       for (const obj of result.objects) {
