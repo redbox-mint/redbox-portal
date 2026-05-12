@@ -108,6 +108,22 @@
   "overrides": {
     "axios": "1.15.2",
     "@aws-sdk/xml-builder": "3.972.16",
+    "@aws-sdk/s3-request-presigner": {
+      "@aws-sdk/core": {
+        "@aws-sdk/xml-builder": {
+          "fast-xml-parser": "5.5.8"
+        }
+      },
+      "@aws-sdk/signature-v4-multi-region": {
+        "@aws-sdk/middleware-sdk-s3": {
+          "@aws-sdk/core": {
+            "@aws-sdk/xml-builder": {
+              "fast-xml-parser": "5.5.8"
+            }
+          }
+        }
+      }
+    },
     "@sailshq/router": {
       "path-to-regexp": "0.1.13"
     },
@@ -135,7 +151,7 @@
     "@uppy/companion": {
       "express": "4.22.1",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.7.0",
+      "fast-xml-parser": "5.5.8",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
     },
@@ -157,7 +173,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.5.8",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
