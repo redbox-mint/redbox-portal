@@ -325,7 +325,7 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
-      mockPrimaryDisk.exists.onSecondCall().resolves(true);
+      mockPrimaryDisk.exists.onSecondCall().resolves(false);
       mockStagingDisk.exists.resolves(true);
 
       const result = await service.getDatastream('oid-123', 'file-123');
@@ -366,6 +366,68 @@ describe('StandardDatastreamService', function () {
       expect(result).to.have.property('readstream');
       expect(result).to.have.property('contentType', '');
       expect(result).to.have.property('size', 0);
+    });
+
+    it('coalesces concurrent staging promotions for the same file', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      let resolvePromotion: (() => void) | undefined;
+      mockPrimaryDisk.exists.onCall(0).resolves(false);
+      mockPrimaryDisk.exists.onCall(1).resolves(false);
+      mockPrimaryDisk.exists.onCall(2).resolves(false);
+      mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.putStream.callsFake(() => new Promise<void>((resolve) => {
+        resolvePromotion = resolve;
+      }));
+
+      const firstRead = service.getDatastream('oid-123', 'file-123');
+      const secondRead = service.getDatastream('oid-123', 'file-123');
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockStagingDisk.getStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+
+      resolvePromotion?.();
+
+      const [firstResult, secondResult] = await Promise.all([firstRead, secondRead]);
+
+      expect(firstResult).to.have.property('readstream');
+      expect(secondResult).to.have.property('readstream');
+      expect(mockStagingDisk.delete.calledOnce).to.be.true;
+    });
+
+    it('treats already-promoted writes as successful', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.onCall(0).resolves(false);
+      mockPrimaryDisk.exists.onCall(1).resolves(false);
+      mockPrimaryDisk.exists.onCall(2).resolves(true);
+      mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.putStream.rejects(new Error('already exists'));
+
+      const result = await service.getDatastream('oid-123', 'file-123');
+
+      expect(result).to.have.property('readstream');
+      expect(mockStagingDisk.delete.calledOnce).to.be.true;
+    });
+
+    it('ignores already-deleted staging files after promotion', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.onFirstCall().resolves(false);
+      mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockStagingDisk.exists.resolves(true);
+      mockStagingDisk.delete.rejects(new Error('ENOENT'));
+
+      const result = await service.getDatastream('oid-123', 'file-123');
+
+      expect(result).to.have.property('readstream');
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
     });
   });
 

@@ -60,7 +60,7 @@
     "test:bruno:general:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false --abort-on-container-exit --exit-code-from bruno-mount",
     "test:bruno:general:mount:debug": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false",
     "test:bruno:general:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml down -v",
-    "test:bruno:s3": "npm run test:bruno:s3:mount",
+    "test:bruno:s3": "npm run test:bruno:clean && npm run test:bruno:s3:mount",
     "test:bruno:s3:ci": "docker compose --profile ci -f ./support/integration-testing/docker-compose.bruno.s3.yml up --menu=false --abort-on-container-exit --exit-code-from bruno",
     "test:bruno:s3:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml up --menu=false --abort-on-container-exit --exit-code-from bruno-mount",
     "test:bruno:s3:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml down -v --remove-orphans --timeout 180",

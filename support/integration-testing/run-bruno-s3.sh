@@ -7,9 +7,9 @@ cd /opt/bruno-tests
 
 npm install --ignore-scripts --strict-peer-deps
 
-find . -name '*.bru' -type f \
-  -prune -not -path "*/node_modules/*" \
-  -prune -not -path "**/environments/*" \
+find . \
+  -type d \( -name node_modules -o -name environments \) -prune -o \
+  -type f -name '*.bru' \
   -exec node validate-bruno-files.js '{}' '+'
 
 rm /opt/junit/backend-bruno/backend-bruno-s3.xml || true

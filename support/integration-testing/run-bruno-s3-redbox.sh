@@ -7,7 +7,8 @@ cd /opt/redbox-portal
 
 npm install --ignore-scripts --strict-peer-deps
 
-rm -rf /opt/redbox-portal/coverage/bruno-s3/* || true
+mkdir -p /opt/redbox-portal/coverage/bruno-s3
+rm -rf /opt/redbox-portal/coverage/bruno-s3/*
 
 node_cmd=(node)
 if [[ -n "${RBPORTAL_REMOTE_DEBUG:-}" ]]; then

@@ -24,8 +24,8 @@ headers {
 
 body:json {
   {
-    "username": "admin",
-    "password": "rbadmin",
+    "username": "{{test_username}}",
+    "password": "{{test_password}}",
     "branding": "default",
     "portal": "rdmp"
   }
@@ -45,6 +45,6 @@ tests {
 
   test("Check that user returned is admin", function () {
     const jsonData = res.getBody();
-    expect(jsonData.user.username).to.eql("admin");
+    expect(jsonData.user.username).to.eql(bru.getEnvVar("test_username"));
   });
 }
