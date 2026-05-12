@@ -536,7 +536,17 @@ export const handlebarsHelperDefinitions = {
    * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
-    const text = String(value ?? '').replace(/\/+$/, '');
+    const rawText = String(value ?? '');
+    if (!rawText) {
+      return '';
+    }
+
+    let endIndex = rawText.length;
+    while (endIndex > 0 && rawText[endIndex - 1] === '/') {
+      endIndex--;
+    }
+
+    const text = rawText.slice(0, endIndex);
     if (!text) {
       return '';
     }

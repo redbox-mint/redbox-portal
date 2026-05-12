@@ -245,7 +245,7 @@ export namespace Services {
 
     public getDashboardView(name: string): DashboardViewConfig | null {
       const dashboardView = _.get(sails.config.dashboardview, name) as DashboardViewConfig | undefined;
-      if (dashboardView == null) {
+      if (!this.isValidDashboardViewConfig(dashboardView)) {
         sails.log.warn(`Dashboard view not found: ${name}`);
         return null;
       }
@@ -263,6 +263,34 @@ export namespace Services {
         sails.log.warn(`Dashboard view step not found: ${name}/${stepName}`);
       }
       return dashboardStep;
+    }
+
+    private isValidDashboardViewConfig(dashboardView: unknown): dashboardView is DashboardViewConfig {
+      if (!dashboardView || !_.isObject(dashboardView)) {
+        return false;
+      }
+
+      const view = dashboardView as DashboardViewConfig;
+      return _.isString(view.name)
+        && !_.isEmpty(view.name.trim())
+        && _.isString(view.titleLabelKey)
+        && !_.isEmpty(view.titleLabelKey.trim())
+        && _.isString(view.dashboardType)
+        && !_.isEmpty(view.dashboardType.trim())
+        && _.isString(view.sourceRecordType)
+        && !_.isEmpty(view.sourceRecordType.trim())
+        && _.isArray(view.steps)
+        && view.steps.length > 0
+        && view.steps.every((step) => {
+          const dashboardViewStep = step as DashboardViewStepDefinition;
+          return _.isObject(step)
+            && _.isString(dashboardViewStep.name)
+            && !_.isEmpty(dashboardViewStep.name.trim())
+            && _.isString(dashboardViewStep.sourceRecordType)
+            && !_.isEmpty(dashboardViewStep.sourceRecordType.trim())
+            && (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
+            && _.isObject(dashboardViewStep.dashboardTable);
+        });
     }
 
     private async extractQueryFilterTemplates(

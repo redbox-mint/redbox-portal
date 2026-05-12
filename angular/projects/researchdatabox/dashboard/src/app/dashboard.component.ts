@@ -217,14 +217,6 @@ export class DashboardComponent extends BaseComponent {
     };
   }
 
-  private getDashboardViewPaginationStepName(step: any, fallbackStepName: string): string {
-    const dashboardViewStep = _get(step, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
-    if (dashboardViewStep.fetchMode == 'workflowStage') {
-      return dashboardViewStep.sourceWorkflowStage || fallbackStepName;
-    }
-    return '';
-  }
-
   public async initView(recordType: string) {
     this.workflowSteps = [];
     this.records = {};
@@ -887,7 +879,10 @@ export class DashboardComponent extends BaseComponent {
       const currentStep = _find(workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || workflowSteps[0];
       const evaluateStepName = this.getStepKey(currentStep) || step;
       const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
-      const stepName = this.getDashboardViewPaginationStepName(currentStep, evaluateStepName);
+      const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+      const stepName = dashboardViewStep.fetchMode == 'workflowStage'
+        ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
+        : '';
       await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       this.isProcessingPageChange = false;
     }
