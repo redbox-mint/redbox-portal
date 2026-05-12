@@ -226,18 +226,13 @@ export class RecordService extends HttpClientService {
     }
 
     const requestOptions = this.getHttpOptions();
-    const httpOptions: {
-      context?: typeof requestOptions.context;
-      observe: 'body';
-      responseType: 'json';
-      params: HttpParams;
-    } = {
-      context: requestOptions?.context,
-      observe: 'body',
-      responseType: 'json',
+    const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
+    const httpOptions = {
+      ...requestOptions,
+      observe: 'body' as const,
+      responseType: 'json' as const,
       params,
     };
-    const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
     const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
@@ -393,14 +388,13 @@ export class RecordService extends HttpClientService {
     }
 
     const requestOptions = this.getHttpOptions();
-    const httpOptions = {
-      ...requestOptions,
-      observe: 'body' as const,
-      responseType: 'json' as const,
-      params,
-    };
     const url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
-    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result$ = this.http.get<Record<string, unknown>>(url, {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+      params,
+    });
     const response = await firstValueFrom(result$);
     const graph = (_get(response, 'data') ?? response) as Record<string, unknown>;
 
