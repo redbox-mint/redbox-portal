@@ -7,8 +7,8 @@ import { GroupFieldComponent } from './component/group.component';
 import {
   createFormAndWaitForReady,
   createTestbedModule,
-  ensureApplicationRefFormComponent,
-  setUpDynamicAssets
+  DynamicAssetOptions,
+  ensureApplicationRefFormComponent, setUpDynamicAssets
 } from "./helpers.spec";
 import { FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
@@ -821,6 +821,7 @@ describe('FormComponent', () => {
       ]
     };
 
+    setUpDynamicAssets();
     const fixture = TestBed.createComponent(FormComponent);
 
     ensureApplicationRefFormComponent(fixture.componentRef);
@@ -1025,6 +1026,7 @@ describe('FormComponent', () => {
     fixture.autoDetectChanges();
     await fixture.whenStable();
 
+    setUpDynamicAssets();
     await formComponent.downloadAndCreateFormComponents(formConfig);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -1118,17 +1120,6 @@ describe('FormComponent', () => {
   });
 
   it('changes enabledValidationGroups when requested', async () => {
-    setUpDynamicAssets({
-      urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
-      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-        switch (keyStr) {
-          case "componentDefinitions__0__expressions__0__config__template":
-            return {"initial": "current", "groups": {"include":["tester"]}};
-          default:
-            throw new Error(`Unknown key: ${keyStr}`);
-        }
-      }
-    });
     const formConfig: FormConfigFrame = {
       name: 'validation-groups-change-request-form',
       debugValue: true,
@@ -1165,8 +1156,21 @@ describe('FormComponent', () => {
         }
       ]
     };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__expressions__0__config__template":
+              return {"initial": "current", "groups": {"include":["tester"]}};
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }
+      }]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(
+      formConfig, undefined, undefined, dynamicAssetOptions);
     const compiled = fixture.nativeElement as HTMLElement;
 
     const events: any[] = [];

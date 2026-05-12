@@ -44,9 +44,7 @@ import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.
 import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import {ApplicationRef, ComponentRef} from "@angular/core";
-
-// provide to test the same way as provided to browser
-// (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
+import isSpy = jasmine.isSpy;
 
 export interface FormComponentProps {
   oid: string;
@@ -106,7 +104,12 @@ export function ensureApplicationRefFormComponent(componentRef: ComponentRef<For
   }
 }
 
-export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps, formDebugUrlOptions?: FormDebugUrlOptions) {
+export async function createFormAndWaitForReady(
+  formConfig: FormConfigFrame,
+  formComponentProps?: FormComponentProps,
+  formDebugUrlOptions?: FormDebugUrlOptions,
+  dynamicAssetOptions?: DynamicAssetOptions,
+) {
   logFormTestHelper('createFormAndWaitForReady - starting');
   if (formDebugUrlOptions) {
     setFormDebugUrl(formDebugUrlOptions);
@@ -147,6 +150,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfigFrame, for
   await fixture.whenStable();
 
   // Create the form component and field components from the form config.
+  setUpDynamicAssets(dynamicAssetOptions);
   await formComponent.downloadAndCreateFormComponents(formConfig);
 
   await fixture.whenStable();
@@ -242,36 +246,25 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   }
 }
 
-
-export type useDefaultValidatorDefinitions = {
-  includeDefaultValidatorDefinitions?: boolean,
-}
 export type DynamicAssetEntry = {
-  urlKeyStart?: string,
-  callable?: (keyString: string, key: (string | number)[], context: any, extra?: any) => void,
+  urlKeyStart: string,
+  callable: (keyString: string, key: (string | number)[], context: any, extra?: any) => void,
 };
 export type DynamicAssetOptions = {
+  includeDefaultValidatorDefinitions?: boolean,
   entries: DynamicAssetEntry[],
-} & useDefaultValidatorDefinitions
+}
 
-export function setUpDynamicAssets(
-  opts?: (DynamicAssetEntry & useDefaultValidatorDefinitions) | DynamicAssetOptions
-) {
-  if (!opts) {
-    opts = {entries: []};
-  }
-  if (!('entries' in opts)) {
-    opts = {
-      includeDefaultValidatorDefinitions: opts?.includeDefaultValidatorDefinitions,
-      entries: [{
-        urlKeyStart: opts?.urlKeyStart ?? "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
-        callable: opts?.callable,
-      }]
-    };
-  }
-
+/**
+ * Mock the dynamic asset requests.
+ * @param opts The dynamic asset mock entries.
+ */
+export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
   const utilityService = TestBed.inject(UtilityService);
-  spyOn(utilityService, "getDynamicImport").and.callFake(
+  const utilityServiceGetDynamicImport = isSpy(utilityService['getDynamicImport'])
+    ? utilityService.getDynamicImport as any
+    : spyOn(utilityService, "getDynamicImport");
+  utilityServiceGetDynamicImport.and.callFake(
     async (brandingAndPortalUrl: string, urlPath: string[], params?: {
       [key: string]: any
     }): Promise<DynamicScriptResponse> => {
@@ -280,7 +273,7 @@ export function setUpDynamicAssets(
       const entries = opts?.entries ?? [];
 
       // provide the default validator definitions unless told not to or other definitions are provided
-      const validatorDefinitionsKey = `${brandingAndPortalUrl}/validatorDefinitions`;
+      const validatorDefinitionsKey = `${brandingAndPortalUrl}/dynamicAsset/validatorDefinitions`;
       if (opts?.includeDefaultValidatorDefinitions !== false && urlKey.startsWith(validatorDefinitionsKey)) {
         const entry = entries.find(i => i.urlKeyStart?.startsWith(validatorDefinitionsKey));
         if (!entry) {
@@ -296,7 +289,7 @@ export function setUpDynamicAssets(
         }
       }
 
-      for (const entry of opts.entries) {
+      for (const entry of entries) {
         if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {
           continue;
         }
@@ -312,6 +305,6 @@ export function setUpDynamicAssets(
         };
       }
 
-      throw new Error(`Url key '${urlKey}' did not match any available keys ${opts?.entries?.map(i => i.urlKeyStart)}`);
+      throw new Error(`Url key '${urlKey}' did not match any available keys ${entries?.map(i => i.urlKeyStart)}`);
     });
 }

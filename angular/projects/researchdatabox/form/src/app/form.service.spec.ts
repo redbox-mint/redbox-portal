@@ -22,6 +22,7 @@ import {
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
 import {FormValidationGroupsChangeInitial} from "./form-state";
+import {setUpDynamicAssets} from "./helpers.spec";
 
 
 describe('The FormService', () => {
@@ -314,6 +315,7 @@ describe('The FormService', () => {
       workflow: {stage: 'draft', stageLabel: 'Draft'},
       contextVariables: {'one': 1},
     };
+    setUpDynamicAssets();
     const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
     const result = service.downloadFormComponents(oid, recordType, editMode, formName, modulePaths);
     const req = httpTesting.expectOne((request) =>
