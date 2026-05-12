@@ -232,8 +232,8 @@ export namespace Controllers {
       try {
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
-        const locale = req.params['locale'];
-        const namespace = req.params['namespace'] || 'translation';
+        const locale = String(req.params['locale'] ?? '');
+        const namespace = String(req.params['namespace'] ?? 'translation');
         const enabled = req.query['enabled'] === 'true' || req.body?.enabled === true || req.body?.enabled === 'true';
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
