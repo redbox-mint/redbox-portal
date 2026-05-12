@@ -315,7 +315,12 @@ export namespace Services {
       }
 
       const readable = await effectiveStagingDisk.getStream(fileId);
-      await primaryDisk.putStream(destKey, readable);
+      try {
+        await primaryDisk.putStream(destKey, readable);
+      } catch (err) {
+        readable.destroy();
+        throw err;
+      }
       await effectiveStagingDisk.delete(fileId);
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
