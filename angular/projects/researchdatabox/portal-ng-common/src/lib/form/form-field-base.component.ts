@@ -187,6 +187,13 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    const isConfigDisabled =  this.componentDefinition?.config?.disabled ?? false;
+    const isModelDisabled = this?.model?.isDisabled ?? false;
+    const hasFormControl = !!this.model?.formControl;
+    if (hasFormControl && isConfigDisabled !== isModelDisabled) {
+      this.loggerService.warn(`${this.logName}: component config disabled value '${isConfigDisabled}' does not match model disabled value '${isModelDisabled}'.`);
+    }
+
     if (this.componentDefinition?.config) {
       this.componentDefinition.config.disabled = disabled;
     }

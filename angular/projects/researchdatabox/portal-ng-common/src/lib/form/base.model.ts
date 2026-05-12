@@ -162,19 +162,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * True if this model is disabled, false if enabled.
    */
   public get isDisabled(): boolean {
-    const configState = this.fieldConfig.config?.disabled;
-    const formControlState = this.formControl?.disabled ?? false;
-    if (configState !== formControlState) {
-      console.warn(`${this.logName}: config disabled value '${configState}' does not match form control disabled value '${formControlState}'.`);
-    }
-    return formControlState;
-  }
-
-  /**
-   * True if this model is enabled, false if disabled.
-   */
-  public get isEnabled(): boolean {
-    return !this.isDisabled;
+    return this.formControl?.disabled ?? false;
   }
 
   /**
@@ -182,11 +170,17 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    *
    * Note that some components require their model to be in sync with the component's disabled state.
    * Prefer setting `component.setDisabled` over this method.
-   * 
+   *
    * @param disabled Set the disabled status.
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    const configState = this.fieldConfig.config?.disabled ?? false;
+    const formControlState = this.formControl?.disabled ?? false;
+    if (configState !== formControlState) {
+      console.warn(`${this.logName}: config disabled value '${configState}' does not match form control disabled value '${formControlState}'.`);
+    }
+
     // If a form control event is emitted, as part of handling the event the config disabled state might be checked.
     // So set the config disabled state first.
     if (this.fieldConfig.config) {
@@ -195,7 +189,7 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
     // Set form control disabled state.
     if (!disabled && this.isDisabled) {
       this.formControl?.enable(opts);
-    } else if (disabled && this.isEnabled) {
+    } else if (disabled && !this.isDisabled) {
       this.formControl?.disable(opts);
     }
   }

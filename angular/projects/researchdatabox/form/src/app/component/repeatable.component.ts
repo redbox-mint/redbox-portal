@@ -22,7 +22,7 @@ import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {FormComponent} from "../form.component";
-import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
+import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
 type RepeatableSetValueOptions = ModifyOptions;
 
@@ -563,21 +563,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.compConfigJson.layout.name = `${baseName}-layout-${localUniqueId}`;
     }
 
-    // Create new form field.
-    const model = this.formService.createFormFieldModelInstance(
-      elemEntry, this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups);
-    if (model !== null) {
-      if (!_isUndefined(value)) {
-        model.initValue = value;
-        if (model.formControl && !('controls' in model.formControl)) {
-          model.formControl.setValue(value as never, options);
-        }
-      }
-      elemEntry.model = model;
-    }
-
-    // Use the disabled state of the repeatable component to set the initial disabled state of the new element's
-    // layout and component.
+    // Use the disabled state of the repeatable component to set the initial disabled state
+    // of the new element's layout, component, and model.
     const isDisabled = this.isDisabled;
     if (elemEntry.compConfigJson?.layout) {
       if (!elemEntry.compConfigJson.layout.config) {
@@ -590,6 +577,25 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         elemEntry.compConfigJson.component.config = {};
       }
       elemEntry.compConfigJson.component.config.disabled = isDisabled;
+    }
+    if (elemEntry.compConfigJson?.model) {
+      if (!elemEntry.compConfigJson.model.config) {
+        elemEntry.compConfigJson.model.config = {};
+      }
+      elemEntry.compConfigJson.model.config.disabled = isDisabled;
+    }
+
+    // Create new form field.
+    const model = this.formService.createFormFieldModelInstance(
+      elemEntry, this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups);
+    if (model !== null) {
+      if (!_isUndefined(value)) {
+        model.initValue = value;
+        if (model.formControl && !('controls' in model.formControl)) {
+          model.formControl.setValue(value as never, options);
+        }
+      }
+      elemEntry.model = model;
     }
 
     // Note that the repeatable elementTemplate does not have a 'name' property.
