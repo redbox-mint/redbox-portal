@@ -89,6 +89,7 @@ export namespace Services {
     protected defaultBackend: AgendaQueueBackend = 'mongodb';
     protected jobBackendByName = new Map<string, AgendaQueueBackend>();
     private readyInitPromise?: Promise<void>;
+    private queueInitialized = false;
 
     constructor() {
       super();
@@ -118,6 +119,7 @@ export namespace Services {
     }
 
     private async handleReadyInternal() {
+      this.queueInitialized = false;
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
       const jobs = queueConfig.jobs;
@@ -144,6 +146,7 @@ export namespace Services {
       }
 
       this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
+      this.queueInitialized = true;
       this.defineJobs(jobs, this);
       sails.log.verbose('AgendaQueue:: All jobs defined.');
 
@@ -161,6 +164,12 @@ export namespace Services {
       }
 
       this.runConfiguredStartupSchedules(jobs);
+    }
+
+    private async ensureQueueInitialized() {
+      if (!this.queueInitialized) {
+        await this.handleReady();
+      }
     }
 
     /*
@@ -494,17 +503,20 @@ export namespace Services {
       sails.log.info(JSON.stringify(job));
     }
 
-    public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
+    public async every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
+      await this.ensureQueueInitialized();
       this.ensureRecurringScheduleSupported(jobName);
       void this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options);
     }
 
-    public schedule(jobName: string, schedule: string, data: unknown = undefined) {
+    public async schedule(jobName: string, schedule: string, data: unknown = undefined) {
+      await this.ensureQueueInitialized();
       this.ensureScheduleSupported(jobName, schedule, data);
       void this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
     public async now(jobName: string, data: unknown = undefined) {
+      await this.ensureQueueInitialized();
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       const queuedJob = this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data));
       queuedJob.catch((e) => {
