@@ -166,8 +166,12 @@ export namespace Services {
       this.runConfiguredStartupSchedules(jobs);
     }
 
+    private hasQueueRuntimeState() {
+      return this.queueInitialized || this.jobBackendByName.size > 0 || Object.keys(this.agendas).length > 0;
+    }
+
     private async ensureQueueInitialized() {
-      if (!this.queueInitialized) {
+      if (!this.hasQueueRuntimeState()) {
         await this.handleReady();
       }
     }
@@ -503,20 +507,20 @@ export namespace Services {
       sails.log.info(JSON.stringify(job));
     }
 
-    public async every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
-      await this.ensureQueueInitialized();
+    public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
       this.ensureRecurringScheduleSupported(jobName);
       void this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options);
     }
 
-    public async schedule(jobName: string, schedule: string, data: unknown = undefined) {
-      await this.ensureQueueInitialized();
+    public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.ensureScheduleSupported(jobName, schedule, data);
       void this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
     public async now(jobName: string, data: unknown = undefined) {
-      await this.ensureQueueInitialized();
+      if (!this.hasQueueRuntimeState()) {
+        await this.handleReady();
+      }
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       const queuedJob = this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data));
       queuedJob.catch((e) => {
