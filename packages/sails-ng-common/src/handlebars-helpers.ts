@@ -40,7 +40,7 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
 }
 
 // TODO: this is because the DateInputComponent needs Luxon style formatters. We have a moment shim on the server side but not on the client.
-function mapMomentToLuxonFormat(fmt: string): string {
+export function mapMomentToLuxonFormat(fmt: string): string {
   if (!fmt) {
     return fmt;
   }
