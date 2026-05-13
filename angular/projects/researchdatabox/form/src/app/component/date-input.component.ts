@@ -337,13 +337,24 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onInputBlur(event: FocusEvent): void {
-    if (!this.robustParsing) {
-      return;
-    }
-
     const inputEl = event.target as HTMLInputElement;
     const rawText = inputEl?.value || '';
     if (!rawText || rawText.trim() === '') {
+      this.lastValidValue = null;
+      this.formControl?.setValue(null, { emitEvent: true });
+      return;
+    }
+
+    if (!this.robustParsing) {
+      const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
+      const matchesConfiguredFormat = DateTime.fromFormat(rawText, luxonFmt, { zone: 'utc' }).isValid;
+
+      if (!matchesConfiguredFormat) {
+        Promise.resolve().then(() => {
+          this.formControl?.setValue(rawText as unknown as DateInputModelValueType, { emitEvent: true });
+          inputEl.value = rawText;
+        });
+      }
       return;
     }
 
