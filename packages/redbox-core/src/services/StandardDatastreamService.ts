@@ -446,7 +446,6 @@ export namespace Services {
       type ListedDatastreamEntry = {
         key: string;
         fileObj: Record<string, unknown>;
-        metadataPromise: Promise<FileMetadata>;
       };
       //TODO: Rather than fetching all the file metadata from the primary disk, we should consider tracking this metadata in our own storage.
       const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
@@ -455,7 +454,6 @@ export namespace Services {
         return {
           key,
           fileObj,
-          metadataPromise: primaryDisk.getMetaData(key),
         };
       });
 
@@ -463,7 +461,7 @@ export namespace Services {
       const metadataBatchSize = 10;
       for (let index = 0; index < fileEntries.length; index += metadataBatchSize) {
         const batch = fileEntries.slice(index, index + metadataBatchSize);
-        const batchResults = await Promise.allSettled(batch.map(({ metadataPromise }) => metadataPromise));
+        const batchResults = await Promise.allSettled(batch.map(({ key }) => primaryDisk.getMetaData(key)));
         metadataResults.push(...batchResults);
       }
 

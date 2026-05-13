@@ -1130,7 +1130,7 @@ export namespace Services {
         let attachment: Record<string, unknown> = {};
         const rawDateUpdated = datastreamObj['uploadDate'] ?? datastreamObj['lastModified'] ?? _.get(datastreamObj.metadata, 'dateUpdated');
         const normalizedDateUpdated = rawDateUpdated
-          ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toISO()
+          ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toUTC().toISO()
           : null;
         attachment['dateUpdated'] = rawDateUpdated
           ? normalizedDateUpdated
