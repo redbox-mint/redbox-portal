@@ -437,26 +437,44 @@ export namespace Services {
       // List all files under the oid prefix
       const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
-      const files: Record<string, unknown>[] = [];
-      for (const obj of result.objects) {
+      type ListedDatastreamEntry = {
+        key: string;
+        fileObj: Record<string, unknown>;
+        metadataPromise: Promise<{
+          contentType?: string;
+          contentLength: number;
+          etag: string;
+          lastModified: Date;
+        }>;
+      };
+      //TODO: Rather than fetching all the file metadata from the primary disk, we should consider tracking this metadata in our own storage.
+      const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
         const fileObj = obj as Record<string, unknown>;
         const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
-        try {
-          const meta = await primaryDisk.getMetaData(key);
-          files.push(
-            this.datastreamListEntry(key, {
-              ...fileObj,
-              contentType: meta.contentType,
-              contentLength: meta.contentLength,
-              lastModified: meta.lastModified,
-              etag: meta.etag,
-            })
-          );
-        } catch {
-          files.push(this.datastreamListEntry(key, fileObj));
+        return {
+          key,
+          fileObj,
+          metadataPromise: primaryDisk.getMetaData(key),
+        };
+      });
+
+      const metadataResults = await Promise.allSettled(fileEntries.map(({ metadataPromise }) => metadataPromise));
+
+      return fileEntries.map(({ key, fileObj }, index) => {
+        const metadataResult = metadataResults[index];
+        if (metadataResult.status === 'fulfilled') {
+          const meta = metadataResult.value;
+          return this.datastreamListEntry(key, {
+            ...fileObj,
+            contentType: meta.contentType,
+            contentLength: meta.contentLength,
+            lastModified: meta.lastModified,
+            etag: meta.etag,
+          });
         }
-      }
-      return files;
+
+        return this.datastreamListEntry(key, fileObj);
+      });
     }
   }
 }
