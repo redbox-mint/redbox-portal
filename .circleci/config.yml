@@ -261,6 +261,59 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  test-bruno-s3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          <<: *installCodecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno S3 attachment storage tests
+          no_output_timeout: 30m
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:s3:ci
+      - run:
+          name: Clean up Bruno S3 containers
+          command: npm run test:bruno:s3:clean || true
+          when: always
+      - run:
+          name: Upload Bruno S3 code coverage
+          command: |
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-bruno-s3" --file "./coverage/bruno-s3/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-playwright:
     machine:
       image: ubuntu-2204:current
@@ -992,6 +1045,9 @@ workflows:
       - test-bruno-oidc:
           requires:
             - build
+      - test-bruno-s3:
+          requires:
+            - build
       - test-playwright:
           requires:
             - build
@@ -1042,6 +1098,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1056,6 +1113,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1071,6 +1129,7 @@ workflows:
             - build-runtime-datastream-cloud
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1086,6 +1145,7 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1101,6 +1161,7 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1123,6 +1184,7 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1145,6 +1207,7 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1184,6 +1247,9 @@ workflows:
           requires:
             - build
       - test-bruno-oidc:
+          requires:
+            - build
+      - test-bruno-s3:
           requires:
             - build
       - test-playwright:
@@ -1233,6 +1299,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1247,6 +1314,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1314,6 +1382,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-bruno-s3:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-mocha:
           requires:
             - build
@@ -1393,6 +1469,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1408,6 +1485,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1424,6 +1502,7 @@ workflows:
             - build-runtime-datastream-cloud
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1440,6 +1519,7 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1456,6 +1536,7 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1481,6 +1562,7 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1506,6 +1588,7 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
@@ -1535,6 +1618,7 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common

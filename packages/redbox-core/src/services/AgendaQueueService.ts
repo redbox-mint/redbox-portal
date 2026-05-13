@@ -89,6 +89,7 @@ export namespace Services {
     protected defaultBackend: AgendaQueueBackend = 'mongodb';
     protected jobBackendByName = new Map<string, AgendaQueueBackend>();
     private readyInitPromise?: Promise<void>;
+    private queueInitialized = false;
 
     constructor() {
       super();
@@ -118,6 +119,7 @@ export namespace Services {
     }
 
     private async handleReadyInternal() {
+      this.queueInitialized = false;
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
       const jobs = queueConfig.jobs;
@@ -144,6 +146,7 @@ export namespace Services {
       }
 
       this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
+      this.queueInitialized = true;
       this.defineJobs(jobs, this);
       sails.log.verbose('AgendaQueue:: All jobs defined.');
 
@@ -161,6 +164,16 @@ export namespace Services {
       }
 
       this.runConfiguredStartupSchedules(jobs);
+    }
+
+    private hasQueueRuntimeState() {
+      return this.queueInitialized || this.jobBackendByName.size > 0 || Object.keys(this.agendas).length > 0;
+    }
+
+    private async ensureQueueInitialized() {
+      if (!this.hasQueueRuntimeState()) {
+        await this.handleReady();
+      }
     }
 
     /*
@@ -505,6 +518,9 @@ export namespace Services {
     }
 
     public async now(jobName: string, data: unknown = undefined) {
+      if (!this.hasQueueRuntimeState()) {
+        await this.handleReady();
+      }
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       const queuedJob = this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data));
       queuedJob.catch((e) => {

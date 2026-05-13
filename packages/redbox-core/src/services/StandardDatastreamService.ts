@@ -24,6 +24,8 @@ type RecordWithMetadata = {
  */
 export namespace Services {
   export class StandardDatastream extends services.Core.Service implements DatastreamService {
+    private static promotionGuards: Map<string, Promise<boolean>> = new Map();
+
     protected _exportedMethods: string[] = [
       'addDatastreams',
       'updateDatastream',
@@ -53,6 +55,121 @@ export namespace Services {
      */
     private storageKey(oid: string, fileId: string): string {
       return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
+    }
+
+    private fileIdFromStorageKey(key: string): string {
+      return key.split('/').filter(Boolean).pop() ?? key;
+    }
+
+    private datastreamListEntry(key: string, details: Record<string, unknown> = {}): Record<string, unknown> {
+      const fileId = this.fileIdFromStorageKey(key);
+      return {
+        filename: key,
+        ...details,
+        metadata: {
+          fileId,
+          name: fileId,
+          ...((details['metadata'] as Record<string, unknown> | undefined) ?? {}),
+        },
+      };
+    }
+
+    private isStorageNotFoundError(err: unknown): boolean {
+      if (!err || typeof err !== 'object') {
+        return false;
+      }
+
+      const storageError = err as {
+        code?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+      };
+      const message = storageError.message?.toLowerCase() ?? '';
+
+      return storageError.code === 'ENOENT'
+        || storageError.code === 'NoSuchKey'
+        || storageError.status === 404
+        || storageError.statusCode === 404
+        || message.includes('not found')
+        || message.includes('no such')
+        || message.includes('does not exist')
+        || message.includes('enoent');
+    }
+
+    private isStorageAlreadyExistsError(err: unknown): boolean {
+      if (!err || typeof err !== 'object') {
+        return false;
+      }
+
+      const storageError = err as {
+        code?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+      };
+      const message = storageError.message?.toLowerCase() ?? '';
+
+      return storageError.code === 'EEXIST'
+        || storageError.status === 409
+        || storageError.statusCode === 409
+        || message.includes('already exists')
+        || message.includes('eexist');
+    }
+
+    private async promoteFromStagingOnce(fileId: string, destKey: string): Promise<boolean> {
+      const inFlightPromotion = Services.StandardDatastream.promotionGuards.get(destKey);
+      if (inFlightPromotion) {
+        return inFlightPromotion;
+      }
+
+      const promotionPromise = this.promoteFromStaging(fileId, destKey);
+      Services.StandardDatastream.promotionGuards.set(destKey, promotionPromise);
+
+      try {
+        return await promotionPromise;
+      } finally {
+        if (Services.StandardDatastream.promotionGuards.get(destKey) === promotionPromise) {
+          Services.StandardDatastream.promotionGuards.delete(destKey);
+        }
+      }
+    }
+
+    private async promoteFromStaging(fileId: string, destKey: string): Promise<boolean> {
+      const stagingDisk = StorageManagerService.stagingDisk();
+      const primaryDisk = StorageManagerService.primaryDisk();
+
+      if (await primaryDisk.exists(destKey)) {
+        this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Already present: ${destKey}`);
+        return true;
+      }
+
+      const existsInStaging = await stagingDisk.exists(fileId);
+      if (!existsInStaging) {
+        return primaryDisk.exists(destKey);
+      }
+
+      const readable = await stagingDisk.getStream(fileId);
+
+      try {
+        await primaryDisk.putStream(destKey, readable);
+      } catch (err) {
+        readable.destroy();
+        if (!this.isStorageAlreadyExistsError(err) || !(await primaryDisk.exists(destKey))) {
+          throw err;
+        }
+      }
+
+      try {
+        await stagingDisk.delete(fileId);
+      } catch (err) {
+        if (!this.isStorageNotFoundError(err)) {
+          throw err;
+        }
+      }
+
+      this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Promoted: ${destKey}`);
+      return true;
     }
 
     // ----------------------------------------------------------------
@@ -192,18 +309,19 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
 
-      const exists = await effectiveStagingDisk.exists(fileId);
-      if (!exists) {
+      const existsInStaging = await effectiveStagingDisk.exists(fileId);
+      if (!existsInStaging) {
         throw new Error(`Attachment not found in staging: ${fileId}`);
       }
 
+      const readable = await effectiveStagingDisk.getStream(fileId);
       try {
-        await effectiveStagingDisk.move(fileId, destKey);
-      } catch {
-        const readable = await effectiveStagingDisk.getStream(fileId);
         await primaryDisk.putStream(destKey, readable);
-        await effectiveStagingDisk.delete(fileId);
+      } catch (err) {
+        readable.destroy();
+        throw err;
       }
+      await effectiveStagingDisk.delete(fileId);
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
       return { success: true, key: destKey };
@@ -260,7 +378,10 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
 
       // Check existence
-      const exists = await primaryDisk.exists(destKey);
+      let exists = await primaryDisk.exists(destKey);
+      if (!exists) {
+        exists = await this.promoteFromStagingOnce(fileId, destKey);
+      }
       if (!exists) {
         throw new Error(`Attachment not found: ${destKey}`);
       }
@@ -301,16 +422,15 @@ export namespace Services {
         try {
           const meta = await primaryDisk.getMetaData(destKey);
           return [
-            {
-              filename: destKey,
+            this.datastreamListEntry(destKey, {
               contentType: meta.contentType,
               contentLength: meta.contentLength,
               lastModified: meta.lastModified,
               etag: meta.etag,
-            },
+            }),
           ];
         } catch {
-          return [{ filename: destKey }];
+          return [this.datastreamListEntry(destKey)];
         }
       }
 
@@ -320,10 +440,8 @@ export namespace Services {
       const files: Record<string, unknown>[] = [];
       for (const obj of result.objects) {
         const fileObj = obj as Record<string, unknown>;
-        files.push({
-          filename: fileObj['key'] ?? fileObj['name'] ?? String(obj),
-          ...fileObj,
-        });
+        const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
+        files.push(this.datastreamListEntry(key, fileObj));
       }
       return files;
     }

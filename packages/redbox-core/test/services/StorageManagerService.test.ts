@@ -177,6 +177,139 @@ describe('StorageManagerService', function () {
       // Should have created 2 disks: staging and primary
       expect(createdDisks).to.have.length(2);
     });
+
+    it('should register mixed filesystem staging and S3 primary disks', async function () {
+      mockSails.config.storage.disks = {
+        staging: {
+          driver: 'fs',
+          config: { root: '/tmp/test-staging' },
+        },
+        primary: {
+          driver: 's3',
+          config: {
+            key: 'AK',
+            secret: 'SK',
+            bucket: 'test-aws-redbox-attachments',
+            region: 'us-east-1',
+            endpoint: 'http://minio:9000',
+            forcePathStyle: true,
+          },
+        },
+      };
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
+      const mockPrimaryDisk = { exists: sinon.stub(), name: 'primary-disk' };
+      const capturedDrivers: any[] = [];
+      let capturedS3Opts: any = null;
+
+      (service as any)._DiskConstructor = class {
+        constructor(driver: any) {
+          capturedDrivers.push(driver);
+          return driver._driverName === 'fs' ? mockStagingDisk : mockPrimaryDisk;
+        }
+      };
+      (service as any)._FSDriver = class {
+        _driverName = 'fs';
+        constructor(_opts: any) {}
+      };
+      (service as any)._S3Driver = class {
+        _driverName = 's3';
+        constructor(opts: any) {
+          capturedS3Opts = opts;
+        }
+      };
+
+      await service.bootstrap();
+
+      expect(service.isBootstrapped()).to.be.true;
+      expect(capturedDrivers).to.have.length(2);
+      expect(service.stagingDisk()).to.equal(mockStagingDisk);
+      expect(service.primaryDisk()).to.equal(mockPrimaryDisk);
+      expect(capturedS3Opts.bucket).to.equal('test-aws-redbox-attachments');
+      expect(capturedS3Opts.region).to.equal('us-east-1');
+      expect(capturedS3Opts.endpoint).to.equal('http://minio:9000');
+      expect(capturedS3Opts.forcePathStyle).to.equal(true);
+      expect(capturedS3Opts.credentials.accessKeyId).to.equal('AK');
+      expect(capturedS3Opts.credentials.secretAccessKey).to.equal('SK');
+    });
+
+    it('should not leave partially registered disks when S3 bootstrap fails', async function () {
+      mockSails.config.storage.disks = {
+        staging: {
+          driver: 'fs',
+          config: { root: '/tmp/test-staging' },
+        },
+        primary: {
+          driver: 's3',
+          config: {
+            key: 'AK',
+            secret: 'SK',
+            bucket: 'test-aws-redbox-attachments',
+            region: 'us-east-1',
+          },
+        },
+      };
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      (service as any)._DiskConstructor = class {
+        constructor(_driver: unknown) {
+          return { exists: sinon.stub() };
+        }
+      };
+      (service as any)._FSDriver = class {
+        constructor(_opts: any) {}
+      };
+      (service as any)._S3Driver = class {
+        constructor(_opts: any) {
+          throw new Error('missing S3 dependency');
+        }
+      };
+
+      try {
+        await service.bootstrap();
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('missing S3 dependency');
+      }
+
+      expect(service.isBootstrapped()).to.equal(false);
+      try {
+        service.disk('staging');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include("disk 'staging' is not registered");
+        expect(err.message).to.include('Available:');
+        expect(err.message).to.not.include('Available: staging');
+      }
+    });
+
+    it('should share concurrent bootstrap calls without duplicating disk registration', async function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      const createdDisks: unknown[] = [];
+      (service as any)._DiskConstructor = class {
+        constructor(driver: unknown) {
+          createdDisks.push(driver);
+          return { exists: sinon.stub() };
+        }
+      };
+      (service as any)._FSDriver = class {
+        constructor(_opts: unknown) {}
+      };
+
+      await Promise.all([service.bootstrap(), service.bootstrap(), service.bootstrap()]);
+
+      expect(service.isBootstrapped()).to.be.true;
+      expect(createdDisks).to.have.length(2);
+    });
   });
 
   describe('disk', function () {
@@ -210,6 +343,30 @@ describe('StorageManagerService', function () {
 
       const disk = service.disk('staging');
       expect(disk).to.equal(mockDisk);
+    });
+
+    it('should include available disks when a registered manager is asked for a missing disk', async function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      (service as any)._DiskConstructor = class {
+        constructor(_driver: unknown) {
+          return { exists: sinon.stub() };
+        }
+      };
+      (service as any)._FSDriver = class {
+        constructor(_opts: unknown) {}
+      };
+
+      await service.bootstrap();
+
+      try {
+        service.disk('missing');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include("disk 'missing' is not registered");
+        expect(err.message).to.include('Available: staging, primary');
+      }
     });
   });
 
