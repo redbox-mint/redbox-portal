@@ -1,12 +1,13 @@
 import { Component, Input, ViewChild } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
+import { DateInputFieldComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.model';
 import {
-  DateInputFieldComponentConfigFrame,
-  DateInputFieldComponentConfig,
-  DateInputModelValueType,
-  DateInputModelName, DateInputComponentName,
-  mapMomentToLuxonFormat
-} from '@researchdatabox/sails-ng-common';
+  DateInputComponentName,
+  DateInputModelName,
+  type DateInputFieldComponentConfigFrame,
+  type DateInputModelValueType,
+} from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.outline';
+import { mapMomentToLuxonFormat } from '@researchdatabox/sails-ng-common/dist/src/date-format-helpers';
 import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
@@ -103,19 +104,33 @@ export function parseFreeTextDate(rawText: string | null | undefined, dateFormat
         ];
 
         const defaultInterp: [number, number, number] = [fmtYearPos, fmtMonthPos, fmtDayPos];
-        const isDefault = (i: [number, number, number]) =>
-          i[0] === defaultInterp[0] && i[1] === defaultInterp[1] && i[2] === defaultInterp[2];
+        const candidates: Array<{ date: Date; interpretation: [number, number, number] }> = [];
 
-        const candidates: Date[] = [];
+        for (const interpretation of interpretations) {
+          if (
+            interpretation[0] === defaultInterp[0] &&
+            interpretation[1] === defaultInterp[1] &&
+            interpretation[2] === defaultInterp[2]
+          ) {
+            continue;
+          }
 
-        for (const interp of interpretations) {
-          if (isDefault(interp)) continue;
-
-          const yearVal = textParts[interp[0]];
-          const monthVal = textParts[interp[1]];
-          const dayVal = textParts[interp[2]];
+          const yearVal = textParts[interpretation[0]];
+          const monthVal = textParts[interpretation[1]];
+          const dayVal = textParts[interpretation[2]];
 
           if (!yearVal || !monthVal || !dayVal) continue;
+
+          const monthNumber = Number(monthVal);
+          const dayNumber = Number(dayVal);
+
+          if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+            continue;
+          }
+
+          if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 31) {
+            continue;
+          }
 
           const reconstructed = new Array<string>(3);
           reconstructed[fmtYearPos] = yearVal;
@@ -125,25 +140,27 @@ export function parseFreeTextDate(rawText: string | null | undefined, dateFormat
 
           const dt = tryParse(reassembled, luxonFmt);
           if (dt !== undefined) {
-            candidates.push(dt);
+            candidates.push({ date: dt, interpretation });
           }
         }
 
         if (candidates.length === 1) {
-          return candidates[0];
+          return candidates[0].date;
         }
 
         if (candidates.length > 1) {
-          // heuristic: prefer configured order; eliminate variants where month > 12
-          for (const candidate of candidates) {
-            const month = candidate.getUTCMonth() + 1;
-            const day = candidate.getUTCDate();
-            if (month > 12) {
-              continue;
+          candidates.sort((left, right) => {
+            for (let index = 0; index < left.interpretation.length; index += 1) {
+              const delta = left.interpretation[index] - right.interpretation[index];
+              if (delta !== 0) {
+                return delta;
+              }
             }
-            return candidate;
-          }
-          return candidates[0];
+
+            return 0;
+          });
+
+          return candidates[0].date;
         }
       }
     }
@@ -152,11 +169,6 @@ export function parseFreeTextDate(rawText: string | null | undefined, dateFormat
   const isoDate = DateTime.fromISO(text);
   if (isoDate.isValid) {
     return isoDate.toJSDate();
-  }
-
-  const jsDate = new Date(text);
-  if (!Number.isNaN(jsDate.getTime())) {
-    return jsDate;
   }
 
   return undefined;
@@ -182,11 +194,11 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   }
 
   public setTimeValue(timeValue: string): void {
-    if(this.enableTimePicker) {
+    if (this.enableTimePicker) {
       //TODO: Implementation of time input requires more work to handle timezones properly and this will be done in a later PR if/when required
-      let isoDts:string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
+      let isoDts: string = `${this.stripTimeFromJSDate(this.formControl?.value as Date)}T${timeValue}:00.000Z`;
       let jsDate = DateTime.fromISO(isoDts).toJSDate();
-      this.setValue(jsDate, {emitEvent: false});
+      this.setValue(jsDate, { emitEvent: false });
     }
   }
 
@@ -217,7 +229,6 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [title]="tooltip | i18next"
           [placeholder]="placeholder | i18next"
           (blur)="onInputBlur($event)"
-          (input)="onInput($event)"
         />
         <div class="input-group-append">
           <span class="input-group-text date-input-addon" (click)="toggleDatepicker()" >
@@ -257,7 +268,6 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private bsFullConfig: any = {};
   public enableTimePickerDefault: boolean = false;
   private lastValidValue: Date | null = null;
-  private lastRawInput: string = '';
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
 
@@ -281,7 +291,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.robustParsing = cfg.robustParsing ?? defaultConfig.robustParsing ?? this.robustParsing;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
     this.bsFullConfig = cfg.bsFullConfig ?? {};
-    if(!_isUndefined(this.model)) {
+    if (!_isUndefined(this.model)) {
       this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
       this.model.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
     }
@@ -322,13 +332,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   //Although numer 2 is a seemingly old issue it's still present in the latest version of ngx-bootstrap as of June 2024.
   onTimeChange(event: Event) {
     let timeValue = (event.target as HTMLInputElement).value as string;
-    this.loggerService.info(`timeValue ${timeValue}`,'');
+    this.loggerService.info(`timeValue ${timeValue}`, '');
     this.model?.setTimeValue(timeValue);
-  }
-
-  onInput(event: Event): void {
-    const inputEl = event.target as HTMLInputElement;
-    this.lastRawInput = inputEl?.value ?? '';
   }
 
   onInputBlur(event: FocusEvent): void {
@@ -337,7 +342,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
 
     const inputEl = event.target as HTMLInputElement;
-    const rawText = this.lastRawInput || inputEl?.value || '';
+    const rawText = inputEl?.value || '';
     if (!rawText || rawText.trim() === '') {
       return;
     }
@@ -345,18 +350,21 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const parsed = parseFreeTextDate(rawText, this.dateFormat);
     if (parsed instanceof Date) {
       const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
-      const formatted = DateTime.fromJSDate(parsed).toFormat(luxonFmt);
+      const formatted = DateTime.fromJSDate(parsed, { zone: 'utc' }).toFormat(luxonFmt);
       inputEl.value = formatted;
       if (!areDateInputValuesEqual(this.formControl?.value, parsed)) {
         this.formControl?.setValue(parsed, { emitEvent: true });
       }
     } else {
+      if (this.lastValidValue instanceof Date) {
+        inputEl.value = DateTime.fromJSDate(this.lastValidValue, { zone: 'utc' }).toFormat(mapMomentToLuxonFormat(this.dateFormat));
+      }
       this.formControl?.setValue(this.lastValidValue, { emitEvent: true });
     }
   }
 
   public get bsConfig(): BsDatepickerConfig {
-    if(_isEmpty(this.bsFullConfig)) {
+    if (_isEmpty(this.bsFullConfig)) {
       //Commonly used properties only
       return {
         dateInputFormat: this.dateFormat,

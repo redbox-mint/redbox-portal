@@ -59,7 +59,7 @@ describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: [DateInputComponent]
-     ,imports: [BsDatepickerModule.forRoot()]
+      , imports: [BsDatepickerModule.forRoot()]
     });
   });
 
@@ -95,7 +95,7 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
@@ -127,7 +127,7 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
@@ -159,7 +159,7 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
@@ -188,7 +188,7 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
 
@@ -218,18 +218,22 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
 
     expect(inputElement.value).toEqual('');
 
     inputElement.value = '2011-11-24';
+    inputElement.dispatchEvent(new Event('input'));
     inputElement.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
     await fixture.whenStable();
 
     expect(inputElement.value).toEqual('2011/11/24');
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2011, 10, 24)));
   });
 
   it('should revert to last valid value on blur when text cannot be parsed', async () => {
@@ -257,13 +261,14 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
 
     expect(inputElement.value).toEqual('2025/08/10');
 
     inputElement.value = 'not a date';
+    inputElement.dispatchEvent(new Event('input'));
     inputElement.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
     await fixture.whenStable();
@@ -271,7 +276,8 @@ describe('DateInputComponent', () => {
     const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
     const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
 
-    expect((dateInputComp as any).lastValidValue instanceof Date).toBeTrue();
+    expect(inputElement.value).toEqual('2025/08/10');
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date('2025-08-10T10:00:00Z'));
   });
 
   it('should not parse alternative formats when robustParsing is disabled', async () => {
@@ -299,18 +305,20 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
 
     inputElement.value = '2011-11-24';
+    inputElement.dispatchEvent(new Event('input'));
     inputElement.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
     await fixture.whenStable();
 
+    expect(inputElement.value).toEqual('2011-11-24');
     const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
     const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
-    expect(inputElement.value).toEqual('2011-11-24');
+    expect(dateInputComp.model?.formControl?.value as unknown).toEqual('2011-11-24');
   });
 
   it('should allow clearing the date value without reverting', async () => {
@@ -338,13 +346,14 @@ describe('DateInputComponent', () => {
       ],
     };
 
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
 
     expect(inputElement.value).toEqual('2025/08/10');
 
     inputElement.value = '';
+    inputElement.dispatchEvent(new Event('input'));
     inputElement.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
     await fixture.whenStable();
@@ -352,6 +361,7 @@ describe('DateInputComponent', () => {
     const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
     const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
 
-    expect((dateInputComp as any).lastValidValue instanceof Date).toBeTrue();
+    expect(inputElement.value).toEqual('');
+    expect(dateInputComp.model?.formControl?.value).toBeNull();
   });
 });
