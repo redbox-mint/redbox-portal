@@ -68,6 +68,44 @@ describe("PDFListComponent", () => {
         expect((formComponent as any).form.value.planPdf.length).toBe(2);
     });
 
+    it("uses the generated PDF filename timestamp when deciding the latest attachment", async () => {
+        recordService.getAttachments.and.resolveTo([
+            { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1778647101460.pdf", dateUpdated: "2024-03-02T09:00:00Z" },
+            { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-1778655684986.pdf", dateUpdated: "2024-03-01T09:00:00Z" },
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "planPdf",
+                    component: {
+                        class: "PDFListComponent",
+                        config: {
+                            startsWith: "rdmp-pdf"
+                        }
+                    },
+                    model: {
+                        class: "PDFListModel",
+                        config: {
+                            defaultValue: []
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-filename-sort", editMode: false } as any);
+        await fixture.whenStable();
+
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        expect(component.pdfAttachments.map((attachment) => attachment.label)).toEqual([
+            "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-1778655684986.pdf",
+            "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1778647101460.pdf",
+        ]);
+        expect(component.latestPdf?.label).toBe("rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-1778655684986.pdf");
+    });
+
     it("emits form control value changes when attachments are loaded", async () => {
         recordService.getAttachments.and.resolveTo([
             { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-02-01T10:00:00Z" },

@@ -1128,9 +1128,10 @@ export namespace Services {
       _.each(datastreams, (datastream: unknown) => {
         const datastreamObj = datastream as AnyRecord;
         let attachment: Record<string, unknown> = {};
-        attachment['dateUpdated'] = DateTime.fromJSDate(
-          new Date(datastreamObj['uploadDate'] as string | number | Date)
-        ).toISO();
+        const rawDateUpdated = datastreamObj['uploadDate'] ?? datastreamObj['lastModified'] ?? _.get(datastreamObj.metadata, 'dateUpdated');
+        attachment['dateUpdated'] = rawDateUpdated
+          ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toISO()
+          : null;
         attachment['label'] = _.get(datastreamObj.metadata, 'name');
         attachment['contentType'] = _.get(datastreamObj.metadata, 'mimeType');
         attachment = _.merge(attachment, datastreamObj.metadata);

@@ -441,7 +441,20 @@ export namespace Services {
       for (const obj of result.objects) {
         const fileObj = obj as Record<string, unknown>;
         const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
-        files.push(this.datastreamListEntry(key, fileObj));
+        try {
+          const meta = await primaryDisk.getMetaData(key);
+          files.push(
+            this.datastreamListEntry(key, {
+              ...fileObj,
+              contentType: meta.contentType,
+              contentLength: meta.contentLength,
+              lastModified: meta.lastModified,
+              etag: meta.etag,
+            })
+          );
+        } catch {
+          files.push(this.datastreamListEntry(key, fileObj));
+        }
       }
       return files;
     }
