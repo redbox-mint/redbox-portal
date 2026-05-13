@@ -1129,12 +1129,16 @@ export namespace Services {
         const datastreamObj = datastream as AnyRecord;
         let attachment: Record<string, unknown> = {};
         const rawDateUpdated = datastreamObj['uploadDate'] ?? datastreamObj['lastModified'] ?? _.get(datastreamObj.metadata, 'dateUpdated');
-        attachment['dateUpdated'] = rawDateUpdated
+        const normalizedDateUpdated = rawDateUpdated
           ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toISO()
+          : null;
+        attachment['dateUpdated'] = rawDateUpdated
+          ? normalizedDateUpdated
           : null;
         attachment['label'] = _.get(datastreamObj.metadata, 'name');
         attachment['contentType'] = _.get(datastreamObj.metadata, 'mimeType');
         attachment = _.merge(attachment, datastreamObj.metadata);
+        attachment['dateUpdated'] = normalizedDateUpdated;
         if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
           attachments.push(attachment);
         } else {

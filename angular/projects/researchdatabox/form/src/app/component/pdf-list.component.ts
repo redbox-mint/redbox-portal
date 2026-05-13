@@ -105,12 +105,12 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
             return;
         }
 
-        const matchingExpression = new RegExp(`${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-[0-9]+\\.pdf`);
+        const matchingExpression = this.getGeneratedPdfLabelExpression();
         try {
             const allAttachments = await this.getFormComponent.recordService.getAttachments(oid);
             const pdfAttachments = (allAttachments ?? [])
                 .filter((attachment: RecordAttachment) => matchingExpression.test(String(attachment?.label ?? "")))
-                .map((attachment: RecordAttachment) => this.toAttachmentView(attachment))
+                .map((attachment: RecordAttachment) => this.toAttachmentView(attachment, matchingExpression))
                 .sort((a: PDFListAttachmentView, b: PDFListAttachmentView) => b.timestampMs - a.timestampMs);
 
             this.applyAttachments(pdfAttachments);
@@ -223,8 +223,12 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         this.formControl.markAsUntouched();
     }
 
-    private toAttachmentView(attachment: RecordAttachment): PDFListAttachmentView {
-        const timestampMs = this.getAttachmentTimestampMs(attachment);
+    private getGeneratedPdfLabelExpression(): RegExp {
+        return new RegExp(`^${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-([0-9]+)\\.pdf$`);
+    }
+
+    private toAttachmentView(attachment: RecordAttachment, matchingExpression: RegExp = this.getGeneratedPdfLabelExpression()): PDFListAttachmentView {
+        const timestampMs = this.getAttachmentTimestampMs(attachment, matchingExpression);
         const rawDate = String(attachment?.dateUpdated ?? "");
         const parsed = moment(rawDate);
         const parsedTimestamp = timestampMs > 0 ? moment(timestampMs) : null;
@@ -236,9 +240,8 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         };
     }
 
-    private getAttachmentTimestampMs(attachment: RecordAttachment): number {
+    private getAttachmentTimestampMs(attachment: RecordAttachment, matchingExpression: RegExp): number {
         const label = String(attachment?.label ?? "");
-        const matchingExpression = new RegExp(`^${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-([0-9]+)\\.pdf$`);
         const labelTimestampMs = Number(matchingExpression.exec(label)?.[1] ?? 0);
         if (Number.isFinite(labelTimestampMs) && labelTimestampMs >= 946684800000) {
             return labelTimestampMs;

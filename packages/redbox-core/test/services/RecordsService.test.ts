@@ -300,6 +300,24 @@ describe('RecordsService', function () {
       expect(result[0]).to.have.property('contentType', 'application/pdf');
     });
 
+    it('should preserve the normalized dateUpdated when metadata also provides a dateUpdated value', async function () {
+      mockDatastreamService.listDatastreams.resolves([
+        {
+          uploadDate: '2026-05-13T07:01:32.533Z',
+          metadata: {
+            name: 'file.pdf',
+            mimeType: 'application/pdf',
+            dateUpdated: '2001-01-01T00:00:00.000Z'
+          }
+        }
+      ]);
+
+      const result = await RecordsService.getAttachments('record-123');
+
+      expect(result).to.have.length(1);
+      expect(result[0]).to.have.property('dateUpdated', '2026-05-13T07:01:32.533Z');
+    });
+
     it('should use lastModified when a datastream does not provide uploadDate', async function () {
       mockDatastreamService.listDatastreams.resolves([
         {

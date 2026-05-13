@@ -26,7 +26,7 @@ export namespace Services {
   export class StandardDatastream extends services.Core.Service implements DatastreamService {
     private static promotionGuards: Map<string, Promise<boolean>> = new Map();
 
-    protected _exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'addDatastreams',
       'updateDatastream',
       'removeDatastream',
@@ -36,7 +36,7 @@ export namespace Services {
       'listDatastreams',
     ];
 
-    protected logHeader: string = 'StandardDatastreamService::';
+    protected override logHeader: string = 'StandardDatastreamService::';
 
     /**
      * Build the storage key for a file under the configured prefix.
@@ -437,15 +437,16 @@ export namespace Services {
       // List all files under the oid prefix
       const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
+      type FileMetadata = {
+        contentType?: string;
+        contentLength: number;
+        etag: string;
+        lastModified: Date;
+      };
       type ListedDatastreamEntry = {
         key: string;
         fileObj: Record<string, unknown>;
-        metadataPromise: Promise<{
-          contentType?: string;
-          contentLength: number;
-          etag: string;
-          lastModified: Date;
-        }>;
+        metadataPromise: Promise<FileMetadata>;
       };
       //TODO: Rather than fetching all the file metadata from the primary disk, we should consider tracking this metadata in our own storage.
       const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
@@ -458,7 +459,13 @@ export namespace Services {
         };
       });
 
-      const metadataResults = await Promise.allSettled(fileEntries.map(({ metadataPromise }) => metadataPromise));
+      const metadataResults: PromiseSettledResult<FileMetadata>[] = [];
+      const metadataBatchSize = 10;
+      for (let index = 0; index < fileEntries.length; index += metadataBatchSize) {
+        const batch = fileEntries.slice(index, index + metadataBatchSize);
+        const batchResults = await Promise.allSettled(batch.map(({ metadataPromise }) => metadataPromise));
+        metadataResults.push(...batchResults);
+      }
 
       return fileEntries.map(({ key, fileObj }, index) => {
         const metadataResult = metadataResults[index];

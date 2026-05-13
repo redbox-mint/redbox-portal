@@ -516,6 +516,58 @@ describe('StandardDatastreamService', function () {
       expect(result[0]).not.to.have.property('lastModified');
     });
 
+    it('should batch metadata lookups when listing many files', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const lastModified = new Date('2026-05-13T07:01:32.533Z');
+      const pendingMetadataResolvers: Array<(value: unknown) => void> = [];
+
+      mockPrimaryDisk.listAll.resolves({
+        objects: Array.from({ length: 11 }, (_, index) => ({
+          key: `attachments/oid-123/file-${index}`,
+          name: `file-${index}`,
+        })),
+      });
+      mockPrimaryDisk.getMetaData.callsFake((_key: string) => new Promise((resolve: (value: unknown) => void) => {
+        pendingMetadataResolvers.push(resolve);
+      }));
+
+      const resultPromise = service.listDatastreams('oid-123', '');
+
+      await waitFor(() => mockPrimaryDisk.getMetaData.callCount === 10);
+      expect(mockPrimaryDisk.getMetaData.callCount).to.equal(10);
+
+      for (let index = 0; index < 10; index += 1) {
+        pendingMetadataResolvers[index]({
+          contentType: 'application/pdf',
+          contentLength: 2048,
+          etag: 'etag-123',
+          lastModified,
+        });
+      }
+
+      await waitFor(() => mockPrimaryDisk.getMetaData.callCount === 11);
+      expect(mockPrimaryDisk.getMetaData.callCount).to.equal(11);
+
+      pendingMetadataResolvers[10]({
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
+      });
+
+      const result = await resultPromise;
+
+      expect(result).to.be.an('array').with.length(11);
+      expect(result[0]).to.include({
+        filename: 'attachments/oid-123/file-0',
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
+      });
+    });
+
     it('should normalize a key prefix without a trailing slash when listing all files', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
