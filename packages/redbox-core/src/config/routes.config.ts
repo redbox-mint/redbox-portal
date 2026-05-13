@@ -167,6 +167,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?': 'DynamicAssetController.getFormCompiledItems',
     'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
+    // TODO
     'get /:branding/:portal/dynamicAsset/validatorDefinitions': 'DynamicAssetController.getValidatorDefinitions',
 
     // Auth routes

@@ -5,6 +5,10 @@
 import "../../../styles/style.scss";
 // import "../../../styles/default.css";
 
+import {allFormValidatorDefinitions} from "./validator-definitions";
+
+export {allFormValidatorDefinitions};
+
 function safeStorageGet(key: string): any {
   try {
     if (!window.localStorage) {

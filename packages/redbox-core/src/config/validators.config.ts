@@ -6,12 +6,18 @@
  * or create a validator definition with the same name.
  */
 
-import {FormValidatorDefinition, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
+import {
+  FormValidatorDefinition,
+  formValidatorsSharedDefinitions,
+  validatorCustomLibrary
+} from "@researchdatabox/sails-ng-common";
 
 export interface ValidatorsConfig {
     definitions: FormValidatorDefinition[];
+    customLibrary: Record<string, unknown>;
 }
 
 export const validators: ValidatorsConfig = {
     definitions: formValidatorsSharedDefinitions,
+    customLibrary: validatorCustomLibrary,
 };

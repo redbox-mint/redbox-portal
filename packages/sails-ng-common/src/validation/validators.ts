@@ -35,19 +35,17 @@ const customLibrary = {
 export const validatorCustomLibrary = customLibrary;
 
 /**
- * Definitions of shared form validators.
+ * Definitions of form validators.
  *
- * These can be used on both server-side and client-side. The server provides them to the client.
+ * These can be used on both server-side and client-side.
+ * The server provides them to the client.
+ *
  * These are the shared / common definitions.
  * ReDBox implementations can modify these validation definitions or add more.
  *
  * The validators are based on:
- * angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
- * formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
- *
- * These validation definitions need to be on the server-side, and provided to the client-side from the server.
- * There are two sets of validator definitions - 1) shared / common definitions in the core; 2) definitions specific to a client.
- *    These two set of definitions need to be merged and provided by the server to the client.
+ * - angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
+ * - formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
  */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
