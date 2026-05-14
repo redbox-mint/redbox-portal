@@ -26,7 +26,7 @@ export namespace Services {
   export class StandardDatastream extends services.Core.Service implements DatastreamService {
     private static promotionGuards: Map<string, Promise<boolean>> = new Map();
 
-    protected _exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'addDatastreams',
       'updateDatastream',
       'removeDatastream',
@@ -36,7 +36,7 @@ export namespace Services {
       'listDatastreams',
     ];
 
-    protected logHeader: string = 'StandardDatastreamService::';
+    protected override logHeader: string = 'StandardDatastreamService::';
 
     /**
      * Build the storage key for a file under the configured prefix.
@@ -437,13 +437,49 @@ export namespace Services {
       // List all files under the oid prefix
       const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
-      const files: Record<string, unknown>[] = [];
-      for (const obj of result.objects) {
+      type FileMetadata = {
+        contentType?: string;
+        contentLength: number;
+        etag: string;
+        lastModified: Date;
+      };
+      type ListedDatastreamEntry = {
+        key: string;
+        fileObj: Record<string, unknown>;
+      };
+      //TODO: Rather than fetching all the file metadata from the primary disk, we should consider tracking this metadata in our own storage.
+      const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
         const fileObj = obj as Record<string, unknown>;
         const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
-        files.push(this.datastreamListEntry(key, fileObj));
+        return {
+          key,
+          fileObj,
+        };
+      });
+
+      const metadataResults: PromiseSettledResult<FileMetadata>[] = [];
+      const metadataBatchSize = 10;
+      for (let index = 0; index < fileEntries.length; index += metadataBatchSize) {
+        const batch = fileEntries.slice(index, index + metadataBatchSize);
+        const batchResults = await Promise.allSettled(batch.map(({ key }) => primaryDisk.getMetaData(key)));
+        metadataResults.push(...batchResults);
       }
-      return files;
+
+      return fileEntries.map(({ key, fileObj }, index) => {
+        const metadataResult = metadataResults[index];
+        if (metadataResult.status === 'fulfilled') {
+          const meta = metadataResult.value;
+          return this.datastreamListEntry(key, {
+            ...fileObj,
+            contentType: meta.contentType,
+            contentLength: meta.contentLength,
+            lastModified: meta.lastModified,
+            etag: meta.etag,
+          });
+        }
+
+        return this.datastreamListEntry(key, fileObj);
+      });
     }
   }
 }
