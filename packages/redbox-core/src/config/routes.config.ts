@@ -167,8 +167,6 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?': 'DynamicAssetController.getFormCompiledItems',
     'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
-    // TODO
-    'get /:branding/:portal/dynamicAsset/validatorDefinitions': 'DynamicAssetController.getValidatorDefinitions',
 
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
@@ -322,7 +320,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/api/records/metadata/:oid': { controller: 'webservice/RecordController', action: 'getMeta', csrf: false },
     'get /:branding/:portal/api/records/audit/:oid': { controller: 'webservice/RecordController', action: 'getRecordAudit', csrf: false },
     'get /:branding/:portal/api/integration-audit/:oid': { controller: 'webservice/IntegrationAuditController', action: 'getAuditLog', csrf: false },
-    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords' , csrf: false },
+    'get /:branding/:portal/api/records/list': { controller: 'webservice/RecordController', action: 'listRecords', csrf: false },
     'get /:branding/:portal/api/deletedrecords/list': { controller: 'webservice/RecordController', action: 'listDeletedRecords', csrf: false },
     'put /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'restoreRecord', csrf: false },
     'delete /:branding/:portal/api/deletedrecords/:oid': { controller: 'webservice/RecordController', action: 'destroyDeletedRecord', csrf: false },

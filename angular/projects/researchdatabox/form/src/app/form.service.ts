@@ -68,19 +68,18 @@ import {
   JSONataQuerySourceProperty,
   KindNameDefaultsMap,
   KindNameDefaultsMapType,
+  LineagePath,
   LineagePaths,
   queryJSONata,
-  validatorCustomLibrary,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import {HttpClient} from "@angular/common/http";
 import {APP_BASE_HREF} from "@angular/common";
 import {firstValueFrom} from "rxjs";
 import {FormValidationGroupsChangeInitial} from "./form-state";
-import jsonata from 'jsonata';
 
-// redboxClientScript.allFormValidatorDefinitions is provided from index.bundle.js, via client-script.js
-declare var redboxClientScript: { allFormValidatorDefinitions: FormValidatorDefinition[] };
+// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
+declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
 
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
@@ -204,9 +203,7 @@ export class FormService extends HttpClientService {
     formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      // TODO
-      const validatorDefinitions = redboxClientScript.allFormValidatorDefinitions;
-      // const validatorDefinitions = await this.getValidatorDefinitions();
+      const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
@@ -819,24 +816,6 @@ export class FormService extends HttpClientService {
   }
 
   /**
-   * Get all the validator definitions for the site from the dynamic import.
-   */
-  public async getDynamicImportSiteValidatorDefinitions(): Promise<DynamicScriptResponse> {
-    const path = ['dynamicAsset', 'validatorDefinitions'];
-    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  }
-
-  /**
-   Get all the validator definitions for the site after they have been evaluated.
-   */
-  public async getValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
-    const compiledItems = await this.getDynamicImportSiteValidatorDefinitions();
-    const context = {};
-    const extras = {libraries: {jsonata, customLibrary: validatorCustomLibrary}};
-    return compiledItems.evaluate(['formValidatorDefinitions'], context, extras) as FormValidatorDefinition[];
-  }
-
-  /**
    * Build the lineage paths from a base item,
    * and add the entries as relative parts at the end of each lineage path.
    * @param base The base paths.
@@ -849,9 +828,8 @@ export class FormService extends HttpClientService {
 
   /**
    * Reshapes a FormFieldCompMapEntry into a JSONataClientQuerySourceProperty.
-   *
-   * @param item
-   * @returns
+   * @param item The form field entry to transform.
+   * @param isLayout True if the provided item is a layout.
    */
   public transformIntoJSONataProperty(item: FormFieldCompMapEntry, isLayout?: boolean): JSONataClientQuerySourceProperty {
     if (!item) {
@@ -889,9 +867,10 @@ export class FormService extends HttpClientService {
   /**
    * Transforms a JSONata entry to a JSON Pointer friendly object.
    *
-   * @param jsonDoc - arbitrary object to build on
+   * @param jsonDoc arbitrary object to build on
    * @param formFieldEntry The form field entry associated with the JSONata entry.
    * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
+   * @param isLayout True if the provided form field entry is a layout.
    */
   public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty, isLayout?: boolean): object {
     const object: JSONataResultDoc = {
@@ -1056,6 +1035,43 @@ export class FormService extends HttpClientService {
     // this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
 
     return enabledNames;
+  }
+
+  /**
+   * Find the first matching form field component map entry by name or lineage path.
+   * @param name The form config name or lineage path to look for.
+   * @param formFieldCompMapEntries The entries to search in, recursing into any children.
+   * @return The first matching entry, or undefined if none match.
+   */
+  public getFormFieldCompMapEntry(
+    name: string | Partial<LineagePaths>,
+    formFieldCompMapEntries: FormFieldCompMapEntry[],
+  ): FormFieldCompMapEntry | undefined {
+    // breadth first search
+    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
+      if (typeof name === "string") {
+        if (formFieldCompMapEntry.compConfigJson?.name === name) {
+          return formFieldCompMapEntry;
+        }
+      } else if (name && formFieldCompMapEntry.lineagePaths) {
+        const targets = name as Record<string, LineagePath | string | undefined>;
+        const available = formFieldCompMapEntry.lineagePaths;
+        const lineagePathMatch = Object.entries(available).some(([key, value]) => !!value && targets?.[key] === value);
+        if (lineagePathMatch) {
+          return formFieldCompMapEntry;
+        }
+      }
+    }
+
+    // If not found, continue to search in the component's children
+    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
+      const childFormFieldCompMapEntries = formFieldCompMapEntry.component?.formFieldCompMapEntries ?? [];
+      const match = this.getFormFieldCompMapEntry(name, childFormFieldCompMapEntries);
+      if (match !== undefined) {
+        return match;
+      }
+    }
+    return undefined;
   }
 }
 

@@ -17,8 +17,11 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { FormService } from "./form.service";
 import {
-  buildKeyString, DynamicScriptResponse, DynamicScriptResponseEvaluateContext,
-  DynamicScriptResponseEvaluateExtra, DynamicScriptResponseEvaluateKey,
+  buildKeyString,
+  DynamicScriptResponse,
+  DynamicScriptResponseEvaluateContext,
+  DynamicScriptResponseEvaluateExtra,
+  DynamicScriptResponseEvaluateKey,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
 } from "@researchdatabox/sails-ng-common";
@@ -275,23 +278,6 @@ export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
       const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
 
       const entries = opts?.entries ?? [];
-
-      // provide the default validator definitions unless told not to or other definitions are provided
-      const validatorDefinitionsKey = `${brandingAndPortalUrl}/dynamicAsset/validatorDefinitions`;
-      if (opts?.includeDefaultValidatorDefinitions !== false && urlKey.startsWith(validatorDefinitionsKey)) {
-        const entry = entries.find(i => i.urlKeyStart?.startsWith(validatorDefinitionsKey));
-        if (!entry) {
-          return {
-            evaluate: function (
-              key: DynamicScriptResponseEvaluateKey,
-              context: DynamicScriptResponseEvaluateContext,
-              extra?: DynamicScriptResponseEvaluateExtra
-            ): unknown {
-              return formValidatorsSharedDefinitions;
-            }
-          }
-        }
-      }
 
       for (const entry of entries) {
         if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {

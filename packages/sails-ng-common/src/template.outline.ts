@@ -1,6 +1,6 @@
-import {LineagePath} from "./config/names/naming-helpers";
+import {LineagePath, normaliseVisual} from "./config/names/naming-helpers";
 
-export const templateCompileKind = ["jsonata", "handlebars", "raw"] as const;
+export const templateCompileKind = ["jsonata", "handlebars"] as const;
 
 export type TemplateCompileKind = typeof templateCompileKind[number];
 
@@ -40,7 +40,7 @@ export interface TemplateCompileInput extends TemplateCompileItem {
  * @param key The array of names and indexes.
  */
 export function buildKeyString(key: TemplateCompileKey): TemplateCompileKeyFormatted {
-    return (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
+    return (key ?? [])?.map(i => normaliseVisual(i))?.join('__');
 }
 
 export type DynamicScriptResponseEvaluateKey = TemplateCompileKey;

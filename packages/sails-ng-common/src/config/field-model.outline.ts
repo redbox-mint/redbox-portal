@@ -1,6 +1,5 @@
 import { FormValidatorConfig } from "../validation/form.model";
 import { FieldDefinitionFrame, FieldDefinitionOutline } from "./field.outline";
-import { RepeatableModelValueType } from "./component/repeatable.outline";
 
 /**
  * The form field model config interface that provides typing for the object literal and schema.

@@ -8,6 +8,8 @@ import {
   formValidatorGetDefinitionString,
   formValidatorLengthOrSize
 } from "./helpers";
+import {JSONataEvaluate} from "../config/names/query-helpers";
+import {toBoolean} from "../config/helpers";
 
 
 /**
@@ -18,30 +20,13 @@ import {
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 /**
- * The variable name here must match the 'custom library' variable in views/dynamicScriptAsset.ejs.
- * The custom library functions are provided to the client via this variable.
- */
-const customLibrary = {
-  formValidatorLengthOrSize,
-  formValidatorGetDefinitionItem,
-  formValidatorGetDefinitionString,
-  formValidatorGetDefinitionNumber,
-  formValidatorGetDefinitionBoolean,
-  formValidatorGetDefinitionRegexp,
-  formValidatorGetDefinitionArray,
-  FORM_VALIDATOR_EMAIL_REGEXP,
-};
-
-export const validatorCustomLibrary = customLibrary;
-
-/**
  * Definitions of form validators.
  *
  * These can be used on both server-side and client-side.
  * The server provides them to the client.
  *
- * These are the shared / common definitions.
- * ReDBox implementations can modify these validation definitions or add more.
+ * Sails hooks can use these validators functions, but cannot extend or override them.
+ * Use the 'jsonata-expression' validator to create custom validator functions.
  *
  * The validators are based on:
  * - angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
@@ -53,11 +38,11 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-min",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "min");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "min");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min");
       const optionMinKey = "min";
-      const optionMinValue = customLibrary.formValidatorGetDefinitionNumber(config, optionMinKey);
+      const optionMinValue = formValidatorGetDefinitionNumber(config, optionMinKey);
       return (control) => {
         if (control.value == null || optionMinValue == null) {
           return null; // don't validate empty values to allow optional controls
@@ -92,11 +77,11 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-max",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "max");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "max");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max");
       const optionMaxKey = "max";
-      const optionMaxValue = customLibrary.formValidatorGetDefinitionNumber(config, optionMaxKey);
+      const optionMaxValue = formValidatorGetDefinitionNumber(config, optionMaxKey);
       return (control) => {
         if (control.value == null || optionMaxValue == null) {
           return null; // don't validate empty values to allow optional controls
@@ -131,13 +116,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-min-length",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "minLength");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "minLength");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-min-length");
       const optionMinLengthKey = "minLength";
-      const optionMinLengthValue = customLibrary.formValidatorGetDefinitionNumber(config, optionMinLengthKey);
+      const optionMinLengthValue = formValidatorGetDefinitionNumber(config, optionMinLengthKey);
       return (control) => {
-        const length = customLibrary.formValidatorLengthOrSize(control.value);
+        const length = formValidatorLengthOrSize(control.value);
         if (length === null || length === 0) {
           // don't validate empty values to allow optional controls
           // don't validate values without `length` or `size` property
@@ -163,13 +148,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-max-length",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "maxLength");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-max-length");
       const optionMaxLengthKey = "maxLength";
-      const optionMaxLengthValue = customLibrary.formValidatorGetDefinitionNumber(config, optionMaxLengthKey);
+      const optionMaxLengthValue = formValidatorGetDefinitionNumber(config, optionMaxLengthKey);
       return (control) => {
-        const length = customLibrary.formValidatorLengthOrSize(control.value);
+        const length = formValidatorLengthOrSize(control.value);
         if (length !== null && length > optionMaxLengthValue) {
           return {
             [optionNameValue]: {
@@ -190,13 +175,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-required",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "required");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "required");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
       const optionRequiredKey = "required";
-      const optionRequiredValue = customLibrary.formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
       return (control) => {
-        if (optionRequiredValue && (control.value == null || customLibrary.formValidatorLengthOrSize(control.value) === 0)) {
+        if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -216,11 +201,11 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-required-true",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "requiredTrue")?.toString() ?? "";
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required-true");
       const optionRequiredKey = "requiredTrue";
-      const optionRequiredValue = customLibrary.formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
       return (control) => {
         if (optionRequiredValue && control.value !== true) {
           return {
@@ -242,15 +227,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-email",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "email");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "email");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-email");
       const optionDescriptionKey = "description";
-      const optionDescriptionValue = customLibrary.formValidatorGetDefinitionString(config, optionDescriptionKey, "email must be in format (name)@(domain.tld)");
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey, "email must be in format (name)@(domain.tld)");
       const optionPatternKey = "pattern";
-      const optionPatternValue = customLibrary.formValidatorGetDefinitionRegexp(config, optionPatternKey, customLibrary.FORM_VALIDATOR_EMAIL_REGEXP);
+      const optionPatternValue = formValidatorGetDefinitionRegexp(config, optionPatternKey, FORM_VALIDATOR_EMAIL_REGEXP);
       return (control) => {
-        if (control.value == null || customLibrary.formValidatorLengthOrSize(control.value) === 0) {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
           // don't validate empty values to allow optional controls
           return null;
         }
@@ -278,13 +263,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-pattern",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "pattern");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "pattern");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-pattern");
       const optionDescriptionKey = "description";
-      const optionDescriptionValue = customLibrary.formValidatorGetDefinitionString(config, optionDescriptionKey);
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
       const optionPatternKey = "pattern";
-      const pattern = customLibrary.formValidatorGetDefinitionItem(config, optionPatternKey);
+      const pattern = formValidatorGetDefinitionItem(config, optionPatternKey);
       let regex: RegExp;
       let regexStr = (pattern instanceof RegExp ? pattern?.source : pattern?.toString()) ?? "";
 
@@ -301,7 +286,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       regex = new RegExp(regexStr);
 
       return (control) => {
-        if (control.value == null || customLibrary.formValidatorLengthOrSize(control.value) === 0) {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
           return null; // don't validate empty values to allow optional controls
         }
         const value = control.value?.toString();
@@ -325,11 +310,11 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-different-values",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "different-values");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "different-values");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-different-values");
       const optionControlNamesKey = "controlNames";
-      const optionControlNamesValue = customLibrary.formValidatorGetDefinitionArray(config, optionControlNamesKey);
+      const optionControlNamesValue = formValidatorGetDefinitionArray(config, optionControlNamesKey);
       return (control) => {
         // TODO: fix how control values are obtained - need to use full angular component path
         const controls = (optionControlNamesValue ?? [])
@@ -358,23 +343,23 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-jsonata-expression",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
       const optionDescriptionKey = "description";
-      let optionDescriptionValue = customLibrary.formValidatorGetDefinitionString(config, optionDescriptionKey);
+      let optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
       const optionExpressionKey = "expression";
-      const expression = customLibrary.formValidatorGetDefinitionItem(config, optionExpressionKey);
+      const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
-      const evaluator = customLibrary.formValidatorGetDefinitionItem(config, optionEvaluatorKey) as (control: FormValidatorControl) => boolean;
-      return (control) => {
-          if (control.value == null || customLibrary.formValidatorLengthOrSize(control.value) === 0) {
+      const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
+      return async (control) => {
+          if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
               return null; // don't validate empty values to allow optional controls
           }
           const value = control.value?.toString();
           let success: boolean;
           try {
-              success = evaluator(control)
+              success = toBoolean(await evaluator(control));
           } catch (err) {
               success = false;
               optionDescriptionValue = "the validator is not configured correctly"
@@ -401,9 +386,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     message: "@validator-error-orcid",
     create: (config) => {
       const optionNameKey = "class";
-      const optionNameValue = customLibrary.formValidatorGetDefinitionString(config, optionNameKey, "orcid");
+      const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "orcid");
       const optionMessageKey = "message";
-      const optionMessageValue = customLibrary.formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-orcid");
+      const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-orcid");
 
       return (control) => {
         if (control.value == null || control.value === "") {

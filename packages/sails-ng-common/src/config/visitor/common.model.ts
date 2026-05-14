@@ -17,7 +17,13 @@ import {
   VisitorLayoutClassDefMapType,
   VisitorModelClassDefMapType,
 } from '../dictionary.model';
-import { buildLineagePaths, LineagePath, LineagePaths, LineagePathsPartial } from '../names/naming-helpers';
+import {
+  buildLineagePaths,
+  LineagePath,
+  LineagePaths,
+  LineagePathsPartial,
+  normaliseVisual
+} from '../names/naming-helpers';
 import { AllFormComponentDefinitionOutlines } from '../dictionary.outline';
 import { FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind } from '../shared.outline';
 
@@ -236,7 +242,7 @@ export class PropertiesHelper {
    */
   public toFieldReference(value: unknown): string {
     // Normalise the string to a form useful for comparing identifiers.
-    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
+    const fieldRaw = normaliseVisual(value);
     // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
     const fieldReference = [...fieldRaw].map((char) => {
       const codePoint = char.codePointAt(0);

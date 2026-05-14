@@ -58,7 +58,7 @@ import {
   FormRequestParamValue,
   FormStatus,
   FormValidatorSummaryErrors,
-  JSONataQuerySource,
+  JSONataQuerySource, LineagePaths,
 } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from './component/base-wrapper.component';
 import {FormComponentsMap, FormService} from './form.service';
@@ -915,24 +915,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.debugState.safePlainObjectSnapshot(value);
   }
 
-  // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
+  /**
+   * Find the first matching form field component map entry by name or lineage path.
+   * @param name The form config name or lineage path to look for.
+   * @param componentDefArr The entries to search in, recursing into any children.
+   * @return The first matching entry, or undefined if none match.
+   */
   public getComponentDefByName(
-    name: string,
+    name: string | Partial<LineagePaths>,
     componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr
   ): FormFieldCompMapEntry | undefined {
-    let foundComponentDef = componentDefArr.find(comp => {
-      return comp.compConfigJson?.name === name;
-    });
-    // If not found, continue to search in the component's children
-    if (!foundComponentDef) {
-      let componentDef = foundComponentDef as any;
-      if (!_isEmpty(componentDef?.component?.components)) {
-        for (const child of componentDef?.component?.components) {
-          foundComponentDef = this.getComponentDefByName(name, child.component?.components || []);
-        }
-      }
-    }
-    return foundComponentDef;
+    return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
   }
 
   public async saveForm(

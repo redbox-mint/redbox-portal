@@ -48,7 +48,6 @@ export namespace Controllers {
       'getFormCompiledItems',
       'getAdminReportTemplates',
       'getRecordDashboardTemplates',
-      'getValidatorDefinitions',
     ];
 
     private _recordTypeAuto = "auto";
@@ -167,33 +166,6 @@ export namespace Controllers {
       } catch (error) {
         sails.log.error("Could not build dashboard templates:", error);
         return res.serverError();
-      }
-    }
-
-    /**
-     * Get the validator definitions defined for this site.
-     */
-    public getValidatorDefinitions(req: Sails.Req, res: Sails.Res) {
-      try {
-        const entries: TemplateCompileInput[] = [{
-          key: ['formValidatorDefinitions'],
-          kind: "raw",
-          // Create validator definitions in stringified format that retains the create function.
-          value: `[${sails.config.validators.definitions.map(validatorDefinition => {
-            return `{
-              "class":${JSON.stringify(validatorDefinition.class)},
-              "message":${JSON.stringify(validatorDefinition.message)},
-              "create":${validatorDefinition.create.toString()}
-              }`;
-          }).join(',')}]`,
-        }];
-        return this.sendClientMappingJavascript(res, entries);
-      } catch (error) {
-        return this.sendResp(req, res, {
-          status: 500,
-          errors: [this.asError(error)],
-          displayErrors: [{detail: "Could not get validator definitions."}],
-        });
       }
     }
 

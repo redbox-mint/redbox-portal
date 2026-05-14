@@ -3,6 +3,7 @@ import {LineagePath, LineagePaths} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
+ * The parameters are different for each validator.
  *
  * These can be used with the translation message id to create the translated text.
  *
@@ -22,10 +23,13 @@ export type FormValidatorErrorParams = {
  *
  * This is similar to FormValidatorComponentErrors, but with the class as the key in a parent object.
  *
- * This is similar to the angular form ValidationErrors type.
+ * This is similar to the angular form ValidationErrors type (type ValidationErrors = { [key: string]: any;}).
  */
 export type FormValidatorErrors = {
-  [key: string]: { message: string; params: FormValidatorErrorParams };
+  [key: string]: {
+    message: string;
+    params: FormValidatorErrorParams;
+  };
 };
 
 /**
@@ -33,8 +37,6 @@ export type FormValidatorErrors = {
  * The config is different for each validator.
  */
 export type FormValidatorCreateConfig = {
-  class?: string;
-  message?: string;
   [key: string]: unknown;
 };
 

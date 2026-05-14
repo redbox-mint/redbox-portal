@@ -5,9 +5,9 @@
 import "../../../styles/style.scss";
 // import "../../../styles/default.css";
 
-import {allFormValidatorDefinitions} from "./validator-definitions";
+import {formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
 
-export {allFormValidatorDefinitions};
+export const formValidatorDefinitions = formValidatorsSharedDefinitions;
 
 function safeStorageGet(key: string): any {
   try {

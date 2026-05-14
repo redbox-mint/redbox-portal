@@ -21,7 +21,15 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import { Services as services } from '../CoreService';
 import jsonata, { Expression } from "jsonata";
 import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from "handlebars";
-import { TemplateCompileItem, TemplateCompileInput, TemplateCompileKey, templateCompileKind, registerSharedHandlebarsHelpers, buildKeyString } from "@researchdatabox/sails-ng-common";
+import {
+  TemplateCompileItem,
+  TemplateCompileInput,
+  TemplateCompileKey,
+  templateCompileKind,
+  registerSharedHandlebarsHelpers,
+  buildKeyString,
+  normaliseVisual
+} from "@researchdatabox/sails-ng-common";
 
 
 
@@ -79,9 +87,6 @@ export namespace Services {
                             key: input.key,
                             value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
                         });
-                        break;
-                    case "raw":
-                        result.push({key: input.key, value: input.value?.toString()});
                         break;
                     default:
                         throw new Error(`Unknown input kind '${input.kind}' expected one of: '${templateCompileKind.join(', ')}'`);
@@ -197,16 +202,7 @@ export namespace Services {
          * @param value The string to normalise.
          */
         private normalise(value: string): string {
-            value = value?.toString() ?? "";
-
-            // Use NFKC: Compatibility Decomposition, followed by Canonical Composition.
-            // For Identifiers matching: Canonical form, no visual variants
-            const normForm = "NFKC";
-            const norm = value.normalize(normForm);
-
-            // TODO: other normalisations?
-
-            return norm;
+            return normaliseVisual(value);
         }
     }
 }

@@ -6,7 +6,6 @@ export function evaluate(key, context, extra) {
     // Provide libraries from context
     const Handlebars = extra?.libraries?.Handlebars ?? null;
     const jsonata = extra?.libraries?.jsonata ?? null;
-    const customLibrary = extra?.libraries?.customLibrary ?? null;
 
     switch (key) {
     <% for (const entry of entries) { %>
