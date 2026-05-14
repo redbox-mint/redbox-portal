@@ -71,7 +71,7 @@ x-rbportal-service: &rbportal-service
     test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
     interval: '10s'
     timeout: '5s'
-    retries: 10
+    retries: 30
     start_period: '60s'
   depends_on: *rbportal-depends
   expose:
@@ -122,7 +122,7 @@ services:
       retries: 30
       start_period: '60s'
   mongodb:
-    image: mongo:latest
+    image: mongo:7.0.29-jammy
     pull_policy: missing
     ports:
       - '27017:27017'
@@ -137,7 +137,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest
+    image: solr:10.0.0
     pull_policy: missing
     expose:
       - '8983'
@@ -176,7 +176,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:1.29.7
     pull_policy: missing
     expose:
       - '1025'
