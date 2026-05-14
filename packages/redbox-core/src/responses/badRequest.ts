@@ -1,3 +1,5 @@
+import { resolveSiteTitle } from './siteTitle';
+
 declare module 'express-serve-static-core' {
     interface Response {
         badRequest(data?: unknown, options?: string | { view?: string }): Response;
@@ -18,6 +20,7 @@ export function badRequest(this: { req: Sails.Req, res: Sails.Res }, data?: unkn
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
+    const siteTitle = resolveSiteTitle('Bad Request');
 
     // Set status code
     res.status(400);
@@ -63,12 +66,12 @@ export function badRequest(this: { req: Sails.Req, res: Sails.Res }, data?: unkn
     // Otherwise try to guess an appropriate view, or if that doesn't
     // work, just send JSON.
     if (options.view) {
-        return res.view(options.view, { data: viewData, title: 'Bad Request' });
+        return res.view(options.view, { data: viewData, title: siteTitle });
     }
 
     // If no second argument provided, try to serve the implied view,
     // but fall back to sending JSON(P) if no view can be inferred.
-    else return res.guessView({ data: viewData, title: 'Bad Request' }, function couldNotGuessView() {
+    else return res.guessView({ data: viewData, title: siteTitle }, function couldNotGuessView() {
         return res.json(data);
     });
 

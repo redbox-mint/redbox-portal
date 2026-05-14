@@ -18,7 +18,9 @@ export namespace Controllers {
       const locals = req.options!.locals as globalThis.Record<string, unknown>;
       const view = locals.view as string | null;
       if (view != null) {
-        this.sendView(req, res, view);
+        this.sendView(req, res, view, {
+          title: this.formatDocumentTitle(this.resolvePageTitleFromLocals(locals)),
+        });
       } else {
         res.notFound(locals, "404");
       }

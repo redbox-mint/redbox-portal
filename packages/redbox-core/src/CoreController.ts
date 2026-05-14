@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import { ILogger } from './Logger';
+import { resolveSiteTitle } from './responses/siteTitle';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -344,6 +345,44 @@ export namespace Controllers.Core {
 
 
       res.view(resolvedView, mergedLocal);
+    }
+
+    protected getSiteTitle(): string {
+      return resolveSiteTitle('Site');
+    }
+
+    protected formatDocumentTitle(pageTitle?: unknown): string {
+      const siteTitle = this.getSiteTitle();
+      const resolvedPageTitle = String(pageTitle ?? '').trim();
+
+      if (!resolvedPageTitle || resolvedPageTitle === siteTitle) {
+        return siteTitle;
+      }
+
+      return `${resolvedPageTitle} | ${siteTitle}`;
+    }
+
+    protected resolvePageTitleFromLocals(locals?: Record<string, unknown>): string | undefined {
+      if (!locals) {
+        return undefined;
+      }
+
+      if (typeof locals.pageTitle === 'string') {
+        const literalPageTitle = locals.pageTitle.trim();
+        if (literalPageTitle) {
+          return literalPageTitle;
+        }
+      }
+
+      const pageTitleKey = typeof locals.pageTitleKey === 'string' ? locals.pageTitleKey.trim() : '';
+      if (!pageTitleKey) {
+        return undefined;
+      }
+
+      const translatedTitle = typeof TranslationService !== 'undefined' && TranslationService && typeof TranslationService.t === 'function'
+        ? String(TranslationService.t(pageTitleKey) ?? '').trim()
+        : '';
+      return translatedTitle || undefined;
     }
 
     /**

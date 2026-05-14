@@ -30,6 +30,26 @@ describe('CoreController sendResp wrappers', () => {
     controller = new TestController();
   });
 
+  describe('document title helpers', () => {
+    beforeEach(() => {
+      (global as any).TranslationService = {
+        t: sinon.stub().callsFake((key: string) => key === 'default-title' ? 'Site' : key),
+      };
+    });
+
+    it('formats Page | Site when page title is present', () => {
+      expect(controller.formatDocumentTitle('Page')).to.equal('Page | Site');
+    });
+
+    it('falls back to site when page title is empty', () => {
+      expect(controller.formatDocumentTitle('   ')).to.equal('Site');
+    });
+
+    it('avoids Site | Site when page title matches site', () => {
+      expect(controller.formatDocumentTitle('Site')).to.equal('Site');
+    });
+  });
+
   afterEach(() => {
     sinon.restore();
     (global as any).sails = originalSails;
