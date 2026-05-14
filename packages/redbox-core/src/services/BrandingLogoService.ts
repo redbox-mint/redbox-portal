@@ -1,7 +1,7 @@
 import { Services as coreServices } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import crypto from 'crypto';
-import { GridFSBucket, Db } from 'mongodb';
+import type { GridFSBucket, Db } from 'mongodb';
 
 /**
  * BrandingLogoService
@@ -20,6 +20,20 @@ declare const DomSanitizerService: {
 };
 // Using skipper-gridfs adapter pattern like BrandingController
 // We'll lazily require to avoid circular load issues.
+
+type MongoDriverWithGridFs = {
+  GridFSBucket: new (db: Db, options: { bucketName: string }) => GridFSBucket;
+};
+
+function getDatastoreMongoDriver(): MongoDriverWithGridFs {
+  try {
+    // The datastore Db is created by sails-mongo. Its GridFSBucket must come from
+    // the same mongodb/bson major version or writes can fail while serializing.
+    return require('sails-mongo/node_modules/mongodb') as MongoDriverWithGridFs;
+  } catch (_e) {
+    return require('mongodb') as MongoDriverWithGridFs;
+  }
+}
 
 
 
@@ -81,7 +95,8 @@ export namespace Services {
         if (!db) return null;
         
         // Create and cache the bucket for subsequent calls
-        this.cachedBucket = new GridFSBucket(db, { bucketName: 'fs' });
+        const mongoDriver = getDatastoreMongoDriver();
+        this.cachedBucket = new mongoDriver.GridFSBucket(db, { bucketName: 'fs' });
         return this.cachedBucket;
       } catch (_e) {
         return null;

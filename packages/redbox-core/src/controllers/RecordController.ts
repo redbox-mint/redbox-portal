@@ -1372,7 +1372,7 @@ export namespace Controllers {
         res.attachment(found['name'] as string);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
-          const response = await that.datastreamService.getDatastream(oid, attachId);
+          const response = await that.datastreamService.getDatastream(oid, attachId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -1504,7 +1504,7 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid)).subscribe((attachments: unknown[]) => {
+      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe((attachments: unknown[]) => {
         return this.sendResp(req, res, { data: attachments });
       });
     }
@@ -1525,7 +1525,7 @@ export namespace Controllers {
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
         try {
-          const response = await this.datastreamService.getDatastream(oid, datastreamId);
+          const response = await this.datastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {

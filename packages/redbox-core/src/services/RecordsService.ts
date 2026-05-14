@@ -1120,10 +1120,11 @@ export namespace Services {
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
     public async getAttachments(
       oid: string,
-      labelFilterStr: string | undefined = undefined
+      labelFilterStr: string | undefined = undefined,
+      requestContext: { username?: string } | undefined = undefined
     ): Promise<Record<string, unknown>[]> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
-      const datastreams = (await this.datastreamService.listDatastreams(oid, '')) as AnyRecord[];
+      const datastreams = (await this.datastreamService.listDatastreams(oid, '', requestContext)) as AnyRecord[];
       const attachments: Record<string, unknown>[] = [];
       _.each(datastreams, (datastream: unknown) => {
         const datastreamObj = datastream as AnyRecord;

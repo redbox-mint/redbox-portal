@@ -93,6 +93,7 @@ export const record: RecordConfig = {
     maxUploadSize: 1073741824,
     mongodbDisk: '/attachments',
     diskSpaceThreshold: 10737418240,
+    datastreamService: 'standarddatastreamservice',
     form: {
         htmlSanitizationMode: 'sanitize'
     },
