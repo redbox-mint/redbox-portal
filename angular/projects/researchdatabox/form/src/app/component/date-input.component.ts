@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
 import { DateInputFieldComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.model';
 import {
@@ -54,6 +54,12 @@ function areDateInputValuesEqual(left: unknown, right: unknown): boolean {
   }
 
   return normalizedLeft.getTime() === normalizedRight.getTime();
+}
+
+function isInvalidDateValue(value: unknown): boolean {
+  if (value instanceof Date) return Number.isNaN(value.getTime());
+  if (typeof value === 'string') return value.trim().toLowerCase() === 'invalid date';
+  return false;
 }
 
 function detectSeparator(text: string): string | undefined {
@@ -221,6 +227,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           type="text"
           class="form-control date-input-width"
           bsDatepicker
+          #dateInputEl
           [bsConfig]="bsConfig"
           [formControl]="formControl"
           [class.is-valid]="showValidState"
@@ -270,6 +277,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private lastValidValue: Date | null = null;
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
+  @ViewChild('dateInputEl') dateInputEl!: ElementRef<HTMLInputElement>;
 
   override ngAfterViewInit() {
     this.syncDateValue(this.formControl?.value);
@@ -307,6 +315,13 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
+    if (isInvalidDateValue(dateValue)) {
+      const recovery = this.lastValidValue instanceof Date ? this.lastValidValue : null;
+      this.rewriteInputValue(recovery);
+      this.formControl?.setValue(recovery, { emitEvent: true });
+      return;
+    }
+
     const normalizedValue = normalizeDateInputValue(dateValue);
 
     if (typeof dateValue === 'string' && normalizedValue === undefined) {
@@ -367,10 +382,19 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
         this.formControl?.setValue(parsed, { emitEvent: true });
       }
     } else {
-      if (this.lastValidValue instanceof Date) {
-        inputEl.value = DateTime.fromJSDate(this.lastValidValue, { zone: 'utc' }).toFormat(mapMomentToLuxonFormat(this.dateFormat));
-      }
+      this.rewriteInputValue(this.lastValidValue);
       this.formControl?.setValue(this.lastValidValue, { emitEvent: true });
+    }
+  }
+
+  private rewriteInputValue(value: Date | null): void {
+    const inputEl = this.dateInputEl?.nativeElement;
+    if (!inputEl) return;
+    if (value instanceof Date) {
+      const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
+      inputEl.value = DateTime.fromJSDate(value, { zone: 'utc' }).toFormat(luxonFmt);
+    } else {
+      inputEl.value = '';
     }
   }
 

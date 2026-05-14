@@ -364,4 +364,87 @@ describe('DateInputComponent', () => {
     expect(inputElement.value).toEqual('');
     expect(dateInputComp.model?.formControl?.value).toBeNull();
   });
+
+  it('should clear the input on blur when invalid text is entered with no prior value', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_clear_invalid_no_value',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {},
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
+
+    expect(inputElement.value).toEqual('');
+
+    inputElement.value = 'abcde';
+    inputElement.dispatchEvent(new Event('input'));
+    inputElement.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(inputElement.value).toEqual('');
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+    expect(dateInputComp.model?.formControl?.value).toBeNull();
+  });
+
+  it('should revert when bsDatepicker pushes an invalid Date directly to the form control', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_invalid_date_push',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: new Date('2025-08-10T10:00:00Z'),
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('input[type="text"]') as HTMLInputElement;
+
+    expect(inputElement.value).toEqual('2025/08/10');
+
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+
+    dateInputComp.model?.formControl?.setValue(new Date('not a date'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date('2025-08-10T10:00:00Z'));
+    expect(inputElement.value).toEqual('2025/08/10');
+  });
 });
