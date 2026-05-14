@@ -84,6 +84,8 @@ export namespace Services {
       'primaryDisk',
       'isBootstrapped',
       'getMergedStorageConfig',
+      'getDiskConfig',
+      'getStagingDiskConfig',
     ];
 
     protected logHeader: string = 'StorageManagerService::';
@@ -316,6 +318,29 @@ export namespace Services {
       const mergedStorage = this.getMergedStorageConfig();
       const stagingName = mergedStorage.stagingDisk ?? 'staging';
       return this.disk(stagingName);
+    }
+
+    /**
+     * Get the merged config for a named disk.
+     */
+    public getDiskConfig(name: string): DiskConfig {
+      const mergedStorage = this.getMergedStorageConfig();
+      const diskConfig = mergedStorage.disks?.[name];
+      if (!diskConfig) {
+        throw new Error(
+          `StorageManagerService: disk '${name}' is not registered. Available: ${Object.keys(mergedStorage.disks ?? {}).join(', ')}`
+        );
+      }
+      return diskConfig;
+    }
+
+    /**
+     * Get the merged config for the configured staging disk.
+     */
+    public getStagingDiskConfig(): DiskConfig {
+      const mergedStorage = this.getMergedStorageConfig();
+      const stagingName = mergedStorage.stagingDisk ?? 'staging';
+      return this.getDiskConfig(stagingName);
     }
 
     /**

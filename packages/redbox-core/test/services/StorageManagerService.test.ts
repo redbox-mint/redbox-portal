@@ -40,7 +40,7 @@ describe('StorageManagerService', function () {
   });
 
   describe('exports', function () {
-    it('should export bootstrap, disk, stagingDisk, primaryDisk, isBootstrapped, and getMergedStorageConfig methods', function () {
+    it('should export bootstrap, disk, stagingDisk, primaryDisk, isBootstrapped, getMergedStorageConfig, getDiskConfig, and getStagingDiskConfig methods', function () {
       const { Services } = require('../../src/services/StorageManagerService');
       const service = new Services.StorageManager();
       const exported = service.exports();
@@ -51,6 +51,8 @@ describe('StorageManagerService', function () {
       expect(exported).to.have.property('primaryDisk');
       expect(exported).to.have.property('isBootstrapped');
       expect(exported).to.have.property('getMergedStorageConfig');
+      expect(exported).to.have.property('getDiskConfig');
+      expect(exported).to.have.property('getStagingDiskConfig');
     });
   });
 
@@ -441,6 +443,37 @@ describe('StorageManagerService', function () {
 
       const staging = service.stagingDisk();
       expect(staging).to.have.property('name', 'staging-disk');
+    });
+  });
+
+  describe('getDiskConfig', function () {
+    it('should return the merged config for a named disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(service.getDiskConfig('staging')).to.deep.equal({
+        driver: 'fs',
+        config: { root: '/tmp/test-staging' },
+      });
+    });
+
+    it('should throw when a disk config is requested for a missing disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(() => service.getDiskConfig('missing')).to.throw("StorageManagerService: disk 'missing' is not registered");
+    });
+  });
+
+  describe('getStagingDiskConfig', function () {
+    it('should return the merged config for the staging disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(service.getStagingDiskConfig()).to.deep.equal({
+        driver: 'fs',
+        config: { root: '/tmp/test-staging' },
+      });
     });
   });
 

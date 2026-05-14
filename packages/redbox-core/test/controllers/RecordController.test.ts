@@ -202,9 +202,16 @@ describe('RecordController getWorkflowSteps', () => {
 describe('RecordController TUS URL generation', () => {
   let controller: Controllers.Record;
   let originalSails: any;
+  let originalStorageManagerService: any;
+  let originalBrandingService: any;
+  let originalTranslationService: any;
+  let originalCheckDiskSpace: any;
 
   beforeEach(() => {
     originalSails = (global as any).sails;
+    originalStorageManagerService = (global as any).StorageManagerService;
+    originalBrandingService = (global as any).BrandingService;
+    originalTranslationService = (global as any).TranslationService;
     (global as any).sails = {
       config: {
         record: {
@@ -215,6 +222,8 @@ describe('RecordController TUS URL generation', () => {
               directory: '/tmp/redbox-test-attachments',
             },
           },
+          diskSpaceThreshold: 100,
+          mongodbDisk: '/legacy/mongodb-disk',
         },
       },
       log: {
@@ -227,12 +236,29 @@ describe('RecordController TUS URL generation', () => {
       },
     };
     (global as any)._ = require('lodash');
+    (global as any).StorageManagerService = {
+      stagingDisk: sinon.stub().returns({}),
+      getStagingDiskConfig: sinon.stub().returns({
+        driver: 'fs',
+        config: { root: '/tmp/storage-manager-staging' },
+      }),
+    };
+    (global as any).BrandingService = {
+      getBrandAndPortalPath: sinon.stub().returns('/default/rdmp'),
+      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+    };
+    (global as any).TranslationService = {
+      t: sinon.stub().callsFake((value: string) => value),
+    };
     controller = new Controllers.Record();
   });
 
   afterEach(() => {
     sinon.restore();
     (global as any).sails = originalSails;
+    (global as any).StorageManagerService = originalStorageManagerService;
+    (global as any).BrandingService = originalBrandingService;
+    (global as any).TranslationService = originalTranslationService;
   });
 
   it('returns routed attachment URLs instead of the internal TUS mount path', () => {
@@ -276,5 +302,118 @@ describe('RecordController TUS URL generation', () => {
 
     expect(generatedUrl).to.not.include('/uploads/attachments');
     expect(generatedUrl).to.include('/default/rdmp/record/oid-1/attach/file-123');
+  });
+
+  it('uses the StorageManager staging disk datastore for the tus server', () => {
+    (controller as any).initTusServer();
+
+    expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+    expect((controller as any).tusServer.datastore.constructor.name).to.equal('TusStorageManagerDataStore');
+  });
+
+  it('does not require record.attachments.file.directory when using the storage manager datastore', () => {
+    (global as any).sails.config.record.attachments.file = undefined;
+    (global as any).sails.config.record.attachments.stageDir = undefined;
+
+    expect(() => (controller as any).initTusServer()).to.not.throw();
+  });
+
+  it('checks disk space against the staging disk root for filesystem staging uploads', async () => {
+    const checkDiskSpaceModule = require('check-disk-space');
+    const checkDiskSpaceStub = sinon.stub(checkDiskSpaceModule, 'default').resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
+    const handleStub = sinon.stub();
+    (controller as any).tusServer = { handle: handleStub };
+    sinon.stub(controller as any, 'getRecord').returns(of({}));
+    sinon.stub(controller as any, 'hasEditAccess').returns(of(true));
+
+    const req = {
+      method: 'POST',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach',
+      path: '/default/rdmp/record/oid-1/attach',
+      headers: {
+        host: 'localhost:1500',
+        'upload-length': '1000',
+      },
+      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : undefined),
+    } as unknown as Sails.Req;
+    const res = {
+      setHeader: sinon.stub(),
+      end: sinon.stub(),
+      once: sinon.stub(),
+    } as unknown as Sails.Res;
+
+    await controller.doAttachment(req, res);
+
+    expect(checkDiskSpaceStub.calledOnceWith('/tmp/storage-manager-staging')).to.equal(true);
+    expect(handleStub.calledOnce).to.equal(true);
+  });
+
+  it('skips local disk-space checks for non-filesystem staging uploads', async () => {
+    const checkDiskSpaceModule = require('check-disk-space');
+    const checkDiskSpaceStub = sinon.stub(checkDiskSpaceModule, 'default').resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
+    (global as any).StorageManagerService.getStagingDiskConfig.returns({
+      driver: 's3',
+      config: { bucket: 'uploads', key: 'AK', secret: 'SK', region: 'ap-southeast-2' },
+    });
+    const handleStub = sinon.stub();
+    (controller as any).tusServer = { handle: handleStub };
+    sinon.stub(controller as any, 'getRecord').returns(of({}));
+    sinon.stub(controller as any, 'hasEditAccess').returns(of(true));
+
+    const req = {
+      method: 'POST',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach',
+      path: '/default/rdmp/record/oid-1/attach',
+      headers: {
+        host: 'localhost:1500',
+        'upload-length': '1000',
+      },
+      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : undefined),
+    } as unknown as Sails.Req;
+    const res = {
+      setHeader: sinon.stub(),
+      end: sinon.stub(),
+      once: sinon.stub(),
+    } as unknown as Sails.Res;
+
+    await controller.doAttachment(req, res);
+
+    expect(checkDiskSpaceStub.called).to.equal(false);
+    expect(handleStub.calledOnce).to.equal(true);
+  });
+
+  it('does not use record.mongodbDisk for tus disk-space validation', async () => {
+    const checkDiskSpaceModule = require('check-disk-space');
+    const checkDiskSpaceStub = sinon.stub(checkDiskSpaceModule, 'default').resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
+    const handleStub = sinon.stub();
+    (controller as any).tusServer = { handle: handleStub };
+    sinon.stub(controller as any, 'getRecord').returns(of({}));
+    sinon.stub(controller as any, 'hasEditAccess').returns(of(true));
+
+    const req = {
+      method: 'POST',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach',
+      path: '/default/rdmp/record/oid-1/attach',
+      headers: {
+        host: 'localhost:1500',
+        'upload-length': '1000',
+      },
+      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : undefined),
+    } as unknown as Sails.Req;
+    const res = {
+      setHeader: sinon.stub(),
+      end: sinon.stub(),
+      once: sinon.stub(),
+    } as unknown as Sails.Res;
+
+    await controller.doAttachment(req, res);
+
+    expect(checkDiskSpaceStub.firstCall.args[0]).to.not.equal('/legacy/mongodb-disk');
   });
 });
