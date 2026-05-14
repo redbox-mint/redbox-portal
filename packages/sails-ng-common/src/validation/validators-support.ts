@@ -1,10 +1,11 @@
 import {
-    FormValidationGroups, FormValidatorComponentErrors,
-    FormValidatorConfig,
-    FormValidatorDefinition, FormValidatorErrors,
-    FormValidatorFn
+  FormValidationGroups, FormValidatorComponentErrors,
+  FormValidatorConfig, FormValidatorCreateConfig,
+  FormValidatorDefinition, FormValidatorErrors,
+  FormValidatorFn
 } from "./form.model";
 import {isTypeFormValidatorDefinition} from "../config/form-types.model";
+
 
 export class ValidatorsSupport {
     /**
@@ -37,8 +38,8 @@ export class ValidatorsSupport {
      * @param config The form validator config blocks.
      */
     public createFormValidatorInstancesFromMapping(
-        defMap: Map<string, FormValidatorDefinition>,
-        config: FormValidatorConfig[] | null | undefined,
+      defMap: Map<string, FormValidatorDefinition>,
+      config: FormValidatorConfig[] | null | undefined,
     ): FormValidatorFn[] {
         const result: FormValidatorFn[] = [];
         for (const validatorConfigItem of (config ?? [])) {
@@ -49,7 +50,12 @@ export class ValidatorsSupport {
                     + `the available validators are: '${Array.from(defMap.keys()).sort().join(", ")}'.`);
             }
             const message = validatorConfigItem?.message ?? def.message;
-            const item = def.create({class: validatorClass, message: message, ...(validatorConfigItem?.config ?? {})});
+            const createConfig: FormValidatorCreateConfig = {
+              ...validatorConfigItem?.config ?? {},
+              class: validatorClass,
+              message: message,
+            };
+            const item = def.create(createConfig);
 
             // for debugging:
             // const getter = function (path: string | LineagePath) {
@@ -64,20 +70,6 @@ export class ValidatorsSupport {
             result.push(item);
         }
         return result;
-    }
-
-    /**
-     * Create instances of the given form validators.
-     *
-     * @param definition The form validator definitions.
-     * @param config The form validator config blocks.
-     */
-    public createFormValidatorInstances(
-        definition: FormValidatorDefinition[] | null | undefined,
-        config: FormValidatorConfig[] | null | undefined,
-    ): FormValidatorFn[] {
-        const defMap = this.createValidatorDefinitionMapping(definition);
-        return this.createFormValidatorInstancesFromMapping(defMap, config);
     }
 
     /**
@@ -155,13 +147,23 @@ export class ValidatorsSupport {
     return false;
   }
 
-    /**
-     * Get the enabled validators.
-     * @param availableGroups All available validation groups in this form.
-     * @param enabledGroups The currently enabled validation groups.
-     * @param validators All available validators in this form.
-     */
-    public enabledValidators(availableGroups: FormValidationGroups, enabledGroups: string[], validators: FormValidatorConfig[]): FormValidatorConfig[] {
-        return (validators ?? []).filter(validator => this.isValidatorEnabled(availableGroups, enabledGroups, validator));
-    }
+  /**
+   * Assign the jsonata evaluator to each 'jsonata-expression' validator.
+   * This must be done before filtering the validators on the client, as the compiled templates are referenced by index.
+   * @param validators The validator configurations from the model config.
+   * @param callback The callback for each validator config with the index.
+   */
+  public assignJsonataEvaluators(validators: FormValidatorConfig[], callback: (validator: FormValidatorConfig, index: number) => void): void {
+    validators.forEach(callback);
+  }
+
+  /**
+   * Get the enabled validators.
+   * @param availableGroups All available validation groups in this form.
+   * @param enabledGroups The currently enabled validation groups.
+   * @param validators All available validators in this form.
+   */
+  public enabledValidators(availableGroups: FormValidationGroups, enabledGroups: string[], validators: FormValidatorConfig[]): FormValidatorConfig[] {
+    return (validators ?? []).filter(validator => this.isValidatorEnabled(availableGroups, enabledGroups, validator));
+  }
 }

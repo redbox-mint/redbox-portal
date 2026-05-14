@@ -47,7 +47,8 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {PortalNgFormCustomService} from '@researchdatabox/portal-ng-form-custom';
 import {
-  buildLineagePaths as buildLineagePathsHelper, DynamicScriptResponse,
+  buildLineagePaths as buildLineagePathsHelper,
+  DynamicScriptResponse,
   FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
   FormComponentDefinitionKind,
@@ -564,10 +565,7 @@ export class FormService extends HttpClientService {
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
     const validatorFns = cached?.validatorKey === validatorKey
       ? cached.validatorFns
-      : this.validatorsSupport.createFormValidatorInstancesFromMapping(
-        this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>(),
-        enabledValidators
-      );
+      : this.getValidatorInstances(enabledValidators);
     const errors = validatorFns.flatMap((validatorFn) =>
       this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl))
     );
@@ -698,16 +696,36 @@ export class FormService extends HttpClientService {
     }
 
     // Get the form-level configs.
-    const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
     const availableGroups = validationGroups ?? {};
 
     if (!enabledValidationGroups) {
       enabledValidationGroups = [];
     }
 
+    // TODO: Assign the jsonata evaluator to each validator.
+    //       Create a function in the form.component that takes a key and returns a function that takes a context (JSONataEvaluate).
+    // const jsonataEvaluator = async function(context): Promise<unknown> {
+    //   await that.getDynamicImportFormCompiledItems().evaluate(key, that.cloneContext(context), { libraries: jsonataLibrary });
+    // };
+    // this.validatorSupport.assignJsonataEvaluators(validators, function() {});
+
+    // ensure jsonata-expression validators can be evaluated
+    this.validatorsSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): void {
+      if (validator.class === "jsonata-expression") {
+        if (validator.config) {
+          validator.config = {};
+        }
+        const expr = validator?.config?.['expression']?.toString() ?? "";
+        const evaluator = validator.config?.['evaluator'];
+        if (validator.config && expr && !evaluator) {
+          validator.config['evaluator'] = null;
+        }
+      }
+    });
+
     // Filter the validator configs to the enabled ones.
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
-    const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
+    const validatorFns = this.getValidatorInstances(enabledValidators)
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
@@ -1072,6 +1090,11 @@ export class FormService extends HttpClientService {
       }
     }
     return undefined;
+  }
+
+  public getValidatorInstances(enabledValidators: FormValidatorConfig[]) {
+    const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
+    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
   }
 }
 

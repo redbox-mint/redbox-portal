@@ -447,7 +447,9 @@ describe("Validator", async () => {
             ];
         cases.forEach(({title, args, expected}) => {
             it(`should validate ${title}`, async function () {
-                const fns = new ValidatorsSupport().createFormValidatorInstances(args.definition, [args.block]);
+                const vs = new ValidatorsSupport()
+                const defMap = vs.createValidatorDefinitionMapping(args.definition);
+                const fns = vs.createFormValidatorInstancesFromMapping(defMap, [args.block]);
                 expect(fns).to.have.length(1);
                 expect(fns[0](new SimpleServerFormValidatorControl(args.value))).to.eql(expected);
             });

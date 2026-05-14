@@ -17,20 +17,19 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-import { Services as services } from '../CoreService';
-import jsonata, { Expression } from "jsonata";
-import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from "handlebars";
+import {PopulateExportedMethods} from '../decorator/PopulateExportedMethods.decorator';
+import {Services as services} from '../CoreService';
+import Handlebars, {TemplateDelegate as HandlebarsTemplateDelegate} from "handlebars";
 import {
-  TemplateCompileItem,
-  TemplateCompileInput,
-  TemplateCompileKey,
-  templateCompileKind,
-  registerSharedHandlebarsHelpers,
   buildKeyString,
-  normaliseVisual
+  jsonataCompile,
+  normaliseVisual,
+  registerSharedHandlebarsHelpers,
+  TemplateCompileInput,
+  TemplateCompileItem,
+  TemplateCompileKey,
+  templateCompileKind
 } from "@researchdatabox/sails-ng-common";
-
 
 
 export namespace Services {
@@ -104,34 +103,15 @@ export namespace Services {
          */
         public buildClientJsonata(expression: string): string | null {
             try {
-                expression = this.normalise(expression);
+                expression = normaliseVisual(expression);
                 // Validate the expression by compiling it
-                const compiled = this.buildSharedJsonata(expression);
+                const compiled = jsonataCompile(expression);
                 sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
                 // Return the expression string for client-side compilation
                 // The client will call jsonata(expression).evaluate(context)
                 return expression;
             } catch (error) {
                 sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
-                return null;
-            }
-        }
-
-        /**
-         * Compile a JSONata expression to a form that is ready to be executed on the server.
-         *
-         * The expression will be normalised and have some transformations applied.
-         *
-         * @param expression The JSONata expression to compile.
-         */
-        public buildServerJsonata(expression: string): Expression | null {
-            try {
-                expression = this.normalise(expression);
-                const result = this.buildSharedJsonata(expression);
-                sails.log.verbose(`Built server JSONata expression '${expression}'`);
-                return result;
-            } catch (error) {
-                sails.log.error(`Could not build server JSONata expression '${expression}'`, error);
                 return null;
             }
         }
@@ -146,7 +126,7 @@ export namespace Services {
         public buildClientHandlebars(template: string): string | null {
             try {
                 this.ensureHelpersRegistered();
-                template = this.normalise(template);
+                template = normaliseVisual(template);
                 // handlebars pre-compiled output is already a string
                 const result = Handlebars.precompile(template)?.toString();
                 sails.log.verbose(`Built client Handlebars template '${template}'`);
@@ -167,7 +147,7 @@ export namespace Services {
         public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
             try {
                 this.ensureHelpersRegistered();
-                template = this.normalise(template);
+                template = normaliseVisual(template);
                 const result = Handlebars.compile(template);
                 sails.log.verbose(`Built server Handlebars template '${template}'`);
                 return result;
@@ -179,30 +159,6 @@ export namespace Services {
 
         public buildKeyString(key: TemplateCompileKey): string {
             return buildKeyString(key);
-        }
-
-        private buildSharedJsonata(expression: string): Expression {
-            const compiled = jsonata(expression);
-
-            // override the built-in JSONata 'eval' function
-            // TODO: check this actually overrides the 'eval' function
-            compiled.registerFunction("eval", () => undefined);
-
-            // TODO: register a function for obtaining translations
-            // TODO: register a function for formatting date time values
-            // TODO: register a function / context state holder that provides model data
-            // TODO: replace regex with google's re2?
-
-            return compiled;
-        }
-
-        /**
-         * Normalise a string to reduce the potential variations in how characters are specified.
-         *
-         * @param value The string to normalise.
-         */
-        private normalise(value: string): string {
-            return normaliseVisual(value);
         }
     }
 }

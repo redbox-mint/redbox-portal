@@ -24,8 +24,9 @@
  * Note: these functions are intended to be generic and reusable across contexts, i.e. server and client-side. Further specialisation may be required to be more useful in the specific context.
  */
 
-import { LineagePaths } from "./naming-helpers";
-import jsonata from "jsonata";
+import {LineagePaths} from "./naming-helpers";
+import {jsonataCompileAndEvaluate} from "../../jsonata-helpers";
+
 
 /**
  * Entry representing a property in the JSONata query source tree.  This must have no circular references, see: https://docs.jsonata.org/next/embedding-extending#expressionevaluateinput-bindings-callback
@@ -56,8 +57,6 @@ export interface JSONataQuerySource {
   // Additional non-component runtime data for expression/query consumers.
   runtimeContext?: JSONataQueryRuntimeContext;
 }
-
-export type JSONataEvaluate = (value: unknown) => Promise<unknown>;
 
 /**
  * Performs a deep copy of an object, removing circular references.
@@ -93,21 +92,5 @@ export function decycleObjectForJSONata(obj: any): any {
 export async function queryJSONata(querySource: JSONataQuerySource, query: string): Promise<any> {
   // `.querySource` should already have no circular references, but just in case...
   const queryDoc = decycleObjectForJSONata(querySource.querySource);
-  const expression = jsonata(query);
-  const result = await expression.evaluate(queryDoc);
-  return result;
-}
-
-export async function buildJsonataFunc(expression: string): Promise<JSONataEvaluate> {
-  return async function (value: unknown) {
-    const compiled = jsonata(expression);
-
-    // override the built-in JSONata 'eval' function
-    // TODO: check this actually overrides the 'eval' function
-    compiled.registerFunction("eval", () => undefined);
-
-    // TODO: register helper functions
-
-    return await compiled.evaluate(value);
-  }
+  return await jsonataCompileAndEvaluate(query, queryDoc);
 }

@@ -11,9 +11,8 @@ import {
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue, FormExpressionsTargetLayoutPrefix, FormExpressionsTargetComponentPrefix,
-  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean,
+  FormExpressionsTargetValidationGroups, DynamicScriptResponse, guessType, toBoolean, jsonataLibrary,
 } from '@researchdatabox/sails-ng-common';
-import jsonata from 'jsonata';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { AbstractControl } from '@angular/forms';
 import {isTypeFormValidationGroupsChangeRequestInfo, setControlValue} from "../custom-set-value.control";
@@ -184,8 +183,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 				runtimeContext
 			};
 
-			const result = await compiledItems.evaluate(templateKey, context, {libraries : {jsonata: jsonata}});
-			return result;
+			return await compiledItems.evaluate(templateKey, context, {libraries :jsonataLibrary});
 		} catch (error) {
 				this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
 				return (event as { value?: unknown }).value;

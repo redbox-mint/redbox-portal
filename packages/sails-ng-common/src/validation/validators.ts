@@ -8,8 +8,8 @@ import {
   formValidatorGetDefinitionString,
   formValidatorLengthOrSize
 } from "./helpers";
-import {JSONataEvaluate} from "../config/names/query-helpers";
 import {toBoolean} from "../config/helpers";
+import {JSONataEvaluate} from "../jsonata-helpers";
 
 
 /**
@@ -352,31 +352,48 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
       const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
-      return async (control) => {
-          if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-              return null; // don't validate empty values to allow optional controls
-          }
-          const value = control.value?.toString();
-          let success: boolean;
-          try {
-              success = toBoolean(await evaluator(control));
-          } catch (err) {
+      return (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const value = control.value;
+        let success: boolean | null = null;
+        try {
+          // TODO: this function should be async so jsonata evaluator can be awaited.
+          evaluator(value).then(
+            function (val) {
+              success = toBoolean(val);
+            }, function (reason) {
+              console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' evaluator failed: ${reason}`);
               success = false;
-              optionDescriptionValue = "the validator is not configured correctly"
-              console.error(`Validator 'jsonata-expression' could not run due to error: ${err}`);
+            });
+
+          let count = 0;
+          while (success === null) {
+            if (count > 999_999) {
+              throw new Error('success never changed from null');
+            }
+            count += 1;
           }
-          return success
-              ? null
-              : {
-                  [optionNameValue]: {
-                      [optionMessageKey]: optionMessageValue,
-                      params: {
-                          expression: expression,
-                          description: optionDescriptionValue,
-                          actual: value,
-                      },
-                  },
-              };
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' evaluator finished after ${count}.`);
+
+        } catch (err) {
+          success = false;
+          optionDescriptionValue = "the validator is not configured correctly"
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+        }
+        return success
+          ? null
+          : {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                expression: expression,
+                description: optionDescriptionValue,
+                actual: value,
+              },
+            },
+          };
       };
     },
   },
