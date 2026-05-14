@@ -1,5 +1,6 @@
 import { Services as services } from '../CoreService';
-import { StorageConfig, DiskConfig, storage as defaultStorageConfig } from '../config/storage.config';
+import { StorageConfig, DiskConfig, GridFSDriverOptions, Visibility, storage as defaultStorageConfig } from '../config/storage.config';
+import { GridFSDriver } from '../storage/GridFSDriver';
 
 /**
  * StorageManagerService
@@ -12,8 +13,9 @@ import { StorageConfig, DiskConfig, storage as defaultStorageConfig } from '../c
  */
 export namespace Services {
   type DiskConstructor = new (driver: unknown) => IDisk;
-  type FSDriverConstructor = new (opts: { location: string | URL; visibility?: string }) => unknown;
+  type FSDriverConstructor = new (opts: { location: string | URL; visibility?: Visibility }) => unknown;
   type S3DriverConstructor = new (opts: Record<string, unknown>) => unknown;
+  type GridFSDriverConstructor = new (opts?: GridFSDriverOptions) => unknown;
 
   type FlydriveModule = { Disk: DiskConstructor };
   type FSDriverModule = { FSDriver: FSDriverConstructor };
@@ -90,6 +92,7 @@ export namespace Services {
     private _DiskConstructor: DiskConstructor | null = null;
     private _FSDriver: FSDriverConstructor | null = null;
     private _S3Driver: S3DriverConstructor | null = null;
+    private _GridFSDriver: GridFSDriverConstructor = GridFSDriver;
 
     // Map of instantiated disks, keyed by disk name
     private _disks: Map<string, IDisk> = new Map();
@@ -232,15 +235,17 @@ export namespace Services {
           if (!this._FSDriver) {
             throw new Error(`StorageManagerService: FSDriver not available but disk '${name}' requires it`);
           }
+          const visibility = diskConf.config.visibility ?? 'public';
           return new this._FSDriver({
             location: diskConf.config.root,
-            visibility: diskConf.config.visibility || 'public',
+            visibility,
           });
         }
         case 's3': {
           if (!this._S3Driver) {
             throw new Error(`StorageManagerService: S3Driver not available but disk '${name}' requires it`);
           }
+          const visibility = diskConf.config.visibility ?? 'public';
           const opts: Record<string, unknown> = {
             credentials: {
               accessKeyId: diskConf.config.key,
@@ -248,7 +253,7 @@ export namespace Services {
             },
             region: diskConf.config.region,
             bucket: diskConf.config.bucket,
-            visibility: diskConf.config.visibility || 'public',
+            visibility,
           };
           if (diskConf.config.endpoint) {
             opts.endpoint = diskConf.config.endpoint;
@@ -270,11 +275,24 @@ export namespace Services {
           }
           return new this._S3Driver(opts);
         }
+        case 'gridfs': {
+          return new this._GridFSDriver({
+            datastore: this.normalizeGridFSString(diskConf.config.datastore, 'mongodb'),
+            url: this.normalizeGridFSString(diskConf.config.url, ''),
+            databaseName: this.normalizeGridFSString(diskConf.config.databaseName, ''),
+            bucketName: this.normalizeGridFSString(diskConf.config.bucketName, 'fs'),
+            visibility: diskConf.config.visibility ?? 'public',
+          });
+        }
         default: {
           const unknownConfig = diskConf as DiskConfig;
           throw new Error(`StorageManagerService: Unknown driver '${unknownConfig.driver}' for disk '${name}'`);
         }
       }
+    }
+
+    private normalizeGridFSString(value: string | undefined, fallback: string): string {
+      return typeof value === 'string' && value.trim() ? value : fallback;
     }
 
     /**

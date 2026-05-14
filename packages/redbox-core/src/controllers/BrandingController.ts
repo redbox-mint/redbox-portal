@@ -12,9 +12,6 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
-    private mongoUri!: string;
-    private blobAdapter: unknown;
-
     /**
      * Generate a weak ETag for the given content hash or string.
      * @param hashOrContent - Either a pre-computed hash string or content to hash
@@ -48,11 +45,7 @@ export namespace Controllers {
     ];
 
     public init() {
-      this.mongoUri = sails.config.datastores.mongodb.url;
-      const skipperGridFs = require('skipper-gridfs');
-      this.blobAdapter = skipperGridFs({
-        uri: this.mongoUri
-      });
+      return;
     }
 
     /**
@@ -202,22 +195,25 @@ export namespace Controllers {
       try {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
-        if (!brand || !brand.logo || !brand.logo.gridFsId) {
+        const logo = brand?.logo as Record<string, unknown> | undefined;
+        const storageId = typeof logo?.storageKey === 'string'
+          ? logo.storageKey
+          : typeof logo?.gridFsId === 'string'
+            ? logo.gridFsId
+            : null;
+        if (!brand || !logo || !storageId) {
           // fallback to static
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
-        const id = brand.logo.gridFsId as string;
-        // Try persistent storage first (GridFS), then in-memory cache
-        let buf: Buffer | null = null;
-        buf = await BrandingLogoService.getBinaryAsync(id);
+        const buf = await BrandingLogoService.getBinaryAsync(storageId);
         
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
-        res.contentType((brand.logo.contentType as string) || sails.config.static_assets.imageType);
-        const etag = this.generateETag(brand.logo.sha256 as string, 'logo-');
+        res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
+        const etag = this.generateETag(typeof logo.sha256 === 'string' ? logo.sha256 : storageId, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');

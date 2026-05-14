@@ -416,10 +416,11 @@ export namespace Services {
           mergeMap(form => {
 
             const reqs: Promise<unknown>[] = [];
-            if (form?.configuration?.attachmentFields) {
-              typedRecord.metaMetadata.attachmentFields = form.configuration.attachmentFields;
+            const attachmentFields = form?.configuration?.attachmentFields;
+            if (attachmentFields) {
+              typedRecord.metaMetadata.attachmentFields = attachmentFields;
 
-              for (const attField of form.configuration.attachmentFields) {
+              for (const attField of attachmentFields) {
                 const perFieldFileIdsAdded: Datastream[] = [];
                 const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
                 const newAttachments = this.getAttachments(typedNewMetadata, attField);
