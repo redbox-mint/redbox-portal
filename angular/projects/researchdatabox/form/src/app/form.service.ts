@@ -61,7 +61,7 @@ import {
   FormValidatorComponentErrors,
   FormValidatorConfig,
   FormValidatorDefinition,
-  FormValidatorFn,
+  FormValidatorFns,
   FormValidatorSummaryErrors,
   getObjectWithJsonPointer,
   JSONataQueryRuntimeContext,
@@ -85,7 +85,7 @@ declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinit
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
   valueKey: string;
-  validatorFns: FormValidatorFn[];
+  validatorFns: FormValidatorFns;
   errors: FormValidatorComponentErrors[];
 }
 
@@ -566,9 +566,16 @@ export class FormService extends HttpClientService {
     const validatorFns = cached?.validatorKey === validatorKey
       ? cached.validatorFns
       : this.getValidatorInstances(enabledValidators);
-    const errors = validatorFns.flatMap((validatorFn) =>
-      this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl))
-    );
+    const errors: FormValidatorComponentErrors[] = [];
+    // TODO: best effort trying to run async function inside sync function
+    validatorFns.asyncDefs.forEach((validatorFn) => {
+      validatorFn(formControl).then(result => {
+        errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(result));
+      })
+    });
+    validatorFns.syncDefs.forEach((validatorFn) => {
+      errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl)));
+    });
 
     this.suggestedValidatorSummaryCache.set(formControl, {
       validatorKey,
@@ -733,7 +740,9 @@ export class FormService extends HttpClientService {
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
-    formControl.setValidators(validatorFns);
+
+    formControl.setValidators(validatorFns.syncDefs);
+    formControl.setAsyncValidators(validatorFns.asyncDefs);
     if (updateValueAndValidityOpts?.doUpdate !== false) {
       // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
       //       This should reduce the amount of churn and events.

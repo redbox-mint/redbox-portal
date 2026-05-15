@@ -2,7 +2,7 @@ import {
   FormValidationGroups, FormValidatorComponentErrors,
   FormValidatorConfig, FormValidatorCreateConfig,
   FormValidatorDefinition, FormValidatorErrors,
-  FormValidatorFn
+  FormValidatorFns
 } from "./form.model";
 import {isTypeFormValidatorDefinition} from "../config/form-types.model";
 
@@ -40,8 +40,8 @@ export class ValidatorsSupport {
     public createFormValidatorInstancesFromMapping(
       defMap: Map<string, FormValidatorDefinition>,
       config: FormValidatorConfig[] | null | undefined,
-    ): FormValidatorFn[] {
-        const result: FormValidatorFn[] = [];
+    ): FormValidatorFns {
+        const result: FormValidatorFns = {syncDefs: [], asyncDefs: []};
         for (const validatorConfigItem of (config ?? [])) {
             const validatorClass = validatorConfigItem?.class;
             const def = defMap.get(validatorClass);
@@ -55,19 +55,12 @@ export class ValidatorsSupport {
               class: validatorClass,
               message: message,
             };
-            const item = def.create(createConfig);
 
-            // for debugging:
-            // const getter = function (path: string | LineagePath) {
-            //     return path as any
-            // };
-            // const examples = {
-            //     'empty': item({value: null, get: getter}),
-            //     'filled': item({value: "some-value", get: getter})
-            // };
-            // console.log(`createFormValidatorInstancesFromMapping validatorClass ${validatorClass} validatorConfigItem ${JSON.stringify(validatorConfigItem)} examples ${JSON.stringify(examples)}`);
-
-            result.push(item);
+            if ('create' in def) {
+              result.syncDefs.push(def.create(createConfig));
+            } else if ('createAsync' in def) {
+              result.asyncDefs.push(def.createAsync(createConfig));
+            }
         }
         return result;
     }

@@ -775,13 +775,25 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 errors: [],
                 lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
             }
-            for (const formValidatorFn of formValidatorFns) {
-                const funcResult = formValidatorFn(recordFormControl);
+
+          // TODO: best effort trying to run async function inside sync function
+            for (const formValidatorFn of formValidatorFns.asyncDefs) {
+              formValidatorFn(recordFormControl).then(funcResult => {
                 const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
                 summaryErrors.errors.push(...compErrors);
+              });
             }
+
+            // sync
+            for (const formValidatorFn of formValidatorFns.syncDefs) {
+              const funcResult = formValidatorFn(recordFormControl);
+              const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
+              summaryErrors.errors.push(...compErrors);
+            }
+
+            // add the summary only if there are errors
             if (summaryErrors.errors.length > 0) {
-                result.push(summaryErrors)
+              result.push(summaryErrors)
             }
         }
 

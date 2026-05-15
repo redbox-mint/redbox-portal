@@ -341,7 +341,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
     class: "jsonata-expression",
     message: "@validator-error-jsonata-expression",
-    create: (config) => {
+    createAsync: (config) => {
       const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
       const optionMessageKey = "message";
@@ -352,31 +352,14 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
       const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
-      return (control) => {
+      return async (control) => {
         if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
           return null; // don't validate empty values to allow optional controls
         }
         const value = control.value;
         let success: boolean | null = null;
         try {
-          // TODO: this function should be async so jsonata evaluator can be awaited.
-          evaluator(value).then(
-            function (val) {
-              success = toBoolean(val);
-            }, function (reason) {
-              console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' evaluator failed: ${reason}`);
-              success = false;
-            });
-
-          let count = 0;
-          while (success === null) {
-            if (count > 999_999) {
-              throw new Error('success never changed from null');
-            }
-            count += 1;
-          }
-          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' evaluator finished after ${count}.`);
-
+          success = toBoolean(await evaluator(value));
         } catch (err) {
           success = false;
           optionDescriptionValue = "the validator is not configured correctly"

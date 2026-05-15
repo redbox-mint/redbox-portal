@@ -39,18 +39,20 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   return compiled;
 }
 
-export async function jsonataEvaluate(compiled: jsonata.Expression, context: unknown): Promise<unknown> {
-  return await compiled.evaluate(context);
+export async function jsonataEvaluate(compiled: jsonata.Expression, context: unknown, bindings?: Record<string, unknown>): Promise<unknown> {
+  return await compiled.evaluate(context, bindings);
 }
 
-export async function jsonataCompileAndEvaluate(expression: string, context: unknown): Promise<unknown> {
+export async function jsonataCompileAndEvaluate(expression: string, context: unknown, bindings?: Record<string, unknown>): Promise<unknown> {
   const compiled = jsonataCompile(expression);
-  return await jsonataEvaluate(compiled, context);
+  return await jsonataEvaluate(compiled, context, bindings);
 }
 
-export async function jsonataEvaluateFunc(expression: string): Promise<JSONataEvaluate> {
+export async function jsonataEvaluateFunc(expression: string, bindings?: Record<string, unknown>): Promise<JSONataEvaluate> {
   const compiled = jsonataCompile(expression);
   return async function (value: unknown) {
-    return await compiled.evaluate(value);
+    return await jsonataEvaluate(compiled, value, bindings);
   }
 }
+
+

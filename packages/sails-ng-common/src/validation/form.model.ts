@@ -96,6 +96,19 @@ export interface FormValidatorFn {
 }
 
 /**
+ * The asynchronous validation function.
+ *
+ * Accepts an AbstractControl and returns a promise that resolves with either validation errors or no errors (null).
+ *
+ * This is similar to the angular form AsyncValidatorFn interface.
+ */
+export interface FormAsyncValidatorFn {
+  (control: FormValidatorControl): Promise<FormValidatorErrors | null>;
+}
+
+export type FormValidatorFns = {syncDefs: FormValidatorFn[], asyncDefs: FormAsyncValidatorFn[]};
+
+/**
  * The validation function creator.
  *
  * Takes one config argument, which contains config for the specific validator.
@@ -105,9 +118,18 @@ export interface FormValidatorFn {
 export type FormValidatorCreateFn = (config: FormValidatorCreateConfig | null | undefined) => FormValidatorFn;
 
 /**
- * The definition of a validator for a form or a form control.
+ * The asynchronous validation function creator.
+ *
+ * Takes one config argument, which contains config for the specific validator.
+ *
+ * Returns a form async validator function.
  */
-export interface FormValidatorDefinition {
+export type FormAsyncValidatorCreateFn = (config: FormValidatorCreateConfig | null | undefined) => FormAsyncValidatorFn;
+
+/**
+ * The definition of a validator for a form or a form control, with no create function.
+ */
+export interface FormBaseValidatorDefinition {
   /**
    * The unique name of the form validator.
    */
@@ -116,11 +138,32 @@ export interface FormValidatorDefinition {
    * The message id to display when the validator fails.
    */
   message: string;
+}
+
+/**
+ * The definition of a validator for a form or a form control.
+ */
+export interface FormSyncValidatorDefinition extends FormBaseValidatorDefinition {
   /**
    * The validation function creator.
    */
   create: FormValidatorCreateFn;
 }
+
+/**
+ * The definition of an async validator for a form or a form control.
+ */
+export interface FormAsyncValidatorDefinition extends FormBaseValidatorDefinition {
+  /**
+   * The async validation function creator.
+   */
+  createAsync: FormAsyncValidatorCreateFn;
+}
+
+/**
+ * The definition of a validator for a form or a form control.
+ */
+export type FormValidatorDefinition = FormSyncValidatorDefinition | FormAsyncValidatorDefinition;
 
 /**
  * The configuration block for a validator for a form or a form control.

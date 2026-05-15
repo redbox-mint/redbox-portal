@@ -1,18 +1,41 @@
 import {
-    FormValidatorConfig,
-    FormValidatorDefinition,
-    FormValidatorErrors,
-    SimpleServerFormValidatorControl,
-    FORM_VALIDATOR_EMAIL_REGEXP,
-    formValidatorsSharedDefinitions,
-    ValidatorsSupport, FormValidationGroups
+  FormValidatorConfig,
+  FormValidatorDefinition,
+  FormValidatorErrors,
+  SimpleServerFormValidatorControl,
+  FORM_VALIDATOR_EMAIL_REGEXP,
+  formValidatorsSharedDefinitions,
+  ValidatorsSupport, FormValidationGroups, jsonataCompile, jsonataEvaluate, jsonataEvaluateFunc
 } from "../../src";
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+type TestCase = {
+  title: string;
+  args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
+  expected: FormValidatorErrors | null;
+};
 
 describe("Validator", async () => {
-    describe("definitions", async () => {
+  const vs = new ValidatorsSupport();
+  let expect: Chai.ExpectStatic;
+  before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
+
+  async function checkValidator(testCase: TestCase) {
+    const defMap = vs.createValidatorDefinitionMapping(testCase.args.definition);
+    const fns = vs.createFormValidatorInstancesFromMapping(defMap, [testCase.args.block]);
+    const syncFns = fns.syncDefs;
+    const asyncFns = fns.asyncDefs;
+    expect(syncFns.length + asyncFns.length).to.eql(1);
+    if (syncFns.length > 0) {
+      expect(syncFns[0](new SimpleServerFormValidatorControl(testCase.args.value))).to.eql(testCase.expected);
+    } else {
+      expect(await asyncFns[0](new SimpleServerFormValidatorControl(testCase.args.value))).to.eql(testCase.expected);
+    }
+  }
+
+    describe("simple definitions", async () => {
         const cases: {
             title: string;
             args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
@@ -281,180 +304,242 @@ describe("Validator", async () => {
                     },
                     expected: null,
                 },
-                {
-                    title: "jsonata-expression - expect failure",
-                    args: {
-                        value: "asdasd",
-                        definition: formValidatorsSharedDefinitions,
-                        block: {
-                            class: "jsonata-expression",
-                            config: {description: "the description", expression: "$sum(2, 4)", evaluator: null}
-                        },
-                    },
-                    expected: {
-                        "jsonata-expression": {
-                            message: "@validator-error-jsonata-expression",
-                            params: {
-                                actual: "asdasd",
-                                description: "the validator is not configured correctly",
-                                expression: "$sum(2, 4)"
-                            },
-                        },
-                    },
-                },
-                // jsonata-expression - expression evaluation is not available in sails-ng-common
-                // This is tested in the sails tests.
-                {
-                    title: "orcid - expect pass (valid with hyphens)",
-                    args: {
-                        value: "0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "orcid - expect pass (valid without hyphens)",
-                    args: {
-                        value: "0000000218250097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "orcid - expect pass (valid with X checksum)",
-                    args: {
-                        value: "0000-0002-1694-233X", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "orcid - expect pass (valid with lowercase x checksum)",
-                    args: {
-                        value: "0000-0002-1694-233x", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "orcid - expect failure (URL https)",
-                    args: {
-                        value: "https://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "https://orcid.org/0000-0002-1825-0097"}
-                        }
-                    },
-                },
-
-                {
-                    title: "orcid - expect failure (URL www)",
-                    args: {
-                        value: "https://www.orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "https://www.orcid.org/0000-0002-1825-0097"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (misplaced hyphen)",
-                    args: {
-                        value: "00000002182-50097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "00000002182-50097"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (URL with misplaced hyphen)",
-                    args: {
-                        value: "https://www.orcid.org/00000002182-50097", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "https://www.orcid.org/00000002182-50097"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (invalid length)",
-                    args: {
-                        value: "0000-0002-1825-009", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "0000-0002-1825-009"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (invalid format)",
-                    args: {
-                        value: "0000-0002-1825-009A", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "0000-0002-1825-009A"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect failure (invalid checksum)",
-                    args: {
-                        value: "0000-0002-1825-0098", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: {
-                        orcid: {
-                            message: "@validator-error-orcid",
-                            params: {actual: "0000-0002-1825-0098"}
-                        }
-                    },
-                },
-                {
-                    title: "orcid - expect pass (empty)",
-                    args: {
-                        value: "", definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "orcid - expect pass (null)",
-                    args: {
-                        value: null, definition: formValidatorsSharedDefinitions,
-                        block: {class: "orcid"},
-                    },
-                    expected: null,
-                },
             ];
         cases.forEach(({title, args, expected}) => {
-            it(`should validate ${title}`, async function () {
-                const vs = new ValidatorsSupport()
-                const defMap = vs.createValidatorDefinitionMapping(args.definition);
-                const fns = vs.createFormValidatorInstancesFromMapping(defMap, [args.block]);
-                expect(fns).to.have.length(1);
-                expect(fns[0](new SimpleServerFormValidatorControl(args.value))).to.eql(expected);
+            it(`should validate ${title}`, async () => {
+              await checkValidator({title, args, expected});
             });
         });
     });
+
+  describe("orcid", async () => {
+    const cases: {
+      title: string;
+      args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
+      expected: FormValidatorErrors | null;
+    }[] =
+      [
+        {
+          title: "orcid - expect pass (valid with hyphens)",
+          args: {
+            value: "0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+        {
+          title: "orcid - expect pass (valid without hyphens)",
+          args: {
+            value: "0000000218250097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+        {
+          title: "orcid - expect pass (valid with X checksum)",
+          args: {
+            value: "0000-0002-1694-233X", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+        {
+          title: "orcid - expect pass (valid with lowercase x checksum)",
+          args: {
+            value: "0000-0002-1694-233x", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+        {
+          title: "orcid - expect failure (URL https)",
+          args: {
+            value: "https://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "https://orcid.org/0000-0002-1825-0097"}
+            }
+          },
+        },
+
+        {
+          title: "orcid - expect failure (URL www)",
+          args: {
+            value: "https://www.orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "https://www.orcid.org/0000-0002-1825-0097"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect failure (misplaced hyphen)",
+          args: {
+            value: "00000002182-50097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "00000002182-50097"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect failure (URL with misplaced hyphen)",
+          args: {
+            value: "https://www.orcid.org/00000002182-50097", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "https://www.orcid.org/00000002182-50097"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect failure (invalid length)",
+          args: {
+            value: "0000-0002-1825-009", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "0000-0002-1825-009"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect failure (invalid format)",
+          args: {
+            value: "0000-0002-1825-009A", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "0000-0002-1825-009A"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect failure (invalid checksum)",
+          args: {
+            value: "0000-0002-1825-0098", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: {
+            orcid: {
+              message: "@validator-error-orcid",
+              params: {actual: "0000-0002-1825-0098"}
+            }
+          },
+        },
+        {
+          title: "orcid - expect pass (empty)",
+          args: {
+            value: "", definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+        {
+          title: "orcid - expect pass (null)",
+          args: {
+            value: null, definition: formValidatorsSharedDefinitions,
+            block: {class: "orcid"},
+          },
+          expected: null,
+        },
+      ];
+    cases.forEach(({title, args, expected}) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({title, args, expected});
+      });
+    });
+  });
+
+  describe("jsonata-expression", async () => {
+    const expression = "$ = 45";
+    async function jsonataEvaluateCustomFunc(value: unknown){
+      const compiled = jsonataCompile(expression);
+      return await jsonataEvaluate(compiled, value);
+    }
+    const cases: {
+      title: string;
+      args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
+      expected: FormValidatorErrors | null;
+    }[] =
+      [
+        {
+          title: "jsonata-expression - expect pass",
+          args: {
+            value: 45,
+            definition: formValidatorsSharedDefinitions,
+            block: {
+              class: "jsonata-expression",
+              config: {description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc}
+            },
+          },
+          expected: null,
+        },
+        {
+          title: "jsonata-expression - expect pass",
+          args: {
+            value: 46,
+            definition: formValidatorsSharedDefinitions,
+            block: {
+              class: "jsonata-expression",
+              config: {description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc}
+            },
+          },
+          expected: {
+            "jsonata-expression": {
+              message: "@validator-error-jsonata-expression",
+              params: {
+                actual: 46,
+                description: "the description",
+                expression: expression,
+              },
+            },
+          },
+        },
+        {
+          title: "jsonata-expression - expect failure",
+          args: {
+            value: "asdasd",
+            definition: formValidatorsSharedDefinitions,
+            block: {
+              class: "jsonata-expression",
+              config: {description: "the description", expression: "$sum(2, 4)", evaluator: null}
+            },
+          },
+          expected: {
+            "jsonata-expression": {
+              message: "@validator-error-jsonata-expression",
+              params: {
+                actual: "asdasd",
+                description: "the validator is not configured correctly",
+                expression: "$sum(2, 4)"
+              },
+            },
+          },
+        },
+      ];
+    cases.forEach(({title, args, expected}) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({title, args, expected});
+      });
+    });
+  });
 
   describe("is enabled", async () => {
     const defaultGroups: FormValidationGroups = {
