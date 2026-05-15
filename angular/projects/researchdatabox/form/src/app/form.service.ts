@@ -709,13 +709,6 @@ export class FormService extends HttpClientService {
       enabledValidationGroups = [];
     }
 
-    // TODO: Assign the jsonata evaluator to each validator.
-    //       Create a function in the form.component that takes a key and returns a function that takes a context (JSONataEvaluate).
-    // const jsonataEvaluator = async function(context): Promise<unknown> {
-    //   await that.getDynamicImportFormCompiledItems().evaluate(key, that.cloneContext(context), { libraries: jsonataLibrary });
-    // };
-    // this.validatorSupport.assignJsonataEvaluators(validators, function() {});
-
     // ensure jsonata-expression validators can be evaluated
     this.validatorsSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): void {
       if (validator.class === "jsonata-expression") {

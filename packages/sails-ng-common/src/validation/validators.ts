@@ -347,7 +347,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
       const optionDescriptionKey = "description";
-      let optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey, "");
       const optionExpressionKey = "expression";
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
@@ -359,10 +359,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         const value = control.value;
         let success: boolean | null = null;
         try {
-          success = toBoolean(await evaluator(value));
+          success = await evaluator(value) === true;
         } catch (err) {
           success = false;
-          optionDescriptionValue = "the validator is not configured correctly"
           console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
         }
         return success

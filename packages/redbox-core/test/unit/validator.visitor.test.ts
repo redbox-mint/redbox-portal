@@ -3,7 +3,9 @@ import {
   buildLineagePaths,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
-  FormValidatorSummaryErrors
+  FormValidatorSummaryErrors,
+  jsonataCompile,
+  jsonataEvaluate
 } from "@researchdatabox/sails-ng-common";
 import {ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor} from "../../src";
 import { logger } from "./helpers";
@@ -693,5 +695,96 @@ describe("Validator Visitor", async () => {
 
             expect(actual).to.have.length(0);
         });
+    });
+
+    it("should include jsonata-expression validator results", async function () {
+      const expression = "$ = 45";
+      async function jsonataEvaluateCustomFunc(value: unknown){
+        const compiled = jsonataCompile(expression);
+        return await jsonataEvaluate(compiled, value);
+      }
+      const formConfig: FormConfigFrame = {
+        name: "default-1.0-draft",
+        componentDefinitions: [
+          {
+            name: 'text_7',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+                validators: [
+                  {
+                    class: 'jsonata-expression',
+                    config: {
+                      description: "the description",
+                      expression: expression,
+                      evaluator: jsonataEvaluateCustomFunc
+                    },
+                  },
+                  {
+                    class: 'minLength',
+                    message: "@validator-error-custom-text_7",
+                    config: { minLength: 100 }
+                  },
+                ]
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent'
+            }
+          },
+        ]
+      };
+      const expected: FormValidatorSummaryErrors[] = [
+        {
+          errors: [
+            {
+              message: "@validator-error-jsonata-expression",
+              class: "jsonata-expressions",
+              params: {
+                actual: "hello world 2!",
+                description: "the description",
+                expression: expression,
+              },
+            },
+            {
+              message: "@validator-error-custom-text_7",
+              class: "minLength",
+              params: {
+                actualLength: 14,
+                requiredLength: 100,
+              },
+            },
+          ],
+          id: "text_7",
+          message: "TextField with default wrapper defined",
+          lineagePaths: {
+            formConfig: ["componentDefinitions", "0"],
+            dataModel: ["text_7"],
+            angularComponents: ["text_7"],
+            angularComponentsJsonPointer: "/text_7",
+            layout: ["text_7-layout"],
+            layoutJsonPointer: "/text_7-layout",
+          },
+        }
+      ];
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+
+      const visitor = new ValidatorFormConfigVisitor(logger);
+      const actual = visitor.start({
+        form: constructed,
+        enabledValidationGroups: ["all"],
+        validatorDefinitions: formValidatorsSharedDefinitions
+      });
+      expect(actual).to.eql(expected);
     });
 });

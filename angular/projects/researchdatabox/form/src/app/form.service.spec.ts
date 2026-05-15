@@ -10,19 +10,21 @@ import {
   TranslationService,
   UtilityService
 } from "@researchdatabox/portal-ng-common";
-import { APP_BASE_HREF } from "@angular/common";
-import { Title } from "@angular/platform-browser";
+import {APP_BASE_HREF} from "@angular/common";
+import {Title} from "@angular/platform-browser";
 import {HttpContext, provideHttpClient} from "@angular/common/http";
-import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
+import {HttpTestingController, provideHttpClientTesting} from "@angular/common/http/testing";
 import {
   FormConfigFrame,
   FormFieldValidationGroup,
   FormModesConfig,
   FormValidationGroups,
+  FormValidatorSummaryErrors,
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
 import {FormValidationGroupsChangeInitial} from "./form-state";
 import {setUpDynamicAssets} from "./helpers.spec";
+import {FormControl} from "@angular/forms";
 
 
 describe('The FormService', () => {
@@ -74,13 +76,13 @@ describe('The FormService', () => {
     const componentDefinitions = [
       {
         name: 'accordion_1',
-        component: { class: 'AccordionComponent', config: { panels: [] } },
-        layout: { class: 'AccordionLayout' },
+        component: {class: 'AccordionComponent', config: {panels: []}},
+        layout: {class: 'AccordionLayout'},
       },
       {
         name: 'accordion_panel_1',
-        component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [] } },
-        layout: { class: 'AccordionPanelLayout' },
+        component: {class: 'AccordionPanelComponent', config: {componentDefinitions: []}},
+        layout: {class: 'AccordionPanelLayout'},
       },
     ] as any;
 
@@ -104,9 +106,9 @@ describe('The FormService', () => {
       pointer: string,
       children: FormFieldCompMapEntry[] = []
     ): FormFieldCompMapEntry => ({
-      compConfigJson: { name },
-      lineagePaths: { angularComponentsJsonPointer: pointer } as any,
-      component: { formFieldCompMapEntries: children } as any
+      compConfigJson: {name},
+      lineagePaths: {angularComponentsJsonPointer: pointer} as any,
+      component: {formFieldCompMapEntries: children} as any
     } as unknown as FormFieldCompMapEntry);
 
     it('transformIntoJSONataProperty should include nested children metadata', () => {
@@ -159,6 +161,66 @@ describe('The FormService', () => {
       expect(source.runtimeContext?.requestParams).toEqual({
         workspace: 'active'
       });
+    });
+
+    it('should evaluate jsonata-expression validator as part of suggested validation errors', async () => {
+      const expression = "$ = 45";
+      const mapEntry: FormFieldCompMapEntry = {
+        // @ts-ignore
+        model: {
+          formControl: new FormControl("hello world 2!"),
+          validators: [{
+            class: 'jsonata-expression',
+            config: {
+              description: "the description",
+              expression: expression,
+            },
+          },],
+        },
+        compConfigJson: {
+          name: "text_7",
+          component: {
+            class: "SimpleInputComponent"
+          }
+        },
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+          dataModel: ["text_7"],
+          angularComponents: ["text_7"],
+          angularComponentsJsonPointer: "/text_7",
+          layout: ["text_7-layout"],
+          layoutJsonPointer: "/text_7-layout",
+        },
+      };
+      const enabledValidationGroups: string[] = [];
+      const validationGroups: FormValidationGroups = {};
+      const expected: FormValidatorSummaryErrors[] = [
+        {
+          errors: [
+            {
+              message: "@validator-error-jsonata-expression",
+              class: "jsonata-expressions",
+              params: {
+                actual: "hello world 2!",
+                description: "the description",
+                expression: expression,
+              },
+            },
+          ],
+          id: "text_7",
+          message: "TextField with default wrapper defined",
+          lineagePaths: {
+            formConfig: ["componentDefinitions", "0"],
+            dataModel: ["text_7"],
+            angularComponents: ["text_7"],
+            angularComponentsJsonPointer: "/text_7",
+            layout: ["text_7-layout"],
+            layoutJsonPointer: "/text_7-layout",
+          },
+        }
+      ];
+      const actual = service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
+      expect(actual).toEqual(expected);
     });
   });
 

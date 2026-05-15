@@ -763,7 +763,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             // ensure jsonata-expression validators can be evaluated
             this.validatorSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): void {
               if (validator.class === "jsonata-expression") {
-                if (validator.config) {
+                if (!validator.config) {
                   validator.config = {};
                 }
                 const expr = validator?.config?.['expression']?.toString() ?? "";
@@ -785,10 +785,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             }
 
           // TODO: best effort trying to run async function inside sync function
+          const that = this;
             for (const formValidatorFn of formValidatorFns.asyncDefs) {
+
               formValidatorFn(recordFormControl).then(funcResult => {
                 const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
                 summaryErrors.errors.push(...compErrors);
+                that.logger.warn(`asyncDef ${JSON.stringify({funcResult, compErrors})}`);
               });
             }
 
