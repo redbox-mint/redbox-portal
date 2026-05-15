@@ -52,6 +52,13 @@ import { isObservable } from 'rxjs';
 
 import { Readable } from 'stream';
 import { FormAttributes } from '../waterline-models';
+import { normalizeRecordRelations } from '../config/recordtype.config';
+import {
+  RecordRelationshipExpandOptions,
+  RecordRelationshipGraph,
+  RecordMetaWithRelationships,
+  RecordTypeLookupSummary,
+} from '../RecordsService';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -293,6 +300,8 @@ export namespace Services {
       'provideUserAccessAndRemovePendingAccess',
       'searchFuzzy',
       'getRelatedRecords',
+      'getMetaWithRelationships',
+      'getRecordTypeSummary',
       'delete',
       'restoreRecord',
       'destroyDeletedRecord',
@@ -396,7 +405,7 @@ export namespace Services {
 
         const createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
         if (createResponse.isSuccessful()) {
-          if (this.searchService && typeof this.searchService.index === 'function') {
+          if (this.searchService && typeof this.searchService.index === 'function' && recordTypeObj.searchable !== false) {
             this.searchService.index(createResponse['oid'], recordObj);
           }
           await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -581,12 +590,16 @@ export namespace Services {
           sails.log.warn(
             `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
           );
-          this.searchService.index(createResponse['oid'], recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(createResponse['oid'], recordObj);
+          }
         } else {
           if (createResponse['oid'] !== recordOid) {
             sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
           }
-          this.searchService.index(recordOid, recordObj);
+          if (recordTypeObj.searchable !== false) {
+            this.searchService.index(recordOid, recordObj);
+          }
         }
 
         await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
@@ -837,7 +850,9 @@ export namespace Services {
             }
           }
         }
-        this.searchService.index(oid, record);
+        if (recordType?.searchable !== false) {
+          this.searchService.index(oid, recordObj);
+        }
         await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
@@ -959,8 +974,33 @@ export namespace Services {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
 
-    getRelatedRecords(oid: string, brand: unknown): Promise<unknown> {
-      return this.storageService.getRelatedRecords(oid, brand);
+    getRelatedRecords(oid: string, brand: unknown, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+      return this.storageService.getRelatedRecords(oid, brand, options);
+    }
+
+    async getMetaWithRelationships(
+      oid: string,
+      brand: unknown,
+      options: RecordRelationshipExpandOptions = {}
+    ): Promise<RecordMetaWithRelationships> {
+      const metadata = await this.getMeta(oid);
+      const relationships = await this.getRelatedRecords(oid, brand, options);
+      return { metadata, relationships };
+    }
+
+    async getRecordTypeSummary(brand: BrandingModel, recordTypeName: string): Promise<RecordTypeLookupSummary | null> {
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, recordTypeName));
+      if (_.isEmpty(recordType)) {
+        return null;
+      }
+
+      return {
+        name: String(_.get(recordType, 'name', recordTypeName)),
+        packageType: String(_.get(recordType, 'packageType', '')),
+        searchFilters: (_.get(recordType, 'searchFilters', []) ?? []) as unknown[],
+        searchable: Boolean(_.get(recordType, 'searchable', true)),
+        relatedTo: normalizeRecordRelations(String(_.get(recordType, 'name', recordTypeName)), _.get(recordType, 'relatedTo', [])),
+      };
     }
 
     async delete(oid: string, permanentlyDelete: boolean, currentRec: unknown, recordType: unknown, user: AnyRecord) {
@@ -1088,12 +1128,17 @@ export namespace Services {
       _.each(datastreams, (datastream: unknown) => {
         const datastreamObj = datastream as AnyRecord;
         let attachment: Record<string, unknown> = {};
-        attachment['dateUpdated'] = DateTime.fromJSDate(
-          new Date(datastreamObj['uploadDate'] as string | number | Date)
-        ).toISO();
+        const rawDateUpdated = datastreamObj['uploadDate'] ?? datastreamObj['lastModified'] ?? _.get(datastreamObj.metadata, 'dateUpdated');
+        const normalizedDateUpdated = rawDateUpdated
+          ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toUTC().toISO()
+          : null;
+        attachment['dateUpdated'] = rawDateUpdated
+          ? normalizedDateUpdated
+          : null;
         attachment['label'] = _.get(datastreamObj.metadata, 'name');
         attachment['contentType'] = _.get(datastreamObj.metadata, 'mimeType');
         attachment = _.merge(attachment, datastreamObj.metadata);
+        attachment['dateUpdated'] = normalizedDateUpdated;
         if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
           attachments.push(attachment);
         } else {
@@ -1552,10 +1597,27 @@ export namespace Services {
     }
 
     async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const record = await this.storageService.restoreRecord(oid);
-      this.searchService.index(oid, record as unknown as Record<string, unknown>);
-      await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.restored);
-      return record;
+      const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
+      if (recordStorageServiceResponse.isSuccessful() && !_.isNil(recordStorageServiceResponse.metadata)) {
+        const record = recordStorageServiceResponse.metadata as RecordModel;
+        const metaMetadata = (record?.metaMetadata ?? {}) as unknown as Record<string, unknown>;
+        const brandId = _.get(metaMetadata, 'brandId');
+        const recordTypeName = _.get(metaMetadata, 'type');
+
+        if (!_.isNil(brandId) && !_.isNil(recordTypeName)) {
+          const brand = await BrandingService.getBrandById(String(brandId));
+          const recordType = await firstValueFrom(RecordTypesService.get(brand, String(recordTypeName)));
+          if (
+            this.searchService &&
+            typeof this.searchService.index === 'function' &&
+            recordType?.searchable !== false
+          ) {
+            this.searchService.index(oid, record as unknown as Record<string, unknown>);
+          }
+        }
+      }
+      await this.auditRecord(oid, recordStorageServiceResponse as unknown as AnyRecord, user, RecordAuditActionType.restored);
+      return recordStorageServiceResponse as unknown as StorageServiceResponse;
     }
 
     async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
@@ -1649,8 +1711,8 @@ export namespace Services {
 
         // update authorizations based on workflow...
         const configAuth = config.authorization as AnyRecord;
-        currentRecObj.authorization.viewRoles = configAuth.viewRoles;
-        currentRecObj.authorization.editRoles = configAuth.editRoles;
+        currentRecObj.authorization.viewRoles = currentRecObj.authorization.viewRoles ?? configAuth.viewRoles;
+        currentRecObj.authorization.editRoles = currentRecObj.authorization.editRoles ?? configAuth.editRoles;
       }
       sails.log.verbose(
         `transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`

@@ -6,6 +6,15 @@ import { Readable } from 'node:stream';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { Datastream } from '../../src/Datastream';
 
+async function waitFor(predicate: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+}
+
 describe('StandardDatastreamService', function () {
   let mockSails: any;
   let mockStorageManager: any;
@@ -54,6 +63,7 @@ describe('StandardDatastreamService', function () {
     mockStorageManager = {
       stagingDisk: sinon.stub().returns(mockStagingDisk),
       primaryDisk: sinon.stub().returns(mockPrimaryDisk),
+      getMergedStorageConfig: sinon.stub().returns({ keyPrefix: 'attachments/' }),
       disk: sinon.stub().callsFake((name: string) => {
         if (name === 'staging') return mockStagingDisk;
         if (name === 'primary') return mockPrimaryDisk;
@@ -90,6 +100,8 @@ describe('StandardDatastreamService', function () {
   });
 
   afterEach(function () {
+    const { Services } = require('../../src/services/StandardDatastreamService');
+    (Services.StandardDatastream as any).promotionGuards?.clear?.();
     cleanupServiceTestGlobals();
     sinon.restore();
   });
@@ -127,10 +139,10 @@ describe('StandardDatastreamService', function () {
 
       // Should write to primary with oid/fileId key
       expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
-      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('oid-123/test-file-id');
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/test-file-id');
     });
 
-    it('should move from staging to primary when move is available', async function () {
+    it('should not use staging disk move for cross-disk promotion', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
 
@@ -139,11 +151,52 @@ describe('StandardDatastreamService', function () {
       const ds = new Datastream({ fileId: 'move-file-id' });
       await service.addDatastream('oid-123', ds);
 
-      expect(mockStagingDisk.move.calledOnce).to.be.true;
-      expect(mockStagingDisk.move.firstCall.args[0]).to.equal('move-file-id');
-      expect(mockStagingDisk.move.firstCall.args[1]).to.equal('oid-123/move-file-id');
-      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.move.called).to.be.false;
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/move-file-id');
+      expect(mockStagingDisk.delete.calledOnce).to.be.true;
+    });
+
+    it('should delete the staged file only after a successful primary write', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      const ds = new Datastream({ fileId: 'ordered-file-id' });
+      await service.addDatastream('oid-123', ds);
+
+      expect(mockStagingDisk.getStream.calledBefore(mockPrimaryDisk.putStream)).to.be.true;
+      expect(mockPrimaryDisk.putStream.calledBefore(mockStagingDisk.delete)).to.be.true;
+      expect(mockStagingDisk.delete.firstCall.args[0]).to.equal('ordered-file-id');
+    });
+
+    it('should keep the staged file when the primary write fails', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.putStream.rejects(new Error('primary write failed'));
+
+      const ds = new Datastream({ fileId: 'failed-file-id' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('primary write failed');
+      }
+
       expect(mockStagingDisk.delete.called).to.be.false;
+    });
+
+    it('should normalize a key prefix without a trailing slash', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStorageManager.getMergedStorageConfig.returns({ keyPrefix: 'uploads' });
+
+      const ds = new Datastream({ fileId: 'move-file-id' });
+      await service.addDatastream('oid-123', ds);
+
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('uploads/oid-123/move-file-id');
     });
 
     it('should throw when staging file does not exist', async function () {
@@ -214,7 +267,7 @@ describe('StandardDatastreamService', function () {
       await service.removeDatastream('oid-123', ds);
 
       expect(mockPrimaryDisk.delete.calledOnce).to.be.true;
-      expect(mockPrimaryDisk.delete.firstCall.args[0]).to.equal('oid-123/file-to-delete');
+      expect(mockPrimaryDisk.delete.firstCall.args[0]).to.equal('attachments/oid-123/file-to-delete');
     });
 
     it('should not throw when file does not exist', async function () {
@@ -259,8 +312,8 @@ describe('StandardDatastreamService', function () {
       expect(result).to.have.property('size', 1024);
 
       // Check correct key was used
-      expect(mockPrimaryDisk.exists.firstCall.args[0]).to.equal('oid-123/file-123');
-      expect(mockPrimaryDisk.getStream.firstCall.args[0]).to.equal('oid-123/file-123');
+      expect(mockPrimaryDisk.exists.firstCall.args[0]).to.equal('attachments/oid-123/file-123');
+      expect(mockPrimaryDisk.getStream.firstCall.args[0]).to.equal('attachments/oid-123/file-123');
     });
 
     it('should throw when file does not exist', async function () {
@@ -268,6 +321,7 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       mockPrimaryDisk.exists.resolves(false);
+      mockStagingDisk.exists.resolves(false);
 
       try {
         await service.getDatastream('oid-123', 'missing-file');
@@ -275,6 +329,41 @@ describe('StandardDatastreamService', function () {
       } catch (err: any) {
         expect(err.message).to.include('Attachment not found');
       }
+    });
+
+    it('promotes a stranded staging file when primary is missing', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.onFirstCall().resolves(false);
+      mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockStagingDisk.exists.resolves(true);
+
+      const result = await service.getDatastream('oid-123', 'file-123');
+
+      expect(result).to.have.property('readstream');
+      expect(mockStagingDisk.getStream.firstCall.args[0]).to.equal('file-123');
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/file-123');
+      expect(mockStagingDisk.delete.firstCall.args[0]).to.equal('file-123');
+      expect(mockPrimaryDisk.getStream.firstCall.args[0]).to.equal('attachments/oid-123/file-123');
+    });
+
+    it('keeps a stranded staging file when promotion to primary fails', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.resolves(false);
+      mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.putStream.rejects(new Error('primary promotion failed'));
+
+      try {
+        await service.getDatastream('oid-123', 'file-123');
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('primary promotion failed');
+      }
+
+      expect(mockStagingDisk.delete.called).to.be.false;
     });
 
     it('should still return readstream when getMetaData fails', async function () {
@@ -289,6 +378,67 @@ describe('StandardDatastreamService', function () {
       expect(result).to.have.property('contentType', '');
       expect(result).to.have.property('size', 0);
     });
+
+    it('coalesces concurrent staging promotions for the same file', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      let resolvePromotion: (() => void) | undefined;
+      mockPrimaryDisk.exists.onCall(0).resolves(false);
+      mockPrimaryDisk.exists.onCall(1).resolves(false);
+      mockPrimaryDisk.exists.onCall(2).resolves(false);
+      mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.putStream.callsFake(() => new Promise<void>((resolve) => {
+        resolvePromotion = resolve;
+      }));
+
+      const firstRead = service.getDatastream('oid-123', 'file-123');
+      const secondRead = service.getDatastream('oid-123', 'file-123');
+
+      await waitFor(() => mockPrimaryDisk.putStream.calledOnce);
+
+      expect(mockStagingDisk.getStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+
+      resolvePromotion?.();
+
+      const [firstResult, secondResult] = await Promise.all([firstRead, secondRead]);
+
+      expect(firstResult).to.have.property('readstream');
+      expect(secondResult).to.have.property('readstream');
+      expect(mockStagingDisk.delete.calledOnce).to.be.true;
+    });
+
+    it('treats already-promoted writes as successful', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.onCall(0).resolves(false);
+      mockPrimaryDisk.exists.onCall(1).resolves(false);
+      mockPrimaryDisk.exists.onCall(2).resolves(true);
+      mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.putStream.rejects(new Error('already exists'));
+
+      const result = await service.getDatastream('oid-123', 'file-123');
+
+      expect(result).to.have.property('readstream');
+      expect(mockStagingDisk.delete.calledOnce).to.be.true;
+    });
+
+    it('ignores already-deleted staging files after promotion', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.exists.onFirstCall().resolves(false);
+      mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockStagingDisk.exists.resolves(true);
+      mockStagingDisk.delete.rejects(new Error('ENOENT'));
+
+      const result = await service.getDatastream('oid-123', 'file-123');
+
+      expect(result).to.have.property('readstream');
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+    });
   });
 
   describe('listDatastreams', function () {
@@ -299,7 +449,7 @@ describe('StandardDatastreamService', function () {
       const result = await service.listDatastreams('oid-123', 'file-123');
 
       expect(result).to.be.an('array').with.length(1);
-      expect(result[0]).to.have.property('filename', 'oid-123/file-123');
+      expect(result[0]).to.have.property('filename', 'attachments/oid-123/file-123');
       expect(result[0]).to.have.property('contentType', 'application/pdf');
     });
 
@@ -317,18 +467,137 @@ describe('StandardDatastreamService', function () {
     it('should list all files under an oid prefix when fileId is empty', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
+      const lastModified = new Date('2026-05-13T07:01:32.533Z');
 
       mockPrimaryDisk.listAll.resolves({
         objects: [
-          { key: 'oid-123/file-a', name: 'file-a' },
-          { key: 'oid-123/file-b', name: 'file-b' },
+          { key: 'attachments/oid-123/file-a', name: 'file-a' },
+          { key: 'attachments/oid-123/file-b', name: 'file-b' },
         ],
+      });
+      mockPrimaryDisk.getMetaData.resolves({
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
       });
 
       const result = await service.listDatastreams('oid-123', '');
 
       expect(result).to.be.an('array').with.length(2);
-      expect(mockPrimaryDisk.listAll.firstCall.args[0]).to.equal('oid-123/');
+      expect(mockPrimaryDisk.listAll.firstCall.args[0]).to.equal('attachments/oid-123/');
+      expect(mockStagingDisk.listAll.called).to.be.false;
+      expect(mockPrimaryDisk.getMetaData.calledTwice).to.be.true;
+      expect(mockPrimaryDisk.getMetaData.firstCall.args[0]).to.equal('attachments/oid-123/file-a');
+      expect(result[0]).to.include({
+        filename: 'attachments/oid-123/file-a',
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
+      });
+    });
+
+    it('should still list all files when metadata lookup fails', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockPrimaryDisk.listAll.resolves({
+        objects: [
+          { key: 'attachments/oid-123/file-a', name: 'file-a' },
+        ],
+      });
+      mockPrimaryDisk.getMetaData.rejects(new Error('no metadata'));
+
+      const result = await service.listDatastreams('oid-123', '');
+
+      expect(result).to.be.an('array').with.length(1);
+      expect(result[0]).to.have.property('filename', 'attachments/oid-123/file-a');
+      expect(result[0]).not.to.have.property('lastModified');
+    });
+
+    it('should batch metadata lookups when listing many files', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const lastModified = new Date('2026-05-13T07:01:32.533Z');
+      const pendingMetadataResolvers: Array<(value: unknown) => void> = [];
+
+      mockPrimaryDisk.listAll.resolves({
+        objects: Array.from({ length: 11 }, (_, index) => ({
+          key: `attachments/oid-123/file-${index}`,
+          name: `file-${index}`,
+        })),
+      });
+      mockPrimaryDisk.getMetaData.callsFake((_key: string) => new Promise((resolve: (value: unknown) => void) => {
+        pendingMetadataResolvers.push(resolve);
+      }));
+
+      const resultPromise = service.listDatastreams('oid-123', '');
+
+      await waitFor(() => mockPrimaryDisk.getMetaData.callCount === 10);
+      expect(mockPrimaryDisk.getMetaData.callCount).to.equal(10);
+
+      for (let index = 0; index < 10; index += 1) {
+        pendingMetadataResolvers[index]({
+          contentType: 'application/pdf',
+          contentLength: 2048,
+          etag: 'etag-123',
+          lastModified,
+        });
+      }
+
+      await waitFor(() => mockPrimaryDisk.getMetaData.callCount === 11);
+      expect(mockPrimaryDisk.getMetaData.callCount).to.equal(11);
+
+      pendingMetadataResolvers[10]({
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
+      });
+
+      const result = await resultPromise;
+
+      expect(result).to.be.an('array').with.length(11);
+      expect(result[0]).to.include({
+        filename: 'attachments/oid-123/file-0',
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        etag: 'etag-123',
+        lastModified,
+      });
+    });
+
+    it('should normalize a key prefix without a trailing slash when listing all files', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStorageManager.getMergedStorageConfig.returns({ keyPrefix: 'uploads' });
+
+      await service.listDatastreams('oid-123', '');
+
+      expect(mockPrimaryDisk.listAll.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.listAll.firstCall.args[0]).to.equal('uploads/oid-123/');
+    });
+
+    it('should fall back to an empty key prefix when storage config does not provide one', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      mockStorageManager.getMergedStorageConfig.returns({});
+
+      await service.getDatastream('oid-123', 'file-123');
+
+      expect(mockPrimaryDisk.exists.firstCall.args[0]).to.equal('oid-123/file-123');
+    });
+
+    it('should use the configured key prefix for migration-compatible keys', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const ds = new Datastream({ fileId: 'file-123' });
+
+      await service.addDatastream('oid-123', ds);
+
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/file-123');
     });
   });
 

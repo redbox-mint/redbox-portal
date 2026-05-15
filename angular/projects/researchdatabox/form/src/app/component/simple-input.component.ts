@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   SimpleInputComponentName,
   SimpleInputFieldComponentConfig,
@@ -58,6 +58,5 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
    * The model associated with this component.
    */
   @Input() public override model?: SimpleInputModel;
-
 
 }

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, RecordService } from '@researchdatabox/portal-ng-common';
+import type { RecordTypeRelationship } from '@researchdatabox/portal-ng-common';
 import {
   RecordSelectorComponentName,
   RecordSelectorFieldComponentConfig,
@@ -228,6 +229,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   public focusedIndex = 0;
   public isChangingSelection = false;
 
+  private relationshipId = '';
   private recordType = '';
   private workflowState = '';
   private filterMode = 'default';
@@ -251,6 +253,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
       (this.componentDefinition?.config as RecordSelectorFieldComponentConfig) ?? new RecordSelectorFieldComponentConfig();
     this.tooltip = this.getStringProperty('tooltip');
     this.columnTitle = String(cfg.columnTitle ?? 'Record title');
+    this.relationshipId = String(cfg.relationshipId ?? '').trim();
     this.recordType = String(cfg.recordType ?? '').trim();
     this.workflowState = String(cfg.workflowState ?? '').trim();
     this.filterMode = this.normaliseFilterMode(cfg.filterMode);
@@ -267,9 +270,39 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
 
   protected override async initData(): Promise<void> {
     await this.recordService.waitForInit();
+    await this.applyRelationshipConfigDefaults();
     this.records = [];
     this.filteredRecords = [];
     this.statusMessageKey = 'record-selector-status-idle';
+  }
+
+  private async applyRelationshipConfigDefaults(): Promise<void> {
+    if (!this.relationshipId || (this.recordType && this.filterFields.length > 0)) {
+      return;
+    }
+
+    const sourceRecordType = String(this.getFormComponent.trimmedParams.recordType() ?? '').trim();
+    if (!sourceRecordType) {
+      return;
+    }
+
+    try {
+      const recordTypeConfig = await this.recordService.getType(sourceRecordType);
+      const relationships = Array.isArray(recordTypeConfig?.relatedTo) ? recordTypeConfig.relatedTo : [];
+      const relationship = relationships.find((item: RecordTypeRelationship) => String(item?.id ?? '').trim() === this.relationshipId);
+      if (!relationship) {
+        return;
+      }
+
+      if (!this.recordType) {
+        this.recordType = String(relationship.recordType ?? '').trim();
+      }
+      if (this.filterFields.length === 0) {
+        this.filterFields = [String(relationship.foreignField ?? '').trim()].filter(Boolean);
+      }
+    } catch (error) {
+      this.loggerService.warn?.(`${this.logName}: unable to derive record selector relationship config`, error);
+    }
   }
 
   public get selectedRecord(): RecordSelectorModelValueType {

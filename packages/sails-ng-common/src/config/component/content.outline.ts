@@ -35,6 +35,10 @@ export interface ContentFieldComponentConfigFrame extends FieldComponentConfigFr
      * Whether the `content` value should be treated as a translation key.
      */
     contentIsTranslationCode?: boolean;
+    /**
+     * The expected format of translated content when `contentIsTranslationCode` is true.
+     */
+    translationContentFormat?: 'plain' | 'html';
 }
 
 export interface ContentFieldComponentConfigOutline extends ContentFieldComponentConfigFrame, FieldComponentConfigOutline {

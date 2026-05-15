@@ -9,6 +9,7 @@ export {ListAPISummary}from "./ListAPISummary";
 export {RequestDetails} from "./RequestDetails";
 export {RecordTypeResponseModel} from "./RecordTypeResponseModel";
 export {DashboardTypeResponseModel} from "./DashboardTypeResponseModel";
+export {DashboardViewResponseModel, DashboardViewStepResponseModel} from "./DashboardViewResponseModel";
 export {SolrDocument} from "./SolrDocument";
 export * from './storage';
 export * from './api';

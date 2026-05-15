@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, DestroyRef, inject, Input, signal } from '@angular/core';
+import {AfterViewChecked, Component, DestroyRef, inject, Input, signal} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import {
@@ -104,8 +104,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
-  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' = 'static';
+  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' | 'service' = 'static';
   private queryId = '';
+  private serviceId = '';
   private vocabRef = '';
   private provider = '';
   private resultArrayProperty = '';
@@ -151,6 +152,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.placeholder = String(cfg.placeholder ?? '');
     this.sourceType = cfg.sourceType ?? 'static';
     this.queryId = String(cfg.queryId ?? '').trim();
+    this.serviceId = String(cfg.serviceId ?? '').trim();
     this.vocabRef = String(cfg.vocabRef ?? '').trim();
     this.provider = String(cfg.provider ?? '').trim();
     this.resultArrayProperty = String(cfg.resultArrayProperty ?? '').trim();
@@ -169,7 +171,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
     this.allowFreeText = cfg.requireSelection !== true;
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
-    this.cacheResults = cfg.cacheResults ?? this.sourceType !== 'namedQuery';
+    this.cacheResults = cfg.cacheResults ?? (this.sourceType !== 'namedQuery' && this.sourceType !== 'service');
     this.historicalVocabMode = cfg.historicalVocabMode === 'disable' ? 'disable' : 'hide';
     this.hasHistoricalOrUnknownModelValue = false;
     this.readOnlyAfterSelectLocked = Boolean(cfg.readOnlyAfterSelect) && Boolean(this.model?.getValue());
@@ -177,9 +179,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
     this.applyInitialDisplayFromModel();
     this.bindModelValueSync();
-    if (this.isDisabled) {
-      this.setDisabled(true, { emitEvent: false, onlySelf: true });
-    }
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       if (this.programmaticDisplayUpdate) {
         return;
@@ -249,26 +248,21 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.setModelFromFreeText(text);
   }
 
+  public override get isDisabled(): boolean {
+    return super.isDisabled || this.model?.isDisabled || false;
+  }
+
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    const currentDisabled = this.isDisabled;
+    super.setDisabled(disabled, opts);
+
     try {
-      if (!disabled && this.formControl?.disabled) {
-        this.formControl.enable(opts);
-      } else if (disabled && this.formControl?.enabled) {
-        this.formControl.disable(opts);
-      }
-      if (!disabled && this.displayControl.disabled) {
-        this.displayControl.enable(opts);
-      } else if (disabled && this.displayControl.enabled) {
-        this.displayControl.disable(opts);
-      }
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = disabled;
+      // Also disable and enable the display formControl.
+      if (!disabled && this.displayControl?.disabled) {
+        this.displayControl?.enable(opts);
+      } else if (disabled && this.displayControl?.enabled) {
+        this.displayControl?.disable(opts);
       }
     } catch (error) {
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = currentDisabled;
-      }
       this.loggerService.error(
         `Could not set typeahead disabled state with value ${disabled} and opts ${JSON.stringify(opts)}.`,
         error
@@ -314,6 +308,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (this.sourceType === 'namedQuery' && !this.queryId) {
       this.searchState = 'misconfigured';
       this.statusMessage = 'Missing queryId for namedQuery typeahead source';
+      return false;
+    }
+    if (this.sourceType === 'service' && !this.serviceId) {
+      this.searchState = 'misconfigured';
+      this.statusMessage = 'Missing serviceId for service typeahead source';
       return false;
     }
     if (this.sourceType === 'external' && !this.provider) {
@@ -367,6 +366,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
           this.resultArrayProperty,
           this.labelField,
           this.valueField
+        );
+      } else if (this.sourceType === 'service') {
+        options = await this.typeaheadDataService.searchService(
+          this.serviceId,
+          trimmedTerm,
+          0,
+          this.maxResults
         );
       } else {
         options = await this.typeaheadDataService.searchNamedQuery(

@@ -79,6 +79,7 @@ export module Controllers {
 | `DynamicAssetController` |
 | `EmailController` |
 | `ExportController` |
+| `FormVocabularyController` |
 | `RecordAuditController` |
 | `RecordController` |
 | `RenderViewController` |
@@ -86,7 +87,7 @@ export module Controllers {
 | `ReportsController` |
 | `TranslationController` |
 | `UserController` |
-| `VocabController` |
+| `VocabularyController` |
 | `WorkspaceAsyncController` |
 | `WorkspaceTypesController` |
 

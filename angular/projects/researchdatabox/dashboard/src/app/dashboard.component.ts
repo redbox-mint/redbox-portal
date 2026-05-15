@@ -1,6 +1,6 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService, DashboardViewDefinitionResponse, DashboardViewStepDefinitionResponse } from '@researchdatabox/portal-ng-common';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has, unset as _unset } from 'lodash-es';
 
 @Component({
@@ -15,6 +15,8 @@ export class DashboardComponent extends BaseComponent {
   rootContext: string = '';
   baseUrl: string = '';
   workflowSteps: any = [];
+  dashboardView: string = '';
+  dashboardViewConfig: DashboardViewDefinitionResponse | null = null;
   typeLabel: string = '';
   recordType: string;
   packageType: string;
@@ -148,13 +150,14 @@ export class DashboardComponent extends BaseComponent {
     super();
     this.recordType = _trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _trim(elementRef.nativeElement.getAttribute('packageType'));
+    this.dashboardView = _trim(elementRef.nativeElement.getAttribute('dashboardView'));
     let dashboardType = _trim(elementRef.nativeElement.getAttribute('dashboardType'));
     if (_isUndefined(dashboardType) || _isNull(dashboardType) || _isEmpty(dashboardType)) {
       this.dashboardTypeSelected = this.defaultDashboardTypeSelected;
     } else {
       this.dashboardTypeSelected = dashboardType;
     }
-    if (!_isUndefined(this.packageType) && !_isNull(this.packageType) && !_isEmpty(this.packageType)) {
+    if (_isEmpty(this.dashboardView) && !_isUndefined(this.packageType) && !_isNull(this.packageType) && !_isEmpty(this.packageType) && this.packageType == 'workspace') {
       this.dashboardTypeSelected = this.packageType;
     }
 
@@ -172,15 +175,54 @@ export class DashboardComponent extends BaseComponent {
       this.rootContext = this.configService.rootContext;
       this.branding = _get(this.config, 'branding');
       this.portal = _get(this.config, 'portal');
-      this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
       this.currentUser = await this.userService.getInfo();
-      await this.initView(this.recordType);
+      if (!_isEmpty(this.dashboardView)) {
+        await this.initDashboardView(this.dashboardView);
+      } else {
+        this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
+        await this.initView(this.recordType);
+      }
     } else {
       this.loggerService.debug(`Unsupported Dashboard Type: ${this.dashboardTypeSelected}`);
     }
   }
 
+  public getStepKey(step: any): string {
+    return _get(step, 'stepKey', _get(step, 'config.workflow.stage', _get(step, 'name', '')));
+  }
+
+  public getStepStageLabel(step: any): string {
+    return _get(step, 'config.workflow.stageLabel', _get(step, 'name', ''));
+  }
+
+  private getTemplateContextKey(recordType: string): string {
+    return !_isEmpty(this.dashboardView) ? this.dashboardView : recordType;
+  }
+
+  private normalizeDashboardViewStep(step: DashboardViewStepDefinitionResponse) {
+    return {
+      name: step.name,
+      stepKey: step.name,
+      config: {
+        workflow: {
+          stage: step.name,
+          stageLabel: step.name
+        },
+        baseRecordType: step.baseRecordType,
+        dashboard: {
+          table: step.dashboardTable
+        }
+      },
+      dashboardViewStep: step
+    };
+  }
+
   public async initView(recordType: string) {
+    this.workflowSteps = [];
+    this.records = {};
+    this.tableConfig = {};
+    this.sortMap = {};
+    this.hideWorkflowStepTitle = false;
 
     this.formatRules = this.defaultFormatRules;
     this.rowLevelRules = this.defaultRowLevelRules;
@@ -209,6 +251,7 @@ export class DashboardComponent extends BaseComponent {
 
     let startIndex = 1;
     for (let step of steps) {
+      const stepKey = this.getStepKey(step);
 
       this.initStepTableConfig(recordType, step);
 
@@ -218,24 +261,52 @@ export class DashboardComponent extends BaseComponent {
 
       let packageType = '';
       let stepName = '';
-      let evaluateStepName = '';
-      if (this.dashboardTypeSelected == 'consolidated') {
-        packageType = '';
-        stepName = '';
-        evaluateStepName = _get(step, 'name');
-        recordType = _get(step, 'config.baseRecordType');
-      } else if (this.dashboardTypeSelected == 'workspace') {
+      let evaluateStepName = stepKey;
+      if (this.dashboardTypeSelected == 'workspace') {
         stepName = '';
         packageType = this.packageType;
-        evaluateStepName = _get(step, 'name');
         recordType = '';
       } else {
         packageType = '';
-        stepName = _get(step, 'name');
-        evaluateStepName = stepName;
+        stepName = stepKey;
       }
 
       await this.initStep(stepName, evaluateStepName, recordType, packageType, startIndex, defaultSortObject);
+    }
+  }
+
+  public async initDashboardView(dashboardView: string) {
+    this.workflowSteps = [];
+    this.records = {};
+    this.tableConfig = {};
+    this.sortMap = {};
+    this.hideWorkflowStepTitle = false;
+
+    const dashboardViewConfig = await this.recordService.getDashboardView(dashboardView);
+    this.dashboardViewConfig = dashboardViewConfig;
+    this.recordType = dashboardViewConfig.sourceRecordType;
+    this.dashboardTypeSelected = dashboardViewConfig.dashboardType || this.dashboardTypeSelected;
+    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
+
+    const dashboardTypeConfig: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
+    const formatRules: FormatRules = _get(dashboardTypeConfig, 'formatRules');
+    this.formatRules = !_isUndefined(formatRules) && !_isNull(formatRules) && !_isEmpty(formatRules) ? formatRules : this.defaultFormatRules;
+    this.rowLevelRules = this.defaultRowLevelRules;
+    this.groupRowConfig = this.defaultGroupRowConfig;
+    this.groupRowRules = this.defaultGroupRowRules;
+
+    const steps = (dashboardViewConfig.steps || []).map((step) => this.normalizeDashboardViewStep(step));
+    for (const step of steps) {
+      const stepKey = this.getStepKey(step);
+      this.initStepTableConfig(this.dashboardView || this.recordType, step);
+      const defaultSortObject = this.initSortMap(step);
+      this.workflowSteps.push(step);
+      await this.handlebarsTemplateService.loadDashboardViewTemplates(this.branding, this.portal, dashboardView, stepKey, this.dashboardTypeSelected);
+
+      const dashboardStep = _get(step, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+      const stepName = dashboardStep.fetchMode == 'workflowStage' ? (dashboardStep.sourceWorkflowStage || stepKey) : '';
+      const stepRecordType = dashboardStep.sourceRecordType || this.recordType;
+      await this.initStep(stepName, stepKey, stepRecordType, '', 1, defaultSortObject);
     }
   }
 
@@ -265,7 +336,7 @@ export class DashboardComponent extends BaseComponent {
     // Pre-load templates for all steps
     for (const step of steps) {
       if (step.name) {
-        await this.handlebarsTemplateService.loadDashboardTemplates(this.branding, this.portal, recordType, step.name, this.dashboardTypeSelected);
+        await this.handlebarsTemplateService.loadDashboardTemplates(this.branding, this.portal, recordType, this.getStepKey(step), this.dashboardTypeSelected);
       }
     }
 
@@ -285,8 +356,8 @@ export class DashboardComponent extends BaseComponent {
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowConfig'))) {
         stepRowConfig = _get(step, 'config.dashboard.table.rowConfig');
-        _unset(this.sortFields, step.name);
-        _set(this.sortFields, step.name, _map(stepRowConfig, (config) => { return config.variable; }));
+        _unset(this.sortFields, this.getStepKey(step));
+        _set(this.sortFields, this.getStepKey(step), _map(stepRowConfig, (config) => { return config.variable; }));
       }
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowRulesConfig'))) {
@@ -307,7 +378,7 @@ export class DashboardComponent extends BaseComponent {
       }
     }
 
-    this.tableConfig[step.name] = stepRowConfig;
+    this.tableConfig[this.getStepKey(step)] = stepRowConfig;
   }
 
   public async initStep(stepName: string, evaluateStepName: string, recordType: string, packageType: string, startIndex: number, defaultSortObject: any) {
@@ -334,7 +405,7 @@ export class DashboardComponent extends BaseComponent {
 
     let planTable: PlanTable;
 
-    if (this.dashboardTypeSelected == 'consolidated') {
+    if (!_isEmpty(this.dashboardView)) {
       let items: any = _get(stagedRecords, 'items');
       let totalItems = _get(stagedRecords, 'totalItems');
       let noItemsPerPage = _get(stagedRecords, 'noItems');
@@ -499,7 +570,7 @@ export class DashboardComponent extends BaseComponent {
           // }
           for (let i = 0; i < stepRowConfig.length; i++) {
             const columnConfig = stepRowConfig[i];
-            const keyParts = [recordType, stepName, 'rowConfig', i.toString(), columnConfig.variable];
+            const keyParts = [this.getTemplateContextKey(recordType), stepName, 'rowConfig', i.toString(), columnConfig.variable];
             record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, keyParts);
           }
 
@@ -516,7 +587,7 @@ export class DashboardComponent extends BaseComponent {
           // }
           for (let i = 0; i < groupRowConfig.length; i++) {
             const groupRow = groupRowConfig[i];
-            const keyParts = [recordType, stepName, 'groupRowConfig', i.toString(), groupRow.variable];
+            const keyParts = [this.getTemplateContextKey(recordType), stepName, 'groupRowConfig', i.toString(), groupRow.variable];
             groupRecord[groupRow.variable] = this.handlebarsTemplateService.compileAndRunTemplate(groupRow.template, imports, keyParts);
           }
 
@@ -551,7 +622,7 @@ export class DashboardComponent extends BaseComponent {
           // }
           for (let i = 0; i < stepRowConfig.length; i++) {
             const columnConfig = stepRowConfig[i];
-            const keyParts = [recordType, stepName, 'rowConfig', i.toString(), columnConfig.variable];
+            const keyParts = [this.getTemplateContextKey(recordType), stepName, 'rowConfig', i.toString(), columnConfig.variable];
             record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, keyParts);
           }
 
@@ -597,7 +668,7 @@ export class DashboardComponent extends BaseComponent {
       let renderedRules: any[] = [];
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
-        const keyBase = [recordType, stepName, 'rowRules', ruleSetName, i.toString()];
+        const keyBase = [this.getTemplateContextKey(recordType), stepName, 'rowRules', ruleSetName, i.toString()];
 
         if (rule.evaluateRulesTemplate) {
           const evaluateKey = [...keyBase, 'evaluate'];
@@ -647,7 +718,7 @@ export class DashboardComponent extends BaseComponent {
       let renderedRules: any[] = [];
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
-        const keyBase = [recordType, stepName, 'groupRowRules', ruleSetName, i.toString()];
+        const keyBase = [this.getTemplateContextKey(recordType), stepName, 'groupRowRules', ruleSetName, i.toString()];
 
         if (rule.evaluateRulesTemplate) {
           const evaluateKey = [...keyBase, 'evaluate'];
@@ -678,9 +749,9 @@ export class DashboardComponent extends BaseComponent {
 
   private initSortMap(step: any) {
 
-    let stepRowConfig: any[] = this.tableConfig[step.name];
+    let stepRowConfig: any[] = this.tableConfig[this.getStepKey(step)];
 
-    this.sortMap[step.name] = {};
+    this.sortMap[this.getStepKey(step)] = {};
 
     let stepRowConfigLength = stepRowConfig.length - 1;
 
@@ -694,7 +765,7 @@ export class DashboardComponent extends BaseComponent {
 
       if (columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
 
-        this.sortMap[step.name][columnConfig.variable] = {
+        this.sortMap[this.getStepKey(step)][columnConfig.variable] = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
           defaultSort: columnConfig.defaultSort == true ? true : false
@@ -705,7 +776,7 @@ export class DashboardComponent extends BaseComponent {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          step: step.name,
+          step: this.getStepKey(step),
           title: '',
           variable: columnConfig.variable
         }
@@ -713,14 +784,14 @@ export class DashboardComponent extends BaseComponent {
         defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          step: step.name,
+          step: this.getStepKey(step),
           title: '',
           variable: columnConfig.variable
         }
       }
     }
 
-    if (this.dashboardTypeSelected == 'consolidated') {
+    if (!_isEmpty(this.dashboardView)) {
       this.enableSort = false;
     } else {
       this.enableSort = true;
@@ -798,12 +869,21 @@ export class DashboardComponent extends BaseComponent {
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
-    } else if (this.dashboardTypeSelected == 'consolidated') {
-      let packageType = '';
-      let stepName = '';
-      let evaluateStepName = _get(this.workflowSteps[0], 'name');
-      let recordType = _get(this.workflowSteps[0], 'config.baseRecordType');
-      await this.initStep(stepName, evaluateStepName, recordType, packageType, event.page, {});
+    } else if (!_isEmpty(this.dashboardView)) {
+      const workflowSteps = _isArray(this.workflowSteps) ? this.workflowSteps : [];
+      if (workflowSteps.length === 0) {
+        this.isProcessingPageChange = false;
+        return;
+      }
+
+      const currentStep = _find(workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || workflowSteps[0];
+      const evaluateStepName = this.getStepKey(currentStep) || step;
+      const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
+      const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+      const stepName = dashboardViewStep.fetchMode == 'workflowStage'
+        ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
+        : '';
+      await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       this.isProcessingPageChange = false;
     }
   }
@@ -811,7 +891,7 @@ export class DashboardComponent extends BaseComponent {
 
 
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep, 'config.workflow.stage', '');
+    let step = this.getStepKey(workflowStep);
     let sort = 'desc';
     if (step != '') {
       let sortMapAtStep = sortMap[step];
@@ -824,7 +904,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _get(workflowStep, 'config.workflow.stage', '');
+    let step = this.getStepKey(workflowStep);
     let secondarySort = 'desc';
     if (step != '') {
       let sortMapAtStep = sortMap[step];
@@ -978,7 +1058,7 @@ export class DashboardComponent extends BaseComponent {
             let filterField = queryFilter.filterFields[j];
             if (filterField.path == this.filterFieldPath) {
               if ((filterField as any).template) {
-                const keyBase = [this.recordType, this.dashboardTypeSelected, 'filters', i.toString(), 'fields', j.toString(), 'template'];
+                const keyBase = [this.getTemplateContextKey(this.recordType), this.dashboardTypeSelected, 'filters', i.toString(), 'fields', j.toString(), 'template'];
                 const imports: any = { value: filterString };
                 return this.handlebarsTemplateService.compileAndRunTemplate((filterField as any).template, imports, keyBase);
               }

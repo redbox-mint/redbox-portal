@@ -1886,6 +1886,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('columnTitle', item.config, {
       columnTitle: String(definition.columnTitle ?? 'Record title'),
     });
+    this.sharedProps.setPropOverride('relationshipId', item.config, {
+      relationshipId: typeof definition.relationshipId === 'string' ? definition.relationshipId : undefined,
+    });
     this.sharedProps.setPropOverride('recordType', item.config, {
       recordType: typeof definition.recordType === 'string' ? definition.recordType : undefined,
     });
@@ -2008,6 +2011,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+    } else if (sourceType === 'service') {
+      const serviceId = String(definition.serviceId ?? '').trim();
+      if (serviceId) {
+        this.sharedProps.setPropOverride('serviceId', item.config, { serviceId });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing serviceId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
     } else if (sourceType === 'external') {
@@ -3195,12 +3207,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   }
 
-  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' {
+  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' | 'service' {
     const legacySourceType = String(definition.sourceType ?? '')
       .trim()
       .toLowerCase();
     if (legacySourceType === 'query' || legacySourceType === 'namedquery') {
       return 'namedQuery';
+    }
+    if (legacySourceType === 'service') {
+      return 'service';
     }
     if (legacySourceType === 'external') {
       return 'external';
@@ -3216,6 +3231,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     if (definition.vocabRef || definition.vocabId) {
       return 'vocabulary';
+    }
+    if (definition.serviceId) {
+      return 'service';
     }
     if (definition.provider) {
       return 'external';

@@ -30,6 +30,7 @@ export type RecordSelectorComponentNameType = typeof RecordSelectorComponentName
 
 export interface RecordSelectorFieldComponentConfigFrame extends FieldComponentConfigFrame {
   columnTitle?: string;
+  relationshipId?: string;
   recordType?: string;
   workflowState?: string;
   filterMode?: string;

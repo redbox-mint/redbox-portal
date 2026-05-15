@@ -230,6 +230,20 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('urlEncode', function () {
+        it('should encode path segment values and preserve path separators', function () {
+            const result = handlebarsHelperDefinitions.urlEncode('/mounted app/oid with spaces/#1/');
+
+            expect(result).to.equal('/mounted%20app/oid%20with%20spaces/%231');
+        });
+
+        it('should return an empty string for empty input', function () {
+            const result = handlebarsHelperDefinitions.urlEncode('');
+
+            expect(result).to.equal('');
+        });
+    });
+
     describe('default', function () {
         it('should return value if truthy', function () {
             const result = handlebarsHelperDefinitions.default('hello', 'default');

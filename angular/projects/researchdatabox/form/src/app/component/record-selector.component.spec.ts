@@ -9,7 +9,7 @@ describe('RecordSelectorComponent', () => {
   let translationService: any;
 
   beforeEach(async () => {
-    recordService = jasmine.createSpyObj<RecordService>('RecordService', ['waitForInit', 'getRecords']);
+    recordService = jasmine.createSpyObj<RecordService>('RecordService', ['waitForInit', 'getRecords', 'getType']);
     recordService.waitForInit.and.resolveTo(recordService);
     recordService.getRecords.and.resolveTo({
       records: [
@@ -17,6 +17,7 @@ describe('RecordSelectorComponent', () => {
         { oid: 'rec-2', title: 'Beta record' },
       ],
     });
+    recordService.getType.and.resolveTo({ name: 'rdmp', packageType: 'rdmp', searchFilters: [], searchable: true, relatedTo: [] });
 
     const testBed = await createTestbedModule({
       declarations: {

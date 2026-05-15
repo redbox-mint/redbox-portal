@@ -6,7 +6,7 @@
           <div class="d-flex flex-row">
             @if (workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
               <div class="col-md-4">
-                <h2>{{ 'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel} }}</h2>
+                <h2>{{ 'dashboard-heading' | i18next: {stage: getStepStageLabel(workflowStep), recordTypeName: typeLabel} }}</h2>
               </div>
             }
             @if (workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
@@ -14,7 +14,7 @@
                 <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
               </div>
             }
-            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && ((records[workflowStep.config.workflow.stage]?.totalItems > 0) || (records[workflowStep.config.workflow.stage]?.totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))) {
+            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && ((records[getStepKey(workflowStep)]?.totalItems > 0) || (records[getStepKey(workflowStep)]?.totalItems <= 0 && getFilterSearchDisplayed(getStepKey(workflowStep))))) {
               <div class="col-md-8">
                 <div class="d-flex flex-row mt-4">
                   <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
@@ -23,31 +23,31 @@
                       <li><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a></li>
                     }
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event)">{{ 'record-search-reset' | i18next }}</a></li>
+                    <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</a></li>
                   </ul>
-                  <input type="text" class="form-control" [(ngModel)]="filterSearchString[workflowStep.config.workflow.stage]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
-                  <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(workflowStep.config.workflow.stage) || getFilterSearchString(workflowStep.config.workflow.stage) == ''" (click)="filterChanged(workflowStep.config.workflow.stage)">{{ 'record-search-basic-search' | i18next }}</button>
+                  <input type="text" class="form-control" [(ngModel)]="filterSearchString[getStepKey(workflowStep)]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(getStepKey(workflowStep))" aria-describedby="basic-search-addon" autofocus>
+                  <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(getStepKey(workflowStep)) || getFilterSearchString(getStepKey(workflowStep)) == ''" (click)="filterChanged(getStepKey(workflowStep))">{{ 'record-search-basic-search' | i18next }}</button>
                 </div>
               </div>
               <div class="col-md-4"></div>
             }
           </div>
-          @if (records[workflowStep.config.workflow.stage] != null) {
+          @if (records[getStepKey(workflowStep)] != null) {
             <div>
-              @if (records[workflowStep.config.workflow.stage].totalItems <= 0) {
+              @if (records[getStepKey(workflowStep)].totalItems <= 0) {
                 <div class="padding-bottom-10" >
-                  {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}
+                  {{ 'no-records' | i18next: {stage: getStepStageLabel(workflowStep).toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}
                 </div>
               }
-              @if (records[workflowStep.config.workflow.stage].totalItems > 0) {
+              @if (records[getStepKey(workflowStep)].totalItems > 0) {
                 <div>
                   <table class="table">
                     <thead>
                       <tr>
-                        @for (rowConfig of tableConfig[workflowStep.config.workflow.stage]; track rowConfig) {
+                        @for (rowConfig of tableConfig[getStepKey(workflowStep)]; track rowConfig) {
                           <th>
                             @if (enableSort) {
-                              <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
+                              <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
                             }
                             @if (!enableSort) {
                               <span class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
@@ -56,17 +56,17 @@
                         }
                       </tr>
                     </thead>
-                    @for (plan of records[workflowStep.config.workflow.stage].items; track plan) {
+                    @for (plan of records[getStepKey(workflowStep)].items; track plan) {
                       <tbody>
-                        <tr>@for (rowConfig of tableConfig[workflowStep.config.workflow.stage]; track rowConfig) {
+                        <tr>@for (rowConfig of tableConfig[getStepKey(workflowStep)]; track rowConfig) {
                           <td [innerHtml]="plan[rowConfig.variable]"></td>
                         }</tr>
                       </tbody>
                     }
                   </table>
-                  @if (records[workflowStep.config.workflow.stage].totalItems > 0) {
-                    <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"
-                    [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>
+                  @if (records[getStepKey(workflowStep)].totalItems > 0) {
+                    <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
+                    [(ngModel)]="records[getStepKey(workflowStep)].currentPage" (pageChanged)="pageChanged($event,getStepKey(workflowStep))" class="pagination-sm" [maxSize]="10"></pagination>
                   }
                 </div>
               }

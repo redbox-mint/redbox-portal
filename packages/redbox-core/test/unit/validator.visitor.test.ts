@@ -514,6 +514,38 @@ describe("Validator Visitor", async () => {
         expect(classNames).to.contain("typeaheadProvider");
     });
 
+    it("should report service typeahead serviceId requirement", async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = constructor.start({
+            data: {
+                name: "typeahead-service-validator",
+                componentDefinitions: [
+                    {
+                        name: "serviceLookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "service"
+                            }
+                        },
+                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
+                    }
+                ]
+            },
+            formMode: "edit",
+            reusableFormDefs: reusableFormDefinitions,
+        });
+
+        const visitor = new ValidatorFormConfigVisitor(logger);
+        const actual = visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
+        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
+        expect(classNames).to.contain("typeaheadServiceId");
+    });
+
     describe("HTML Sanitization", () => {
         const dirtyHtml = '<p>Safe</p><script>alert("xss")</script><img src="x" onerror="alert(1)">';
         const cleanHtml = '<p>Safe</p><img src="x">';

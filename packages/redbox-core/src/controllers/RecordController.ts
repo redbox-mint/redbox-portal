@@ -24,6 +24,7 @@ import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
+  DashboardViewResponseModel,
   Controllers as controllers,
   DatastreamService,
   RecordsService,
@@ -43,6 +44,9 @@ import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
+import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -114,10 +118,13 @@ export namespace Controllers {
       'listWorkspaces',
       'getAllDashboardTypes',
       'getDashboardType',
+      'getDashboardView',
+      'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
       'restoreRecord',
       'destroyDeletedRecord',
+      'renderDashboardView',
     ];
 
     /**
@@ -158,6 +165,89 @@ export namespace Controllers {
 
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand(req.session.branding as string ?? '');
+    }
+
+    private shouldIncludeRelationships(req: Sails.Req): boolean {
+      const include = String(req.param('include') ?? req.query.include ?? '').trim().toLowerCase();
+      const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '').trim().toLowerCase();
+      return include.split(',').includes('relationships') || includeRelationships === 'true';
+    }
+
+    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
+      const parseCsv = (value: unknown): string[] | undefined => {
+        const normalized = String(value ?? '').trim();
+        if (!normalized) {
+          return undefined;
+        }
+        return normalized.split(',').map((item) => item.trim()).filter(Boolean);
+      };
+
+      const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
+      const parsedDepth = Number(depthValue);
+      const fields = String(req.param('fields') ?? req.query.fields ?? '').trim().toLowerCase();
+
+      return {
+        depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
+        includeRelationIds: parseCsv(req.param('relationshipIds') ?? req.query.relationshipIds),
+        includeRecordTypes: parseCsv(req.param('recordTypes') ?? req.query.recordTypes),
+        fields: fields === 'summary' ? 'summary' : 'full',
+      };
+    }
+
+    private async filterRelationshipGraphByAccess(
+      brand: BrandingModel,
+      user: AnyRecord | undefined,
+      graph: RecordRelationshipGraph
+    ): Promise<RecordRelationshipGraph> {
+      const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
+      const allowedTargetOids = new Set<string>();
+      const omittedByAccess: globalThis.Record<string, number> = { ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>) };
+
+      for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
+        const keptRecords: unknown[] = [];
+        for (const recordValue of records ?? []) {
+          const record = (recordValue ?? {}) as AnyRecord;
+          const recordOid = String(record.redboxOid ?? '').trim();
+          if (!recordOid) {
+            continue;
+          }
+          if (recordOid === graph.rootOid) {
+            keptRecords.push(record);
+            allowedTargetOids.add(recordOid);
+            continue;
+          }
+          const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
+          if (hasAccess) {
+            keptRecords.push(record);
+            allowedTargetOids.add(recordOid);
+          }
+        }
+        if (keptRecords.length > 0) {
+          filteredRelatedObjects[recordType] = keptRecords;
+        }
+      }
+
+      const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
+        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+          return true;
+        }
+        omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
+        return false;
+      });
+
+      return {
+        rootOid: graph.rootOid,
+        edges: filteredEdges,
+        relatedObjects: filteredRelatedObjects,
+        omittedByAccess,
+      };
+    }
+
+    private buildLegacyRelatedRecordsResponse(graph: RecordRelationshipGraph) {
+      return {
+        ...graph,
+        processedRelationships: Object.keys(graph.relatedObjects ?? {}),
+      };
     }
 
     public async getMeta(req: Sails.Req, res: Sails.Res) {
@@ -219,7 +309,18 @@ export namespace Controllers {
             }
           }
 
-          return this.sendResp(req, res, { data: record.metadata, meta: { oid: record.redboxOid }, v1: record.metadata });
+          if (!this.shouldIncludeRelationships(req)) {
+            return this.sendResp(req, res, { data: record.metadata, meta: { oid: record.redboxOid }, v1: record.metadata });
+          }
+
+          const relationshipOptions = this.parseRelationshipExpandOptions(req, 1);
+          const relationships = await this.recordsService.getRelatedRecords(record.redboxOid, brand, relationshipOptions);
+          const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
+          return this.sendResp(req, res, {
+            data: record.metadata,
+            meta: { oid: record.redboxOid, relationships: filteredRelationships },
+            v1: { ...record.metadata, relationships: filteredRelationships },
+          });
         } else {
           return this.sendResp(req, res, {
             status: 403,
@@ -917,7 +1018,13 @@ export namespace Controllers {
       const recordType = req.param('recordType');
       const brand: BrandingModel = this.getReqBrand(req);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        const recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
+        const recordTypeModel = new RecordTypeResponseModel(
+          _.get(recordType, 'name'),
+          _.get(recordType, 'packageType'),
+          _.get(recordType, 'searchFilters'),
+          _.get(recordType, 'searchable'),
+          normalizeRecordRelations(String(_.get(recordType, 'name', _.get(recordType, 'id', ''))), _.get(recordType, 'relatedTo'))
+        );
         this.sendResp(req, res, { data: recordTypeModel });
       }, error => {
         this.sendResp(req, res, {
@@ -936,7 +1043,13 @@ export namespace Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         const recordTypeModels = [];
         for (const recType of recordTypes) {
-          const recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'), _.get(recType, 'searchFilters'), _.get(recType, 'searchable'));
+          const recordTypeModel = new RecordTypeResponseModel(
+            _.get(recType, 'name'),
+            _.get(recType, 'packageType'),
+            _.get(recType, 'searchFilters'),
+            _.get(recType, 'searchable'),
+            normalizeRecordRelations(String(_.get(recType, 'name', '')), _.get(recType, 'relatedTo'))
+          );
           recordTypeModels.push(recordTypeModel);
         }
         this.sendResp(req, res, { data: recordTypeModels });
@@ -958,6 +1071,34 @@ export namespace Controllers {
       });
     }
 
+    private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
+      if (!dashboardView || !_.isObject(dashboardView)) {
+        return false;
+      }
+
+      const view = dashboardView as DashboardViewDefinition;
+      return _.isString(view.name)
+        && !_.isEmpty(view.name.trim())
+        && _.isString(view.titleLabelKey)
+        && !_.isEmpty(view.titleLabelKey.trim())
+        && _.isString(view.dashboardType)
+        && !_.isEmpty(view.dashboardType.trim())
+        && _.isString(view.sourceRecordType)
+        && !_.isEmpty(view.sourceRecordType.trim())
+        && _.isArray(view.steps)
+        && view.steps.length > 0
+        && view.steps.every((step) => {
+          const dashboardViewStep = step as DashboardViewStepDefinition;
+          return _.isObject(step)
+            && _.isString(dashboardViewStep.name)
+            && !_.isEmpty(dashboardViewStep.name.trim())
+            && _.isString(dashboardViewStep.sourceRecordType)
+            && !_.isEmpty(dashboardViewStep.sourceRecordType.trim())
+            && (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
+            && _.isObject(dashboardViewStep.dashboardTable);
+        });
+    }
+
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
@@ -972,6 +1113,23 @@ export namespace Controllers {
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
       });
+    }
+
+    public getDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewParam = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewParam)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      try {
+        const dashboardView = DashboardTypesService.getDashboardView(dashboardViewParam);
+        if (!this.isValidDashboardViewDefinition(dashboardView)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+        }
+        return this.sendResp(req, res, { data: new DashboardViewResponseModel(dashboardView) });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+      }
     }
 
     protected tusServer: TusServer | null = null;
@@ -1021,12 +1179,12 @@ export namespace Controllers {
         datastore,
         respectForwardedHeaders: true,
         disableTerminationForFinishedUploads: true,
-        generateUrl(req, { host, path, id }) {
+        generateUrl(req, { host, id }) {
           const tusReq = req as unknown as TusRequestExtension;
           const baseUrl = (tusReq._tusBaseUrl ?? '').replace(/\/+$/, '');
-          const cleanPath = path.startsWith('/') ? path : `/${path}`;
-          // Preserve historical behavior expected by integration clients/tests (scheme-relative URL).
-          return `//${host}${baseUrl}${cleanPath}/${id}`;
+          // The datastore path is an internal TUS mount. Clients must continue
+          // chunking through the routed RecordController attachment endpoint.
+          return `//${host}${baseUrl}/attach/${id}`;
         },
       });
 
@@ -1305,8 +1463,10 @@ export namespace Controllers {
       //let record = await this.getRecord(oid).toPromise();
       //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
       //plus some additional rules/logic that may be applied to filter the records
-      const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand);
-      return relatedRecords;
+      const relationshipOptions = this.parseRelationshipExpandOptions(req);
+      const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
+      const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);
+      return this.buildLegacyRelatedRecordsResponse(filteredRelationships);
     }
 
     public async getPermissionsInternal(req: Sails.Req, _res: Sails.Res) {
@@ -1406,11 +1566,13 @@ export namespace Controllers {
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
+      let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
         }
+        dashboardType = 'workspace';
         if (titleLabel == '') {
           titleLabel = 'workspaces';
         }
@@ -1433,9 +1595,37 @@ export namespace Controllers {
       return this.sendView(req, res, 'dashboard', {
         recordType: recordType,
         packageType: packageType,
+        dashboardType: dashboardType,
+        dashboardView: '',
         titleLabel: titleLabel,
         showAdminSideBar: showAdminSideBar
       });
+    }
+
+    public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
+      if (_.isEmpty(dashboardViewName)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
+      }
+
+      const dashboardView = DashboardTypesService.getDashboardView(dashboardViewName);
+      if (!this.isValidDashboardViewDefinition(dashboardView)) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+      }
+
+      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: dashboardView.sourceRecordType,
+        packageType: '',
+        dashboardType: dashboardView.dashboardType,
+        dashboardView: dashboardView.name,
+        titleLabel,
+        showAdminSideBar: dashboardView.showAdminSideBar === true
+      });
+    }
+
+    public redirectLegacyConsolidatedDashboard(req: Sails.Req, res: Sails.Res) {
+      return res.redirect(`${BrandingService.getFullPath(req)}/dashboard-view/consolidated`);
     }
 
 

@@ -136,7 +136,7 @@ describe('UsersService', function () {
       provideUserAccessAndRemovePendingAccess: sinon.stub(),
       updateMeta: sinon.stub().resolves({ isSuccessful: () => true })
     };
-    (global as any).VocabService = {};
+    (global as any).FormVocabularyService = {};
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/UsersService');
@@ -154,7 +154,7 @@ describe('UsersService', function () {
     delete (global as any).BrandingService;
     delete (global as any).ConfigService;
     delete (global as any).RecordsService;
-    delete (global as any).VocabService;
+    delete (global as any).FormVocabularyService;
     sinon.restore();
   });
 

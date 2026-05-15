@@ -1,0 +1,109 @@
+meta {
+  name: Create data record for S3 attachment
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/recordmeta/dataRecord
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/record/dataRecord/edit
+  Connection: keep-alive
+}
+
+body:json {
+  {
+    "parameterRetriever": "",
+    "rdmpGetter": "",
+    "rdmp": {
+      "title": "S3 attachment storage regression"
+    },
+    "aim_project_name": "S3 attachment storage regression",
+    "title": "S3 attachment storage regression",
+    "description": "S3 attachment storage regression",
+    "datatype": "collection",
+    "foaf:fundedBy_foaf:Agent": [
+      ""
+    ],
+    "dc:coverage_vivo:DateTimeInterval_vivo:end": "",
+    "foaf:fundedBy_vivo:Grant": [
+      ""
+    ],
+    "dc:subject_anzsrc:for": [
+      {
+        "name": "01 - MATHEMATICAL SCIENCES",
+        "label": "MATHEMATICAL SCIENCES",
+        "notation": "01"
+      }
+    ],
+    "dc:subject_anzsrc:seo": [],
+    "finalKeywords": [],
+    "contributor_ci": {
+      "text_full_name": "Alberto Zweinstein",
+      "full_name_honorific": "Dr Alberto Zweinstein",
+      "email": "alberto.zweinstein@example.edu.au",
+      "given_name": "Alberto",
+      "family_name": "Zweinstein",
+      "honorific": "Dr",
+      "full_name_family_name_first": "Zweinstein, Alberto",
+      "username": "",
+      "role": "Chief Investigator",
+      "orcid": null
+    },
+    "contributor_data_manager": {
+      "text_full_name": "Prof Paul Gleeson",
+      "email": "notAReal@email.edu.au",
+      "username": "",
+      "role": "Data manager",
+      "orcid": "http://orcid.org/0000-0000-0000-0001"
+    },
+    "contributors": [],
+    "contributor_supervisor": {
+      "text_full_name": null,
+      "full_name_honorific": "",
+      "email": null,
+      "given_name": "",
+      "family_name": "",
+      "honorific": "",
+      "full_name_family_name_first": "",
+      "username": "",
+      "role": "Supervisor",
+      "orcid": null
+    },
+    "dataowner_name": "Alberto Zweinstein",
+    "dataowner_email": "alberto.zweinstein@example.edu.au",
+    "redbox:retentionPeriod_dc:date": "1year",
+    "redbox:retentionPeriod_dc:date_skos:note": "",
+    "disposalDate": "",
+    "related_publications": [],
+    "dataLocations": [],
+    "software_equipment": ""
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Stores created record oid", function () {
+    const jsonData = res.getBody();
+    expect(jsonData).to.have.property('oid');
+    bru.setEnvVar("s3AttachmentRecordOid", jsonData.oid);
+  });
+}

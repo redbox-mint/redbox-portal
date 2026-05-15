@@ -70,6 +70,63 @@ export interface RecordPermissionsSummary {
   viewRoles: string[];
 }
 
+export interface RecordRelationshipExpandOptions {
+  depth?: number;
+  includeRecordTypes?: string[];
+  includeRelationIds?: string[];
+  fields?: 'summary' | 'full';
+}
+
+export interface RecordRelationshipEdge {
+  relationId: string;
+  label?: string;
+  sourceOid: string;
+  targetOid: string;
+  targetRecordType: string;
+}
+
+export interface RecordRelationshipGraph {
+  rootOid: string;
+  edges: RecordRelationshipEdge[];
+  relatedObjects: Record<string, Record<string, unknown>[]>;
+  omittedByAccess: Record<string, number>;
+}
+
+export interface RecordTypeRelationship {
+  id: string;
+  label?: string;
+  recordType: string;
+  localField: string;
+  foreignField: string;
+  cardinality: 'one' | 'many';
+  direction: 'outbound' | 'inbound';
+}
+
+export interface RecordTypeDefinitionResponse {
+  name: string;
+  packageType: string;
+  searchFilters: unknown[];
+  searchable: boolean;
+  relatedTo?: RecordTypeRelationship[];
+}
+
+export interface DashboardViewStepDefinitionResponse {
+  name: string;
+  sourceRecordType: string;
+  sourceWorkflowStage?: string;
+  fetchMode: 'allForRecordType' | 'workflowStage';
+  dashboardTable: Record<string, unknown>;
+  baseRecordType?: string;
+}
+
+export interface DashboardViewDefinitionResponse {
+  name: string;
+  titleLabelKey: string;
+  showAdminSideBar?: boolean;
+  dashboardType: string;
+  sourceRecordType: string;
+  steps: DashboardViewStepDefinitionResponse[];
+}
 export interface IntegrationAuditTraceEvent {
   id: string;
   redboxOid: string;
@@ -153,6 +210,31 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  public async getRecordMetaWithOptions(oid: string, options: { includeRelationships?: boolean; relationshipDepth?: number; relationshipFields?: 'summary' | 'full' } = {}) {
+    const ts = Date.now();
+    let params = new HttpParams().set('ts', String(ts));
+    if (options.includeRelationships) {
+      params = params.set('include', 'relationships');
+    }
+    if (!_isUndefined(options.relationshipDepth)) {
+      params = params.set('relationshipDepth', String(options.relationshipDepth));
+    }
+    if (!_isEmpty(options.relationshipFields)) {
+      params = params.set('fields', String(options.relationshipFields));
+    }
+
+    const requestOptions = this.getHttpOptions();
+    const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
+    const httpOptions = {
+      ...requestOptions,
+      observe: 'body' as const,
+      responseType: 'json' as const,
+      params,
+    };
+    const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
   public async getAttachments(oid: string): Promise<RecordAttachment[]> {
@@ -290,29 +372,63 @@ export class RecordService extends HttpClientService {
     return metadata;
   }
 
-  public async getRelatedRecords(oid: string) {
+  public async getRelationshipGraph(oid: string, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+    let params = new HttpParams();
+    if (!_isUndefined(options.depth)) {
+      params = params.set('relationshipDepth', String(options.depth));
+    }
+    if (!_isEmpty(options.fields)) {
+      params = params.set('fields', String(options.fields));
+    }
+    if (Array.isArray(options.includeRelationIds) && options.includeRelationIds.length > 0) {
+      params = params.set('relationshipIds', options.includeRelationIds.join(','));
+    }
+    if (Array.isArray(options.includeRecordTypes) && options.includeRecordTypes.length > 0) {
+      params = params.set('recordTypes', options.includeRecordTypes.join(','));
+    }
 
-    let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
-    const result$ = this.http.get(url).pipe(map(res => res));
-    let relatedRecords = await firstValueFrom(result$);
+    const requestOptions = this.getHttpOptions();
+    const url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
+    const result$ = this.http.get<Record<string, unknown>>(url, {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+      params,
+    });
+    const response = await firstValueFrom(result$);
+    const graph = (_get(response, 'data') ?? response) as Record<string, unknown>;
 
-    let response: any = {};
+    return {
+      rootOid: String(graph['rootOid'] ?? oid),
+      edges: Array.isArray(graph['edges']) ? graph['edges'] as RecordRelationshipEdge[] : [],
+      relatedObjects: (graph['relatedObjects'] as Record<string, Record<string, unknown>[]>) ?? {},
+      omittedByAccess: (graph['omittedByAccess'] as Record<string, number>) ?? {},
+    };
+  }
+
+  public async getRelatedRecords(oid: string, options: RecordRelationshipExpandOptions = {}) {
+    const graphResponse = await this.getRelationshipGraph(oid, options);
+    let response: any = {
+      rootOid: graphResponse.rootOid,
+      edges: graphResponse.edges,
+      relatedObjects: graphResponse.relatedObjects,
+      omittedByAccess: graphResponse.omittedByAccess,
+      processedRelationships: Object.keys(graphResponse.relatedObjects ?? {}),
+    };
     let items = [];
-    let childOrTreeLevel2: any = _get(relatedRecords, 'processedRelationships');
+    let childOrTreeLevel2: any = Object.keys(graphResponse.relatedObjects ?? {});
 
     for (let childNameStr of childOrTreeLevel2) {
-      let childArr = _get(relatedRecords, 'relatedObjects.' + childNameStr);
+      let childArr = _get(graphResponse, 'relatedObjects.' + childNameStr);
 
       if (!_isUndefined(childArr) && _isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
           item["oid"] = child["redboxOid"];
-          item["title"] = child["metadata"]["title"];
+          item["title"] = _get(child, 'metadata.title', child["redboxOid"]);
           item["metadata"] = this.getDocMetadata(child);
           item["dateCreated"] = child["dateCreated"];
           item["dateModified"] = child["lastSaveDate"];
-          //TODO double check that this is needed or not
-          // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
           items.push(item);
         }
       }
@@ -450,11 +566,45 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
+  public async getType(recordType: string): Promise<RecordTypeDefinitionResponse> {
+    const url = `${this.brandingAndPortalUrl}/record/type/${recordType}`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
+    return ((_get(result, 'data') ?? result) as RecordTypeDefinitionResponse);
+  }
+
   public async getDashboardType(dashboardType: string) {
     let url = `${this.brandingAndPortalUrl}/dashboard/type/${dashboardType}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  public async getDashboardView(name: string): Promise<DashboardViewDefinitionResponse> {
+    const url = `${this.brandingAndPortalUrl}/dashboard/view/${name}`;
+    const requestOptions = this.getHttpOptions();
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    };
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
+    const result = await firstValueFrom(result$);
+    return ((_get(result, 'data') ?? result) as DashboardViewDefinitionResponse);
   }
 
   public async getAllDashboardTypes() {
@@ -466,17 +616,17 @@ export class RecordService extends HttpClientService {
 
   public async create(record: any, recordType: string, targetStep: string = '') {
     const httpOptions = this.getHttpOptions();
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${this.getTargetStepParam(targetStep, '?')}`;
     const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
-    let result:unknown = await firstValueFrom(result$);
+    let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
 
   public async update(oid: string, record: any, targetStep: string = '') {
     const httpOptions = this.getHttpOptions();
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${ this.getTargetStepParam(targetStep, '?' )}`;
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${this.getTargetStepParam(targetStep, '?')}`;
     const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
-    let result:unknown = await firstValueFrom(result$);
+    let result: unknown = await firstValueFrom(result$);
     return result as RecordActionResult;
   }
 
@@ -486,7 +636,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
-  success:boolean = false;
+  success: boolean = false;
   oid: string = '';
   message: string = '';
   // TODO: placeholder for incremental setting of data unto the form, etc.

@@ -17,7 +17,6 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHON=/usr/bin/python3
-ENV npm_config_python=/usr/bin/python3
 ENV NVM_DIR=/root/.nvm
 RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
 
@@ -29,12 +28,14 @@ FROM base AS builder
 COPY . .
 
 RUN npm ci \
- && (cd packages/redbox-core && npm ci) \
+ && (cd packages/agenda-sqs-backend && npm ci) \
  && (cd packages/sails-ng-common && npm ci) \
  && (cd packages/raido && npm ci) \
  && (cd packages/rva-registry && npm ci) \
+ && (cd packages/redbox-core && npm ci) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
+RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile

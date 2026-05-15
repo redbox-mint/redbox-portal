@@ -570,6 +570,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('template', item.config, config);
     this.sharedProps.setPropOverride('content', item.config, config);
     this.sharedProps.setPropOverride('contentIsTranslationCode', item.config, config);
+    this.sharedProps.setPropOverride('translationContentFormat', item.config, config);
   }
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
@@ -1783,6 +1784,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
     this.sharedProps.setPropOverride('columnTitle', item.config, config);
+    this.sharedProps.setPropOverride('relationshipId', item.config, config);
     this.sharedProps.setPropOverride('recordType', item.config, config);
     this.sharedProps.setPropOverride('workflowState', item.config, config);
     this.sharedProps.setPropOverride('filterMode', item.config, config);
@@ -1873,6 +1875,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('staticOptions', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('queryId', item.config, config);
+    this.sharedProps.setPropOverride('serviceId', item.config, config);
     this.sharedProps.setPropOverride('provider', item.config, config);
     this.sharedProps.setPropOverride('resultArrayProperty', item.config, config);
     this.sharedProps.setPropOverride('labelField', item.config, config);
@@ -1889,8 +1892,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
 
-    const sourceType = item.config.sourceType ?? 'static';
-    if (sourceType === 'namedQuery') {
+    const sourceType = String(item.config.sourceType ?? 'static');
+    if (sourceType === 'namedQuery' || sourceType === 'service') {
       if (!item.config.labelField) {
         item.config.labelField = 'label';
       }
