@@ -15,6 +15,8 @@ type SelectedContext =
   | { type: 'view'; view: string; step: string }
   | { type: 'dashboardType'; name: string };
 
+type NavSection = 'types' | 'records' | 'views';
+
 @Component({
   selector: 'dashboard-config-editor',
   templateUrl: './dashboard-config-editor.component.html',
@@ -34,6 +36,8 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   saving = false;
   message = '';
   error = '';
+  navFilter = '';
+  private collapsedNavSections = new Set<NavSection>();
 
   constructor(
     @Inject(LoggerService) private logger: LoggerService,
@@ -162,6 +166,93 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       && (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).step === step;
   }
 
+  hasRecordOverride(recordType: string, step: string): boolean {
+    const entry = this.overrides?.recordTypes?.[recordType];
+    return !!(entry?.steps && entry.steps[step]);
+  }
+
+  hasViewOverride(view: string, step: string): boolean {
+    const entry = this.overrides?.views?.[view];
+    return !!(entry?.steps && entry.steps[step]);
+  }
+
+  get hasOverrideContent(): boolean {
+    const c = this.currentOverrideConfig || {};
+    return !!(
+      (c.rowConfig && c.rowConfig.length) ||
+      (c.formatRules && Object.keys(c.formatRules).length) ||
+      (c.rowRulesConfig && c.rowRulesConfig.length) ||
+      (c.groupRowConfig && c.groupRowConfig.length) ||
+      (c.groupRowRulesConfig && c.groupRowRulesConfig.length)
+    );
+  }
+
+  toggleNavSection(section: NavSection): void {
+    if (this.collapsedNavSections.has(section)) {
+      this.collapsedNavSections.delete(section);
+    } else {
+      this.collapsedNavSections.add(section);
+    }
+  }
+
+  isNavSectionCollapsed(section: NavSection): boolean {
+    return this.collapsedNavSections.has(section);
+  }
+
+  onNavFilterChange(): void {
+    // Filtering is reactive via getters — this is here for future debounce hooks.
+  }
+
+  clearNavFilter(): void {
+    this.navFilter = '';
+  }
+
+  private matchesFilter(value: string): boolean {
+    const term = this.navFilter.trim().toLowerCase();
+    if (!term) {
+      return true;
+    }
+    return value.toLowerCase().includes(term);
+  }
+
+  get filteredTypeList(): DashboardTypeDefinition[] {
+    return this.typeList.filter((type) =>
+      this.matchesFilter(type.name) || (type.description ? this.matchesFilter(type.description) : false)
+    );
+  }
+
+  get filteredRecordTypes(): Array<{ name: string; steps: string[] }> {
+    return this.selectedRecordTypes
+      .map((rt) => {
+        if (this.matchesFilter(rt.name)) {
+          return rt;
+        }
+        const steps = rt.steps.filter((step) => this.matchesFilter(step));
+        return steps.length ? { name: rt.name, steps } : null;
+      })
+      .filter((rt): rt is { name: string; steps: string[] } => rt !== null);
+  }
+
+  get filteredRecordTypeCount(): number {
+    return this.filteredRecordTypes.reduce((acc, rt) => acc + rt.steps.length, 0);
+  }
+
+  get filteredViews(): Array<{ name: string; steps: string[] }> {
+    return this.selectedViews
+      .map((v) => {
+        if (this.matchesFilter(v.name)) {
+          return v;
+        }
+        const steps = v.steps.filter((step) => this.matchesFilter(step));
+        return steps.length ? { name: v.name, steps } : null;
+      })
+      .filter((v): v is { name: string; steps: string[] } => v !== null);
+  }
+
+  get filteredViewCount(): number {
+    return this.filteredViews.reduce((acc, v) => acc + v.steps.length, 0);
+  }
+
   async save(): Promise<void> {
     if (!this.selectedContext) {
       return;
@@ -196,10 +287,12 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
         if (this.selectedContext.type === 'recordType') {
           await this.api.saveWorkflowStateDashboardConfig(this.selectedContext.recordType, this.selectedContext.step, payload);
           this.message = 'Saved workflow state configuration.';
+          this.overrides = await this.api.getOverrides();
           await this.loadMergedSelection();
         } else if (this.selectedContext.type === 'view') {
           await this.api.saveDashboardViewStepConfig(this.selectedContext.view, this.selectedContext.step, payload);
           this.message = 'Saved dashboard view step configuration.';
+          this.overrides = await this.api.getOverrides();
           await this.loadMergedSelection();
         }
       }

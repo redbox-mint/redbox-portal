@@ -1,136 +1,310 @@
-<div class="dashboard-config-editor">
-  <div class="toolbar">
-    <h2>Dashboard Configuration</h2>
-    <div class="toolbar-actions">
-      <button type="button" class="btn btn-default" (click)="startNewDashboardType()">New type</button>
-      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving || loading">
-        {{ saving ? 'Saving…' : 'Save' }}
-      </button>
+<div class="col-xs-12 dashboard-config-editor">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <span class="panel-title">
+        <i class="fa fa-th-large"></i>
+        Dashboard Configuration
+      </span>
     </div>
-  </div>
+    <div class="panel-body">
+      <div *ngIf="message" class="alert alert-success dc-alert">
+        <i class="fa fa-check-circle"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="close" aria-label="Dismiss" (click)="message = ''">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div *ngIf="error" class="alert alert-danger dc-alert">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>{{ error }}</span>
+        <button type="button" class="close" aria-label="Dismiss" (click)="error = ''">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-  <div *ngIf="message" class="alert alert-success">{{ message }}</div>
-  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
-
-  <div class="dashboard-layout">
-    <aside class="nav-pane">
-      <section>
-        <h3>Dashboard Types</h3>
-        <ul class="nav-list">
-          <li *ngFor="let type of typeList">
-            <button type="button" class="nav-item" [class.active]="isSelectedDashboardType(type.name)" (click)="selectDashboardType(type.name)">
-              <span>{{ type.name }}</span>
-              <small *ngIf="type.system">system</small>
+      <div class="dc-layout">
+        <aside class="dc-nav-pane">
+          <div class="dc-nav-search">
+            <i class="fa fa-search dc-nav-search-icon"></i>
+            <input
+              type="text"
+              class="form-control dc-nav-search-input"
+              placeholder="Filter…"
+              [(ngModel)]="navFilter"
+              (ngModelChange)="onNavFilterChange()"
+              aria-label="Filter dashboard targets"
+            />
+            <button type="button" class="dc-nav-search-clear" *ngIf="navFilter" (click)="clearNavFilter()" aria-label="Clear filter">
+              <i class="fa fa-times-circle"></i>
             </button>
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Record Types</h3>
-        <div *ngFor="let recordType of selectedRecordTypes" class="nav-group">
-          <div class="nav-group-title">{{ recordType.name }}</div>
-          <ul class="nav-list">
-            <li *ngFor="let step of recordType.steps">
-              <button type="button" class="nav-item" [class.active]="isSelectedRecordType(recordType.name, step)" (click)="selectRecordType(recordType.name, step)">
-                {{ step }}
-              </button>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <h3>Views</h3>
-        <div *ngFor="let view of selectedViews" class="nav-group">
-          <div class="nav-group-title">{{ view.name }}</div>
-          <ul class="nav-list">
-            <li *ngFor="let step of view.steps">
-              <button type="button" class="nav-item" [class.active]="isSelectedView(view.name, step)" (click)="selectView(view.name, step)">
-                {{ step }}
-              </button>
-            </li>
-          </ul>
-        </div>
-      </section>
-    </aside>
-
-    <main class="editor-pane">
-      <div *ngIf="loading" class="loading-state">Loading…</div>
-
-      <div *ngIf="!loading && selectedContext && selectedContext.type === 'dashboardType'" class="editor-section">
-        <div class="section-header">
-          <h3>{{ contextLabel }}</h3>
-          <div class="section-actions">
-            <button type="button" class="btn btn-default" (click)="duplicateDashboardType()" [disabled]="dashboardTypeIsNew || !dashboardTypeForm.name">Duplicate</button>
-            <button type="button" class="btn btn-danger" (click)="deleteDashboardType()" [disabled]="dashboardTypeIsNew || !!currentTypeDefinition?.system">Delete</button>
           </div>
-        </div>
 
-        <div class="form-grid">
-          <label>
-            <span>Name</span>
-            <input type="text" class="form-control" [(ngModel)]="dashboardTypeForm.name" [readonly]="!dashboardTypeIsNew" />
-          </label>
-          <label>
-            <span>Description</span>
-            <input type="text" class="form-control" [(ngModel)]="dashboardTypeForm.description" />
-          </label>
-          <label>
-            <span>Searchable</span>
-            <input type="checkbox" [(ngModel)]="dashboardTypeForm.searchable" />
-          </label>
-          <label>
-            <span>System</span>
-            <input type="checkbox" [(ngModel)]="dashboardTypeForm.system" [disabled]="true" />
-          </label>
-        </div>
+          <section class="dc-nav-section">
+            <header class="dc-nav-section-header" (click)="toggleNavSection('types')">
+              <i class="fa" [class.fa-chevron-down]="!isNavSectionCollapsed('types')" [class.fa-chevron-right]="isNavSectionCollapsed('types')"></i>
+              <span class="dc-nav-section-title">
+                <i class="fa fa-cube"></i>
+                Dashboard Types
+              </span>
+              <span class="dc-nav-section-count">{{ filteredTypeList.length }}</span>
+              <button type="button" class="dc-nav-section-action" (click)="startNewDashboardType(); $event.stopPropagation()" title="Create a new dashboard type" aria-label="Create a new dashboard type">
+                <i class="fa fa-plus"></i>
+              </button>
+            </header>
+            <ul class="dc-nav-list" *ngIf="!isNavSectionCollapsed('types')">
+              <li *ngFor="let type of filteredTypeList">
+                <button type="button" class="dc-nav-item" [class.active]="isSelectedDashboardType(type.name)" (click)="selectDashboardType(type.name)" [attr.title]="type.description || type.name">
+                  <span class="dc-nav-item-label">
+                    <span class="dc-nav-item-name">{{ type.name }}</span>
+                    <small class="dc-nav-item-sub" *ngIf="type.description">{{ type.description }}</small>
+                  </span>
+                  <span class="dc-badge dc-badge-system" *ngIf="type.system" title="System dashboard type">system</span>
+                </button>
+              </li>
+              <li *ngIf="filteredTypeList.length === 0" class="dc-nav-empty">No matching types.</li>
+            </ul>
+          </section>
 
-        <format-rules-editor [formatRules]="dashboardTypeForm.formatRules" (formatRulesChange)="dashboardTypeForm.formatRules = $event"></format-rules-editor>
-        <table-config-editor [config]="dashboardTypeForm.tableConfig" (configChange)="dashboardTypeForm.tableConfig = $event"></table-config-editor>
-      </div>
-
-      <div *ngIf="!loading && selectedContext && selectedContext.type !== 'dashboardType'" class="editor-section">
-        <div class="section-header">
-          <h3>{{ contextLabel }}</h3>
-        </div>
-
-        <div class="form-grid">
-          <label>
-            <span>Dashboard Type</span>
-            <select class="form-control" [(ngModel)]="currentDashboardTypeName">
-              <option *ngFor="let type of typeList" [value]="type.name">{{ type.name }}</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="split-preview">
-          <section>
-            <h4>Inherited Type Config</h4>
-            <div class="config-preview-container">
-              <table-config-preview [config]="selectedMergedConfig?.inheritedTypeConfig || null"></table-config-preview>
+          <section class="dc-nav-section">
+            <header class="dc-nav-section-header" (click)="toggleNavSection('records')">
+              <i class="fa" [class.fa-chevron-down]="!isNavSectionCollapsed('records')" [class.fa-chevron-right]="isNavSectionCollapsed('records')"></i>
+              <span class="dc-nav-section-title">
+                <i class="fa fa-file-text-o"></i>
+                Record Types
+              </span>
+              <span class="dc-nav-section-count">{{ filteredRecordTypeCount }}</span>
+            </header>
+            <div *ngIf="!isNavSectionCollapsed('records')">
+              <div *ngFor="let recordType of filteredRecordTypes" class="dc-nav-group">
+                <div class="dc-nav-group-title" [attr.title]="recordType.name">{{ recordType.name }}</div>
+                <ul class="dc-nav-list">
+                  <li *ngFor="let step of recordType.steps">
+                    <button type="button" class="dc-nav-item" [class.active]="isSelectedRecordType(recordType.name, step)" (click)="selectRecordType(recordType.name, step)">
+                      <span class="dc-nav-item-label">
+                        <i class="fa fa-arrow-circle-right dc-nav-item-icon"></i>
+                        <span class="dc-nav-item-name">{{ step }}</span>
+                      </span>
+                      <span class="dc-badge dc-badge-override" *ngIf="hasRecordOverride(recordType.name, step)" title="Has local override">override</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div *ngIf="filteredRecordTypes.length === 0" class="dc-nav-empty">No matching record types.</div>
             </div>
           </section>
-          <section>
-            <h4>Workflow / View Config</h4>
-            <div class="config-preview-container">
-              <table-config-preview [config]="selectedMergedConfig?.workflowConfig || null"></table-config-preview>
+
+          <section class="dc-nav-section">
+            <header class="dc-nav-section-header" (click)="toggleNavSection('views')">
+              <i class="fa" [class.fa-chevron-down]="!isNavSectionCollapsed('views')" [class.fa-chevron-right]="isNavSectionCollapsed('views')"></i>
+              <span class="dc-nav-section-title">
+                <i class="fa fa-eye"></i>
+                Views
+              </span>
+              <span class="dc-nav-section-count">{{ filteredViewCount }}</span>
+            </header>
+            <div *ngIf="!isNavSectionCollapsed('views')">
+              <div *ngFor="let view of filteredViews" class="dc-nav-group">
+                <div class="dc-nav-group-title" [attr.title]="view.name">{{ view.name }}</div>
+                <ul class="dc-nav-list">
+                  <li *ngFor="let step of view.steps">
+                    <button type="button" class="dc-nav-item" [class.active]="isSelectedView(view.name, step)" (click)="selectView(view.name, step)">
+                      <span class="dc-nav-item-label">
+                        <i class="fa fa-arrow-circle-right dc-nav-item-icon"></i>
+                        <span class="dc-nav-item-name">{{ step }}</span>
+                      </span>
+                      <span class="dc-badge dc-badge-override" *ngIf="hasViewOverride(view.name, step)" title="Has local override">override</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div *ngIf="filteredViews.length === 0" class="dc-nav-empty">No matching views.</div>
             </div>
           </section>
-        </div>
+        </aside>
 
-        <div class="editor-block">
-          <h4>Local Override</h4>
-          <div class="override-actions">
-            <button type="button" class="btn btn-default" (click)="currentOverrideConfig = {}">Reset local override</button>
+        <main class="dc-editor-pane">
+          <div *ngIf="loading" class="dc-loading-state">
+            <i class="fa fa-spinner fa-spin"></i>
+            Loading…
           </div>
-          <table-config-editor [config]="currentOverrideConfig" (configChange)="currentOverrideConfig = $event"></table-config-editor>
-        </div>
-      </div>
 
-      <div *ngIf="!loading && !selectedContext" class="empty-state">
-        Select a dashboard type, workflow state, or view step to edit.
+          <div *ngIf="!loading && selectedContext && selectedContext.type === 'dashboardType'" class="dc-editor-section">
+            <header class="dc-section-header">
+              <div class="dc-section-header-title">
+                <span class="dc-context-kicker">
+                  <i class="fa fa-cube"></i>
+                  Dashboard Type
+                </span>
+                <h3 class="dc-section-heading">
+                  {{ dashboardTypeIsNew ? 'New Dashboard Type' : (dashboardTypeForm.name || contextLabel) }}
+                  <span class="dc-badge dc-badge-system" *ngIf="!dashboardTypeIsNew && currentTypeDefinition?.system">system</span>
+                </h3>
+                <p class="dc-section-subtitle" *ngIf="!dashboardTypeIsNew && dashboardTypeForm.description">{{ dashboardTypeForm.description }}</p>
+              </div>
+              <div class="dc-section-actions">
+                <button type="button" class="btn btn-default btn-sm" (click)="duplicateDashboardType()" [disabled]="dashboardTypeIsNew || !dashboardTypeForm.name">
+                  <i class="fa fa-copy"></i>
+                  Duplicate
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteDashboardType()" [disabled]="dashboardTypeIsNew || !!currentTypeDefinition?.system" [attr.title]="currentTypeDefinition?.system ? 'System dashboard types cannot be deleted' : 'Delete this dashboard type'">
+                  <i class="fa fa-trash"></i>
+                  Delete
+                </button>
+                <button type="button" class="btn btn-primary btn-sm dc-section-save" (click)="save()" [disabled]="saving || loading">
+                  <i class="fa" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-save]="!saving"></i>
+                  {{ saving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </header>
+
+            <div class="dc-card">
+              <div class="dc-card-header">
+                <h4>
+                  <i class="fa fa-info-circle"></i>
+                  Details
+                </h4>
+              </div>
+              <div class="dc-card-body">
+                <div class="dc-form-grid">
+                  <div class="dc-form-group">
+                    <label class="dc-form-label" for="dc-type-name">Name <span class="dc-required" *ngIf="dashboardTypeIsNew">*</span></label>
+                    <input id="dc-type-name" type="text" class="form-control" [(ngModel)]="dashboardTypeForm.name" [readonly]="!dashboardTypeIsNew" placeholder="e.g. workspace" />
+                    <small class="dc-form-help" *ngIf="!dashboardTypeIsNew">Name is fixed after creation.</small>
+                  </div>
+                  <div class="dc-form-group">
+                    <label class="dc-form-label" for="dc-type-description">Description</label>
+                    <input id="dc-type-description" type="text" class="form-control" [(ngModel)]="dashboardTypeForm.description" placeholder="Optional description shown in the type list" />
+                  </div>
+                  <div class="dc-form-group dc-form-group-toggle">
+                    <label class="dc-toggle-label">
+                      <input type="checkbox" [(ngModel)]="dashboardTypeForm.searchable" class="dc-toggle-input" />
+                      <span class="dc-toggle-switch"></span>
+                      <span class="dc-toggle-text">Searchable</span>
+                    </label>
+                    <small class="dc-form-help">Records of this type appear in dashboard search.</small>
+                  </div>
+                  <div class="dc-form-group dc-form-group-toggle">
+                    <label class="dc-toggle-label dc-toggle-label-disabled">
+                      <input type="checkbox" [(ngModel)]="dashboardTypeForm.system" [disabled]="true" class="dc-toggle-input" />
+                      <span class="dc-toggle-switch"></span>
+                      <span class="dc-toggle-text">System</span>
+                    </label>
+                    <small class="dc-form-help">System types are read-only and cannot be deleted.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-card">
+              <div class="dc-card-header">
+                <h4>
+                  <i class="fa fa-table"></i>
+                  Table Configuration
+                </h4>
+                <small class="dc-card-subtitle">Columns, format rules, row rules, and grouping that apply to this dashboard type.</small>
+              </div>
+              <div class="dc-card-body">
+                <table-config-editor [config]="dashboardTypeForm.tableConfig" (configChange)="dashboardTypeForm.tableConfig = $event"></table-config-editor>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!loading && selectedContext && selectedContext.type !== 'dashboardType'" class="dc-editor-section">
+            <header class="dc-section-header">
+              <div class="dc-section-header-title">
+                <span class="dc-context-kicker">
+                  <i class="fa" [class.fa-file-text-o]="selectedContext.type === 'recordType'" [class.fa-eye]="selectedContext.type === 'view'"></i>
+                  {{ selectedContext.type === 'recordType' ? 'Record Type Override' : 'View Override' }}
+                </span>
+                <h3 class="dc-section-heading">{{ contextLabel }}</h3>
+                <p class="dc-section-subtitle">
+                  Overrides apply on top of the inherited dashboard type configuration.
+                </p>
+              </div>
+              <div class="dc-section-actions">
+                <button type="button" class="btn btn-primary btn-sm dc-section-save" (click)="save()" [disabled]="saving || loading">
+                  <i class="fa" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-save]="!saving"></i>
+                  {{ saving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </header>
+
+            <div class="dc-card">
+              <div class="dc-card-header">
+                <h4>
+                  <i class="fa fa-link"></i>
+                  Inherits From
+                </h4>
+              </div>
+              <div class="dc-card-body">
+                <div class="dc-form-group">
+                  <label class="dc-form-label" for="dc-inherits-from">Dashboard Type</label>
+                  <select id="dc-inherits-from" class="form-control" [(ngModel)]="currentDashboardTypeName">
+                    <option *ngFor="let type of typeList" [value]="type.name">{{ type.name }}{{ type.system ? ' (system)' : '' }}</option>
+                  </select>
+                  <small class="dc-form-help">Defines the base columns and rules for this workflow step.</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-card">
+              <div class="dc-card-header">
+                <h4>
+                  <i class="fa fa-eye"></i>
+                  Effective Configuration Preview
+                </h4>
+                <small class="dc-card-subtitle">Read-only view of what is currently merged for this step.</small>
+              </div>
+              <div class="dc-card-body">
+                <div class="dc-split-preview">
+                  <section class="dc-preview-block">
+                    <h5 class="dc-preview-title">
+                      <i class="fa fa-cube"></i>
+                      Inherited Type Config
+                    </h5>
+                    <div class="dc-preview-container">
+                      <table-config-preview [config]="selectedMergedConfig?.inheritedTypeConfig || null"></table-config-preview>
+                    </div>
+                  </section>
+                  <section class="dc-preview-block">
+                    <h5 class="dc-preview-title">
+                      <i class="fa fa-cogs"></i>
+                      Workflow / View Config
+                    </h5>
+                    <div class="dc-preview-container">
+                      <table-config-preview [config]="selectedMergedConfig?.workflowConfig || null"></table-config-preview>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-card">
+              <div class="dc-card-header">
+                <h4>
+                  <i class="fa fa-pencil"></i>
+                  Local Override
+                </h4>
+                <small class="dc-card-subtitle">Anything set here is layered on top of the inherited configuration.</small>
+                <div class="dc-card-header-actions">
+                  <button type="button" class="btn btn-default btn-sm" (click)="currentOverrideConfig = {}" [disabled]="!hasOverrideContent">
+                    <i class="fa fa-eraser"></i>
+                    Reset override
+                  </button>
+                </div>
+              </div>
+              <div class="dc-card-body">
+                <table-config-editor [config]="currentOverrideConfig" (configChange)="currentOverrideConfig = $event"></table-config-editor>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!loading && !selectedContext" class="dc-empty-state">
+            <i class="fa fa-arrow-left"></i>
+            <p>Select a dashboard type, record type step, or view step from the left to begin editing.</p>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   </div>
 </div>
