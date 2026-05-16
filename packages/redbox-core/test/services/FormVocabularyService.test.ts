@@ -217,7 +217,7 @@ describe('FormVocabularyService', function () {
 
   describe('findInServiceLookup', function () {
     it('returns normalized service lookup response', async function () {
-      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [], supportAgreementInformation: { getYear: () => ({ agreedSupportDays: 0, usedSupportDays: 0 }) } };
+      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [] };
       const response = await FormVocabularyService.findInServiceLookup('testLookup', {
         search: 'jan',
         start: 0,
@@ -327,7 +327,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('resolves the default dataciteDois provider to DoiService.lookupDataciteDois', async function () {
-      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [], supportAgreementInformation: { getYear: () => ({ agreedSupportDays: 0, usedSupportDays: 0 }) } };
+      const brand = { id: 'brand-1', name: 'Default', css: '', roles: [] };
 
       const response = await FormVocabularyService.findInServiceLookup('dataciteDois', {
         search: 'climate data',
