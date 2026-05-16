@@ -11,6 +11,8 @@ describe('DoiService', function() {
   let mockSails: any;
   let runtime: typeof import('../../src/services/doi-v2/runtime');
   let originalEnv: NodeJS.ProcessEnv;
+  let axios: typeof import('axios');
+  let axiosGetStub: sinon.SinonStub;
   const baseDoiPublishing = _.cloneDeep(brandingConfigurationDefaults.doiPublishing)!;
 
   function withBrand<T extends Record<string, unknown>>(record: T): T & { metaMetadata: { brandId: string } } {
@@ -79,6 +81,8 @@ describe('DoiService', function() {
     };
 
     runtime = require('../../src/services/doi-v2/runtime');
+    axios = require('axios').default;
+    axiosGetStub = sinon.stub(axios, 'get');
     sinon.stub(runtime, 'runCreateDoiProgram').resolves({
       doi: '10.1234/5678',
       statusCode: 201,
@@ -250,6 +254,228 @@ describe('DoiService', function() {
       expect(auditDetails.responseSummary.statusCode).to.equal(502);
       expect(auditDetails.responseSummary.causeCode).to.equal('ECONNRESET');
       expect(auditDetails.responseSummary.causeMessage).to.equal('socket hang up');
+    });
+  });
+
+  describe('lookupDataciteDois', function() {
+    const request = {
+      serviceId: 'dataciteDois',
+      search: 'climate data',
+      start: 0,
+      rows: 25,
+      branding: 'default',
+      portal: 'rdmp',
+      brand: { id: 'brand-1', name: 'default' },
+      user: {},
+      options: {
+        baseUrl: 'https://api.datacite.org',
+        timeoutMs: 10000,
+        maxRows: 25,
+        defaultParams: {
+          'disable-facets': true,
+          state: 'findable',
+          sort: 'relevance'
+        },
+        fields: ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'],
+        valueField: 'doi',
+        includeRaw: true,
+        allowEmptySearch: false
+      }
+    };
+
+    it('sends expected DataCite request', async function() {
+      axiosGetStub.resolves({ data: { data: [], meta: { total: 0, page: 1, totalPages: 0 } } });
+
+      await service.lookupDataciteDois(request);
+
+      expect(axiosGetStub.calledOnce).to.be.true;
+      expect(axiosGetStub.firstCall.args[0]).to.equal('https://api.datacite.org/dois');
+      const config = axiosGetStub.firstCall.args[1];
+      expect(config.timeout).to.equal(10000);
+      expect(config.headers).to.deep.equal({ Accept: 'application/vnd.api+json' });
+      expect(config.params.get('query')).to.equal('climate data');
+      expect(config.params.get('page[number]')).to.equal('1');
+      expect(config.params.get('page[size]')).to.equal('25');
+      expect(config.params.get('disable-facets')).to.equal('true');
+      expect(config.params.get('state')).to.equal('findable');
+      expect(config.params.get('sort')).to.equal('relevance');
+      expect(config.params.get('fields[dois]')).to.equal('doi,titles,publisher,publicationYear,types,url');
+    });
+
+    it('maps DataCite DOI response to typeahead options', async function() {
+      axiosGetStub.resolves({
+        data: {
+          data: [{
+            id: '10.5438/0014',
+            attributes: {
+              doi: '10.5438/0014',
+              titles: [{ title: 'DataCite Metadata Schema Documentation for the Publication and Citation of Research Data v4.1' }],
+              publisher: 'DataCite',
+              publicationYear: 2017,
+              url: 'https://schema.datacite.org/meta/kernel-4.1/'
+            }
+          }],
+          meta: { total: 1, page: 1, totalPages: 1 },
+          links: { self: 'https://api.datacite.org/dois?page[number]=1' }
+        }
+      });
+
+      const result = await service.lookupDataciteDois(request);
+
+      expect(result).to.deep.equal({
+        data: [{
+          label: 'DataCite Metadata Schema Documentation for the Publication and Citation of Research Data v4.1 (10.5438/0014) - DataCite, 2017',
+          value: '10.5438/0014',
+          sourceType: 'service',
+          raw: {
+            id: '10.5438/0014',
+            attributes: {
+              doi: '10.5438/0014',
+              titles: [{ title: 'DataCite Metadata Schema Documentation for the Publication and Citation of Research Data v4.1' }],
+              publisher: 'DataCite',
+              publicationYear: 2017,
+              url: 'https://schema.datacite.org/meta/kernel-4.1/'
+            }
+          }
+        }],
+        meta: {
+          total: 1,
+          totalPages: 1,
+          page: 1,
+          start: 0,
+          rows: 25,
+          source: 'datacite',
+          links: { self: 'https://api.datacite.org/dois?page[number]=1' }
+        }
+      });
+    });
+
+    it('uses DOI fallback label when title is missing', async function() {
+      axiosGetStub.resolves({
+        data: {
+          data: [{
+            id: '10.1000/test',
+            attributes: {
+              doi: '10.1000/test'
+            }
+          }]
+        }
+      });
+
+      const result = await service.lookupDataciteDois(request);
+
+      expect(result.data[0].label).to.equal('10.1000/test');
+      expect(result.data[0].value).to.equal('10.1000/test');
+    });
+
+    it('skips invalid DOI items', async function() {
+      axiosGetStub.resolves({
+        data: {
+          data: [
+            { attributes: { titles: [{ title: 'Missing identifier' }] } },
+            { id: '10.1000/valid', attributes: { doi: '10.1000/valid' } }
+          ]
+        }
+      });
+
+      const result = await service.lookupDataciteDois(request);
+
+      expect(result.data).to.have.length(1);
+      expect(result.data[0].value).to.equal('10.1000/valid');
+    });
+
+    it('returns empty result for empty search by default', async function() {
+      const result = await service.lookupDataciteDois({
+        ...request,
+        search: '   '
+      });
+
+      expect(result).to.deep.equal({
+        data: [],
+        meta: {
+          total: 0,
+          start: 0,
+          rows: 25,
+          source: 'datacite'
+        }
+      });
+      expect(axiosGetStub.called).to.be.false;
+    });
+
+    it('allows empty search when configured', async function() {
+      axiosGetStub.resolves({ data: { data: [] } });
+
+      await service.lookupDataciteDois({
+        ...request,
+        search: '   ',
+        options: {
+          ...request.options,
+          allowEmptySearch: true
+        }
+      });
+
+      expect(axiosGetStub.calledOnce).to.be.true;
+      expect(axiosGetStub.firstCall.args[1].params.has('query')).to.equal(false);
+    });
+
+    it('caps rows to maxRows', async function() {
+      axiosGetStub.resolves({ data: { data: [] } });
+
+      await service.lookupDataciteDois({
+        ...request,
+        rows: 100
+      });
+
+      expect(axiosGetStub.firstCall.args[1].params.get('page[size]')).to.equal('25');
+    });
+
+    it('converts start to DataCite page number', async function() {
+      axiosGetStub.resolves({ data: { data: [] } });
+
+      await service.lookupDataciteDois({
+        ...request,
+        start: 50
+      });
+
+      expect(axiosGetStub.firstCall.args[1].params.get('page[number]')).to.equal('3');
+    });
+
+    it('supports custom filters', async function() {
+      axiosGetStub.resolves({ data: { data: [] } });
+
+      await service.lookupDataciteDois({
+        ...request,
+        options: {
+          ...request.options,
+          defaultParams: {
+            'client-id': 'datacite.datacite',
+            'resource-type-id': 'dataset'
+          }
+        }
+      });
+
+      expect(axiosGetStub.firstCall.args[1].params.get('client-id')).to.equal('datacite.datacite');
+      expect(axiosGetStub.firstCall.args[1].params.get('resource-type-id')).to.equal('dataset');
+    });
+
+    it('wraps DataCite HTTP failures', async function() {
+      axiosGetStub.rejects({
+        isAxiosError: true,
+        response: { status: 429 }
+      });
+
+      try {
+        await service.lookupDataciteDois(request);
+        throw new Error('Expected lookup to fail');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('datacite-lookup-failed');
+        expect((error as { statusCode?: number }).statusCode).to.equal(429);
+      }
+    });
+
+    it('exports lookupDataciteDois', function() {
+      const exported = service.exports();
+      expect(exported).to.have.property('lookupDataciteDois');
     });
   });
 

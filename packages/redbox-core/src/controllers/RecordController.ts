@@ -45,6 +45,7 @@ import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
 type AnyRecord = Record<string, unknown>;
@@ -172,7 +173,7 @@ export namespace Controllers {
       return include.split(',').includes('relationships') || includeRelationships === 'true';
     }
 
-    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth?: number): RecordRelationshipExpandOptions {
+    private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
       const parseCsv = (value: unknown): string[] | undefined => {
         const normalized = String(value ?? '').trim();
         if (!normalized) {
@@ -1063,16 +1064,44 @@ export namespace Controllers {
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         const dashboardTypeModel = new DashboardTypeResponseModel({
           name: String(_.get(dashboardType, 'name', '')),
-          description: _.get(dashboardType, 'description'),
+          description: _.get(dashboardType, 'description') as string | undefined,
           formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-          tableConfig: _.get(dashboardType, 'tableConfig'),
-          searchable: _.get(dashboardType, 'searchable'),
-          system: _.get(dashboardType, 'system')
+          tableConfig: _.get(dashboardType, 'tableConfig') as any,
+          searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+          system: _.get(dashboardType, 'system') as boolean | undefined,
         });
         this.sendResp(req, res, { data: dashboardTypeModel });
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
       });
+    }
+
+    private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
+      if (!dashboardView || !_.isObject(dashboardView)) {
+        return false;
+      }
+
+      const view = dashboardView as DashboardViewDefinition;
+      return _.isString(view.name)
+        && !_.isEmpty(view.name.trim())
+        && _.isString(view.titleLabelKey)
+        && !_.isEmpty(view.titleLabelKey.trim())
+        && _.isString(view.dashboardType)
+        && !_.isEmpty(view.dashboardType.trim())
+        && _.isString(view.sourceRecordType)
+        && !_.isEmpty(view.sourceRecordType.trim())
+        && _.isArray(view.steps)
+        && view.steps.length > 0
+        && view.steps.every((step) => {
+          const dashboardViewStep = step as DashboardViewStepDefinition;
+          return _.isObject(step)
+            && _.isString(dashboardViewStep.name)
+            && !_.isEmpty(dashboardViewStep.name.trim())
+            && _.isString(dashboardViewStep.sourceRecordType)
+            && !_.isEmpty(dashboardViewStep.sourceRecordType.trim())
+            && (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
+            && _.isObject(dashboardViewStep.dashboardTable);
+        });
     }
 
     public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
@@ -1082,12 +1111,12 @@ export namespace Controllers {
         const dashboardTypesModelList = [];
         for (const dashboardType of dashboardTypes) {
           const dashboardTypeModel = new DashboardTypeResponseModel({
-            name: _.get(dashboardType, 'name'),
-            description: _.get(dashboardType, 'description'),
-            formatRules: _.get(dashboardType, 'formatRules'),
-            tableConfig: _.get(dashboardType, 'tableConfig'),
-            searchable: _.get(dashboardType, 'searchable'),
-            system: _.get(dashboardType, 'system')
+            name: String(_.get(dashboardType, 'name', '')),
+            description: _.get(dashboardType, 'description') as string | undefined,
+            formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+            tableConfig: _.get(dashboardType, 'tableConfig') as any,
+            searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+            system: _.get(dashboardType, 'system') as boolean | undefined,
           });
           dashboardTypesModelList.push(dashboardTypeModel);
         }
@@ -1106,7 +1135,7 @@ export namespace Controllers {
 
       try {
         const dashboardView = DashboardTypesService.getDashboardView(dashboardViewParam);
-        if (!dashboardView) {
+        if (!this.isValidDashboardViewDefinition(dashboardView)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
         }
         return this.sendResp(req, res, { data: new DashboardViewResponseModel(dashboardView) });
@@ -1162,12 +1191,12 @@ export namespace Controllers {
         datastore,
         respectForwardedHeaders: true,
         disableTerminationForFinishedUploads: true,
-        generateUrl(req, { host, path, id }) {
+        generateUrl(req, { host, id }) {
           const tusReq = req as unknown as TusRequestExtension;
           const baseUrl = (tusReq._tusBaseUrl ?? '').replace(/\/+$/, '');
-          const cleanPath = path.startsWith('/') ? path : `/${path}`;
-          // Preserve historical behavior expected by integration clients/tests (scheme-relative URL).
-          return `//${host}${baseUrl}${cleanPath}/${id}`;
+          // The datastore path is an internal TUS mount. Clients must continue
+          // chunking through the routed RecordController attachment endpoint.
+          return `//${host}${baseUrl}/attach/${id}`;
         },
       });
 
@@ -1592,7 +1621,7 @@ export namespace Controllers {
       }
 
       const dashboardView = DashboardTypesService.getDashboardView(dashboardViewName);
-      if (!dashboardView) {
+      if (!this.isValidDashboardViewDefinition(dashboardView)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
       }
 

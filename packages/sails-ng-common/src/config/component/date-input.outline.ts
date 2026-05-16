@@ -31,6 +31,7 @@ export interface DateInputFieldComponentConfigFrame extends FieldComponentConfig
     showWeekNumbers?: boolean;
     containerClass?: string;
     enableTimePicker?: boolean;
+    robustParsing?: boolean;
     bsFullConfig?: any;
 }
 

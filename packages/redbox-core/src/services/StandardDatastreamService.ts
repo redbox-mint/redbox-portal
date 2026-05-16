@@ -20,11 +20,13 @@ type RecordWithMetadata = {
  *
  * Implements the DatastreamService interface using Flydrive v2 disks
  * managed by StorageManagerService. Files are read from the staging disk
- * and written to the primary disk under the key `{oid}/{fileId}`.
+ * and written to the primary disk under the configured key prefix.
  */
 export namespace Services {
   export class StandardDatastream extends services.Core.Service implements DatastreamService {
-    protected _exportedMethods: string[] = [
+    private static promotionGuards: Map<string, Promise<boolean>> = new Map();
+
+    protected override _exportedMethods: string[] = [
       'addDatastreams',
       'updateDatastream',
       'removeDatastream',
@@ -34,14 +36,140 @@ export namespace Services {
       'listDatastreams',
     ];
 
-    protected logHeader: string = 'StandardDatastreamService::';
-
+    protected override logHeader: string = 'StandardDatastreamService::';
 
     /**
-     * Build the storage key for a file: `{oid}/{fileId}`
+     * Build the storage key for a file under the configured prefix.
+     */
+    private normalizedKeyPrefix(): string {
+      const storageConfig = StorageManagerService.getMergedStorageConfig();
+      const keyPrefix = storageConfig.keyPrefix ?? '';
+      if (_.isEmpty(keyPrefix)) {
+        return '';
+      }
+      return `${keyPrefix.replace(/\/+$/, '')}/`;
+    }
+
+    /**
+     * Build the storage key for a file under the configured prefix.
      */
     private storageKey(oid: string, fileId: string): string {
-      return `${oid}/${fileId}`;
+      return `${this.normalizedKeyPrefix()}${oid}/${fileId}`;
+    }
+
+    private fileIdFromStorageKey(key: string): string {
+      return key.split('/').filter(Boolean).pop() ?? key;
+    }
+
+    private datastreamListEntry(key: string, details: Record<string, unknown> = {}): Record<string, unknown> {
+      const fileId = this.fileIdFromStorageKey(key);
+      return {
+        filename: key,
+        ...details,
+        metadata: {
+          fileId,
+          name: fileId,
+          ...((details['metadata'] as Record<string, unknown> | undefined) ?? {}),
+        },
+      };
+    }
+
+    private isStorageNotFoundError(err: unknown): boolean {
+      if (!err || typeof err !== 'object') {
+        return false;
+      }
+
+      const storageError = err as {
+        code?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+      };
+      const message = storageError.message?.toLowerCase() ?? '';
+
+      return storageError.code === 'ENOENT'
+        || storageError.code === 'NoSuchKey'
+        || storageError.status === 404
+        || storageError.statusCode === 404
+        || message.includes('not found')
+        || message.includes('no such')
+        || message.includes('does not exist')
+        || message.includes('enoent');
+    }
+
+    private isStorageAlreadyExistsError(err: unknown): boolean {
+      if (!err || typeof err !== 'object') {
+        return false;
+      }
+
+      const storageError = err as {
+        code?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+      };
+      const message = storageError.message?.toLowerCase() ?? '';
+
+      return storageError.code === 'EEXIST'
+        || storageError.status === 409
+        || storageError.statusCode === 409
+        || message.includes('already exists')
+        || message.includes('eexist');
+    }
+
+    private async promoteFromStagingOnce(fileId: string, destKey: string): Promise<boolean> {
+      const inFlightPromotion = Services.StandardDatastream.promotionGuards.get(destKey);
+      if (inFlightPromotion) {
+        return inFlightPromotion;
+      }
+
+      const promotionPromise = this.promoteFromStaging(fileId, destKey);
+      Services.StandardDatastream.promotionGuards.set(destKey, promotionPromise);
+
+      try {
+        return await promotionPromise;
+      } finally {
+        if (Services.StandardDatastream.promotionGuards.get(destKey) === promotionPromise) {
+          Services.StandardDatastream.promotionGuards.delete(destKey);
+        }
+      }
+    }
+
+    private async promoteFromStaging(fileId: string, destKey: string): Promise<boolean> {
+      const stagingDisk = StorageManagerService.stagingDisk();
+      const primaryDisk = StorageManagerService.primaryDisk();
+
+      if (await primaryDisk.exists(destKey)) {
+        this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Already present: ${destKey}`);
+        return true;
+      }
+
+      const existsInStaging = await stagingDisk.exists(fileId);
+      if (!existsInStaging) {
+        return primaryDisk.exists(destKey);
+      }
+
+      const readable = await stagingDisk.getStream(fileId);
+
+      try {
+        await primaryDisk.putStream(destKey, readable);
+      } catch (err) {
+        readable.destroy();
+        if (!this.isStorageAlreadyExistsError(err) || !(await primaryDisk.exists(destKey))) {
+          throw err;
+        }
+      }
+
+      try {
+        await stagingDisk.delete(fileId);
+      } catch (err) {
+        if (!this.isStorageNotFoundError(err)) {
+          throw err;
+        }
+      }
+
+      this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Promoted: ${destKey}`);
+      return true;
     }
 
     // ----------------------------------------------------------------
@@ -181,18 +309,19 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
 
-      const exists = await effectiveStagingDisk.exists(fileId);
-      if (!exists) {
+      const existsInStaging = await effectiveStagingDisk.exists(fileId);
+      if (!existsInStaging) {
         throw new Error(`Attachment not found in staging: ${fileId}`);
       }
 
+      const readable = await effectiveStagingDisk.getStream(fileId);
       try {
-        await effectiveStagingDisk.move(fileId, destKey);
-      } catch {
-        const readable = await effectiveStagingDisk.getStream(fileId);
         await primaryDisk.putStream(destKey, readable);
-        await effectiveStagingDisk.delete(fileId);
+      } catch (err) {
+        readable.destroy();
+        throw err;
       }
+      await effectiveStagingDisk.delete(fileId);
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
       return { success: true, key: destKey };
@@ -249,7 +378,10 @@ export namespace Services {
       const primaryDisk = StorageManagerService.primaryDisk();
 
       // Check existence
-      const exists = await primaryDisk.exists(destKey);
+      let exists = await primaryDisk.exists(destKey);
+      if (!exists) {
+        exists = await this.promoteFromStagingOnce(fileId, destKey);
+      }
       if (!exists) {
         throw new Error(`Attachment not found: ${destKey}`);
       }
@@ -290,31 +422,64 @@ export namespace Services {
         try {
           const meta = await primaryDisk.getMetaData(destKey);
           return [
-            {
-              filename: destKey,
+            this.datastreamListEntry(destKey, {
               contentType: meta.contentType,
               contentLength: meta.contentLength,
               lastModified: meta.lastModified,
               etag: meta.etag,
-            },
+            }),
           ];
         } catch {
-          return [{ filename: destKey }];
+          return [this.datastreamListEntry(destKey)];
         }
       }
 
       // List all files under the oid prefix
-      const prefix = `${oid}/`;
+      const prefix = `${this.normalizedKeyPrefix()}${oid}/`;
       const result = await primaryDisk.listAll(prefix, { recursive: true });
-      const files: Record<string, unknown>[] = [];
-      for (const obj of result.objects) {
+      type FileMetadata = {
+        contentType?: string;
+        contentLength: number;
+        etag: string;
+        lastModified: Date;
+      };
+      type ListedDatastreamEntry = {
+        key: string;
+        fileObj: Record<string, unknown>;
+      };
+      //TODO: Rather than fetching all the file metadata from the primary disk, we should consider tracking this metadata in our own storage.
+      const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
         const fileObj = obj as Record<string, unknown>;
-        files.push({
-          filename: fileObj['key'] ?? fileObj['name'] ?? String(obj),
-          ...fileObj,
-        });
+        const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
+        return {
+          key,
+          fileObj,
+        };
+      });
+
+      const metadataResults: PromiseSettledResult<FileMetadata>[] = [];
+      const metadataBatchSize = 10;
+      for (let index = 0; index < fileEntries.length; index += metadataBatchSize) {
+        const batch = fileEntries.slice(index, index + metadataBatchSize);
+        const batchResults = await Promise.allSettled(batch.map(({ key }) => primaryDisk.getMetaData(key)));
+        metadataResults.push(...batchResults);
       }
-      return files;
+
+      return fileEntries.map(({ key, fileObj }, index) => {
+        const metadataResult = metadataResults[index];
+        if (metadataResult.status === 'fulfilled') {
+          const meta = metadataResult.value;
+          return this.datastreamListEntry(key, {
+            ...fileObj,
+            contentType: meta.contentType,
+            contentLength: meta.contentLength,
+            lastModified: meta.lastModified,
+            etag: meta.etag,
+          });
+        }
+
+        return this.datastreamListEntry(key, fileObj);
+      });
     }
   }
 }

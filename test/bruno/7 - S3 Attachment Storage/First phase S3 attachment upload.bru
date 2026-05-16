@@ -1,0 +1,44 @@
+meta {
+  name: First phase S3 attachment upload
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/default/rdmp/record/{{s3AttachmentRecordOid}}/attach
+  body: none
+  auth: none
+}
+
+headers {
+  Upload-Length: 30148
+  Origin: {{host}}
+  X-CSRF-Token:
+  Tus-Resumable: 1.0.0
+  Connection: keep-alive
+  Content-Length: 0
+  Upload-Metadata: name U2NyZWVuIFNob3QgMjAxOC0xMS0yNiBhdCAyLjM0LjI2IHBtLnBuZw==,type aW1hZ2UvcG5n
+  Pragma: no-cache
+  Accept: */*
+  Cache-Control: no-cache
+  Content-Type: application/x-www-form-urlencoded
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Location uses the routed attachment endpoint", function () {
+    const location = res.headers.location;
+    expect(location).to.include(`/default/rdmp/record/${bru.getEnvVar("s3AttachmentRecordOid")}/attach/`);
+    expect(location).to.not.include("/uploads/attachments");
+    bru.setEnvVar("s3AttachmentLocation", location);
+    bru.setEnvVar("s3AttachmentId", location.split("/").pop());
+  });
+}

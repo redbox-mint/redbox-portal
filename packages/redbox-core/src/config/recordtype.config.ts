@@ -59,10 +59,39 @@ export const DEFAULT_RECORD_RELATION_CARDINALITY = 'many' as const;
 export const DEFAULT_RECORD_RELATION_DIRECTION = 'outbound' as const;
 
 function normalizeRelationIdPart(value: string): string {
-    return value
-        .trim()
-        .replace(/[^a-zA-Z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '') || 'relationship';
+    const input = String(value ?? '').trim();
+    let normalized = '';
+    let lastWasUnderscore = false;
+
+    for (const char of input) {
+        const isAlphaNumeric =
+            (char >= 'a' && char <= 'z') ||
+            (char >= 'A' && char <= 'Z') ||
+            (char >= '0' && char <= '9');
+
+        if (isAlphaNumeric) {
+            normalized += char;
+            lastWasUnderscore = false;
+            continue;
+        }
+
+        if (!lastWasUnderscore) {
+            normalized += '_';
+            lastWasUnderscore = true;
+        }
+    }
+
+    let start = 0;
+    let end = normalized.length;
+    while (start < end && normalized[start] === '_') {
+        start += 1;
+    }
+    while (end > start && normalized[end - 1] === '_') {
+        end -= 1;
+    }
+
+    const trimmed = normalized.slice(start, end);
+    return trimmed || 'relationship';
 }
 
 export function buildRecordRelationId(sourceRecordType: string, relation: RecordRelation): string {

@@ -1,13 +1,13 @@
 import { Component, HostListener, Injector, Input, inject } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
-  DynamicScriptResponse,
-  PDFListComponentName,
-  PDFListFieldComponentConfig,
-  PDFListFieldComponentConfigOutline,
-  PDFListModelName,
-  PDFListModelValueType,
-  RecordAttachment
+    DynamicScriptResponse,
+    PDFListComponentName,
+    PDFListFieldComponentConfig,
+    PDFListFieldComponentConfigOutline,
+    PDFListModelName,
+    PDFListModelValueType,
+    RecordAttachment
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { FormService } from "../form.service";
@@ -26,6 +26,7 @@ export class PDFListModel extends FormFieldModel<PDFListModelValueType> {
 @Component({
     selector: "redbox-pdf-list",
     templateUrl: "./pdf-list.component.html",
+    styleUrls: ["./pdf-list.component.scss"],
     standalone: false
 })
 export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueType> {
@@ -104,12 +105,12 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
             return;
         }
 
-        const matchingExpression = new RegExp(`${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-[0-9]+\\.pdf`);
+        const matchingExpression = this.getGeneratedPdfLabelExpression();
         try {
             const allAttachments = await this.getFormComponent.recordService.getAttachments(oid);
             const pdfAttachments = (allAttachments ?? [])
                 .filter((attachment: RecordAttachment) => matchingExpression.test(String(attachment?.label ?? "")))
-                .map((attachment: RecordAttachment) => this.toAttachmentView(attachment))
+                .map((attachment: RecordAttachment) => this.toAttachmentView(attachment, matchingExpression))
                 .sort((a: PDFListAttachmentView, b: PDFListAttachmentView) => b.timestampMs - a.timestampMs);
 
             this.applyAttachments(pdfAttachments);
@@ -222,14 +223,32 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         this.formControl.markAsUntouched();
     }
 
-    private toAttachmentView(attachment: RecordAttachment): PDFListAttachmentView {
+    private getGeneratedPdfLabelExpression(): RegExp {
+        return new RegExp(`^${_escapeRegExp(this.startsWith)}-[0-9a-fA-F]{32}-([0-9]+)\\.pdf$`);
+    }
+
+    private toAttachmentView(attachment: RecordAttachment, matchingExpression: RegExp = this.getGeneratedPdfLabelExpression()): PDFListAttachmentView {
+        const timestampMs = this.getAttachmentTimestampMs(attachment, matchingExpression);
         const rawDate = String(attachment?.dateUpdated ?? "");
         const parsed = moment(rawDate);
+        const parsedTimestamp = timestampMs > 0 ? moment(timestampMs) : null;
+        const displayDate = parsed.isValid() ? parsed : parsedTimestamp;
         return {
             ...attachment,
-            formattedDateUpdated: parsed.isValid() ? parsed.format("LLL") : rawDate,
-            timestampMs: parsed.isValid() ? parsed.valueOf() : 0,
+            formattedDateUpdated: displayDate?.isValid() ? displayDate.format("LLL") : rawDate,
+            timestampMs,
         };
+    }
+
+    private getAttachmentTimestampMs(attachment: RecordAttachment, matchingExpression: RegExp): number {
+        const label = String(attachment?.label ?? "");
+        const labelTimestampMs = Number(matchingExpression.exec(label)?.[1] ?? 0);
+        if (Number.isFinite(labelTimestampMs) && labelTimestampMs >= 946684800000) {
+            return labelTimestampMs;
+        }
+
+        const parsed = moment(String(attachment?.dateUpdated ?? ""));
+        return parsed.isValid() ? parsed.valueOf() : 0;
     }
 
     private buildFileName(attachment: RecordAttachment, index: number): string {

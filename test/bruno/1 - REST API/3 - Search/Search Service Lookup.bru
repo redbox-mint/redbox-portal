@@ -1,0 +1,42 @@
+meta {
+  name: Search Service Lookup
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/service/vocab/dataciteDois
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "search": "10.5438/0014",
+    "start": 0,
+    "rows": 10
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Service lookup returns wrapped DataCite data and meta", function () {
+      const jsonData = res.getBody();
+      expect(jsonData.data).to.be.an('array');
+      expect(jsonData.data.length).to.be.greaterThan(0);
+      expect(jsonData.meta.source).to.equal('datacite');
+      expect(jsonData.data[0]).to.have.property('sourceType');
+      expect(jsonData.data[0].sourceType).to.equal('service');
+      expect(jsonData.data[0]).to.have.property('value');
+      expect(String(jsonData.data[0].value)).to.include('10.');
+  });
+}

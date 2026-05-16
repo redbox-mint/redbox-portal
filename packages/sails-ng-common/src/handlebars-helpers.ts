@@ -26,6 +26,7 @@ import {
   isArray as _isArray,
   isPlainObject as _isPlainObject,
 } from 'lodash';
+import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
@@ -40,25 +41,6 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
 }
 
 // TODO: this is because the DateInputComponent needs Luxon style formatters. We have a moment shim on the server side but not on the client.
-function mapMomentToLuxonFormat(fmt: string): string {
-  if (!fmt) {
-    return fmt;
-  }
-
-  return fmt
-    .replace(/YYYY/g, 'yyyy')
-    .replace(/YY/g, 'yy')
-    .replace(/MMMM/g, 'LLLL')
-    .replace(/MMM/g, 'LLL')
-    .replace(/\bMM\b/g, 'LL')
-    .replace(/\bM\b/g, 'L')
-    .replace(/\bDD\b/g, 'dd')
-    .replace(/\bD\b/g, 'd')
-    .replace(/dddd/g, 'cccc')
-    .replace(/ddd/g, 'ccc')
-    .replace(/A/g, 'a');
-}
-
 function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>): string | undefined {
   if (typeof formatOrOptions === 'string') {
     return mapMomentToLuxonFormat(formatOrOptions);
@@ -536,7 +518,17 @@ export const handlebarsHelperDefinitions = {
    * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
-    const text = String(value ?? '').replace(/\/+$/, '');
+    const rawText = String(value ?? '');
+    if (!rawText) {
+      return '';
+    }
+
+    let endIndex = rawText.length;
+    while (endIndex > 0 && rawText[endIndex - 1] === '/') {
+      endIndex--;
+    }
+
+    const text = rawText.slice(0, endIndex);
     if (!text) {
       return '';
     }

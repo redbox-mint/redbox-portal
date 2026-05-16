@@ -184,6 +184,24 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.updateOne.calledWith({ id: 'existing-id' })).to.be.true;
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
+
+    it('should persist valid contentFormat', async function() {
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nBundle.findOne.resolves(null);
+
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'html' });
+
+      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
+    });
+
+    it('should ignore invalid contentFormat values', async function() {
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nBundle.findOne.resolves(null);
+
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'xml' });
+
+      expect(mockI18nTranslation.create.firstCall.args[0]).not.to.have.property('contentFormat');
+    });
   });
 
   describe('deleteEntry', function() {
@@ -341,6 +359,33 @@ describe('I18nEntriesService', function() {
 
       expect(mockI18nTranslation.create.called).to.be.true;
       expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('');
+    });
+
+    it('should copy contentFormat from bundle metadata', async function() {
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: {
+          key: '<p>value</p>',
+          _meta: {
+            key: {
+              contentFormat: 'html'
+            }
+          }
+        }
+      };
+
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nTranslation.create.resolves({});
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+
+      expect(mockI18nTranslation.create.called).to.be.true;
+      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
     });
   });
 });

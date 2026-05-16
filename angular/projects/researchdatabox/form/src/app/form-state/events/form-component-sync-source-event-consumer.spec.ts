@@ -7,6 +7,7 @@ import { FieldValueChangedEvent, FormComponentEventType } from './form-component
 import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Subject } from 'rxjs';
 import { CustomSetValueControl } from '../custom-set-value.control';
+import {createSetup} from "./spec-helper";
 
 describe('FormComponentSyncSourceEventConsumer', () => {
   // These tests pin the intent from the implementation plan:
@@ -36,26 +37,6 @@ describe('FormComponentSyncSourceEventConsumer', () => {
   afterEach(() => {
     consumer.destroy();
   });
-
-  // Minimal binding harness for exercising the consumer without needing a full
-  // rendered form component tree.
-  function createSetup(expressions: FormExpressionsConfigFrame[]) {
-    const control = new FormControl<unknown>('');
-    const definition = {
-      model: { formControl: control },
-      expressions,
-      lineagePaths: { formConfig: ['root'] },
-      layout: { componentDefinition: { config: {} } },
-      component: { componentDefinition: { config: {} } }
-    } as unknown as FormFieldCompMapEntry;
-
-    const component = {
-      formFieldConfigName: () => 'test-field',
-      model: { formControl: control }
-    } as unknown as FormFieldBaseComponent<unknown>;
-
-    return { control, definition, component };
-  }
 
   it('should subscribe to FIELD_VALUE_CHANGED events when bound', () => {
     const expr: FormExpressionsConfigFrame = {

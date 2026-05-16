@@ -19,7 +19,6 @@ import * as ReportControllerModule from './ReportController';
 import * as ReportsControllerModule from './ReportsController';
 import * as TranslationControllerModule from './TranslationController';
 import * as UserControllerModule from './UserController';
-import * as VocabControllerModule from './VocabController';
 import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
@@ -67,7 +66,6 @@ export const ControllerExports: Record<string, unknown> = {
     get ReportsController() { return getOrCreate('ReportsController', () => new ReportsControllerModule.Controllers.Reports().exports()); },
     get TranslationController() { return getOrCreate('TranslationController', () => new TranslationControllerModule.Controllers.Translation().exports()); },
     get UserController() { return getOrCreate('UserController', () => new UserControllerModule.Controllers.User().exports()); },
-    get VocabController() { return getOrCreate('VocabController', () => new VocabControllerModule.Controllers.Vocab().exports()); },
     get VocabularyController() { return getOrCreate('VocabularyController', () => new VocabularyControllerModule.Controllers.Vocabulary().exports()); },
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
@@ -113,7 +111,6 @@ export const ControllerNames = [
     'ReportsController',
     'TranslationController',
     'UserController',
-    'VocabController',
     'VocabularyController',
     'WorkspaceAsyncController',
     'WorkspaceTypesController',

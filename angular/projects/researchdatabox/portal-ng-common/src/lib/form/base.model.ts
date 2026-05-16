@@ -167,13 +167,29 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
 
   /**
    * Set this model to be disabled or enabled.
+   *
+   * Note that some components require their model to be in sync with the component's disabled state.
+   * Prefer setting `component.setDisabled` over this method.
+   *
    * @param disabled Set the disabled status.
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    if (!disabled && this.formControl?.disabled) {
+    const configState = this.fieldConfig.config?.disabled ?? false;
+    const formControlState = this.formControl?.disabled ?? false;
+    if (configState !== formControlState) {
+      console.warn(`${this.logName}: config disabled value '${configState}' does not match form control disabled value '${formControlState}'.`);
+    }
+
+    // If a form control event is emitted, as part of handling the event the config disabled state might be checked.
+    // So set the config disabled state first.
+    if (this.fieldConfig.config) {
+      this.fieldConfig.config.disabled = disabled;
+    }
+    // Set form control disabled state.
+    if (!disabled && this.isDisabled) {
       this.formControl?.enable(opts);
-    } else if (disabled && this.formControl?.enabled) {
+    } else if (disabled && !this.isDisabled) {
       this.formControl?.disable(opts);
     }
   }

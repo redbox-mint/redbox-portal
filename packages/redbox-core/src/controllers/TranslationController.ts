@@ -156,8 +156,9 @@ export namespace Controllers {
         const key = req.param('key');
         const value = req.body?.value;
         const category = req.body?.category;
+        const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
         try { TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
         return res.json(saved);
       } catch (err) {

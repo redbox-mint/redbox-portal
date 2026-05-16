@@ -126,7 +126,7 @@ export module Services {
 | **Utilities** | `ViewUtilsService`, `PathRulesService`, `DomSanitizerService`, `ContrastService`, `SassCompilerService` | Helper utilities |
 | **Background Jobs** | `AgendaQueueService`, `AsynchsService` | Job queue and async processing |
 | **Navigation** | `NavigationService` | Menu and navigation |
-| **Vocabularies** | `VocabService` | Controlled vocabularies |
+| **Vocabularies** | `FormVocabularyService` | Form lookup vocabularies and typeahead sources |
 | **Data Plans** | `RDMPService` | Research Data Management Plans |
 
 ### ServiceExports Object
@@ -180,7 +180,7 @@ Services are instantiated via `new ServiceClass().exports()` which provides meth
 | `TriggerService` | Workflow trigger execution |
 | `UsersService` | User account management |
 | `ViewUtilsService` | View helper utilities |
-| `VocabService` | Vocabulary/controlled list lookups |
+| `FormVocabularyService` | Form vocabulary lookups and typeahead providers |
 | `WorkflowStepsService` | Workflow step management |
 | `WorkspaceAsyncService` | Async workspace operations |
 | `WorkspaceService` | Workspace management |

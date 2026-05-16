@@ -54,6 +54,7 @@ jobs:
 
             ./support/development/refreshRootPackageLock.sh \
               . \
+              packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
               packages/sails-hook-redbox-storage-mongo
@@ -260,6 +261,59 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  test-bruno-s3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          <<: *installCodecov
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Bruno S3 attachment storage tests
+          no_output_timeout: 30m
+          command: BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:s3:ci
+      - run:
+          name: Clean up Bruno S3 containers
+          command: npm run test:bruno:s3:clean || true
+          when: always
+      - run:
+          name: Upload Bruno S3 code coverage
+          command: |
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-bruno-s3" --file "./coverage/bruno-s3/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - store_test_results:
+          path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-playwright:
     machine:
       image: ubuntu-2204:current
@@ -336,7 +390,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -449,7 +503,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
       - run:
           name: Install packages
           command: |
@@ -473,6 +527,31 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core/support/junit
+  test-agenda-sqs-backend:
+    docker:
+      - image: 'cimg/node:24.14.1'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install agenda SQS backend dependencies
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run agenda SQS backend tests
+          command: |
+            cd ./packages/agenda-sqs-backend
+            npm test
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-redbox-dev-tools-cli:
     machine:
       image: ubuntu-2204:current
@@ -490,7 +569,7 @@ jobs:
           name: Compile shared packages
           command: |
             nvm install
-            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core
+            npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core
       - run:
           name: Install redbox-dev-tools dependencies
           command: |
@@ -553,6 +632,7 @@ jobs:
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
             npm run compile:core
       - run:
           name: Run storage-mongo package tests with coverage
@@ -656,10 +736,10 @@ jobs:
           - release
       release_version:
         type: string
-        default: ""
+        default: ''
       dist_tag:
         type: string
-        default: "latest"
+        default: 'latest'
     docker:
       - image: 'cimg/node:24.14.1'
     resource_class: medium
@@ -924,7 +1004,7 @@ parameters:
     default: none
   npm_publish_version:
     type: string
-    default: ""
+    default: ''
   npm_publish_dist_tag:
     type: enum
     enum:
@@ -935,7 +1015,7 @@ parameters:
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -963,6 +1043,9 @@ workflows:
           requires:
             - build
       - test-bruno-oidc:
+          requires:
+            - build
+      - test-bruno-s3:
           requires:
             - build
       - test-playwright:
@@ -1002,6 +1085,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1012,10 +1098,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1025,10 +1113,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1039,10 +1129,12 @@ workflows:
             - build-runtime-datastream-cloud
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1053,10 +1145,12 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1067,10 +1161,12 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1088,10 +1184,12 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1109,10 +1207,12 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1127,7 +1227,7 @@ workflows:
               ignore: /^dependabot.*/
   build_test_dependabot:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1147,6 +1247,9 @@ workflows:
           requires:
             - build
       - test-bruno-oidc:
+          requires:
+            - build
+      - test-bruno-s3:
           requires:
             - build
       - test-playwright:
@@ -1183,6 +1286,9 @@ workflows:
       - test-redbox-core:
           requires:
             - build
+      - test-agenda-sqs-backend:
+          requires:
+            - build
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1193,10 +1299,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1206,10 +1314,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1224,7 +1334,7 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [ none, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1272,6 +1382,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-bruno-s3:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-mocha:
           requires:
             - build
@@ -1323,6 +1441,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - test-agenda-sqs-backend:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-redbox-dev-tools-cli:
           requires:
             - build
@@ -1343,10 +1469,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1357,10 +1485,12 @@ workflows:
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1372,10 +1502,12 @@ workflows:
             - build-runtime-datastream-cloud
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1387,10 +1519,12 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1402,10 +1536,12 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1426,10 +1562,12 @@ workflows:
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1450,10 +1588,12 @@ workflows:
             - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-storage-mongo
           filters:
             tags:
@@ -1471,17 +1611,19 @@ workflows:
               ignore: /.*/
       - npm-publish-backend:
           release_kind: release
-          release_version: ""
+          release_version: ''
           dist_tag: latest
           context:
             - npm-publish
           requires:
             - test-bruno-general
             - test-bruno-oidc
+            - test-bruno-s3
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
+            - test-agenda-sqs-backend
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
@@ -1491,7 +1633,7 @@ workflows:
               ignore: /.*/
   npm_beta_publish:
     when:
-      equal: [ beta, << pipeline.parameters.npm_publish_mode >> ]
+      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta

@@ -74,7 +74,15 @@ export namespace Services {
   }
 
   export class StorageManager extends services.Core.Service {
-    protected _exportedMethods: string[] = ['init', 'bootstrap', 'disk', 'stagingDisk', 'primaryDisk', 'isBootstrapped'];
+    protected _exportedMethods: string[] = [
+      'init',
+      'bootstrap',
+      'disk',
+      'stagingDisk',
+      'primaryDisk',
+      'isBootstrapped',
+      'getMergedStorageConfig',
+    ];
 
     protected logHeader: string = 'StorageManagerService::';
 
@@ -162,7 +170,7 @@ export namespace Services {
       }
     }
 
-    private getMergedStorageConfig(): StorageConfig {
+    public getMergedStorageConfig(): StorageConfig {
       const rawStorageConfig = (sails.config?.storage || {}) as StorageConfig;
       return {
         ...defaultStorageConfig,
@@ -180,6 +188,7 @@ export namespace Services {
       }
 
       const storageConfig = this.getMergedStorageConfig();
+      const disks = new Map<string, IDisk>();
 
       if (!storageConfig.disks || Object.keys(storageConfig.disks).length === 0) {
         throw new Error('StorageManagerService: no disks configured in storage.disks and no defaults available');
@@ -203,12 +212,13 @@ export namespace Services {
         const driver = this.createDriver(name, diskConf);
         if (this._DiskConstructor) {
           const disk = new this._DiskConstructor(driver);
-          this._disks.set(name, disk);
+          disks.set(name, disk);
         } else {
           throw new Error('StorageManagerService: Flydrive Disk constructor unavailable');
         }
       }
 
+      this._disks = disks;
       this._bootstrapped = true;
       this.logger.verbose(`${this.logHeader} Bootstrapped with disks: ${Array.from(this._disks.keys()).join(', ')}`);
     }
@@ -231,16 +241,34 @@ export namespace Services {
           if (!this._S3Driver) {
             throw new Error(`StorageManagerService: S3Driver not available but disk '${name}' requires it`);
           }
-          return new this._S3Driver({
+          const opts: Record<string, unknown> = {
             credentials: {
               accessKeyId: diskConf.config.key,
               secretAccessKey: diskConf.config.secret,
             },
             region: diskConf.config.region,
             bucket: diskConf.config.bucket,
-            endpoint: diskConf.config.endpoint,
             visibility: diskConf.config.visibility || 'public',
-          });
+          };
+          if (diskConf.config.endpoint) {
+            opts.endpoint = diskConf.config.endpoint;
+          }
+          if (diskConf.config.forcePathStyle !== undefined) {
+            opts.forcePathStyle = diskConf.config.forcePathStyle;
+          }
+          if (diskConf.config.bucketEndpoint !== undefined) {
+            opts.bucketEndpoint = diskConf.config.bucketEndpoint;
+          }
+          if (diskConf.config.tls !== undefined) {
+            opts.tls = diskConf.config.tls;
+          }
+          if (diskConf.config.useAccelerateEndpoint !== undefined) {
+            opts.useAccelerateEndpoint = diskConf.config.useAccelerateEndpoint;
+          }
+          if (diskConf.config.supportsACL !== undefined) {
+            opts.supportsACL = diskConf.config.supportsACL;
+          }
+          return new this._S3Driver(opts);
         }
         default: {
           const unknownConfig = diskConf as DiskConfig;

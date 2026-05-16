@@ -137,31 +137,33 @@ export namespace Controllers {
 
     private hasViewAccess(brand: BrandingModel, user: globalThis.Record<string, unknown> | undefined, record: globalThis.Record<string, unknown>): boolean {
       const currentUser = user ?? {};
-      return this.RecordsService.hasViewAccess(brand, currentUser, (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[], record);
+      const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
+      return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
     }
 
-    private filterRelationshipGraphByAccess(
+    private async filterRelationshipGraphByAccess(
       brand: BrandingModel,
       user: globalThis.Record<string, unknown> | undefined,
       graph: RecordRelationshipGraph
-    ): RecordRelationshipGraph {
+    ): Promise<RecordRelationshipGraph> {
       const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
       const allowedTargetOids = new Set<string>();
       const omittedByAccess: globalThis.Record<string, number> = { ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>) };
 
       for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
-        const keptRecords = ((records ?? []) as unknown[]).filter((recordValue) => {
+        const keptRecords: unknown[] = [];
+        for (const recordValue of (records ?? []) as unknown[]) {
           const record = (recordValue ?? {}) as globalThis.Record<string, unknown>;
           const recordOid = String(record.redboxOid ?? '').trim();
           if (!recordOid) {
-            return false;
+            continue;
           }
-          if (recordOid === graph.rootOid || this.hasViewAccess(brand, user, record)) {
+          const hasAccess = recordOid === graph.rootOid || await this.hasViewAccess(brand, user, record);
+          if (hasAccess) {
             allowedTargetOids.add(recordOid);
-            return true;
+            keptRecords.push(record);
           }
-          return false;
-        });
+        }
 
         if (keptRecords.length > 0) {
           filteredRelatedObjects[recordType] = keptRecords;
@@ -379,7 +381,7 @@ export namespace Controllers {
         }
 
         const relationships = await this.RecordsService.getRelatedRecords(oid, brand, this.parseRelationshipExpandOptions(req, 1));
-        const filteredRelationships = this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
+        const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
         return this.sendResp(req, res, {
           data: {
             metadata: record["metadata"],
