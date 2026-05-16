@@ -45,6 +45,7 @@ import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 
@@ -1066,7 +1067,7 @@ export namespace Controllers {
           name: String(_.get(dashboardType, 'name', '')),
           description: _.get(dashboardType, 'description') as string | undefined,
           formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-          tableConfig: _.get(dashboardType, 'tableConfig') as any,
+          tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
           searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
           system: _.get(dashboardType, 'system') as boolean | undefined,
         });
@@ -1114,7 +1115,7 @@ export namespace Controllers {
             name: String(_.get(dashboardType, 'name', '')),
             description: _.get(dashboardType, 'description') as string | undefined,
             formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-            tableConfig: _.get(dashboardType, 'tableConfig') as any,
+            tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
             searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
             system: _.get(dashboardType, 'system') as boolean | undefined,
           });
