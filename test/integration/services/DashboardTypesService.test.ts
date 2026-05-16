@@ -6,15 +6,18 @@ declare var global: any;
 describe('DashboardTypesService', function () {
     let originalRecordTypesService;
     let originalWorkflowStepsService;
+    let originalDashboardConfigService;
 
     before(function () {
         originalRecordTypesService = global.RecordTypesService;
         originalWorkflowStepsService = global.WorkflowStepsService;
+        originalDashboardConfigService = global.DashboardConfigService;
     });
 
     after(function () {
         global.RecordTypesService = originalRecordTypesService;
         global.WorkflowStepsService = originalWorkflowStepsService;
+        global.DashboardConfigService = originalDashboardConfigService;
     });
 
     // Helper to mock Waterline queries which are expected by CoreService.getObservable
@@ -50,6 +53,7 @@ describe('DashboardTypesService', function () {
              
              global.DashboardType = {
                  find: () => Promise.resolve([]),
+                 findOne: () => mockQuery(null),
                  create: (data) => mockQuery(data)
              };
              
@@ -67,7 +71,15 @@ describe('DashboardTypesService', function () {
             global.sails.config.appmode = { bootstrapAlways: false };
 
             const result = await DashboardTypesService.bootstrap({ id: 'brand1' });
-            expect(result).to.deep.equal(mockDashboardTypes);
+            expect(result).to.deep.equal([{
+                name: 'existing',
+                description: undefined,
+                formatRules: {},
+                searchable: true,
+                system: false,
+                tableConfig: result[0].tableConfig
+            }]);
+            expect(result[0].tableConfig.rowConfig).to.be.an('array').that.is.not.empty;
         });
     });
 
@@ -148,6 +160,10 @@ describe('DashboardTypesService', function () {
             global.WorkflowStepsService = {
                 get: () => of({ config: { dashboard: { table: explicitConfig } } })
             };
+            global.DashboardConfigService = {
+                getMergedDashboardTableConfig: () => Promise.resolve(null),
+                getMergedDashboardTypeFormatRules: () => Promise.resolve({ filterBy: {}, queryFilters: {} })
+            };
 
             const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft');
 
@@ -161,6 +177,7 @@ describe('DashboardTypesService', function () {
 
         it('should extract templates from queryFilters in DashboardType config', async function () {
             let originalDashboardType = global.DashboardType;
+            let originalDashboardConfigService = global.DashboardConfigService;
             
             // Mock RecordTypesService
             global.RecordTypesService = {
@@ -190,6 +207,10 @@ describe('DashboardTypesService', function () {
             global.DashboardType = {
                 findOne: () => mockQuery(mockDashboardType)
             };
+            global.DashboardConfigService = {
+                getMergedDashboardTableConfig: () => Promise.resolve(null),
+                getMergedDashboardTypeFormatRules: () => Promise.resolve(mockDashboardType.formatRules)
+            };
             
             try {
                 const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft', 'standard');
@@ -199,6 +220,7 @@ describe('DashboardTypesService', function () {
                 expect(filterTemplate.key).to.include('filters');
             } finally {
                 global.DashboardType = originalDashboardType;
+                global.DashboardConfigService = originalDashboardConfigService;
             }
         });
     });
