@@ -20,7 +20,7 @@ export function created(this: { req: Sails.Req, res: Sails.Res }, data?: unknown
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
-    const siteTitle = resolveSiteTitle('Created');
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     sails.log.silly('res.created() :: Sending 201 ("CREATED") response');
 

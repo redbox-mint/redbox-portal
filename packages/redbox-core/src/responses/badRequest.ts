@@ -20,7 +20,7 @@ export function badRequest(this: { req: Sails.Req, res: Sails.Res }, data?: unkn
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
-    const siteTitle = resolveSiteTitle('Bad Request');
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     // Set status code
     res.status(400);

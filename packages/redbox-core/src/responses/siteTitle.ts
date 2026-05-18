@@ -2,18 +2,34 @@ declare const TranslationService: {
     t: (key: string) => string;
 };
 
-export function resolveSiteTitle(fallback: string): string {
+export interface TranslationLookup {
+    t?: (key: string) => unknown;
+}
+
+export function resolveTranslation(key: string, locals?: Record<string, unknown>): string {
+    const localTranslationService = locals?.TranslationService as TranslationLookup | undefined;
+
     try {
-        if (typeof TranslationService === 'undefined' || !TranslationService || typeof TranslationService.t !== 'function') {
-            return fallback;
+        if (localTranslationService && typeof localTranslationService.t === 'function') {
+            return String(localTranslationService.t(key) ?? '').trim();
         }
-
-        const translatedTitle = TranslationService.t('default-title');
-        const trimmedTitle = typeof translatedTitle === 'string' ? translatedTitle.trim() : '';
-
-        return trimmedTitle || fallback;
     }
     catch (_error) {
-        return fallback;
+        return '';
     }
+
+    try {
+        if (typeof TranslationService === 'undefined' || !TranslationService || typeof TranslationService.t !== 'function') {
+            return '';
+        }
+
+        return String(TranslationService.t(key) ?? '').trim();
+    }
+    catch (_error) {
+        return '';
+    }
+}
+
+export function resolveSiteTitle(fallback: string, locals?: Record<string, unknown>): string {
+    return resolveTranslation('default-title', locals) || fallback;
 }

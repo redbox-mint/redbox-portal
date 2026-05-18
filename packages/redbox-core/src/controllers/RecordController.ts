@@ -168,14 +168,14 @@ export namespace Controllers {
       return BrandingService.getBrand(req.session.branding as string ?? '');
     }
 
-    private getSavedRecordPageTitle(record: AnyRecord): string {
+    private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
       const savedTitle = String(_.get(record, 'metadata.title', '') ?? '').trim();
       if (savedTitle) {
         return savedTitle;
       }
 
       const recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
-      const recordTypeTitle = this.getRecordTypePageTitle(recordType);
+      const recordTypeTitle = this.getRecordTypePageTitle(recordType, locals);
       if (recordTypeTitle) {
         return recordTypeTitle;
       }
@@ -183,13 +183,13 @@ export namespace Controllers {
       return String(_.get(record, 'redboxOid', '') ?? '').trim();
     }
 
-    private getRecordTypePageTitle(recordTypeName: string): string {
+    private getRecordTypePageTitle(recordTypeName: string, locals?: globalThis.Record<string, unknown>): string {
       const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
       if (!normalizedRecordTypeName) {
         return '';
       }
 
-      const translatedLabel = String(TranslationService.t(`${normalizedRecordTypeName}-title-label`) ?? '').trim();
+      const translatedLabel = this.translate(`${normalizedRecordTypeName}-title-label`, locals);
       if (translatedLabel && translatedLabel !== `${normalizedRecordTypeName}-title-label`) {
         return translatedLabel;
       }
@@ -403,6 +403,7 @@ export namespace Controllers {
     public async view(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = String(req.param('oid') ?? '').trim();
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
 
       if (!oid) {
         return res.badRequest();
@@ -419,9 +420,9 @@ export namespace Controllers {
           return res.forbidden();
         }
 
-        const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord);
+        const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
         return this.sendView(req, res, 'record/view', {
-          title: this.formatDocumentTitle(pageTitle),
+          title: this.formatDocumentTitle(pageTitle, locals),
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error ?? '');
@@ -453,17 +454,17 @@ export namespace Controllers {
         formName: extFormName,
         appSelector: appSelector,
         appName: appName,
-        title: this.formatDocumentTitle(pageTitle),
+        title: this.formatDocumentTitle(pageTitle, locals),
       });
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
-      const renderCreateEditView = () => this.sendView(req, res, 'record/edit', buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType)}`));
+      const renderCreateEditView = () => this.sendView(req, res, 'record/edit', buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`));
 
       const renderExistingEditView = () => this.recordsService.getMeta(oid).then((record) => {
         if (!recordType) {
           recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
         }
-        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord)));
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals)));
       });
 
       if (recordType != '' && extFormName == '') {
@@ -1620,7 +1621,8 @@ export namespace Controllers {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
-      let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      let titleLabel = req.param('titleLabel') ? this.translate(req.param('titleLabel'), locals) : `${this.translate('edit-dashboard', locals)} ${this.translate(recordType + '-title-label', locals)}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
@@ -1652,11 +1654,12 @@ export namespace Controllers {
         dashboardView: '',
         titleLabel: titleLabel,
         showAdminSideBar: showAdminSideBar,
-        title: this.formatDocumentTitle(titleLabel),
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 
     public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
       if (_.isEmpty(dashboardViewName)) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
@@ -1667,7 +1670,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
       }
 
-      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      const titleLabel = this.translate(dashboardView.titleLabelKey || dashboardView.name, locals);
       return this.sendView(req, res, 'dashboard', {
         recordType: dashboardView.sourceRecordType,
         packageType: '',
@@ -1675,7 +1678,7 @@ export namespace Controllers {
         dashboardView: dashboardView.name,
         titleLabel,
         showAdminSideBar: dashboardView.showAdminSideBar === true,
-        title: this.formatDocumentTitle(titleLabel),
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 

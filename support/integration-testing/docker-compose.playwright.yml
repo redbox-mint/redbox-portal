@@ -176,7 +176,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:1.29.7
+    image: axllent/mailpit:latest
     pull_policy: missing
     expose:
       - '1025'

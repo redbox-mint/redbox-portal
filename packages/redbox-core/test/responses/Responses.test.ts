@@ -93,6 +93,20 @@ describe('Responses', function () {
 
       expect(res.view.calledWith('myView', { data: `{ data: 'test' }`, title: 'Site' })).to.be.true;
     });
+
+    it('should use the request-scoped site title for views', function () {
+      req.wantsJSON = false;
+      req.options.locals = {
+        TranslationService: {
+          t: sinon.stub().callsFake((key: string) => key === 'default-title' ? 'Branded Site' : key)
+        }
+      };
+      const context = { req, res };
+
+      ok.call(context, { data: 'test' }, 'myView');
+
+      expect(res.view.calledWith('myView', { data: `{ data: 'test' }`, title: 'Branded Site' })).to.be.true;
+    });
   });
 
   describe('badRequest', function () {

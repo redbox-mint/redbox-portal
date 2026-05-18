@@ -48,6 +48,27 @@ describe('CoreController sendResp wrappers', () => {
     it('avoids Site | Site when page title matches site', () => {
       expect(controller.formatDocumentTitle('Site')).to.equal('Site');
     });
+
+    it('uses request locals when formatting the site title', () => {
+      const locals = {
+        TranslationService: {
+          t: sinon.stub().callsFake((key: string) => key === 'default-title' ? 'Branded Site' : key),
+        },
+      };
+
+      expect(controller.formatDocumentTitle('Page', locals)).to.equal('Page | Branded Site');
+    });
+
+    it('uses request locals when resolving page title keys', () => {
+      const locals = {
+        pageTitleKey: 'dashboard-title',
+        TranslationService: {
+          t: sinon.stub().callsFake((key: string) => key === 'dashboard-title' ? 'Branded Dashboard' : key),
+        },
+      };
+
+      expect(controller.resolvePageTitleFromLocals(locals)).to.equal('Branded Dashboard');
+    });
   });
 
   afterEach(() => {

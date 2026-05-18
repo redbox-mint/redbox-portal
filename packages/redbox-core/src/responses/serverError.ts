@@ -20,7 +20,7 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
-    const siteTitle = resolveSiteTitle('Error');
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     // Set status code
     res.status(500);

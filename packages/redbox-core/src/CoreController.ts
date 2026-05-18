@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import { ILogger } from './Logger';
-import { resolveSiteTitle } from './responses/siteTitle';
+import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -347,12 +347,12 @@ export namespace Controllers.Core {
       res.view(resolvedView, mergedLocal);
     }
 
-    protected getSiteTitle(): string {
-      return resolveSiteTitle('Site');
+    protected getSiteTitle(locals?: Record<string, unknown>): string {
+      return resolveSiteTitle('Site', locals);
     }
 
-    protected formatDocumentTitle(pageTitle?: unknown): string {
-      const siteTitle = this.getSiteTitle();
+    protected formatDocumentTitle(pageTitle?: unknown, locals?: Record<string, unknown>): string {
+      const siteTitle = this.getSiteTitle(locals);
       const resolvedPageTitle = String(pageTitle ?? '').trim();
 
       if (!resolvedPageTitle || resolvedPageTitle === siteTitle) {
@@ -360,6 +360,10 @@ export namespace Controllers.Core {
       }
 
       return `${resolvedPageTitle} | ${siteTitle}`;
+    }
+
+    protected translate(key: string, locals?: Record<string, unknown>): string {
+      return resolveTranslation(key, locals);
     }
 
     protected resolvePageTitleFromLocals(locals?: Record<string, unknown>): string | undefined {
@@ -379,9 +383,7 @@ export namespace Controllers.Core {
         return undefined;
       }
 
-      const translatedTitle = typeof TranslationService !== 'undefined' && TranslationService && typeof TranslationService.t === 'function'
-        ? String(TranslationService.t(pageTitleKey) ?? '').trim()
-        : '';
+      const translatedTitle = resolveTranslation(pageTitleKey, locals);
       return translatedTitle || undefined;
     }
 

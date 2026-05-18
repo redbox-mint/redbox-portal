@@ -24,7 +24,7 @@ export function ok(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, opt
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
-    const siteTitle = resolveSiteTitle('OK');
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     sails.log.silly('res.ok() :: Sending 200 ("OK") response');
 

@@ -20,7 +20,7 @@ export function forbidden(this: { req: Sails.Req, res: Sails.Res }, data?: unkno
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
-    const siteTitle = resolveSiteTitle('Forbidden');
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     // Set status code
     res.status(403);
