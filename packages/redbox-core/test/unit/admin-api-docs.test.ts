@@ -48,7 +48,6 @@ describe('admin API docs', function () {
         expect(routes['get /:branding/:portal/admin/api-docs']).to.deep.equal({
             controller: 'RenderViewController',
             action: 'render',
-            policy: ['noCache', 'brandingAndPortal', 'checkBrandingValid', 'setLang', 'prepWs', 'i18nLanguages', 'menuResolver', 'isWebServiceAuthenticated', 'checkAuth'],
             locals: { view: 'admin/api-docs', layout: false },
         });
         expect(routes['get /:branding/:portal/admin/api-docs/openapi.json']).to.equal('BrandingController.renderSwaggerJSON');

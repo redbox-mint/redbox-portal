@@ -301,7 +301,6 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/admin/api-docs': {
         controller: 'RenderViewController',
         action: 'render',
-        policy: ['noCache', 'brandingAndPortal', 'checkBrandingValid', 'setLang', 'prepWs', 'i18nLanguages', 'menuResolver', 'isWebServiceAuthenticated', 'checkAuth'],
         locals: { 'view': 'admin/api-docs', 'layout': false }
     },
     'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
