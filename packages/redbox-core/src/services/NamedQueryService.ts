@@ -428,12 +428,10 @@ export namespace Services {
           queryParam.type != DataType.Date &&
           !_.isEmpty(queryParam.queryType)
         ) {
-          if (!_.isEmpty(queryParam.queryType)) {
-            const query: Record<string, unknown> = {}
-            if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
-              query[queryParam.queryType] = value;
-              value = query;
-            }
+          const query: Record<string, unknown> = {}
+          if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
+            query[queryParam.queryType] = value;
+            value = query;
           }
         }
 
@@ -481,7 +479,7 @@ export namespace Services {
       if (templateOrPath && templateOrPath.indexOf('{{') != -1) {
         try {
           ensureNamedQueryHandlebarsHelpers();
-          const compiledTemplate = Handlebars.compile(templateOrPath);
+          const compiledTemplate = Handlebars.compile(templateOrPath, { noEscape: true });
           return compiledTemplate(templateVars);
         } catch (err) {
           sails.log.error(`Template compilation failed for ${templateOrPath}`, err);

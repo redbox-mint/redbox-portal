@@ -12,7 +12,7 @@ Below is a breakdown of how to configure a named query within the `module.export
 
 Each named query is a property of the `namedQuery` object, identified by a unique key. For instance, `listRDMPRecords` and `listDRRecords` are examples of named query keys. Each key contains several sub-properties that define the query behavior:
 
-- **collectionName**: Specifies the MongoDB collection to be queried. The supported values are `record` and `user`
+- **collectionName**: Specifies the MongoDB collection to be queried. Supported values include `record`, `user`, and any other Sails-registered model name.
 - **brandIdFieldPath**: Path within the documents to identify brand Id field. For records this is `metaMetadata.brandId`
 - **resultObjectMapping**: Maps fields from MongoDB documents to the properties of the resulting JavaScript object. Use Handlebars templates for dynamic values, or plain dot paths for direct value lookup.
 - **mongoQuery**: Contains the MongoDB query to filter documents in the collection. It specifies the criteria that documents must meet to be included in the result set.

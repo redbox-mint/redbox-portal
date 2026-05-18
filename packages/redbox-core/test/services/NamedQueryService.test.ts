@@ -355,6 +355,15 @@ describe('NamedQueryService', function() {
       expect(result).to.equal('2026-05-18 | World');
     });
 
+    it('should preserve non-HTML data characters in handlebars templates', function() {
+      const result = NamedQueryService.runTemplate('{{title}} | {{toLower author}}', {
+        title: 'Coffee & Tea <Blend>',
+        author: "O'Brien"
+      });
+
+      expect(result).to.equal("Coffee & Tea <Blend> | o'brien");
+    });
+
     it('should get value from path', function() {
       const path = 'user.name';
       const variables = { user: { name: 'John' } };
