@@ -5,9 +5,11 @@
  * Storage service configuration with Flydrive v2 disk support.
  */
 
+export type Visibility = 'public' | 'private';
+
 export interface FSDriverOptions {
   root: string;
-  visibility?: string;
+  visibility?: Visibility;
 }
 
 export interface S3DriverOptions {
@@ -21,11 +23,22 @@ export interface S3DriverOptions {
   tls?: boolean;
   useAccelerateEndpoint?: boolean;
   supportsACL?: boolean;
-  visibility?: string;
+  visibility?: Visibility;
   [key: string]: unknown;
 }
 
-export type DiskConfig = { driver: 'fs'; config: FSDriverOptions } | { driver: 's3'; config: S3DriverOptions };
+export interface GridFSDriverOptions {
+  datastore?: string;
+  url?: string;
+  databaseName?: string;
+  bucketName?: string;
+  visibility?: Visibility;
+}
+
+export type DiskConfig =
+  | { driver: 'fs'; config: FSDriverOptions }
+  | { driver: 's3'; config: S3DriverOptions }
+  | { driver: 'gridfs'; config: GridFSDriverOptions };
 
 export interface StorageConfig {
   /** Name of the storage service to use */

@@ -1,10 +1,13 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('StorageManagerService', function () {
   let mockSails: any;
+
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
 
   beforeEach(function () {
     mockSails = createMockSails({
@@ -37,7 +40,7 @@ describe('StorageManagerService', function () {
   });
 
   describe('exports', function () {
-    it('should export bootstrap, disk, stagingDisk, primaryDisk, isBootstrapped, and getMergedStorageConfig methods', function () {
+    it('should export bootstrap, disk, stagingDisk, primaryDisk, isBootstrapped, getMergedStorageConfig, getDiskConfig, and getStagingDiskConfig methods', function () {
       const { Services } = require('../../src/services/StorageManagerService');
       const service = new Services.StorageManager();
       const exported = service.exports();
@@ -48,6 +51,8 @@ describe('StorageManagerService', function () {
       expect(exported).to.have.property('primaryDisk');
       expect(exported).to.have.property('isBootstrapped');
       expect(exported).to.have.property('getMergedStorageConfig');
+      expect(exported).to.have.property('getDiskConfig');
+      expect(exported).to.have.property('getStagingDiskConfig');
     });
   });
 
@@ -214,7 +219,7 @@ describe('StorageManagerService', function () {
       };
       (service as any)._FSDriver = class {
         _driverName = 'fs';
-        constructor(_opts: any) {}
+        constructor(_opts: any) { }
       };
       (service as any)._S3Driver = class {
         _driverName = 's3';
@@ -235,6 +240,45 @@ describe('StorageManagerService', function () {
       expect(capturedS3Opts.forcePathStyle).to.equal(true);
       expect(capturedS3Opts.credentials.accessKeyId).to.equal('AK');
       expect(capturedS3Opts.credentials.secretAccessKey).to.equal('SK');
+    });
+
+    it('should register a GridFS primary disk', async function () {
+      mockSails.config.storage.disks = {
+        staging: {
+          driver: 'fs',
+          config: { root: '/tmp/test-staging' },
+        },
+        primary: {
+          driver: 'gridfs',
+          config: { datastore: 'mongodb', bucketName: 'attachments' },
+        },
+      };
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      const createdDrivers: unknown[] = [];
+      const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
+      const mockPrimaryDisk = { exists: sinon.stub(), name: 'gridfs-disk' };
+
+      (service as any)._DiskConstructor = class {
+        constructor(driver: any) {
+          createdDrivers.push(driver);
+          return driver?.constructor?.name === 'GridFSDriver' ? mockPrimaryDisk : mockStagingDisk;
+        }
+      };
+      (service as any)._FSDriver = class {
+        constructor(_opts: any) { }
+      };
+      (service as any)._GridFSDriver = class GridFSDriver {
+        constructor(_opts: any) { }
+      };
+
+      await service.bootstrap();
+
+      expect(service.primaryDisk()).to.equal(mockPrimaryDisk);
+      expect(createdDrivers.some((driver: any) => driver?.constructor?.name === 'GridFSDriver')).to.equal(true);
     });
 
     it('should not leave partially registered disks when S3 bootstrap fails', async function () {
@@ -264,7 +308,7 @@ describe('StorageManagerService', function () {
         }
       };
       (service as any)._FSDriver = class {
-        constructor(_opts: any) {}
+        constructor(_opts: any) { }
       };
       (service as any)._S3Driver = class {
         constructor(_opts: any) {
@@ -302,7 +346,7 @@ describe('StorageManagerService', function () {
         }
       };
       (service as any)._FSDriver = class {
-        constructor(_opts: unknown) {}
+        constructor(_opts: unknown) { }
       };
 
       await Promise.all([service.bootstrap(), service.bootstrap(), service.bootstrap()]);
@@ -355,7 +399,7 @@ describe('StorageManagerService', function () {
         }
       };
       (service as any)._FSDriver = class {
-        constructor(_opts: unknown) {}
+        constructor(_opts: unknown) { }
       };
 
       await service.bootstrap();
@@ -399,6 +443,37 @@ describe('StorageManagerService', function () {
 
       const staging = service.stagingDisk();
       expect(staging).to.have.property('name', 'staging-disk');
+    });
+  });
+
+  describe('getDiskConfig', function () {
+    it('should return the merged config for a named disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(service.getDiskConfig('staging')).to.deep.equal({
+        driver: 'fs',
+        config: { root: '/tmp/test-staging' },
+      });
+    });
+
+    it('should throw when a disk config is requested for a missing disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(() => service.getDiskConfig('missing')).to.throw("StorageManagerService: disk 'missing' is not registered");
+    });
+  });
+
+  describe('getStagingDiskConfig', function () {
+    it('should return the merged config for the staging disk', function () {
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      expect(service.getStagingDiskConfig()).to.deep.equal({
+        driver: 'fs',
+        config: { root: '/tmp/test-staging' },
+      });
     });
   });
 
@@ -548,6 +623,43 @@ describe('StorageManagerService', function () {
       expect(capturedOpts.region).to.equal('us-east-1');
       expect(capturedOpts.endpoint).to.equal('http://localhost:9000');
       expect(capturedOpts.visibility).to.equal('public');
+    });
+
+    it('should create a GridFS driver when configured', async function () {
+      mockSails.config.storage.disks = {
+        gridfsdisk: {
+          driver: 'gridfs',
+          config: {
+            datastore: 'mongodb',
+            bucketName: 'attachments',
+          },
+        },
+      };
+      mockSails.config.storage.stagingDisk = undefined;
+      mockSails.config.storage.primaryDisk = undefined;
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      let capturedDriver: any = null;
+      (service as any)._DiskConstructor = class {
+        constructor(_driver: unknown) { }
+      };
+      (service as any)._GridFSDriver = class GridFSDriver {
+        constructor(opts: any) {
+          capturedDriver = opts;
+        }
+      };
+
+      await service.bootstrap();
+
+      expect(capturedDriver).to.not.be.null;
+      expect(capturedDriver.datastore).to.equal('mongodb');
+      expect(capturedDriver.url).to.equal('');
+      expect(capturedDriver.databaseName).to.equal('');
+      expect(capturedDriver.bucketName).to.equal('attachments');
+      expect(capturedDriver.visibility).to.equal('public');
     });
 
     it('should pass through extended S3 driver options when configured', async function () {

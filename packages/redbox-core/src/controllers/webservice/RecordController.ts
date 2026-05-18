@@ -636,7 +636,7 @@ export namespace Controllers {
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         try {
-          const response = await this.DatastreamService.getDatastream(oid, datastreamId);
+          const response = await this.DatastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
 
             response.readstream.on('error', (error: unknown) => {
@@ -1020,7 +1020,7 @@ export namespace Controllers {
         });
       }
       try {
-        const attachments = await this.RecordsService.getAttachments(oid);
+        const attachments = await this.RecordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined });
         sails.log.verbose(JSON.stringify(attachments));
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(attachments);

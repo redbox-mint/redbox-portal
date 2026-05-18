@@ -38,15 +38,13 @@ import {
 import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
-import type { DataStore } from '@tus/server';
-import { FileStore } from '@tus/file-store';
-import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
+import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -1194,39 +1192,10 @@ export namespace Controllers {
       }
 
       const attachConfig = sails.config.record.attachments;
-      const storeType = attachConfig.store ?? 'file';
-
-      let datastore: DataStore;
-      if (storeType === 's3') {
-        const { S3Store } = require('@tus/s3-store') as { S3Store: new (config: unknown) => DataStore };
-        const s3Config = attachConfig.s3;
-        const accessKeyId = s3Config?.accessKeyId;
-        const secretAccessKey = s3Config?.secretAccessKey;
-        if ((accessKeyId && !secretAccessKey) || (!accessKeyId && secretAccessKey)) {
-          throw new Error('Invalid record.attachments.s3 credentials: accessKeyId and secretAccessKey must both be provided when using static credentials.');
-        }
-        datastore = new S3Store({
-          partSize: s3Config?.partSize ?? 8 * 1024 * 1024,
-          s3ClientConfig: {
-            bucket: s3Config?.bucket,
-            region: s3Config?.region,
-            credentials: accessKeyId && secretAccessKey ? {
-              accessKeyId,
-              secretAccessKey,
-            } : undefined,
-            endpoint: s3Config?.endpoint,
-          },
-        });
-      } else {
-        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir;
-        if (!targetDir) {
-          throw new Error('Missing attachment directory configuration: set record.attachments.file.directory or record.attachments.stageDir before starting upload handlers (bootstrap() should initialize this).');
-        }
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-        datastore = new FileStore({ directory: targetDir });
-      }
+      const datastore = new TusStorageManagerDataStore({
+        disk: StorageManagerService.stagingDisk(),
+        logger: sails.log,
+      });
 
       this.tusServer = new TusServer({
         path: attachConfig.path,
@@ -1245,8 +1214,9 @@ export namespace Controllers {
       this.tusServer.on(EVENTS.POST_FINISH, (_req, _res, upload: Upload) => {
         sails.log.verbose(`::: TUS upload completed: id=${upload.id}, size=${upload.size}`);
       });
-      this.tusServer.on(EVENTS.POST_CREATE, (_req, _res, upload: Upload) => {
-        sails.log.verbose(`::: TUS upload created: id=${upload.id}`);
+      this.tusServer.on(EVENTS.POST_CREATE, (_req, ...args: unknown[]) => {
+        const upload = args.find((arg): arg is Upload => !!arg && typeof arg === 'object' && 'id' in arg);
+        sails.log.verbose(`::: TUS upload created: id=${upload?.id}`);
       });
     }
 
@@ -1426,7 +1396,7 @@ export namespace Controllers {
         res.attachment(found['name'] as string);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
-          const response = await that.datastreamService.getDatastream(oid, attachId);
+          const response = await that.datastreamService.getDatastream(oid, attachId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -1460,9 +1430,9 @@ export namespace Controllers {
         sails.log.verbose(req.headers);
         const uploadFileSize = req.headers['upload-length'];
         const diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
-        const storeType = sails.config.record.attachments.store ?? 'file';
-        if (storeType === 'file' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
-          const diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
+        const stagingDiskConfig = StorageManagerService.getStagingDiskConfig();
+        if (stagingDiskConfig.driver === 'fs' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
+          const diskSpace = await checkDiskSpace(stagingDiskConfig.config.root);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           const thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
@@ -1558,7 +1528,7 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid)).subscribe((attachments: unknown[]) => {
+      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe((attachments: unknown[]) => {
         return this.sendResp(req, res, { data: attachments });
       });
     }
@@ -1579,7 +1549,7 @@ export namespace Controllers {
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
         try {
-          const response = await this.datastreamService.getDatastream(oid, datastreamId);
+          const response = await this.datastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {

@@ -199,6 +199,37 @@ describe('StandardDatastreamService', function () {
       expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('uploads/oid-123/move-file-id');
     });
 
+    it('should write to a GridFS-backed primary disk through the storage manager abstraction', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      const gridfsPrimaryDisk = {
+        exists: sinon.stub().resolves(true),
+        get: sinon.stub().resolves('file-contents'),
+        getStream: sinon.stub().resolves(Readable.from(Buffer.from('test-data'))),
+        getBytes: sinon.stub().resolves(new Uint8Array([1, 2, 3])),
+        getMetaData: sinon.stub().resolves({
+          contentType: 'application/pdf',
+          contentLength: 1024,
+          etag: 'abc123',
+          lastModified: new Date(),
+        }),
+        put: sinon.stub().resolves(),
+        putStream: sinon.stub().resolves(),
+        delete: sinon.stub().resolves(),
+        deleteAll: sinon.stub().resolves(),
+        listAll: sinon.stub().resolves({ objects: [] }),
+      };
+
+      mockStorageManager.primaryDisk.returns(gridfsPrimaryDisk);
+
+      const ds = new Datastream({ fileId: 'gridfs-file-id' });
+      await service.addDatastream('oid-123', ds);
+
+      expect(gridfsPrimaryDisk.putStream.calledOnce).to.be.true;
+      expect(gridfsPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/gridfs-file-id');
+    });
+
     it('should throw when staging file does not exist', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
@@ -605,7 +636,7 @@ describe('StandardDatastreamService', function () {
     it('should call FormsService.getFormByName and process attachment diffs', function (done) {
       // Set up a global FormsService mock
       const mockFormsService = {
-        getFormByName: sinon.stub().returns(of({ attachmentFields: ['dataLocations'] })),
+        getFormByName: sinon.stub().returns(of({ configuration: { attachmentFields: ['dataLocations'] } })),
       };
       (global as any).FormsService = mockFormsService;
 

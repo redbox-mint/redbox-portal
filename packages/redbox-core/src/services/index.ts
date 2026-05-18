@@ -5,6 +5,7 @@
 
 // Import all service modules and re-export
 import * as AgendaQueueServiceModule from './AgendaQueueService';
+import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
@@ -51,6 +52,7 @@ import * as StandardDatastreamServiceModule from './StandardDatastreamService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
+export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
 export { BrandingLogoServiceModule as BrandingLogoService };
@@ -118,6 +120,11 @@ export const ServiceExports = {
   get AgendaQueueService() {
     return getOrCreateService('AgendaQueueService', () =>
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()
+    );
+  },
+  get AttachmentMetadataService() {
+    return getOrCreateService('AttachmentMetadataService', () =>
+      new AttachmentMetadataServiceModule.Services.AttachmentMetadataService().exports()
     );
   },
   get AppConfigService() {
