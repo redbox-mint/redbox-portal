@@ -1,4 +1,3 @@
-import { AbstractControl } from '@angular/forms';
 import { get as _get } from 'lodash-es';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
@@ -12,6 +11,7 @@ import { FormComponentEventBaseConsumer } from './form-component-base-event-cons
 import { FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 import { FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { setControlValue } from '../custom-set-value.control';
+import {FormFieldModel} from "@researchdatabox/portal-ng-common";
 
 /**
  * Consumes `field.item.selected` events from the `FormComponentEventBus`.
@@ -38,7 +38,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Override base bind to skip expression-based consumption.
-    * Instead, subscribe directly and enforce the sibling-only contract in code.
+   * Instead, subscribe directly and enforce the sibling-only contract in code.
    */
   override bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
@@ -59,15 +59,13 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return;
     }
 
-    const control: AbstractControl | undefined =
-      options.definition?.model?.formControl ?? options.component?.model?.formControl;
-    if (!control) {
-      this.logDebug(
-        'FormComponentItemSelectEventConsumer: No form control found. Item select events will not be consumed.'
-      );
-      return;
+    // Model is optional for some components
+    const model:  FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
+    if (!model || !model?.formControl) {
+      this.logDebug(`FormComponentItemSelectEventConsumer: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Item select may or may not be properly consumed.`, options.definition);
+    } else {
+      this.model = model;
     }
-    this.control = control;
 
     const sub = this.eventBus
       .select$(FormComponentEventType.FIELD_ITEM_SELECTED)
@@ -91,18 +89,18 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
   /**
    * Process a field.item.selected event from a sibling component.
-    *
-    * The control update is intentionally followed by a parent-group rebroadcast
-    * so listeners attached to the containing object see the final selected row
-    * value rather than a piecemeal child-field mutation.
+   *
+   * The control update is intentionally followed by a parent-group rebroadcast
+   * so listeners attached to the containing object see the final selected row
+   * value rather than a piecemeal child-field mutation.
    */
   protected async handleItemSelected(event: FieldItemSelectedEvent): Promise<void> {
-    const control = this.control;
+    const control = this.model?.formControl;
     if (!control || !this.onItemSelect) {
       return;
     }
     const parentControl = control.parent;
-    const previousParentValue = parentControl ? structuredClone(parentControl.value) : undefined;
+    const previousParentValue = parentControl ? this.cloneEventValue(parentControl.value) : undefined;
 
     const clearValue = this.onItemSelect.clearValue ?? null;
 
@@ -142,7 +140,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * for cross-tree expressions listening on the parent group JSON pointer.
    */
   private publishParentValueChanged(previousValue: unknown): void {
-    const parentControl = this.control?.parent;
+    const parentControl = this.model?.formControl?.parent;
     const ownPointer = this.ownPointer;
     if (!parentControl || !ownPointer) {
       return;
@@ -153,23 +151,22 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return;
     }
 
-    const nextValue = structuredClone(parentControl.value);
+    const nextValue = this.cloneEventValue(parentControl.value);
     const scopedEvent = createFieldValueChangedEvent({
       fieldId: parentPointer,
       value: nextValue,
-      previousValue: previousValue === undefined ? undefined : structuredClone(previousValue),
-      sourceId: parentPointer
+      previousValue: previousValue === undefined ? undefined : this.cloneEventValue(previousValue),
+      sourceId: parentPointer,
     });
     this.eventBus.scoped(parentPointer).publish(scopedEvent as Omit<typeof scopedEvent, 'timestamp' | 'sourceId'>);
-
   }
 
   /**
    * Check whether the event's fieldId shares the same parent JSON pointer
-    * as this consumer's own pointer (sibling scope).
-    *
-    * Keeping this boundary strict avoids surprising cross-tree writes for older
-    * form configs that rely on item selection only affecting adjacent fields.
+   * as this consumer's own pointer (sibling scope).
+   *
+   * Keeping this boundary strict avoids surprising cross-tree writes for older
+   * form configs that rely on item selection only affecting adjacent fields.
    */
   private isSiblingEvent(event: FieldItemSelectedEvent): boolean {
     if (!this.ownPointer || !event.fieldId) {
@@ -200,5 +197,13 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return null;
     }
     return pointer.substring(0, lastSlash);
+  }
+
+  /**
+   * Clone values before re-emitting them so the rebroadcast event cannot be
+   * mutated by downstream listeners.
+   */
+  private cloneEventValue<ValueType>(value: ValueType): ValueType {
+    return structuredClone(value);
   }
 }

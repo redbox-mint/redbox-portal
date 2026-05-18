@@ -26,8 +26,11 @@ import {
   BrandingModel,
   UserModel,
   RoleModel,
+  RecordRelationshipExpandOptions,
+  RecordRelationshipGraph,
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
+import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
 
 const { flatten } = transforms;
 
@@ -46,8 +49,20 @@ declare const RecordAudit: WaterlineModel;
 declare const IntegrationAudit: WaterlineModel;
 
 type RelatedRecordsContext = {
+  rootOid: string;
   processedRelationships: string[];
   relatedObjects: Record<string, MongoRecordDocument[]>;
+  edges: Array<{
+    relationId: string;
+    label?: string;
+    sourceOid: string;
+    targetOid: string;
+    targetRecordType: string;
+  }>;
+  omittedByAccess: Record<string, number>;
+  visitedTraversalKeys: Set<string>;
+  visitedEdgeKeys: Set<string>;
+  visitedRelatedObjectKeys: Set<string>;
 };
 
 export namespace Services {
@@ -320,58 +335,226 @@ export namespace Services {
       batchFn();
     }
 
-    public async getRelatedRecords(oid: string, brand: BrandingModel, recordTypeName: string | null = null, mappingContext: RelatedRecordsContext | null = null) {
-      const record = (await this.getMeta(oid)) as JsonMap;
-      if (_.isEmpty(recordTypeName)) {
-        recordTypeName = String(_.get(record, 'metaMetadata.type', ''));
+    public async getRelatedRecords(oid: string, brand: BrandingModel, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+      const mappingContext = await this.walkRelatedRecords(String(oid ?? ''), brand, options);
+      return {
+        rootOid: mappingContext.rootOid,
+        edges: mappingContext.edges,
+        relatedObjects: mappingContext.relatedObjects,
+        omittedByAccess: mappingContext.omittedByAccess,
+      };
+    }
+
+    private async walkRelatedRecords(
+      oid: string,
+      brand: BrandingModel,
+      options: RecordRelationshipExpandOptions,
+      recordTypeName: string | null = null,
+      mappingContext: RelatedRecordsContext | null = null,
+      currentDepth = 0
+    ): Promise<RelatedRecordsContext> {
+      const normalizedOid = String(oid ?? '').trim();
+      if (!normalizedOid) {
+        throw new Error('Record oid is required to load related records.');
       }
-      const recordType = await firstValueFrom(RecordTypesService.get(brand as never, recordTypeName));
+
+      const record = (await this.getMeta(normalizedOid)) as JsonMap;
+      const currentRecordTypeName = String(recordTypeName ?? _.get(record, 'metaMetadata.type', '')).trim();
+      const maxDepth = typeof options.depth === 'number' && options.depth >= 0 ? options.depth : Number.POSITIVE_INFINITY;
+      const includeRecordTypes = new Set((options.includeRecordTypes ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
+      const includeRelationIds = new Set((options.includeRelationIds ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
+
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
-          processedRelationships: [recordTypeName],
+          rootOid: normalizedOid,
+          processedRelationships: [],
           relatedObjects: {},
+          edges: [],
+          omittedByAccess: {},
+          visitedTraversalKeys: new Set<string>(),
+          visitedEdgeKeys: new Set<string>(),
+          visitedRelatedObjectKeys: new Set<string>(),
         };
-        mappingContext.relatedObjects[recordTypeName] = [record];
       }
-      const relatedTo = recordType['relatedTo'];
-      if (_.isArray(relatedTo) && _.size(relatedTo) > 0) {
-        for (const relationship of relatedTo) {
-          sails.log.verbose(`${this.logHeader} Processing relationship:`);
-          sails.log.verbose(JSON.stringify(relationship));
-          const targetRecordType = relationship['recordType'];
-          const criteria: JsonMap = {};
-          criteria['metaMetadata.type'] = targetRecordType;
-          criteria[relationship['foreignField']] = oid;
-          sails.log.verbose(`${this.logHeader} Finding related records criteria:`);
-          sails.log.verbose(JSON.stringify(criteria));
 
-          const relatedRecords = await Record.find(criteria).meta({ enableExperimentalDeepTargets: true });
-          sails.log.verbose(`${this.logHeader} Got related records:`);
-          sails.log.verbose(JSON.stringify(relatedRecords));
-          if (_.size(relatedRecords) > 0) {
-            if (_.isEmpty(mappingContext.relatedObjects[targetRecordType])) {
-              mappingContext.relatedObjects[targetRecordType] = relatedRecords;
-            } else {
-              mappingContext.relatedObjects[targetRecordType] =
-                mappingContext.relatedObjects[targetRecordType].concat(relatedRecords);
-            }
-            for (let j = 0; j < relatedRecords.length; j++) {
-              const recordRelationship = relatedRecords[j] as JsonMap;
-              mappingContext = await this.getRelatedRecords(String(recordRelationship.redboxOid), brand, null, mappingContext);
-            }
-          }
-          if (!_.includes(mappingContext.processedRelationships, targetRecordType)) {
-            mappingContext.processedRelationships.push(targetRecordType);
-          }
-        }
-      } else {
-        sails.log.verbose(`${this.logHeader} RecordType has no relationships: ${recordTypeName}`);
+      this.addRelatedObject(mappingContext, currentRecordTypeName, record as MongoRecordDocument);
+      if (!_.includes(mappingContext.processedRelationships, currentRecordTypeName)) {
+        mappingContext.processedRelationships.push(currentRecordTypeName);
       }
-      sails.log.verbose(`${this.logHeader} Current mapping context:`);
-      sails.log.verbose(JSON.stringify(mappingContext));
+
+      if (currentDepth >= maxDepth) {
+        return mappingContext;
+      }
+
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRecordTypeName));
+      const relatedTo = normalizeRecordRelations(currentRecordTypeName, _.get(recordType, 'relatedTo', []));
+      if (_.isEmpty(relatedTo)) {
+        sails.log.verbose(`${this.logHeader} RecordType has no relationships: ${currentRecordTypeName}`);
+        return mappingContext;
+      }
+
+      for (const relationship of relatedTo) {
+        if (includeRelationIds.size > 0 && !includeRelationIds.has(relationship.id)) {
+          continue;
+        }
+        if (includeRecordTypes.size > 0 && !includeRecordTypes.has(relationship.recordType)) {
+          continue;
+        }
+
+        const traversalKey = `${normalizedOid}::${relationship.id}`;
+        if (mappingContext.visitedTraversalKeys.has(traversalKey)) {
+          continue;
+        }
+        mappingContext.visitedTraversalKeys.add(traversalKey);
+
+        sails.log.verbose(`${this.logHeader} Processing relationship:`);
+        sails.log.verbose(JSON.stringify(relationship));
+
+        const localValues = this.extractRelationshipLocalValues(record, relationship);
+        if (_.isEmpty(localValues)) {
+          continue;
+        }
+
+        const criteria = this.buildRelationshipCriteria(relationship, localValues);
+        sails.log.verbose(`${this.logHeader} Finding related records criteria:`);
+        sails.log.verbose(JSON.stringify(criteria));
+
+        const relatedRecords = await this.findRelatedRecords(relationship, criteria);
+        sails.log.verbose(`${this.logHeader} Got related records:`);
+        sails.log.verbose(JSON.stringify(relatedRecords));
+
+        for (const relatedRecord of relatedRecords as JsonMap[]) {
+          const edge = this.buildRelationshipEdge(relationship, currentRecordTypeName, normalizedOid, relatedRecord);
+          if (_.isNil(edge)) {
+            continue;
+          }
+          const relatedRecordOid = edge.relatedRecordOid;
+
+          this.addRelatedObject(mappingContext, relationship.recordType, relatedRecord as MongoRecordDocument);
+          if (!_.includes(mappingContext.processedRelationships, relationship.recordType)) {
+            mappingContext.processedRelationships.push(relationship.recordType);
+          }
+
+          const edgeKey = `${relationship.id}::${edge.sourceOid}::${edge.targetOid}`;
+          if (!mappingContext.visitedEdgeKeys.has(edgeKey)) {
+            mappingContext.visitedEdgeKeys.add(edgeKey);
+            mappingContext.edges.push({
+              relationId: relationship.id,
+              label: relationship.label,
+              sourceOid: edge.sourceOid,
+              targetOid: edge.targetOid,
+              targetRecordType: edge.targetRecordType,
+            });
+          }
+
+          mappingContext = await this.walkRelatedRecords(
+            relatedRecordOid,
+            brand,
+            options,
+            null,
+            mappingContext,
+            currentDepth + 1
+          );
+        }
+      }
+
       return mappingContext;
     }
 
+    private addRelatedObject(mappingContext: RelatedRecordsContext, recordTypeName: string, record: MongoRecordDocument) {
+      const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
+      const recordOid = String((record as JsonMap).redboxOid ?? '').trim();
+      if (!normalizedRecordTypeName || !recordOid) {
+        return;
+      }
+
+      const relatedObjectKey = `${normalizedRecordTypeName}::${recordOid}`;
+      if (mappingContext.visitedRelatedObjectKeys.has(relatedObjectKey)) {
+        return;
+      }
+      mappingContext.visitedRelatedObjectKeys.add(relatedObjectKey);
+
+      if (_.isEmpty(mappingContext.relatedObjects[normalizedRecordTypeName])) {
+        mappingContext.relatedObjects[normalizedRecordTypeName] = [];
+      }
+      mappingContext.relatedObjects[normalizedRecordTypeName].push(record);
+    }
+
+    private extractRelationshipLocalValues(record: JsonMap, relationship: NormalizedRecordRelation): string[] {
+      const rawValue = _.get(record, relationship.localField, relationship.localField === 'redboxOid' ? record.redboxOid : undefined);
+      const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+      return values
+        .map((value) => String(value ?? '').trim())
+        .filter((value) => value !== '');
+    }
+
+    private buildRelationshipCriteria(relationship: NormalizedRecordRelation, localValues: string[]): JsonMap {
+      const criteria: JsonMap = {
+        'metaMetadata.type': relationship.recordType,
+      };
+
+      criteria[relationship.foreignField] = localValues.length === 1
+        ? localValues[0]
+        : { in: localValues };
+
+      return criteria;
+    }
+
+    private async findRelatedRecords(relationship: NormalizedRecordRelation, criteria: JsonMap): Promise<JsonMap[]> {
+      const query = Record.find(criteria) as {
+        sort?: (value: string) => unknown;
+        limit?: (value: number) => unknown;
+        meta: (value: JsonMap) => Promise<JsonMap[]>;
+      };
+
+      if (relationship.cardinality === 'one' && typeof query.sort === 'function' && typeof query.limit === 'function') {
+        const chainedQuery = query.sort('redboxOid ASC') as {
+          limit?: (value: number) => unknown;
+          meta: (value: JsonMap) => Promise<JsonMap[]>;
+        };
+        if (typeof chainedQuery.limit === 'function') {
+          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> })
+            .meta({ enableExperimentalDeepTargets: true });
+        }
+      }
+
+      const relatedRecords = await query.meta({ enableExperimentalDeepTargets: true });
+      if (relationship.cardinality !== 'one') {
+        return relatedRecords;
+      }
+
+      return [...relatedRecords]
+        .sort((left, right) => String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', ''))))
+        .slice(0, 1);
+    }
+
+    private buildRelationshipEdge(
+      relationship: NormalizedRecordRelation,
+      currentRecordTypeName: string,
+      currentOid: string,
+      relatedRecord: JsonMap
+    ): { relatedRecordOid: string; sourceOid: string; targetOid: string; targetRecordType: string } | undefined {
+      const relatedRecordOid = String(_.get(relatedRecord, 'redboxOid', '')).trim();
+      if (!relatedRecordOid) {
+        return undefined;
+      }
+
+      if (relationship.direction === 'inbound') {
+        return {
+          relatedRecordOid,
+          sourceOid: relatedRecordOid,
+          targetOid: currentOid,
+          targetRecordType: currentRecordTypeName,
+        };
+      }
+
+      return {
+        relatedRecordOid,
+        sourceOid: currentOid,
+        targetOid: relatedRecordOid,
+        targetRecordType: relationship.recordType,
+      };
+    }
     public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 

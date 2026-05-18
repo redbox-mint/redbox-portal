@@ -5,6 +5,7 @@ import { ApiRouteDefinition, type ApiRouteProvider } from './types';
 import { appConfigApiRoutes } from './groups/appconfig';
 import { adminApiRoutes } from './groups/admin';
 import { brandingApiRoutes } from './groups/branding';
+import { dashboardConfigApiRoutes } from './groups/dashboard-config';
 import { exportApiRoutes } from './groups/export';
 import { formApiRoutes } from './groups/forms';
 import { notificationApiRoutes } from './groups/notifications';
@@ -32,6 +33,7 @@ const coreApiRouteGroups = [
   adminApiRoutes,
   appConfigApiRoutes,
   brandingApiRoutes,
+  dashboardConfigApiRoutes,
   translationApiRoutes,
   reportsApiRoutes,
   exportApiRoutes,

@@ -52,6 +52,13 @@ import { isObservable } from 'rxjs';
 
 import { Readable } from 'stream';
 import { FormAttributes } from '../waterline-models';
+import { normalizeRecordRelations } from '../config/recordtype.config';
+import {
+  RecordRelationshipExpandOptions,
+  RecordRelationshipGraph,
+  RecordMetaWithRelationships,
+  RecordTypeLookupSummary,
+} from '../RecordsService';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -293,6 +300,8 @@ export namespace Services {
       'provideUserAccessAndRemovePendingAccess',
       'searchFuzzy',
       'getRelatedRecords',
+      'getMetaWithRelationships',
+      'getRecordTypeSummary',
       'delete',
       'restoreRecord',
       'destroyDeletedRecord',
@@ -965,8 +974,33 @@ export namespace Services {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
 
-    getRelatedRecords(oid: string, brand: unknown): Promise<unknown> {
-      return this.storageService.getRelatedRecords(oid, brand);
+    getRelatedRecords(oid: string, brand: unknown, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+      return this.storageService.getRelatedRecords(oid, brand, options);
+    }
+
+    async getMetaWithRelationships(
+      oid: string,
+      brand: unknown,
+      options: RecordRelationshipExpandOptions = {}
+    ): Promise<RecordMetaWithRelationships> {
+      const metadata = await this.getMeta(oid);
+      const relationships = await this.getRelatedRecords(oid, brand, options);
+      return { metadata, relationships };
+    }
+
+    async getRecordTypeSummary(brand: BrandingModel, recordTypeName: string): Promise<RecordTypeLookupSummary | null> {
+      const recordType = await firstValueFrom(RecordTypesService.get(brand, recordTypeName));
+      if (_.isEmpty(recordType)) {
+        return null;
+      }
+
+      return {
+        name: String(_.get(recordType, 'name', recordTypeName)),
+        packageType: String(_.get(recordType, 'packageType', '')),
+        searchFilters: (_.get(recordType, 'searchFilters', []) ?? []) as unknown[],
+        searchable: Boolean(_.get(recordType, 'searchable', true)),
+        relatedTo: normalizeRecordRelations(String(_.get(recordType, 'name', recordTypeName)), _.get(recordType, 'relatedTo', [])),
+      };
     }
 
     async delete(oid: string, permanentlyDelete: boolean, currentRec: unknown, recordType: unknown, user: AnyRecord) {
@@ -1086,20 +1120,26 @@ export namespace Services {
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
     public async getAttachments(
       oid: string,
-      labelFilterStr: string | undefined = undefined
+      labelFilterStr: string | undefined = undefined,
+      requestContext: { username?: string } | undefined = undefined
     ): Promise<Record<string, unknown>[]> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
-      const datastreams = (await this.datastreamService.listDatastreams(oid, '')) as AnyRecord[];
+      const datastreams = (await this.datastreamService.listDatastreams(oid, '', requestContext)) as AnyRecord[];
       const attachments: Record<string, unknown>[] = [];
       _.each(datastreams, (datastream: unknown) => {
         const datastreamObj = datastream as AnyRecord;
         let attachment: Record<string, unknown> = {};
-        attachment['dateUpdated'] = DateTime.fromJSDate(
-          new Date(datastreamObj['uploadDate'] as string | number | Date)
-        ).toISO();
+        const rawDateUpdated = datastreamObj['uploadDate'] ?? datastreamObj['lastModified'] ?? _.get(datastreamObj.metadata, 'dateUpdated');
+        const normalizedDateUpdated = rawDateUpdated
+          ? DateTime.fromJSDate(new Date(rawDateUpdated as string | number | Date)).toUTC().toISO()
+          : null;
+        attachment['dateUpdated'] = rawDateUpdated
+          ? normalizedDateUpdated
+          : null;
         attachment['label'] = _.get(datastreamObj.metadata, 'name');
         attachment['contentType'] = _.get(datastreamObj.metadata, 'mimeType');
         attachment = _.merge(attachment, datastreamObj.metadata);
+        attachment['dateUpdated'] = normalizedDateUpdated;
         if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
           attachments.push(attachment);
         } else {

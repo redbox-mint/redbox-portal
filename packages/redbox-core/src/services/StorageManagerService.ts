@@ -1,5 +1,6 @@
 import { Services as services } from '../CoreService';
-import { StorageConfig, DiskConfig, storage as defaultStorageConfig } from '../config/storage.config';
+import { StorageConfig, DiskConfig, GridFSDriverOptions, Visibility, storage as defaultStorageConfig } from '../config/storage.config';
+import { GridFSDriver } from '../storage/GridFSDriver';
 
 /**
  * StorageManagerService
@@ -12,8 +13,9 @@ import { StorageConfig, DiskConfig, storage as defaultStorageConfig } from '../c
  */
 export namespace Services {
   type DiskConstructor = new (driver: unknown) => IDisk;
-  type FSDriverConstructor = new (opts: { location: string | URL; visibility?: string }) => unknown;
+  type FSDriverConstructor = new (opts: { location: string | URL; visibility?: Visibility }) => unknown;
   type S3DriverConstructor = new (opts: Record<string, unknown>) => unknown;
+  type GridFSDriverConstructor = new (opts?: GridFSDriverOptions) => unknown;
 
   type FlydriveModule = { Disk: DiskConstructor };
   type FSDriverModule = { FSDriver: FSDriverConstructor };
@@ -74,7 +76,17 @@ export namespace Services {
   }
 
   export class StorageManager extends services.Core.Service {
-    protected _exportedMethods: string[] = ['init', 'bootstrap', 'disk', 'stagingDisk', 'primaryDisk', 'isBootstrapped'];
+    protected _exportedMethods: string[] = [
+      'init',
+      'bootstrap',
+      'disk',
+      'stagingDisk',
+      'primaryDisk',
+      'isBootstrapped',
+      'getMergedStorageConfig',
+      'getDiskConfig',
+      'getStagingDiskConfig',
+    ];
 
     protected logHeader: string = 'StorageManagerService::';
 
@@ -82,6 +94,7 @@ export namespace Services {
     private _DiskConstructor: DiskConstructor | null = null;
     private _FSDriver: FSDriverConstructor | null = null;
     private _S3Driver: S3DriverConstructor | null = null;
+    private _GridFSDriver: GridFSDriverConstructor = GridFSDriver;
 
     // Map of instantiated disks, keyed by disk name
     private _disks: Map<string, IDisk> = new Map();
@@ -162,7 +175,7 @@ export namespace Services {
       }
     }
 
-    private getMergedStorageConfig(): StorageConfig {
+    public getMergedStorageConfig(): StorageConfig {
       const rawStorageConfig = (sails.config?.storage || {}) as StorageConfig;
       return {
         ...defaultStorageConfig,
@@ -180,6 +193,7 @@ export namespace Services {
       }
 
       const storageConfig = this.getMergedStorageConfig();
+      const disks = new Map<string, IDisk>();
 
       if (!storageConfig.disks || Object.keys(storageConfig.disks).length === 0) {
         throw new Error('StorageManagerService: no disks configured in storage.disks and no defaults available');
@@ -203,12 +217,13 @@ export namespace Services {
         const driver = this.createDriver(name, diskConf);
         if (this._DiskConstructor) {
           const disk = new this._DiskConstructor(driver);
-          this._disks.set(name, disk);
+          disks.set(name, disk);
         } else {
           throw new Error('StorageManagerService: Flydrive Disk constructor unavailable');
         }
       }
 
+      this._disks = disks;
       this._bootstrapped = true;
       this.logger.verbose(`${this.logHeader} Bootstrapped with disks: ${Array.from(this._disks.keys()).join(', ')}`);
     }
@@ -222,24 +237,53 @@ export namespace Services {
           if (!this._FSDriver) {
             throw new Error(`StorageManagerService: FSDriver not available but disk '${name}' requires it`);
           }
+          const visibility = diskConf.config.visibility ?? 'public';
           return new this._FSDriver({
             location: diskConf.config.root,
-            visibility: diskConf.config.visibility || 'public',
+            visibility,
           });
         }
         case 's3': {
           if (!this._S3Driver) {
             throw new Error(`StorageManagerService: S3Driver not available but disk '${name}' requires it`);
           }
-          return new this._S3Driver({
+          const visibility = diskConf.config.visibility ?? 'public';
+          const opts: Record<string, unknown> = {
             credentials: {
               accessKeyId: diskConf.config.key,
               secretAccessKey: diskConf.config.secret,
             },
             region: diskConf.config.region,
             bucket: diskConf.config.bucket,
-            endpoint: diskConf.config.endpoint,
-            visibility: diskConf.config.visibility || 'public',
+            visibility,
+          };
+          if (diskConf.config.endpoint) {
+            opts.endpoint = diskConf.config.endpoint;
+          }
+          if (diskConf.config.forcePathStyle !== undefined) {
+            opts.forcePathStyle = diskConf.config.forcePathStyle;
+          }
+          if (diskConf.config.bucketEndpoint !== undefined) {
+            opts.bucketEndpoint = diskConf.config.bucketEndpoint;
+          }
+          if (diskConf.config.tls !== undefined) {
+            opts.tls = diskConf.config.tls;
+          }
+          if (diskConf.config.useAccelerateEndpoint !== undefined) {
+            opts.useAccelerateEndpoint = diskConf.config.useAccelerateEndpoint;
+          }
+          if (diskConf.config.supportsACL !== undefined) {
+            opts.supportsACL = diskConf.config.supportsACL;
+          }
+          return new this._S3Driver(opts);
+        }
+        case 'gridfs': {
+          return new this._GridFSDriver({
+            datastore: this.normalizeGridFSString(diskConf.config.datastore, 'mongodb'),
+            url: this.normalizeGridFSString(diskConf.config.url, ''),
+            databaseName: this.normalizeGridFSString(diskConf.config.databaseName, ''),
+            bucketName: this.normalizeGridFSString(diskConf.config.bucketName, 'fs'),
+            visibility: diskConf.config.visibility ?? 'public',
           });
         }
         default: {
@@ -247,6 +291,10 @@ export namespace Services {
           throw new Error(`StorageManagerService: Unknown driver '${unknownConfig.driver}' for disk '${name}'`);
         }
       }
+    }
+
+    private normalizeGridFSString(value: string | undefined, fallback: string): string {
+      return typeof value === 'string' && value.trim() ? value : fallback;
     }
 
     /**
@@ -270,6 +318,29 @@ export namespace Services {
       const mergedStorage = this.getMergedStorageConfig();
       const stagingName = mergedStorage.stagingDisk ?? 'staging';
       return this.disk(stagingName);
+    }
+
+    /**
+     * Get the merged config for a named disk.
+     */
+    public getDiskConfig(name: string): DiskConfig {
+      const mergedStorage = this.getMergedStorageConfig();
+      const diskConfig = mergedStorage.disks?.[name];
+      if (!diskConfig) {
+        throw new Error(
+          `StorageManagerService: disk '${name}' is not registered. Available: ${Object.keys(mergedStorage.disks ?? {}).join(', ')}`
+        );
+      }
+      return diskConfig;
+    }
+
+    /**
+     * Get the merged config for the configured staging disk.
+     */
+    public getStagingDiskConfig(): DiskConfig {
+      const mergedStorage = this.getMergedStorageConfig();
+      const stagingName = mergedStorage.stagingDisk ?? 'staging';
+      return this.getDiskConfig(stagingName);
     }
 
     /**

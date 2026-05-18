@@ -1,5 +1,7 @@
 This section covers configuring different record types within the ReDBox platform, an essential step for tailoring the application to meet specific institutional and research data management requirements.
 
+For the runtime behaviour of record relationships, including default expansion depth and supported `relatedTo` semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
+
 ## Overview of Record Types
 
 Record types in ReDBox allow for the categorization and management of different sets of data, reflecting the diverse workflows and data needs within research institutions. They are pivotal in structuring the ReDBox platform to accommodate various data management practices.

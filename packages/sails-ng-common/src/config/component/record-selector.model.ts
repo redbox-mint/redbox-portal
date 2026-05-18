@@ -26,6 +26,7 @@ export class RecordSelectorFieldComponentConfig
   implements RecordSelectorFieldComponentConfigOutline
 {
   columnTitle = 'Record title';
+  relationshipId?: string;
   recordType?: string;
   workflowState = '';
   filterMode = 'default';

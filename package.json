@@ -37,7 +37,7 @@
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
     "typescript-require": "0.3.0",
-    "zone.js": "0.16.1"
+    "zone.js": "0.16.2"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -60,6 +60,10 @@
     "test:bruno:general:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false --abort-on-container-exit --exit-code-from bruno-mount",
     "test:bruno:general:mount:debug": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false",
     "test:bruno:general:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml down -v",
+    "test:bruno:s3": "npm run test:bruno:s3:clean && npm run test:bruno:s3:mount",
+    "test:bruno:s3:ci": "bash -c 'compose=\"docker compose --profile ci -f ./support/integration-testing/docker-compose.bruno.s3.yml\"; $compose up --menu=false --abort-on-container-exit --exit-code-from bruno; status=$?; $compose down -v --remove-orphans --timeout 180; exit $status'",
+    "test:bruno:s3:mount": "bash -c 'compose=\"docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml\"; $compose up --menu=false --abort-on-container-exit --exit-code-from bruno-mount; status=$?; $compose down -v --remove-orphans --timeout 180; exit $status'",
+    "test:bruno:s3:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml down -v --remove-orphans --timeout 180",
     "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down -v --remove-orphans --timeout 180",
     "test:playwright": "npm run test:playwright:clean && npm run test:playwright:mount",
     "test:playwright:ci": "bash -c 'docker compose --profile ci -f ./support/integration-testing/docker-compose.playwright.yml up --menu=false --abort-on-container-exit --exit-code-from playwright; status=$?; docker compose --profile ci -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180; exit $status'",
@@ -106,6 +110,22 @@
   "overrides": {
     "axios": "1.15.2",
     "@aws-sdk/xml-builder": "3.972.16",
+    "@aws-sdk/s3-request-presigner": {
+      "@aws-sdk/core": {
+        "@aws-sdk/xml-builder": {
+          "fast-xml-parser": "5.5.8"
+        }
+      },
+      "@aws-sdk/signature-v4-multi-region": {
+        "@aws-sdk/middleware-sdk-s3": {
+          "@aws-sdk/core": {
+            "@aws-sdk/xml-builder": {
+              "fast-xml-parser": "5.5.8"
+            }
+          }
+        }
+      }
+    },
     "@sailshq/router": {
       "path-to-regexp": "0.1.13"
     },
@@ -133,7 +153,7 @@
     "@uppy/companion": {
       "express": "4.22.1",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.7.0",
+      "fast-xml-parser": "5.5.8",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
     },
@@ -155,7 +175,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.5.8",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -185,7 +205,6 @@
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
-    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e",
     "@playwright/test": "1.59.1",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.0",
@@ -198,7 +217,7 @@
     "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
-    "oxlint": "1.57.0",
+    "oxlint": "1.63.0",
     "pino-test": "2.0.0",
     "prettier": "3.8.1",
     "redoc": "2.5.2",

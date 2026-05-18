@@ -52,8 +52,7 @@ export namespace Controllers {
         'getUserAudit',
         'linkAccounts',
         'disableUser',
-        'enableUser',
-        'supportAgreementIndex'
+        'enableUser'
     ];
 
     private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
@@ -86,40 +85,6 @@ export namespace Controllers {
 
     public usersIndex(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/users');
-    }
-
-    public supportAgreementIndex(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const currentYear = new Date().getFullYear();
-      const selectedYear = parseInt(req.query.year as string) || currentYear;
-      
-      // Get support agreement information from the new structure
-      // TODO: Remove the any cast once this is merged to develop and it's using the right core package version
-      const supportInfo = ((brand as unknown as globalThis.Record<string, unknown>).supportAgreementInformation || {}) as globalThis.Record<string, unknown>;
-      let yearData: globalThis.Record<string, unknown> = (supportInfo[selectedYear] || { agreedSupportDays: 0, usedSupportDays: 0 }) as globalThis.Record<string, unknown>;
-      
-      // If no data exists for the selected year but legacy data exists, use legacy for current year
-      if (!supportInfo[selectedYear] && selectedYear === currentYear) {
-        yearData = {
-          agreedSupportDays: (brand as unknown as globalThis.Record<string, unknown>).agreedSupportDays || 0,
-          usedSupportDays: (brand as unknown as globalThis.Record<string, unknown>).usedSupportDays || 0
-        };
-      }
-      
-      // Get all available years from support agreement information
-      const availableYears = Object.keys(supportInfo).map(y => parseInt(y)).filter(y => !isNaN(y));
-      if (availableYears.length === 0 || availableYears.indexOf(currentYear) === -1) {
-        availableYears.push(currentYear);
-      }
-      availableYears.sort((a, b) => b - a); // Sort descending (most recent first)
-      
-      return this.sendView(req, res, 'admin/supportAgreement', {
-        agreedSupportDays: yearData.agreedSupportDays,
-        usedSupportDays: yearData.usedSupportDays,
-        selectedYear: selectedYear,
-        availableYears: availableYears,
-        currentYear: currentYear
-      });
     }
 
     public async getUsers(req: Sails.Req, res: Sails.Res) {

@@ -62,6 +62,7 @@ export * from './raid.config';
 export * from './report.config';
 export * from './recordtype.config';
 export * from './workflow.config';
+export * from './dashboardview.config';
 // Miscellaneous configs
 export * from './autoreload.config';
 export * from './custom.config';
@@ -136,6 +137,7 @@ import { RaidConfig, raid } from './raid.config';
 import { ReportsConfig, reports } from './report.config';
 import { RecordTypeConfig, recordtype } from './recordtype.config';
 import { WorkflowConfig, workflow } from './workflow.config';
+import { DashboardViewConfig, dashboardview } from './dashboardview.config';
 // Miscellaneous config imports
 import { autoreload, AutoreloadConfig } from './autoreload.config';
 import { custom, CustomConfig } from './custom.config';
@@ -240,6 +242,7 @@ export interface SailsConfig {
     reports: ReportsConfig;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
+    dashboardview: DashboardViewConfig;
 
     // Miscellaneous configs
     autoreload: AutoreloadConfig;
@@ -344,6 +347,7 @@ export const Config = {
     raid,
     recordtype,
     workflow,
+    dashboardview,
     validators,
 } as const;
 

@@ -5,6 +5,7 @@
 
 // Import all service modules and re-export
 import * as AgendaQueueServiceModule from './AgendaQueueService';
+import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
@@ -12,6 +13,7 @@ import * as BrandingServiceModule from './BrandingService';
 import * as CacheServiceModule from './CacheService';
 import * as ConfigServiceModule from './ConfigService';
 import * as ContrastServiceModule from './ContrastService';
+import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
@@ -51,6 +53,7 @@ import * as StandardDatastreamServiceModule from './StandardDatastreamService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
+export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
 export { BrandingLogoServiceModule as BrandingLogoService };
@@ -58,6 +61,7 @@ export { BrandingServiceModule as BrandingService };
 export { CacheServiceModule as CacheService };
 export { ConfigServiceModule as ConfigService };
 export { ContrastServiceModule as ContrastService };
+export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
@@ -120,6 +124,11 @@ export const ServiceExports = {
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()
     );
   },
+  get AttachmentMetadataService() {
+    return getOrCreateService('AttachmentMetadataService', () =>
+      new AttachmentMetadataServiceModule.Services.AttachmentMetadataService().exports()
+    );
+  },
   get AppConfigService() {
     return getOrCreateService('AppConfigService', () => new AppConfigServiceModule.Services.AppConfigs().exports());
   },
@@ -142,6 +151,11 @@ export const ServiceExports = {
   },
   get ContrastService() {
     return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
+  },
+  get DashboardConfigService() {
+    return getOrCreateService('DashboardConfigService', () =>
+      new DashboardConfigServiceModule.Services.DashboardConfig().exports()
+    );
   },
   get DashboardTypesService() {
     return getOrCreateService('DashboardTypesService', () =>

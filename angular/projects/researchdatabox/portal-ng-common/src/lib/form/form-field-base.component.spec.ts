@@ -63,4 +63,20 @@ describe('FormFieldBaseComponent', () => {
 
     expect(component.model?.isDisabled).toBeTrue();
   });
+  it('should set formControl.disabled when component.disabled is set', async () => {
+    await component.initComponent({
+      modelClass: TestFormFieldModel,
+      model: new TestFormFieldModel({class: "SimpleInputModel"}),
+      compConfigJson: {
+        name: "testing-component-model-disabled",
+        component: {class: "SimpleInputComponent", config: {}}
+      }
+    });
+    expect(component.isDisabled).toBeFalse();
+
+    component.setProperty('disabled', 'yes');
+    expect(component.isDisabled).toBeTrue();
+
+    expect(component.model?.isDisabled).toBeTrue();
+  });
 });

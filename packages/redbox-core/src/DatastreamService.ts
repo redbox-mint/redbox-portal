@@ -8,6 +8,10 @@ type DatastreamContent = {
   body?: Buffer | string;
 } & Record<string, unknown>;
 
+export type DatastreamRequestContext = {
+  username?: string;
+};
+
 export interface DatastreamService {
   addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
   updateDatastream(
@@ -25,6 +29,6 @@ export interface DatastreamService {
     removeDatastreams: Datastream[],
     stagingDisk?: StorageManagerServices.IDisk
   ): Promise<unknown>;
-  getDatastream(oid: string, fileId: string): Promise<DatastreamContent>;
-  listDatastreams(oid: string, fileId: string): Promise<Record<string, unknown>[]>;
+  getDatastream(oid: string, fileId: string, requestContext?: DatastreamRequestContext): Promise<DatastreamContent>;
+  listDatastreams(oid: string, fileId: string, requestContext?: DatastreamRequestContext): Promise<Record<string, unknown>[]>;
 }

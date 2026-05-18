@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldModel } from "@researchdatabox/portal-ng-common";
+import {FormFieldModel, ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {
   RadioInputComponentName,
   RadioInputFieldComponentDefinitionFrame,
@@ -74,5 +74,14 @@ export class RadioInputComponent extends OptionInputBaseComponent<
       return;
     }
     this.setControlValue(option.value);
+  }
+
+  override get isDisabled(): boolean {
+    return super.isDisabled || this.model?.isDisabled || false;
+  }
+
+  override setDisabled(disabled: boolean, opts?: ModifyOptions) {
+    super.setDisabled(disabled);
+    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
   }
 }

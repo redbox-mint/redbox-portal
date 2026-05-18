@@ -18,6 +18,7 @@ export * from './groups/recordtypes';
 export * from './groups/admin';
 export * from './groups/appconfig';
 export * from './groups/branding';
+export * from './groups/dashboard-config';
 export * from './groups/translation';
 export * from './groups/reports';
 export * from './groups/export';

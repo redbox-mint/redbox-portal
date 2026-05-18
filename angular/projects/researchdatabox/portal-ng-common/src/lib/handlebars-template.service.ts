@@ -118,6 +118,30 @@ export class HandlebarsTemplateService extends HttpClientService {
         }
     }
 
+    public async loadDashboardViewTemplates(branding: string, portal: string, dashboardView: string, stepName: string, dashboardType: string = 'standard'): Promise<void> {
+        const dashboardHintPath = `${branding}/${portal}/dashboard-view/${dashboardView}/${stepName}/${dashboardType}`;
+
+        try {
+            const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
+            const urlPath = ['dynamicAsset', 'dashboardViewTemplates', dashboardView, stepName];
+
+            this.loggerService.debug(`Loading dashboard view templates module for ${dashboardHintPath}`);
+
+            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, { dashboardType });
+
+            if (module && typeof module.evaluate === 'function') {
+                this.registerDashboardModule(module, dashboardView, stepName, dashboardType);
+                this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${dashboardView}__${stepName}`);
+                this.loggerService.debug(`Loaded templates for ${dashboardHintPath}`);
+            } else {
+                this.loggerService.error(`Invalid module loaded for ${dashboardHintPath}`);
+            }
+
+        } catch (error) {
+            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard view templates for ${dashboardHintPath}:`, error);
+        }
+    }
+
     /**
      * Load pre-compiled templates from the server for a specific report.
      * Templates are loaded as ES modules using dynamic import.
@@ -211,7 +235,7 @@ export class HandlebarsTemplateService extends HttpClientService {
         for (let i = keyParts.length; i > 0; i--) {
             const key = buildKeyString(keyParts.slice(0, i));
             const module = this.moduleRegistry.get(key);
-            
+
             if (module) {
                 try {
                     // The evaluate function compiles and runs the template with the context

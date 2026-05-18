@@ -1,5 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../index';
+import { promises as fsp } from 'fs';
+import * as path from 'path';
 
 
 export namespace Controllers {
@@ -10,8 +12,6 @@ export namespace Controllers {
    */
   export class WorkspaceTypes extends controllers.Core.Controller {
 
-    private blobAdapter: unknown;
-
     protected override _exportedMethods: string[] = [
       'init',
       'get',
@@ -21,16 +21,26 @@ export namespace Controllers {
     ];
 
     public init() {
-      const skipperGridFs = require('skipper-gridfs');
-      const uriCreds: string = `${sails.config.datastores.mongodb.user}${_.isEmpty(sails.config.datastores.mongodb.password) ? '' : `:${sails.config.datastores.mongodb.password}`}`;
-      const uriHost: string = `${sails.config.datastores.mongodb.host}${_.isNull(sails.config.datastores.mongodb.port) ? '' : `:${sails.config.datastores.mongodb.port}`}`;
-      const mongoUri: string = `mongodb://${_.isEmpty(uriCreds) ? '' : `${uriCreds}@`}${uriHost}/${sails.config.datastores.mongodb.database}`;
-      this.blobAdapter = skipperGridFs({
-        uri: mongoUri
-      });
+      return;
     }
 
     public bootstrap() {
+    }
+
+    private getDefaultLogoPath(): string {
+      return path.resolve(sails.config.appPath, 'assets/images', sails.config.static_assets.logoName);
+    }
+
+    private resolveLocalAssetPath(logo: string): string | null {
+      const assetsRoot = path.resolve(sails.config.appPath, 'assets');
+      const logoPath = path.resolve(path.join(sails.config.appPath, logo.replace(/^\//, '')));
+      const relativeLogoPath = path.relative(assetsRoot, logoPath);
+
+      if (relativeLogoPath.startsWith('..') || path.isAbsolute(relativeLogoPath)) {
+        return null;
+      }
+
+      return logoPath;
     }
 
     public get(req: Sails.Req, res: Sails.Res) {
@@ -66,34 +76,92 @@ export namespace Controllers {
     }
 
     //May be irrelevant because the logo upload should be done at bootstrap.
-    public uploadLogo(req: Sails.Req, res: Sails.Res) {
-      const that = this;
-      const fileUploader = req.file as (name: string) => { upload: (opts: unknown, cb: (err: unknown, files: unknown[]) => void) => void };
-      fileUploader('logo').upload({
-        adapter: this.blobAdapter
-      }, function (err: unknown, _filesUploaded: unknown[]) {
-        if (err) {
-          const payload = err ?? { status: false, message: err };
-          return that.sendResp(req, res, { data: payload, headers: that.getNoCacheHeaders() });
+    public async uploadLogo(req: Sails.Req, res: Sails.Res) {
+      try {
+        const workspaceTypeName = String(req.param('workspaceType') || req.param('name') || '').trim();
+        if (!workspaceTypeName) {
+          return this.sendResp(req, res, { data: { status: false, message: 'workspaceType missing' }, headers: this.getNoCacheHeaders() });
         }
-        return that.sendResp(req, res, { data: { status: true }, headers: that.getNoCacheHeaders() });
-      });
+
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const workspaceType = await WorkspaceType.findOne({ branding: brand.id, name: workspaceTypeName });
+        if (!workspaceType) {
+          return this.sendResp(req, res, { data: { status: false, message: 'workspaceType not found' }, headers: this.getNoCacheHeaders() });
+        }
+
+        const fileUploader = req.file as (name: string) => { upload: (cb: (err: unknown, files: Array<{ fd: string; type?: string }>) => void) => void };
+        const files = await new Promise<Array<{ fd: string; type?: string }>>((resolve, reject) => {
+          fileUploader('logo').upload((err, uploadedFiles) => err ? reject(err) : resolve(uploadedFiles));
+        });
+
+        if (!files.length) {
+          return this.sendResp(req, res, { data: { status: false, message: 'no logo uploaded' }, headers: this.getNoCacheHeaders() });
+        }
+
+        const file = files[0];
+        const buffer = await fsp.readFile(file.fd);
+        const contentType = file.type || 'application/octet-stream';
+        const ext = contentType === 'image/png'
+          ? 'png'
+          : contentType === 'image/jpeg'
+            ? 'jpg'
+            : contentType === 'image/svg+xml'
+              ? 'svg'
+              : path.extname(file.fd).replace(/^\./, '') || 'bin';
+        const storageKey = `workspace-types/${brand.id}/${workspaceTypeName}/logo.${ext}`;
+        await StorageManagerService.primaryDisk().put(storageKey, buffer, { contentType });
+        await WorkspaceType.update({ id: workspaceType.id }, { logo: storageKey });
+        try {
+          await fsp.unlink(file.fd);
+        } catch (cleanupErr) {
+          sails.log.warn('WorkspaceTypesController.uploadLogo failed to remove temporary upload', cleanupErr);
+        }
+
+        return this.sendResp(req, res, { data: { status: true, storageKey }, headers: this.getNoCacheHeaders() });
+      } catch (err) {
+        sails.log.error('WorkspaceTypesController.uploadLogo failed', err ?? 'Unknown error');
+        return this.sendResp(req, res, {
+          data: { status: false, message: 'Internal server error' },
+          headers: this.getNoCacheHeaders(),
+        });
+      }
     }
 
     public renderImage(req: Sails.Req, res: Sails.Res) {
       const type = req.param('workspaceType');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      return WorkspaceTypesService.getOne(brand, type).subscribe((response: unknown) => {
-        const adapter = this.blobAdapter as { read: (id: unknown, cb: (err: unknown, file: Uint8Array) => void) => void };
-        adapter.read((response as globalThis.Record<string, unknown>).logo, function (error: unknown, file: Uint8Array) {
-          if (error) {
-            sails.log.warn("There was an error rending image for workspace controller. Sending back image from default image location...");
-            res.sendFile(sails.config.appPath + `assets/images/${sails.config.static_assets.logoName}`);
-          } else {
-            res.contentType(`image/${sails.config.static_assets.imageType}`);
-            res.send(Buffer.from(file));
+      return WorkspaceTypesService.getOne(brand, type).subscribe(async (response: unknown) => {
+        const workspaceType = response as globalThis.Record<string, unknown> | null;
+        const logo = typeof workspaceType?.logo === 'string' ? workspaceType.logo : '';
+
+        if (!logo) {
+          return res.sendFile(this.getDefaultLogoPath());
+        }
+
+        if (logo.startsWith('/assets/') || logo.startsWith('assets/')) {
+          const logoPath = this.resolveLocalAssetPath(logo);
+          if (!logoPath) {
+            sails.log.warn('WorkspaceTypesController.renderImage rejected an out-of-bounds asset path. Sending default image instead.', logo);
+            return res.sendFile(this.getDefaultLogoPath());
           }
-        });
+          return res.sendFile(logoPath);
+        }
+
+        try {
+          const primaryDisk = StorageManagerService.primaryDisk();
+          const [bytes, metadata] = await Promise.all([
+            primaryDisk.getBytes(logo),
+            primaryDisk.getMetaData(logo).catch(() => null),
+          ]);
+          res.contentType(metadata?.contentType || sails.config.static_assets.imageType);
+          return res.send(Buffer.from(bytes));
+        } catch (_error) {
+          sails.log.warn(
+            'WorkspaceTypesController.renderImage failed to load a workspace logo. Sending default image instead.',
+            _error instanceof Error ? (_error.stack ?? _error.message) : _error,
+          );
+          return res.sendFile(this.getDefaultLogoPath());
+        }
       });
     }
   }

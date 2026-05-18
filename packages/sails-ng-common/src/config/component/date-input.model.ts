@@ -26,6 +26,7 @@ export class DateInputFieldComponentConfig extends FieldComponentConfig implemen
     showWeekNumbers?: boolean = false;
     containerClass?: string = 'theme-dark-blue';
     enableTimePicker?: boolean = false;
+    robustParsing?: boolean = true;
     bsFullConfig?: any = null;
 
     constructor() {

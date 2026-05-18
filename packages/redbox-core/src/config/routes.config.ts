@@ -13,7 +13,10 @@ export interface RouteTargetObject {
     policy?: string | string[];
     csrf?: boolean;
     skipAssets?: boolean;
-    locals?: Record<string, unknown>;
+    locals?: Record<string, unknown> & {
+        pageTitleKey?: string;
+        pageTitle?: string;
+    };
     view?: string;
 }
 
@@ -32,24 +35,23 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/home': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'homepage' }
+        locals: { 'view': 'homepage', pageTitleKey: 'welcome-title' }
     },
     '/:branding/:portal/researcher/home': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'researcher/home' }
+        locals: { 'view': 'researcher/home', pageTitleKey: 'welcome-title' }
     },
 
     // Record view routes
     '/:branding/:portal/record/view/:oid': {
-        controller: 'RenderViewController',
-        action: 'render',
-        locals: { 'view': 'record/view' }
+        controller: 'RecordController',
+        action: 'view'
     },
     '/:branding/:portal/record/search': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'record/search' }
+        locals: { 'view': 'record/search', pageTitleKey: 'record-search-heading' }
     },
     '/:branding/:portal/record/view-orig/:oid': {
         controller: 'RenderViewController',
@@ -102,11 +104,6 @@ export const routes: RoutesConfig = {
         action: 'usersIndex',
         skipAssets: true
     },
-    '/:branding/:portal/admin/supportAgreement': {
-        controller: 'AdminController',
-        action: 'supportAgreementIndex',
-        skipAssets: true
-    },
     'get /:branding/:portal/admin/vocabulary/manager': {
         controller: 'VocabularyController',
         action: 'manager'
@@ -151,7 +148,7 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/availableServicesList': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'availableServicesList' }
+        locals: { 'view': 'availableServicesList', pageTitle: 'List of available services' }
     },
     '/:branding/:portal/workspaces/list': {
         controller: 'RecordController',
@@ -160,7 +157,7 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/getAdvice': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'getAdvice' }
+        locals: { 'view': 'getAdvice', pageTitle: 'Get advice' }
     },
 
     // Dynamic asset routes
@@ -172,6 +169,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
     'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
+    'get /:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName': 'DynamicAssetController.getDashboardViewTemplates',
 
     // Auth routes
     'post /user/login_local': 'UserController.localLogin',
@@ -216,6 +214,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
     'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
     'get /:branding/:portal/dashboard/type': 'RecordController.getAllDashboardTypes',
+    'get /:branding/:portal/dashboard/view/:dashboardView': 'RecordController.getDashboardView',
     'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
     'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
     'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
@@ -243,7 +242,9 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
     'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
     'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
+    'get /:branding/:portal/dashboard/consolidated': 'RecordController.redirectLegacyConsolidatedDashboard',
     'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
+    'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
     'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
     'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
