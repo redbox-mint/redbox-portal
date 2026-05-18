@@ -61,6 +61,9 @@ declare global {
       services: {
         [key: string]: DynamicService;
       };
+      models: {
+        [key: string]: Model<unknown> | undefined;
+      };
       after(events: string | string[], cb: () => void): void;
       // Socket.io sockets interface
       sockets: {
@@ -204,7 +207,7 @@ declare global {
       id: string;
     }
 
-    export interface NextFunction extends express.NextFunction {}
+    export interface NextFunction extends express.NextFunction { }
 
     export interface ReqOptions {
       locals?: globalThis.Record<string, unknown>;
@@ -284,13 +287,13 @@ declare global {
 
       skip(num: number): QueryBuilder;
 
-      sort(criteria: string | {[key:string]: "ASC" | "DESC"}[]): QueryBuilder;
+      sort(criteria: string | { [key: string]: "ASC" | "DESC" }[]): QueryBuilder;
 
       populate(association: string): QueryBuilder;
       populate(association: string, filter: object): QueryBuilder;
     }
 
-    export interface Controller {}
+    export interface Controller { }
   }
 }
 
@@ -298,4 +301,4 @@ declare global {
 // Use: import type { Sails } from '@researchdatabox/redbox-core';
 // Or:  export type SailsApplication = Sails.Application;
 
-export {}; // Ensure the file is treated as a module
+export { }; // Ensure the file is treated as a module

@@ -348,8 +348,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       let optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
       const optionExpressionKey = "expression";
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
-      const optionEvaluatorKey = "evaluator";
-      const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as (control: FormValidatorControl) => boolean;
+      const evaluator = config?.["evaluator"] as ((control: FormValidatorControl) => boolean) | null | undefined;
       return (control) => {
           if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
               return null; // don't validate empty values to allow optional controls
@@ -357,6 +356,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           const value = control.value?.toString();
           let success: boolean;
           try {
+              if (typeof evaluator !== "function") {
+                  throw new Error("Missing evaluator");
+              }
               success = evaluator(control)
           } catch (err) {
               success = false;
