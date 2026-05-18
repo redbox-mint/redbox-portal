@@ -46,11 +46,15 @@ if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
   npm install
 fi
 
+if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
+  npm install --no-save --ignore-scripts --strict-peer-deps redoc@2.5.2
+fi
+
 npm run webpack
 
-# Redoc is only needed to build the browser bundle. Remove it before Sails boots so
-# moduleloader does not scan its transitive `should` package.
-rm -rf node_modules/redoc
+# Redoc is only needed to build the browser bundle. Remove it and its transitive
+# `should` package before Sails boots so moduleloader does not scan them.
+rm -rf node_modules/redoc node_modules/should
 
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level
