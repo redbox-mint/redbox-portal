@@ -95,6 +95,7 @@ export namespace Controllers {
      */
     protected override _exportedMethods: string[] = [
       'init',
+      'view',
       'edit',
       'getForm',
       'create',
@@ -166,6 +167,35 @@ export namespace Controllers {
 
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand(req.session.branding as string ?? '');
+    }
+
+    private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
+      const savedTitle = String(_.get(record, 'metadata.title', '') ?? '').trim();
+      if (savedTitle) {
+        return savedTitle;
+      }
+
+      const recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
+      const recordTypeTitle = this.getRecordTypePageTitle(recordType, locals);
+      if (recordTypeTitle) {
+        return recordTypeTitle;
+      }
+
+      return String(_.get(record, 'redboxOid', '') ?? '').trim();
+    }
+
+    private getRecordTypePageTitle(recordTypeName: string, locals?: globalThis.Record<string, unknown>): string {
+      const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
+      if (!normalizedRecordTypeName) {
+        return '';
+      }
+
+      const translatedLabel = this.translate(`${normalizedRecordTypeName}-title-label`, locals);
+      if (translatedLabel && translatedLabel !== `${normalizedRecordTypeName}-title-label`) {
+        return translatedLabel;
+      }
+
+      return normalizedRecordTypeName;
     }
 
     private shouldIncludeRelationships(req: Sails.Req): boolean {
@@ -371,6 +401,39 @@ export namespace Controllers {
       });
     }
 
+    public async view(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = this.getReqBrand(req);
+      const oid = String(req.param('oid') ?? '').trim();
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+
+      if (!oid) {
+        return res.badRequest();
+      }
+
+      try {
+        const record = await this.recordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return res.notFound();
+        }
+
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record));
+        if (!hasViewAccess) {
+          return res.forbidden();
+        }
+
+        const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
+        return this.sendView(req, res, 'record/view', {
+          title: this.formatDocumentTitle(pageTitle, locals),
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error ?? '');
+        if (errorMessage.toLowerCase().includes('not found')) {
+          return res.notFound();
+        }
+        return res.serverError();
+      }
+    }
+
     public edit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
@@ -384,8 +447,27 @@ export namespace Controllers {
       const extFormName = localFormName ? localFormName : '';
       const appSelector = 'dmp-form';
       const appName = 'dmp';
+      const hasExistingRecord = String(oid ?? '').trim() !== '';
+      const buildEditViewLocals = (pageTitle?: string) => ({
+        oid: oid,
+        rdmp: rdmp,
+        recordType: recordType,
+        formName: extFormName,
+        appSelector: appSelector,
+        appName: appName,
+        title: this.formatDocumentTitle(pageTitle, locals),
+      });
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
+      const renderCreateEditView = () => this.sendView(req, res, 'record/edit', buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`));
+
+      const renderExistingEditView = () => this.recordsService.getMeta(oid).then((record) => {
+        if (!recordType) {
+          recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
+        }
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals)));
+      });
+
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
           if (!form) {
@@ -395,14 +477,7 @@ export namespace Controllers {
             });
           }
           // Deprecated: customAngularApp has been removed from FormConfigFrame
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return renderCreateEditView();
         });
       } else if (extFormName != '') {
         FormsService.getFormByName(extFormName, true, String(brand.id)).subscribe(form => {
@@ -413,14 +488,7 @@ export namespace Controllers {
             });
           }
           // Deprecated: customAngularApp has been removed from FormConfigFrame
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return hasExistingRecord ? renderExistingEditView() : renderCreateEditView();
         }, error => {
           return this.sendResp(req, res, {
             errors: [this.asError(error)],
@@ -443,23 +511,9 @@ export namespace Controllers {
           if (!recordType) {
             recordType = form.configuration?.type ?? '';
           }
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return renderExistingEditView();
         }, _error => {
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return this.sendView(req, res, 'record/edit', buildEditViewLocals());
         });
 
       }
@@ -1580,7 +1634,8 @@ export namespace Controllers {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
-      let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      let titleLabel = req.param('titleLabel') ? this.translate(req.param('titleLabel'), locals) : `${this.translate('edit-dashboard', locals)} ${this.translate(recordType + '-title-label', locals)}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
@@ -1611,11 +1666,13 @@ export namespace Controllers {
         dashboardType: dashboardType,
         dashboardView: '',
         titleLabel: titleLabel,
-        showAdminSideBar: showAdminSideBar
+        showAdminSideBar: showAdminSideBar,
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 
     public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
       if (_.isEmpty(dashboardViewName)) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
@@ -1626,14 +1683,15 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
       }
 
-      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      const titleLabel = this.translate(dashboardView.titleLabelKey || dashboardView.name, locals);
       return this.sendView(req, res, 'dashboard', {
         recordType: dashboardView.sourceRecordType,
         packageType: '',
         dashboardType: dashboardView.dashboardType,
         dashboardView: dashboardView.name,
         titleLabel,
-        showAdminSideBar: dashboardView.showAdminSideBar === true
+        showAdminSideBar: dashboardView.showAdminSideBar === true,
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 
