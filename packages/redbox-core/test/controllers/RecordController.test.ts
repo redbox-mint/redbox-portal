@@ -1,8 +1,11 @@
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
+
+before(async () => {
+  expect = (await import('chai')).expect;
+});
 
 describe('RecordController getWorkflowSteps', () => {
   let controller: Controllers.Record;
@@ -11,6 +14,8 @@ describe('RecordController getWorkflowSteps', () => {
   let originalRecordTypesService: any;
   let originalWorkflowStepsService: any;
   let originalDashboardTypesService: any;
+  let originalFormsService: any;
+  let originalTranslationService: any;
 
   beforeEach(() => {
     originalSails = (global as any).sails;
@@ -18,6 +23,8 @@ describe('RecordController getWorkflowSteps', () => {
     originalRecordTypesService = (global as any).RecordTypesService;
     originalWorkflowStepsService = (global as any).WorkflowStepsService;
     originalDashboardTypesService = (global as any).DashboardTypesService;
+    originalFormsService = (global as any).FormsService;
+    originalTranslationService = (global as any).TranslationService;
 
     (global as any).sails = {
       config: {},
@@ -43,8 +50,24 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).DashboardTypesService = {
       getDashboardView: sinon.stub(),
     };
+    (global as any).FormsService = {
+      getFormByStartingWorkflowStep: sinon.stub(),
+      getFormByName: sinon.stub(),
+    };
+    (global as any).TranslationService = {
+      t: sinon.stub().callsFake((key: string) => ({
+        'default-title': 'Site',
+        'rdmp-title-label': 'RDMP',
+        'dataRecord-title-label': 'Data Record',
+        'workspaces': 'Workspaces',
+      }[key] ?? key)),
+    };
 
     controller = new Controllers.Record();
+    controller.recordsService = {
+      getMeta: sinon.stub(),
+      hasViewAccess: sinon.stub().returns(true),
+    } as any;
   });
 
   afterEach(() => {
@@ -54,6 +77,197 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).RecordTypesService = originalRecordTypesService;
     (global as any).WorkflowStepsService = originalWorkflowStepsService;
     (global as any).DashboardTypesService = originalDashboardTypesService;
+    (global as any).FormsService = originalFormsService;
+    (global as any).TranslationService = originalTranslationService;
+  });
+
+  it('renders record view with saved metadata title', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { type: 'rdmp' },
+      metadata: { title: 'Saved title' },
+    });
+
+    await controller.view(req, res);
+
+    expect(sendViewStub.calledOnce).to.be.true;
+    expect(sendViewStub.firstCall.args[2]).to.equal('record/view');
+    expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'Saved title | Site' });
+  });
+
+  it('falls back to record type label for record view when metadata title is empty', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { type: 'rdmp' },
+      metadata: { title: '   ' },
+    });
+
+    await controller.view(req, res);
+
+    expect(sendViewStub.calledOnce).to.be.true;
+    expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'RDMP | Site' });
+  });
+
+  it('falls back to oid for record view when metadata title and record type are missing', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: {},
+      metadata: { title: '' },
+    });
+
+    await controller.view(req, res);
+
+    expect(sendViewStub.calledOnce).to.be.true;
+    expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'oid-1 | Site' });
+  });
+
+  it('preserves existing error path when record metadata fetch fails for view', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = { serverError: sinon.stub() } as unknown as Sails.Res;
+    (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('boom'));
+
+    await controller.view(req, res);
+
+    expect((res.serverError as any).calledOnce).to.be.true;
+  });
+
+  it('returns badRequest when record oid is empty', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('   '),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {
+      badRequest: sinon.stub(),
+    } as unknown as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+
+    await controller.view(req, res);
+
+    expect((res.badRequest as any).calledOnce).to.be.true;
+    expect(sendViewStub.called).to.be.false;
+    expect((controller.recordsService.getMeta as sinon.SinonStub).called).to.be.false;
+  });
+
+  it('returns forbidden when view access is denied', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {
+      forbidden: sinon.stub(),
+    } as unknown as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { type: 'rdmp' },
+      metadata: { title: 'Saved title' },
+    });
+    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
+
+    await controller.view(req, res);
+
+    expect((res.forbidden as any).calledOnce).to.be.true;
+    expect(sendViewStub.called).to.be.false;
+    expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnce).to.be.true;
+  });
+
+  it('returns notFound when record metadata lookup reports a missing record', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {
+      notFound: sinon.stub(),
+    } as unknown as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('Record not found: oid-1'));
+
+    await controller.view(req, res);
+
+    expect((res.notFound as any).calledOnce).to.be.true;
+    expect(sendViewStub.called).to.be.false;
+  });
+
+  it('uses saved metadata title on existing edit routes', async () => {
+    const req = {
+      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+      query: {},
+      session: { branding: 'default' },
+      options: {},
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).onFirstCall().resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { type: 'rdmp', form: 'form-1' },
+      metadata: { title: 'Saved title' },
+    }).onSecondCall().resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { type: 'rdmp', form: 'form-1' },
+      metadata: { title: 'Saved title' },
+    });
+    (global as any).FormsService.getFormByName.returns(of({ configuration: { type: 'rdmp' } }));
+
+    const rendered = new Promise<void>((resolve) => {
+      sendViewStub.callsFake(() => {
+        resolve();
+        return undefined;
+      });
+    });
+
+    controller.edit(req, res);
+    await rendered;
+
+    expect(sendViewStub.calledOnce).to.be.true;
+    expect(sendViewStub.firstCall.args[2]).to.equal('record/edit');
+    expect(sendViewStub.firstCall.args[3]).to.deep.include({ title: 'Saved title | Site' });
+  });
+
+  it('uses create record type title on create routes', async () => {
+    const req = {
+      param: sinon.stub().callsFake((name: string) => name === 'recordType' ? 'rdmp' : ''),
+      query: {},
+      session: { branding: 'default' },
+      options: {},
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendViewStub = sinon.stub(controller, 'sendView');
+    (global as any).FormsService.getFormByStartingWorkflowStep.returns(of({ configuration: { type: 'rdmp' } }));
+
+    const rendered = new Promise<void>((resolve) => {
+      sendViewStub.callsFake(() => {
+        resolve();
+        return undefined;
+      });
+    });
+
+    controller.edit(req, res);
+    await rendered;
+
+    expect(sendViewStub.calledOnce).to.be.true;
+    expect(sendViewStub.firstCall.args[2]).to.equal('record/edit');
+    expect(sendViewStub.firstCall.args[3]).to.deep.include({ title: 'Create RDMP | Site' });
   });
 
   it('returns 400 when record type is missing after normalization', async () => {

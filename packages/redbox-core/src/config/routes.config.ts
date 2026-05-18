@@ -11,7 +11,10 @@ export interface RouteTargetObject {
     policy?: string;
     csrf?: boolean;
     skipAssets?: boolean;
-    locals?: Record<string, unknown>;
+    locals?: Record<string, unknown> & {
+        pageTitleKey?: string;
+        pageTitle?: string;
+    };
     view?: string;
 }
 
@@ -30,24 +33,23 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/home': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'homepage' }
+        locals: { 'view': 'homepage', pageTitleKey: 'welcome-title' }
     },
     '/:branding/:portal/researcher/home': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'researcher/home' }
+        locals: { 'view': 'researcher/home', pageTitleKey: 'welcome-title' }
     },
 
     // Record view routes
     '/:branding/:portal/record/view/:oid': {
-        controller: 'RenderViewController',
-        action: 'render',
-        locals: { 'view': 'record/view' }
+        controller: 'RecordController',
+        action: 'view'
     },
     '/:branding/:portal/record/search': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'record/search' }
+        locals: { 'view': 'record/search', pageTitleKey: 'record-search-heading' }
     },
     '/:branding/:portal/record/view-orig/:oid': {
         controller: 'RenderViewController',
@@ -149,7 +151,7 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/availableServicesList': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'availableServicesList' }
+        locals: { 'view': 'availableServicesList', pageTitle: 'List of available services' }
     },
     '/:branding/:portal/workspaces/list': {
         controller: 'RecordController',
@@ -158,7 +160,7 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/getAdvice': {
         controller: 'RenderViewController',
         action: 'render',
-        locals: { 'view': 'getAdvice' }
+        locals: { 'view': 'getAdvice', pageTitle: 'Get advice' }
     },
 
     // Dynamic asset routes

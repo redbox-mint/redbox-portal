@@ -1,3 +1,5 @@
+import { resolveSiteTitle } from './siteTitle';
+
 declare module 'express-serve-static-core' {
     interface Response {
         ok(data?: unknown, options?: string | { view?: string }): Response;
@@ -22,6 +24,7 @@ export function ok(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, opt
     const req = this.req;
     const res = this.res;
     const sails = req._sails as Sails.Application;
+    const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
     sails.log.silly('res.ok() :: Sending 200 ("OK") response');
 
@@ -56,12 +59,12 @@ export function ok(this: { req: Sails.Req, res: Sails.Res }, data?: unknown, opt
     // Otherwise try to guess an appropriate view, or if that doesn't
     // work, just send JSON.
     if (options.view) {
-        return res.view(options.view, { data: viewData, title: 'OK' });
+        return res.view(options.view, { data: viewData, title: siteTitle });
     }
 
     // If no second argument provided, try to serve the implied view,
     // but fall back to sending JSON(P) if no view can be inferred.
-    else return res.guessView({ data: viewData, title: 'OK' }, function couldNotGuessView() {
+    else return res.guessView({ data: viewData, title: siteTitle }, function couldNotGuessView() {
         return res.json(data);
     });
 
