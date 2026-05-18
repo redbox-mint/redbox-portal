@@ -3,10 +3,6 @@ import { Controllers as controllers } from '../../CoreController';
 import type { DashboardTableOverrideConfigData, WorkflowStateDashboardConfig } from '../../configmodels/DashboardTableOverrideConfig';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
-declare const DashboardConfigService: any;
-declare const DashboardTypesService: any;
-declare const BrandingService: any;
-
 export namespace Controllers {
   export class DashboardConfig extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [

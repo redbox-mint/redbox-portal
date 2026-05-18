@@ -7,8 +7,6 @@ import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../co
 import type { DashboardTableConfig as WorkflowDashboardTableConfig } from '../config/workflow.config';
 import type { DashboardTypeConfigData, WorkflowStateDashboardConfig, RecordTypeOverride, ViewOverride } from '../configmodels/DashboardTableOverrideConfig';
 
-declare const DashboardConfigService: any;
-
 type DashboardTypeDefinition = {
   name: string;
   description?: string;
