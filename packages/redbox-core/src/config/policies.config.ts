@@ -5,7 +5,7 @@
  * Policy mapping configuration for controller actions.
  */
 
-import { registerCoreApiRoutes } from '../api-routes';
+import { registerCoreApiRoutes, type ApiRouteDefinition } from '../api-routes';
 
 export type PolicyName = string;
 export type PolicyChain = PolicyName | PolicyName[] | boolean;
@@ -51,8 +51,8 @@ const publicTranslationPolicies: PolicyName[] = [
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
 
-function buildContractApiPolicies(): PoliciesConfig {
-    return registerCoreApiRoutes().reduce((acc, route) => {
+export function buildContractApiPolicies(apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()): PoliciesConfig {
+    return apiRoutes.reduce((acc, route) => {
         const controllerPolicies = acc[route.controller] as ControllerPolicies | undefined;
         acc[route.controller] = {
             '*': noCachePlusDefaultPolicies,
@@ -61,6 +61,26 @@ function buildContractApiPolicies(): PoliciesConfig {
         };
         return acc;
     }, {} as PoliciesConfig);
+}
+
+export function mergeContractApiPolicies(
+    targetPolicies: PoliciesConfig,
+    apiRoutes: readonly ApiRouteDefinition[]
+): PoliciesConfig {
+    const routePolicies = buildContractApiPolicies(apiRoutes);
+    Object.entries(routePolicies).forEach(([controllerName, controllerPolicy]) => {
+        if (controllerName === '*' || typeof controllerPolicy !== 'object' || Array.isArray(controllerPolicy)) {
+            targetPolicies[controllerName] = controllerPolicy;
+            return;
+        }
+
+        const existingPolicy = targetPolicies[controllerName];
+        targetPolicies[controllerName] = {
+            ...(typeof existingPolicy === 'object' && !Array.isArray(existingPolicy) ? existingPolicy : {}),
+            ...controllerPolicy,
+        };
+    });
+    return targetPolicies;
 }
 
 export const policies: PoliciesConfig = {

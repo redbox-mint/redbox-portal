@@ -47,7 +47,7 @@ import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-rou
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
 import { listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
-import { policies } from '../../src/config/policies.config';
+import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
 
 let expect: Chai.ExpectStatic;
 import('chai').then((mod) => expect = mod.expect);
@@ -346,6 +346,65 @@ describe('API routes contract layer', async () => {
       'contentSecurityPolicy',
       'validateApiContractRequest',
     ]);
+  });
+
+  it('should build and merge contract validation policies for hook API routes', function () {
+    const hookRoute: ApiRouteDefinition = {
+      method: 'post',
+      path: '/:branding/:portal/api/hooks/widgets',
+      controller: 'hooks/WidgetController',
+      action: 'create',
+    };
+    const hookPolicies = buildContractApiPolicies([hookRoute]);
+    const targetPolicies: PoliciesConfig = {
+      'hooks/WidgetController': {
+        customAction: ['customPolicy'],
+      },
+    };
+
+    expect((hookPolicies['hooks/WidgetController'] as Record<string, unknown>).create).to.deep.equal([
+      'noCache',
+      'brandingAndPortal',
+      'checkBrandingValid',
+      'setLang',
+      'prepWs',
+      'i18nLanguages',
+      'menuResolver',
+      'isWebServiceAuthenticated',
+      'checkAuth',
+      'contentSecurityPolicy',
+      'validateApiContractRequest',
+    ]);
+
+    expect(mergeContractApiPolicies(targetPolicies, [hookRoute])).to.equal(targetPolicies);
+    expect(targetPolicies['hooks/WidgetController']).to.deep.equal({
+      '*': [
+        'noCache',
+        'brandingAndPortal',
+        'checkBrandingValid',
+        'setLang',
+        'prepWs',
+        'i18nLanguages',
+        'menuResolver',
+        'isWebServiceAuthenticated',
+        'checkAuth',
+        'contentSecurityPolicy',
+      ],
+      customAction: ['customPolicy'],
+      create: [
+        'noCache',
+        'brandingAndPortal',
+        'checkBrandingValid',
+        'setLang',
+        'prepWs',
+        'i18nLanguages',
+        'menuResolver',
+        'isWebServiceAuthenticated',
+        'checkAuth',
+        'contentSecurityPolicy',
+        'validateApiContractRequest',
+      ],
+    });
   });
 
   it('should fail fast when a hook duplicates a core route', function () {
