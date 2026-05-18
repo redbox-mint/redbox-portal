@@ -301,13 +301,13 @@ export namespace Services {
         || message.includes('eexist');
     }
 
-    private async promoteFromStagingOnce(fileId: string, destKey: string): Promise<boolean> {
+    private async promoteFromStagingOnce(oid: string, fileId: string, destKey: string): Promise<boolean> {
       const inFlightPromotion = Services.StandardDatastream.promotionGuards.get(destKey);
       if (inFlightPromotion) {
         return inFlightPromotion;
       }
 
-      const promotionPromise = this.promoteFromStaging(fileId, destKey);
+      const promotionPromise = this.promoteFromStaging(oid, fileId, destKey);
       Services.StandardDatastream.promotionGuards.set(destKey, promotionPromise);
 
       try {
@@ -319,7 +319,7 @@ export namespace Services {
       }
     }
 
-    private async promoteFromStaging(fileId: string, destKey: string): Promise<boolean> {
+    private async promoteFromStaging(oid: string, fileId: string, destKey: string): Promise<boolean> {
       const stagingDisk = StorageManagerService.stagingDisk();
       const primaryDisk = StorageManagerService.primaryDisk();
 
@@ -330,7 +330,8 @@ export namespace Services {
 
       const existsInStaging = await stagingDisk.exists(fileId);
       if (!existsInStaging) {
-        return primaryDisk.exists(destKey);
+        return await this.promoteTusPartsFromStaging(stagingDisk, primaryDisk, fileId, destKey)
+          || primaryDisk.exists(destKey);
       }
 
       const readable = await stagingDisk.getStream(fileId);
@@ -353,8 +354,6 @@ export namespace Services {
       }
 
       this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Promoted: ${destKey}`);
-      const relativeKey = destKey.slice(this.normalizedKeyPrefix().length);
-      const oid = relativeKey.split('/').filter(Boolean).slice(0, -1).join('/');
       if (oid) {
         try {
           const metadataRow = await this.buildMetadataRow(oid, fileId, destKey);
@@ -365,6 +364,74 @@ export namespace Services {
         await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'upload' });
       }
       return true;
+    }
+
+    private async promoteTusPartsFromStaging(
+      stagingDisk: IDisk,
+      primaryDisk: IDisk,
+      fileId: string,
+      destKey: string
+    ): Promise<boolean> {
+      const partKeys = await this.listTusPartKeys(stagingDisk, fileId);
+      if (!partKeys.length) {
+        return false;
+      }
+
+      const readable = Readable.from(this.streamDiskObjects(stagingDisk, partKeys));
+      try {
+        await primaryDisk.putStream(destKey, readable);
+        await stagingDisk.deleteAll(this.tusPartsPrefix(fileId));
+        await stagingDisk.delete(this.tusInfoKey(fileId)).catch((err) => {
+          if (!this.isStorageNotFoundError(err)) {
+            throw err;
+          }
+        });
+      } catch (err) {
+        readable.destroy();
+        throw err;
+      }
+
+      this.logger.verbose(`${this.logHeader} promoteTusPartsFromStaging() -> Promoted incomplete TUS upload parts: ${destKey}`);
+      return true;
+    }
+
+    private async listTusPartKeys(stagingDisk: IDisk, fileId: string): Promise<string[]> {
+      const listed = await stagingDisk.listAll(this.tusPartsPrefix(fileId), { recursive: true });
+      return Array.from(listed.objects)
+        .map((object) => this.listedObjectKey(object))
+        .filter((key): key is string => typeof key === 'string' && key.length > 0)
+        .sort((left, right) => left.localeCompare(right));
+    }
+
+    private listedObjectKey(object: unknown): string | undefined {
+      if (!object || typeof object !== 'object') {
+        return undefined;
+      }
+      const candidate = object as { key?: unknown; name?: unknown };
+      if (typeof candidate.key === 'string') {
+        return candidate.key;
+      }
+      if (typeof candidate.name === 'string') {
+        return candidate.name;
+      }
+      return undefined;
+    }
+
+    private tusPartsPrefix(fileId: string): string {
+      return `.tus/${fileId}/parts/`;
+    }
+
+    private tusInfoKey(fileId: string): string {
+      return `.tus/${fileId}/info.json`;
+    }
+
+    private async *streamDiskObjects(stagingDisk: IDisk, keys: string[]): AsyncGenerator<Buffer> {
+      for (const key of keys) {
+        const stream = await stagingDisk.getStream(key);
+        for await (const chunk of stream) {
+          yield Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        }
+      }
     }
 
     // ----------------------------------------------------------------
@@ -513,7 +580,13 @@ export namespace Services {
 
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
-        throw new Error(`Attachment not found in staging: ${fileId}`);
+        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
+        if (!promotedTusParts) {
+          throw new Error(`Attachment not found in staging: ${fileId}`);
+        }
+        await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+        this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
+        return { success: true, key: destKey };
       }
 
       const readable = await effectiveStagingDisk.getStream(fileId);
@@ -525,6 +598,13 @@ export namespace Services {
       }
       await effectiveStagingDisk.delete(fileId);
 
+      await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+
+      this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
+      return { success: true, key: destKey };
+    }
+
+    private async afterDatastreamPromoted(oid: string, fileId: string, destKey: string, datastream: Datastream): Promise<void> {
       try {
         const metadataRow = await this.buildMetadataRow(oid, fileId, destKey, datastream.metadata);
         await this.safelyUpsertMetadata(metadataRow);
@@ -538,9 +618,6 @@ export namespace Services {
         action: 'upload',
         accessedBy: typeof datastream.metadata?.uploadedBy === 'string' ? datastream.metadata.uploadedBy : undefined,
       });
-
-      this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
-      return { success: true, key: destKey };
     }
 
     /**
@@ -599,7 +676,7 @@ export namespace Services {
       // Check existence
       let exists = await primaryDisk.exists(destKey);
       if (!exists) {
-        exists = await this.promoteFromStagingOnce(fileId, destKey);
+        exists = await this.promoteFromStagingOnce(oid, fileId, destKey);
       }
       if (!exists) {
         throw new Error(`Attachment not found: ${destKey}`);

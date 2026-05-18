@@ -48,9 +48,13 @@ type GridFSBucketLike = {
 
 type GridFSBucketFactory = (db: Db, options: { bucketName: string }) => GridFSBucketLike;
 type MongoDbFactory = (options: Required<GridFSDriverOptions>) => Promise<Db>;
+type CachedMongoDb = {
+  client: MongoClient;
+  db: Db;
+};
 
 export class GridFSDriver {
-  private static dbCache: Map<string, Promise<Db>> = new Map();
+  private static dbCache: Map<string, Promise<CachedMongoDb>> = new Map();
 
   public readonly options: Required<GridFSDriverOptions>;
 
@@ -201,6 +205,15 @@ export class GridFSDriver {
     return new GridFSDriver({ ...this.options, bucketName }, this.bucketFactory, this.dbFactory);
   }
 
+  public static async dispose(): Promise<void> {
+    const cachedDbs = Array.from(GridFSDriver.dbCache.values());
+    GridFSDriver.dbCache.clear();
+    await Promise.all(cachedDbs.map(async (cachedDb) => {
+      const { client } = await cachedDb;
+      await client.close();
+    }));
+  }
+
   private static resolveOptions(options: GridFSDriverOptions): Required<GridFSDriverOptions> {
     return {
       datastore: GridFSDriver.readNonEmptyString(options.datastore, 'mongodb'),
@@ -237,15 +250,15 @@ export class GridFSDriver {
     }
 
     const cacheKey = `${url}::${options.databaseName}`;
-    let dbPromise = GridFSDriver.dbCache.get(cacheKey);
-    if (!dbPromise) {
-      dbPromise = GridFSDriver.createMongoClientDb(url, options.databaseName).catch((error) => {
+    let cachedPromise = GridFSDriver.dbCache.get(cacheKey);
+    if (!cachedPromise) {
+      cachedPromise = GridFSDriver.createMongoClientDb(url, options.databaseName, cacheKey).catch((error) => {
         GridFSDriver.dbCache.delete(cacheKey);
         throw error;
       });
-      GridFSDriver.dbCache.set(cacheKey, dbPromise);
+      GridFSDriver.dbCache.set(cacheKey, cachedPromise);
     }
-    return dbPromise;
+    return (await cachedPromise).db;
   }
 
   private static readDatastoreUrl(datastoreName: string): string {
@@ -253,10 +266,19 @@ export class GridFSDriver {
     return GridFSDriver.readNonEmptyString(datastores?.[datastoreName]?.url, '');
   }
 
-  private static async createMongoClientDb(url: string, databaseName: string): Promise<Db> {
+  private static async createMongoClientDb(url: string, databaseName: string, cacheKey: string): Promise<CachedMongoDb> {
     const clientOptions: MongoClientOptions = {};
     const client = await MongoClient.connect(url, clientOptions);
-    return databaseName ? client.db(databaseName) : client.db();
+    client.on('close', () => {
+      GridFSDriver.dbCache.delete(cacheKey);
+    });
+    client.on('error', () => {
+      GridFSDriver.dbCache.delete(cacheKey);
+    });
+    return {
+      client,
+      db: databaseName ? client.db(databaseName) : client.db(),
+    };
   }
 
   private async findLatestFile(key: string): Promise<GridFSFile | null> {

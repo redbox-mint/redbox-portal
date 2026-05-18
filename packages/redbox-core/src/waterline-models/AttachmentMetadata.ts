@@ -37,7 +37,8 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   normalizeRequiredString(record, 'storageKey', isCreate);
 
   if (Object.hasOwn(record, 'accessCount')) {
-    record.accessCount = Number(record.accessCount ?? 0);
+    const accessCount = Number(record.accessCount ?? 0);
+    record.accessCount = Number.isFinite(accessCount) ? accessCount : 0;
   }
 };
 

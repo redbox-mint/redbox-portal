@@ -70,61 +70,34 @@ export namespace Services {
     }
 
     public async recordAccess(event: AttachmentAccessEvent): Promise<void> {
-      let auditId: string | number | undefined;
-
       try {
         const normalizedEvent = this.normalizeAccessEvent(event);
         if (!normalizedEvent.oid || !normalizedEvent.action) {
           return;
         }
 
-        const createdAudit = await AttachmentAccessAudit.create(normalizedEvent as AttachmentAccessAuditAttributes).fetch() as AttachmentAccessAuditAttributes;
-        auditId = createdAudit.id;
-
-        if (!normalizedEvent.storageKey || normalizedEvent.action === 'list') {
-          return;
-        }
-
-        const existing = await AttachmentMetadata.findOne({ storageKey: normalizedEvent.storageKey }) as AttachmentMetadataAttributes | null;
-        if (!existing?.id) {
-          return;
-        }
-
-        const currentCount = Number(existing.accessCount ?? 0);
-        const nextCount = this.shouldIncrementAccessCount(normalizedEvent.action) ? currentCount + 1 : currentCount;
-        await AttachmentMetadata.updateOne({ id: existing.id }).set({
-          lastAccessedAt: normalizedEvent.accessedAt,
-          lastAccessedBy: normalizedEvent.accessedBy,
-          accessCount: nextCount,
-        });
-      } catch (err) {
-        let failure = err;
-
-        if (auditId !== undefined) {
-          try {
-            await this.rollbackAccessAudit(auditId);
-          } catch (rollbackErr) {
-            failure = new Error(
-              `AttachmentMetadataService.recordAccess metadata update failed after audit write and audit rollback failed: ${this.errorMessage(err)}; rollback error: ${this.errorMessage(rollbackErr)}`
-            );
+        if (normalizedEvent.storageKey && normalizedEvent.action !== 'list') {
+          const existing = await AttachmentMetadata.findOne({ storageKey: normalizedEvent.storageKey }) as AttachmentMetadataAttributes | null;
+          if (existing?.id) {
+            const currentCount = Number(existing.accessCount ?? 0);
+            const nextCount = this.shouldIncrementAccessCount(normalizedEvent.action) ? currentCount + 1 : currentCount;
+            await AttachmentMetadata.updateOne({ id: existing.id }).set({
+              lastAccessedAt: normalizedEvent.accessedAt,
+              lastAccessedBy: normalizedEvent.accessedBy,
+              accessCount: nextCount,
+            });
           }
         }
 
-        this.logger.error(`${this.logHeader} recordAccess() failed`, failure);
-        throw failure;
+        await AttachmentAccessAudit.create(normalizedEvent as AttachmentAccessAuditAttributes).fetch();
+      } catch (err) {
+        this.logger.error(`${this.logHeader} recordAccess() failed`, err);
+        throw err;
       }
     }
 
     private shouldIncrementAccessCount(action: string): boolean {
       return action === 'download' || action === 'access';
-    }
-
-    private async rollbackAccessAudit(auditId: string | number): Promise<void> {
-      await AttachmentAccessAudit.destroy({ id: auditId });
-    }
-
-    private errorMessage(value: unknown): string {
-      return value instanceof Error ? value.message : String(value);
     }
 
     private normalizeMetadataRow(row: AttachmentMetadataInput): Partial<AttachmentMetadataInput> {

@@ -1,6 +1,7 @@
 import { Services as coreServices } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import crypto from 'crypto';
+import { GridFSBucket, MongoClient, ObjectId } from 'mongodb';
 
 /**
  * BrandingLogoService
@@ -69,6 +70,10 @@ export namespace Services {
         || storageError.statusCode === 404
         || message.includes('not found')
         || message.includes('enoent');
+    }
+
+    private isLegacyGridFsObjectId(id: string): boolean {
+      return /^[0-9a-fA-F]{24}$/.test(id);
     }
 
     private logoStorageKey(branding: string, portal: string, contentType: string): string {
@@ -185,7 +190,40 @@ export namespace Services {
         if (!this.isStorageNotFoundError(error)) {
           sails.log.warn('BrandingLogoService.getBinaryAsync storage read failed:', error);
         }
+        if (this.isLegacyGridFsObjectId(id)) {
+          return this.getLegacyGridFsBinary(id);
+        }
         return null;
+      }
+    }
+
+    private async getLegacyGridFsBinary(id: string): Promise<Buffer | null> {
+      const datastores = sails.config?.datastores as Record<string, { url?: string }> | undefined;
+      const url = datastores?.mongodb?.url;
+      if (!url) {
+        return null;
+      }
+
+      const client = await MongoClient.connect(url, {});
+      try {
+        const bucket = new GridFSBucket(client.db(), { bucketName: 'fs' });
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve, reject) => {
+          bucket.openDownloadStream(new ObjectId(id))
+            .on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
+            .on('error', reject)
+            .on('end', resolve);
+        });
+        const buf = Buffer.concat(chunks);
+        this.setCache(id, buf);
+        return buf;
+      } catch (error) {
+        if (!this.isStorageNotFoundError(error)) {
+          sails.log.warn('BrandingLogoService.getLegacyGridFsBinary read failed:', error);
+        }
+        return null;
+      } finally {
+        await client.close();
       }
     }
   }

@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../index';
+import { promises as fsp } from 'fs';
 import * as path from 'path';
 
 
@@ -97,9 +98,8 @@ export namespace Controllers {
           return this.sendResp(req, res, { data: { status: false, message: 'no logo uploaded' }, headers: this.getNoCacheHeaders() });
         }
 
-        const fs = require('fs').promises;
         const file = files[0];
-        const buffer = await fs.readFile(file.fd);
+        const buffer = await fsp.readFile(file.fd);
         const contentType = file.type || 'application/octet-stream';
         const ext = contentType === 'image/png'
           ? 'png'
@@ -111,7 +111,11 @@ export namespace Controllers {
         const storageKey = `workspace-types/${brand.id}/${workspaceTypeName}/logo.${ext}`;
         await StorageManagerService.primaryDisk().put(storageKey, buffer, { contentType });
         await WorkspaceType.update({ id: workspaceType.id }, { logo: storageKey });
-        await fs.unlink(file.fd);
+        try {
+          await fsp.unlink(file.fd);
+        } catch (cleanupErr) {
+          sails.log.warn('WorkspaceTypesController.uploadLogo failed to remove temporary upload', cleanupErr);
+        }
 
         return this.sendResp(req, res, { data: { status: true, storageKey }, headers: this.getNoCacheHeaders() });
       } catch (err) {

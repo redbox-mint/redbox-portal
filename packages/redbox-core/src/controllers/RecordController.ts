@@ -1160,8 +1160,9 @@ export namespace Controllers {
       this.tusServer.on(EVENTS.POST_FINISH, (_req, _res, upload: Upload) => {
         sails.log.verbose(`::: TUS upload completed: id=${upload.id}, size=${upload.size}`);
       });
-      this.tusServer.on(EVENTS.POST_CREATE, (_req, upload: Upload) => {
-        sails.log.verbose(`::: TUS upload created: id=${upload.id}`);
+      this.tusServer.on(EVENTS.POST_CREATE, (_req, ...args: unknown[]) => {
+        const upload = args.find((arg): arg is Upload => !!arg && typeof arg === 'object' && 'id' in arg);
+        sails.log.verbose(`::: TUS upload created: id=${upload?.id}`);
       });
     }
 

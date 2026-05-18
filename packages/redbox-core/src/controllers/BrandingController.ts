@@ -213,7 +213,10 @@ export namespace Controllers {
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
-        const etag = this.generateETag(typeof logo.sha256 === 'string' ? logo.sha256 : storageId, 'logo-');
+        const etagSeed = typeof logo.sha256 === 'string'
+          ? logo.sha256
+          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');
