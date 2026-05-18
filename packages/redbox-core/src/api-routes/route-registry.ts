@@ -8,6 +8,7 @@ import { brandingApiRoutes } from './groups/branding';
 import { dashboardConfigApiRoutes } from './groups/dashboard-config';
 import { exportApiRoutes } from './groups/export';
 import { formApiRoutes } from './groups/forms';
+import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
 import { recordApiRoutes } from './groups/records';
 import { recordTypeApiRoutes } from './groups/recordtypes';
@@ -36,6 +37,7 @@ const coreApiRouteGroups = [
   dashboardConfigApiRoutes,
   translationApiRoutes,
   reportsApiRoutes,
+  integrationAuditApiRoutes,
   exportApiRoutes,
   notificationApiRoutes,
 ] as const;

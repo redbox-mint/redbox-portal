@@ -321,6 +321,14 @@ describe('API routes contract layer', async () => {
     });
   });
 
+  it('should include the legacy integration audit endpoint in generated routes', function () {
+    expect(buildCoreApiRouteConfig()).to.have.property('get /:branding/:portal/api/integration-audit/:oid').that.deep.equals({
+      controller: 'webservice/IntegrationAuditController',
+      action: 'getAuditLog',
+      csrf: false,
+    });
+  });
+
   it('should map contract-first API actions to request validation policy after default webservice policies', function () {
     const recordPolicies = policies['webservice/RecordController'] as Record<string, unknown>;
     const createPolicies = recordPolicies.create as string[];
@@ -520,6 +528,10 @@ describe('API routes contract layer', async () => {
     const reportSchema = asOpenApiSchema(reportRoute.responses?.['200']?.content?.['application/json']?.schema);
     expect(asOpenApiSchema(reportSchema.properties?.records).items?.properties).to.have.property('metadata');
 
+    const integrationAuditRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get);
+    const integrationAuditSchema = asOpenApiSchema(integrationAuditRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(integrationAuditSchema.properties).to.have.property('records');
+
     const harvestRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/harvest/{recordType}']?.post);
     const harvestSchema = asOpenApiSchema(harvestRoute.responses?.['200']?.content?.['application/json']?.schema);
     expect(harvestSchema.items?.properties).to.have.property('harvestId');
@@ -635,6 +647,7 @@ describe('API routes contract layer', async () => {
       { path: '/{branding}/{portal}/api/i18n/bundles/{locale}/{namespace}', method: 'get' },
       { path: '/{branding}/{portal}/api/i18n/bundles/{locale}/{namespace}', method: 'post' },
       { path: '/{branding}/{portal}/api/report/namedQuery', method: 'get' },
+      { path: '/{branding}/{portal}/api/integration-audit/{oid}', method: 'get' },
       { path: '/{branding}/{portal}/api/export/record/download/{format}', method: 'get' },
       { path: '/{branding}/{portal}/api/sendNotification', method: 'post' },
     ];
