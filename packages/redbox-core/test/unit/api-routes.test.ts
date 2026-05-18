@@ -304,6 +304,23 @@ describe('API routes contract layer', async () => {
     ]);
   });
 
+  it('should leave contract-first route auth to controller policies', function () {
+    const routeConfig = buildSailsRouteConfig([
+      apiRoute(
+        'get',
+        '/api/widgets',
+        'webservice/WidgetController',
+        'list'
+      ),
+    ]);
+
+    expect(routeConfig['get /api/widgets']).to.deep.equal({
+      controller: 'webservice/WidgetController',
+      action: 'list',
+      csrf: false,
+    });
+  });
+
   it('should map contract-first API actions to request validation policy after default webservice policies', function () {
     const recordPolicies = policies['webservice/RecordController'] as Record<string, unknown>;
     const createPolicies = recordPolicies.create as string[];

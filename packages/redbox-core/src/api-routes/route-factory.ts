@@ -23,7 +23,6 @@ export function apiRoute(
     path,
     controller,
     action,
-    policy: ['validateApiContractRequest'],
     request,
     tags: metadata.tags,
     summary: metadata.summary ?? `${controller}.${action}`,
