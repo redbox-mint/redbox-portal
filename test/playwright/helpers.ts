@@ -26,7 +26,7 @@ export async function waitForReadyState(page: Page): Promise<void> {
 
 export async function collectLocalAssetUrls(page: Page): Promise<string[]> {
   const assetUrls = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll<HTMLLinkElement | HTMLScriptElement>('link[rel="stylesheet"][href], script[src]'))
+    const linkedAssets = Array.from(document.querySelectorAll<HTMLLinkElement | HTMLScriptElement>('link[rel="stylesheet"][href], script[src]'))
       .map((element) => {
         if (element instanceof HTMLLinkElement) {
           return element.href;
@@ -34,6 +34,12 @@ export async function collectLocalAssetUrls(page: Page): Promise<string[]> {
         return element.src;
       })
       .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+    const configuredAssets = Array.from(document.querySelectorAll<HTMLElement>('[data-openapi-url]'))
+      .map((element) => element.getAttribute('data-openapi-url'))
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+    return [...linkedAssets, ...configuredAssets];
   });
 
   const pageUrl = new URL(page.url());
@@ -44,9 +50,12 @@ export async function collectLocalAssetUrls(page: Page): Promise<string[]> {
 }
 
 export async function verifyAssets(page: Page, route: SmokeRoute, assetUrls: string[], baseAssetIncludes: string[]): Promise<void> {
-  const requiredIncludes = [...baseAssetIncludes, ...route.requiredAssetIncludes];
+  const requiredIncludes = [...(route.includeBaseAssets === false ? [] : baseAssetIncludes), ...route.requiredAssetIncludes];
   for (const requiredInclude of requiredIncludes) {
-    expect(assetUrls.some((assetUrl) => assetUrl.includes(requiredInclude))).toBeTruthy();
+    expect(
+      assetUrls.some((assetUrl) => assetUrl.includes(requiredInclude)),
+      `${route.path} missing asset matching ${requiredInclude}`
+    ).toBeTruthy();
   }
 
   const results = await fetchAssets(page, assetUrls);
