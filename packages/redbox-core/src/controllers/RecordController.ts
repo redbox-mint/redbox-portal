@@ -38,7 +38,6 @@ import {
 import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
-import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
