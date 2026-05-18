@@ -157,3 +157,4 @@ export * from './visitor/validator.visitor';
 export * from './visitor/vocab-inline.visitor';
 export * from './utilities/ContextVariableUtils';
 export * from './visitor/visitor-helpers';
+export * from './api-routes';

@@ -76,6 +76,8 @@ export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
 
+import type { ApiRouteProvider } from '../api-routes';
+
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
 import { appmode, AppModeConfig } from './appmode.config';
@@ -212,6 +214,7 @@ export interface SailsConfig {
     views: ViewsConfig;
     routes: RoutesConfig;
     bootstrap: BootstrapConfig;
+    apiRoutesHooks?: ApiRouteProvider[];
 
     // Feature configs
     queue: QueueConfig;

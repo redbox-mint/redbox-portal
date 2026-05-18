@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { Services as AttachmentMetadataServices } from '../../../packages/redbox-core/src/services/AttachmentMetadataService';
+import { Services as AttachmentMetadataServices } from '../../../packages/redbox-core/src/services/AttachmentMetadataService.ts';
 import type { AttachmentAccessAuditAttributes } from '../../../packages/redbox-core/src/waterline-models';
 
 describe('AttachmentMetadataService integration', function () {

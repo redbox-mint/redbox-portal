@@ -15,11 +15,15 @@
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json"
+    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
+    "doc:api": "npm run generate-openapi --",
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@apidevtools/swagger-parser": "12.1.0",
     "@agendajs/mongo-backend": "4.0.1",
     "@agendajs/sqs-backend": "file:../agenda-sqs-backend",
     "@aws-sdk/s3-request-presigner": "3.1045.0",
@@ -94,7 +98,10 @@
     "url-pattern": "1.0.3",
     "uuid": "14.0.0",
     "webpack": "5.106.2",
-    "wkt-parser-helper": "7.1.0"
+    "wkt-parser-helper": "7.1.0",
+    "yaml": "1.10.3",
+    "zod": "3.5.1",
+    "zod-to-openapi": "0.2.1"
   },
   "overrides": {
     "axios": "1.15.2",
@@ -115,7 +122,8 @@
     },
     "anymatch": {
       "picomatch": "2.3.2"
-    }
+    },
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
     "@jsonjoy.com/json-pointer": "18.15.0",

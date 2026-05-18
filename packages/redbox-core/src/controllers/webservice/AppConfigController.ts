@@ -1,9 +1,11 @@
 import {
   APIErrorResponse,
   BrandingModel,
-  Controllers as controllers
+  Controllers as controllers,
+  getValidatedApiRequest,
+  getAppConfigByIdRoute,
+  saveAppConfigByIdRoute,
 } from '../../index';
-
 
 export namespace Controllers {
   /**
@@ -23,10 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'getAppConfig',
-      'saveAppConfig'
-    ];
+    protected override _exportedMethods: string[] = ['getAppConfig', 'saveAppConfig'];
 
     /**
      **************************************************************************************************
@@ -36,42 +35,43 @@ export namespace Controllers {
 
     public bootstrap() { }
 
-
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = getValidatedApiRequest(req);
+        const { params, body } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const appConfigId: string = req.param('appConfigId');
-        const appConfig = req.body;
-        if (appConfigId === undefined) {
-          return res.badRequest('appConfigId is required');
-        }
-        //TODO: validate post body against key?
-        const savedConfig = await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
-        return this.apiRespond(req, res, savedConfig, 200);
+        const appConfigId = params.appConfigId as string;
+        const appConfig = body;
+        await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig as Record<string, unknown>);
+        return this.apiRespond(req, res, appConfig, 200);
       } catch (error: unknown) {
         sails.log.error(error);
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async getAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = getValidatedApiRequest(req);
+        const { params } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const appConfigId: string = req.param('appConfigId');
-        if (appConfigId === undefined) {
-          return res.badRequest('appConfigId is required');
-        }
+        const appConfigId = params.appConfigId as string;
         const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
 
-        return res.json(appConfig);
+        return this.apiRespond(req, res, appConfig, 200);
       } catch (error) {
         sails.log.error(error);
-        return res.serverError(error);
+        const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
   }

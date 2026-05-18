@@ -74,7 +74,9 @@
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test && cd ../../",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm run test && cd ../../",
-    "doc-ng2": "npm -g install @compodoc/compodoc && npm -g install aglio && compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs && node support/build/render-ejs-template.js views/default/default/apidocsapib.ejs '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
+    "doc-ng2": "npm -g install @compodoc/compodoc aglio && compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs && npm run doc:api -- --branding=default --portal=rdmp && aglio -i support/docs/generated/api/apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
+    "validate:api-routes": "npm --prefix packages/redbox-core run test -- test/unit/api-routes.test.ts",
+    "doc:api": "npm --prefix packages/redbox-core run doc:api --",
     "compile:sails": "npm install --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
@@ -199,7 +201,9 @@
     "uuid": "14.0.0",
     "webdav": {
       "minimatch": "9.0.9"
-    }
+    },
+    "oni-ocfl": "git+https://github.com/Language-Research-Technology/oni-ocfl.git#add9d36bd8a33b051e1a67f46a523ad88986a0e3",
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",
@@ -217,6 +221,7 @@
     "oxlint": "1.63.0",
     "pino-test": "2.0.0",
     "prettier": "3.8.1",
+    "redoc": "2.5.2",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.0.5",
