@@ -807,7 +807,7 @@ describe('API routes contract layer', async () => {
       }
     } as unknown as Sails.Req;
 
-    const result = validateApiRequest(request, {
+    const apiRequest = {
       body: {
         required: true,
         content: {
@@ -819,9 +819,12 @@ describe('API routes contract layer', async () => {
           },
         },
       },
-    });
+    };
+    const result = validateApiRequest(request, apiRequest);
+    const extracted = extractApiRequest(request, apiRequest);
 
     expect(result.valid).to.equal(true);
+    expect(extracted.body).to.deep.equal({ multipartOnly: 'yes' });
   });
 
   it('should hydrate list query fields from body fallbacks when query values are absent', async function () {
