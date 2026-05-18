@@ -27,10 +27,37 @@ import { ListAPIResponse } from '../model/ListAPIResponse';
 import { firstValueFrom } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
+import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
+
+type AnyRecord = Record<string, unknown>;
+
+const isRecordValue = (value: unknown): value is AnyRecord => typeof value === 'object' && value !== null;
+
+const getStringProperty = (value: unknown, propertyName: string): string | undefined => {
+  if (!isRecordValue(value)) {
+    return undefined;
+  }
+
+  const propertyValue = value[propertyName];
+  return typeof propertyValue === 'string' ? propertyValue : undefined;
+};
+
+const getIdentifierProperty = (value: unknown, propertyName: string): string | undefined => {
+  if (!isRecordValue(value)) {
+    return undefined;
+  }
+
+  const propertyValue = value[propertyName];
+  if (typeof propertyValue === 'string' || typeof propertyValue === 'number') {
+    return String(propertyValue);
+  }
+
+  return undefined;
+};
 
 const parseSerializedValue = <T>(input: unknown, fallback: T): T => {
   if (typeof input === 'string') {
@@ -82,8 +109,8 @@ const ensureNamedQueryHandlebarsHelpers = () => {
 };
 
 export namespace Services {
-  type RecordLike = RecordModel & { createdAt?: string | Date; updatedAt?: string | Date };
-  type UserLike = UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
+  type RecordLike = AnyRecord & Partial<RecordModel> & { createdAt?: string | Date; updatedAt?: string | Date };
+  type UserLike = AnyRecord & UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
 
   /**
    * Named Query related functions...
@@ -193,15 +220,15 @@ export namespace Services {
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
         for (const filter of relatedRecordFilters) {
-          const filterModel = (sails as any).models[filter.collectionName];
+          const filterModel = sails.models[filter.collectionName];
           if (!filterModel) {
             sails.log.warn(`Skipping related record filter: model '${filter.collectionName}' not found for collectionName='${filter.collectionName}', localField='${filter.localField}', foreignField='${filter.foreignField}'`);
             continue;
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
           this.setParamsInQuery(filterMongoQuery, queryParams, paramMap);
-          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta);
-          const relatedIds = _.uniq(relatedRecords.map((r: any) => _.get(r, filter.foreignField)).filter((id: any) => id != null && id !== ''));
+          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
+          const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
           _.set(mongoQuery, filter.localField, { $in: relatedIds });
         }
       }
@@ -216,7 +243,7 @@ export namespace Services {
 
       // Get the total count of matching records
       let totalItems = 0;
-      const model = (sails as any).models[collectionName];
+      const model = sails.models[collectionName];
       if (!model) {
         throw new Error(`Model ${collectionName} not found`);
       }
@@ -243,7 +270,7 @@ export namespace Services {
       }
 
       const responseRecords: NamedQueryResponseRecord[] = []
-      const recordsService = (sails as any).services?.recordsservice;
+      const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
       const expandRelationsActual = expandRelations === true && collectionName === 'record';
 
       for (const record of results) {
@@ -286,7 +313,7 @@ export namespace Services {
           if (expandRelationsActual && recordsService && recordItem.redboxOid) {
             try {
               const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
-              (recordItem as any).relationships = relationships;
+              recordItem.relationships = relationships;
             } catch (err) {
               sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
             }
@@ -308,8 +335,8 @@ export namespace Services {
           }
 
           const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: recordItem.redboxOid ?? (recordItem as any).id ?? '',
-            title: (recordItem.metadata as Record<string, unknown> | undefined)?.title as string ?? (recordItem as any).name ?? (recordItem as any).title ?? '',
+            oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
+            title: getStringProperty(recordItem.metadata, 'title') ?? getStringProperty(recordItem, 'name') ?? getStringProperty(recordItem, 'title') ?? '',
             metadata: defaultMetadata,
             lastSaveDate: recordItem.lastSaveDate ?? null,
             dateCreated: recordItem.dateCreated ?? null
