@@ -49,7 +49,7 @@ type GridFSBucketLike = {
 type GridFSBucketFactory = (db: Db, options: { bucketName: string }) => GridFSBucketLike;
 type MongoDbFactory = (options: Required<GridFSDriverOptions>) => Promise<Db>;
 type CachedMongoDb = {
-  client: MongoClient;
+  client: Pick<MongoClient, 'db'> & Partial<Pick<MongoClient, 'close' | 'on'>>;
   db: Db;
 };
 
@@ -210,7 +210,7 @@ export class GridFSDriver {
     GridFSDriver.dbCache.clear();
     await Promise.all(cachedDbs.map(async (cachedDb) => {
       const { client } = await cachedDb;
-      await client.close();
+      await client.close?.();
     }));
   }
 
@@ -269,10 +269,10 @@ export class GridFSDriver {
   private static async createMongoClientDb(url: string, databaseName: string, cacheKey: string): Promise<CachedMongoDb> {
     const clientOptions: MongoClientOptions = {};
     const client = await MongoClient.connect(url, clientOptions);
-    client.on('close', () => {
+    client.on?.('close', () => {
       GridFSDriver.dbCache.delete(cacheKey);
     });
-    client.on('error', () => {
+    client.on?.('error', () => {
       GridFSDriver.dbCache.delete(cacheKey);
     });
     return {
