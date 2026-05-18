@@ -42,6 +42,7 @@ import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
@@ -1114,9 +1115,14 @@ export namespace Controllers {
       const dashboardTypeParam = req.param('dashboardType') || '';
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
-        const name = String(_.get(dashboardType, 'name', ''));
-        const formatRules = (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>;
-        const dashboardTypeModel = new DashboardTypeResponseModel(name, formatRules);
+        const dashboardTypeModel = new DashboardTypeResponseModel({
+          name: String(_.get(dashboardType, 'name', '')),
+          description: _.get(dashboardType, 'description') as string | undefined,
+          formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+          tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
+          searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+          system: _.get(dashboardType, 'system') as boolean | undefined,
+        });
         this.sendResp(req, res, { data: dashboardTypeModel });
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
@@ -1157,7 +1163,14 @@ export namespace Controllers {
         const dashboardTypesModel = { dashboardTypes: [] };
         const dashboardTypesModelList = [];
         for (const dashboardType of dashboardTypes) {
-          const dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
+          const dashboardTypeModel = new DashboardTypeResponseModel({
+            name: String(_.get(dashboardType, 'name', '')),
+            description: _.get(dashboardType, 'description') as string | undefined,
+            formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+            tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
+            searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+            system: _.get(dashboardType, 'system') as boolean | undefined,
+          });
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);

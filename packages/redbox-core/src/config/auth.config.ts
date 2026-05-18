@@ -40,6 +40,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/admin/downloadReportCSV', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/report(/*)', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/vocabulary(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/dashboard-config(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/export', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/record(/*)', role: 'Researcher', can_update: true },
@@ -75,6 +76,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/users/link', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/disable', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/enable', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/api/dashboard-config(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/home', role: 'Guest', can_read: true },
         { path: '/:branding/:portal/app/branding(/*)', role: 'Admin', can_update: true }

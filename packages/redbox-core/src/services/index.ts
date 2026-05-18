@@ -13,6 +13,7 @@ import * as BrandingServiceModule from './BrandingService';
 import * as CacheServiceModule from './CacheService';
 import * as ConfigServiceModule from './ConfigService';
 import * as ContrastServiceModule from './ContrastService';
+import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
@@ -60,6 +61,7 @@ export { BrandingServiceModule as BrandingService };
 export { CacheServiceModule as CacheService };
 export { ConfigServiceModule as ConfigService };
 export { ContrastServiceModule as ContrastService };
+export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
@@ -149,6 +151,11 @@ export const ServiceExports = {
   },
   get ContrastService() {
     return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
+  },
+  get DashboardConfigService() {
+    return getOrCreateService('DashboardConfigService', () =>
+      new DashboardConfigServiceModule.Services.DashboardConfig().exports()
+    );
   },
   get DashboardTypesService() {
     return getOrCreateService('DashboardTypesService', () =>

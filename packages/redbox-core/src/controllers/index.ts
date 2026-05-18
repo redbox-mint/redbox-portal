@@ -23,6 +23,7 @@ import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
+import * as DashboardConfigControllerModule from './DashboardConfigController';
 
 // Webservice controller imports
 import * as WSAdminControllerModule from './webservice/AdminController';
@@ -38,6 +39,7 @@ import * as WSSearchControllerModule from './webservice/SearchController';
 import * as WSTranslationControllerModule from './webservice/TranslationController';
 import * as WSUserManagementControllerModule from './webservice/UserManagementController';
 import * as WSVocabularyControllerModule from './webservice/VocabularyController';
+import * as WSDashboardConfigControllerModule from './webservice/DashboardConfigController';
 
 // Lazy instantiation cache
 const controllerCache: Record<string, unknown> = {};
@@ -68,6 +70,7 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
+    get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
@@ -85,6 +88,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get TranslationController() { return getOrCreate('WS_TranslationController', () => new WSTranslationControllerModule.Controllers.Translation().exports()); },
     get UserManagementController() { return getOrCreate('WS_UserManagementController', () => new WSUserManagementControllerModule.Controllers.UserManagement().exports()); },
     get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
+    get DashboardConfigController() { return getOrCreate('WS_DashboardConfigController', () => new WSDashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
 };
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
@@ -95,6 +99,7 @@ export const ControllerNames = [
     'AsynchController',
     'BrandingAppController',
     'BrandingController',
+    'DashboardConfigController',
     'DynamicAssetController',
     'EmailController',
     'ExportController',
@@ -115,6 +120,7 @@ export const WebserviceControllerNames = [
     'AdminController',
     'AppConfigController',
     'BrandingController',
+    'DashboardConfigController',
     'ExportController',
     'FormManagementController',
     'IntegrationAuditController',

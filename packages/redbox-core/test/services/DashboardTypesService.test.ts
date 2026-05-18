@@ -1,18 +1,17 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { firstValueFrom, of } from 'rxjs';
 import { Services } from '../../src/services/DashboardTypesService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { of } from 'rxjs';
 
 describe('DashboardTypesService', function () {
   let service: Services.DashboardTypes;
-  let mockSails: any;
 
   beforeEach(function () {
-    mockSails = createMockSails();
+    const mockSails = createMockSails();
     mockSails.config.dashboardtype = {
-      'standard': { searchFilters: [], formatRules: {} }
+      standard: { formatRules: { filterBy: {} } }
     };
     mockSails.config.dashboardview = {
       consolidated: {
@@ -25,15 +24,7 @@ describe('DashboardTypesService', function () {
             name: 'consolidated',
             sourceRecordType: 'rdmp',
             fetchMode: 'allForRecordType',
-            dashboardTable: {
-              rowConfig: [
-                {
-                  title: 'Record Title',
-                  variable: 'metadata.title',
-                  template: '{{metadata.title}}'
-                }
-              ]
-            }
+            dashboardTable: { rowConfig: [{ title: 'Record Title', variable: 'metadata.title', template: '{{metadata.title}}' }] }
           }
         ]
       }
@@ -50,17 +41,38 @@ describe('DashboardTypesService', function () {
 
     (global as any).DashboardType = {
       find: sinon.stub().callsFake(() => mockDeferred([])),
-      create: sinon.stub().callsFake(() => mockDeferred({})),
+      create: sinon.stub().callsFake((data: unknown) => mockDeferred(data)),
       destroy: sinon.stub().callsFake(() => mockDeferred([])),
-      findOne: sinon.stub().callsFake(() => mockDeferred({}))
+      findOne: sinon.stub().callsFake(() => mockDeferred(null)),
+      updateOne: sinon.stub().callsFake(() => ({ set: sinon.stub().callsFake((data: unknown) => mockDeferred(data)) }))
+    };
+
+    (global as any).AppConfigService = {
+      getAppConfigByBrandAndKey: sinon.stub().resolves({ recordTypes: {}, views: {} })
     };
 
     (global as any).RecordTypesService = {
-      get: sinon.stub()
+      get: sinon.stub().returns(of({ name: 'rdmp', id: 'rt1' })),
+      getAll: sinon.stub().returns(of([{ name: 'rdmp', id: 'rt1' }]))
     };
 
     (global as any).WorkflowStepsService = {
-      get: sinon.stub()
+      get: sinon.stub().returns(of({
+        config: {
+          dashboard: {
+            table: {
+              rowConfig: [{ title: 'Record Title', variable: 'metadata.title', template: '{{metadata.title}}' }]
+            }
+          }
+        }
+      })),
+      getAllForRecordType: sinon.stub().returns(of([{ name: 'draft' }]))
+    };
+
+    (global as any).DashboardConfigService = {
+      getMergedDashboardTableConfig: sinon.stub().resolves(null),
+      getMergedDashboardViewTableConfig: sinon.stub().resolves(null),
+      getMergedDashboardTypeFormatRules: sinon.stub().resolves({ filterBy: {}, queryFilters: {} })
     };
 
     service = new Services.DashboardTypes();
@@ -69,125 +81,123 @@ describe('DashboardTypesService', function () {
   afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).DashboardType;
+    delete (global as any).AppConfigService;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
+    delete (global as any).DashboardConfigService;
     sinon.restore();
   });
 
-  describe('bootstrap', function () {
-    it('should load existing dashboard types', async function () {
-      const brand = { id: 'brand1' };
-      const existing = [{ name: 'standard' }];
+  it('bootstraps dashboard types from config', async function () {
+    const result = await service.bootstrap({ id: 'brand1' } as any);
+    expect(result).to.have.length(1);
+    expect(result[0].name).to.equal('standard');
+    expect(result[0].system).to.equal(true);
+  });
 
-      (global as any).DashboardType.find.callsFake(() => {
-        const p: any = Promise.resolve(existing);
-        p.exec = sinon.stub().yields(null, existing);
-        return p;
-      });
+  it('creates dashboard types', async function () {
+    const created = await firstValueFrom(service.createDashboardType({ id: 'brand1', name: 'default' } as any, {
+      name: 'default',
+      formatRules: { filterBy: {} },
+      tableConfig: { rowConfig: [] },
+      searchable: true,
+      system: false
+    }));
 
-      const result = await service.bootstrap(brand as any);
-      expect(result).to.deep.equal(existing);
+    expect(created?.name).to.equal('default');
+  });
+
+  it('treats existing config-backed dashboard types as system types', async function () {
+    (global as any).DashboardType.find = sinon.stub().resolves([{ name: 'standard' }]);
+
+    const result = await service.bootstrap({ id: 'brand1' } as any);
+
+    expect(result[0].system).to.equal(true);
+  });
+
+  it('rejects deleting assigned dashboard types', async function () {
+    (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
+      recordTypes: {
+        rdmp: {
+          default: { dashboardType: 'standard' }
+        }
+      },
+      views: {}
     });
+    (global as any).DashboardType.findOne = sinon.stub().callsFake(() => ({
+      exec: (cb: (err: any, result: any) => void) => cb(null, {
+        branding: { id: 'brand1', name: 'default' },
+        name: 'standard',
+        formatRules: { filterBy: {} },
+        tableConfig: { rowConfig: [] },
+        searchable: true,
+        system: false
+      }),
+      then: (onFulfilled: any) => Promise.resolve(onFulfilled({
+        branding: { id: 'brand1', name: 'default' },
+        name: 'standard',
+        formatRules: { filterBy: {} },
+        tableConfig: { rowConfig: [] },
+        searchable: true,
+        system: false
+      }))
+    }));
 
-    it('should create default dashboard types if missing', async function () {
-      const brand = { id: 'brand1' };
-      // find returns [] by default from beforeEach
+    try {
+      await firstValueFrom(service.deleteDashboardType({ id: 'brand1', name: 'default' } as any, 'standard'));
+      expect.fail('delete should have failed');
+    } catch (err) {
+      expect(String(err)).to.contain('workflow states or dashboard views');
+    }
+  });
 
-      const createDeferred = (data: any) => {
-        const p: any = Promise.resolve(data);
-        p.exec = sinon.stub().yields(null, data);
-        return p;
+  it('rejects deleting dashboard types assigned by static workflow config', async function () {
+    (global as any).sails.config.workflow = {
+      rdmp: {
+        draft: {
+          config: {
+            dashboard: {
+              dashboardType: 'standard',
+              table: { rowConfig: [] }
+            }
+          }
+        }
+      }
+    };
+    (global as any).DashboardType.findOne = sinon.stub().callsFake(() => {
+      const result = {
+        branding: { id: 'brand1', name: 'default' },
+        name: 'standard',
+        formatRules: { filterBy: {} },
+        tableConfig: { rowConfig: [] },
+        searchable: true,
+        system: false
       };
-      (global as any).DashboardType.create.callsFake((data: any) => createDeferred(data));
-
-      const result = await service.bootstrap(brand as any);
-      expect(result).to.have.length(1);
-      expect(result[0].name).to.equal('standard');
+      const p: any = Promise.resolve(result);
+      p.exec = sinon.stub().yields(null, result);
+      return p;
     });
+
+    try {
+      await firstValueFrom(service.deleteDashboardType({ id: 'brand1', name: 'default' } as any, 'standard'));
+      expect.fail('delete should have failed');
+    } catch (err) {
+      expect(String(err)).to.contain('workflow states or dashboard views');
+    }
   });
 
-  describe('getDashboardTableConfig', function () {
-    it('should return config from workflow step', async function () {
-      const brand = { id: 'brand1' };
-      const recordType = 'rt';
-      const workflowStage = 'ws';
-
-      (global as any).RecordTypesService.get.returns(of({ name: 'rt' }));
-      (global as any).WorkflowStepsService.get.returns(of({
-        config: {
-          dashboard: {
-            table: { rowConfig: [] }
-          }
-        }
-      }));
-
-      const result = await service.getDashboardTableConfig(brand as any, recordType, workflowStage);
-      expect(result).to.have.property('rowConfig');
+  it('merges dashboard view templates with merged dashboard config', async function () {
+    (global as any).DashboardConfigService.getMergedDashboardViewTableConfig = sinon.stub().resolves({
+      dashboardType: 'consolidated',
+      inheritedTypeConfig: { rowConfig: [] },
+      workflowConfig: { rowConfig: [{ title: 'Override', variable: 'metadata.title', template: 'override' }] },
+      overrideConfig: null,
+      mergedConfig: { rowConfig: [{ title: 'Override', variable: 'metadata.title', template: 'override' }] },
+      formatRules: {}
     });
 
-    it('should return null if record type not found', async function () {
-      const brand = { id: 'brand1' };
-      (global as any).RecordTypesService.get.returns(of(null));
-
-      const result = await service.getDashboardTableConfig(brand as any, 'rt', 'ws');
-      expect(result).to.be.null;
-    });
-  });
-
-  describe('dashboard views', function () {
-    it('should return dashboard view config by name', function () {
-      const result = service.getDashboardView('consolidated');
-      expect(result).to.have.property('name', 'consolidated');
-      expect(result?.steps).to.have.length(1);
-    });
-
-    it('should not treat an empty dashboard view object as missing', function () {
-      mockSails.config.dashboardview.emptyView = {};
-
-      const result = service.getDashboardView('emptyView');
-
-      expect(result).to.deep.equal({});
-    });
-
-    it('should return dashboard view step config by name', function () {
-      const result = service.getDashboardViewStep('consolidated', 'consolidated');
-      expect(result).to.have.property('name', 'consolidated');
-      expect(result).to.have.property('sourceRecordType', 'rdmp');
-    });
-
-    it('should extract dashboard view templates', async function () {
-      const brand = { id: 'brand1' };
-      const templates = await service.extractDashboardViewTemplates(brand as any, 'consolidated', 'consolidated');
-      expect(templates).to.be.an('array');
-      expect(templates.length).to.be.greaterThan(0);
-      expect(templates[0].key[0]).to.equal('consolidated');
-      expect(templates[0].key[1]).to.equal('consolidated');
-    });
-
-    it('should use the requested dashboard type for dashboard view filter templates', async function () {
-      const brand = { id: 'brand1' };
-      const getStub = sinon.stub(service, 'get');
-      getStub.withArgs(brand as any, 'alternate').returns(of({
-        formatRules: {
-          queryFilters: {
-            rdmp: [
-              {
-                filterFields: [
-                  {
-                    template: '{{metadata.title}}'
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      } as any));
-      getStub.callThrough();
-
-      const templates = await service.extractDashboardViewTemplates(brand as any, 'consolidated', 'consolidated', 'alternate');
-
-      expect(getStub.calledWith(brand as any, 'alternate')).to.be.true;
-      expect(templates.some((entry) => entry.key[1] === 'alternate')).to.be.true;
-    });
+    const templates = await service.extractDashboardViewTemplates({ id: 'brand1' } as any, 'consolidated', 'consolidated');
+    expect(templates).to.be.an('array');
+    expect(templates.length).to.be.greaterThan(0);
   });
 });

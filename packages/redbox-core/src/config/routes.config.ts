@@ -383,6 +383,22 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/api/forms/get': { controller: 'webservice/FormManagementController', action: 'getForm', csrf: false },
     'get /:branding/:portal/api/forms': { controller: 'webservice/FormManagementController', action: 'listForms', csrf: false },
 
+    // REST API routes - Dashboard Config
+    'get /:branding/:portal/api/dashboard-config/info': { controller: 'webservice/DashboardConfigController', action: 'getConfigInfo', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/defaults': { controller: 'webservice/DashboardConfigController', action: 'getDefaults', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/overrides': { controller: 'webservice/DashboardConfigController', action: 'getOverrides', csrf: false },
+    'put /:branding/:portal/api/dashboard-config/overrides': { controller: 'webservice/DashboardConfigController', action: 'saveOverrides' },
+    'get /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage': { controller: 'webservice/DashboardConfigController', action: 'getMergedConfig', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName': { controller: 'webservice/DashboardConfigController', action: 'getMergedViewConfig', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/merged-type/:dashboardType': { controller: 'webservice/DashboardConfigController', action: 'getMergedTypeFormatRules', csrf: false },
+    'get /:branding/:portal/api/dashboard-config/dashboard-types': { controller: 'webservice/DashboardConfigController', action: 'getDashboardTypes', csrf: false },
+    'post /:branding/:portal/api/dashboard-config/dashboard-types': { controller: 'webservice/DashboardConfigController', action: 'createDashboardType' },
+    'get /:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType': { controller: 'webservice/DashboardConfigController', action: 'getDashboardType', csrf: false },
+    'put /:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType': { controller: 'webservice/DashboardConfigController', action: 'updateDashboardType' },
+    'delete /:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType': { controller: 'webservice/DashboardConfigController', action: 'deleteDashboardType' },
+    'put /:branding/:portal/api/dashboard-config/record-types/:recordType/steps/:workflowStage': { controller: 'webservice/DashboardConfigController', action: 'saveWorkflowStateDashboardConfig' },
+    'put /:branding/:portal/api/dashboard-config/views/:viewName/steps/:stepName': { controller: 'webservice/DashboardConfigController', action: 'saveDashboardViewStepConfig' },
+
     // REST API routes - Vocabulary
     'get /:branding/:portal/api/vocabulary': { controller: 'webservice/VocabularyController', action: 'list', csrf: false },
     'post /:branding/:portal/api/vocabulary/import': { controller: 'webservice/VocabularyController', action: 'import', csrf: false },
