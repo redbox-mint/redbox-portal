@@ -102,11 +102,6 @@ export const routes: RoutesConfig = {
         action: 'usersIndex',
         skipAssets: true
     },
-    '/:branding/:portal/admin/supportAgreement': {
-        controller: 'AdminController',
-        action: 'supportAgreementIndex',
-        skipAssets: true
-    },
     'get /:branding/:portal/admin/vocabulary/manager': {
         controller: 'VocabularyController',
         action: 'manager'

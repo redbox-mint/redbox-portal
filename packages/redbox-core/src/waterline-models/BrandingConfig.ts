@@ -96,9 +96,6 @@ export class BrandingConfigClass {
 
   @HasMany('role', 'branding')
   public roles?: unknown[];
-
-  @Attr({ type: 'json', defaultsTo: {} })
-  public supportAgreementInformation?: Record<string, unknown>;
 }
 
 // Export the Waterline model definition for runtime use
@@ -111,7 +108,6 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   logo?: Record<string, unknown>;
   name?: string;
   roles?: unknown[];
-  supportAgreementInformation?: Record<string, unknown>;
   variables?: Record<string, string>;
   version?: number;
 }
