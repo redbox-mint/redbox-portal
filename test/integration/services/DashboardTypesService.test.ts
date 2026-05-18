@@ -77,7 +77,47 @@ describe('DashboardTypesService', function () {
                 formatRules: {},
                 searchable: true,
                 system: false,
-                tableConfig: result[0].tableConfig
+                tableConfig: {
+                    rowConfig: [
+                        {
+                            title: 'Record Title',
+                            variable: 'metadata.title',
+                            template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
+            <span class="dashboard-controls">
+              {{#if hasEditAccess}}
+                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+              {{/if}}
+            </span>
+          `,
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-ci',
+                            variable: 'metadata.contributor_ci.text_full_name',
+                            template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-data-manager',
+                            variable: 'metadata.contributor_data_manager.text_full_name',
+                            template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-created',
+                            variable: 'metaMetadata.createdOn',
+                            template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-modified',
+                            variable: 'metaMetadata.lastSaveDate',
+                            template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
+                            initialSort: 'desc',
+                            defaultSort: true
+                        }
+                    ]
+                }
             }]);
             expect(result[0].tableConfig.rowConfig).to.be.an('array').that.is.not.empty;
         });

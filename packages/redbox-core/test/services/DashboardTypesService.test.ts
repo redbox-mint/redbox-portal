@@ -107,6 +107,14 @@ describe('DashboardTypesService', function () {
     expect(created?.name).to.equal('default');
   });
 
+  it('treats existing config-backed dashboard types as system types', async function () {
+    (global as any).DashboardType.find = sinon.stub().resolves([{ name: 'standard' }]);
+
+    const result = await service.bootstrap({ id: 'brand1' } as any);
+
+    expect(result[0].system).to.equal(true);
+  });
+
   it('rejects deleting assigned dashboard types', async function () {
     (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
       recordTypes: {
@@ -134,6 +142,41 @@ describe('DashboardTypesService', function () {
         system: false
       }))
     }));
+
+    try {
+      await firstValueFrom(service.deleteDashboardType({ id: 'brand1', name: 'default' } as any, 'standard'));
+      expect.fail('delete should have failed');
+    } catch (err) {
+      expect(String(err)).to.contain('workflow states or dashboard views');
+    }
+  });
+
+  it('rejects deleting dashboard types assigned by static workflow config', async function () {
+    (global as any).sails.config.workflow = {
+      rdmp: {
+        draft: {
+          config: {
+            dashboard: {
+              dashboardType: 'standard',
+              table: { rowConfig: [] }
+            }
+          }
+        }
+      }
+    };
+    (global as any).DashboardType.findOne = sinon.stub().callsFake(() => {
+      const result = {
+        branding: { id: 'brand1', name: 'default' },
+        name: 'standard',
+        formatRules: { filterBy: {} },
+        tableConfig: { rowConfig: [] },
+        searchable: true,
+        system: false
+      };
+      const p: any = Promise.resolve(result);
+      p.exec = sinon.stub().yields(null, result);
+      return p;
+    });
 
     try {
       await firstValueFrom(service.deleteDashboardType({ id: 'brand1', name: 'default' } as any, 'standard'));

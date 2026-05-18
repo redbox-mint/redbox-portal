@@ -3,6 +3,10 @@ import { Controllers as controllers } from '../../CoreController';
 import type { DashboardTableOverrideConfigData, WorkflowStateDashboardConfig } from '../../configmodels/DashboardTableOverrideConfig';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
+declare const DashboardConfigService: any;
+declare const DashboardTypesService: any;
+declare const BrandingService: any;
+
 export namespace Controllers {
   export class DashboardConfig extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
@@ -26,6 +30,27 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+    private statusForError(error: unknown): number {
+      const message = this.asError(error).message;
+      if (/not found|was not found/i.test(message)) {
+        return 404;
+      }
+      if (/system dashboard type|cannot be converted/i.test(message)) {
+        return 403;
+      }
+      if (/already exists|is assigned/i.test(message)) {
+        return 409;
+      }
+      if (/required|immutable|invalid/i.test(message)) {
+        return 400;
+      }
+      return 500;
+    }
+
+    private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+    }
+
     private resolveBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
     }
@@ -39,7 +64,7 @@ export namespace Controllers {
         const info = await DashboardConfigService.getDashboardConfigInfo(this.resolveBrand(req));
         return this.sendResp(req, res, { data: info, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -69,7 +94,7 @@ export namespace Controllers {
 
         return this.sendResp(req, res, { data: defaults, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -78,7 +103,7 @@ export namespace Controllers {
         const overrides = await DashboardConfigService.getDashboardOverrides(this.resolveBrand(req));
         return this.sendResp(req, res, { data: overrides, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -89,7 +114,7 @@ export namespace Controllers {
         const saved = await DashboardConfigService.saveDashboardOverrides(brand, overrides);
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -99,7 +124,7 @@ export namespace Controllers {
         const dashboardTypes = await DashboardTypesService.getAllDashboardTypeDefinitions(brand);
         return this.sendResp(req, res, { data: { dashboardTypes }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -109,7 +134,7 @@ export namespace Controllers {
         const saved = await firstValueFrom(DashboardTypesService.createDashboardType(brand, req.body));
         return this.sendResp(req, res, { status: 201, data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -126,7 +151,7 @@ export namespace Controllers {
         }
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -140,7 +165,7 @@ export namespace Controllers {
         const saved = await firstValueFrom(DashboardTypesService.updateDashboardType(brand, dashboardType, req.body));
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -154,7 +179,7 @@ export namespace Controllers {
         const saved = await firstValueFrom(DashboardTypesService.deleteDashboardType(brand, dashboardType));
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -166,7 +191,7 @@ export namespace Controllers {
         const saved = await DashboardConfigService.saveWorkflowStateDashboardConfig(brand, recordType, workflowStage, req.body as WorkflowStateDashboardConfig);
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -178,7 +203,7 @@ export namespace Controllers {
         const saved = await DashboardConfigService.saveDashboardViewStepConfig(brand, viewName, stepName, req.body as WorkflowStateDashboardConfig);
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -192,7 +217,7 @@ export namespace Controllers {
         const merged = await DashboardConfigService.getMergedDashboardTableConfig(this.resolveBrand(req), recordType, workflowStage);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -206,7 +231,7 @@ export namespace Controllers {
         const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(this.resolveBrand(req), viewName, stepName);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -219,7 +244,7 @@ export namespace Controllers {
         const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(this.resolveBrand(req), dashboardType);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
   }

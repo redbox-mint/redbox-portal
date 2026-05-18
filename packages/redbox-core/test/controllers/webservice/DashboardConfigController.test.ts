@@ -143,6 +143,35 @@ describe('Webservice DashboardConfigController', () => {
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
   });
 
+  it('maps duplicate dashboard type errors to conflict responses', async () => {
+    (global as any).DashboardTypesService.createDashboardType = sinon.stub().throws(new Error("Dashboard type 'my-type' already exists for brand 'default'"));
+    const req = {
+      session: { branding: 'default' },
+      body: { name: 'my-type', formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.createDashboardType(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
+  });
+
+  it('maps system dashboard type delete errors to forbidden responses', async () => {
+    (global as any).DashboardTypesService.deleteDashboardType = sinon.stub().throws(new Error("System dashboard type 'standard' cannot be deleted"));
+    const param = sinon.stub();
+    param.withArgs('dashboardType').returns('standard');
+    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.deleteDashboardType(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+  });
+
   it('returns a merged workflow config', async () => {
     const param = sinon.stub();
     param.withArgs('recordType').returns('rdmp');

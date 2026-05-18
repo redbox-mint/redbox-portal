@@ -56,10 +56,12 @@ export function migrateDashboardConfigOverrides(
       }
     }
     const defaultState = toStrictStateConfig(recordTypeValue.default, fallbackDashboardType);
-    overrides.recordTypes![recordType] = {
-      ...(defaultState ? { default: defaultState } : {}),
-      ...(Object.keys(steps).length > 0 ? { steps } : {})
-    };
+    if (defaultState || Object.keys(steps).length > 0) {
+      overrides.recordTypes![recordType] = {
+        ...(defaultState ? { default: defaultState } : {}),
+        ...(Object.keys(steps).length > 0 ? { steps } : {})
+      };
+    }
   }
 
   for (const [viewName, viewValue] of Object.entries(legacy.views ?? {})) {
@@ -71,10 +73,12 @@ export function migrateDashboardConfigOverrides(
       }
     }
     const defaultState = toStrictStateConfig(viewValue.default, fallbackDashboardType);
-    overrides.views![viewName] = {
-      ...(defaultState ? { default: defaultState } : {}),
-      ...(Object.keys(steps).length > 0 ? { steps } : {})
-    };
+    if (defaultState || Object.keys(steps).length > 0) {
+      overrides.views![viewName] = {
+        ...(defaultState ? { default: defaultState } : {}),
+        ...(Object.keys(steps).length > 0 ? { steps } : {})
+      };
+    }
   }
 
   return {

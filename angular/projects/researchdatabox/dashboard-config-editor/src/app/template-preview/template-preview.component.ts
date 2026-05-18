@@ -1,4 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SecurityContext } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { TemplatePreviewService } from './template-preview.service';
 
 @Component({
@@ -19,14 +20,17 @@ import { TemplatePreviewService } from './template-preview.service';
   `,
   standalone: false
 })
-export class TemplatePreviewComponent {
+export class TemplatePreviewComponent implements OnInit, OnChanges {
   @Input() template = '';
 
   sampleDataJson = '{"title": "Sample Record", "name": "John Doe"}';
   sampleData: Record<string, unknown> = {};
   previewHtml = '';
 
-  constructor(private previewService: TemplatePreviewService) {}
+  constructor(
+    private previewService: TemplatePreviewService,
+    private sanitizer: DomSanitizer
+  ) {}
 
   ngOnInit(): void {
     this.onSampleDataChange(this.sampleDataJson);
@@ -46,6 +50,7 @@ export class TemplatePreviewComponent {
   }
 
   private updatePreview(): void {
-    this.previewHtml = this.previewService.compileTemplate(this.template, this.sampleData);
+    const compiled = this.previewService.compileTemplate(this.template, this.sampleData);
+    this.previewHtml = this.sanitizer.sanitize(SecurityContext.HTML, compiled) ?? '';
   }
 }

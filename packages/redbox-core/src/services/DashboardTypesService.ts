@@ -7,6 +7,8 @@ import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../co
 import type { DashboardTableConfig as WorkflowDashboardTableConfig } from '../config/workflow.config';
 import type { DashboardTypeConfigData, WorkflowStateDashboardConfig, RecordTypeOverride, ViewOverride } from '../configmodels/DashboardTableOverrideConfig';
 
+declare const DashboardConfigService: any;
+
 type DashboardTypeDefinition = {
   name: string;
   description?: string;
@@ -136,6 +138,10 @@ export namespace Services {
       return _.isEmpty(config) ? this.defaultTableConfig() : (_.cloneDeep(config) as DashboardTableConfig);
     }
 
+    private isConfiguredSystemDashboardType(name: string | null | undefined): boolean {
+      return name != null && Object.prototype.hasOwnProperty.call(sails.config.dashboardtype ?? {}, name);
+    }
+
     private normalizeDashboardTypeRecord(type: DashboardTypeModel | null | undefined): DashboardTypeModel | null {
       if (!type) {
         return null;
@@ -146,7 +152,7 @@ export namespace Services {
         formatRules: _.cloneDeep(type.formatRules ?? {}),
         tableConfig: this.normalizeTableConfig(type.tableConfig),
         searchable: type.searchable ?? true,
-        system: type.system ?? false
+        system: type.system ?? this.isConfiguredSystemDashboardType(type.name)
       };
     }
 
@@ -163,6 +169,24 @@ export namespace Services {
     private async findDashboardTypeRecord(brand: BrandingModel, name: string): Promise<DashboardTypeModel | null> {
       const record = await firstValueFrom(this.get(brand, name));
       return this.normalizeDashboardTypeRecord(record);
+    }
+
+    private addAssignedDashboardTypesFromConfig(value: unknown, assigned: Set<string>): void {
+      if (_.isArray(value)) {
+        for (const item of value) {
+          this.addAssignedDashboardTypesFromConfig(item, assigned);
+        }
+        return;
+      }
+      if (_.isObject(value)) {
+        const record = value as Record<string, unknown>;
+        if (typeof record.dashboardType === 'string' && record.dashboardType.trim()) {
+          assigned.add(record.dashboardType);
+        }
+        for (const child of Object.values(record)) {
+          this.addAssignedDashboardTypesFromConfig(child, assigned);
+        }
+      }
     }
 
     private async listAssignedDashboardTypeNames(brand: BrandingModel): Promise<Set<string>> {
@@ -195,6 +219,8 @@ export namespace Services {
           }
         }
       }
+      this.addAssignedDashboardTypesFromConfig(sails.config.recordtype, assigned);
+      this.addAssignedDashboardTypesFromConfig(sails.config.workflow, assigned);
       return assigned;
     }
 
