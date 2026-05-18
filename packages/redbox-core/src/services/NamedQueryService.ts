@@ -226,10 +226,19 @@ export namespace Services {
             continue;
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
-          this.setParamsInQuery(filterMongoQuery, queryParams, paramMap);
+          const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
+          this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
           const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
           const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
-          _.set(mongoQuery, filter.localField, { $in: relatedIds });
+          const existingLocalFieldFilter = _.get(mongoQuery, filter.localField);
+          const existingRelatedIds = _.isPlainObject(existingLocalFieldFilter) ? _.get(existingLocalFieldFilter, '$in') : undefined;
+          if (Array.isArray(existingRelatedIds)) {
+            _.set(mongoQuery, filter.localField, {
+              $in: _.intersection(existingRelatedIds, relatedIds)
+            });
+          } else {
+            _.set(mongoQuery, filter.localField, { $in: relatedIds });
+          }
         }
       }
 
@@ -272,6 +281,9 @@ export namespace Services {
       const responseRecords: NamedQueryResponseRecord[] = []
       const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
       const expandRelationsActual = expandRelations === true && collectionName === 'record';
+      if (expandRelations === true && collectionName !== 'record') {
+        sails.log.debug(`expandRelations is only supported for the 'record' collection; ignoring for '${collectionName}'`);
+      }
 
       for (const record of results) {
 
@@ -483,7 +495,7 @@ export namespace Services {
           return compiledTemplate(templateVars);
         } catch (err) {
           sails.log.error(`Template compilation failed for ${templateOrPath}`, err);
-          return '';
+          throw err;
         }
       }
       return _.get(templateVars, templateOrPath);

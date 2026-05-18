@@ -273,6 +273,27 @@ describe('NamedQueryService', function() {
       expect(result.records[0].metadata.customName).to.equal('Custom Record');
     });
 
+    it('should log when expandRelations is configured for a non-record model', async function() {
+      const brand = { id: 'brand-1' };
+
+      await NamedQueryService.performNamedQuery(
+        'branding',
+        { customName: '{{record.name}}' },
+        'custommodel',
+        {},
+        {},
+        {},
+        brand,
+        0,
+        10,
+        undefined,
+        undefined,
+        true
+      );
+
+      expect(mockSails.log.debug.calledWith("expandRelations is only supported for the 'record' collection; ignoring for 'custommodel'")).to.be.true;
+    });
+
     it('should expand record relationships when configured', async function() {
       const brand = { id: 'brand-1' };
 
@@ -334,6 +355,78 @@ describe('NamedQueryService', function() {
       expect(mockRecord.count.calledOnce).to.be.true;
       expect(mockRecord.count.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-1', 'rel-2'] });
     });
+
+    it('should intersect related record filters targeting the same local field', async function() {
+      const brand = { id: 'brand-1' };
+      const countMeta = sinon.stub().resolves(0);
+
+      mockRelatedRecordModel.find.onFirstCall().returns({ meta: sinon.stub().resolves([{ recordId: 'rel-1' }, { recordId: 'rel-2' }]) });
+      mockRelatedRecordModel.find.onSecondCall().returns({ meta: sinon.stub().resolves([{ recordId: 'rel-2' }, { recordId: 'rel-3' }]) });
+      mockRecord.count.returns({ meta: countMeta });
+
+      await NamedQueryService.performNamedQuery(
+        'branding',
+        {},
+        'record',
+        {},
+        {},
+        {},
+        brand,
+        0,
+        10,
+        undefined,
+        undefined,
+        false,
+        [{
+          collectionName: 'relatedmodel',
+          mongoQuery: { status: 'active' },
+          localField: 'relatedId',
+          foreignField: 'recordId'
+        }, {
+          collectionName: 'relatedmodel',
+          mongoQuery: { type: 'primary' },
+          localField: 'relatedId',
+          foreignField: 'recordId'
+        }]
+      );
+
+      expect(mockRelatedRecordModel.find.calledTwice).to.be.true;
+      expect(mockRecord.count.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-2'] });
+    });
+
+    it('should only apply query params to related filters when the filter query declares that path', async function() {
+      const brand = { id: 'brand-1' };
+
+      mockRelatedRecordModel.find.returns({ meta: sinon.stub().resolves([]) });
+      mockRecord.count.returns({ meta: sinon.stub().resolves(0) });
+
+      await NamedQueryService.performNamedQuery(
+        'branding',
+        {},
+        'record',
+        {},
+        {
+          search: { path: 'metadata.l_fullName', type: 'string', queryType: 'contains', whenUndefined: 'ignore' },
+          status: { path: 'status', type: 'string', whenUndefined: 'ignore' }
+        },
+        { search: 'Ada Lovelace', status: 'active' },
+        brand,
+        0,
+        10,
+        undefined,
+        undefined,
+        false,
+        [{
+          collectionName: 'relatedmodel',
+          mongoQuery: { status: null },
+          localField: 'relatedId',
+          foreignField: 'recordId'
+        }]
+      );
+
+      const relatedCriteria = mockRelatedRecordModel.find.firstCall.args[0];
+      expect(relatedCriteria.where).to.deep.equal({ status: 'active' });
+    });
   });
 
   describe('runTemplate', function() {
@@ -371,6 +464,13 @@ describe('NamedQueryService', function() {
       const result = NamedQueryService.runTemplate(path, variables);
       
       expect(result).to.equal('John');
+    });
+
+    it('should throw handlebars template errors', function() {
+      expect(() => {
+        NamedQueryService.runTemplate('{{#if title}}', { title: 'Broken' });
+      }).to.throw();
+      expect(mockSails.log.error.calledOnce).to.be.true;
     });
   });
 
