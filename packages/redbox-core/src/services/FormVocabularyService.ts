@@ -82,6 +82,12 @@ export namespace Services {
         }
 
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryName);
+        if (!namedQueryConfig) {
+          throw this.createFormVocabularyError(
+            'query-vocab-invalid-config',
+            `Query vocabulary '${normalizedSourceType}' references unknown named query '${queryName}'.`
+          );
+        }
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
         const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         if (queryConfig.resultObjectMapping) {

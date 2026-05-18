@@ -199,6 +199,23 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('string case helpers', function () {
+        it('toLower should lowercase text values', function () {
+            const result = handlebarsHelperDefinitions.toLower('Ada Lovelace');
+            expect(result).to.equal('ada lovelace');
+        });
+
+        it('toUpper should uppercase text values', function () {
+            const result = handlebarsHelperDefinitions.toUpper('Ada Lovelace');
+            expect(result).to.equal('ADA LOVELACE');
+        });
+
+        it('should treat nullish values as empty strings', function () {
+            expect(handlebarsHelperDefinitions.toLower(null)).to.equal('');
+            expect(handlebarsHelperDefinitions.toUpper(undefined)).to.equal('');
+        });
+    });
+
     describe('join', function () {
         it('should join array elements', function () {
             const result = handlebarsHelperDefinitions.join(['a', 'b', 'c'], ', ');

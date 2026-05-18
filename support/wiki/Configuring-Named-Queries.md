@@ -14,7 +14,7 @@ Each named query is a property of the `namedQuery` object, identified by a uniqu
 
 - **collectionName**: Specifies the MongoDB collection to be queried. The supported values are `record` and `user`
 - **brandIdFieldPath**: Path within the documents to identify brand Id field. For records this is `metaMetadata.brandId`
-- **resultObjectMapping**: Maps fields from MongoDB documents to the properties of the resulting JavaScript object. This uses template literals to dynamically insert values.
+- **resultObjectMapping**: Maps fields from MongoDB documents to the properties of the resulting JavaScript object. Use Handlebars templates for dynamic values, or plain dot paths for direct value lookup.
 - **mongoQuery**: Contains the MongoDB query to filter documents in the collection. It specifies the criteria that documents must meet to be included in the result set.
 - **queryParams**: Defines the parameters that can be passed to the query and how they alter the MongoDB query.
 
@@ -27,10 +27,10 @@ Here's a closer look at the configuration of the `listRDMPRecords` named query:
   collectionName: 'record',
   brandIdFieldPath: 'metaMetadata.brandId',
   resultObjectMapping: {
-    oid: '<%= record.redboxOid%>',
-    title: '<%= record.metadata.title %>',
-    contributor_ci: '<%= record.metadata.contributor_ci.text_full_name %>',
-    contributor_data_manager: '<%= record.metadata.contributor_data_manager.text_full_name %>'
+    oid: '{{record.redboxOid}}',
+    title: '{{record.metadata.title}}',
+    contributor_ci: '{{record.metadata.contributor_ci.text_full_name}}',
+    contributor_data_manager: '{{record.metadata.contributor_data_manager.text_full_name}}'
   },
   mongoQuery: {
     'metaMetadata.type': 'rdmp',
@@ -66,6 +66,18 @@ Each parameter within `queryParams` consists of several sub-properties:
 - **queryType**: Defines the type of comparison. Supported values are the [supported query modifier values](https://sailsjs.com/documentation/concepts/models-and-orm/query-language#?criteria-modifiers) in Sails (e.g., `contains`, `<=`).
 - **whenUndefined**: Specifies the behavior if the parameter is not provided (e.g., `ignore`, `defaultValue`).
 - **defaultValue**: A default value used if the parameter is undefined and `whenUndefined` is set to `defaultValue`.
+
+### Template Syntax
+
+Named queries support Handlebars templates and plain dot-path lookups. Legacy lodash templates (`<% ... %>` and `<%= ... %>`) are not supported because they execute unsandboxed JavaScript.
+
+Common migrations:
+
+| Legacy lodash template | Handlebars replacement |
+|---|---|
+| `<%= record.metadata.title %>` | `{{record.metadata.title}}` |
+| `<%= _.toLower(value) %>` | `{{toLower value}}` |
+| `<%= _.get(record, "metadata.title", "") %>` | `{{get record "metadata.title"}}` |
 
 ## Utilizing Named Queries via REST API
 

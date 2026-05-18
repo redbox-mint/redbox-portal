@@ -202,6 +202,9 @@ export namespace Services {
           throw new Error(`Report '${name}' is missing databaseQuery config`);
         }
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
+        if (!namedQueryConfig) {
+          throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
+        }
         const paramMap = this.buildNamedQueryParamMap(req, report)
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         return this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
@@ -324,6 +327,9 @@ export namespace Services {
           throw new Error(`Report '${name}' is missing databaseQuery config`);
         }
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName);
+        if (!namedQueryConfig) {
+          throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
+        }
         const paramMap = this.buildNamedQueryParamMap(req, report);
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
         result = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);

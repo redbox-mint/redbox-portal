@@ -33,7 +33,7 @@ export namespace Controllers {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const queryName = query.queryName as string;
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
-        if (_.isEmpty(namedQuery)) {
+        if (!namedQuery) {
           const errorResponse = new APIErrorResponse('Named query not found');
           return this.sendResp(req, res, {
             status: 400,
@@ -58,10 +58,9 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const namedQueryConfig = sails.config.namedQuery[queryName];
         const paramMap = _.clone(query);
         const response = await NamedQueryService.performNamedQueryFromConfig(
-          namedQueryConfig,
+          namedQuery,
           paramMap,
           brand,
           start,
