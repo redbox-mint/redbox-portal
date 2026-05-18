@@ -145,7 +145,7 @@ export async function generateOpenApiArtifacts(
   </head>
   <body>
     <div id="redoc"></div>
-    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script src="https://cdn.redoc.ly/redoc/v2.5.2/bundles/redoc.standalone.js"></script>
     <script>
       // Load the generated OpenAPI JSON from the same folder
       Redoc.init('openapi.json', {}, document.getElementById('redoc'));

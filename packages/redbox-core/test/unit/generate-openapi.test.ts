@@ -5,7 +5,11 @@ import sinon from 'sinon';
 import { generateOpenApiArtifacts } from '../../scripts/generate-openapi';
 
 let expect: Chai.ExpectStatic;
-import('chai').then((mod) => expect = mod.expect);
+
+before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+});
 
 function buildMinimalOpenApiDocument() {
     return {
@@ -120,6 +124,7 @@ describe('generate-openapi script', function () {
         expect(writeFile.callCount).to.equal(4);
         expect(writeFile.firstCall.args[0]).to.equal(path.join('/tmp/redbox-openapi', 'openapi.json'));
         expect(writeFile.firstCall.args[1]).to.equal(JSON.stringify(document, null, 2));
+        expect(String(writeFile.getCall(3).args[1])).to.include('https://cdn.redoc.ly/redoc/v2.5.2/bundles/redoc.standalone.js');
     });
 
     it('aborts file writes when OpenAPI validation fails', async function () {

@@ -13,7 +13,7 @@ import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
-import { getMergedApiRoutes } from './api-routes';
+import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -201,14 +201,14 @@ export function preLiftSetup(): void {
     // Controllers register their init as sails actions (e.g., 'webservice/search/init')
     const sailsWithActions = sails as Sails.Application & { _actions?: Record<string, () => void> };
     const actions = sailsWithActions._actions;
-    if (!actions) {
-        return;
-    }
-
-    for (const actionKey of Object.keys(actions)) {
-        if (actionKey.endsWith('/init')) {
-            actions[actionKey]();
-            sails.log.verbose(`${actionKey} controller action, initialized.`);
+    if (actions) {
+        for (const actionKey of Object.keys(actions)) {
+            if (actionKey.endsWith('/init')) {
+                actions[actionKey]();
+                sails.log.verbose(`${actionKey} controller action, initialized.`);
+            }
         }
     }
+
+    resetResolvedApiRouteCache();
 }

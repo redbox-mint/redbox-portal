@@ -153,6 +153,7 @@ function sanitizeOpenApiValue<T>(value: T): T {
 
 function createSchemaConverter() {
   const generator = new OpenAPIGenerator([]);
+  // zod-to-openapi 0.2.1 exposes these only as runtime properties; revisit this when upgrading the package.
   return {
     toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
       return sanitizeOpenApiValue(

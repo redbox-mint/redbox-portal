@@ -106,6 +106,26 @@ function validateFiles(
   }
 }
 
+function getHeaderValue(req: Sails.Req, name: string): string | undefined {
+  const headers = req.headers as Record<string, string | string[] | undefined> | undefined;
+  const value = headers == null
+    ? undefined
+    : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
+function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
+  const requestContentType = getHeaderValue(req, 'content-type')?.split(';')[0]?.trim().toLowerCase();
+  if (!requestContentType) {
+    return contentTypes[0];
+  }
+
+  return contentTypes.find(contentType => contentType.toLowerCase() === requestContentType) ?? contentTypes[0];
+}
+
 export function validateApiRequest(
   req: Sails.Req,
   request?: ApiRequestDefinition,
@@ -125,7 +145,8 @@ export function validateApiRequest(
   }
   if (request.body?.content) {
     const contentTypes = Object.keys(request.body.content);
-    const schema = request.body.content[contentTypes[0]]?.schema;
+    const contentType = getBodyContentType(req, contentTypes);
+    const schema = contentType ? request.body.content[contentType]?.schema : undefined;
     if (schema) {
       validateSource(req, request, 'body', schema, 'body', issues);
     }

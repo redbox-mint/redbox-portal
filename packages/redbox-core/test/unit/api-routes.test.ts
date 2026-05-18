@@ -795,6 +795,35 @@ describe('API routes contract layer', async () => {
     expect(extracted.query.datastreams).to.equal(true);
   });
 
+  it('should select request body schema from the request content type', async function () {
+    const request = {
+      params: {},
+      query: {},
+      headers: {
+        'content-type': 'multipart/form-data; boundary=upload',
+      },
+      body: {
+        multipartOnly: 'yes',
+      }
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, {
+      body: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: objectField({ jsonOnly: stringField() }, ['jsonOnly']),
+          },
+          'multipart/form-data': {
+            schema: objectField({ multipartOnly: stringField() }, ['multipartOnly']),
+          },
+        },
+      },
+    });
+
+    expect(result.valid).to.equal(true);
+  });
+
   it('should hydrate list query fields from body fallbacks when query values are absent', async function () {
     const request = {
       params: {},
