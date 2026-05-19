@@ -249,14 +249,18 @@ export namespace Services {
           }
           const visibility = diskConf.config.visibility ?? 'public';
           const opts: Record<string, unknown> = {
-            credentials: {
-              accessKeyId: diskConf.config.key,
-              secretAccessKey: diskConf.config.secret,
-            },
             region: diskConf.config.region,
             bucket: diskConf.config.bucket,
             visibility,
           };
+          const accessKeyId = String(diskConf.config.key ?? '').trim();
+          const secretAccessKey = String(diskConf.config.secret ?? '').trim();
+          if (accessKeyId && secretAccessKey) {
+            opts.credentials = {
+              accessKeyId,
+              secretAccessKey,
+            };
+          }
           if (diskConf.config.endpoint) {
             opts.endpoint = diskConf.config.endpoint;
           }
