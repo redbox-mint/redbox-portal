@@ -49,7 +49,7 @@ export class BrandingAdminComponent extends BaseComponent {
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
   logoUrl?: string;
-  
+
   // Track component initialization state without casting
   private componentReady: boolean = false;
 
@@ -158,7 +158,7 @@ export class BrandingAdminComponent extends BaseComponent {
           { key: 'main-menu-inactive-item-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-inactive-item-color-hover-help') },
           { key: 'main-menu-inactive-item-background-color', label: this.i18n.t('branding-main-menu-inactive-item-background-color-label'), default: '#500005', help: this.i18n.t('branding-main-menu-inactive-item-background-color-help') },
           { key: 'main-menu-inactive-item-background-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-help') },
-          
+
           { key: 'main-menu-active-dropdown-item-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-help') },
           { key: 'main-menu-active-dropdown-item-color-hover', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-help') },
           { key: 'main-menu-active-dropdown-item-background-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-help') },
@@ -311,7 +311,7 @@ export class BrandingAdminComponent extends BaseComponent {
       this.error = 'Failed to copy to clipboard';
     });
   }
-  
+
 
 
   updateVariable(key: string, event: any) {
@@ -324,7 +324,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   resetDraft() {
-    this.draftConfig = { ...(this.publishedConfig.variables || {}) };
+    this.draftConfig = this.filterDraftVariables(this.publishedConfig.variables);
     this.message = 'Draft reset to published config';
   }
 
