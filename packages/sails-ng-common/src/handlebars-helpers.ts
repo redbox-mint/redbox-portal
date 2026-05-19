@@ -449,6 +449,24 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Convert a value to lowercase text.
+   *
+   * @example {{toLower value}}
+   */
+  toLower: function (value: unknown): string {
+    return String(value ?? '').toLowerCase();
+  },
+
+  /**
+   * Convert a value to uppercase text.
+   *
+   * @example {{toUpper value}}
+   */
+  toUpper: function (value: unknown): string {
+    return String(value ?? '').toUpperCase();
+  },
+
+  /**
    * Translation helper - looks up translation from context.translationService.
    * The translation service must be provided in the template context.
    *

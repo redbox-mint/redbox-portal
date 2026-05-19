@@ -674,6 +674,10 @@ export namespace Services {
         }
 
         const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, namedQuery);
+        if (!namedQueryConfig) {
+          sails.log.error(`FigService - named query '${namedQuery}' was not found for workflow transition job`);
+          return;
+        }
         const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, namedQuery, start, rows, maxRecords, user);
 
         for (const queryResult of queryResults) {

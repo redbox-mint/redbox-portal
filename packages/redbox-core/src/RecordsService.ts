@@ -1,4 +1,5 @@
 import StorageServiceResponse from "./StorageServiceResponse";
+import { DatastreamRequestContext } from './DatastreamService';
 import { RecordModel, UserModel } from "./model";
 import { NormalizedRecordRelation } from "./config/recordtype.config";
 
@@ -70,7 +71,7 @@ export interface RecordsService {
   transitionWorkflowStepMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;
   triggerPreSaveTransitionWorkflowTriggers(oid: string, record: RecordInput, recordType: Record<string, unknown>, nextStep: AnyRecord, user: Record<string, unknown>): Promise<RecordInput>;
   triggerPostSaveTransitionWorkflowTriggers(oid: string, record: RecordInput, recordType: unknown, nextStep: AnyRecord, user: Record<string, unknown>, response: unknown): unknown;
-  getAttachments(oid: string, labelFilterStr?: string): Promise<Record<string, unknown>[]>;
+  getAttachments(oid: string, labelFilterStr?: string, requestContext?: DatastreamRequestContext): Promise<Record<string, unknown>[]>;
   getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
   create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown): Promise<StorageServiceResponse>;

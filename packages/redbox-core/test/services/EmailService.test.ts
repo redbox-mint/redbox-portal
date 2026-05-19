@@ -5,6 +5,7 @@ import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } f
 import * as nodemailer from 'nodemailer';
 import * as fs from 'graceful-fs';
 import * as ejs from 'ejs';
+import { of } from 'rxjs';
 
 describe('EmailService', function() {
   let mockSails: any;
@@ -154,7 +155,7 @@ describe('EmailService', function() {
       
       sinon.stub(EmailService, 'metTriggerCondition').returns('true');
       sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Email Body' });
-      sinon.spy(EmailService, 'sendMessage');
+      sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
       
       const result = await EmailService.sendRecordNotification('oid-1', record, options, {}, {});
       

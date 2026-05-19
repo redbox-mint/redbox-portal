@@ -1,0 +1,660 @@
+// Aligns with the manage-users admin styling so the dashboard config editor
+// reads as the same product surface. CSS variables here let child components
+// share the palette without repeating it.
+dashboard-config-editor {
+  --dc-border: #e5e7eb;
+  --dc-border-strong: #d1d5db;
+  --dc-surface: #ffffff;
+  --dc-surface-muted: #f9fafb;
+  --dc-surface-deeper: #f3f4f6;
+  --dc-text: #1f2937;
+  --dc-text-muted: #4b5563;
+  --dc-text-subtle: #6b7280;
+  --dc-accent: #2563eb;
+  --dc-accent-soft: #eff6ff;
+  --dc-accent-strong: #1d4ed8;
+  --dc-warning-soft: #fffbeb;
+  --dc-warning: #d97706;
+  --dc-success-soft: #f0fdf4;
+  --dc-success: #16a34a;
+  --dc-danger-soft: #fef2f2;
+  --dc-danger: #b91c1c;
+}
+
+.dashboard-config-editor {
+  font-size: 14px;
+  color: var(--dc-text);
+}
+
+.panel-heading .panel-title {
+  align-items: center;
+  display: inline-flex;
+  font-size: 1.05rem;
+  font-weight: 600;
+  gap: 10px;
+}
+
+.panel-heading .panel-title i {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+.dc-alert {
+  align-items: center;
+  border-radius: 6px;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+}
+
+.dc-alert i {
+  font-size: 16px;
+}
+
+.dc-alert .close {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.dc-alert .close:hover {
+  opacity: 0.85;
+}
+
+.dc-layout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+}
+
+@media (max-width: 991px) {
+  .dc-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ---- Navigation pane ---------------------------------------------------
+
+.dc-nav-pane {
+  background: var(--dc-surface-muted);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.dc-nav-search {
+  align-items: center;
+  background: var(--dc-surface);
+  border-bottom: 1px solid var(--dc-border);
+  display: flex;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.dc-nav-search-icon {
+  color: var(--dc-text-subtle);
+  left: 22px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.dc-nav-search-input {
+  font-size: 13px;
+  padding-left: 32px !important;
+  padding-right: 32px !important;
+}
+
+.dc-nav-search-clear {
+  background: transparent;
+  border: 0;
+  color: var(--dc-text-subtle);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  position: absolute;
+  right: 16px;
+  transition: color 120ms ease;
+}
+
+.dc-nav-search-clear:hover {
+  color: var(--dc-text);
+}
+
+.dc-nav-section + .dc-nav-section {
+  border-top: 1px solid var(--dc-border);
+}
+
+.dc-nav-section-header {
+  align-items: center;
+  background: var(--dc-surface-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.dc-nav-section-header:hover {
+  background: var(--dc-surface-deeper);
+}
+
+.dc-nav-section-header > .fa {
+  color: var(--dc-text-subtle);
+  font-size: 11px;
+  width: 12px;
+}
+
+.dc-nav-section-title {
+  align-items: center;
+  color: var(--dc-text-muted);
+  display: inline-flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.dc-nav-section-title i {
+  color: var(--dc-text-subtle);
+  font-size: 12px;
+}
+
+.dc-nav-section-count {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 999px;
+  color: var(--dc-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 1px 8px;
+  text-transform: none;
+}
+
+.dc-nav-section-action {
+  align-items: center;
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 4px;
+  color: var(--dc-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  height: 22px;
+  justify-content: center;
+  letter-spacing: 0;
+  margin-left: 6px;
+  padding: 0;
+  text-transform: none;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  width: 22px;
+}
+
+.dc-nav-section-action:hover {
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+  color: #fff;
+}
+
+.dc-nav-section-action:focus-visible {
+  outline: 2px solid var(--dc-accent);
+  outline-offset: 2px;
+}
+
+.dc-nav-list {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.dc-nav-group {
+  padding: 0;
+}
+
+.dc-nav-group + .dc-nav-group {
+  border-top: 1px dashed var(--dc-border);
+}
+
+.dc-nav-group-title {
+  color: var(--dc-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  padding: 8px 14px 4px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dc-nav-item {
+  align-items: center;
+  background: var(--dc-surface);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--dc-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  padding: 7px 10px;
+  text-align: left;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  width: 100%;
+}
+
+.dc-nav-item:hover {
+  background: var(--dc-accent-soft);
+  border-color: rgba(37, 99, 235, 0.18);
+  color: var(--dc-accent-strong);
+}
+
+.dc-nav-item.active {
+  background: var(--dc-accent);
+  border-color: var(--dc-accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+}
+
+.dc-nav-item.active .dc-nav-item-icon,
+.dc-nav-item.active .dc-nav-item-sub,
+.dc-nav-item.active .dc-badge {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dc-nav-item.active .dc-badge-system {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.dc-nav-item.active .dc-badge-override {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.dc-nav-item-label {
+  align-items: center;
+  display: inline-flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dc-nav-item-icon {
+  color: var(--dc-text-subtle);
+  font-size: 11px;
+}
+
+.dc-nav-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-nav-item-sub {
+  color: var(--dc-text-subtle);
+  display: block;
+  font-size: 11px;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-nav-empty {
+  color: var(--dc-text-subtle);
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 14px 12px;
+}
+
+// ---- Badges ------------------------------------------------------------
+
+.dc-badge {
+  background: var(--dc-surface-deeper);
+  border: 1px solid var(--dc-border);
+  border-radius: 999px;
+  color: var(--dc-text-muted);
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.dc-badge-system {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.dc-badge-override {
+  background: var(--dc-warning-soft);
+  border-color: #fde68a;
+  color: var(--dc-warning);
+}
+
+// ---- Editor pane -------------------------------------------------------
+
+.dc-editor-pane {
+  min-width: 0;
+}
+
+.dc-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dc-section-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--dc-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.dc-section-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dc-context-kicker {
+  align-items: center;
+  color: var(--dc-text-subtle);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dc-context-kicker i {
+  color: var(--dc-text-subtle);
+}
+
+.dc-section-heading {
+  align-items: center;
+  color: var(--dc-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 1.35rem;
+  font-weight: 600;
+  gap: 10px;
+  margin: 4px 0 4px;
+}
+
+.dc-section-subtitle {
+  color: var(--dc-text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.dc-section-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dc-section-actions .btn i {
+  margin-right: 6px;
+}
+
+.dc-section-save {
+  margin-left: 4px;
+}
+
+// ---- Cards (form/preview blocks) --------------------------------------
+
+.dc-card {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dc-card-header {
+  align-items: center;
+  background: var(--dc-surface-muted);
+  border-bottom: 1px solid var(--dc-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 12px 16px;
+}
+
+.dc-card-header h4 {
+  align-items: center;
+  color: var(--dc-text);
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+.dc-card-header h4 i {
+  color: var(--dc-text-subtle);
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+
+.dc-card-subtitle {
+  color: var(--dc-text-subtle);
+  flex-basis: 100%;
+  font-size: 12px;
+  margin-top: -2px;
+}
+
+.dc-card-header-actions {
+  margin-left: auto;
+}
+
+.dc-card-header-actions .btn i {
+  margin-right: 6px;
+}
+
+.dc-card-body {
+  padding: 16px;
+}
+
+// ---- Forms -------------------------------------------------------------
+
+.dc-form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 767px) {
+  .dc-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dc-form-group-toggle {
+  background: var(--dc-surface-muted);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.dc-form-label {
+  color: var(--dc-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.dc-form-help {
+  color: var(--dc-text-subtle);
+  font-size: 12px;
+}
+
+.dc-required {
+  color: var(--dc-danger);
+}
+
+.dc-toggle-label {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 500;
+  gap: 10px;
+  margin: 0;
+  user-select: none;
+}
+
+.dc-toggle-label-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.dc-toggle-input {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+
+.dc-toggle-switch {
+  background: var(--dc-border-strong);
+  border-radius: 12px;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 22px;
+  position: relative;
+  transition: background 150ms ease;
+  width: 40px;
+}
+
+.dc-toggle-switch::after {
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  content: '';
+  height: 18px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition: transform 150ms ease;
+  width: 18px;
+}
+
+.dc-toggle-input:checked + .dc-toggle-switch {
+  background: var(--dc-accent);
+}
+
+.dc-toggle-input:checked + .dc-toggle-switch::after {
+  transform: translateX(18px);
+}
+
+.dc-toggle-input:focus-visible + .dc-toggle-switch {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.dc-toggle-text {
+  color: var(--dc-text);
+  font-size: 14px;
+}
+
+// ---- Preview blocks ---------------------------------------------------
+
+.dc-split-preview {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 991px) {
+  .dc-split-preview {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dc-preview-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dc-preview-title {
+  align-items: center;
+  color: var(--dc-text-muted);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.dc-preview-title i {
+  color: var(--dc-text-subtle);
+  font-size: 12px;
+}
+
+.dc-preview-container {
+  background: var(--dc-surface-muted);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  max-height: 320px;
+  min-height: 120px;
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+// ---- Status panels ----------------------------------------------------
+
+.dc-loading-state,
+.dc-empty-state {
+  align-items: center;
+  background: var(--dc-surface-muted);
+  border: 1px dashed var(--dc-border);
+  border-radius: 6px;
+  color: var(--dc-text-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-height: 240px;
+  padding: 32px;
+  text-align: center;
+}
+
+.dc-loading-state i,
+.dc-empty-state i {
+  font-size: 24px;
+  color: var(--dc-text-subtle);
+}
+
+.dc-empty-state p {
+  margin: 0;
+  max-width: 360px;
+}

@@ -1,3 +1,5 @@
+export * from './AttachmentAccessAudit';
+export * from './AttachmentMetadata';
 export * from './AppConfig';
 export * from './AsynchProgress';
 export * from './BrandingConfig';
@@ -25,6 +27,8 @@ export * from './WorkspaceAsync';
 export * from './WorkspaceType';
 
 // Re-export Waterline model definitions for convenience
+import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
+import { AttachmentMetadataWLDef } from './AttachmentMetadata';
 import { AppConfigWLDef } from './AppConfig';
 import { AsynchProgressWLDef } from './AsynchProgress';
 import { BrandingConfigWLDef } from './BrandingConfig';
@@ -55,6 +59,8 @@ import { WorkspaceTypeWLDef } from './WorkspaceType';
 // Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
 // and registered via the core-loader's registerModels() mechanism
 export const WaterlineModels = {
+  AttachmentAccessAudit: AttachmentAccessAuditWLDef,
+  AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
   AsynchProgress: AsynchProgressWLDef,
   BrandingConfig: BrandingConfigWLDef,

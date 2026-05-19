@@ -57,6 +57,7 @@ Hooks can provide various components to ReDBox by declaring capabilities in `pac
         "hasServices": true,
         "hasControllers": true,
         "hasBootstrap": true,
+        "hasApiRoutes": true,
         "hasConfig": true
     }
 }
@@ -73,6 +74,7 @@ Each capability flag requires a corresponding export function:
 | `hasServices` | `registerRedboxServices()` | Object of service exports (can override core services) |
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Object of controller exports (can override core controllers) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Async function to run at startup |
+| `hasApiRoutes` | `registerHookApiRoutes()` | Array of contract-first API route definitions |
 | `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
 
 #### Example: Providing Models

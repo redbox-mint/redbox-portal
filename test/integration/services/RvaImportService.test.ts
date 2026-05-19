@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Services as RvaImportServiceModule } from '../../../packages/redbox-core/src/services/RvaImportService';
+import { Services as RvaImportServiceModule } from '../../../packages/redbox-core/src/services/RvaImportService.ts';
 import type { VocabularyEntryWaterlineModel } from '../../../packages/redbox-core/src/waterline-models/VocabularyEntry';
 import axios from 'axios';
 

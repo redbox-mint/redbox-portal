@@ -1,6 +1,8 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import express = require('express');
 import type { SailsConfig } from './config';
+import type { ApiRouteDefinition } from './api-routes/types';
+import type { ValidatedApiRouteRequest } from './api-routes/validation';
 
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
@@ -58,6 +60,9 @@ declare global {
       log: Log;
       services: {
         [key: string]: DynamicService;
+      };
+      models: {
+        [key: string]: Model<unknown> | undefined;
       };
       after(events: string | string[], cb: () => void): void;
       // Socket.io sockets interface
@@ -202,7 +207,7 @@ declare global {
       id: string;
     }
 
-    export interface NextFunction extends express.NextFunction {}
+    export interface NextFunction extends express.NextFunction { }
 
     export interface ReqOptions {
       locals?: globalThis.Record<string, unknown>;
@@ -213,6 +218,8 @@ declare global {
       options?: ReqOptions;
       session: express.Request['session'];
       user?: globalThis.Record<string, unknown>;
+      apiRoute?: ApiRouteDefinition;
+      apiRequest?: ValidatedApiRouteRequest;
       query: { [key: string]: string | undefined };
       param(name: string, defaultValue?: string): string;
       isAuthenticated(): this is Express.AuthenticatedRequest;
@@ -280,13 +287,13 @@ declare global {
 
       skip(num: number): QueryBuilder;
 
-      sort(criteria: string | {[key:string]: "ASC" | "DESC"}[]): QueryBuilder;
+      sort(criteria: string | { [key: string]: "ASC" | "DESC" }[]): QueryBuilder;
 
       populate(association: string): QueryBuilder;
       populate(association: string, filter: object): QueryBuilder;
     }
 
-    export interface Controller {}
+    export interface Controller { }
   }
 }
 
@@ -294,4 +301,4 @@ declare global {
 // Use: import type { Sails } from '@researchdatabox/redbox-core';
 // Or:  export type SailsApplication = Sails.Application;
 
-export {}; // Ensure the file is treated as a module
+export { }; // Ensure the file is treated as a module

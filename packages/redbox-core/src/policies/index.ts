@@ -19,6 +19,7 @@ export { noCache } from './noCache';
 export { prepWs } from './prepWs';
 export { sessionAuth } from './sessionAuth';
 export { setLang } from './setLang';
+export { validateApiContractRequest } from './validateApiContractRequest';
 
 // Re-export as a namespace for convenient access
 import { brandingAndPortal } from './brandingAndPortal';
@@ -35,6 +36,7 @@ import { noCache } from './noCache';
 import { prepWs } from './prepWs';
 import { sessionAuth } from './sessionAuth';
 import { setLang } from './setLang';
+import { validateApiContractRequest } from './validateApiContractRequest';
 
 export const Policies = {
     brandingAndPortal,
@@ -51,6 +53,7 @@ export const Policies = {
     prepWs,
     sessionAuth,
     setLang,
+    validateApiContractRequest,
 };
 
 export default Policies;

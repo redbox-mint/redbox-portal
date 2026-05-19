@@ -4,13 +4,20 @@
  */
 
 export interface NamedQueryParam {
-    type: 'string' | 'date';
+    type: 'string' | 'date' | 'number' | 'boolean' | 'array' | 'object';
     path: string;
     queryType?: 'contains' | '<=' | '>=' | string;
     whenUndefined: 'defaultValue' | 'ignore';
-    defaultValue?: string;
+    defaultValue?: unknown;
     format?: 'days' | 'ISODate';
     template?: string;
+}
+
+export interface RelatedRecordFilterDefinition {
+    collectionName: string;
+    mongoQuery: Record<string, unknown>;
+    localField: string;
+    foreignField: string;
 }
 
 export interface NamedQueryDefinition {
@@ -19,6 +26,8 @@ export interface NamedQueryDefinition {
     resultObjectMapping: Record<string, string>;
     mongoQuery: Record<string, unknown>;
     sort?: Array<Record<string, 'ASC' | 'DESC'>>;
+    expandRelations?: boolean;
+    relatedRecordFilters?: RelatedRecordFilterDefinition[];
     queryParams: Record<string, NamedQueryParam>;
 }
 
@@ -31,10 +40,10 @@ export const namedQuery: NamedQueryConfig = {
         collectionName: 'record',
         brandIdFieldPath: 'metaMetadata.brandId',
         resultObjectMapping: {
-            oid: '<%= record.redboxOid%>',
-            title: '<%= record.metadata.title %>',
-            contributor_ci: '<%= record.metadata.contributor_ci.text_full_name %>',
-            contributor_data_manager: '<%= record.metadata.contributor_data_manager.text_full_name %>'
+            oid: '{{record.redboxOid}}',
+            title: '{{record.metadata.title}}',
+            contributor_ci: '{{record.metadata.contributor_ci.text_full_name}}',
+            contributor_data_manager: '{{record.metadata.contributor_data_manager.text_full_name}}'
         },
         mongoQuery: {
             'metaMetadata.type': 'rdmp',
@@ -306,11 +315,11 @@ export const namedQuery: NamedQueryConfig = {
     'listUsers': {
         collectionName: 'user',
         resultObjectMapping: {
-            type: '<%= record.type %>',
-            name: '<%= record.name %>',
-            email: '<%= record.email %>',
-            username: '<%= record.username %>',
-            lastLogin: '<%= record.lastLogin %>'
+            type: '{{record.type}}',
+            name: '{{record.name}}',
+            email: '{{record.email}}',
+            username: '{{record.username}}',
+            lastLogin: '{{record.lastLogin}}'
         },
         mongoQuery: {},
         queryParams: {
@@ -353,12 +362,12 @@ export const namedQuery: NamedQueryConfig = {
         collectionName: 'record',
         brandIdFieldPath: 'metaMetadata.brandId',
         resultObjectMapping: {
-            'fullName': '<%= record.metadata.fullName %>',
-            'l_fullName': '<%= record.metadata.l_fullName %>',
-            'email': '<%= record.metadata.email %>',
-            'givenName': '<%= record.metadata.givenName %>',
-            'surname': '<%= record.metadata.surname %>',
-            'orcid': '<%= record.metadata.orcid %>',
+            'fullName': '{{record.metadata.fullName}}',
+            'l_fullName': '{{record.metadata.l_fullName}}',
+            'email': '{{record.metadata.email}}',
+            'givenName': '{{record.metadata.givenName}}',
+            'surname': '{{record.metadata.surname}}',
+            'orcid': '{{record.metadata.orcid}}',
         },
         mongoQuery: {
             'metaMetadata.type': 'party',
@@ -369,7 +378,7 @@ export const namedQuery: NamedQueryConfig = {
             'search': {
                 type: 'string',
                 path: 'metadata.l_fullName',
-                template: '<%= _.toLower(value) %>',
+                template: '{{toLower value}}',
                 queryType: 'contains',
                 whenUndefined: 'ignore'
             }

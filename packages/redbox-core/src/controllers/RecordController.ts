@@ -38,15 +38,14 @@ import {
 import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
-import type { DataStore } from '@tus/server';
-import { FileStore } from '@tus/file-store';
-import * as fs from 'fs';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
+import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -94,6 +93,7 @@ export namespace Controllers {
      */
     protected override _exportedMethods: string[] = [
       'init',
+      'view',
       'edit',
       'getForm',
       'create',
@@ -165,6 +165,35 @@ export namespace Controllers {
 
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand(req.session.branding as string ?? '');
+    }
+
+    private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
+      const savedTitle = String(_.get(record, 'metadata.title', '') ?? '').trim();
+      if (savedTitle) {
+        return savedTitle;
+      }
+
+      const recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
+      const recordTypeTitle = this.getRecordTypePageTitle(recordType, locals);
+      if (recordTypeTitle) {
+        return recordTypeTitle;
+      }
+
+      return String(_.get(record, 'redboxOid', '') ?? '').trim();
+    }
+
+    private getRecordTypePageTitle(recordTypeName: string, locals?: globalThis.Record<string, unknown>): string {
+      const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
+      if (!normalizedRecordTypeName) {
+        return '';
+      }
+
+      const translatedLabel = this.translate(`${normalizedRecordTypeName}-title-label`, locals);
+      if (translatedLabel && translatedLabel !== `${normalizedRecordTypeName}-title-label`) {
+        return translatedLabel;
+      }
+
+      return normalizedRecordTypeName;
     }
 
     private shouldIncludeRelationships(req: Sails.Req): boolean {
@@ -370,6 +399,39 @@ export namespace Controllers {
       });
     }
 
+    public async view(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = this.getReqBrand(req);
+      const oid = String(req.param('oid') ?? '').trim();
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+
+      if (!oid) {
+        return res.badRequest();
+      }
+
+      try {
+        const record = await this.recordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return res.notFound();
+        }
+
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record));
+        if (!hasViewAccess) {
+          return res.forbidden();
+        }
+
+        const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
+        return this.sendView(req, res, 'record/view', {
+          title: this.formatDocumentTitle(pageTitle, locals),
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error ?? '');
+        if (errorMessage.toLowerCase().includes('not found')) {
+          return res.notFound();
+        }
+        return res.serverError();
+      }
+    }
+
     public edit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
@@ -383,8 +445,27 @@ export namespace Controllers {
       const extFormName = localFormName ? localFormName : '';
       const appSelector = 'dmp-form';
       const appName = 'dmp';
+      const hasExistingRecord = String(oid ?? '').trim() !== '';
+      const buildEditViewLocals = (pageTitle?: string) => ({
+        oid: oid,
+        rdmp: rdmp,
+        recordType: recordType,
+        formName: extFormName,
+        appSelector: appSelector,
+        appName: appName,
+        title: this.formatDocumentTitle(pageTitle, locals),
+      });
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
+      const renderCreateEditView = () => this.sendView(req, res, 'record/edit', buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`));
+
+      const renderExistingEditView = () => this.recordsService.getMeta(oid).then((record) => {
+        if (!recordType) {
+          recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
+        }
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals)));
+      });
+
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
           if (!form) {
@@ -394,14 +475,7 @@ export namespace Controllers {
             });
           }
           // Deprecated: customAngularApp has been removed from FormConfigFrame
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return renderCreateEditView();
         });
       } else if (extFormName != '') {
         FormsService.getFormByName(extFormName, true, String(brand.id)).subscribe(form => {
@@ -412,14 +486,7 @@ export namespace Controllers {
             });
           }
           // Deprecated: customAngularApp has been removed from FormConfigFrame
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return hasExistingRecord ? renderExistingEditView() : renderCreateEditView();
         }, error => {
           return this.sendResp(req, res, {
             errors: [this.asError(error)],
@@ -442,23 +509,9 @@ export namespace Controllers {
           if (!recordType) {
             recordType = form.configuration?.type ?? '';
           }
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return renderExistingEditView();
         }, _error => {
-          return this.sendView(req, res, 'record/edit', {
-            oid: oid,
-            rdmp: rdmp,
-            recordType: recordType,
-            formName: extFormName,
-            appSelector: appSelector,
-            appName: appName
-          });
+          return this.sendView(req, res, 'record/edit', buildEditViewLocals());
         });
 
       }
@@ -1062,9 +1115,14 @@ export namespace Controllers {
       const dashboardTypeParam = req.param('dashboardType') || '';
       const brand: BrandingModel = this.getReqBrand(req);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
-        const name = String(_.get(dashboardType, 'name', ''));
-        const formatRules = (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>;
-        const dashboardTypeModel = new DashboardTypeResponseModel(name, formatRules);
+        const dashboardTypeModel = new DashboardTypeResponseModel({
+          name: String(_.get(dashboardType, 'name', '')),
+          description: _.get(dashboardType, 'description') as string | undefined,
+          formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+          tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
+          searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+          system: _.get(dashboardType, 'system') as boolean | undefined,
+        });
         this.sendResp(req, res, { data: dashboardTypeModel });
       }, error => {
         this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
@@ -1105,7 +1163,14 @@ export namespace Controllers {
         const dashboardTypesModel = { dashboardTypes: [] };
         const dashboardTypesModelList = [];
         for (const dashboardType of dashboardTypes) {
-          const dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
+          const dashboardTypeModel = new DashboardTypeResponseModel({
+            name: String(_.get(dashboardType, 'name', '')),
+            description: _.get(dashboardType, 'description') as string | undefined,
+            formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
+            tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
+            searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+            system: _.get(dashboardType, 'system') as boolean | undefined,
+          });
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
@@ -1140,39 +1205,10 @@ export namespace Controllers {
       }
 
       const attachConfig = sails.config.record.attachments;
-      const storeType = attachConfig.store ?? 'file';
-
-      let datastore: DataStore;
-      if (storeType === 's3') {
-        const { S3Store } = require('@tus/s3-store') as { S3Store: new (config: unknown) => DataStore };
-        const s3Config = attachConfig.s3;
-        const accessKeyId = s3Config?.accessKeyId;
-        const secretAccessKey = s3Config?.secretAccessKey;
-        if ((accessKeyId && !secretAccessKey) || (!accessKeyId && secretAccessKey)) {
-          throw new Error('Invalid record.attachments.s3 credentials: accessKeyId and secretAccessKey must both be provided when using static credentials.');
-        }
-        datastore = new S3Store({
-          partSize: s3Config?.partSize ?? 8 * 1024 * 1024,
-          s3ClientConfig: {
-            bucket: s3Config?.bucket,
-            region: s3Config?.region,
-            credentials: accessKeyId && secretAccessKey ? {
-              accessKeyId,
-              secretAccessKey,
-            } : undefined,
-            endpoint: s3Config?.endpoint,
-          },
-        });
-      } else {
-        const targetDir = attachConfig.file?.directory ?? attachConfig.stageDir;
-        if (!targetDir) {
-          throw new Error('Missing attachment directory configuration: set record.attachments.file.directory or record.attachments.stageDir before starting upload handlers (bootstrap() should initialize this).');
-        }
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-        datastore = new FileStore({ directory: targetDir });
-      }
+      const datastore = new TusStorageManagerDataStore({
+        disk: StorageManagerService.stagingDisk(),
+        logger: sails.log,
+      });
 
       this.tusServer = new TusServer({
         path: attachConfig.path,
@@ -1191,8 +1227,9 @@ export namespace Controllers {
       this.tusServer.on(EVENTS.POST_FINISH, (_req, _res, upload: Upload) => {
         sails.log.verbose(`::: TUS upload completed: id=${upload.id}, size=${upload.size}`);
       });
-      this.tusServer.on(EVENTS.POST_CREATE, (_req, _res, upload: Upload) => {
-        sails.log.verbose(`::: TUS upload created: id=${upload.id}`);
+      this.tusServer.on(EVENTS.POST_CREATE, (_req, ...args: unknown[]) => {
+        const upload = args.find((arg): arg is Upload => !!arg && typeof arg === 'object' && 'id' in arg);
+        sails.log.verbose(`::: TUS upload created: id=${upload?.id}`);
       });
     }
 
@@ -1372,7 +1409,7 @@ export namespace Controllers {
         res.attachment(found['name'] as string);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
-          const response = await that.datastreamService.getDatastream(oid, attachId);
+          const response = await that.datastreamService.getDatastream(oid, attachId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -1406,9 +1443,9 @@ export namespace Controllers {
         sails.log.verbose(req.headers);
         const uploadFileSize = req.headers['upload-length'];
         const diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
-        const storeType = sails.config.record.attachments.store ?? 'file';
-        if (storeType === 'file' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
-          const diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
+        const stagingDiskConfig = StorageManagerService.getStagingDiskConfig();
+        if (stagingDiskConfig.driver === 'fs' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
+          const diskSpace = await checkDiskSpace(stagingDiskConfig.config.root);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           const thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
@@ -1504,7 +1541,7 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid)).subscribe((attachments: unknown[]) => {
+      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe((attachments: unknown[]) => {
         return this.sendResp(req, res, { data: attachments });
       });
     }
@@ -1525,7 +1562,7 @@ export namespace Controllers {
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
         try {
-          const response = await this.datastreamService.getDatastream(oid, datastreamId);
+          const response = await this.datastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -1567,7 +1604,8 @@ export namespace Controllers {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
-      let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      let titleLabel = req.param('titleLabel') ? this.translate(req.param('titleLabel'), locals) : `${this.translate('edit-dashboard', locals)} ${this.translate(recordType + '-title-label', locals)}`;
       if (recordType == 'workspace') {
         if (packageType == '') {
           packageType = 'workspace';
@@ -1598,11 +1636,13 @@ export namespace Controllers {
         dashboardType: dashboardType,
         dashboardView: '',
         titleLabel: titleLabel,
-        showAdminSideBar: showAdminSideBar
+        showAdminSideBar: showAdminSideBar,
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 
     public async renderDashboardView(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       const dashboardViewName = String(req.param('dashboardView') ?? '').trim();
       if (_.isEmpty(dashboardViewName)) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Dashboard view is required' }] });
@@ -1613,14 +1653,15 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
       }
 
-      const titleLabel = TranslationService.t(dashboardView.titleLabelKey || dashboardView.name);
+      const titleLabel = this.translate(dashboardView.titleLabelKey || dashboardView.name, locals);
       return this.sendView(req, res, 'dashboard', {
         recordType: dashboardView.sourceRecordType,
         packageType: '',
         dashboardType: dashboardView.dashboardType,
         dashboardView: dashboardView.name,
         titleLabel,
-        showAdminSideBar: dashboardView.showAdminSideBar === true
+        showAdminSideBar: dashboardView.showAdminSideBar === true,
+        title: this.formatDocumentTitle(titleLabel, locals),
       });
     }
 

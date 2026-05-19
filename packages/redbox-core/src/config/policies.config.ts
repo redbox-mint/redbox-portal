@@ -5,6 +5,8 @@
  * Policy mapping configuration for controller actions.
  */
 
+import { registerCoreApiRoutes, type ApiRouteDefinition } from '../api-routes';
+
 export type PolicyName = string;
 export type PolicyChain = PolicyName | PolicyName[] | boolean;
 
@@ -32,6 +34,10 @@ const defaultPolicies: PolicyName[] = [
 ];
 
 const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
+const noCachePlusApiValidationPolicies: PolicyName[] = [
+    ...noCachePlusDefaultPolicies,
+    'validateApiContractRequest'
+];
 const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap((policy) => (
     policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
 ));
@@ -44,6 +50,39 @@ const publicTranslationPolicies: PolicyName[] = [
 ];
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
+
+export function buildContractApiPolicies(apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()): PoliciesConfig {
+    return apiRoutes.reduce((acc, route) => {
+        const controllerPolicies = acc[route.controller] as ControllerPolicies | undefined;
+        acc[route.controller] = {
+            '*': noCachePlusDefaultPolicies,
+            ...(controllerPolicies ?? {}),
+            [route.action]: noCachePlusApiValidationPolicies
+        };
+        return acc;
+    }, {} as PoliciesConfig);
+}
+
+export function mergeContractApiPolicies(
+    targetPolicies: PoliciesConfig,
+    apiRoutes: readonly ApiRouteDefinition[]
+): PoliciesConfig {
+    const routePolicies = buildContractApiPolicies(apiRoutes);
+    Object.entries(routePolicies).forEach(([controllerName, controllerPolicy]) => {
+        if (controllerName === '*' || typeof controllerPolicy !== 'object' || Array.isArray(controllerPolicy)) {
+            targetPolicies[controllerName] = controllerPolicy;
+            return;
+        }
+
+        const existingPolicy = targetPolicies[controllerName];
+        targetPolicies[controllerName] = {
+            ...(typeof existingPolicy === 'object' && !Array.isArray(existingPolicy) ? existingPolicy : {}),
+            ...controllerPolicy,
+        };
+    });
+    return targetPolicies;
+}
+
 export const policies: PoliciesConfig = {
     UserController: {
         '*': noCachePlusDefaultPolicies,
@@ -68,6 +107,7 @@ export const policies: PoliciesConfig = {
     'webservice/BrandingController': {
         '*': noCachePlusDefaultPolicies
     },
+    ...buildContractApiPolicies(),
     'DynamicAssetController': {
         '*': noCachePlusDefaultPolicies
     },

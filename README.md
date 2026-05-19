@@ -9,21 +9,23 @@ ReDBox is one of the most popular research data management tools in Australia. I
 
 The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) leads the ReDBox development initiative and provides several services including a support subscription service to institutions.
 
-
 ## Documentation
 
 - **[Architecture](support/wiki/Architecture-Overview.md)**: High-level structure and design.
 - **[Coding Standards](support/wiki/Coding-Standards-and-Conventions.md)**: Conventions and style guides.
 - **[Testing](support/wiki/ReDBox-Automated-Tests.md)**: Strategies and commands for running tests.
+- **API Docs**: Run `npm run doc:api` to generate the shared API artifacts under `support/docs/generated/api`, then use `npm --prefix packages/redbox-core run docs:serve` to preview them.
 - **[Contributing](CONTRIBUTING.md)**: Guidelines for submitting changes.
 
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js (v24.x recommended)
 - Docker & Docker Compose
 
 ### Development using Docker
+
 1.  **Install Dependencies**:
     ```bash
     npm ci
@@ -36,6 +38,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
     This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
 ### Running Tests
+
 - **Backend Mocha Tests**: `npm run test:mocha`
 - **Bruno API Tests**: `npm run test:bruno`
 - **Angular Tests**: `npm run test:angular`
@@ -43,4 +46,5 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 For detailed testing instructions, see [support/wiki/ReDBox-Automated-Tests.md](support/wiki/ReDBox-Automated-Tests.md).
 
 ## Support
+
 For more information, visit the [Redbox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki).

@@ -359,7 +359,10 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         const value = control.value;
         let success: boolean | null = null;
         try {
-          success = await evaluator(value) === true;
+          if (typeof evaluator !== "function") {
+                  throw new Error("Missing evaluator");
+              }
+              success = await evaluator(value) === true;
         } catch (err) {
           success = false;
           console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);

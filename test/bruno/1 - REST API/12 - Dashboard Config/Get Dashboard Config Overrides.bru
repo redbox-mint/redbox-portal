@@ -1,0 +1,27 @@
+meta {
+  name: Get Dashboard Config Overrides
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/dashboard-config/overrides
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Has data property", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+  });
+}

@@ -183,6 +183,21 @@ describe('contentSecurityPolicy policy', function () {
         expect(csp).to.include('upgrade-insecure-requests');
     });
 
+    it('should relax Redoc-specific directives for admin api docs', function () {
+        const { req, res, getHeaders } = createMockReqRes('/default/rdmp/admin/api-docs');
+
+        contentSecurityPolicy(req, res, () => { });
+
+        const csp = getHeaders()['Content-Security-Policy'];
+        expect(csp).to.include("style-src");
+        expect(csp).to.include("'unsafe-inline'");
+        expect(csp).to.not.match(/nonce-/);
+        expect(csp).to.include("worker-src");
+        expect(csp).to.include('blob:');
+        expect(csp).to.include("img-src");
+        expect(csp).to.include('https://cdn.redoc.ly');
+    });
+
     it('should end CSP header with semicolon', function () {
         const { req, res, getHeaders } = createMockReqRes();
 

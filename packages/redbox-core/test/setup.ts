@@ -13,6 +13,8 @@ import type { Services as _RecordsServiceTypes } from '../src/services/RecordsSe
 import type { Services as _RecordTypesServiceTypes } from '../src/services/RecordTypesService';
 import type { Services as _UsersServiceTypes } from '../src/services/UsersService';
 import type { Services as _WorkflowStepsServiceTypes } from '../src/services/WorkflowStepsService';
+import type { Services as _DashboardConfigServiceTypes } from '../src/services/DashboardConfigService';
+import type { Services as _DashboardTypesServiceTypes } from '../src/services/DashboardTypesService';
 
 /**
  * Test setup file that runs before all tests.
