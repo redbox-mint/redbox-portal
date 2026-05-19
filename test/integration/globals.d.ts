@@ -37,7 +37,6 @@ declare const ReportsService: any;
 declare const RolesService: any;
 
 declare const SassCompilerService: any;
-declare const BrandingThemeCssService: any;
 declare const SolrSearchService: any;
 declare const DomSanitizerService: any;
 
