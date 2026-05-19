@@ -1317,7 +1317,7 @@ export namespace Controllers {
       }
 
       if (oid == "pending-oid") {
-        this.tusServer!.handle(req, res);
+        await this.tusServer!.handle(req, res);
         return;
       }
       const that = this;
@@ -1422,7 +1422,7 @@ export namespace Controllers {
           }
         }
         // process the upload...
-        this.tusServer!.handle(req, res);
+        await this.tusServer!.handle(req, res);
         return of(oid);
       }
     }

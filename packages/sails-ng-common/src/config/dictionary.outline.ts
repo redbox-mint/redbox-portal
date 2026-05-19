@@ -21,7 +21,6 @@ import { AccordionTypes } from './component/accordion.outline';
 import { DefaultLayoutTypes } from './component/default-layout.outline';
 import { InlineLayoutTypes } from './component/inline-layout.outline';
 import { ActionRowLayoutTypes } from './component/action-row-layout.outline';
-
 import {
   FieldComponentDefinitionFrameKindType,
   FieldLayoutDefinitionFrameKindType,

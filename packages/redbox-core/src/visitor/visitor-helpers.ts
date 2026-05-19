@@ -21,17 +21,17 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
 
   // Also run other visitors to check for issues in the migration.
   const constructVisitor = new ConstructFormConfigVisitor(logger);
-  const constructResult = constructVisitor.start({
+  const constructResult = await constructVisitor.start({
     data: formConfig, formMode: 'edit', reusableFormDefs: reusableFormDefinitions
   });
 
   const templateVisitor = new TemplateFormConfigVisitor(logger);
-  templateVisitor.start({
+  await templateVisitor.start({
     form: constructResult
   });
 
   const validatorVisitor = new ValidatorFormConfigVisitor(logger);
-  validatorVisitor.start({
+  await validatorVisitor.start({
     form: constructResult,
     validatorDefinitions: formValidatorsSharedDefinitions
   });
@@ -40,12 +40,12 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
   // await vocabInlineVisitor.resolveVocabs(constructResult);
 
   const attachmentFieldsVisitor = new AttachmentFieldsVisitor(logger);
-  attachmentFieldsVisitor.start(constructResult);
+  await attachmentFieldsVisitor.start(constructResult);
 
   // Client visitor mutates/prunes the supplied form config. Run it on a clone so
   // downstream verification steps operate on the full constructed form.
   const clientVisitor = new ClientFormConfigVisitor(logger);
-  clientVisitor.start({
+  await clientVisitor.start({
     form: _cloneDeep(constructResult),
     formMode: 'edit',
     userRoles: ['Admin', 'Librarians', 'Researcher', 'Guest'],
@@ -138,13 +138,13 @@ export async function createClientFormConfig(
   reusableFormDefs = reusableFormDefs ?? reusableFormDefinitions;
 
   const constructor = new ConstructFormConfigVisitor(logger);
-  const form = constructor.start({data, reusableFormDefs, formMode, record});
+  const form = await constructor.start({data, reusableFormDefs, formMode, record});
 
   // const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
   // await vocabVisitor.resolveVocabs(form, 'default');
 
   const visitor = new ClientFormConfigVisitor(logger);
-  const result = visitor.start({form, reusableFormDefs, formMode, userRoles});
+  const result = await visitor.start({form, reusableFormDefs, formMode, userRoles});
 
   if (!result) {
     throw new Error(`The form config is invalid because all form fields were removed, ` +

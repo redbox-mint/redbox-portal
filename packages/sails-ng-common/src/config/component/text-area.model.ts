@@ -47,8 +47,8 @@ export class TextAreaFieldComponentDefinition extends FieldComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTextAreaFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTextAreaFieldComponentDefinition(this);
     }
 }
 
@@ -70,8 +70,8 @@ export class TextAreaFieldModelDefinition extends FieldModelDefinition<TextAreaM
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTextAreaFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTextAreaFieldModelDefinition(this);
     }
 }
 
@@ -87,8 +87,8 @@ export class TextAreaFormComponentDefinition extends FormComponentDefinition imp
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitTextAreaFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTextAreaFormComponentDefinition(this);
     }
 }
 

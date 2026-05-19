@@ -12,7 +12,7 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
 @Component({
   selector: 'redbox-suggested-validation-summary-field',
   template: `
-    @let validationList = allValidationErrorsDisplay;
+    @let validationList = (allValidationErrorsDisplay() | async) ?? [];
     @if (validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-suggested-validation-summary-complete' | i18next }}
@@ -104,14 +104,17 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
 
   private readonly suggestedFormService = inject(FormService);
 
-  override get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
-    return (this.formComponent.componentDefArr ?? []).flatMap((mapEntry: FormFieldCompMapEntry) =>
-      this.suggestedFormService.getSuggestedValidatorSummaryErrors(
+  override async allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
+    const mapEntries = this.formComponent.componentDefArr ?? [];
+    const result: FormValidatorSummaryErrors[] = [];
+    for (const mapEntry of mapEntries) {
+      await this.suggestedFormService.getSuggestedValidatorSummaryErrors(
         mapEntry,
         this.enabledValidationGroups,
         this.formComponent.validationGroups
       )
-    );
+    }
+    return result;
   }
 
   override trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {

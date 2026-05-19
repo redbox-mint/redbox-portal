@@ -146,8 +146,22 @@ export class ValidatorsSupport {
    * @param validators The validator configurations from the model config.
    * @param callback The callback for each validator config with the index.
    */
-  public assignJsonataEvaluators(validators: FormValidatorConfig[], callback: (validator: FormValidatorConfig, index: number) => void): void {
-    validators.forEach(callback);
+  public assignJsonataEvaluators(
+    validators: FormValidatorConfig[],
+    callback: (validator: FormValidatorConfig, index: number) => unknown
+  ): void {
+    validators.forEach((validator, index) => {
+      if (validator.class === "jsonata-expression") {
+        if (!validator.config) {
+          validator.config = {};
+        }
+        const expr = validator?.config?.['expression']?.toString() ?? "";
+        const evaluator = validator.config?.['evaluator'];
+        if (validator.config && expr && !evaluator) {
+          validator.config['evaluator'] = callback(validator, index);
+        }
+      }
+    });
   }
 
   /**

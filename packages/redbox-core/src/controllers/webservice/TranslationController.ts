@@ -83,7 +83,7 @@ export namespace Controllers {
 
         const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setEntry] reload failed', err.message); }
+        try { await TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setEntry] reload failed', err.message); }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
         const err = this.asError(error);
@@ -114,7 +114,7 @@ export namespace Controllers {
           });
         }
         // Refresh i18n cache after deletion
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message); }
+        try { await TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message); }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
         const err = this.asError(error);
@@ -167,7 +167,7 @@ export namespace Controllers {
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, { splitToEntries, overwriteEntries });
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setBundle] reload failed', err.message); }
+        try { await TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.setBundle] reload failed', err.message); }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
         const err = this.asError(error);
@@ -190,7 +190,7 @@ export namespace Controllers {
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try { TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message); }
+        try { await TranslationService.reloadResources(); } catch (e) { const err = this.asError(e); sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message); }
         return this.sendResp(req, res, { data: bundle, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const err = this.asError(error);

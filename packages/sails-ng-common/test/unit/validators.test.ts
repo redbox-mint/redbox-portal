@@ -36,11 +36,7 @@ describe("Validator", async () => {
   }
 
     describe("simple definitions", async () => {
-        const cases: {
-            title: string;
-            args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
-            expected: FormValidatorErrors | null;
-        }[] =
+        const cases: TestCase[] =
             [
                 {
                     title: "min - expect failure",
@@ -527,7 +523,7 @@ describe("Validator", async () => {
               message: "@validator-error-jsonata-expression",
               params: {
                 actual: "asdasd",
-                description: "the validator is not configured correctly",
+                description: "the description",
                 expression: "$sum(2, 4)"
               },
             },

@@ -261,7 +261,7 @@ export namespace Controllers {
           const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
           const roleIds = RolesService.getRoleIds(brand.roles, roles);
           UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, roleIds).subscribe((user: unknown) => {
-            //TODO: Add roles to the response            
+            //TODO: Add roles to the response
             const u = user as globalThis.Record<string, unknown>;
             const userResponse = new CreateUserAPIResponse();
             userResponse.id = u.id as string;
@@ -563,7 +563,7 @@ export namespace Controllers {
       return this.apiRespond(req, res, response);
     }
 
-    public createSystemRole(req: Sails.Req, res: Sails.Res) {
+    public async createSystemRole(req: Sails.Req, res: Sails.Res) {
       let roleName;
       if (_.isUndefined(req.body.roleName)) {
         roleName = req.param('roleName');
@@ -573,7 +573,7 @@ export namespace Controllers {
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        RolesService.createRoleWithBrand(brand, roleName);
+        await RolesService.createRoleWithBrand(brand, roleName);
         const response: APIActionResponse = new APIActionResponse(roleName + ' create call success', roleName + ' create call success');
         return this.apiRespond(req, res, response);
       } else {

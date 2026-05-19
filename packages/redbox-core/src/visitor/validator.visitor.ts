@@ -104,7 +104,6 @@ import {
   buildLineagePaths,
   jsonataEvaluateFunc,
 } from "@researchdatabox/sails-ng-common";
-import { get as _get } from "lodash";
 import { DataValueFormConfigVisitor } from "./data-value.visitor";
 
 
@@ -163,12 +162,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
      * @param options.enabledValidationGroups The validation groups to enable.
      * @param options.validatorDefinitions The validation definitions to make available.
      */
-    start(options: {
+    async start(options: {
         form: FormConfigOutline;
         enabledValidationGroups?: string[];
         validatorDefinitions?: FormValidatorDefinition[];
     }
-    ): FormValidatorSummaryErrors[] {
+    ): Promise<FormValidatorSummaryErrors[]> {
         this.formPathHelper.reset();
 
         this.form = options.form;
@@ -179,14 +178,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
         this.validationErrors = [];
 
-        this.form.accept(this);
+        await this.form.accept(this);
 
         return this.validationErrors;
     }
 
     /* Form Config */
 
-    visitFormConfig(item: FormConfigOutline): void {
+    async visitFormConfig(item: FormConfigOutline): Promise<void> {
         (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.formPathHelper.acceptFormPath(
@@ -200,71 +199,71 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
         const value = dataValueVisitor.start({ form: item });
         const itemName = item?.name ?? "";
-        this.validationErrors.push(...this.validateFormComponent(itemName, value, item?.validators));
+        this.validationErrors.push(...await this.validateFormComponent(itemName, value, item?.validators));
     }
 
     /* SimpleInput */
 
-    visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): void {
+    async visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): void {
+    async visitSimpleInputFieldModelDefinition(_item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Content */
 
-    visitContentFieldComponentDefinition(_item: ContentFieldComponentDefinitionOutline): void {
+    async visitContentFieldComponentDefinition(_item: ContentFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(_item: RepeatableFieldComponentDefinitionOutline): void {
+    async visitRepeatableFieldComponentDefinition(_item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): void {
+    async visitRepeatableFieldModelDefinition(_item: RepeatableFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): void {
+    async visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
     }
 
-    visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Validation Summary */
 
-    visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): void {
+    async visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+    async visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): void {
+    async visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Group */
 
-    visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+    async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.formPathHelper.acceptFormPath(
@@ -274,16 +273,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): void {
+    async visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Tab  */
 
-    visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+    async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.formPathHelper.acceptFormPath(
@@ -293,16 +292,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): void {
+    async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> {
     }
 
-    visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Accordion */
 
-    visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+    async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.panels ?? []).forEach((componentDefinition, index) => {
             this.formPathHelper.acceptFormPath(
                 componentDefinition,
@@ -311,14 +310,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): void {
+    async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
     }
 
-    visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+    async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             this.formPathHelper.acceptFormPath(
                 componentDefinition,
@@ -327,16 +326,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): void {
+    async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {
     }
 
-    visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /*  Tab Content */
 
-    visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+    async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             // Visit children
             this.formPathHelper.acceptFormPath(
@@ -346,79 +345,79 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): void {
+    async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
     }
 
-    visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Save Button  */
 
-    visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): void {
+    async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Cancel Button  */
 
-    visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): void {
+    async visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitDeleteButtonFieldComponentDefinition(_item: DeleteButtonFieldComponentDefinitionOutline): void {
+    async visitDeleteButtonFieldComponentDefinition(_item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Tab Nav Button  */
 
-    visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): void {
+    async visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Text Area */
 
-    visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): void {
+    async visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): void {
+    async visitTextAreaFieldModelDefinition(_item: TextAreaFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Default Layout  */
 
-    visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): void {
+    async visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
     }
 
     /* Checkbox Input */
 
-    visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): void {
+    async visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): void {
+    async visitCheckboxInputFieldModelDefinition(_item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Question Tree */
 
-    visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+    async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
         (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
             this.formPathHelper.acceptFormPath(
                 componentDefinition,
@@ -427,50 +426,50 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         });
     }
 
-    visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): void {
+    async visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Checkbox Tree */
 
-    visitCheckboxTreeFieldComponentDefinition(_item: CheckboxTreeFieldComponentDefinitionOutline): void {
+    async visitCheckboxTreeFieldComponentDefinition(_item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): void {
+    async visitCheckboxTreeFieldModelDefinition(_item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): void {
+    async visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): void {
+    async visitRecordSelectorFieldModelDefinition(_item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Dropdown Input */
 
-    visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): void {
+    async visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): void {
+    async visitDropdownInputFieldModelDefinition(_item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Typeahead Input */
 
-    visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+    async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
         const config = item.config;
         const sourceType = String(config?.sourceType ?? "");
@@ -537,20 +536,20 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
-    visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): void {
+    async visitTypeaheadInputFieldModelDefinition(_item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
     }
 
 
-    visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Rich Text Editor */
 
-    visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): void {
+    async visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+    async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
         const value = item?.config?.value;
         if (typeof value !== 'string' || !value) {
             return;
@@ -600,13 +599,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
-    visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Map */
 
-    visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+    async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
         const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
         const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
@@ -630,95 +629,95 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         }
     }
 
-    visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): void {
+    async visitMapFieldModelDefinition(_item: MapFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* File Upload */
 
-    visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): void {
+    async visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): void {
+    async visitFileUploadFieldModelDefinition(_item: FileUploadFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitPDFListFieldComponentDefinition(_item: PDFListFieldComponentDefinitionOutline): void {
+    async visitPDFListFieldComponentDefinition(_item: PDFListFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitPDFListFieldModelDefinition(_item: PDFListFieldModelDefinitionOutline): void {
+    async visitPDFListFieldModelDefinition(_item: PDFListFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+    async visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Data Location */
 
-    visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): void {
+    async visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): void {
+    async visitDataLocationFieldModelDefinition(_item: DataLocationFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     // Validation is intentionally empty because there is no persisted refresh
     // value to validate.
-    visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): void {
+    async visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
-    visitPublishDataLocationSelectorFieldComponentDefinition(_item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+    async visitPublishDataLocationSelectorFieldComponentDefinition(_item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitPublishDataLocationSelectorFieldModelDefinition(_item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+    async visitPublishDataLocationSelectorFieldModelDefinition(_item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Radio Input */
 
-    visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): void {
+    async visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): void {
+    async visitRadioInputFieldModelDefinition(_item: RadioInputFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Date Input */
 
-    visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): void {
+    async visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): Promise<void> {
     }
 
-    visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): void {
+    async visitDateInputFieldModelDefinition(_item: DateInputFieldModelDefinitionOutline): Promise<void> {
     }
 
-    visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-        this.acceptFormComponentDefinition(item);
+    async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
     }
 
     /* Shared */
@@ -743,8 +742,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         return result;
     }
 
-    protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
-        const validationErrors = this.validateFormComponent(
+    protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+        const validationErrors = await this.validateFormComponent(
             item?.name,
             item?.model?.config?.value,
             item?.model?.config?.validators,
@@ -754,24 +753,16 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         this.formPathHelper.acceptFormComponentDefinition(item);
     }
 
-    protected validateFormComponent(itemName: string, value: unknown, validators?: FormValidatorConfig[], message?: string): FormValidatorSummaryErrors[] {
+    protected async validateFormComponent(itemName: string, value: unknown, validators?: FormValidatorConfig[], message?: string): Promise<FormValidatorSummaryErrors[]> {
         const createFormValidatorFns = this.validatorSupport.createFormValidatorInstancesFromMapping;
 
         const availableValidatorGroups = this.form?.validationGroups ?? {};
         const result: FormValidatorSummaryErrors[] = [];
         if (Array.isArray(validators) && validators.length > 0) {
             // ensure jsonata-expression validators can be evaluated
-            this.validatorSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): void {
-              if (validator.class === "jsonata-expression") {
-                if (!validator.config) {
-                  validator.config = {};
-                }
-                const expr = validator?.config?.['expression']?.toString() ?? "";
-                const evaluator = validator.config?.['evaluator'];
-                if (validator.config && expr && !evaluator) {
-                  validator.config.evaluator = jsonataEvaluateFunc(expr);
-                }
-              }
+            this.validatorSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): unknown {
+              const expr = validator?.config?.['expression']?.toString() ?? "";
+              return jsonataEvaluateFunc(expr);
             });
             const filteredValidators = this.validatorSupport.enabledValidators(availableValidatorGroups, this.enabledValidationGroups, validators);
 
@@ -784,15 +775,11 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
                 lineagePaths: buildLineagePaths(this.formPathHelper.formPath)
             }
 
-          // TODO: best effort trying to run async function inside sync function
-          const that = this;
+            // async
             for (const formValidatorFn of formValidatorFns.asyncDefs) {
-
-              formValidatorFn(recordFormControl).then(funcResult => {
-                const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
-                summaryErrors.errors.push(...compErrors);
-                that.logger.warn(`asyncDef ${JSON.stringify({funcResult, compErrors})}`);
-              });
+              const funcResult = await formValidatorFn(recordFormControl);
+              const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
+              summaryErrors.errors.push(...compErrors);
             }
 
             // sync

@@ -46,8 +46,8 @@ export class FileUploadFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitFileUploadFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitFileUploadFieldComponentDefinition(this);
     }
 }
 
@@ -70,8 +70,8 @@ export class FileUploadFieldModelDefinition extends FieldModelDefinition<FileUpl
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitFileUploadFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitFileUploadFieldModelDefinition(this);
     }
 }
 
@@ -86,8 +86,8 @@ export class FileUploadFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitFileUploadFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitFileUploadFormComponentDefinition(this);
     }
 }
 

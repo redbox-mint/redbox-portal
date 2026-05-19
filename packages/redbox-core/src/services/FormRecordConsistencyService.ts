@@ -330,14 +330,14 @@ export namespace Services {
          * @param formMode The form mode.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public buildDataModelDefaultForFormConfig(
+        public async buildDataModelDefaultForFormConfig(
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
-        ): Record<string, unknown> {
+        ): Promise<Record<string, unknown>> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
+            const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new DataValueFormConfigVisitor(this.logger);
-            return visitor.start({form: constructed});
+            return await visitor.start({form: constructed});
         }
 
         /**
@@ -346,14 +346,14 @@ export namespace Services {
          * @param formMode The form mode.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public buildSchemaForFormConfig(
+        public async buildSchemaForFormConfig(
             item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
-        ): Record<string, unknown> {
+        ): Promise<Record<string, unknown>> {
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start({data: item, formMode, reusableFormDefs});
+            const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return visitor.start({form: constructed});
+            return await visitor.start({form: constructed});
         }
 
         /**
@@ -502,7 +502,7 @@ export namespace Services {
             const validatorDefinitions = sails.config.validators.definitions;
 
             const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: formConfig,
               formMode,
               reusableFormDefs,
@@ -579,17 +579,17 @@ export namespace Services {
           reusableFormDefs?: ReusableFormDefinitions
         ): Promise<TemplateCompileInput[]> {
           const constructor = new ConstructFormConfigVisitor(this.logger);
-          const constructedForm = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+          const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
           const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
           await vocabVisitor.resolveVocabs(constructedForm, undefined, {
             includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
           });
           const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-          contextVariablesVisitor.applyContextVariables(constructedForm);
+          await contextVariablesVisitor.applyContextVariables(constructedForm);
           const rawBehaviours = _.cloneDeep(constructedForm.behaviours);
 
           const clientVisitor = new ClientFormConfigVisitor(this.logger);
-          const clientForm = clientVisitor.start({
+          const clientForm = await clientVisitor.start({
             form: constructedForm,
             formMode,
             userRoles,
@@ -600,7 +600,7 @@ export namespace Services {
           form.behaviours = rawBehaviours;
 
           const visitor = new TemplateFormConfigVisitor(this.logger);
-          return visitor.start({form});
+          return await visitor.start({form});
         }
 
         /**

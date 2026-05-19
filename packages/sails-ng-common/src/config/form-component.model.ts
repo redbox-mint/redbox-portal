@@ -1,9 +1,10 @@
 import {FormConfigVisitorOutline} from "./visitor/base.outline";
 import {
-    FormComponentDefinitionOutline, FormConstraintAuthorizationConfigOutline,
+    FormComponentDefinitionOutline,
+  FormConstraintAuthorizationConfigOutline,
     FormConstraintConfigOutline,
     FormExpressionsConfigOutline,
-    ExpressionsConditionKindType, FormOverrideConfigFrame
+    FormOverrideConfigFrame
 } from "./form-component.outline";
 import {FieldComponentDefinitionOutline} from "./field-component.outline";
 import {FieldModelDefinitionOutline} from "./field-model.outline";
@@ -45,5 +46,5 @@ export abstract class FormComponentDefinition implements FormComponentDefinition
     public constraints?: FormConstraintConfigOutline;
     public overrides?: FormOverrideConfigFrame;
 
-    abstract accept(visitor: FormConfigVisitorOutline): void;
+    abstract accept(visitor: FormConfigVisitorOutline): Promise<void>;
 }

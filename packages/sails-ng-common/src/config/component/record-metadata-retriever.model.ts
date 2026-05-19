@@ -34,8 +34,8 @@ export class RecordMetadataRetrieverFieldComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitRecordMetadataRetrieverFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRecordMetadataRetrieverFieldComponentDefinition(this);
   }
 }
 
@@ -51,8 +51,8 @@ export class RecordMetadataRetrieverFormComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitRecordMetadataRetrieverFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRecordMetadataRetrieverFormComponentDefinition(this);
   }
 }
 

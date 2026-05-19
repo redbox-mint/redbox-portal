@@ -40,8 +40,8 @@ export class ReusableFieldComponentDefinition extends FieldComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitReusableFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitReusableFieldComponentDefinition(this);
     }
 }
 
@@ -55,8 +55,8 @@ export class ReusableFormComponentDefinition extends FormComponentDefinition imp
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitReusableFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitReusableFormComponentDefinition(this);
     }
 }
 

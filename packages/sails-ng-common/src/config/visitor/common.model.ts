@@ -354,7 +354,7 @@ export class FormPathHelper {
    * @param item The item to visit.
    * @param more The lineage paths to add to the end of the current paths.
    */
-  public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
+  public async acceptFormPath(item: CanVisit, more?: LineagePathsPartial): Promise<void> {
     if (!item) {
       this.logger?.warn?.(`${this.logName}: acceptFormPath requires an item: ${JSON.stringify(item)}`);
       return;
@@ -363,7 +363,7 @@ export class FormPathHelper {
     const original = buildLineagePaths(this._formPath);
     try {
       this._formPath = buildLineagePaths(original, more);
-      item.accept(this.visitor);
+      await item.accept(this.visitor);
     } catch (error) {
       throw error;
     } finally {

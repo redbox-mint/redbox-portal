@@ -63,7 +63,7 @@ import {
   FormValidatorDefinition,
   FormValidatorFns,
   FormValidatorSummaryErrors,
-  getObjectWithJsonPointer,
+  getObjectWithJsonPointer, jsonataEvaluateFunc,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
@@ -497,11 +497,11 @@ export class FormService extends HttpClientService {
   /**
    * Evaluate validators for advisory validation groups without attaching them to controls.
    */
-  public getSuggestedValidatorSummaryErrors(
+  public async getSuggestedValidatorSummaryErrors(
     mapEntry: FormFieldCompMapEntry | null,
     enabledValidationGroups: string[],
     validationGroups: FormValidationGroups
-  ): FormValidatorSummaryErrors[] {
+  ): Promise<FormValidatorSummaryErrors[]> {
     const result: FormValidatorSummaryErrors[] = [];
 
     if (!mapEntry) {
@@ -522,7 +522,7 @@ export class FormService extends HttpClientService {
     const validators = mapEntry.model?.validators ?? [];
     const lineagePaths = mapEntry.lineagePaths;
     if (formControl && !formControl.disabled && lineagePaths && validators.length > 0) {
-      const errors = this.getCachedSuggestedValidatorComponentErrors(
+      const errors = await this.getCachedSuggestedValidatorComponentErrors(
         formControl,
         validators,
         enabledValidationGroups,
@@ -535,7 +535,7 @@ export class FormService extends HttpClientService {
     }
 
     for (const childMapEntry of mapEntry.component?.formFieldCompMapEntries ?? []) {
-      result.push(...this.getSuggestedValidatorSummaryErrors(childMapEntry, enabledValidationGroups, validationGroups));
+      result.push(...await this.getSuggestedValidatorSummaryErrors(childMapEntry, enabledValidationGroups, validationGroups));
     }
 
     return result;
@@ -546,12 +546,12 @@ export class FormService extends HttpClientService {
    * Cache the expensive validator construction and last error result so template reads
    * stay cheap while still recalculating when validation config or form values change.
    */
-  private getCachedSuggestedValidatorComponentErrors(
+  private async getCachedSuggestedValidatorComponentErrors(
     formControl: AbstractControl,
     validators: FormValidatorConfig[],
     enabledValidationGroups: string[],
     validationGroups: FormValidationGroups
-  ): FormValidatorComponentErrors[] {
+  ): Promise<FormValidatorComponentErrors[]> {
     const validatorKey = this.getSuggestedValidatorCacheKey(validators, enabledValidationGroups, validationGroups);
     // Validator output can depend on sibling fields, so include the root form value as well as this control's own value.
     const valueKey = this.getSuggestedValidatorValueKey(formControl);
@@ -567,15 +567,13 @@ export class FormService extends HttpClientService {
       ? cached.validatorFns
       : this.getValidatorInstances(enabledValidators);
     const errors: FormValidatorComponentErrors[] = [];
-    // TODO: best effort trying to run async function inside sync function
-    validatorFns.asyncDefs.forEach((validatorFn) => {
-      validatorFn(formControl).then(result => {
-        errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(result));
-      })
-    });
-    validatorFns.syncDefs.forEach((validatorFn) => {
+
+    for (const validatorFn of validatorFns.asyncDefs) {
+      errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(await validatorFn(formControl)));
+    }
+    for (const validatorFn of validatorFns.syncDefs) {
       errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl)));
-    });
+    }
 
     this.suggestedValidatorSummaryCache.set(formControl, {
       validatorKey,
@@ -710,17 +708,9 @@ export class FormService extends HttpClientService {
     }
 
     // ensure jsonata-expression validators can be evaluated
-    this.validatorsSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): void {
-      if (validator.class === "jsonata-expression") {
-        if (validator.config) {
-          validator.config = {};
-        }
-        const expr = validator?.config?.['expression']?.toString() ?? "";
-        const evaluator = validator.config?.['evaluator'];
-        if (validator.config && expr && !evaluator) {
-          validator.config['evaluator'] = null;
-        }
-      }
+    this.validatorsSupport.assignJsonataEvaluators(validators, function (validator: FormValidatorConfig, index: number): unknown {
+      // TODO: create evaluator function from validator index using lineage path
+      return null;
     });
 
     // Filter the validator configs to the enabled ones.

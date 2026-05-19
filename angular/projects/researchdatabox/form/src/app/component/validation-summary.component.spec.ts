@@ -135,7 +135,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // Ensure the expected failures have the expected lineage paths.
     const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
-    expect(validationSummary.allValidationErrorsDisplay).toEqual([
+    expect(await validationSummary.allValidationErrorsDisplay()).toEqual([
       {
         id: 'form-item-id-text-1-event',
         message: null,
@@ -203,7 +203,7 @@ describe('ValidationSummaryFieldComponent', () => {
     // act
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
-    const summaryErrors = validationSummary.allValidationErrorsDisplay;
+    const summaryErrors = await validationSummary.allValidationErrorsDisplay();
 
     // assert
     expect(summaryErrors.length).toBe(2);

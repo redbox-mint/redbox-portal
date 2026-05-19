@@ -219,7 +219,7 @@ describe('The FormService', () => {
           },
         }
       ];
-      const actual = service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
+      const actual = await service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
       expect(actual).toEqual(expected);
     });
   });

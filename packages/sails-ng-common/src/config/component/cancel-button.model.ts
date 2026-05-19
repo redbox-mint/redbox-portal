@@ -38,8 +38,8 @@ export class CancelButtonFieldComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitCancelButtonFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitCancelButtonFieldComponentDefinition(this);
   }
 }
 
@@ -57,8 +57,8 @@ export class CancelButtonFormComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline) {
-    visitor.visitCancelButtonFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitCancelButtonFormComponentDefinition(this);
   }
 }
 

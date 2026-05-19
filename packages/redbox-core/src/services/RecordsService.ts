@@ -531,7 +531,7 @@ export namespace Services {
               createResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
-              this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+              await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
             }
           } catch (err) {
             sails.log.error(
@@ -1206,7 +1206,7 @@ export namespace Services {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
       }
-      this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
+      await this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
 
     public storeRecordAudit(job: AnyRecord) {

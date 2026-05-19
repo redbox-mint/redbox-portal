@@ -44,8 +44,8 @@ export class GroupFieldComponentDefinition extends FieldComponentDefinition impl
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitGroupFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitGroupFieldComponentDefinition(this);
     }
 }
 
@@ -67,8 +67,8 @@ export class GroupFieldModelDefinition extends FieldModelDefinition<GroupFieldMo
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitGroupFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitGroupFieldModelDefinition(this);
     }
 }
 
@@ -83,8 +83,8 @@ export class GroupFormComponentDefinition extends FormComponentDefinition implem
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitGroupFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitGroupFormComponentDefinition(this);
     }
 }
 

@@ -22,7 +22,7 @@ import { FormService } from "../form.service";
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
-    @let validationList = allValidationErrorsDisplay;
+    @let validationList = (allValidationErrorsDisplay() | async) ?? [];
     @if (validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
@@ -131,7 +131,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
 
-  get allValidationErrorsDisplay(): FormValidatorSummaryErrors[] {
+  public async allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
     return this.getFormComponent.getValidationErrors() ?? [];
   }
 
