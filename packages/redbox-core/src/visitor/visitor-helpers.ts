@@ -65,7 +65,7 @@ export async function migrateFormConfigFile(
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const v4FormConfig = require(inputPath);
-  const migrated = migrateVisitor.start({data: v4FormConfig});
+  const migrated = await migrateVisitor.start({data: v4FormConfig});
 
   let tsContent: string;
   if (outputFormat === 'cjs') {

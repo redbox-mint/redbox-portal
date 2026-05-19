@@ -750,7 +750,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
             item?.layout?.config?.label,
         );
         this.validationErrors.push(...validationErrors);
-        this.formPathHelper.acceptFormComponentDefinition(item);
+        await this.formPathHelper.acceptFormComponentDefinition(item);
     }
 
     protected async validateFormComponent(itemName: string, value: unknown, validators?: FormValidatorConfig[], message?: string): Promise<FormValidatorSummaryErrors[]> {

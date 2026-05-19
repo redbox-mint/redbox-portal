@@ -2565,7 +2565,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   protected async populateFormComponent(item: FormComponentDefinitionOutline): Promise<void> {
     // Continue visiting
-    this.formPathHelper.acceptFormComponentDefinition(item);
+    await this.formPathHelper.acceptFormComponentDefinition(item);
     // this.acceptV4FormConfigPath(item.component, {formConfig: ['component']});
     // if (item.model) {
     //     this.acceptV4FormConfigPath(item.model, {formConfig: ['model']});

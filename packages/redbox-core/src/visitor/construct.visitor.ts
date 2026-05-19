@@ -2142,7 +2142,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
 
     // Continue visiting
-    this.formPathHelper.acceptFormComponentDefinition(item);
+    await this.formPathHelper.acceptFormComponentDefinition(item);
   }
 
   protected applyConstructPhaseTransform(

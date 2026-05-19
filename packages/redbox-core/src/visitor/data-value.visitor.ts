@@ -608,7 +608,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  protected acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
-    this.formPathHelper.acceptFormComponentDefinition(item);
+  protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
+    await this.formPathHelper.acceptFormComponentDefinition(item);
   }
 }

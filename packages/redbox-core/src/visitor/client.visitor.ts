@@ -1091,7 +1091,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  protected acceptCheckConstraintsCurrentPath(item: AvailableFormComponentDefinitionOutlines) {
+  protected async acceptCheckConstraintsCurrentPath(item: AvailableFormComponentDefinitionOutlines) {
     const currentConstraintPath = [...this.constraintPath];
     try {
       // add constraints to constraintPath before and after processing components
@@ -1103,7 +1103,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       const allowedByUserRoles = this.isAllowedByUserRoles();
       const allowedByFormMode = this.isAllowedByFormMode();
       if (allowedByUserRoles && allowedByFormMode) {
-        this.formPathHelper.acceptFormComponentDefinition(item);
+        await this.formPathHelper.acceptFormComponentDefinition(item);
       } else {
         this.removePropsAll(item);
       }

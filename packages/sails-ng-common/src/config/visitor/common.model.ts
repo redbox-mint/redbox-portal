@@ -375,13 +375,13 @@ export class FormPathHelper {
    * Call accept on the properties of the form component definition outline that can be visited.
    * @param item The form component definition outline.
    */
-  public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-    this.acceptFormPath(item.component, { formConfig: ['component'] });
+  public async acceptFormComponentDefinition(item: FormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormPath(item.component, {formConfig: ['component']});
     if (item.model) {
-      this.acceptFormPath(item.model, { formConfig: ['model'] });
+      await this.acceptFormPath(item.model, {formConfig: ['model']});
     }
     if (item.layout) {
-      this.acceptFormPath(item.layout, { formConfig: ['layout'] });
+      await this.acceptFormPath(item.layout, {formConfig: ['layout']});
     }
   }
 

@@ -643,7 +643,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
     await this.extractExpressions(item.expressions);
-    this.formPathHelper.acceptFormComponentDefinition(item);
+    await this.formPathHelper.acceptFormComponentDefinition(item);
   }
 
   protected async extractExpressions(expressions?: FormExpressionsConfigFrame[]): Promise<void> {
