@@ -1,6 +1,6 @@
 {
-  "name": "@agendajs/sqs-backend",
-  "version": "3.0.4",
+  "name": "@researchdatabox/agenda-sqs-backend",
+  "version": "0.0.1-beta.9472",
   "description": "Amazon SQS backend for Agenda job scheduler",
   "type": "module",
   "main": "dist/index.js",

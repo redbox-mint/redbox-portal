@@ -1,18 +1,18 @@
-# @agendajs/sqs-backend
+# @researchdatabox/agenda-sqs-backend
 
 Amazon SQS backend for `agenda`.
 
 ## Install
 
 ```bash
-pnpm add @agendajs/sqs-backend
+pnpm add @researchdatabox/agenda-sqs-backend
 ```
 
 ## Usage
 
 ```ts
 import { Agenda } from 'agenda';
-import { SqsBackend } from '@agendajs/sqs-backend';
+import { SqsBackend } from '@researchdatabox/agenda-sqs-backend';
 
 const agenda = new Agenda({
   backend: new SqsBackend({

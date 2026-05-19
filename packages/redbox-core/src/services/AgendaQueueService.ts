@@ -366,7 +366,7 @@ export namespace Services {
         throw new Error('AgendaQueue:: SQS backend requires agendaQueue.options.sqs.queueUrl.');
       }
 
-      const { SqsBackend } = await import('@agendajs/sqs-backend');
+      const { SqsBackend } = await import('@researchdatabox/agenda-sqs-backend');
       agendaOptions.backend = new SqsBackend({
         queueUrl: sqsOptions.queueUrl,
         region: sqsOptions.region,
