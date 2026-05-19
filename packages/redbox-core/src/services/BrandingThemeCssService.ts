@@ -51,6 +51,9 @@ export namespace Services {
         }
         const value = this.normalizeHex(rawValue);
         if (!/^#[0-9a-f]{6}$/.test(value)) {
+          if (opts?.ignoreUnknownKeys) {
+            continue;
+          }
           throw new Error(`Invalid variable value: ${token.key}`);
         }
         normalized[token.key] = value;

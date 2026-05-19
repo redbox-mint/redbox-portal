@@ -69,4 +69,17 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.not.contain('branding-font-family');
     expect(result.hash).to.match(/^[0-9a-f]{32}$/);
   });
+
+  it('falls back to the default when a stored known token has a non-hex value', function () {
+    const { Services } = require('../../src/services/BrandingThemeCssService');
+    const service = new Services.BrandingThemeCss();
+
+    const result = service.generate({
+      'anchor-color': 'blue',
+    });
+
+    expect(result.css).to.contain('--rb-anchor-color: #337ab7;');
+    expect(result.css).to.not.contain('--rb-anchor-color: blue;');
+    expect(result.hash).to.match(/^[0-9a-f]{32}$/);
+  });
 });
