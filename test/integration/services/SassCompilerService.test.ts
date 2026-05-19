@@ -16,14 +16,24 @@ describe('BrandingThemeCssService', () => {
     expect(css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
   });
 
-  it('rejects unknown keys and non-hex values', async () => {
+  it('ignores unknown keys and falls back to defaults for non-hex values during generation', async () => {
+    const keyResult = await BrandingThemeCssService.generate({ 'not-allowed': '#fff' });
+    expect(keyResult.css).to.include('--rb-site-branding-area-background-color: #b1101a;');
+    expect(keyResult.css).to.not.include('not-allowed');
+
+    const valueResult = await BrandingThemeCssService.generate({ 'site-branding-area-background-color': 'rgb(0,0,0)' });
+    expect(valueResult.css).to.include('--rb-site-branding-area-background-color: #b1101a;');
+    expect(valueResult.css).to.not.include('--rb-site-branding-area-background-color: rgb(0,0,0);');
+  });
+
+  it('rejects unknown keys and non-hex values during strict validation', async () => {
     let keyErr;
-    try { await BrandingThemeCssService.generate({ 'not-allowed': '#fff' }); } catch (e) { keyErr = e; }
+    try { await BrandingThemeCssService.validateVariables({ 'not-allowed': '#fff' }); } catch (e) { keyErr = e; }
     expect(keyErr).to.exist;
     expect(String(keyErr.message)).to.match(/Invalid variable key/);
 
     let valueErr;
-    try { await BrandingThemeCssService.generate({ 'site-branding-area-background-color': 'rgb(0,0,0)' }); } catch (e) { valueErr = e; }
+    try { await BrandingThemeCssService.validateVariables({ 'site-branding-area-background-color': 'rgb(0,0,0)' }); } catch (e) { valueErr = e; }
     expect(valueErr).to.exist;
     expect(String(valueErr.message)).to.match(/Invalid variable value/);
   });
