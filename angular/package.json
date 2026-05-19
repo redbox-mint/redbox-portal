@@ -29,7 +29,7 @@
     "@researchdatabox/sails-ng-common": "file:../packages/sails-ng-common",
     "@tiptap/core": "3.22.5",
     "@tiptap/extension-link": "3.22.5",
-    "@tiptap/extension-table": "3.22.5",
+    "@tiptap/extension-table": "3.23.2",
     "@tiptap/extension-table-cell": "3.22.5",
     "@tiptap/extension-table-header": "3.22.5",
     "@tiptap/extension-table-row": "3.22.5",
