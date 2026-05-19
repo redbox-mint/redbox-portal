@@ -36,11 +36,14 @@ export namespace Services {
       return brandingThemeEditableTokenMap.get(key) || brandingThemeEditableAliasMap.get(key);
     }
 
-    validateVariables(variables: Record<string, string>): Record<string, string> {
+    private normalizeVariables(variables: Record<string, string>, opts?: { ignoreUnknownKeys?: boolean }): Record<string, string> {
       const normalized: Record<string, string> = {};
       for (const [rawKey, rawValue] of Object.entries(variables || {})) {
         const token = this.resolveToken(rawKey);
         if (!token) {
+          if (opts?.ignoreUnknownKeys) {
+            continue;
+          }
           throw new Error(`Invalid variable key: ${rawKey.startsWith('$') ? rawKey.slice(1) : rawKey}`);
         }
         if (typeof rawValue !== 'string') {
@@ -53,6 +56,10 @@ export namespace Services {
         normalized[token.key] = value;
       }
       return normalized;
+    }
+
+    validateVariables(variables: Record<string, string>): Record<string, string> {
+      return this.normalizeVariables(variables);
     }
 
     private getVariableValue(normalized: Record<string, string>, token: BrandingThemeToken): string {
@@ -92,7 +99,7 @@ export namespace Services {
     }
 
     generate(variables: Record<string, string>): { css: string; hash: string } {
-      const normalized = this.validateVariables(variables || {});
+      const normalized = this.normalizeVariables(variables || {}, { ignoreUnknownKeys: true });
       const css = [this.buildRootCss(normalized), this.buildCompatibilityCss()].join('\n\n');
       const hash = crypto.createHash('sha256').update(css).digest('hex').slice(0, 32);
       return { css, hash };

@@ -54,4 +54,19 @@ describe('BrandingThemeCssService', function () {
     expect(alias.css).to.contain('--rb-site-branding-area-background-color: #123456;');
     expect(first.css).to.contain('--mu-submit-btn-bg: var(--rb-submit-button-background-color, #428bca);');
   });
+
+  it('ignores unknown legacy variables when generating css from stored branding data', function () {
+    const { Services } = require('../../src/services/BrandingThemeCssService');
+    const service = new Services.BrandingThemeCss();
+
+    const result = service.generate({
+      'site-branding-area-background-color': '#123456',
+      'branding-font-family': 'Arial, sans-serif',
+      'input-btn-font-size': '14px',
+    });
+
+    expect(result.css).to.contain('--rb-site-branding-area-background-color: #123456;');
+    expect(result.css).to.not.contain('branding-font-family');
+    expect(result.hash).to.match(/^[0-9a-f]{32}$/);
+  });
 });

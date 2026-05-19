@@ -59,7 +59,7 @@ describe('The BrandingService', function () {
 
     it('preview issues token and stores CSS', async () => {
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#abcabc' }, actor: admin });
-      const { token, url, hash } = await BrandingService.preview('default', 'default', admin);
+      const { token, url, hash } = await BrandingService.preview('default', 'default');
       expect(token).to.match(/^[0-9a-f]{32}$/);
       expect(url).to.include(token);
       expect(hash).to.match(/^[0-9a-f]{32}$/);
@@ -71,7 +71,7 @@ describe('The BrandingService', function () {
 
     it('preview token expires after TTL', async () => {
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#123123' }, actor: admin });
-      const { token } = await BrandingService.preview('default', 'default', admin);
+      const { token } = await BrandingService.preview('default', 'default');
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL

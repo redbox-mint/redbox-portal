@@ -101,12 +101,26 @@ export class BrandingAdminComponent extends BaseComponent {
     this.componentReady = true;
   }
 
+  private getAllowedDraftKeys(): Set<string> {
+    if (this.colourGroups.length === 0) {
+      this.initializeColourGroups();
+    }
+    return new Set(this.colourGroups.flatMap(group => group.variables.map(variable => variable.key)));
+  }
+
+  private filterDraftVariables(variables?: Record<string, string>): Record<string, string> {
+    const allowedDraftKeys = this.getAllowedDraftKeys();
+    return Object.fromEntries(
+      Object.entries(variables || {}).filter(([key, value]) => allowedDraftKeys.has(key) && typeof value === 'string')
+    );
+  }
+
   async loadConfig() {
     try {
       const response = await this.brandingService.loadConfig();
       this.publishedConfig = response?.branding || {};
       // Initialize draft with current variables or empty object
-      this.draftConfig = { ...(this.publishedConfig.variables || {}) };
+      this.draftConfig = this.filterDraftVariables(this.publishedConfig.variables);
     } catch (e: any) {
       this.error = `Failed to load config: ${e?.message || e}`;
       this.logger.error(this.error);

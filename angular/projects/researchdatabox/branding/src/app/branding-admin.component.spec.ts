@@ -71,6 +71,25 @@ describe('BrandingAdminComponent', () => {
     httpMock.verify();
   });
 
+  it('filters legacy variables from draftConfig on load', async () => {
+    const loadPromise = component.loadConfig();
+    const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
+    cfgReq.flush({
+      branding: {
+        variables: {
+          primary: '#123456',
+          'branding-font-family': 'Arial, sans-serif',
+        },
+        version: 1
+      }
+    });
+    await loadPromise;
+
+    expect(component.draftConfig['primary']).toBe('#123456');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    httpMock.verify();
+  });
+
   it('saveDraft sets message on success', async () => {
     const loadPromise = component.loadConfig();
     httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
