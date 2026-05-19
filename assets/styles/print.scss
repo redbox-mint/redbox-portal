@@ -35,7 +35,7 @@
   --rb-print-heading-color: var(--rb-main-content-heading-text-branding-color, #{$main-content-heading-text-branding-color});
 
   // Table cell border (tbody td separators, .table-bordered)
-  --rb-print-cell-border: #{$print-table-border-color};
+  --rb-print-cell-border: var(--rb-panel-branding-border-color, #{$print-table-border-color});
 
   // Branding font family
   --rb-print-font-family: #{inspect($branding-font-family)};

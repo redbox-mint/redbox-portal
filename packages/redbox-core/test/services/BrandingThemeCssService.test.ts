@@ -21,6 +21,8 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.contain(':host {');
     expect(result.css).to.contain('--rb-site-branding-area-background-color: #b1101a;');
     expect(result.css).to.contain('--mu-panel-bg: var(--rb-panel-branding-background-color, #b1101a);');
+    expect(result.css).to.contain('--bs-btn-hover-bg: var(--rb-primary);');
+    expect(result.css).to.not.contain('background-color: var(--rb-primary) !important;\n  border-color: var(--rb-primary) !important;');
     expect(result.hash).to.match(/^[0-9a-f]{32}$/);
   });
 

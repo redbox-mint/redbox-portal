@@ -50,6 +50,7 @@ describe('BrandingThemeCssService', () => {
     const { css } = await BrandingThemeCssService.generate({});
     expect(css).to.include('--mu-panel-bg: var(--rb-panel-branding-background-color, #b1101a);');
     expect(css).to.include('--rb-print-brand-accent: var(--rb-site-branding-area-background-color, #b1101a);');
+    expect(css).to.include('--rb-print-cell-border: var(--rb-panel-branding-border-color, #dddddd);');
     expect(css).to.include('.btn-primary');
   });
 });
