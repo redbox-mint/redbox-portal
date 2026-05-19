@@ -1,5 +1,6 @@
 /// <reference path="../sails.ts" />
 import { Entity, Attr, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
+import { brandingThemeAllowedVariableNames } from '../services/BrandingThemeTokens';
 
 declare const sails: Sails.Application;
 
@@ -19,7 +20,7 @@ const handleBeforeCreate = (values: Record<string, unknown>, proceed: (err?: Err
   if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
     return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
   }
-  const allowList = sails?.config?.branding?.variableAllowList ?? [];
+  const allowList = sails?.config?.branding?.variableAllowList ?? brandingThemeAllowedVariableNames;
   const isValid = Object.keys(values.variables as Record<string, unknown>).every(key => {
     const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
     return allowList.includes(normalizedKey);
@@ -46,7 +47,7 @@ const handleBeforeUpdate = (values: Record<string, unknown>, proceed: (err?: Err
   if (typeof values.variables !== 'object' || Array.isArray(values.variables)) {
     return proceed(new Error('Invalid variable key supplied (not in allowlist)'));
   }
-  const allowList = sails?.config?.branding?.variableAllowList ?? [];
+  const allowList = sails?.config?.branding?.variableAllowList ?? brandingThemeAllowedVariableNames;
   const isValid = Object.keys(values.variables as Record<string, unknown>).every(key => {
     const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
     return allowList.includes(normalizedKey);
@@ -76,7 +77,7 @@ export class BrandingConfigClass {
       if (typeof value !== 'object' || Array.isArray(value)) {
         return false;
       }
-      const allowList = sails?.config?.branding?.variableAllowList ?? [];
+      const allowList = sails?.config?.branding?.variableAllowList ?? brandingThemeAllowedVariableNames;
       return Object.keys(value as Record<string, unknown>).every(key => {
         const normalizedKey = key.startsWith('$') ? key.slice(1) : key;
         return allowList.includes(normalizedKey);

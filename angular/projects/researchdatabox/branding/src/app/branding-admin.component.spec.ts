@@ -65,9 +65,9 @@ describe('BrandingAdminComponent', () => {
   it('loads config and sets publishedConfig', async () => {
     const loadPromise = component.loadConfig();
     const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-    cfgReq.flush({ branding: { variables: { 'primary-color': '#123456' }, version: 1 } });
+    cfgReq.flush({ branding: { variables: { primary: '#123456' }, version: 1 } });
     await loadPromise;
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#123456');
+  expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
     httpMock.verify();
   });
 
@@ -75,42 +75,42 @@ describe('BrandingAdminComponent', () => {
     const loadPromise = component.loadConfig();
     httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
     await loadPromise;
-    component.draftConfig['primary-color'] = '#abcdef';
+    component.draftConfig['primary'] = '#abcdef';
     const savePromise = component.saveDraft();
     const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
     // Assert the POST body format is { variables: {...} }
     expect(saveReq.request.method).toBe('POST');
     expect(saveReq.request.body).toEqual({ variables: component.draftConfig });
-    saveReq.flush({ branding: { variables: { 'primary-color': '#abcdef' }, version: 1 } });
+    saveReq.flush({ branding: { variables: { primary: '#abcdef' }, version: 1 } });
     await savePromise;
     expect(component.message).toBe('Draft saved');
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#abcdef');
+  expect(component.publishedConfig?.variables?.['primary']).toBe('#abcdef');
     httpMock.verify();
   });
 
-  it('saveDraft shows error message on contrast violation', async () => {
+  it('saveDraft shows error message on invalid variables', async () => {
     const loadPromise = component.loadConfig();
     httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
     await loadPromise;
-    component.draftConfig['body-text-color'] = '#000000';
-    component.draftConfig['surface-color'] = '#000000';
+    component.draftConfig['branding-font-family'] = 'Arial, sans-serif';
     const savePromise = component.saveDraft();
     const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
-    saveReq.flush({ error: 'contrast-violation', message: 'contrast-violation: body-text-on-surface' }, { status: 400, statusText: 'Bad Request' });
+    saveReq.flush({ error: 'invalid-variable', message: 'Invalid variable key: branding-font-family' }, { status: 400, statusText: 'Bad Request' });
     await savePromise.catch(() => {});
-    expect(component.error).toContain('contrast-violation');
+    expect(component.error).toContain('Invalid variable key: branding-font-family');
     httpMock.verify();
   });
 
   it('createPreview stores previewToken', async () => {
-    const loadPromise = component.loadConfig();
-    httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
-    await loadPromise;
-    const promise = component.createPreview();
-    const previewReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/preview'));
-    previewReq.flush({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
-    await promise;
+    component.draftConfig['primary'] = '#123456';
+    const componentBrandingService = (component as any).brandingService as BrandingAdminService;
+    const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#123456' }, version: 1 } });
+    const previewSpy = spyOn(componentBrandingService, 'createPreview').and.resolveTo({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
+    await component.createPreview();
+    expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
+    expect(previewSpy).toHaveBeenCalled();
     expect(component.previewToken).toBe('preview-token-123');
+    expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
     // Base/preview CSS URLs set after preview
     expect(component.previewBaseCssUrl).toContain('/styles/style.min.css');
     expect(component.previewCssUrl).toContain('/preview/preview-token-123.css');
@@ -132,23 +132,16 @@ describe('BrandingAdminComponent', () => {
     expect(allKeys).toContain('footer-bottom-area-branding-background-color');
   });
 
-  it('publish reloads config', async () => {
-  // Initial explicit config load
-  const initialLoad = component.loadConfig();
-  const firstCfg = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-  firstCfg.flush({ branding: { variables: {}, version: 1 } });
-  await initialLoad;
-  // Directly invoke service.publish to ensure request creation (component.publish wraps and then calls loadConfig)
-  const publishPromise = brandingService.publish({});
-  const publishReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/publish'));
-  publishReq.flush({ ok: true });
-  await publishPromise;
-  // Manually call component.loadConfig to simulate post-publish refresh
-  const reloadPromise = component.loadConfig();
-  const reloadReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-  reloadReq.flush({ branding: { variables: { 'primary-color': '#fff000' }, version: 2 } });
-  await reloadPromise;
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#fff000');
-  httpMock.verify();
+  it('publish saves draft before publishing and reloads config', async () => {
+  component.publishedConfig = { variables: {}, version: '1' };
+  component.draftConfig['primary'] = '#fff000';
+  const componentBrandingService = (component as any).brandingService as BrandingAdminService;
+  const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#fff000' }, version: 1 } });
+  const publishSpy = spyOn(componentBrandingService, 'publish').and.resolveTo({ version: 2, hash: 'abcd' });
+  const loadSpy = spyOn(component, 'loadConfig').and.resolveTo();
+  await component.publish();
+  expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
+  expect(publishSpy).toHaveBeenCalledWith(1);
+  expect(loadSpy).toHaveBeenCalled();
   });
 });

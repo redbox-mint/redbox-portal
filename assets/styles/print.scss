@@ -22,17 +22,17 @@
 
 :root {
   // Brand accent — title underline, panel left rail, table header underline
-  --rb-print-brand-accent: #{$site-branding-area-background-color};
+  --rb-print-brand-accent: var(--rb-site-branding-area-background-color, #{$site-branding-area-background-color});
 
   // Soft section background — panel-heading and table thead tint
-  --rb-print-section-bg: #{$header-branding-background-color};
+  --rb-print-section-bg: var(--rb-header-branding-background-color, #{$header-branding-background-color});
 
   // Page background (white in default theme)
-  --rb-print-page-bg: #{$body-background-color};
+  --rb-print-page-bg: var(--rb-body-background-color, #{$body-background-color});
 
   // Body and heading colours
-  --rb-print-body-color: #{$body-text-color};
-  --rb-print-heading-color: #{$main-content-heading-text-branding-color};
+  --rb-print-body-color: var(--rb-body-text-color, #{$body-text-color});
+  --rb-print-heading-color: var(--rb-main-content-heading-text-branding-color, #{$main-content-heading-text-branding-color});
 
   // Table cell border (tbody td separators, .table-bordered)
   --rb-print-cell-border: #{$print-table-border-color};

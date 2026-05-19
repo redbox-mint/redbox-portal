@@ -4,7 +4,7 @@ declare var bootstrap: any;
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BaseComponent, ConfigService, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import { BrandingPreviewComponent } from './branding-preview.component';
 
@@ -68,46 +68,12 @@ export class BrandingAdminComponent extends BaseComponent {
   logoUploading = false;
   message?: string;
   error?: string;
-  showJsonView = false;
-
   // Variables sourced exclusively from assets/styles/custom-variables.scss
   // Keys align exactly with SCSS variable names (without the leading $)
   colourGroups: ColourGroup[] = [];
 
-  fontVariables = [
-    { key: 'branding-font-family', label: 'Main Font Family', default: '' },
-    { key: 'branding-main-menu-font-family', label: 'Menu Font Family', default: '' },
-    { key: 'branding-footer-font-family', label: 'Footer Font Family', default: '' },
-    { key: 'branding-main-content-heading-font-family', label: 'Heading Font Family', default: '' }
-  ];
-
-  sizeVariables = [
-    { key: 'input-btn-font-size', label: 'Button Font Size', default: '1rem', placeholder: '1rem', unit: '' },
-    { key: 'input-btn-padding-y', label: 'Button Vertical Padding', default: '0.5rem', placeholder: '0.5rem', unit: '' },
-    { key: 'input-btn-padding-x', label: 'Button Horizontal Padding', default: '1rem', placeholder: '1rem', unit: '' }
-  ];
-
-  fontOptions = [
-    { value: 'Arial, sans-serif', label: 'Arial' },
-    { value: 'Helvetica, Arial, sans-serif', label: 'Helvetica' },
-    { value: '"Times New Roman", serif', label: 'Times New Roman' },
-    { value: 'Georgia, serif', label: 'Georgia' },
-    { value: '"Courier New", monospace', label: 'Courier New' },
-    { value: 'Verdana, sans-serif', label: 'Verdana' },
-    { value: '"Trebuchet MS", sans-serif', label: 'Trebuchet MS' },
-    { value: '"Arial Black", sans-serif', label: 'Arial Black' },
-    { value: 'Impact, sans-serif', label: 'Impact' },
-    { value: '"Lucida Console", monospace', label: 'Lucida Console' },
-    { value: '"Open Sans", sans-serif', label: 'Open Sans' },
-    { value: '"Roboto", sans-serif', label: 'Roboto' },
-    { value: '"Lato", sans-serif', label: 'Lato' },
-    { value: '"Montserrat", sans-serif', label: 'Montserrat' },
-    { value: '"Source Sans Pro", sans-serif', label: 'Source Sans Pro' }
-  ];
-
   constructor(
     @Inject(LoggerService) private logger: LoggerService,
-    @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private i18n: TranslationService,
     private brandingService: BrandingAdminService,
     private sanitizer: DomSanitizer
@@ -148,8 +114,6 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   private initializeColourGroups() {
-    // Variables sourced exclusively from assets/styles/custom-variables.scss
-    // Keys align exactly with SCSS variable names (without the leading $)
     this.colourGroups = [
       {
         name: this.i18n.t('branding-header-name'),
@@ -246,8 +210,8 @@ export class BrandingAdminComponent extends BaseComponent {
     this.savingDraft = true; this.message = this.error = undefined;
     try {
       const res: any = await this.brandingService.saveDraft(this.draftConfig);
-        this.previewCssUrl = undefined;
-        this.previewBaseCssUrl = undefined;
+      this.previewCssUrl = undefined;
+      this.previewBaseCssUrl = undefined;
       // Update published config if response contains branding data
       if (res?.branding) {
         this.publishedConfig = res.branding;
@@ -266,7 +230,11 @@ export class BrandingAdminComponent extends BaseComponent {
   async createPreview() {
     this.generatingPreview = true; this.message = this.error = undefined;
     try {
-  const res: any = await this.brandingService.createPreview();
+      const draftRes: any = await this.brandingService.saveDraft(this.draftConfig);
+      if (draftRes?.branding) {
+        this.publishedConfig = draftRes.branding;
+      }
+      const res: any = await this.brandingService.createPreview();
       this.previewToken = res?.token || res?.previewToken;
       if (this.previewToken) {
         // Existing full-page preview URL (no longer used in iframe)
@@ -290,7 +258,10 @@ export class BrandingAdminComponent extends BaseComponent {
   async publish() {
     this.publishing = true; this.message = this.error = undefined;
     try {
-      const res: any = await this.brandingService.publish(this.draftConfig, this.publishedConfig.version);
+      await this.brandingService.saveDraft(this.draftConfig);
+      this.previewCssUrl = undefined;
+      this.previewBaseCssUrl = undefined;
+      const res: any = await this.brandingService.publish(Number(this.publishedConfig.version || 0));
       this.message = 'Branding published';
       // Reload the full configuration after publish
       await this.loadConfig();
@@ -335,25 +306,6 @@ export class BrandingAdminComponent extends BaseComponent {
       this.draftConfig[key] = value;
     } else {
       delete this.draftConfig[key];
-    }
-  }
-
-  resetToDefaults() {
-    this.draftConfig = {};
-    this.message = 'All variables reset to defaults';
-  }
-
-  updateFromJson(event: any) {
-    try {
-      const jsonValue = event.target.value;
-      if (jsonValue.trim()) {
-        this.draftConfig = JSON.parse(jsonValue);
-      } else {
-        this.draftConfig = {};
-      }
-      this.error = undefined;
-    } catch (e: any) {
-      this.error = 'Invalid JSON format';
     }
   }
 

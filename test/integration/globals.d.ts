@@ -6,6 +6,7 @@ declare const AppConfigService: any;
 
 declare const BrandingService: any;
 declare const BrandingLogoService: any;
+declare const BrandingThemeCssService: any;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 
@@ -36,6 +37,7 @@ declare const ReportsService: any;
 declare const RolesService: any;
 
 declare const SassCompilerService: any;
+declare const BrandingThemeCssService: any;
 declare const SolrSearchService: any;
 declare const DomSanitizerService: any;
 

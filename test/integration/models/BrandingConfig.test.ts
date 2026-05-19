@@ -45,13 +45,13 @@ describe('BrandingConfig Model (semantic variables whitelist)', () => {
       variables: {
         'site-branding-area-background-color': '#ffffff',
         'panel-branding-color': '#000000',
-        'branding-font-family': 'Arial, sans-serif'
+        'primary': '#112233'
       }
     }).fetch();
     expect(created.variables).to.have.keys([
       'site-branding-area-background-color',
       'panel-branding-color',
-      'branding-font-family'
+      'primary'
     ]);
   });
 
