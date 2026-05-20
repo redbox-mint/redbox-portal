@@ -232,6 +232,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private readonly loadingNodeIds = new Set<string>();
   private readonly loadedNodeIds = new Set<string>();
   private modelSubscriptionInitialised = false;
+  private displaySyncInFlight?: Promise<void>;
+  private displaySyncQueued = false;
 
   private leafOnly = true;
   private inlineVocab = false;
@@ -705,8 +707,24 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   // Invoked by the framework after expression-driven model.value updates,
   // which use emitEvent:false and therefore bypass the valueChanges subscription.
   public async syncDisplayFromModel(): Promise<void> {
-    this.syncSelectionFromModel();
-    await this.expandToSelectedNodes();
+    if (this.displaySyncInFlight) {
+      this.displaySyncQueued = true;
+      return this.displaySyncInFlight;
+    }
+    this.displaySyncInFlight = this.runDisplaySyncFromModel();
+    return this.displaySyncInFlight;
+  }
+
+  private async runDisplaySyncFromModel(): Promise<void> {
+    try {
+      do {
+        this.displaySyncQueued = false;
+        this.syncSelectionFromModel();
+        await this.expandToSelectedNodes();
+      } while (this.displaySyncQueued);
+    } finally {
+      this.displaySyncInFlight = undefined;
+    }
   }
 
   private describeLoadError(error: unknown): string {
