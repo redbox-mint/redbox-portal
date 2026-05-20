@@ -143,7 +143,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   protected override async initEventHandlers(): Promise<void> {
     await super.initEventHandlers();
-    this.refreshValidationErrors();
+    this.triggerValidationErrorsRefresh('init');
 
     const form = this.getFormComponent.form;
     if (form) {
@@ -164,7 +164,13 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     this.validationRefreshQueued = true;
     queueMicrotask(() => {
       this.validationRefreshQueued = false;
-      this.refreshValidationErrors();
+      this.triggerValidationErrorsRefresh('queue');
+    });
+  }
+
+  private triggerValidationErrorsRefresh(source: 'init' | 'queue'): void {
+    void this.refreshValidationErrors().catch((error) => {
+      this.loggerService.error(`${this.logName}: Failed to refresh validation errors during ${source}.`, error);
     });
   }
 

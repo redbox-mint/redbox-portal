@@ -1,4 +1,4 @@
-import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
+import { FormValidatorControl, FormValidatorDefinition } from "./form.model";
 import {
   formValidatorGetDefinitionArray,
   formValidatorGetDefinitionBoolean,
@@ -8,8 +8,7 @@ import {
   formValidatorGetDefinitionString,
   formValidatorLengthOrSize
 } from "./helpers";
-import {toBoolean} from "../config/helpers";
-import {JSONataEvaluate} from "../jsonata-helpers";
+import { JSONataEvaluate } from "../jsonata-helpers";
 
 
 /**
@@ -50,9 +49,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
 
         let value;
         try {
-            value = parseFloat(control.value?.toString() ?? null);
+          value = parseFloat(control.value?.toString() ?? null);
         } catch (err) {
-            value = undefined;
+          value = undefined;
         }
 
         // Controls with NaN values after parsing should be treated as not having a
@@ -89,14 +88,14 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
 
         let value;
         try {
-            value = parseFloat(control.value?.toString() ?? null);
+          value = parseFloat(control.value?.toString() ?? null);
         } catch (err) {
-            value = undefined;
+          value = undefined;
         }
 
         // Controls with NaN values after parsing should be treated as not having a
         // maximum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-max
-          if (value === undefined || (!isNaN(value) && value > optionMaxValue)) {
+        if (value === undefined || (!isNaN(value) && value > optionMaxValue)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -243,15 +242,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         const value = control.value?.toString() ?? "";
         const testOutcome = optionPatternValue.test(value);
         if (!testOutcome) {
-        return {
-          [optionNameValue]: {
-            [optionMessageKey]: optionMessageValue,
-            params: {
-              requiredPattern: optionPatternValue,
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredPattern: optionPatternValue,
 
-              description: optionDescriptionValue,actual: control.value,
+                description: optionDescriptionValue, actual: control.value,
+              },
             },
-          },
           };
         }
         return null;
@@ -274,7 +273,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       let regexStr = (pattern instanceof RegExp ? pattern?.source : pattern?.toString()) ?? "";
 
       // The pattern must start with '^' (start anchor)
-      if (regexStr.charAt(0) !== "^"){
+      if (regexStr.charAt(0) !== "^") {
         regexStr = ("^" + regexStr);
       }
 
@@ -360,9 +359,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         let success: boolean | null = null;
         try {
           if (typeof evaluator !== "function") {
-                  throw new Error("Missing evaluator");
-              }
-              success = await evaluator(value) === true;
+            throw new Error("Missing evaluator");
+          }
+          success = await evaluator(value) === true;
         } catch (err) {
           success = false;
           console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);

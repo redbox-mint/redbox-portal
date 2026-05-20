@@ -114,6 +114,7 @@ export class FormService extends HttpClientService {
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
   private formCompiledItems?: Promise<DynamicScriptResponse>;
+  private currentFormMode: FormModesConfig = 'edit';
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
   private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
@@ -191,7 +192,8 @@ export class FormService extends HttpClientService {
     });
 
     // Resolve the field and component pairs
-    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta);
+    const formMode: FormModesConfig = editMode ? 'edit' : 'view';
+    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta, formMode);
   }
 
   /**
@@ -203,7 +205,12 @@ export class FormService extends HttpClientService {
    * @returns The config and the components built from the config.
    */
   public async createFormComponentsMap(
-    formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
+    formConfig: FormConfigFrame,
+    parentLineagePaths: LineagePaths,
+    meta?: Record<string, unknown>,
+    formMode?: FormModesConfig
+  ): Promise<FormComponentsMap> {
+    this.currentFormMode = formMode ?? this.currentFormMode ?? 'edit';
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
@@ -211,7 +218,7 @@ export class FormService extends HttpClientService {
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
     this.formCompiledItems = formConfig?.type
-      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, "edit")
+      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
       : undefined;
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
@@ -1086,7 +1093,7 @@ export class FormService extends HttpClientService {
     return undefined;
   }
 
-  public getValidatorInstances(enabledValidators: FormValidatorConfig[]) {
+  private getValidatorInstances(enabledValidators: FormValidatorConfig[]) {
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);

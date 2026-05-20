@@ -4,78 +4,80 @@ import {
   FormValidatorDefinition, FormValidatorErrors,
   FormValidatorFns
 } from "./form.model";
-import {isTypeFormValidatorDefinition} from "../config/form-types.model";
+import { isTypeFormValidatorDefinition } from "../config/form-types.model";
 
 
 export class ValidatorsSupport {
-    /**
-     * Create validator definition mapping from the validator definitions.
-     * @param definition The form validator definitions.
-     */
-    public createValidatorDefinitionMapping(
-        definition: FormValidatorDefinition[] | null | undefined
-    ): Map<string, FormValidatorDefinition> {
-        const defMap = new Map<string, FormValidatorDefinition>();
-        for (const definitionItem of (definition ?? [])) {
-            if (!isTypeFormValidatorDefinition(definitionItem)) {
-                throw new Error(`Validator definition does not have valid 'class', 'message', and 'create' properties: ${JSON.stringify(definitionItem)}`);
-            }
-            const validatorClass = definitionItem?.class;
-            const message = definitionItem?.message;
-            if (defMap.has(validatorClass)) {
-                const messages = [message, defMap.get(validatorClass)?.message];
-                throw new Error(`Duplicate validator class '${validatorClass}' - the validator classes must be unique. `
-                    + `To help you find the duplicates, these are the messages of the duplicates: '${messages.join(", ")}'.`);
-            }
-            defMap.set(validatorClass, definitionItem);
-        }
-        return defMap;
+  /**
+   * Create validator definition mapping from the validator definitions.
+   * @param definition The form validator definitions.
+   */
+  public createValidatorDefinitionMapping(
+    definition: FormValidatorDefinition[] | null | undefined
+  ): Map<string, FormValidatorDefinition> {
+    const defMap = new Map<string, FormValidatorDefinition>();
+    for (const definitionItem of (definition ?? [])) {
+      if (!isTypeFormValidatorDefinition(definitionItem)) {
+        throw new Error(`Validator definition does not have valid 'class', 'message', and 'create' properties: ${JSON.stringify(definitionItem)}`);
+      }
+      const validatorClass = definitionItem?.class;
+      const message = definitionItem?.message;
+      if (defMap.has(validatorClass)) {
+        const messages = [message, defMap.get(validatorClass)?.message];
+        throw new Error(`Duplicate validator class '${validatorClass}' - the validator classes must be unique. `
+          + `To help you find the duplicates, these are the messages of the duplicates: '${messages.join(", ")}'.`);
+      }
+      defMap.set(validatorClass, definitionItem);
     }
+    return defMap;
+  }
 
-    /**
-     * Create form validator instances from the validator definition mapping.
-     * @param defMap The validator definition mapping.
-     * @param config The form validator config blocks.
-     */
-    public createFormValidatorInstancesFromMapping(
-      defMap: Map<string, FormValidatorDefinition>,
-      config: FormValidatorConfig[] | null | undefined,
-    ): FormValidatorFns {
-        const result: FormValidatorFns = {syncDefs: [], asyncDefs: []};
-        for (const validatorConfigItem of (config ?? [])) {
-            const validatorClass = validatorConfigItem?.class;
-            const def = defMap.get(validatorClass);
-            if (!def) {
-                throw new Error(`No validator definition with class '${validatorClass}', `
-                    + `the available validators are: '${Array.from(defMap.keys()).sort().join(", ")}'.`);
-            }
-            const message = validatorConfigItem?.message ?? def.message;
-            const createConfig: FormValidatorCreateConfig = {
-              ...validatorConfigItem?.config ?? {},
-              class: validatorClass,
-              message: message,
-            };
+  /**
+   * Create form validator instances from the validator definition mapping.
+   * @param defMap The validator definition mapping.
+   * @param config The form validator config blocks.
+   */
+  public createFormValidatorInstancesFromMapping(
+    defMap: Map<string, FormValidatorDefinition>,
+    config: FormValidatorConfig[] | null | undefined,
+  ): FormValidatorFns {
+    const result: FormValidatorFns = { syncDefs: [], asyncDefs: [] };
+    for (const validatorConfigItem of (config ?? [])) {
+      const validatorClass = validatorConfigItem?.class;
+      const def = defMap.get(validatorClass);
+      if (!def) {
+        throw new Error(`No validator definition with class '${validatorClass}', `
+          + `the available validators are: '${Array.from(defMap.keys()).sort().join(", ")}'.`);
+      }
+      const message = validatorConfigItem?.message ?? def.message;
+      const createConfig: FormValidatorCreateConfig = {
+        ...validatorConfigItem?.config ?? {},
+        class: validatorClass,
+        message: message,
+      };
 
-            if ('create' in def) {
-              result.syncDefs.push(def.create(createConfig));
-            } else if ('createAsync' in def) {
-              result.asyncDefs.push(def.createAsync(createConfig));
-            }
-        }
-        return result;
+      if ('create' in def) {
+        result.syncDefs.push(def.create(createConfig));
+      } else if ('createAsync' in def) {
+        result.asyncDefs.push(def.createAsync(createConfig));
+      } else {
+        throw new Error(`Validator definition '${validatorClass}' does not provide a create or createAsync factory.`);
+      }
     }
+    return result;
+  }
 
-    /**
-     * Get the form validator errors for a component's control.
-     * @param errors The control's errors.
-     */
-    public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
-        return Object.entries(errors ?? {}).map(([key, item]) => ({
-                class: key,
-                message: item.message ?? null,
-                params: {...item.params},
-            })) ?? [];
-    }
+  /**
+   * Get the form validator errors for a component's control.
+   * @param errors The control's errors.
+   */
+  public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
+    return Object.entries(errors ?? {}).map(([key, item]) => ({
+      class: key,
+      message: item.message ?? null,
+      params: { ...item.params },
+    })) ?? [];
+  }
 
   public checkValidationGroups(availableGroups: FormValidationGroups, enabledGroupNames: string[]) {
     const availableGroupNames = Object.keys(availableGroups);

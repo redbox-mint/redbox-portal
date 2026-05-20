@@ -109,7 +109,7 @@ describe('ContextVariablesFormConfigVisitor', () => {
     const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
     const visitor = new ContextVariablesFormConfigVisitor(logger);
-    visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
+    await visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
 
     const content = constructed.componentDefinitions?.[0]?.component?.config as { content?: string };
     const inputComponent = constructed.componentDefinitions?.[1] as {

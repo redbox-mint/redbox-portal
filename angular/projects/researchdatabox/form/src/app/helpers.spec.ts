@@ -46,7 +46,7 @@ import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
 import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
-import {ApplicationRef, ComponentRef} from "@angular/core";
+import { ApplicationRef, ComponentRef } from "@angular/core";
 import isSpy = jasmine.isSpy;
 
 // provide to test the same way as provided to browser
@@ -277,7 +277,14 @@ export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
     }): Promise<DynamicScriptResponse> => {
       const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
 
-      const entries = opts?.entries ?? [];
+      const entries = opts?.entries?.length
+        ? opts.entries
+        : [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+          callable: (_keyStr: string) => {
+            throw new Error(`Unknown key: ${_keyStr}`);
+          }
+        }];
 
       for (const entry of entries) {
         if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {
@@ -295,6 +302,6 @@ export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
         };
       }
 
-      throw new Error(`Url key '${urlKey}' did not match any available keys ${entries?.map(i => i.urlKeyStart)}`);
+      throw new Error(`Url key '${urlKey}' did not match any available keys ${entries.map(i => i.urlKeyStart)}`);
     });
 }
