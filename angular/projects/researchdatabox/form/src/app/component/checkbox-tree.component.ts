@@ -702,6 +702,13 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       .subscribe(() => this.syncSelectionFromModel());
   }
 
+  // Invoked by the framework after expression-driven model.value updates,
+  // which use emitEvent:false and therefore bypass the valueChanges subscription.
+  public async syncDisplayFromModel(): Promise<void> {
+    this.syncSelectionFromModel();
+    await this.expandToSelectedNodes();
+  }
+
   private describeLoadError(error: unknown): string {
     return (error as Error)?.message || "Unable to load vocabulary tree.";
   }
