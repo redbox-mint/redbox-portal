@@ -27,7 +27,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("AttachmentFieldsVisitor", () => {
-    it("should identify top-level FileUpload component", () => {
+    it("should identify top-level FileUpload component", async () => {
         const formConfig = new FormConfig();
         const fileUpload = new FileUploadFormComponentDefinition();
         fileUpload.name = "fileUpload1";
@@ -36,13 +36,13 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [fileUpload];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUpload1");
         expect(formConfig.attachmentFields?.length).to.equal(1);
     });
 
-    it("should identify nested FileUpload component in Group", () => {
+    it("should identify nested FileUpload component in Group", async () => {
         const formConfig = new FormConfig();
         const group = new GroupFormComponentDefinition();
         group.name = "group1";
@@ -58,13 +58,13 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [group];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInGroup");
         expect(formConfig.attachmentFields?.length).to.equal(1);
     });
 
-    it("should identify nested FileUpload component in Tab", () => {
+    it("should identify nested FileUpload component in Tab", async () => {
         const formConfig = new FormConfig();
         const tab = new TabFormComponentDefinition();
         tab.name = "tab1";
@@ -86,13 +86,13 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [tab];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInTab");
         expect(formConfig.attachmentFields?.length).to.equal(1);
     });
 
-    it("should identify FileUpload component in Repeatable elementTemplate", () => {
+    it("should identify FileUpload component in Repeatable elementTemplate", async () => {
         const formConfig = new FormConfig();
         const repeatable = new RepeatableFormComponentDefinition();
         repeatable.name = "repeatable1";
@@ -108,13 +108,13 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [repeatable];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInRepeatable");
         expect(formConfig.attachmentFields?.length).to.equal(1);
     });
 
-    it("should identify multiple FileUpload components", () => {
+    it("should identify multiple FileUpload components", async () => {
         const formConfig = new FormConfig();
 
         const fileUpload1 = new FileUploadFormComponentDefinition();
@@ -137,25 +137,25 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [fileUpload1, group];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUpload1");
         expect(formConfig.attachmentFields).to.include("fileUpload2");
         expect(formConfig.attachmentFields?.length).to.equal(2);
     });
 
-    it("should initialize attachmentFields as empty array if no attachments found", () => {
+    it("should initialize attachmentFields as empty array if no attachments found", async () => {
         const formConfig = new FormConfig();
         formConfig.componentDefinitions = [];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.be.an("array");
         expect(formConfig.attachmentFields?.length).to.equal(0);
     });
 
-    it("should identify top-level DataLocation component", () => {
+    it("should identify top-level DataLocation component", async () => {
         const formConfig = new FormConfig();
         const dataLocation = new DataLocationFormComponentDefinition();
         dataLocation.name = "dataLocations";
@@ -164,7 +164,7 @@ describe("AttachmentFieldsVisitor", () => {
         formConfig.componentDefinitions = [dataLocation];
 
         const visitor = new AttachmentFieldsVisitor(logger);
-        visitor.start(formConfig);
+        await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("dataLocations");
         expect(formConfig.attachmentFields?.length).to.equal(1);

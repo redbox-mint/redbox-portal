@@ -229,24 +229,24 @@ describe("Data Value Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: args,
               formMode:"edit",
               reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new DataValueFormConfigVisitor(logger);
-            const actual = visitor.start({form: constructed});
+            const actual = await visitor.start({form: constructed});
             expect(actual).to.eql(expected);
 
             // Confirm that using an empty record gives empty data value result
             const constructorEmpty = new ConstructFormConfigVisitor(logger);
-            const constructedEmpty = constructorEmpty.start({
+            const constructedEmpty = await constructorEmpty.start({
               data: args, formMode:"edit", record: {}, reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitorEmpty = new DataValueFormConfigVisitor(logger);
-            const actualEmpty = visitorEmpty.start({form: constructedEmpty});
+            const actualEmpty = await visitorEmpty.start({form: constructedEmpty});
             expect(actualEmpty).to.eql({});
 
         });

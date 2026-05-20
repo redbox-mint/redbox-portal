@@ -128,7 +128,7 @@ export namespace Services {
             const clientFormConfig = await FormsService.buildClientFormConfig(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs);
 
             // merge the original and changed records using the client form config to know which changes to include
-            return this.mergeRecordClientFormConfig(original as unknown as BasicRedboxRecord, changed, clientFormConfig, formMode, reusableFormDefs);
+            return await this.mergeRecordClientFormConfig(original as unknown as BasicRedboxRecord, changed, clientFormConfig, formMode, reusableFormDefs);
         }
 
         /**
@@ -149,15 +149,15 @@ export namespace Services {
          * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
-        public mergeRecordClientFormConfig(
+        public async mergeRecordClientFormConfig(
             original: BasicRedboxRecord,
             changed: BasicRedboxRecord,
             clientFormConfig: FormConfigFrame,
             formMode: FormModesConfig,
             reusableFormDefs?: ReusableFormDefinitions
-        ): BasicRedboxRecord {
+        ): Promise<BasicRedboxRecord> {
             const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
+            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
             const originalMetadata = original?.metadata ?? {};
             const changedMetadata = changed?.metadata ?? {};
             const changes = this.compareRecords(original, changed);

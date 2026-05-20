@@ -1,7 +1,7 @@
-import {jsonataCompile, jsonataCompileAndEvaluate, jsonataEvaluate, jsonataEvaluateFunc} from "../../src";
+import { jsonataCompile, jsonataCompileAndEvaluate, jsonataEvaluate, jsonataEvaluateFunc } from "../../src";
 
 
-describe('JSONata helpers', async function () {
+describe('JSONata helpers', function () {
   let expect: Chai.ExpectStatic;
 
   before(async function () {
@@ -13,7 +13,7 @@ describe('JSONata helpers', async function () {
     if ('message' in (error as Record<string, unknown>) && expected instanceof Error) {
       expect((error as Record<string, unknown>).message).to.eql(expected.message);
     } else {
-      expect.fail(`Threw unexpected error ${JSON.stringify({error, type: typeof error})}`);
+      expect.fail(`Threw unexpected error ${JSON.stringify({ error, type: typeof error })}`);
     }
   }
 
@@ -21,7 +21,7 @@ describe('JSONata helpers', async function () {
     {
       args: {
         expression: "$sum(example.value)",
-        input: {example: [{value: 4}, {value: 7}, {value: 13}]},
+        input: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] },
         bindings: undefined,
       },
       expected: 24,
@@ -30,14 +30,14 @@ describe('JSONata helpers', async function () {
       args: {
         expression: "$a + $b()",
         input: {},
-        bindings: {a: 4, b: () => 78},
+        bindings: { a: 4, b: () => 78 },
       },
       expected: 82,
     },
     {
       args: {
         expression: '$.name',
-        input: {name: 'testing'},
+        input: { name: 'testing' },
         bindings: undefined,
       },
       expected: "testing",
@@ -45,13 +45,13 @@ describe('JSONata helpers', async function () {
     {
       args: {
         expression: '{{{{invalid',
-        input: {name: 'testing'},
+        input: { name: 'testing' },
         bindings: undefined,
       },
       expected: new Error('Expected ":" before end of expression'),
     },
   ];
-  cases.forEach(({args, expected}) => {
+  cases.forEach(({ args, expected }) => {
     it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
       try {
         const compiled = jsonataCompile(args.expression);
@@ -81,5 +81,3 @@ describe('JSONata helpers', async function () {
     });
   });
 });
-
-

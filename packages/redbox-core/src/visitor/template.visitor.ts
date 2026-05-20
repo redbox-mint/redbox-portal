@@ -1,4 +1,4 @@
-import {FormConfigVisitor, FormValidatorConfig} from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor, FormValidatorConfig } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import {
@@ -193,18 +193,18 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     await this.extractExpressions(item.expressions);
     await this.extractBehaviours(item.behaviours);
     await this.extractValidators(item.validators);
-    (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   /* SimpleInput */
 
-  async visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {}
+  async visitSimpleInputFieldComponentDefinition(_item: SimpleInputFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -236,7 +236,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     const componentDefinition = item.config?.elementTemplate;
     if (componentDefinition) {
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition)
       );
@@ -247,7 +247,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
     await this.extractValidators(item.config?.validators);
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -255,19 +255,19 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {}
+  async visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {}
+  async visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 
-  async visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {}
+  async visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -276,13 +276,13 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   /* Group */
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -296,16 +296,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   /* Tab  */
 
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.tabs ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
-  async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -314,30 +314,30 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   /* Accordion */
 
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.panels ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
-  async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
-  async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -346,16 +346,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   /*  Tab Content */
 
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
-  async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -363,7 +363,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Save Button  */
 
-  async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {}
+  async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -371,7 +371,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Cancel Button  */
 
-  async visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {}
+  async visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -394,7 +394,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Tab Nav Button  */
 
-  async visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {}
+  async visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -402,7 +402,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Text Area */
 
-  async visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): Promise<void> {}
+  async visitTextAreaFieldComponentDefinition(_item: TextAreaFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -414,11 +414,11 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Default Layout  */
 
-  async visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): Promise<void> {}
+  async visitDefaultFieldLayoutDefinition(_item: DefaultFieldLayoutDefinitionOutline): Promise<void> { }
 
   /* Checkbox Input */
 
-  async visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {}
+  async visitCheckboxInputFieldComponentDefinition(_item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -451,7 +451,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {}
+  async visitRecordSelectorFieldComponentDefinition(_item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -463,7 +463,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Dropdown Input */
 
-  async visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {}
+  async visitDropdownInputFieldComponentDefinition(_item: DropdownInputFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -496,7 +496,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {}
+  async visitRichTextEditorFieldComponentDefinition(_item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -508,7 +508,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Map */
 
-  async visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): Promise<void> {}
+  async visitMapFieldComponentDefinition(_item: MapFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -520,7 +520,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* File Upload */
 
-  async visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): Promise<void> {}
+  async visitFileUploadFieldComponentDefinition(_item: FileUploadFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -551,7 +551,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   async visitRecordMetadataRetrieverFieldComponentDefinition(
     _item: RecordMetadataRetrieverFieldComponentDefinitionOutline
-  ): Promise<void> {}
+  ): Promise<void> { }
 
   async visitRecordMetadataRetrieverFormComponentDefinition(
     item: RecordMetadataRetrieverFormComponentDefinitionOutline
@@ -561,7 +561,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Data Location */
 
-  async visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): Promise<void> {}
+  async visitDataLocationFieldComponentDefinition(_item: DataLocationFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -574,7 +574,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   // The refresh trigger has no template-bearing fields of its own.
   async visitPublishDataLocationRefreshFieldComponentDefinition(
     _item: PublishDataLocationRefreshFieldComponentDefinitionOutline
-  ): Promise<void> {}
+  ): Promise<void> { }
 
   async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
@@ -584,7 +584,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   async visitPublishDataLocationSelectorFieldComponentDefinition(
     _item: PublishDataLocationSelectorFieldComponentDefinitionOutline
-  ): Promise<void> {}
+  ): Promise<void> { }
 
   async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -598,7 +598,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Radio Input */
 
-  async visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): Promise<void> {}
+  async visitRadioInputFieldComponentDefinition(_item: RadioInputFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -610,7 +610,7 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Date Input */
 
-  async visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): Promise<void> {}
+  async visitDateInputFieldComponentDefinition(_item: DateInputFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
@@ -623,12 +623,12 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   /* Question Tree */
 
   async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
@@ -757,13 +757,24 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
       if (validator.class === "jsonata-expression") {
         const value = validator.config?.expression?.toString() ?? "";
         if (value) {
+          const parentKey = this.normalizeValidatorTemplateParentKey(this.formPathHelper.formPath.formConfig ?? []);
+          const key = parentKey.length > 0
+            ? [...parentKey, 'config', 'validators', index.toString(), 'config', 'expression']
+            : ['validators', index.toString(), 'config', 'expression'];
           this.templates?.push({
-            key: ['validators', index, "config", "expression"],
+            key,
             value: value,
             kind: 'jsonata',
           });
         }
       }
     });
+  }
+
+  private normalizeValidatorTemplateParentKey(path: Array<string | number>): Array<string | number> {
+    if (path[0] === 'formConfig') {
+      return path.slice(1);
+    }
+    return path;
   }
 }

@@ -199,14 +199,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Form Config */
 
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
-    (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
         ['properties']
       );
-    });
+    }
   }
 
   /* SimpleInput */
@@ -277,14 +277,14 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Group */
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
         ['properties']
       );
-    });
+    }
   }
 
   async visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -300,13 +300,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Tab  */
 
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.tabs ?? []).entries()) {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> { }
@@ -318,12 +318,12 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Accordion */
 
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.acceptJsonTypeDefPath(
+    for (const [index, componentDefinition] of (item.config?.panels ?? []).entries()) {
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> { }
@@ -333,12 +333,12 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.acceptJsonTypeDefPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> { }
@@ -350,13 +350,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /*  Tab Content */
 
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.acceptJsonTypeDefPath(
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> { }
@@ -625,13 +625,13 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   /* Question Tree */
 
   async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.acceptJsonTypeDefPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.acceptJsonTypeDefPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index),
         ['properties']
       );
-    });
+    }
   }
 
   async visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
@@ -686,7 +686,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     const originalPath = [...this.jsonTypeDefPath];
     try {
       this.jsonTypeDefPath = [...originalPath, ...(jsonTypeDefPathKeys ?? [])];
-      this.formPathHelper.acceptFormPath(item, more);
+      await this.formPathHelper.acceptFormPath(item, more);
     } finally {
       this.jsonTypeDefPath = originalPath;
     }

@@ -186,18 +186,18 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /* Form Config */
 
     async visitFormConfig(item: FormConfigOutline): Promise<void> {
-        (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        for (const [index, componentDefinition] of (item?.componentDefinitions ?? []).entries()) {
             // Visit children
-            this.formPathHelper.acceptFormPath(
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index),
             );
-        });
+        }
 
         // Run form-level validators using the full form data model.
         // There are various reasons a validator is at form level, e.g. they involve more than one field.
         const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
-        const value = dataValueVisitor.start({ form: item });
+        const value = await dataValueVisitor.start({ form: item });
         const itemName = item?.name ?? "";
         this.validationErrors.push(...await this.validateFormComponent(itemName, value, item?.validators));
     }
@@ -264,13 +264,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /* Group */
 
     async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
             // Visit children
-            this.formPathHelper.acceptFormPath(
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index),
             );
-        });
+        }
     }
 
     async visitGroupFieldModelDefinition(_item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -283,13 +283,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /* Tab  */
 
     async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+        for (const [index, componentDefinition] of (item.config?.tabs ?? []).entries()) {
             // Visit children
-            this.formPathHelper.acceptFormPath(
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index),
             );
-        });
+        }
     }
 
     async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> {
@@ -302,12 +302,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /* Accordion */
 
     async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-            this.formPathHelper.acceptFormPath(
+        for (const [index, componentDefinition] of (item.config?.panels ?? []).entries()) {
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
             );
-        });
+        }
     }
 
     async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
@@ -318,12 +318,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            this.formPathHelper.acceptFormPath(
+        for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
             );
-        });
+        }
     }
 
     async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {
@@ -336,13 +336,13 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /*  Tab Content */
 
     async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+        for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
             // Visit children
-            this.formPathHelper.acceptFormPath(
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index),
             );
-        });
+        }
     }
 
     async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
@@ -418,12 +418,12 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     /* Question Tree */
 
     async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
-        (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-            this.formPathHelper.acceptFormPath(
+        for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+            await this.formPathHelper.acceptFormPath(
                 componentDefinition,
                 this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
             );
-        });
+        }
     }
 
     async visitQuestionTreeFieldModelDefinition(_item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {

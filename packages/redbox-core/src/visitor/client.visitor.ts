@@ -394,15 +394,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     this.removePropsUndefined(item);
     const items: AvailableFormComponentDefinitionOutlines[] = [];
-    const that = this;
-    (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.componentDefinitions ?? []).entries()) {
       items.push(componentDefinition);
       // Visit children
-      that.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
-        that.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
+        this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
       );
-    });
+    }
     item.componentDefinitions = items.filter(i => this.hasObjectProps(i));
 
     // if there are no components, this is an invalid form
@@ -423,7 +422,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -434,7 +433,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -445,7 +444,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     const componentDefinition = item?.config?.elementTemplate;
     if (componentDefinition) {
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(componentDefinition)
       );
@@ -461,7 +460,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     // if the element template is empty, this is an invalid component
@@ -484,7 +483,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -493,7 +492,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -502,7 +501,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -512,14 +511,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFieldComponentDefinition(item);
 
     const items: AvailableFormComponentDefinitionOutlines[] = [];
-    const that = this;
-    (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.config?.componentDefinitions ?? []).entries()) {
       items.push(componentDefinition);
-      that.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
     if (item.config) {
       item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
     }
@@ -530,7 +528,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     // if there are no components, this is an invalid component
@@ -545,13 +543,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     this.processFieldComponentDefinition(item);
 
-    (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.tabs ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
@@ -559,7 +557,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     // if there are no tabs, this is an invalid component
@@ -574,12 +572,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
     this.processFieldComponentDefinition(item);
 
-    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.panels ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
@@ -587,7 +585,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     if ((item.component?.config?.panels ?? [])?.length === 0) {
@@ -599,13 +597,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFieldComponentDefinition(item);
 
     const items: AvailableFormComponentDefinitionOutlines[] = [];
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       items.push(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
     if (item.config) {
       item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
     }
@@ -616,7 +614,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     if ((item.component?.config?.componentDefinitions ?? []).length === 0) {
@@ -630,14 +628,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFieldComponentDefinition(item);
 
     const items: AvailableFormComponentDefinitionOutlines[] = [];
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       items.push(componentDefinition);
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
     if (item.config) {
       item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
     }
@@ -648,7 +646,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     // if there are no components, this is an invalid component
@@ -665,7 +663,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -676,7 +674,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -685,7 +683,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -696,7 +694,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -711,7 +709,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -732,7 +730,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -747,7 +745,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -762,7 +760,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -777,7 +775,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -792,7 +790,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -807,7 +805,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -822,7 +820,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -837,7 +835,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -852,7 +850,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -867,7 +865,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   async visitRecordMetadataRetrieverFormComponentDefinition(
     item: RecordMetadataRetrieverFormComponentDefinitionOutline
   ): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -882,7 +880,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -897,7 +895,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
   ): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -916,7 +914,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   async visitPublishDataLocationSelectorFormComponentDefinition(
     item: PublishDataLocationSelectorFormComponentDefinitionOutline
   ): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -931,7 +929,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -946,7 +944,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
@@ -956,13 +954,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFieldComponentDefinition(item);
 
     const items: AvailableFormComponentDefinitionOutlines[] = [];
-    (item?.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.config?.componentDefinitions ?? []).entries()) {
       items.push(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
     if (item.config) {
       item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
     }
@@ -973,7 +971,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
-    this.acceptCheckConstraintsCurrentPath(item);
+    await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
 
     if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
@@ -999,17 +997,20 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // Expressions must be compiled on the server, then retrieved by the client.
     // The raw expressions must not be available to the client.
     if ('expressions' in item) {
-      // Loop through the expressions and remove `template` if defined and set the `hasTemplate` flag
-      item.expressions?.forEach(expr => {
-        expr.config.hasTemplate = 'template' in expr?.config && expr.config?.template !== undefined && expr.config?.template !== null;
-        this.removePropsUndefined(expr);
-        this.removePropsUndefined(expr.config);
-      });
+      this.processFormComponentExpressions(item);
       if (item.expressions?.length === 0) {
         delete item['expressions'];
       }
     }
     this.removePropsUndefined(item);
+  }
+
+  protected processFormComponentExpressions(item: Pick<FormComponentDefinitionOutline, 'expressions'>) {
+    item.expressions?.forEach(expr => {
+      expr.config.hasTemplate = expr.config?.template !== undefined && expr.config?.template !== null;
+      this.removePropsUndefined(expr);
+      this.removePropsUndefined(expr.config);
+    });
   }
 
   protected processFieldComponentDefinition(item: FieldComponentDefinitionOutline) {

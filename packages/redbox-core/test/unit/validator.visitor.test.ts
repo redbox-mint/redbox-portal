@@ -102,10 +102,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["minimumCreate", "minimumUpdate"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -197,10 +197,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["transitionDraftToSubmitted"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -275,10 +275,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit", record });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit", record });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
@@ -437,12 +437,12 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
           data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitions
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
@@ -452,7 +452,7 @@ describe("Validator Visitor", async () => {
 
     it("should report typeahead configuration errors for unsupported/invalid config", async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: {
                 name: "typeahead-validator",
                 componentDefinitions: [
@@ -474,7 +474,7 @@ describe("Validator Visitor", async () => {
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -486,7 +486,7 @@ describe("Validator Visitor", async () => {
 
     it("should report external typeahead provider requirement", async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: {
                 name: "typeahead-external-validator",
                 componentDefinitions: [
@@ -507,7 +507,7 @@ describe("Validator Visitor", async () => {
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -518,7 +518,7 @@ describe("Validator Visitor", async () => {
 
     it("should report service typeahead serviceId requirement", async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: {
                 name: "typeahead-service-validator",
                 componentDefinitions: [
@@ -539,7 +539,7 @@ describe("Validator Visitor", async () => {
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -590,7 +590,7 @@ describe("Validator Visitor", async () => {
             const constructor = new ConstructFormConfigVisitor(logger);
             let constructed;
             try {
-                constructed = constructor.start({
+                constructed = await constructor.start({
                   data: formConfig, formMode: "edit",
                   reusableFormDefs: reusableFormDefinitions,
                 });
@@ -605,7 +605,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -637,7 +637,7 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: formConfig, formMode: "edit",
               reusableFormDefs: reusableFormDefinitions,
             });
@@ -647,7 +647,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -678,7 +678,7 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: formConfig, formMode: "edit",
               reusableFormDefs: reusableFormDefinitions,
             });
@@ -687,7 +687,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -747,7 +747,7 @@ describe("Validator Visitor", async () => {
           errors: [
             {
               message: "@validator-error-jsonata-expression",
-              class: "jsonata-expressions",
+              class: "jsonata-expression",
               params: {
                 actual: "hello world 2!",
                 description: "the description",
@@ -777,10 +777,10 @@ describe("Validator Visitor", async () => {
       ];
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+      const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
 
       const visitor = new ValidatorFormConfigVisitor(logger);
-      const actual = visitor.start({
+      const actual = await visitor.start({
         form: constructed,
         enabledValidationGroups: ["all"],
         validatorDefinitions: formValidatorsSharedDefinitions

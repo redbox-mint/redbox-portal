@@ -1256,10 +1256,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((field, index) => {
+    for (const [index, field] of fields.entries()) {
       const v4FormPathMore = ['definition', 'fields', index.toString()];
       if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
-        return;
+        continue;
       }
 
       // TODO: Does this approach to mapping the tab content component lose data?
@@ -1276,7 +1276,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         )
       ) {
         // Visit children
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           formComponent,
           this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index),
           v4FormPathMore
@@ -1285,7 +1285,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Store the instance on the item
         config.tabs.push(formComponent);
       }
-    });
+    }
   }
 
   async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
@@ -2313,7 +2313,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const original = [...(this.v4FormPath ?? [])];
     try {
       this.v4FormPath = [...original, ...(v4FormPath ?? [])];
-      this.formPathHelper.acceptFormPath(item, more);
+      await this.formPathHelper.acceptFormPath(item, more);
     } finally {
       this.v4FormPath = original;
     }

@@ -493,19 +493,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    currentData.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of currentData.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
 
       // Visit children
       const testing = this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index);
-      this.formPathHelper.acceptFormPath(formComponent, testing);
+      await this.formPathHelper.acceptFormPath(formComponent, testing);
 
       // After the construction is done, apply any transforms
       const itemTransformed = this.applyConstructPhaseTransform(formComponent);
 
       // Store the instance on the item
       item.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   /* SimpleInput */
@@ -547,7 +547,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Content */
@@ -575,7 +575,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     // TODO: does the content component require the data model?
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Repeatable  */
@@ -640,7 +640,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const formComponent = this.constructFormComponent(frame.elementTemplate);
 
     // Continue the construction
-    this.formPathHelper.acceptFormPath(
+    await this.formPathHelper.acceptFormPath(
       formComponent,
       this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
     );
@@ -694,7 +694,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Validation Summary */
@@ -723,7 +723,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
@@ -750,7 +750,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Save Status */
@@ -770,7 +770,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Group */
@@ -796,11 +796,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    frame.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of frame.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
 
       // Continue the construction
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index)
       );
@@ -810,7 +810,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -831,7 +831,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Tab  */
@@ -865,7 +865,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     frame.tabs = tabs;
 
     // Visit the components
-    frame?.tabs.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (frame?.tabs ?? []).entries()) {
       if (
         isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(
           componentDefinition,
@@ -875,7 +875,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const formComponent = this.constructFormComponent(componentDefinition);
 
         // Continue the construction
-        this.formPathHelper.acceptFormPath(
+        await this.formPathHelper.acceptFormPath(
           formComponent,
           this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index)
         );
@@ -889,7 +889,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Store the instance on the item
         item.config?.tabs.push(itemTransformed);
       }
-    });
+    }
   }
 
   async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
@@ -917,7 +917,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Accordion */
@@ -954,7 +954,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
     frame.panels = panels;
 
-    frame.panels.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of frame.panels.entries()) {
       if (
         isTypeFormComponentDefinitionName<AccordionPanelFormComponentDefinitionFrame>(
           componentDefinition,
@@ -962,7 +962,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         )
       ) {
         const formComponent = this.constructFormComponent(componentDefinition);
-        this.formPathHelper.acceptFormPath(
+        await this.formPathHelper.acceptFormPath(
           formComponent,
           this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(formComponent, index)
         );
@@ -973,7 +973,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         item.config?.panels.push(itemTransformed);
       }
-    });
+    }
   }
 
   async visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
@@ -990,7 +990,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
@@ -1012,16 +1012,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.reusableFormDefs
     );
 
-    config.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of config.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(formComponent, index)
       );
 
       const itemTransformed = this.applyConstructPhaseTransform(formComponent);
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   async visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {
@@ -1039,7 +1039,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Tab Content */
@@ -1067,7 +1067,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    config?.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (config?.componentDefinitions ?? []).entries()) {
       let formComponent: AllFormComponentDefinitionOutlines;
       try {
         formComponent = this.constructFormComponent(componentDefinition);
@@ -1079,7 +1079,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       }
 
       // Continue the construction
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, index)
       );
@@ -1089,7 +1089,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
@@ -1111,7 +1111,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Save Button  */
@@ -1138,7 +1138,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Cancel Button  */
@@ -1166,7 +1166,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Delete Button  */
@@ -1195,7 +1195,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Tab Nav Button  */
@@ -1222,7 +1222,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Text Area */
@@ -1265,7 +1265,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Rich Text Editor */
@@ -1308,7 +1308,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
     await this.ensureRichTextViewOverride(item);
   }
 
@@ -1354,7 +1354,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* File Upload */
@@ -1396,7 +1396,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* PDF List */
@@ -1443,7 +1443,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Record Metadata Retriever */
@@ -1470,7 +1470,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   async visitRecordMetadataRetrieverFormComponentDefinition(
     item: RecordMetadataRetrieverFormComponentDefinitionOutline
   ): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Data Location */
@@ -1531,7 +1531,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   // Construct the refresh trigger as a pure component definition. The click
@@ -1558,7 +1558,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
   ): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   async visitPublishDataLocationSelectorFieldComponentDefinition(
@@ -1622,7 +1622,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   async visitPublishDataLocationSelectorFormComponentDefinition(
     item: PublishDataLocationSelectorFormComponentDefinitionOutline
   ): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Default Layout  */
@@ -1717,7 +1717,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Checkbox Tree */
@@ -1764,7 +1764,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Record Selector */
@@ -1805,7 +1805,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Dropdown Input */
@@ -1852,7 +1852,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Typeahead Input */
@@ -1939,7 +1939,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Radio Input */
@@ -1983,7 +1983,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Date Input */
@@ -2029,7 +2029,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Question Tree */
@@ -2061,9 +2061,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
     );
 
-    configFrame.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of configFrame.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index)
       );
@@ -2076,7 +2076,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
@@ -2093,7 +2093,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Shared */

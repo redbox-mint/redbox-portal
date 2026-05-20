@@ -61,41 +61,41 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
-    item.componentDefinitions?.forEach(component => {
-      component.accept(this);
-    });
+    for (const component of item.componentDefinitions ?? []) {
+      await component.accept(this);
+    }
   }
 
   async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
@@ -103,7 +103,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
@@ -124,7 +124,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
-    item.model?.accept(this);
+    await item.model?.accept(this);
   }
 
   async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -173,23 +173,33 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     }
   }
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.tabs?.forEach(tab => tab.accept(this));
+    for (const tab of item.config?.tabs ?? []) {
+      await tab.accept(this);
+    }
   }
 
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.panels?.forEach(panel => panel.accept(this));
+    for (const panel of item.config?.panels ?? []) {
+      await panel.accept(this);
+    }
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {

@@ -74,9 +74,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
-    item.componentDefinitions.forEach((component) => {
-      component.accept(this);
-    });
+    for (const component of item.componentDefinitions) {
+      await component.accept(this);
+    }
   }
 
   async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
@@ -100,7 +100,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
@@ -108,7 +110,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.tabs?.forEach((tab) => tab.accept(this));
+    for (const tab of item.config?.tabs ?? []) {
+      await tab.accept(this);
+    }
   }
 
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
@@ -116,7 +120,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.panels?.forEach((panel) => panel.accept(this));
+    for (const panel of item.config?.panels ?? []) {
+      await panel.accept(this);
+    }
   }
 
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
@@ -124,7 +130,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
@@ -132,7 +140,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
@@ -140,7 +150,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
-    item.config?.elementTemplate?.accept(this);
+    await item.config?.elementTemplate?.accept(this);
   }
 
   private async enqueueIfInlineVocab(
@@ -227,7 +237,11 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     componentConfig: ComponentConfigWithInlineVocab,
     treeMode: boolean
   ): Promise<VocabularyEntryAttributes[]> {
-    return entries.filter(async (entry) => {
+    const selectedValues = treeMode
+      ? await this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
+      : await this.selectedValuesFromModelValue(definition?.model?.config?.value);
+
+    return entries.filter((entry) => {
       if (!this.isHistorical(entry)) {
         return true;
       }
@@ -237,10 +251,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       if (this.shouldDisableHistoricalEntry(entry, componentConfig)) {
         return true;
       }
-
-      const selectedValues = treeMode
-        ? await this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
-        : await this.selectedValuesFromModelValue(definition?.model?.config?.value);
       return this.entryMatchesSelectedValue(entry, selectedValues, treeMode);
     });
   }

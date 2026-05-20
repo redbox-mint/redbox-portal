@@ -38,7 +38,7 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     async visitFormConfig(item: FormConfigOutline): Promise<void> {
         // Visit all components
         for (const component of item.componentDefinitions) {
-          await component.accept(this);
+            await component.accept(this);
         }
         // Populate the attachmentFields property
         item.attachmentFields = this.attachmentFields;
@@ -70,7 +70,9 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-        item.config?.componentDefinitions?.forEach(def => def.accept(this));
+        for (const def of item.config?.componentDefinitions ?? []) {
+            await def.accept(this);
+        }
     }
 
     // Tab
@@ -79,7 +81,9 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-        item.config?.tabs?.forEach(tab => tab.accept(this));
+        for (const tab of item.config?.tabs ?? []) {
+            await tab.accept(this);
+        }
     }
 
     // Accordion
@@ -88,7 +92,9 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-        item.config?.panels?.forEach(panel => panel.accept(this));
+        for (const panel of item.config?.panels ?? []) {
+            await panel.accept(this);
+        }
     }
 
     // Accordion Panel
@@ -97,7 +103,9 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-        item.config?.componentDefinitions?.forEach(def => def.accept(this));
+        for (const def of item.config?.componentDefinitions ?? []) {
+            await def.accept(this);
+        }
     }
 
     // Tab Content
@@ -106,9 +114,9 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-      for (const def of item.config?.componentDefinitions ?? []) {
-        await def.accept(this)
-      }
+        for (const def of item.config?.componentDefinitions ?? []) {
+            await def.accept(this);
+        }
     }
 
     // Repeatable
