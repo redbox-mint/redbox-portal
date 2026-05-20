@@ -1600,7 +1600,6 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('noLocationsAvailableTitle', item.config, config);
     this.sharedProps.setPropOverride('noLocationsAvailableBody', item.config, config);
     this.sharedProps.setPropOverride('selectionSummaryTemplate', item.config, config);
-    this.sharedProps.setPropOverride('subheading', item.config, config);
     this.sharedProps.setPropOverride('publicCheck', item.config, config);
     this.sharedProps.setPropOverride('selectionCriteria', item.config, config);
     this.sharedProps.setPropOverride('dataTypes', item.config, config);

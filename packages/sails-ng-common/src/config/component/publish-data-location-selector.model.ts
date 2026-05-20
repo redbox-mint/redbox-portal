@@ -42,7 +42,6 @@ export class PublishDataLocationSelectorFieldComponentConfig
   noLocationsAvailableTitle = "No data locations available";
   noLocationsAvailableBody = "";
   selectionSummaryTemplate = "{{selected}} of {{total}} locations selected for publication";
-  subheading = "Available data locations";
   headerActions = [];
   publicCheck = "public";
   selectionCriteria: Record<string, string>[] = [{ isc: "public", type: "attachment" }];

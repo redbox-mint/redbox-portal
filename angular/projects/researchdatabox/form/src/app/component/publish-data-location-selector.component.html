@@ -97,7 +97,9 @@
   } @else if (shouldShowMetadataOnlyBanner()) {
     <div class="alert alert-info mt-2" role="status">
       <strong>{{ metadataOnlyTitle | i18next }}</strong>
-      <p class="mb-0 mt-1">{{ metadataOnlyBody | i18next }}</p>
+      @if (metadataOnlyBody) {
+        <p class="mb-0 mt-1">{{ metadataOnlyBody | i18next }}</p>
+      }
     </div>
   } @else {
     <div class="alert alert-success mt-2 py-2" role="status">

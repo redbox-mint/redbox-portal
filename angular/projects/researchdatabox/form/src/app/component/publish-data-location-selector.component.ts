@@ -166,13 +166,16 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   }
 
   public getSelectionSummary(): string {
-    const translated = String(this.translationService.t(this.selectionSummaryTemplate));
-    return translated
-      .replaceAll("{{selected}}", String(this.selectedCount))
-      .replaceAll("{{total}}", String(this.totalCount));
+    const translated = String(this.translationService.t(this.selectionSummaryTemplate, this.getSelectionSummaryParams()));
+    if (translated === this.selectionSummaryTemplate || translated.trim() === "") {
+      return this.selectionSummaryTemplate
+        .replaceAll("{{selected}}", String(this.selectedCount))
+        .replaceAll("{{total}}", String(this.totalCount));
+    }
+    return translated;
   }
 
-  public getSelectionSummaryParams(): SelectionSummaryParams {
+  private getSelectionSummaryParams(): SelectionSummaryParams {
     return {
       selected: this.selectedCount,
       total: this.totalCount,

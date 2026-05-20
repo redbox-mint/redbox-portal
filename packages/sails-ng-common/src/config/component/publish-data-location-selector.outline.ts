@@ -75,7 +75,6 @@ export interface PublishDataLocationSelectorFieldComponentConfigFrame extends Fi
   noLocationsAvailableTitle?: string;
   noLocationsAvailableBody?: string;
   selectionSummaryTemplate?: string;
-  subheading?: string;
   headerActions?: AvailableFormComponentDefinitionFrames[];
   publicCheck?: string;
   selectionCriteria?: PublishDataLocationSelectionCriterion[];
