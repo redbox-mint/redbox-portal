@@ -81,5 +81,3 @@ describe('JSONata helpers', async function () {
     });
   });
 });
-
-

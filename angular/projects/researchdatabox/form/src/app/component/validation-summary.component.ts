@@ -1,7 +1,8 @@
-import { Component, inject, Injector, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, Injector, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import { FormComponent } from "../form.component";
+import { TranslationService } from "@researchdatabox/portal-ng-common";
+import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
 import {
   FormValidatorComponentErrors,
@@ -15,14 +16,15 @@ import {
   ValidationSummaryComponentName,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
-import { createLineageFieldFocusRequestEvent } from '../form-state/events/form-component-event.types';
-import { FormService } from "../form.service";
+import { createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
+import { BehaviorSubject, merge } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 @Component({
   selector: 'redbox-validation-summary-field',
   template: `
-    @let validationList = (allValidationErrorsDisplay() | async) ?? [];
+    @let validationList = (validationErrorsDisplay$ | async) ?? [];
     @if (validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
@@ -121,7 +123,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  private readonly formService = inject(FormService);
+  private readonly translationService = inject(TranslationService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
+  private validationRefreshQueued = false;
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
     'select:not([disabled])',
@@ -131,8 +137,40 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
 
-  public async allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
-    return this.getFormComponent.getValidationErrors() ?? [];
+  public allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
+    return Promise.resolve(this.validationErrorsDisplay$.value);
+  }
+
+  protected override async initEventHandlers(): Promise<void> {
+    await super.initEventHandlers();
+    this.refreshValidationErrors();
+
+    const form = this.getFormComponent.form;
+    if (form) {
+      merge(form.valueChanges, form.statusChanges)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.queueValidationErrorsRefresh());
+    }
+
+    this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.queueValidationErrorsRefresh());
+  }
+
+  protected queueValidationErrorsRefresh(): void {
+    if (this.validationRefreshQueued) {
+      return;
+    }
+    this.validationRefreshQueued = true;
+    queueMicrotask(() => {
+      this.validationRefreshQueued = false;
+      this.refreshValidationErrors();
+    });
+  }
+
+  protected async refreshValidationErrors(): Promise<void> {
+    this.validationErrorsDisplay$.next(this.getFormComponent.getValidationErrors() ?? []);
+    this.changeDetectorRef.markForCheck();
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
@@ -384,7 +422,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   private translate(key: string): string {
-    return this.formService.translate(key);
+    const translated = this.translationService.t(key);
+    if (translated === undefined || translated === null || translated === '') {
+      return key;
+    }
+    return translated.toString();
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {

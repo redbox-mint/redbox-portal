@@ -202,13 +202,13 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   /* Form Config */
 
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
-    (item?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForFormConfigComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   /* SimpleInput */
@@ -220,7 +220,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Content */
@@ -228,7 +228,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitContentFieldComponentDefinition(_item: ContentFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Repeatable  */
@@ -246,7 +246,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitRepeatableElementFieldLayoutDefinition(_item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Validation Summary */
@@ -254,31 +254,31 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitValidationSummaryFieldComponentDefinition(_item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitSuggestedValidationSummaryFieldComponentDefinition(_item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitSaveStatusFieldComponentDefinition(_item: SaveStatusFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Group */
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
@@ -286,75 +286,75 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Tab  */
 
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.tabs ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.tabs ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitTabFieldLayoutDefinition(_item: TabFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Accordion */
 
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.panels ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.panels ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitAccordionFieldLayoutDefinition(_item: AccordionFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitAccordionPanelFieldLayoutDefinition(_item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /*  Tab Content */
 
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
       // Visit children
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitTabContentFieldLayoutDefinition(_item: TabContentFieldLayoutDefinitionOutline): Promise<void> { }
 
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Save Button  */
@@ -362,7 +362,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Cancel Button  */
@@ -370,13 +370,13 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitDeleteButtonFieldComponentDefinition(_item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Tab Nav Button  */
@@ -384,7 +384,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitTabNavButtonFieldComponentDefinition(_item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Text Area */
@@ -396,7 +396,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Default Layout  */
@@ -412,7 +412,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Checkbox Tree */
@@ -424,7 +424,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Record Selector */
@@ -436,7 +436,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Dropdown Input */
@@ -448,7 +448,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Typeahead Input */
@@ -460,7 +460,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Rich Text Editor */
@@ -472,7 +472,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Map */
@@ -484,7 +484,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* File Upload */
@@ -496,7 +496,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitPDFListFieldComponentDefinition(_item: PDFListFieldComponentDefinitionOutline): Promise<void> { }
@@ -506,13 +506,13 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitRecordMetadataRetrieverFieldComponentDefinition(_item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Data Location */
@@ -524,7 +524,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   // No stored field value exists for the refresh trigger, so the data-value
@@ -532,7 +532,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   async visitPublishDataLocationRefreshFieldComponentDefinition(_item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void> { }
 
   async visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   async visitPublishDataLocationSelectorFieldComponentDefinition(_item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> { }
@@ -542,7 +542,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Radio Input */
@@ -554,7 +554,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Date Input */
@@ -566,18 +566,18 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Question Tree */
 
   async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
-    (item.config?.componentDefinitions ?? []).forEach((componentDefinition, index) => {
-      this.formPathHelper.acceptFormPath(
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(
         componentDefinition,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(componentDefinition, index)
       );
-    });
+    }
   }
 
   async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
@@ -585,7 +585,7 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
-    this.acceptFormComponentDefinition(item);
+    await this.acceptFormComponentDefinition(item);
   }
 
   /* Shared */

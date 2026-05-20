@@ -26,6 +26,7 @@ import {
   model,
   OnDestroy,
   signal,
+  untracked,
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
@@ -388,8 +389,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
-    this.refreshTranslatedConfigDebugInfo(true);
-    this.refreshComponentDebugInfo();
+    if (this.shouldRefreshDebugSnapshots()) {
+      this.refreshTranslatedConfigDebugInfo(true);
+      this.refreshComponentDebugInfo();
+    }
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
@@ -449,9 +452,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize reactive effects
    */
   protected initEffects() {
-    // This is needed to update the debugging info when form status changes.
+    // Keep the expensive debug snapshots lazy. Large hook configs can make the
+    // initial render unusable if we deep-clone the full form tree while the
+    // panel is still collapsed.
     effect(() => {
-      this.getDebugInfo();
+      if (this.shouldRefreshDebugSnapshots()) {
+        untracked(() => this.refreshAllDebugInfo());
+      }
     });
 
     // Monitor async validation state and dispatch actions (R16.3, AC56)
@@ -525,6 +532,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['formDefinitionChangedDebugSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
       .subscribe(() => {
+        if (!this.shouldRefreshDebugSnapshots()) {
+          return;
+        }
         this.refreshTranslatedConfigDebugInfo(false);
         this.refreshComponentDebugInfo();
       });
@@ -582,6 +592,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
+        if (!this.shouldRefreshDebugSnapshots()) {
+          return;
+        }
         this.refreshAllDebugInfo({ captureModelPrevious: true });
       });
     }
@@ -798,10 +811,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private refreshAllDebugInfo(opts?: { captureModelPrevious?: boolean; resetConfigInitial?: boolean }) {
+    if (!this.shouldRefreshDebugSnapshots()) {
+      return;
+    }
     this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
     this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
     this.refreshComponentDebugInfo();
     this.debugState.setFormValueSnapshots(this.getDebugFormValue(), this.getDebugRawFormValue());
+  }
+
+  private shouldRefreshDebugSnapshots(): boolean {
+    return this.debugState.isDebugEnabled() && (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow());
   }
 
   private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {

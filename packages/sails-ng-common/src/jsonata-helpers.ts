@@ -8,7 +8,7 @@ export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
 /**
  * A function that registers a custom JSONata function.
  */
-export type JSONataRegisterFunction = (name: string, implementation: (this: jsonata.Focus, ...args: any[]) => any, signature?: string) => void;
+export type JSONataRegisterFunction = (name: string, implementation: (this: jsonata.Focus, ...args: unknown[]) => unknown, signature?: string) => void;
 
 export const jsonataLibrary = {jsonata: jsonata};
 
@@ -24,8 +24,7 @@ export const jsonataLibrary = {jsonata: jsonata};
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
   const compiled = jsonata(expression, options);
 
-  // override the built-in JSONata 'eval' function
-  // TODO: check this actually overrides the 'eval' function
+  // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction("eval", () => undefined);
 
   // TODO: register helper functions
@@ -48,11 +47,9 @@ export async function jsonataCompileAndEvaluate(expression: string, context: unk
   return await jsonataEvaluate(compiled, context, bindings);
 }
 
-export async function jsonataEvaluateFunc(expression: string, bindings?: Record<string, unknown>): Promise<JSONataEvaluate> {
+export function jsonataEvaluateFunc(expression: string, bindings?: Record<string, unknown>): JSONataEvaluate {
   const compiled = jsonataCompile(expression);
   return async function (value: unknown) {
     return await jsonataEvaluate(compiled, value, bindings);
   }
 }
-
-

@@ -19,6 +19,7 @@ import {
   FormFieldValidationGroup,
   FormModesConfig,
   FormValidationGroups,
+  FormValidatorConfig,
   FormValidatorSummaryErrors,
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
@@ -32,6 +33,7 @@ describe('The FormService', () => {
   const translationService = getStubTranslationService();
   let service: FormService;
   let httpTesting: HttpTestingController;
+  const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -192,14 +194,14 @@ describe('The FormService', () => {
           layoutJsonPointer: "/text_7-layout",
         },
       };
-      const enabledValidationGroups: string[] = [];
+      const enabledValidationGroups: string[] = ["all"];
       const validationGroups: FormValidationGroups = {};
       const expected: FormValidatorSummaryErrors[] = [
         {
           errors: [
             {
               message: "@validator-error-jsonata-expression",
-              class: "jsonata-expressions",
+              class: "jsonata-expression",
               params: {
                 actual: "hello world 2!",
                 description: "the description",
@@ -207,8 +209,8 @@ describe('The FormService', () => {
               },
             },
           ],
-          id: "text_7",
-          message: "TextField with default wrapper defined",
+          id: "form-item-id-text-7",
+          message: null,
           lineagePaths: {
             formConfig: ["componentDefinitions", "0"],
             dataModel: ["text_7"],
@@ -221,6 +223,57 @@ describe('The FormService', () => {
       ];
       const actual = await service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
       expect(actual).toEqual(expected);
+    });
+
+    it('should attach jsonata-expression as a hard async validator failure', async () => {
+      const control = new FormControl("hello world 2!");
+      const validators: FormValidatorConfig[] = [{
+        class: 'jsonata-expression',
+        config: {
+          description: "the description",
+          expression: "$ = 45",
+        },
+      }];
+      const mapEntry = {
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+        },
+      } as unknown as FormFieldCompMapEntry;
+
+      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      await waitForAsyncValidation();
+
+      expect(control.invalid).toBeTrue();
+      expect(control.errors?.['jsonata-expression']).toEqual({
+        message: "@validator-error-jsonata-expression",
+        params: {
+          actual: "hello world 2!",
+          description: "the description",
+          expression: "$ = 45",
+        },
+      });
+    });
+
+    it('should attach jsonata-expression as a hard async validator pass', async () => {
+      const control = new FormControl(45);
+      const validators: FormValidatorConfig[] = [{
+        class: 'jsonata-expression',
+        config: {
+          description: "the description",
+          expression: "$ = 45",
+        },
+      }];
+      const mapEntry = {
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+        },
+      } as unknown as FormFieldCompMapEntry;
+
+      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      await waitForAsyncValidation();
+
+      expect(control.valid).toBeTrue();
+      expect(control.errors).toBeNull();
     });
   });
 

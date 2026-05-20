@@ -2313,7 +2313,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const original = [...(this.v4FormPath ?? [])];
     try {
       this.v4FormPath = [...original, ...(v4FormPath ?? [])];
-      this.formPathHelper.acceptFormPath(item, more);
+      await this.formPathHelper.acceptFormPath(item, more);
     } finally {
       this.v4FormPath = original;
     }
