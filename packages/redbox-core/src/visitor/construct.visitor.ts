@@ -342,7 +342,11 @@ import {
   isTypeFormComponentDefinitionName,
   isTypeFormConfig,
 } from '@researchdatabox/sails-ng-common';
-import { AllFormComponentDefinitionOutlines, ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
+import {
+  AllFormComponentDefinitionOutlines,
+  AvailableFormComponentDefinitionFrames,
+  ReusableFormDefinitions,
+} from '@researchdatabox/sails-ng-common';
 import { ILogger } from '@researchdatabox/sails-ng-common';
 import { FormModesConfig } from '@researchdatabox/sails-ng-common';
 import { FieldModelConfigFrame, FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
@@ -1593,10 +1597,28 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('notesEnabled', item.config, config);
     this.sharedProps.setPropOverride('noLocationSelectedText', item.config, config);
     this.sharedProps.setPropOverride('noLocationSelectedHelp', item.config, config);
+    this.sharedProps.setPropOverride('metadataOnlyTitle', item.config, config);
+    this.sharedProps.setPropOverride('metadataOnlyBody', item.config, config);
+    this.sharedProps.setPropOverride('noLocationsAvailableTitle', item.config, config);
+    this.sharedProps.setPropOverride('noLocationsAvailableBody', item.config, config);
+    this.sharedProps.setPropOverride('selectionSummaryTemplate', item.config, config);
+    this.sharedProps.setPropOverride('subheading', item.config, config);
     this.sharedProps.setPropOverride('publicCheck', item.config, config);
     this.sharedProps.setPropOverride('selectionCriteria', item.config, config);
     this.sharedProps.setPropOverride('dataTypes', item.config, config);
     this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
+
+    const headerActionsRaw = this.formOverride.applyOverridesReusable(
+      (config as { headerActions?: AvailableFormComponentDefinitionFrames[] } | undefined)?.headerActions ?? [],
+      this.reusableFormDefs
+    );
+    item.config.headerActions = headerActionsRaw.map((componentDefinition, index) => {
+      const formComponent = this.constructFormComponent(componentDefinition);
+      this.formPathHelper.acceptFormPath(formComponent, {
+        formConfig: ['config', 'headerActions', index.toString()],
+      });
+      return this.applyConstructPhaseTransform(formComponent);
+    });
   }
 
   visitPublishDataLocationSelectorFieldModelDefinition(

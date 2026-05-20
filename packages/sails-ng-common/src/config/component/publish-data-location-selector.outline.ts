@@ -23,7 +23,12 @@ import {
   FieldModelDefinitionOutline,
 } from "../field-model.outline";
 import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from "../form-component.outline";
-import { AvailableFieldLayoutDefinitionFrames, AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
+import {
+  AvailableFieldLayoutDefinitionFrames,
+  AvailableFieldLayoutDefinitionOutlines,
+  AvailableFormComponentDefinitionFrames,
+  AvailableFormComponentDefinitionOutlines,
+} from "../dictionary.outline";
 import {
   DataLocationAttachmentValue,
   DataLocationFileValue,
@@ -65,8 +70,17 @@ export interface PublishDataLocationSelectorFieldComponentConfigFrame extends Fi
   iscHeader?: string;
   iscEnabled?: boolean;
   notesEnabled?: boolean;
+  /** @deprecated Use metadataOnlyTitle instead. */
   noLocationSelectedText?: string;
+  /** @deprecated Use metadataOnlyBody instead. */
   noLocationSelectedHelp?: string;
+  metadataOnlyTitle?: string;
+  metadataOnlyBody?: string;
+  noLocationsAvailableTitle?: string;
+  noLocationsAvailableBody?: string;
+  selectionSummaryTemplate?: string;
+  subheading?: string;
+  headerActions?: AvailableFormComponentDefinitionFrames[];
   publicCheck?: string;
   selectionCriteria?: PublishDataLocationSelectionCriterion[];
   dataTypes?: DataLocationOption[];
@@ -75,7 +89,9 @@ export interface PublishDataLocationSelectorFieldComponentConfigFrame extends Fi
 
 export interface PublishDataLocationSelectorFieldComponentConfigOutline
   extends PublishDataLocationSelectorFieldComponentConfigFrame,
-    FieldComponentConfigOutline {}
+    FieldComponentConfigOutline {
+  headerActions?: AvailableFormComponentDefinitionOutlines[];
+}
 
 export interface PublishDataLocationSelectorFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
   class: PublishDataLocationSelectorComponentNameType;

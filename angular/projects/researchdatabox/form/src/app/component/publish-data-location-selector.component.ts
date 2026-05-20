@@ -1,5 +1,11 @@
-import { Component, Injector, Input, inject } from "@angular/core";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { Component, Input, inject } from "@angular/core";
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  ModifyOptions,
+  TranslationService,
+} from "@researchdatabox/portal-ng-common";
 import {
   PublishDataLocationModelValueType,
   PublishDataLocationSelectorComponentName,
@@ -10,6 +16,8 @@ import {
   PublishDataLocationValueType,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
+
+type SelectionSummaryParams = { selected: number; total: number };
 
 export class PublishDataLocationSelectorModel extends FormFieldModel<PublishDataLocationModelValueType> {
   protected override logName = PublishDataLocationSelectorModelName;
@@ -38,6 +46,11 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   public notesEnabled = true;
   public noLocationSelectedText = "Publish Metadata Only";
   public noLocationSelectedHelp = "Publicise only metadata (or description)";
+  public metadataOnlyTitle = "No data locations selected";
+  public metadataOnlyBody = "Publicise only metadata (or description)";
+  public noLocationsAvailableTitle = "No data locations available";
+  public noLocationsAvailableBody = "";
+  public selectionSummaryTemplate = "{{selected}} of {{total}} locations selected for publication";
   public publicCheck = "public";
   public selectionCriteria: PublishDataLocationSelectionCriterion[] = [{ isc: "public", type: "attachment" }];
   public dataTypeLookup: Record<string, string> = {
@@ -48,6 +61,8 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   };
   public editingNotesIndex = -1;
   public editingNotesValue = "";
+
+  private readonly translationService = inject(TranslationService);
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -72,6 +87,13 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     this.notesEnabled = cfg.notesEnabled !== false;
     this.noLocationSelectedText = String(cfg.noLocationSelectedText ?? "Publish Metadata Only");
     this.noLocationSelectedHelp = String(cfg.noLocationSelectedHelp ?? "Publicise only metadata (or description)");
+    this.metadataOnlyTitle = String(cfg.metadataOnlyTitle ?? cfg.noLocationSelectedText ?? "No data locations selected");
+    this.metadataOnlyBody = String(cfg.metadataOnlyBody ?? cfg.noLocationSelectedHelp ?? "Publicise only metadata (or description)");
+    this.noLocationsAvailableTitle = String(cfg.noLocationsAvailableTitle ?? "No data locations available");
+    this.noLocationsAvailableBody = String(cfg.noLocationsAvailableBody ?? "");
+    this.selectionSummaryTemplate = String(
+      cfg.selectionSummaryTemplate ?? "{{selected}} of {{total}} locations selected for publication"
+    );
     this.publicCheck = String(cfg.publicCheck ?? "public");
     this.selectionCriteria = Array.isArray(cfg.selectionCriteria) && cfg.selectionCriteria.length > 0
       ? cfg.selectionCriteria.map((criterion) => Object.fromEntries(
@@ -85,6 +107,22 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
 
   public get dataLocations(): PublishDataLocationValueType[] {
     return this.normalizeDataLocations(this.formControl.value ?? this.model?.getValue());
+  }
+
+  public get selectedCount(): number {
+    return this.dataLocations.filter((dataLocation) => dataLocation.selected === true).length;
+  }
+
+  public get totalCount(): number {
+    return this.dataLocations.length;
+  }
+
+  public get hasNoLocations(): boolean {
+    return this.totalCount === 0;
+  }
+
+  public get hasAnySelection(): boolean {
+    return this.selectedCount > 0;
   }
 
   public selectAllLocations(checked: boolean): void {
@@ -123,8 +161,26 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     );
   }
 
-  public shouldShowNoLocationSelected(): boolean {
-    return !this.dataLocations.some((dataLocation) => dataLocation.selected);
+  public shouldShowMetadataOnlyBanner(): boolean {
+    return this.totalCount > 0 && !this.hasAnySelection;
+  }
+
+  public shouldShowEmptyBanner(): boolean {
+    return this.totalCount === 0;
+  }
+
+  public getSelectionSummary(): string {
+    const translated = String(this.translationService.t(this.selectionSummaryTemplate));
+    return translated
+      .replaceAll("{{selected}}", String(this.selectedCount))
+      .replaceAll("{{total}}", String(this.totalCount));
+  }
+
+  public getSelectionSummaryParams(): SelectionSummaryParams {
+    return {
+      selected: this.selectedCount,
+      total: this.totalCount,
+    };
   }
 
   public startEditNotes(index: number): void {
@@ -198,6 +254,11 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     return item.type === "url";
   }
 
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    this.formFieldCompMapEntries.forEach((entry) => entry.component?.setDisabled(disabled, { emitEvent: false, onlySelf: true }));
+  }
+
   private updateValue(nextValue: PublishDataLocationValueType[]): void {
     this.formControl.setValue(nextValue);
     this.formControl.markAsDirty();
@@ -223,4 +284,5 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
         };
       });
   }
+
 }

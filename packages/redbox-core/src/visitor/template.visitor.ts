@@ -555,8 +555,14 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   visitPublishDataLocationSelectorFieldComponentDefinition(
-    _item: PublishDataLocationSelectorFieldComponentDefinitionOutline
-  ): void {}
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): void {
+    (item.config?.headerActions ?? []).forEach((componentDefinition, index) => {
+      this.formPathHelper.acceptFormPath(componentDefinition, {
+        formConfig: ['config', 'headerActions', index.toString()],
+      });
+    });
+  }
 
   visitPublishDataLocationSelectorFieldModelDefinition(
     _item: PublishDataLocationSelectorFieldModelDefinitionOutline

@@ -38,8 +38,17 @@ export class PublishDataLocationSelectorFieldComponentConfig
   iscHeader = "Information Security Classification";
   iscEnabled = false;
   notesEnabled = true;
+  /** @deprecated Use metadataOnlyTitle instead. */
   noLocationSelectedText = "Publish Metadata Only";
+  /** @deprecated Use metadataOnlyBody instead. */
   noLocationSelectedHelp = "Publicise only metadata (or description)";
+  metadataOnlyTitle = "No data locations selected";
+  metadataOnlyBody = "Publicise only metadata (or description)";
+  noLocationsAvailableTitle = "No data locations available";
+  noLocationsAvailableBody = "";
+  selectionSummaryTemplate = "{{selected}} of {{total}} locations selected for publication";
+  subheading = "Available data locations";
+  headerActions = [];
   publicCheck = "public";
   selectionCriteria: Record<string, string>[] = [{ isc: "public", type: "attachment" }];
   dataTypes: DataLocationOption[] = [

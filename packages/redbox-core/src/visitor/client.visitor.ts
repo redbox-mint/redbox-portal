@@ -905,6 +905,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     item: PublishDataLocationSelectorFieldComponentDefinitionOutline
   ): void {
     this.processFieldComponentDefinition(item);
+
+    const headerActions: AvailableFormComponentDefinitionOutlines[] = [];
+    (item.config?.headerActions ?? []).forEach((componentDefinition, index) => {
+      headerActions.push(componentDefinition);
+      this.formPathHelper.acceptFormPath(componentDefinition, {
+        formConfig: ['config', 'headerActions', index.toString()],
+      });
+    });
+    if (item.config) {
+      item.config.headerActions = headerActions.filter((entry) => this.hasObjectProps(entry));
+    }
   }
 
   visitPublishDataLocationSelectorFieldModelDefinition(
