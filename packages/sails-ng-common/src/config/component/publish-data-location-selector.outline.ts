@@ -70,10 +70,6 @@ export interface PublishDataLocationSelectorFieldComponentConfigFrame extends Fi
   iscHeader?: string;
   iscEnabled?: boolean;
   notesEnabled?: boolean;
-  /** @deprecated Use metadataOnlyTitle instead. */
-  noLocationSelectedText?: string;
-  /** @deprecated Use metadataOnlyBody instead. */
-  noLocationSelectedHelp?: string;
   metadataOnlyTitle?: string;
   metadataOnlyBody?: string;
   noLocationsAvailableTitle?: string;
@@ -89,7 +85,7 @@ export interface PublishDataLocationSelectorFieldComponentConfigFrame extends Fi
 
 export interface PublishDataLocationSelectorFieldComponentConfigOutline
   extends PublishDataLocationSelectorFieldComponentConfigFrame,
-    FieldComponentConfigOutline {
+  FieldComponentConfigOutline {
   headerActions?: AvailableFormComponentDefinitionOutlines[];
 }
 
@@ -100,17 +96,17 @@ export interface PublishDataLocationSelectorFieldComponentDefinitionFrame extend
 
 export interface PublishDataLocationSelectorFieldComponentDefinitionOutline
   extends PublishDataLocationSelectorFieldComponentDefinitionFrame,
-    FieldComponentDefinitionOutline {
+  FieldComponentDefinitionOutline {
   class: PublishDataLocationSelectorComponentNameType;
   config?: PublishDataLocationSelectorFieldComponentConfigOutline;
 }
 
 export interface PublishDataLocationSelectorFieldModelConfigFrame
-  extends FieldModelConfigFrame<PublishDataLocationModelValueType> {}
+  extends FieldModelConfigFrame<PublishDataLocationModelValueType> { }
 
 export interface PublishDataLocationSelectorFieldModelConfigOutline
   extends PublishDataLocationSelectorFieldModelConfigFrame,
-    FieldModelConfigOutline<PublishDataLocationModelValueType> {}
+  FieldModelConfigOutline<PublishDataLocationModelValueType> { }
 
 export interface PublishDataLocationSelectorFieldModelDefinitionFrame
   extends FieldModelDefinitionFrame<PublishDataLocationModelValueType> {
@@ -120,7 +116,7 @@ export interface PublishDataLocationSelectorFieldModelDefinitionFrame
 
 export interface PublishDataLocationSelectorFieldModelDefinitionOutline
   extends PublishDataLocationSelectorFieldModelDefinitionFrame,
-    FieldModelDefinitionOutline<PublishDataLocationModelValueType> {
+  FieldModelDefinitionOutline<PublishDataLocationModelValueType> {
   class: PublishDataLocationSelectorModelNameType;
   config?: PublishDataLocationSelectorFieldModelConfigOutline;
 }
@@ -133,7 +129,7 @@ export interface PublishDataLocationSelectorFormComponentDefinitionFrame extends
 
 export interface PublishDataLocationSelectorFormComponentDefinitionOutline
   extends PublishDataLocationSelectorFormComponentDefinitionFrame,
-    FormComponentDefinitionOutline {
+  FormComponentDefinitionOutline {
   component: PublishDataLocationSelectorFieldComponentDefinitionOutline;
   model?: PublishDataLocationSelectorFieldModelDefinitionOutline;
   layout?: AvailableFieldLayoutDefinitionOutlines;

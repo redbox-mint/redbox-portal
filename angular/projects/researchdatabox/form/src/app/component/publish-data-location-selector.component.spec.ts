@@ -239,37 +239,4 @@ describe("PublishDataLocationSelectorComponent", () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain("1 of 2 locations selected for publication");
   });
-
-  it("falls back to legacy noLocationSelected config values", async () => {
-    const formConfig: FormConfigFrame = {
-      name: "testing",
-      componentDefinitions: [
-        {
-          name: "dataLocations",
-          component: {
-            class: "PublishDataLocationSelectorComponent",
-            config: {
-              noLocationSelectedText: "Legacy title",
-              noLocationSelectedHelp: "Legacy help",
-            },
-          },
-          model: {
-            class: "PublishDataLocationSelectorModel",
-            config: {
-              value: [
-                { type: "url", location: "https://example.com", selected: false },
-              ],
-            },
-          },
-        },
-      ],
-    };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "oid-1", editMode: true } as any);
-    const component = fixture.debugElement.query(By.directive(PublishDataLocationSelectorComponent))
-      .componentInstance as PublishDataLocationSelectorComponent;
-
-    expect(component.metadataOnlyTitle).toBe("Legacy title");
-    expect(component.metadataOnlyBody).toBe("Legacy help");
-  });
 });

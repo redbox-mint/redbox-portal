@@ -44,8 +44,6 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   public iscHeader = "Information Security Classification";
   public iscEnabled = false;
   public notesEnabled = true;
-  public noLocationSelectedText = "Publish Metadata Only";
-  public noLocationSelectedHelp = "Publicise only metadata (or description)";
   public metadataOnlyTitle = "No data locations selected";
   public metadataOnlyBody = "Publicise only metadata (or description)";
   public noLocationsAvailableTitle = "No data locations available";
@@ -85,10 +83,8 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     this.iscHeader = String(cfg.iscHeader ?? "Information Security Classification");
     this.iscEnabled = cfg.iscEnabled === true;
     this.notesEnabled = cfg.notesEnabled !== false;
-    this.noLocationSelectedText = String(cfg.noLocationSelectedText ?? "Publish Metadata Only");
-    this.noLocationSelectedHelp = String(cfg.noLocationSelectedHelp ?? "Publicise only metadata (or description)");
-    this.metadataOnlyTitle = String(cfg.metadataOnlyTitle ?? cfg.noLocationSelectedText ?? "No data locations selected");
-    this.metadataOnlyBody = String(cfg.metadataOnlyBody ?? cfg.noLocationSelectedHelp ?? "Publicise only metadata (or description)");
+    this.metadataOnlyTitle = String(cfg.metadataOnlyTitle ?? "No data locations selected");
+    this.metadataOnlyBody = String(cfg.metadataOnlyBody ?? "Publicise only metadata (or description)");
     this.noLocationsAvailableTitle = String(cfg.noLocationsAvailableTitle ?? "No data locations available");
     this.noLocationsAvailableBody = String(cfg.noLocationsAvailableBody ?? "");
     this.selectionSummaryTemplate = String(
