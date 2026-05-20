@@ -369,11 +369,11 @@ export namespace Services {
 
       await I18nTranslation.createEach(records);
 
-      // try {
-      TranslationService.reloadResources(brandingId);
-      // } catch (_e) {
-      //   // ignore reload failures after the write has completed
-      // }
+      try {
+        TranslationService.reloadResources(brandingId);
+      } catch (_e) {
+        // ignore reload failures after the write has completed
+      }
 
       return records.length;
     }

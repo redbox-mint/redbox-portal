@@ -88,7 +88,7 @@ export namespace Controllers {
     public async setEntry(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const { params, body, query } = validated;
+        const { params, body } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
