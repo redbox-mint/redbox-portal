@@ -83,6 +83,9 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
       }
 
       if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt) {
+        if (this.pendingOperation() !== 'delete') {
+          return;
+        }
         this.lastHandledDeleteSuccessAt = deleteSuccessEvent.timestamp;
         this.lastOperation.set('delete');
         this.pendingOperation.set(null);
@@ -94,6 +97,9 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         return;
       }
 
+      if (this.pendingOperation() !== 'save') {
+        return;
+      }
       this.lastHandledSavedAt = lastSavedAt;
       this.lastOperation.set('save');
       this.pendingOperation.set(null);
