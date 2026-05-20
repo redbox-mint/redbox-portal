@@ -39,6 +39,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   private readonly deleteSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_DELETE_SUCCESS);
   private readonly messageState = signal<'saving' | 'deleting' | 'error' | 'success' | null>(null);
   private readonly lastOperation = signal<'save' | 'delete' | null>(null);
+  private readonly pendingOperation = signal<'save' | 'delete' | null>(null);
   private lastHandledDeleteSuccessAt: number | null = null;
   private lastHandledSavedAt: string | null = null;
   private successTimeoutId: number | null = null;
@@ -55,6 +56,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
 
       if (isSaving) {
         this.lastOperation.set('save');
+        this.pendingOperation.set('save');
         this.clearSuccessTimeout();
         this.messageState.set('saving');
         return;
@@ -62,12 +64,19 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
 
       if (isDeleting) {
         this.lastOperation.set('delete');
+        this.pendingOperation.set('delete');
         this.clearSuccessTimeout();
         this.messageState.set('deleting');
         return;
       }
 
       if (errorMessage) {
+        const operation = this.pendingOperation();
+        if (!operation) {
+          return;
+        }
+        this.lastOperation.set(operation);
+        this.pendingOperation.set(null);
         this.clearSuccessTimeout();
         this.messageState.set('error');
         return;
@@ -76,6 +85,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
       if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt) {
         this.lastHandledDeleteSuccessAt = deleteSuccessEvent.timestamp;
         this.lastOperation.set('delete');
+        this.pendingOperation.set(null);
         this.showSuccessMessage(onCleanup);
         return;
       }
@@ -86,6 +96,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
 
       this.lastHandledSavedAt = lastSavedAt;
       this.lastOperation.set('save');
+      this.pendingOperation.set(null);
       this.showSuccessMessage(onCleanup);
     });
   }

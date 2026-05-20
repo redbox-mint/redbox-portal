@@ -111,16 +111,27 @@ describe('SaveStatusComponent', () => {
     expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-success')).toBeFalsy();
   }));
 
-  it('should show save failure after a failed save', async () => {
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+  it('should show save failure after a failed save', fakeAsync(() => {
+    let fixture: any;
+    let formComponent: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+      formComponent = result.formComponent;
+    });
+    tick();
+
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
     const store = TestBed.inject(Store);
+    store.dispatch(FormActions.submitForm({ force: true }));
+    tick();
     store.dispatch(FormActions.submitFormFailure({ error: 'Boom' }));
     fixture.detectChanges();
-    await fixture.whenStable();
+    tick();
+    fixture.detectChanges();
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger');
     expect(el?.textContent).toContain('Boom');
-  });
+  }));
 
   it('should keep save failure visible until another save starts', fakeAsync(() => {
     let fixture: any;
@@ -132,6 +143,9 @@ describe('SaveStatusComponent', () => {
     tick();
 
     const store = TestBed.inject(Store);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    tick();
     store.dispatch(FormActions.submitFormFailure({ error: 'Boom' }));
     fixture.detectChanges();
     tick();
@@ -143,13 +157,22 @@ describe('SaveStatusComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger')).toBeTruthy();
 
-    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
     store.dispatch(FormActions.submitForm({ force: true }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-info')).toBeTruthy();
   }));
+
+  it('should not show a save failure for validation errors outside a save operation', async () => {
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    store.dispatch(FormActions.formValidationFailure({ error: '' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger')).toBeFalsy();
+  });
 
   it('should show deleting status while delete is in progress', fakeAsync(() => {
     let fixture: any;
