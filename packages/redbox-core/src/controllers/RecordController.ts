@@ -1541,8 +1541,18 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe((attachments: unknown[]) => {
-        return this.sendResp(req, res, { data: attachments });
+      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe({
+        next: (attachments: unknown[]) => {
+          return this.sendResp(req, res, { data: attachments });
+        },
+        error: (error: unknown) => {
+          sails.log.error('Failed to get attachments', error);
+          return this.sendResp(req, res, {
+            status: 500,
+            errors: [this.asError(error)],
+            displayErrors: [{ detail: 'Failed to load attachments.' }],
+          });
+        },
       });
     }
 
