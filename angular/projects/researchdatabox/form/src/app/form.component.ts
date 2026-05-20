@@ -391,7 +391,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.componentDefArr = this.formDefMap.components;
     if (this.shouldRefreshDebugSnapshots()) {
       this.refreshTranslatedConfigDebugInfo(true);
-      this.refreshComponentDebugInfo();
+      if (this.shouldRefreshComponentDebugInfo()) {
+        this.refreshComponentDebugInfo();
+      }
     }
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
@@ -452,11 +454,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize reactive effects
    */
   protected initEffects() {
-    // Keep the expensive debug snapshots lazy. Large hook configs can make the
-    // initial render unusable if we deep-clone the full form tree while the
-    // panel is still collapsed.
+    // Keep the expensive component tree snapshot lazy while still maintaining
+    // form/model snapshots whenever debug mode is enabled.
     effect(() => {
-      if (this.shouldRefreshDebugSnapshots()) {
+      const shouldRefreshSnapshots = this.shouldRefreshDebugSnapshots();
+      this.shouldRefreshComponentDebugInfo();
+      if (shouldRefreshSnapshots) {
         untracked(() => this.refreshAllDebugInfo());
       }
     });
@@ -536,7 +539,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           return;
         }
         this.refreshTranslatedConfigDebugInfo(false);
-        this.refreshComponentDebugInfo();
+        if (this.shouldRefreshComponentDebugInfo()) {
+          this.refreshComponentDebugInfo();
+        }
       });
     this.subMaps['formStatusDirtyRequestSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST)
@@ -816,12 +821,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
     this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
-    this.refreshComponentDebugInfo();
+    if (this.shouldRefreshComponentDebugInfo()) {
+      this.refreshComponentDebugInfo();
+    }
     this.debugState.setFormValueSnapshots(this.getDebugFormValue(), this.getDebugRawFormValue());
   }
 
   private shouldRefreshDebugSnapshots(): boolean {
-    return this.debugState.isDebugEnabled() && (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow());
+    return this.debugState.isDebugEnabled();
+  }
+
+  private shouldRefreshComponentDebugInfo(): boolean {
+    return this.debugState.isDebugEnabled() &&
+      (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow());
   }
 
   private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
