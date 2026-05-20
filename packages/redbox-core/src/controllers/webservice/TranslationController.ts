@@ -202,8 +202,8 @@ export namespace Controllers {
         const namespace = (params.namespace as string) || 'translation';
         const bodyObj = body as Record<string, unknown>;
         const data = (bodyObj?.data || body) as Record<string, unknown>;
-        const splitToEntries = bodyObj?.splitToEntries === true || query.splitToEntries === 'true';
-        const overwriteEntries = bodyObj?.overwriteEntries === true || query.overwriteEntries === 'true';
+        const splitToEntries = bodyObj?.splitToEntries != null ? bodyObj.splitToEntries === true : query.splitToEntries !== 'false';
+        const overwriteEntries = bodyObj?.overwriteEntries != null ? bodyObj.overwriteEntries === true : query.overwriteEntries !== 'false';
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, {
           splitToEntries,
