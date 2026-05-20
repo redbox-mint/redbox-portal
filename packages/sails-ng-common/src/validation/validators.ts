@@ -355,17 +355,27 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
           return null; // don't validate empty values to allow optional controls
         }
-        const value = control.value;
+
+        // jsonata tries to define a 'keepSingleton' property on the input value.
+        // Must clone the value because control values cannot be extended.
+        // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cant_define_property_object_not_extensible
+        const value = structuredClone(control.value);
         let success: boolean | null = null;
-        try {
-          if (typeof evaluator !== "function") {
-            throw new Error("Missing evaluator");
-          }
-          success = await evaluator(value) === true;
-        } catch (err) {
+
+        if (typeof evaluator !== "function") {
           success = false;
-          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: evaluator is not a function`);
         }
+
+        if (success === null) {
+          try {
+            success = await evaluator(value) === true;
+          } catch (err) {
+            success = false;
+            console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+          }
+        }
+
         return success
           ? null
           : {

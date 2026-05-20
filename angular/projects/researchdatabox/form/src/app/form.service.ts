@@ -217,9 +217,10 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
-    this.formCompiledItems = formConfig?.type
-      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
-      : undefined;
+
+    if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
+      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode);
+    }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
 
@@ -533,7 +534,9 @@ export class FormService extends HttpClientService {
     const formControl = mapEntry.model?.formControl;
     const validators = mapEntry.model?.validators ?? [];
     const lineagePaths = mapEntry.lineagePaths;
-    if (formControl && !formControl.disabled && lineagePaths && validators.length > 0) {
+    const shouldGetValidationErrors = !!formControl && !formControl.disabled && !!lineagePaths && validators.length > 0;
+
+    if (shouldGetValidationErrors) {
       const errors = await this.getCachedSuggestedValidatorComponentErrors(
         formControl,
         this.prepareValidatorConfigs(validators, mapEntry),

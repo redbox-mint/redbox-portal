@@ -96,7 +96,12 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePathsPartia
  */
 
 export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
+  try {
     return formatJsonPointer(paths);
+  } catch (err) {
+    console.error(`getJSONPointerByArrayPaths failed with paths '${paths}'`, err);
+    return "";
+  }
 }
 
 /**
@@ -107,17 +112,28 @@ export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
  * @returns JSON Pointer reference: {key: 'key', val: 'object value at key', obj: 'context object, 1 level up from key'}
  */
 export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
+  try {
     if (Array.isArray(pointer)) {
         return find(obj, pointer);
     }
     // Documentation has the order of the parameters reversed compared to the type definition.
     return findByPointer(pointer, obj);
+  } catch (err) {
+    console.error(`getObjectWithJsonPointer failed with obj '${obj}' and pointer '${pointer}'`, err);
+    return null;
+  }
 }
 
 /**
  * Retrieve the last segment of a JSONPointer string
  */
 export function getLastSegmentFromJSONPointer(pointer: string): string {
+    if (!pointer) {
+      return "";
+    }
+    if (!pointer.includes('/')) {
+      return "";
+    }
     const segments = pointer.split('/');
     return segments[segments.length - 1];
 }
