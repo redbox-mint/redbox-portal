@@ -319,7 +319,7 @@ export namespace Controllers {
                   metadata: {}
                 } as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[0];
 
-                const filteredRecord = FormRecordConsistencyService.mergeRecordClientFormConfig(
+                const filteredRecord = await FormRecordConsistencyService.mergeRecordClientFormConfig(
                   emptyOriginal,
                   record as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[1],
                   clientFormConfig,
@@ -385,7 +385,7 @@ export namespace Controllers {
           displayErrors: [{ detail: `Form configuration not found for record type: ${recordType}` }],
         });
       }
-      const modelDataDefault = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, formMode, reusableFormDefs);
+      const modelDataDefault = await FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, formMode, reusableFormDefs);
 
       // return the matching format, return the model data as json
       return this.sendResp(req, res, {
