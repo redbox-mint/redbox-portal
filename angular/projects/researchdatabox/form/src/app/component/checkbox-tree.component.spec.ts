@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
+import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
