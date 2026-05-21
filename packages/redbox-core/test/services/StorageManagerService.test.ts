@@ -242,6 +242,54 @@ describe('StorageManagerService', function () {
       expect(capturedS3Opts.credentials.secretAccessKey).to.equal('SK');
     });
 
+    it('should omit explicit S3 credentials when key and secret are empty so instance roles can be used', async function () {
+      mockSails.config.storage.disks = {
+        staging: {
+          driver: 'fs',
+          config: { root: '/tmp/test-staging' },
+        },
+        primary: {
+          driver: 's3',
+          config: {
+            bucket: 'test-aws-redbox-attachments',
+            region: 'us-east-1',
+            key: '',
+            secret: '',
+          },
+        },
+      };
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
+      const mockPrimaryDisk = { exists: sinon.stub(), name: 'primary-disk' };
+      let capturedS3Opts: any = null;
+
+      (service as any)._DiskConstructor = class {
+        constructor(driver: any) {
+          return driver._driverName === 'fs' ? mockStagingDisk : mockPrimaryDisk;
+        }
+      };
+      (service as any)._FSDriver = class {
+        _driverName = 'fs';
+        constructor(_opts: any) { }
+      };
+      (service as any)._S3Driver = class {
+        _driverName = 's3';
+        constructor(opts: any) {
+          capturedS3Opts = opts;
+        }
+      };
+
+      await service.bootstrap();
+
+      expect(capturedS3Opts.bucket).to.equal('test-aws-redbox-attachments');
+      expect(capturedS3Opts.region).to.equal('us-east-1');
+      expect(capturedS3Opts).to.not.have.property('credentials');
+    });
+
     it('should register a GridFS primary disk', async function () {
       mockSails.config.storage.disks = {
         staging: {

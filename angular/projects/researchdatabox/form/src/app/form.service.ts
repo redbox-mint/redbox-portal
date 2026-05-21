@@ -218,6 +218,9 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
+    this.formCompiledItems = formConfig?.type
+      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
+      : undefined;
 
     if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
       this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode);

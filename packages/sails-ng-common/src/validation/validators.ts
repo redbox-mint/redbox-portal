@@ -373,7 +373,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           } catch (err) {
             success = false;
             console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
-          }
+        }
         }
 
         return success

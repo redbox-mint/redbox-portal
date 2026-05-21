@@ -19,7 +19,8 @@ import { FormComponentEventBus } from '../form-state/events/form-component-event
 import { createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { BehaviorSubject, merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {FormService} from "../form.service";
+import {BehaviorSubject, merge} from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 
 @Component({
@@ -124,7 +125,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  protected readonly formService = inject(FormService);
+  protected readonly translationService = inject(TranslationService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
+  private validationRefreshQueued = false;
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
