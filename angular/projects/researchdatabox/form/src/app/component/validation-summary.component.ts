@@ -19,6 +19,7 @@ import { FormComponentEventBus } from '../form-state/events/form-component-event
 import { createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { BehaviorSubject, merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {FormService} from "../form.service";
 
 
 @Component({
@@ -123,7 +124,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  private readonly translationService = inject(TranslationService);
+  protected readonly formService = inject(FormService);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
@@ -298,7 +299,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           this.isRepeatableEntry(entry) ||
           (this.includeTabLabel && this.isTabEntry(entry));
         if (includeLabel) {
-          labels.push(this.translate(labelKey));
+          labels.push(this.formService.translate(labelKey));
         }
       }
 
@@ -336,7 +337,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
         this.isRepeatableDefinition(current) ||
         (this.includeTabLabel && this.isTabDefinition(current));
       if (includeLabel) {
-        labels.push(this.translate(labelKey));
+        labels.push(this.formService.translate(labelKey));
       }
     }
 
@@ -419,20 +420,12 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   private getLeafValidationLabel(summary: FormValidatorSummaryErrors): string {
     if (summary.message) {
-      return this.translate(summary.message);
+      return this.formService.translate(summary.message);
     }
     if (summary.id) {
       return summary.id;
     }
-    return this.translate("@validator-label-default");
-  }
-
-  private translate(key: string): string {
-    const translated = this.translationService.t(key);
-    if (translated === undefined || translated === null || translated === '') {
-      return key;
-    }
-    return translated.toString();
+    return this.formService.translate("@validator-label-default");
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {

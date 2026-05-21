@@ -100,10 +100,6 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
 export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryFieldComponent {
   protected override logName = SuggestedValidationSummaryComponentName;
 
-  @Input() public override model?: never;
-
-  private readonly suggestedFormService = inject(FormService);
-
   override allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
     return Promise.resolve(this.validationErrorsDisplay$.value);
   }
@@ -117,10 +113,28 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
   }
 
   protected override async refreshValidationErrors(): Promise<void> {
-    const mapEntries = this.formComponent.componentDefArr ?? [];
     const result: FormValidatorSummaryErrors[] = [];
+
+    // form validators
+    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
+    const formErrors = await this.formService.getCachedSuggestedValidatorComponentErrors(
+      this.formComponent.form,
+      this.formService.prepareValidatorConfigs(this.formComponent.formValidators),
+      this.enabledValidationGroups,
+      this.formComponent.validationGroups,
+    );
+    if (formErrors.length > 0) {
+      result.push({
+        id: this.formComponent.trimmedParams.formName(),
+        message: "form-suggested-labelMessage",
+        errors: formErrors,
+        lineagePaths: this.formService.buildLineagePaths(),
+      });
+    }
+
+    const mapEntries = this.formComponent.componentDefArr ?? [];
     for (const mapEntry of mapEntries) {
-      result.push(...await this.suggestedFormService.getSuggestedValidatorSummaryErrors(
+      result.push(...await this.formService.getSuggestedValidatorSummaryErrors(
         mapEntry,
         this.enabledValidationGroups,
         this.formComponent.validationGroups

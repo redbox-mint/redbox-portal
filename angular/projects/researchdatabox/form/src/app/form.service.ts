@@ -202,6 +202,7 @@ export class FormService extends HttpClientService {
    * @param formConfig The form configuration.
    * @param parentLineagePaths The linage paths of the parent item.
    * @param meta The metadata from the API request to get the form config.
+   * @param formMode The form mode to use.
    * @returns The config and the components built from the config.
    */
   public async createFormComponentsMap(
@@ -536,6 +537,12 @@ export class FormService extends HttpClientService {
     const lineagePaths = mapEntry.lineagePaths;
     const shouldGetValidationErrors = !!formControl && !formControl.disabled && !!lineagePaths && validators.length > 0;
 
+    // For debugging:
+    // this.loggerService.warn(`${this.logName}: getSuggestedValidatorSummaryErrors ${JSON.stringify({
+    //   formControlDisabled: formControl?.disabled, validators, lineagePaths,
+    //   enabledValidationGroups, validationGroups, shouldGetValidationErrors
+    // })}`);
+
     if (shouldGetValidationErrors) {
       const errors = await this.getCachedSuggestedValidatorComponentErrors(
         formControl,
@@ -561,7 +568,7 @@ export class FormService extends HttpClientService {
    * Cache the expensive validator construction and last error result so template reads
    * stay cheap while still recalculating when validation config or form values change.
    */
-  private async getCachedSuggestedValidatorComponentErrors(
+  public async getCachedSuggestedValidatorComponentErrors(
     formControl: AbstractControl,
     validators: FormValidatorConfig[],
     enabledValidationGroups: string[],
@@ -571,6 +578,12 @@ export class FormService extends HttpClientService {
     // Validator output can depend on sibling fields, so include the root form value as well as this control's own value.
     const valueKey = this.getSuggestedValidatorValueKey(formControl);
     const cached = this.suggestedValidatorSummaryCache.get(formControl);
+
+    // For debugging:
+    // this.loggerService.warn(`${this.logName}: getCachedSuggestedValidatorComponentErrors ${JSON.stringify({
+    //   validators, enabledValidationGroups, validationGroups,
+    //   validatorKey, valueKey, cached
+    // })}`);
 
     if (cached?.validatorKey === validatorKey && cached.valueKey === valueKey) {
       return cached.errors;
@@ -698,6 +711,7 @@ export class FormService extends HttpClientService {
    * @param validationGroups The available validation groups.
    * @param updateValueAndValidityOpts Recalculates the value and validation status of the control.
    *    By default, it also updates the value and validity of its ancestors.
+   * @param mapEntry The component map entry related to the form control.
    */
   public setValidators(
     formControl?: AbstractControl | null,
@@ -731,7 +745,7 @@ export class FormService extends HttpClientService {
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
-    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
+    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns});
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
@@ -1105,7 +1119,7 @@ export class FormService extends HttpClientService {
     return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
   }
 
-  private prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
+  public prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
     const prepared = validators.map(validator => ({
       ...validator,
       config: validator.config ? { ...validator.config } : undefined,
@@ -1143,8 +1157,8 @@ export class FormService extends HttpClientService {
 
     const parentPath = formConfigPath.map(path => path.toString());
     const normalizedParentPath = this.normalizeValidatorFormConfigPath(parentPath);
-    const canonicalKey = [...normalizedParentPath, 'config', 'validators', index.toString(), 'config', 'expression'];
-    const legacyKey = [...parentPath, 'model', 'config', 'validators', index.toString(), 'config', 'expression'];
+    const canonicalKey = [...normalizedParentPath, 'config', ...rootKey];
+    const legacyKey = [...parentPath, 'model', 'config', ...rootKey];
 
     return [canonicalKey, legacyKey];
   }

@@ -352,13 +352,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionEvaluatorKey = "evaluator";
       const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
       return async (control) => {
-        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-          return null; // don't validate empty values to allow optional controls
-        }
-
-        // jsonata tries to define a 'keepSingleton' property on the input value.
-        // Must clone the value because control values cannot be extended.
-        // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cant_define_property_object_not_extensible
+        // Notes:
+        // 1. For the jsonata-expression validator, always validate the control value.
+        //    This enables the expression to decide whether empty values are valid or not.
+        //    If empty values were not validated, then the expression would not have the option to treat empty values as invalid.
+        // 2. jsonata tries to define a 'keepSingleton' property on the input value.
+        //    Must clone the value because control values cannot be extended.
+        //    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cant_define_property_object_not_extensible
         const value = structuredClone(control.value);
         let success: boolean | null = null;
 
