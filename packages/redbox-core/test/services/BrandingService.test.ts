@@ -19,7 +19,7 @@ describe('BrandingService', function () {
           defaultPortal: 'portal'
         },
         branding: {
-          variableAllowList: ['primary-color', 'secondary-color'],
+          variableAllowList: ['primary', 'secondary'],
           previewTtlSeconds: 300
         }
       },
@@ -49,9 +49,6 @@ describe('BrandingService', function () {
       findOne: sinon.stub(),
       destroy: sinon.stub()
     };
-    (global as any).SassCompilerService = {
-      compile: sinon.stub().resolves({ css: 'compiled-css', hash: 'abc123' })
-    };
     (global as any).ContrastService = {
       validate: sinon.stub().resolves({ violations: [] })
     };
@@ -62,7 +59,6 @@ describe('BrandingService', function () {
     delete (global as any).BrandingConfig;
     delete (global as any).BrandingConfigHistory;
     delete (global as any).CacheEntry;
-    delete (global as any).SassCompilerService;
     delete (global as any).ContrastService;
     sinon.restore();
   });

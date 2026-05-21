@@ -20,8 +20,7 @@
   <!-- Font Awesome included via compiled SCSS (FA6) -->
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.min.css">
   <% if (req.query && req.query.previewToken) { %>
     <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/preview/<%= req.query.previewToken %>.css">
   <% } else { %>

@@ -10,6 +10,7 @@ import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
 import * as BrandingServiceModule from './BrandingService';
+import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
 import * as CacheServiceModule from './CacheService';
 import * as ConfigServiceModule from './ConfigService';
 import * as ContrastServiceModule from './ContrastService';
@@ -58,6 +59,7 @@ export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
 export { BrandingLogoServiceModule as BrandingLogoService };
 export { BrandingServiceModule as BrandingService };
+export { BrandingThemeCssServiceModule as BrandingThemeCssService };
 export { CacheServiceModule as CacheService };
 export { ConfigServiceModule as ConfigService };
 export { ContrastServiceModule as ContrastService };
@@ -142,6 +144,11 @@ export const ServiceExports = {
   },
   get BrandingService() {
     return getOrCreateService('BrandingService', () => new BrandingServiceModule.Services.Branding().exports());
+  },
+  get BrandingThemeCssService() {
+    return getOrCreateService('BrandingThemeCssService', () =>
+      new BrandingThemeCssServiceModule.Services.BrandingThemeCss().exports()
+    );
   },
   get CacheService() {
     return getOrCreateService('CacheService', () => new CacheServiceModule.Services.Cache().exports());

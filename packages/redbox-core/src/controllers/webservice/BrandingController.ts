@@ -13,7 +13,7 @@ import {
 function mapError(e: unknown): { status: number; displayErrors: Array<{ code?: string; title?: string; detail?: string }> } {
   const msg = (e instanceof Error ? e.message : String(e)) || '';
   if (msg === 'unauthorized') return { status: 403, displayErrors: [{ code: 'forbidden' }] };
-  if (msg.startsWith('Invalid variable key')) return { status: 400, displayErrors: [{ code: 'invalid-variable', detail: msg }] };
+  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value')) return { status: 400, displayErrors: [{ code: 'invalid-variable', detail: msg }] };
   if (msg.startsWith('contrast-violation')) return { status: 400, displayErrors: [{ code: 'contrast', detail: msg }] };
   if (msg === 'branding-not-found') return { status: 404, displayErrors: [{ code: 'branding-not-found' }] };
   if (msg === 'history-not-found') return { status: 404, displayErrors: [{ code: 'history-not-found' }] };

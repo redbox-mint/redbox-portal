@@ -193,15 +193,15 @@ export namespace Controllers {
     public async setBundle(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const { params, body } = validated;
+        const { params, body, query } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const bodyObj = body as Record<string, unknown>;
         const data = (bodyObj?.data || body) as Record<string, unknown>;
-        const splitToEntries = bodyObj?.splitToEntries === true;
-        const overwriteEntries = bodyObj?.overwriteEntries === true;
+        const splitToEntries = bodyObj?.splitToEntries != null ? bodyObj.splitToEntries === true : query.splitToEntries !== false;
+        const overwriteEntries = bodyObj?.overwriteEntries != null ? bodyObj.overwriteEntries === true : query.overwriteEntries !== false;
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, {
           splitToEntries,

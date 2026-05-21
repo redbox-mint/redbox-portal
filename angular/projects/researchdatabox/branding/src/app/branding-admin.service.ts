@@ -63,15 +63,13 @@ export class BrandingAdminService extends HttpClientService {
   }
 
   /**
-   * Publish branding configuration
-   * @param config The branding variables to publish
-   * @param version Optional version for optimistic concurrency control
+   * Publish branding configuration using the expected version only.
    */
-  public async publish(config: any, version?: string): Promise<any> {
+  public async publish(expectedVersion?: number): Promise<any> {
     const url = `${this.brandingAndPortalUrl}/app/branding/publish`;
-    const body: any = { variables: config };
-    if (version) {
-      body.version = version;
+    const body: any = {};
+    if (typeof expectedVersion === 'number') {
+      body.expectedVersion = expectedVersion;
     }
     const result$ = this.http.post(url, body, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
     return await firstValueFrom(result$);

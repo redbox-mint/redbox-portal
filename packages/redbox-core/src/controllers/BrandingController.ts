@@ -1,9 +1,8 @@
 import { Controllers as controllers } from '../CoreController';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
+import * as BrandingThemeCssServiceModule from '../services/BrandingThemeCssService';
 import * as crypto from 'crypto';
-import * as fs from 'graceful-fs';
-import * as path from 'path';
 import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-routes';
 
 const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
@@ -11,6 +10,7 @@ const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string
 // sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
+declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 
 export namespace Controllers {
 
@@ -63,29 +63,16 @@ export namespace Controllers {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
         res.set('Content-Type', 'text/css');
-        // If brand (or css) not present, serve the pre-compiled default CSS
+        // If brand (or css) not present, serve generated default variable CSS
         if (!brand || !brand.css) {
-          const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
-          try {
-            const css = fs.readFileSync(defaultCssPath, 'utf8');
-            const etag = this.generateETag(css);
-            res.set('ETag', etag);
-            if (req.headers['if-none-match'] === etag) {
-              return res.status(304).end();
-            }
-            res.set('Cache-Control', 'public, max-age=300'); // Cache default CSS longer
-            return res.send(css);
-          } catch (_fsError) {
-            // Fallback to minimal CSS if default file cannot be read
-            const css = ':root{}';
-            const etag = this.generateETag(css);
-            res.set('ETag', etag);
-            if (req.headers['if-none-match'] === etag) {
-              return res.status(304).end();
-            }
-            res.set('Cache-Control', 'public, max-age=60');
-            return res.send(css);
+          const { css, hash } = BrandingThemeCssService.generate({});
+          const etag = this.generateETag(hash);
+          res.set('ETag', etag);
+          if (req.headers['if-none-match'] === etag) {
+            return res.status(304).end();
           }
+          res.set('Cache-Control', 'public, max-age=300');
+          return res.send(css);
         }
         // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
         const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(brand.css).digest('hex');
