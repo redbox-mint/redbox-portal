@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject, Injector, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import { TranslationService } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
 import {
@@ -15,12 +14,10 @@ import {
   TabContentLayoutName,
   ValidationSummaryComponentName,
 } from "@researchdatabox/sails-ng-common";
-import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
-import { createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
-import { BehaviorSubject, merge } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormComponentEventBus, createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state';
 import {BehaviorSubject, merge} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {FormService} from "../form.service";
 
 
 @Component({
@@ -125,11 +122,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  protected readonly translationService = inject(TranslationService);
-  private readonly changeDetectorRef = inject(ChangeDetectorRef);
-  private readonly destroyRef = inject(DestroyRef);
-  public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
-  private validationRefreshQueued = false;
+  protected readonly formService = inject(FormService);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
