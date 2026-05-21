@@ -6,6 +6,7 @@ declare const AppConfigService: any;
 
 declare const BrandingService: any;
 declare const BrandingLogoService: any;
+declare const BrandingThemeCssService: any;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 
