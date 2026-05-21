@@ -226,6 +226,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private readonly destroyRef = inject(DestroyRef);
   private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
   private readonly selectedByNotation = new Map<string, CheckboxTreeSelectedItem>();
+  private readonly selectedNotationIndex = new Set<string>();
   private readonly nodeById = new Map<string, CheckboxTreeRenderNode>();
   private readonly parentById = new Map<string, string | null>();
   private readonly expandedNodeIds = new Set<string>();
@@ -288,7 +289,10 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public isSelected(node: CheckboxTreeRenderNode): boolean {
-    return Array.from(this.selectedByNotation.keys()).some((notation) => this.nodeMatchesNotation(node, notation));
+    if (this.selectedNotationIndex.size === 0) {
+      return false;
+    }
+    return this.getNodeSelectionKeys(node).some((key) => this.selectedNotationIndex.has(key));
   }
 
   public isSelectable(node: CheckboxTreeRenderNode): boolean {
@@ -380,9 +384,11 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : (node.displayLabel || notation),
         genealogy: this.getGenealogy(node)
       });
+      this.rebuildSelectedNotationIndex();
       this.selectedItem.set(this.selectedByNotation.get(notation) ?? null);
     } else {
       this.selectedByNotation.delete(notation);
+      this.rebuildSelectedNotationIndex();
       this.selectedItem.set(null);
     }
     this.syncModelFromSelection();
@@ -639,14 +645,44 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return false;
     }
 
+    return this.getNodeSelectionKeys(node).includes(candidate);
+  }
+
+  private getNodeSelectionKeys(node: CheckboxTreeRenderNode): string[] {
+    const keys = new Set<string>();
     const values = [
       String(node.notation ?? "").trim(),
       String(node.value ?? "").trim(),
       this.getNotation(node),
     ];
-    return values.some((value) =>
-      !!value && (value === candidate || value.endsWith(`/${candidate}`) || value.endsWith(`#${candidate}`))
-    );
+
+    for (const value of values) {
+      this.addSelectionKey(keys, value);
+    }
+
+    return Array.from(keys);
+  }
+
+  private addSelectionKey(target: Set<string>, value: string): void {
+    const candidate = String(value ?? "").trim();
+    if (!candidate) {
+      return;
+    }
+
+    target.add(candidate);
+    const slashIndex = candidate.lastIndexOf("/");
+    const hashIndex = candidate.lastIndexOf("#");
+    const suffixIndex = Math.max(slashIndex, hashIndex);
+    if (suffixIndex >= 0 && suffixIndex < candidate.length - 1) {
+      target.add(candidate.slice(suffixIndex + 1));
+    }
+  }
+
+  private rebuildSelectedNotationIndex(): void {
+    this.selectedNotationIndex.clear();
+    for (const notation of this.selectedByNotation.keys()) {
+      this.addSelectionKey(this.selectedNotationIndex, notation);
+    }
   }
 
   private hasSelectedDescendant(node: CheckboxTreeRenderNode): boolean {
@@ -868,6 +904,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         : undefined;
       this.selectedByNotation.set(notation, { notation, label, name, genealogy });
     }
+    this.rebuildSelectedNotationIndex();
     this.selectedItem.set(values.length > 0 ? values[values.length - 1] as CheckboxTreeSelectedItem : null);
   }
 

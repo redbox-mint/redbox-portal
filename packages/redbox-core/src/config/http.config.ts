@@ -113,9 +113,18 @@ let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
 
-function isCacheableAssetPath(reqPath: string): boolean {
+function isStaticAssetPath(reqPath: string): boolean {
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
         /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+}
+
+export function isImmutableAssetPath(reqPath: string): boolean {
+    if (!isStaticAssetPath(reqPath)) {
+        return false;
+    }
+
+    const fileName = path.posix.basename(reqPath);
+    return /(?:^|[-.])[A-Za-z0-9]{8,}\.[^.]+$/.test(fileName);
 }
 
 export interface CompanionAuthorizationDecision {
@@ -612,8 +621,8 @@ export const http: HttpConfig = {
             const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
-            const isCacheableAsset = isCacheableAssetPath(req.path);
-            if (isCacheableAsset) {
+            const isImmutableAsset = isImmutableAssetPath(req.path);
+            if (isImmutableAsset) {
                 cacheControlHeaderVal = 'public, max-age=31536000, immutable';
                 expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
                 const originalSetHeader = res.setHeader.bind(res);
@@ -651,7 +660,7 @@ export const http: HttpConfig = {
             // Required for OAuth popup flows (e.g. Uppy Companion providers)
             // so window.opener/window.closed checks are not blocked by COOP.
             res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-            if (isCacheableAsset) {
+            if (isImmutableAsset) {
                 res.removeHeader('Pragma');
             } else {
                 res.set('Pragma', 'no-cache');
