@@ -46,154 +46,164 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     super(logger);
   }
 
-  public applyContextVariables(form: FormConfigOutline, contextVariablesMap?: Record<string, unknown>): void {
+  public async applyContextVariables(form: FormConfigOutline, contextVariablesMap?: Record<string, unknown>): Promise<void> {
     const normalizedMap = this.normalizeContextVariablesMap(contextVariablesMap);
     this.contextVariablesMap = normalizedMap;
     this.replacementRegex = this.buildReplacementRegex(Object.keys(normalizedMap));
     if (!this.replacementRegex) {
       return;
     }
-    form.accept(this);
+    await form.accept(this);
   }
 
-  protected override notImplemented(): void {
+  protected override async notImplemented(): Promise<void> {
     // No-op for visitor methods not required by context variable substitutions.
   }
 
-  visitFormConfig(item: FormConfigOutline): void {
-    item.componentDefinitions?.forEach(component => {
-      component.accept(this);
-    });
+  async visitFormConfig(item: FormConfigOutline): Promise<void> {
+    for (const component of item.componentDefinitions ?? []) {
+      await component.accept(this);
+    }
   }
 
-  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-    item.model?.accept(this);
+  async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
   }
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
+  async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
   }
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
-    item.model?.accept(this);
-  }
-
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
+  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
+    await item.model?.accept(this);
   }
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
+  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
   }
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
+  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
   }
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
+  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
   }
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-    item.component?.accept(this);
-    item.model?.accept(this);
+  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
   }
 
-  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-    this.replaceModelConfigDeepValues(item.config);
+  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
+    await item.model?.accept(this);
   }
 
-  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-    this.replaceModelConfigDeepValues(item.config);
+  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigDeepValues(item.config);
   }
 
-  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigDeepValues(item.config);
   }
 
-  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
-    this.replaceModelConfigStringValues(item.config);
+  async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
   }
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigStringValues(item.config);
+  }
+
+  async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
     if (item.config && typeof item.config.content === 'string') {
       item.config.content = this.replaceTokens(item.config.content);
     }
   }
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-    item.config?.tabs?.forEach(tab => tab.accept(this));
+  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+    for (const tab of item.config?.tabs ?? []) {
+      await tab.accept(this);
+    }
   }
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
-    item.config?.panels?.forEach(panel => panel.accept(this));
+  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
+    for (const panel of item.config?.panels ?? []) {
+      await panel.accept(this);
+    }
   }
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach(def => def.accept(this));
+  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-    super.visitRepeatableFieldComponentDefinition(item);
+  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+    await super.visitRepeatableFieldComponentDefinition(item);
   }
   private replaceTokens(value: unknown): unknown {
     if (typeof value !== 'string' || !this.replacementRegex) {
@@ -204,7 +214,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  private replaceModelConfigStringValues(config?: { defaultValue?: unknown; value?: unknown }): void {
+  private async replaceModelConfigStringValues(config?: { defaultValue?: unknown; value?: unknown }): Promise<void> {
     if (!config) {
       return;
     }
@@ -212,7 +222,7 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     config.value = this.replaceTokens(config.value);
   }
 
-  private replaceModelConfigDeepValues(config?: { defaultValue?: unknown; value?: unknown }): void {
+  private async replaceModelConfigDeepValues(config?: { defaultValue?: unknown; value?: unknown }): Promise<void> {
     if (!config) {
       return;
     }

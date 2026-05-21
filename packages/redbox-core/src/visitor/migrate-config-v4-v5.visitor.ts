@@ -653,7 +653,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps = new PropertiesHelper();
   }
 
-  start(options: { data: unknown }): FormConfigOutline {
+  async start(options: { data: unknown }): Promise<FormConfigOutline> {
     this.v4FormConfig = _cloneDeep(this.normaliseV4FormConfig(options.data));
     this.v5FormConfig = new FormConfig();
     this.v5FormConfig.debugValue = true;
@@ -663,18 +663,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     this.formPathHelper.reset();
 
-    this.v5FormConfig.accept(this);
-    this.retargetPublishDataLocationSelectorExpressions(this.v5FormConfig.componentDefinitions);
+    await this.v5FormConfig.accept(this);
+    await this.retargetPublishDataLocationSelectorExpressions(this.v5FormConfig.componentDefinitions);
 
     const attachmentVisitor = new AttachmentFieldsVisitor(this.logger);
-    attachmentVisitor.start(this.v5FormConfig);
+    await attachmentVisitor.start(this.v5FormConfig);
 
     return this.v5FormConfig;
   }
 
   /* Form Config */
 
-  visitFormConfig(item: FormConfigOutline): void {
+  async visitFormConfig(item: FormConfigOutline): Promise<void> {
     const currentData = this.getV4Data();
 
     // Set properties that are the same in v4 and v5.
@@ -682,7 +682,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('type', item, currentData);
     this.sharedProps.setPropOverride('viewCssClasses', item, currentData);
     this.sharedProps.setPropOverride('editCssClasses', item, currentData);
-    this.applyLegacyFormCssNormalization(item);
+    await this.applyLegacyFormCssNormalization(item);
 
     // Convert properties from v4 to v5.
 
@@ -708,17 +708,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // Convert fields to components
     const fields: Record<string, unknown>[] = currentData.fields ?? [];
     // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((field, index) => {
+    for (let index = 0; index < fields.length; index++){
+      const field = fields[index];
       const v4FormPathMore = ['fields', index.toString()];
       if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
-        return;
+        continue;
       }
       // Create the instance from the v4 config
       const formComponent = this.constructFormComponent(field, v4FormPathMore);
 
       // Visit children
       const componentIndex = item.componentDefinitions.length;
-      this.acceptV4FormConfigPath(
+      await this.acceptV4FormConfigPath(
         formComponent,
         this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, componentIndex),
         v4FormPathMore
@@ -727,22 +728,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       // Store the instance on the item
       item.componentDefinitions.push(formComponent);
 
-      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      const hiddenBinding = await this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
       if (hiddenBinding) {
-        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
-        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        await this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        await this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
         const hiddenComponentIndex = item.componentDefinitions.length;
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           hiddenBinding.component,
           this.formPathHelper.lineagePathsForFormConfigComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
           hiddenBinding.v4FormPathMore
         );
-        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
         item.componentDefinitions.push(hiddenBinding.component);
       }
-    });
+    }
 
-    this.injectLegacyRecordMetadataRetrieverExpressions(
+    await this.injectLegacyRecordMetadataRetrieverExpressions(
       fields,
       item.componentDefinitions,
       this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
@@ -759,7 +760,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
+  async visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SimpleInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -770,14 +771,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+  async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SimpleInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
 
     const field = this.getV4Data();
     if (field?.class === 'HiddenValue' || field?.compClass === 'HiddenValueComponent') {
@@ -792,7 +793,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Content */
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+  async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     if (!item.config) {
       item.config = new ContentFieldComponentConfig();
@@ -959,8 +960,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
     if (this.isLegacyLinkValueControl(this.getV4Data())) {
       const definition = (this.getV4Data()?.definition ?? {}) as Record<string, unknown>;
       const valuePath = typeof definition.name === 'string' ? definition.name.trim() : '';
@@ -972,7 +973,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Repeatable  */
 
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1009,7 +1010,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         formComponent.name = '';
 
         // Visit children
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           formComponent,
           this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent),
           v4FormPathMore
@@ -1049,21 +1050,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
+  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableElementFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
+  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
 
     const v4ClassName = `${field?.class ?? ''}`.trim();
     if (v4ClassName === 'RepeatableContributor') {
@@ -1080,17 +1081,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
+  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new ValidationSummaryFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
-  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SuggestedValidationSummaryFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1100,13 +1101,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('header', item.config, field?.definition);
   }
 
-  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): void {
+  async visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordMetadataRetrieverFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1114,8 +1115,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config.visible = false;
   }
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
     if (item.layout?.config) {
       item.layout.config.label = undefined;
       item.layout.config.visible = false;
@@ -1124,35 +1125,35 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   // Preserve shared label/visibility/readonly config, while intentionally not
   // inventing any model state during migration.
-  visitPublishDataLocationRefreshFieldComponentDefinition(
+  async visitPublishDataLocationRefreshFieldComponentDefinition(
     item: PublishDataLocationRefreshFieldComponentDefinitionOutline
-  ): void {
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new PublishDataLocationRefreshFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  visitPublishDataLocationRefreshFormComponentDefinition(
+  async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
-  ): void {
-    this.populateFormComponent(item);
+  ): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Save Status */
 
-  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+  async visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SaveStatusFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Group */
 
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new GroupFieldComponentConfig();
     item.config = config;
@@ -1174,21 +1175,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
       // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-      fields.forEach((childField, index) => {
+      for (let index = 0; index < fields.length; index++){
+        const childField = fields[index];
         if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
-          return;
+          continue;
         }
 
         const v4FormPathMore = ['definition', 'fields', index.toString()];
         if (this.shouldOmitLegacyField(childField, v4FormPathMore)) {
-          return;
+          continue;
         }
         // Create the instance from the v4 config
         const formComponent = this.constructFormComponent(childField, v4FormPathMore);
 
         // Visit children
         const componentIndex = config.componentDefinitions.length;
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           formComponent,
           this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, componentIndex),
           v4FormPathMore
@@ -1201,21 +1203,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Store the instance on the item
         config.componentDefinitions.push(formComponent);
 
-        const hiddenBinding = this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
+        const hiddenBinding = await this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
         if (hiddenBinding) {
-          this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
-          this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+          await this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+          await this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
           const hiddenComponentIndex = config.componentDefinitions.length;
-          this.acceptV4FormConfigPath(
+          await this.acceptV4FormConfigPath(
             hiddenBinding.component,
             this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
             hiddenBinding.v4FormPathMore
           );
-          this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+          await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
           config.componentDefinitions.push(hiddenBinding.component);
         }
-      });
-      this.injectLegacyRecordMetadataRetrieverExpressions(
+      }
+      await this.injectLegacyRecordMetadataRetrieverExpressions(
         fields,
         config.componentDefinitions,
         this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
@@ -1230,7 +1232,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new GroupFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -1240,13 +1242,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Tab  */
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new TabFieldComponentConfig();
     item.config = config;
@@ -1254,10 +1256,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((field, index) => {
+    for (const [index, field] of fields.entries()) {
       const v4FormPathMore = ['definition', 'fields', index.toString()];
       if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
-        return;
+        continue;
       }
 
       // TODO: Does this approach to mapping the tab content component lose data?
@@ -1274,7 +1276,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         )
       ) {
         // Visit children
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           formComponent,
           this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index),
           v4FormPathMore
@@ -1283,22 +1285,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         // Store the instance on the item
         config.tabs.push(formComponent);
       }
-    });
+    }
   }
 
-  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
+  async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /*  Tab Content */
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new TabContentFieldComponentConfig();
     item.config = config;
@@ -1306,17 +1308,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    fields.forEach((field, index) => {
+    for (let index = 0; index < fields.length; index++){
+      const field1 = fields[index];
       const v4FormPathMore = ['definition', 'fields', index.toString()];
-      if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
-        return;
+      if (this.shouldOmitLegacyField(field1, v4FormPathMore)) {
+        continue;
       }
       // Create the instance from the v4 config
-      const formComponent = this.constructFormComponent(field, v4FormPathMore);
+      const formComponent = this.constructFormComponent(field1, v4FormPathMore);
 
       // Visit children
       const componentIndex = config.componentDefinitions.length;
-      this.acceptV4FormConfigPath(
+      await this.acceptV4FormConfigPath(
         formComponent,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, componentIndex),
         ['definition', 'fields', index.toString()]
@@ -1325,29 +1328,29 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       // Store the instance on the item
       config.componentDefinitions.push(formComponent);
 
-      const hiddenBinding = this.constructLegacyNameBindingCompanion(field, v4FormPathMore);
+      const hiddenBinding = await this.constructLegacyNameBindingCompanion(field1, v4FormPathMore);
       if (hiddenBinding) {
-        this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
-        this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+        await this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
+        await this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
         const hiddenComponentIndex = config.componentDefinitions.length;
-        this.acceptV4FormConfigPath(
+        await this.acceptV4FormConfigPath(
           hiddenBinding.component,
           this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
           hiddenBinding.v4FormPathMore
         );
-        this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
+        await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
         config.componentDefinitions.push(hiddenBinding.component);
       }
-    });
+    }
 
-    this.injectLegacyRecordMetadataRetrieverExpressions(
+    await this.injectLegacyRecordMetadataRetrieverExpressions(
       fields,
       config.componentDefinitions,
       this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
     );
   }
 
-  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
+  async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabContentFieldLayoutConfig();
     if (field?.definition?.label) {
@@ -1356,13 +1359,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
+  async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1377,13 +1380,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
+  async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CancelButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1399,13 +1402,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Delete Button  */
 
-  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+  async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DeleteButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1429,13 +1432,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
+  async visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabNavButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1446,13 +1449,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('endDisplayMode', item.config, field?.definition);
   }
 
-  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
+  async visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TextAreaFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1468,19 +1471,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('rows', item.config, { rows });
   }
 
-  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+  async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TextAreaFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RichTextEditorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1491,19 +1494,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RichTextEditorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Map */
 
-  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+  async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new MapFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1532,20 +1535,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+  async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new MapFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
-    this.coerceMapFeatureCollection(item.config);
+    await this.coerceMapFeatureCollection(item.config);
   }
 
-  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+  async visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new FileUploadFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1580,19 +1583,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+  async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new FileUploadFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* PDF List */
 
-  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+  async visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PDFListFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1628,19 +1631,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return value.replace(/<%=\s*([\s\S]+?)\s*%>/g, '{{$1}}');
   }
 
-  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+  async visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PDFListFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Data Location */
 
-  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+  async visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DataLocationFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1677,17 +1680,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+  async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DataLocationFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
+  async visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PublishDataLocationSelectorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1720,14 +1723,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
+  async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PublishDataLocationSelectorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
     const field = this.getV4Data();
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const subscribe = (definition.subscribe ?? {}) as Record<string, unknown>;
@@ -1772,7 +1775,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
+  async visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DefaultFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
@@ -1783,7 +1786,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+  async visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
@@ -1800,7 +1803,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
+  async visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1809,7 +1812,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, { options: options });
   }
 
-  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+  async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -1822,13 +1825,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Checkbox Tree */
 
-  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+  async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxTreeFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1861,23 +1864,23 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       });
     }
 
-    this.warnOnMalformedLegacyRegex(rawDefinition);
+    await this.warnOnMalformedLegacyRegex(rawDefinition);
   }
 
-  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+  async visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxTreeFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
-    this.coerceCheckboxTreeDefaultValue(item.config);
+    await this.coerceCheckboxTreeDefaultValue(item.config);
   }
 
-  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Record Selector */
 
-  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordSelectorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1885,6 +1888,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     this.sharedProps.setPropOverride('columnTitle', item.config, {
       columnTitle: String(definition.columnTitle ?? 'Record title'),
+    });
+    this.sharedProps.setPropOverride('relationshipId', item.config, {
+      relationshipId: typeof definition.relationshipId === 'string' ? definition.relationshipId : undefined,
     });
     this.sharedProps.setPropOverride('recordType', item.config, {
       recordType: typeof definition.recordType === 'string' ? definition.recordType : undefined,
@@ -1917,7 +1923,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+  async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordSelectorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -1946,13 +1952,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
+  async visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DropdownInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1961,19 +1967,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, { options: options });
   }
 
-  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+  async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DropdownInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Typeahead Input */
 
-  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TypeaheadInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2008,6 +2014,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
+        );
+      }
+    } else if (sourceType === 'service') {
+      const serviceId = String(definition.serviceId ?? '').trim();
+      if (serviceId) {
+        this.sharedProps.setPropOverride('serviceId', item.config, { serviceId });
+      } else {
+        this.logger.warn(
+          `${this.logName}: Typeahead migration missing serviceId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
     } else if (sourceType === 'external') {
@@ -2045,10 +2060,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, { readOnlyAfterSelect });
     }
 
-    this.warnOnDroppedLegacyTypeaheadProperties(definition);
+    await this.warnOnDroppedLegacyTypeaheadProperties(definition);
   }
 
-  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+  async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TypeaheadInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -2066,13 +2081,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
+  async visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RadioInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2081,37 +2096,37 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, { options: options });
   }
 
-  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+  async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RadioInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+  async visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DateInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+  async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DateInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Reusable */
 
-  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
+  async visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new ReusableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2148,7 +2163,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
 
       // Visit children
-      this.acceptV4FormConfigPath(
+      await this.acceptV4FormConfigPath(
         reusableComponentItem,
         this.formPathHelper.lineagePathsForReusableFieldComponentDefinition(reusableComponentItem, 0)
       );
@@ -2158,7 +2173,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
+  async visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
@@ -2173,25 +2188,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.layout = undefined;
     }
 
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Question Tree */
 
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new QuestionTreeFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+  async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new QuestionTreeFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Data classification to Question Tree config migration */
@@ -2293,12 +2308,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Shared */
 
-  protected acceptV4FormConfigPath(item: CanVisit, more?: LineagePathsPartial, v4FormPath?: string[]): void {
+  protected async acceptV4FormConfigPath(item: CanVisit, more?: LineagePathsPartial, v4FormPath?: string[]): Promise<void> {
     // Copy the original lineage paths so they can be restored.
     const original = [...(this.v4FormPath ?? [])];
     try {
       this.v4FormPath = [...original, ...(v4FormPath ?? [])];
-      this.formPathHelper.acceptFormPath(item, more);
+      await this.formPathHelper.acceptFormPath(item, more);
     } finally {
       this.v4FormPath = original;
     }
@@ -2444,10 +2459,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return this.sharedProps.sharedConstructFormComponent(currentData);
   }
 
-  protected constructLegacyNameBindingCompanion(
+  protected async constructLegacyNameBindingCompanion(
     field: Record<string, unknown>,
     v4FormPathMore: LineagePath
-  ): { component: AllFormComponentDefinitionOutlines; sourceName: string; allowRoles: string[]; v4FormPathMore: string[] } | undefined {
+  ): Promise<{
+    component: AllFormComponentDefinitionOutlines;
+    sourceName: string;
+    allowRoles: string[];
+    v4FormPathMore: string[];
+  } | undefined> {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const sourceName = typeof definition.name === 'string' ? definition.name.trim() : '';
     const sourceType = typeof definition.type === 'string' ? definition.type.trim().toLowerCase() : '';
@@ -2480,7 +2500,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const hiddenComponent = this.constructFormComponent(hiddenField, hiddenPath);
     hiddenComponent.name = sourceName;
     const allowRoles = Array.isArray(field?.roles) ? (field.roles as string[]) : [];
-    this.enforceLegacyHiddenBindingConfig(hiddenComponent, allowRoles);
+    await this.enforceLegacyHiddenBindingConfig(hiddenComponent, allowRoles);
     hiddenComponent.overrides = {
       ...(hiddenComponent.overrides ?? {}),
       formModeClasses: {
@@ -2498,7 +2518,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     };
   }
 
-  protected enforceLegacyHiddenBindingConfig(component: AllFormComponentDefinitionOutlines, allowRoles: string[] = []): void {
+  protected async enforceLegacyHiddenBindingConfig(component: AllFormComponentDefinitionOutlines, allowRoles: string[] = []): Promise<void> {
     if (component.component?.config) {
       const hiddenComponentConfig = component.component.config as Record<string, unknown>;
       hiddenComponentConfig.type = 'hidden';
@@ -2516,11 +2536,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     };
   }
 
-  protected retargetLegacyTextBlockBinding(
+  protected async retargetLegacyTextBlockBinding(
     formComponent: AllFormComponentDefinitionOutlines,
     sourceName: string,
     bindingName: string
-  ): void {
+  ): Promise<void> {
     const componentConfig = formComponent?.component?.config as Record<string, unknown> | undefined;
     if (!componentConfig) {
       return;
@@ -2530,11 +2550,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  protected ensureLegacyTextBlockComponentNameIsUnique(
+  protected async ensureLegacyTextBlockComponentNameIsUnique(
     formComponent: AllFormComponentDefinitionOutlines,
     sourceName: string,
     v4FormPathMore: LineagePath
-  ): void {
+  ): Promise<void> {
     if ((formComponent?.name ?? '') !== sourceName) {
       return;
     }
@@ -2543,9 +2563,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     formComponent.name = `ContentComponent-${pathSuffix || fallback}`;
   }
 
-  protected populateFormComponent(item: FormComponentDefinitionOutline): void {
+  protected async populateFormComponent(item: FormComponentDefinitionOutline): Promise<void> {
     // Continue visiting
-    this.formPathHelper.acceptFormComponentDefinition(item);
+    await this.formPathHelper.acceptFormComponentDefinition(item);
     // this.acceptV4FormConfigPath(item.component, {formConfig: ['component']});
     // if (item.model) {
     //     this.acceptV4FormConfigPath(item.model, {formConfig: ['model']});
@@ -2777,7 +2797,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return normalized;
   }
 
-  protected migrateOptions(field: Record<string, unknown>) {
+  protected async migrateOptions(field: Record<string, unknown>) {
     return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map((option) => {
       return {
         label: option?.label ?? '',
@@ -2787,7 +2807,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  private applyLegacyFormCssNormalization(item: FormConfigOutline): void {
+  private async applyLegacyFormCssNormalization(item: FormConfigOutline): Promise<void> {
     const normalizedViewCssClasses = this.normalizeLegacyFormCssClasses(item.viewCssClasses, 'view');
     if (normalizedViewCssClasses) {
       item.viewCssClasses = normalizedViewCssClasses;
@@ -3016,7 +3036,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return undefined;
   }
 
-  private warnOnMalformedLegacyRegex(definition: Record<string, unknown>): void {
+  private async warnOnMalformedLegacyRegex(definition: Record<string, unknown>): Promise<void> {
     for (const key of ['regex', 'pattern', 'leafRegex']) {
       if (!Object.hasOwn(definition, key)) {
         continue;
@@ -3046,7 +3066,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  private coerceCheckboxTreeDefaultValue(config: CheckboxTreeFieldModelConfig): void {
+  private async coerceCheckboxTreeDefaultValue(config: CheckboxTreeFieldModelConfig): Promise<void> {
     const rawDefaultValue = config.defaultValue;
     if (rawDefaultValue === undefined || rawDefaultValue === null) {
       return;
@@ -3075,7 +3095,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     config.defaultValue = coerced as CheckboxTreeFieldModelConfig['defaultValue'];
   }
 
-  private coerceMapFeatureCollection(config: MapFieldModelConfigOutline): void {
+  private async coerceMapFeatureCollection(config: MapFieldModelConfigOutline): Promise<void> {
     const emptyCollection = {
       type: 'FeatureCollection',
       features: [],
@@ -3195,12 +3215,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   }
 
-  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' {
+  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' | 'service' {
     const legacySourceType = String(definition.sourceType ?? '')
       .trim()
       .toLowerCase();
     if (legacySourceType === 'query' || legacySourceType === 'namedquery') {
       return 'namedQuery';
+    }
+    if (legacySourceType === 'service') {
+      return 'service';
     }
     if (legacySourceType === 'external') {
       return 'external';
@@ -3216,6 +3239,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     if (definition.vocabRef || definition.vocabId) {
       return 'vocabulary';
+    }
+    if (definition.serviceId) {
+      return 'service';
     }
     if (definition.provider) {
       return 'external';
@@ -3392,11 +3418,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return null;
   }
 
-  private injectLegacyRecordMetadataRetrieverExpressions(
+  private async injectLegacyRecordMetadataRetrieverExpressions(
     legacyFields: Record<string, unknown>[],
     migratedComponents: AllFormComponentDefinitionOutlines[],
     containerPointer = ''
-  ): void {
+  ): Promise<void> {
     for (const legacyField of legacyFields) {
       if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
         continue;
@@ -3640,7 +3666,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return nested;
   }
 
-  private retargetPublishDataLocationSelectorExpressions(components: AllFormComponentDefinitionOutlines[] | undefined): void {
+  private async retargetPublishDataLocationSelectorExpressions(components: AllFormComponentDefinitionOutlines[] | undefined): Promise<void> {
     for (const component of components ?? []) {
       if (component.component?.class === PublishDataLocationSelectorComponentName) {
         for (const expression of component.expressions ?? []) {
@@ -3655,7 +3681,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         }
       }
 
-      this.retargetPublishDataLocationSelectorExpressions(this.getChildComponentDefinitions(component));
+      await this.retargetPublishDataLocationSelectorExpressions(this.getChildComponentDefinitions(component));
     }
   }
 
@@ -3683,7 +3709,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }, 'event.value');
   }
 
-  private warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): void {
+  private async warnOnDroppedLegacyTypeaheadProperties(definition: Record<string, unknown>): Promise<void> {
     const droppedProps = [
       'forceClone',
       'completerService',

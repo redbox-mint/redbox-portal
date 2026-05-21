@@ -51,8 +51,8 @@ export class MapFieldComponentDefinition extends FieldComponentDefinition implem
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitMapFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitMapFieldComponentDefinition(this);
     }
 }
 
@@ -74,8 +74,8 @@ export class MapFieldModelDefinition extends FieldModelDefinition<MapModelValueT
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitMapFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitMapFieldModelDefinition(this);
     }
 }
 
@@ -90,8 +90,8 @@ export class MapFormComponentDefinition extends FormComponentDefinition implemen
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitMapFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitMapFormComponentDefinition(this);
     }
 }
 

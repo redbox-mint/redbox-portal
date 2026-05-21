@@ -26,23 +26,6 @@ export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
 chmod 777 "$NYC_OUTPUT" || true
 
-# Run the redbox-core loader to generate shims before tests start
-# This is crucial because test files require services/models at top-level
-echo "Generating shims via redbox-core loader..."
-node -e "
-  const { generateAllShims } = require('@researchdatabox/redbox-core');
-  generateAllShims(process.cwd(), {
-    forceRegenerate: true,
-    verbose: true
-  }).catch(err => {
-    console.error('Shim generation failed:', err);
-    process.exit(1);
-  });
-"
-
-bootstrap_test=test/bootstrap.test.ts
-
-
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
   mapfile -t env_test_args <<< "${RBPORTAL_MOCHA_TEST_PATHS}"
@@ -62,6 +45,32 @@ if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
   echo "Test dependencies not found. Running npm install..."
   npm install
 fi
+
+if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
+  npm install --no-save --ignore-scripts --strict-peer-deps redoc@2.5.2
+fi
+
+npm run webpack
+
+# Redoc is only needed to build the browser bundle. Remove it and its transitive
+# `should` package before Sails boots so moduleloader does not scan them.
+rm -rf node_modules/redoc node_modules/should
+
+# Run the redbox-core loader to generate shims before tests start
+# This is crucial because test files require services/models at top-level
+echo "Generating shims via redbox-core loader..."
+node -e "
+  const { generateAllShims } = require('@researchdatabox/redbox-core');
+  generateAllShims(process.cwd(), {
+    forceRegenerate: true,
+    verbose: true
+  }).catch(err => {
+    console.error('Shim generation failed:', err);
+    process.exit(1);
+  });
+"
+
+bootstrap_test=test/bootstrap.test.ts
 
 mocha_cmd=(node_modules/.bin/mocha)
 nyc_cmd=(node_modules/.bin/nyc)

@@ -6,7 +6,7 @@ import { get as _get } from "lodash-es";
 import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
 import { TypeaheadOption } from "@researchdatabox/sails-ng-common";
 
-type WrappedResponse<T> = { data?: T };
+type WrappedResponse<T> = { data?: T; meta?: Record<string, unknown> };
 
 @Injectable({ providedIn: "root" })
 export class TypeaheadDataService extends HttpClientService {
@@ -156,6 +156,44 @@ export class TypeaheadDataService extends HttpClientService {
                     raw: record
                 };
             })
+            .filter((entry) => Boolean(entry.label || entry.value));
+    }
+
+    public async searchService(
+        serviceId: string,
+        search: string,
+        start = 0,
+        rows = 25
+    ): Promise<TypeaheadOption[]> {
+        await this.waitForInit();
+        const trimmedServiceId = String(serviceId ?? "").trim();
+        if (!trimmedServiceId) {
+            throw new Error("serviceId is required");
+        }
+
+        const url = `${this.brandingAndPortalUrl}/service/vocab/${encodeURIComponent(trimmedServiceId)}`;
+        const response = await firstValueFrom(
+            this.http.post<WrappedResponse<Array<Record<string, unknown>>> | Array<Record<string, unknown>>>(url, {
+                search: String(search ?? ""),
+                start,
+                rows
+            }, {
+                responseType: "json",
+                observe: "body",
+                context: this.httpContext
+            })
+        );
+
+        const records = this.unwrapArrayResponse(response);
+        return records
+            .map((record) => ({
+                label: String(record?.["label"] ?? ""),
+                value: String(record?.["value"] ?? ""),
+                sourceType: "service" as const,
+                historical: record?.["historical"] === true,
+                disabled: record?.["disabled"] === true,
+                raw: record?.["raw"] ?? record
+            }))
             .filter((entry) => Boolean(entry.label || entry.value));
     }
 

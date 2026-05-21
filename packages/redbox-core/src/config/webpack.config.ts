@@ -9,13 +9,14 @@ import type { Configuration } from 'webpack';
 // Plugins (CommonJS require due to compatibility)
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 // Use process.cwd() as topDir (project root) instead of __dirname relative resolution
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
 const isDevelopmentAssetMode = process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
+const enableCssMinimizerPlugin = process.env.WEBPACK_ENABLE_CSS_MINI_PLUGIN === 'true';
 
 export interface WebpackConfig {
     config: Configuration[];
@@ -73,6 +74,10 @@ export const webpack: WebpackConfig = {
                         {
                             from: './node_modules/jquery/dist/jquery.min.js',
                             to: './default/default/js/'
+                        },
+                        {
+                            from: './node_modules/redoc/bundles/redoc.standalone.js',
+                            to: './default/default/js/'
                         }
                     ],
                 }),
@@ -104,10 +109,13 @@ export const webpack: WebpackConfig = {
                 ]
             },
             optimization: {
-                minimizer: [
-                    `...`,
-                    new CssMinimizerPlugin(),
-                ],
+                minimizer: !isDevelopmentAssetMode || enableCssMinimizerPlugin
+                    ? [
+                        // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
+                        `...`,
+                        new CssMinimizerPlugin(),
+                    ]
+                    : undefined,
                 minimize: !isDevelopmentAssetMode,
             },
             ignoreWarnings: [

@@ -4,7 +4,7 @@ import * as lodash from 'lodash';
 // Ensure TypeScript includes Sails global service declarations during tests.
 // These are type-only imports and do not execute the modules at runtime.
 import type { Services as _BrandingServiceTypes } from '../src/services/BrandingService';
-import type { Services as _VocabServiceTypes } from '../src/services/VocabService';
+import type { Services as _FormVocabularyServiceTypes } from '../src/services/FormVocabularyService';
 import type { Services as _VocabularyServiceTypes } from '../src/services/VocabularyService';
 import type { Services as _RvaImportServiceTypes } from '../src/services/RvaImportService';
 import type { Services as _AppConfigServiceTypes } from '../src/services/AppConfigService';
@@ -13,6 +13,8 @@ import type { Services as _RecordsServiceTypes } from '../src/services/RecordsSe
 import type { Services as _RecordTypesServiceTypes } from '../src/services/RecordTypesService';
 import type { Services as _UsersServiceTypes } from '../src/services/UsersService';
 import type { Services as _WorkflowStepsServiceTypes } from '../src/services/WorkflowStepsService';
+import type { Services as _DashboardConfigServiceTypes } from '../src/services/DashboardConfigService';
+import type { Services as _DashboardTypesServiceTypes } from '../src/services/DashboardTypesService';
 
 /**
  * Test setup file that runs before all tests.

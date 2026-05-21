@@ -1,4 +1,5 @@
 import '../sails';
+import type { ApiRouteDefinition } from '../api-routes';
 
 type HookFactoryResult = {
   defaults?: Record<string, unknown>;
@@ -15,6 +16,7 @@ export type DefineRedboxHookOptions = {
   configure?: (sails: Sails.Application) => void;
   initialize?: (sails: Sails.Application, done: () => void) => void;
   registerRedboxConfig?: () => HookRegistrationMap;
+  registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
   registerRedboxControllers?: () => HookRegistrationMap;
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
@@ -24,6 +26,7 @@ export type DefineRedboxHookOptions = {
 
 type DefinedRedboxHook = ((sails: Sails.Application) => HookFactoryResult) & {
   registerRedboxConfig?: () => HookRegistrationMap;
+  registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
   registerRedboxControllers?: () => HookRegistrationMap;
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
@@ -60,6 +63,10 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
 
   if (options.registerRedboxConfig) {
     hookFactory.registerRedboxConfig = options.registerRedboxConfig;
+  }
+
+  if (options.registerHookApiRoutes) {
+    hookFactory.registerHookApiRoutes = options.registerHookApiRoutes;
   }
 
   if (options.registerRedboxControllers) {

@@ -33,6 +33,15 @@ export class NamedQueryClass {
 
   @Attr({ type: 'string' })
   public brandIdFieldPath?: string;
+
+  @Attr({ type: 'string' })
+  public sort?: string;
+
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public expandRelations?: boolean;
+
+  @Attr({ type: 'string' })
+  public relatedRecordFilters?: string;
 }
 
 // Export the Waterline model definition for runtime use
@@ -48,6 +57,9 @@ export interface NamedQueryAttributes extends Sails.WaterlineAttributes {
   name: string;
   queryParams: string;
   resultObjectMapping: string;
+  sort?: string;
+  expandRelations?: boolean;
+  relatedRecordFilters?: string;
 }
 
 export interface NamedQueryWaterlineModel extends Sails.Model<NamedQueryAttributes> {

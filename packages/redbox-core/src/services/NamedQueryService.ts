@@ -20,30 +20,97 @@
 import { Services as services } from '../CoreService';
 import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { DateTime } from 'luxon';
+import Handlebars from 'handlebars';
+import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { firstValueFrom } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
+import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
-const parseJson = <T>(input: unknown, fallback: T): T => {
-  if (typeof input !== 'string' || input.length === 0) {
+type AnyRecord = Record<string, unknown>;
+
+const isRecordValue = (value: unknown): value is AnyRecord => typeof value === 'object' && value !== null;
+
+const getStringProperty = (value: unknown, propertyName: string): string | undefined => {
+  if (!isRecordValue(value)) {
+    return undefined;
+  }
+
+  const propertyValue = value[propertyName];
+  return typeof propertyValue === 'string' ? propertyValue : undefined;
+};
+
+const getIdentifierProperty = (value: unknown, propertyName: string): string | undefined => {
+  if (!isRecordValue(value)) {
+    return undefined;
+  }
+
+  const propertyValue = value[propertyName];
+  if (typeof propertyValue === 'string' || typeof propertyValue === 'number') {
+    return String(propertyValue);
+  }
+
+  return undefined;
+};
+
+const parseSerializedValue = <T>(input: unknown, fallback: T): T => {
+  if (typeof input === 'string') {
+    if (input.length === 0) {
+      return fallback;
+    }
+    try {
+      return JSON.parse(input) as T;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+
+  if (input === undefined || input === null) {
     return fallback;
   }
-  try {
-    return JSON.parse(input) as T;
-  } catch (_error) {
-    return fallback;
+
+  return input as T;
+};
+
+const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<string, unknown> => {
+  if (_.isPlainObject(value)) {
+    return value as Record<string, unknown>;
   }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (_.isPlainObject(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch (_error) {
+      throw Error(`${queryParamKey} must be a valid JSON object`);
+    }
+  }
+
+  throw Error(`${queryParamKey} must be a valid JSON object`);
+};
+
+let namedQueryHandlebarsHelpersRegistered = false;
+
+const ensureNamedQueryHandlebarsHelpers = () => {
+  if (namedQueryHandlebarsHelpersRegistered) {
+    return;
+  }
+
+  registerSharedHandlebarsHelpers(Handlebars);
+  namedQueryHandlebarsHelpersRegistered = true;
 };
 
 export namespace Services {
-  type RecordLike = RecordModel & { createdAt?: string | Date; updatedAt?: string | Date };
-  type UserLike = UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
+  type RecordLike = AnyRecord & Partial<RecordModel> & { createdAt?: string | Date; updatedAt?: string | Date };
+  type UserLike = AnyRecord & UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
 
   /**
    * Named Query related functions...
@@ -51,7 +118,7 @@ export namespace Services {
    */
   export class NamedQueryService extends services.Core.Service {
 
-  
+
 
     protected override _exportedMethods: string[] = [
       "bootstrap",
@@ -61,28 +128,28 @@ export namespace Services {
       "performNamedQueryFromConfigResults",
     ];
 
-  public async bootstrap (defBrand: BrandingModel) {
+    public async bootstrap(defBrand: BrandingModel) {
       const namedQueries = await firstValueFrom(super.getObservable<Array<{ id?: string | number }>>(NamedQuery.find({
         branding: defBrand.id
-   })));
-      
-        if (!_.isEmpty(namedQueries)) {
-          if (sails.config.appmode.bootstrapAlways) {
-            for(const namedQuery of namedQueries) {
-              await NamedQuery.destroyOne({id: namedQuery.id});
-            }
-          } else {
-            return;
+      })));
+
+      if (!_.isEmpty(namedQueries)) {
+        if (sails.config.appmode.bootstrapAlways) {
+          for (const namedQuery of namedQueries) {
+            await NamedQuery.destroyOne({ id: namedQuery.id });
           }
-        } 
-        sails.log.verbose("Bootstrapping named query definitions... ");
-  await this.createNamedQueriesForBrand(defBrand);
+        } else {
+          return;
+        }
+      }
+      sails.log.verbose("Bootstrapping named query definitions... ");
+      await this.createNamedQueriesForBrand(defBrand);
     }
 
     private async createNamedQueriesForBrand(defBrand: BrandingModel) {
       for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
         const namedQueryConfig = config as NamedQueryConfig;
-  await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
+        await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
       }
     }
 
@@ -96,15 +163,41 @@ export namespace Services {
         resultObjectMapping: JSON.stringify(config.resultObjectMapping),
         brandIdFieldPath: config.brandIdFieldPath,
         sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
+        expandRelations: config.expandRelations === true,
+        relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
+          ? JSON.stringify(config.relatedRecordFilters)
+          : "",
       }));
     }
 
 
-    async getNamedQueryConfig(brand: BrandingModel, namedQuery: string) {
+    async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<NamedQueryConfig | null> {
       const nQDBEntry = await NamedQuery.findOne({
         key: brand.id + "_" + namedQuery
       });
-      return new NamedQueryConfig(nQDBEntry)
+      if (nQDBEntry) {
+        return new NamedQueryConfig(nQDBEntry)
+      }
+
+      const configuredNamedQuery = _.get(sails.config, ['namedQuery', namedQuery]) as NamedQueryDefinition | undefined;
+      if (!configuredNamedQuery || typeof configuredNamedQuery !== 'object') {
+        return null;
+      }
+
+      const configFromSource: NamedQueryDefinition = configuredNamedQuery;
+
+      return new NamedQueryConfig({
+        name: namedQuery,
+        branding: String(brand.id),
+        collectionName: configFromSource.collectionName,
+        brandIdFieldPath: configFromSource.brandIdFieldPath,
+        mongoQuery: _.cloneDeep(configFromSource.mongoQuery),
+        queryParams: _.cloneDeep(configFromSource.queryParams),
+        resultObjectMapping: _.cloneDeep(configFromSource.resultObjectMapping),
+        sort: _.cloneDeep(configFromSource.sort),
+        expandRelations: configFromSource.expandRelations,
+        relatedRecordFilters: _.cloneDeep(configFromSource.relatedRecordFilters),
+      })
     }
 
     async performNamedQuery(
@@ -118,26 +211,52 @@ export namespace Services {
       start: number,
       rows: number,
       _user: unknown = undefined,
-      sort: NamedQuerySortConfig | undefined = undefined
+      sort: NamedQuerySortConfig | undefined = undefined,
+      expandRelations: boolean = false,
+      relatedRecordFilters: RelatedRecordFilter[] = []
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = {enableExperimentalDeepTargets: true};
+      const criteriaMeta = { enableExperimentalDeepTargets: true };
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+
+      if (relatedRecordFilters && relatedRecordFilters.length > 0) {
+        for (const filter of relatedRecordFilters) {
+          const filterModel = sails.models[filter.collectionName];
+          if (!filterModel) {
+            sails.log.warn(`Skipping related record filter: model '${filter.collectionName}' not found for collectionName='${filter.collectionName}', localField='${filter.localField}', foreignField='${filter.foreignField}'`);
+            continue;
+          }
+          const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
+          const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
+          this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
+          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
+          const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
+          const existingLocalFieldFilter = _.get(mongoQuery, filter.localField);
+          const existingRelatedIds = _.isPlainObject(existingLocalFieldFilter) ? _.get(existingLocalFieldFilter, '$in') : undefined;
+          if (Array.isArray(existingRelatedIds)) {
+            _.set(mongoQuery, filter.localField, {
+              $in: _.intersection(existingRelatedIds, relatedIds)
+            });
+          } else {
+            _.set(mongoQuery, filter.localField, { $in: relatedIds });
+          }
+        }
+      }
 
       const that = this;
 
       // Add branding
-      if(brandIdFieldPath != '') {
+      if (brandIdFieldPath != '') {
         mongoQuery[brandIdFieldPath] = brand.id;
       }
       sails.log.debug("Mongo query to be executed", mongoQuery);
 
       // Get the total count of matching records
       let totalItems = 0;
-      if(collectionName == 'user') {
-        totalItems = await User.count(mongoQuery).meta(criteriaMeta);
-      } else {
-        totalItems = await Record.count(mongoQuery).meta(criteriaMeta);
+      const model = sails.models[collectionName];
+      if (!model) {
+        throw new Error(`Model ${collectionName} not found`);
       }
+      totalItems = await model.count(mongoQuery).meta(criteriaMeta);
 
       // Build query criteria
       const criteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig } = {
@@ -156,40 +275,42 @@ export namespace Services {
       sails.log.debug("Mongo query criteria", criteria);
       let results: Array<RecordLike | UserLike> = [];
       if (totalItems > 0) {
-        if(collectionName == 'user') {
-          results = await User.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
-        } else {
-          results = await Record.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
-        }
+        results = await model.find(criteria).meta(criteriaMeta) as unknown as Array<RecordLike | UserLike>;
       }
-      
+
       const responseRecords: NamedQueryResponseRecord[] = []
+      const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
+      const expandRelationsActual = expandRelations === true && collectionName === 'record';
+      if (expandRelations === true && collectionName !== 'record') {
+        sails.log.debug(`expandRelations is only supported for the 'record' collection; ignoring for '${collectionName}'`);
+      }
+
       for (const record of results) {
 
-        if(collectionName == 'user') {
+        if (collectionName == 'user') {
           const userRecord = record as UserLike;
 
           let defaultMetadata: NamedQueryResponseMetadata = {};
           const variables: Record<string, unknown> = { record: userRecord };
 
-          if(!_.isEmpty(resultObjectMapping)) {
+          if (!_.isEmpty(resultObjectMapping)) {
             const resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
-              _.set(resultMetadata,key,that.runTemplate(value as string,variables));
+            _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
+              _.set(resultMetadata, key, that.runTemplate(value as string, variables));
             });
             defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
 
           } else {
             defaultMetadata = {
-              type: that.runTemplate('record.type',variables),
-              name: that.runTemplate('record.name',variables),
-              email: that.runTemplate('record.email',variables),
-              username: that.runTemplate('record.username',variables),
-              lastLogin: that.runTemplate('record.lastLogin',variables)
+              type: that.runTemplate('record.type', variables),
+              name: that.runTemplate('record.name', variables),
+              email: that.runTemplate('record.email', variables),
+              username: that.runTemplate('record.username', variables),
+              lastLogin: that.runTemplate('record.lastLogin', variables)
             };
           }
 
-          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+          const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
             oid: '',
             title: '',
             metadata: defaultMetadata,
@@ -201,23 +322,33 @@ export namespace Services {
         } else {
           const recordItem = record as RecordLike;
 
-          let defaultMetadata: NamedQueryResponseMetadata = {};
-          const variables: Record<string, unknown> = { record: recordItem };
-
-          if(!_.isEmpty(resultObjectMapping)) {
-            const resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function(value: unknown, key: string) {
-              _.set(resultMetadata,key,that.runTemplate(value as string,variables));
-            });
-            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
-            
-          } else {
-            defaultMetadata =  that.runTemplate('record.metadata',variables) as NamedQueryResponseMetadata;
+          if (expandRelationsActual && recordsService && recordItem.redboxOid) {
+            try {
+              const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+              recordItem.relationships = relationships;
+            } catch (err) {
+              sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
+            }
           }
 
-          const responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: recordItem.redboxOid ?? '',
-            title: (recordItem.metadata as Record<string, unknown> | undefined)?.title as string ?? '',
+          let defaultMetadata: NamedQueryResponseMetadata = {};
+          const variables: Record<string, unknown> = { record: recordItem };
+          if (!_.isEmpty(resultObjectMapping)) {
+            const resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
+              _.set(resultMetadata, key, that.runTemplate(value as string, variables));
+            });
+            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
+
+          } else {
+            defaultMetadata = collectionName === 'record'
+              ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
+              : recordItem as unknown as NamedQueryResponseMetadata;
+          }
+
+          const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
+            title: getStringProperty(recordItem.metadata, 'title') ?? getStringProperty(recordItem, 'name') ?? getStringProperty(recordItem, 'title') ?? '',
             metadata: defaultMetadata,
             lastSaveDate: recordItem.lastSaveDate ?? null,
             dateCreated: recordItem.dateCreated ?? null
@@ -237,80 +368,116 @@ export namespace Services {
       response.summary.start = start
       response.summary.page = pageNumber
       response.summary.numFound = totalItems;
-      
+
       return response;
     }
 
     setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
       for (const queryParamKey in queryParams) {
-        
+
         let value = paramMap[queryParamKey];
-        const queryParam:QueryParameterDefinition = queryParams[queryParamKey];
+        const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
         sails.log.debug(`${queryParamKey} has value ${value}`);
-        if (value == undefined && queryParam.required === true) {
+
+        if (_.isUndefined(value) && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
         }
-        if (!_.isEmpty(queryParam.template))  {
-          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
-        }
-        if (queryParam.type == DataType.Number) {
-          value = _.toNumber(value)
+
+        if (_.isUndefined(value)) {
+          if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
+            _.unset(mongoQuery, queryParam.path);
+            continue;
+          }
+
+          if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
+            value = queryParam.defaultValue;
+          }
         }
 
-        if (queryParam.type == DataType.String) {
-          if (!_.isEmpty(queryParam.queryType)) {
-            const query: Record<string, unknown> = {}
-            // if there is no value pass empty string
-            if (value == undefined) {
-              if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
-                value = queryParam.defaultValue;
-              }
-            }
-            if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
-              
-              query[queryParam.queryType] = value;
-              value = query;
+        if (!_.isEmpty(queryParam.template)) {
+          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
+        }
+
+        if (queryParam.type == DataType.Number) {
+          if (!_.isUndefined(value) && value !== null && value !== '') {
+            value = _.toNumber(value)
+          }
+        }
+
+        if (queryParam.type == DataType.Boolean) {
+          if (!_.isUndefined(value)) {
+            if (typeof value === 'string') {
+              value = value.toLowerCase() === 'true';
+            } else {
+              value = Boolean(value);
             }
           }
         }
 
-        if(queryParam.type == DataType.Date) {
-          if (!_.isEmpty(queryParam.queryType)) { 
-            const query: Record<string, unknown> = {};
-            if (_.isUndefined(value)) {
-              if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {
-                value = queryParam.defaultValue;
+        if (queryParam.type == DataType.Array) {
+          if (!_.isUndefined(value) && !Array.isArray(value)) {
+            if (typeof value === 'string') {
+              const trimmed = value.trim();
+              if (trimmed === '') {
+                value = [];
+              } else if (trimmed.startsWith('[')) {
+                const parsed = parseSerializedValue<unknown[]>(trimmed, [value]);
+                value = Array.isArray(parsed) ? parsed : [value];
+              } else {
+                value = [value];
               }
+            } else {
+              value = value !== null && value !== '' ? [value] : [];
             }
-            if(queryParam.format == NamedQueryFormatOptions.days) {
+          }
+        }
+
+        if (queryParam.type == DataType.Object && !_.isUndefined(value)) {
+          value = parseObjectParamValue(queryParamKey, value);
+        }
+
+        if (
+          queryParam.type != DataType.Date &&
+          !_.isEmpty(queryParam.queryType)
+        ) {
+          const query: Record<string, unknown> = {}
+          if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
+            query[queryParam.queryType] = value;
+            value = query;
+          }
+        }
+
+        if (queryParam.type == DataType.Date) {
+          if (!_.isEmpty(queryParam.queryType)) {
+            const query: Record<string, unknown> = {};
+            if (queryParam.format == NamedQueryFormatOptions.days && !_.isUndefined(value)) {
               let days = _.toInteger(value);
               let nowDateAddOrSubtract = DateTime.local();
               if (days > 0) {
                 //Going forward in time X number of days
                 nowDateAddOrSubtract = nowDateAddOrSubtract.plus({ days: days });
-              } else if(days < 0) {
+              } else if (days < 0) {
                 //This "additional" step makes the code self explanatory
                 days = days * -1;
                 //Going backwards in time X number of days
                 nowDateAddOrSubtract = nowDateAddOrSubtract.minus({ days: days });
               }
               value = nowDateAddOrSubtract.toISO();
-            } 
+            }
 
             query[queryParam.queryType] = value;
             value = query;
-            
+
           }
         }
-        
+
         if (value == undefined && queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
-          
-            delete mongoQuery[queryParam.path];
+          _.unset(mongoQuery, queryParam.path);
         } else {
 
-          const existingValue = _.get(mongoQuery,queryParam.path)
-          if(existingValue != null && _.isObject(existingValue)) {
-            _.merge(value,existingValue);
+          const existingValue = _.get(mongoQuery, queryParam.path)
+          if (_.isPlainObject(existingValue) && _.isPlainObject(value)) {
+            _.merge(value, existingValue);
           }
           _.set(mongoQuery, queryParam.path, value);
         }
@@ -319,10 +486,19 @@ export namespace Services {
     }
 
     runTemplate(templateOrPath: string, variables: Record<string, unknown>): unknown {
-      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
-        return _.template(templateOrPath)(variables);
+      const templateVars = { ...variables };
+
+      if (templateOrPath && templateOrPath.indexOf('{{') != -1) {
+        try {
+          ensureNamedQueryHandlebarsHelpers();
+          const compiledTemplate = Handlebars.compile(templateOrPath, { noEscape: true });
+          return compiledTemplate(templateVars);
+        } catch (err) {
+          sails.log.error(`Template compilation failed for ${templateOrPath}`, err);
+          throw err;
+        }
       }
-      return _.get(variables, templateOrPath);
+      return _.get(templateVars, templateOrPath);
     }
 
     public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown) {
@@ -337,13 +513,15 @@ export namespace Services {
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
       const brandIdFieldPath = _.get(config, 'brandIdFieldPath', '') ?? '';
-      const mongoQuery = _.clone(_.get(config, 'mongoQuery', {}) ?? {});
+      const mongoQuery = _.cloneDeep(_.get(config, 'mongoQuery', {}) ?? {});
       const queryParams = (_.get(config, 'queryParams', {}) ?? {}) as Record<string, QueryParameterDefinition>;
-      const sort = _.get(config, 'sort', []) ?? [];
-      return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort);
+      const sort = _.cloneDeep(_.get(config, 'sort', []) ?? []);
+      const expandRelations = _.get(config, 'expandRelations', false) as boolean;
+      const relatedRecordFilters = _.cloneDeep(_.get(config, 'relatedRecordFilters', []) ?? []) as RelatedRecordFilter[];
+      return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters);
     }
 
-    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0,rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
+    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
       const records = [];
       let requestCount = 0;
       sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);
@@ -377,7 +555,7 @@ export namespace Services {
         start = currentRetrievedCount;
 
         // Check the number of records and fail if it is more than maxRecords.
-        if (records.length > maxRecords){
+        if (records.length > maxRecords) {
           sails.log.warn(`All named query results: returning early before finished with ${records.length} results for '${queryName}' from ${requestCount} requests because the number of records is more than max records ${maxRecords}`);
         }
 
@@ -395,6 +573,9 @@ enum DataType {
   Date = 'date',
   Number = 'number',
   String = 'string',
+  Boolean = 'boolean',
+  Array = 'array',
+  Object = 'object',
 }
 
 enum NamedQueryWhenUndefinedOptions {
@@ -420,6 +601,26 @@ class QueryParameterDefinition {
   template: string = '';
 }
 
+export class RelatedRecordFilter {
+  collectionName: string = '';
+  mongoQuery: Record<string, unknown> = {};
+  localField: string = '';
+  foreignField: string = '';
+}
+
+type NamedQueryConfigInput = Omit<Partial<NamedQueryAttributes>, 'branding' | 'queryParams' | 'mongoQuery' | 'resultObjectMapping' | 'sort' | 'expandRelations' | 'relatedRecordFilters'> & {
+  branding?: unknown;
+  metadata?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+  sort?: unknown;
+  expandRelations?: boolean | string;
+  relatedRecordFilters?: unknown;
+  queryParams?: unknown;
+  mongoQuery?: unknown;
+  resultObjectMapping?: unknown;
+};
+
 export class NamedQueryConfig {
   name: string;
   branding: string;
@@ -433,20 +634,24 @@ export class NamedQueryConfig {
   resultObjectMapping: Record<string, unknown>;
   brandIdFieldPath: string;
   sort: NamedQuerySortConfig | undefined;
+  expandRelations: boolean;
+  relatedRecordFilters: RelatedRecordFilter[];
 
-  constructor(values: Partial<NamedQueryAttributes> & { metadata?: unknown; createdAt?: string; updatedAt?: string; sort?: string } | null | undefined) {
-      this.name = values?.name ?? '';
-      this.branding = (values?.branding as string) ?? '';
-      this.metadata = values?.metadata;
-      this.createdAt = values?.createdAt ?? '';
-      this.updatedAt = values?.updatedAt ?? '';
-      this.key = values?.key ?? '';
-      this.queryParams = parseJson<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
-      this.mongoQuery = parseJson<Record<string, unknown>>(values?.mongoQuery, {});
-      this.collectionName = values?.collectionName ?? '';
-      this.resultObjectMapping = parseJson<Record<string, unknown>>(values?.resultObjectMapping, {});
-      this.brandIdFieldPath = values?.brandIdFieldPath ?? '';
-      this.sort = parseJson<NamedQuerySortConfig>(values?.sort, []);
+  constructor(values: NamedQueryConfigInput | null | undefined) {
+    this.name = values?.name ?? '';
+    this.branding = values?.branding != null ? String(values.branding) : '';
+    this.metadata = values?.metadata;
+    this.createdAt = values?.createdAt ?? '';
+    this.updatedAt = values?.updatedAt ?? '';
+    this.key = values?.key ?? '';
+    this.queryParams = parseSerializedValue<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
+    this.mongoQuery = parseSerializedValue<Record<string, unknown>>(values?.mongoQuery, {});
+    this.collectionName = values?.collectionName ?? '';
+    this.resultObjectMapping = parseSerializedValue<Record<string, unknown>>(values?.resultObjectMapping, {});
+    this.brandIdFieldPath = values?.brandIdFieldPath ?? '';
+    this.sort = parseSerializedValue<NamedQuerySortConfig>(values?.sort, []);
+    this.expandRelations = values?.expandRelations === true || values?.expandRelations === 'true';
+    this.relatedRecordFilters = parseSerializedValue<RelatedRecordFilter[]>(values?.relatedRecordFilters, []);
   }
 }
 
@@ -458,11 +663,11 @@ export class NamedQueryResponseRecord {
   dateCreated: string | Date | null;
 
   constructor(values: { oid: string; title: string; metadata: NamedQueryResponseMetadata; lastSaveDate: string | Date | null; dateCreated: string | Date | null }) {
-      this.oid= values.oid
-      this.title= values.title
-      this.metadata= values.metadata
-      this.lastSaveDate= values.lastSaveDate
-      this.dateCreated= values.dateCreated
+    this.oid = values.oid
+    this.title = values.title
+    this.metadata = values.metadata
+    this.lastSaveDate = values.lastSaveDate
+    this.dateCreated = values.dateCreated
   }
 }
 

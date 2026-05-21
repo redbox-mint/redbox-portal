@@ -12,6 +12,7 @@ readonly PACKAGE_PATHS=(
   "packages/raido"
   "packages/rva-registry"
   "packages/sails-ng-common"
+  "packages/agenda-sqs-backend"
   "packages/redbox-core"
   "packages/sails-hook-redbox-storage-mongo"
   "packages/redbox-dev-tools"
@@ -23,6 +24,7 @@ readonly STAGED_PACKAGE_PATHS=(
   "packages/raido"
   "packages/rva-registry"
   "packages/sails-ng-common"
+  "packages/agenda-sqs-backend"
   "packages/redbox-core"
   "$GENERATED_CORE_TYPES_PACKAGE_PATH"
   "packages/sails-hook-redbox-storage-mongo"
@@ -33,6 +35,7 @@ readonly INTERNAL_PACKAGES=(
   "@researchdatabox/raido-openapi-generated-node"
   "@researchdatabox/rva-registry-openapi-generated-node"
   "@researchdatabox/sails-ng-common"
+  "@researchdatabox/agenda-sqs-backend"
   "@researchdatabox/redbox-core"
   "@researchdatabox/redbox-core-types"
   "@researchdatabox/sails-hook-redbox-storage-mongo"
@@ -90,6 +93,7 @@ build_packages() {
   npm run compile:raido
   npm run compile:rva
   npm run compile:sails-ng-common
+  npm run compile:agenda-sqs
   npm run compile:core
   npm run compile:storage-mongo
   npm run compile:dev-tools

@@ -1,22 +1,23 @@
 import { Controllers as controllers } from '../CoreController';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
+import * as BrandingThemeCssServiceModule from '../services/BrandingThemeCssService';
 import * as crypto from 'crypto';
-import * as fs from 'graceful-fs';
-import * as path from 'path';
 const CleanCSS = require('clean-css');
+import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-routes';
+
+const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
 
 // sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
+declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 
 export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
     private static readonly CSS_CACHE_MAX_SIZE = 100;
     private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
-    private mongoUri!: string;
-    private blobAdapter: unknown;
     private readonly cssMinifier = new CleanCSS({
       level: {
         1: { all: true },
@@ -100,11 +101,7 @@ export namespace Controllers {
     ];
 
     public init() {
-      this.mongoUri = sails.config.datastores.mongodb.url;
-      const skipperGridFs = require('skipper-gridfs');
-      this.blobAdapter = skipperGridFs({
-        uri: this.mongoUri
-      });
+      return;
     }
 
     /**
@@ -119,41 +116,26 @@ export namespace Controllers {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
         res.set('Content-Type', 'text/css');
-        // If brand (or css) not present, serve the pre-compiled default CSS
+        // If brand (or css) not present, serve generated default variable CSS
         if (!brand || !brand.css) {
-          const defaultCssPath = path.join(sails.config.appPath, '.tmp/public/default/default/styles/style.min.css');
-          try {
-            const fileStat = fs.statSync(defaultCssPath);
-            const defaultCssCacheKey = `default:${defaultCssPath}:${fileStat.mtimeMs}`;
-            let cachedDefaultCss = this.getCachedCssResponse(defaultCssCacheKey);
-            if (!cachedDefaultCss) {
-              const css = fs.readFileSync(defaultCssPath, 'utf8');
-              const minifiedCss = this.minifyCss(css);
-              const etag = this.generateETag(minifiedCss);
-              this.setCachedCssResponse(defaultCssCacheKey, minifiedCss, etag);
-              cachedDefaultCss = { css: minifiedCss, etag };
-            }
-
-            const { css: minifiedCss, etag } = cachedDefaultCss;
-            res.set('ETag', etag);
-            if (req.headers['if-none-match'] === etag) {
-              return res.status(304).end();
-            }
-            res.set('Cache-Control', this.getCssCacheControlHeader());
-            res.removeHeader('Pragma');
-            res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
-            return res.send(minifiedCss);
-          } catch (_fsError) {
-            // Fallback to minimal CSS if default file cannot be read
-            const css = ':root{}';
-            const etag = this.generateETag(css);
-            res.set('ETag', etag);
-            if (req.headers['if-none-match'] === etag) {
-              return res.status(304).end();
-            }
-            res.set('Cache-Control', this.getCssCacheControlHeader());
-            return res.send(css);
+          const { css, hash } = BrandingThemeCssService.generate({});
+          const defaultCssCacheKey = `default:${hash}`;
+          let cachedDefaultCss = this.getCachedCssResponse(defaultCssCacheKey);
+          if (!cachedDefaultCss) {
+            const minifiedCss = this.minifyCss(css);
+            const etag = this.generateETag(hash);
+            this.setCachedCssResponse(defaultCssCacheKey, minifiedCss, etag);
+            cachedDefaultCss = { css: minifiedCss, etag };
           }
+          const { css: minifiedCss, etag } = cachedDefaultCss;
+          res.set('ETag', etag);
+          if (req.headers['if-none-match'] === etag) {
+            return res.status(304).end();
+          }
+          res.set('Cache-Control', this.getCssCacheControlHeader());
+          res.removeHeader('Pragma');
+          res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
+          return res.send(minifiedCss);
         }
         const sourceHash = crypto.createHash('sha256').update(brand.css).digest('hex');
         const brandCssCacheKey = `brand:${brand.id}:${brand.hash || ''}:${sourceHash}`;
@@ -247,8 +229,12 @@ export namespace Controllers {
      */
     public renderApiB(req: Sails.Req, res: Sails.Res) {
       res.contentType('text/plain');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsapib", { layout: false });
+      return res.send(
+        buildMergedApiBlueprint({
+          branding: req.param('branding') as string | undefined,
+          portal: req.param('portal') as string | undefined,
+        })
+      );
     }
 
 
@@ -261,8 +247,16 @@ export namespace Controllers {
      */
     public renderSwaggerJSON(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/json');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggerjson", { layout: false });
+      return res.send(
+        JSON.stringify(
+          buildMergedApiOpenApiDocument({
+            branding: req.param('branding') as string | undefined,
+            portal: req.param('portal') as string | undefined,
+          }),
+          null,
+          2
+        )
+      );
     }
 
     /**
@@ -274,8 +268,15 @@ export namespace Controllers {
      */
     public renderSwaggerYAML(req: Sails.Req, res: Sails.Res) {
       res.contentType('application/x-yaml');
-      (req.options!.locals as globalThis.Record<string, unknown>)["baseUrl"] = sails.config.appUrl;
-      return this.sendView(req, res, "apidocsswaggeryaml", { layout: false });
+      return res.send(
+        yaml.dump(
+          buildMergedApiOpenApiDocument({
+            branding: req.param('branding') as string | undefined,
+            portal: req.param('portal') as string | undefined,
+          }),
+          { lineWidth: -1 }
+        )
+      );
     }
 
     /**
@@ -289,22 +290,28 @@ export namespace Controllers {
       try {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
-        if (!brand || !brand.logo || !brand.logo.gridFsId) {
+        const logo = brand?.logo as Record<string, unknown> | undefined;
+        const storageId = typeof logo?.storageKey === 'string'
+          ? logo.storageKey
+          : typeof logo?.gridFsId === 'string'
+            ? logo.gridFsId
+            : null;
+        if (!brand || !logo || !storageId) {
           // fallback to static
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
-        const id = brand.logo.gridFsId as string;
-        // Try persistent storage first (GridFS), then in-memory cache
-        let buf: Buffer | null = null;
-        buf = await BrandingLogoService.getBinaryAsync(id);
+        const buf = await BrandingLogoService.getBinaryAsync(storageId);
 
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
-        res.contentType((brand.logo.contentType as string) || sails.config.static_assets.imageType);
-        const etag = this.generateETag(brand.logo.sha256 as string, 'logo-');
+        res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
+        const etagSeed = typeof logo.sha256 === 'string'
+          ? logo.sha256
+          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Cache-Control', 'public, max-age=3600');

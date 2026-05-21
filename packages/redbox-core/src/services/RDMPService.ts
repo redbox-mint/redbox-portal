@@ -428,7 +428,8 @@ export namespace Services {
 
     public queuedTriggerSubscriptionHandler(job: unknown) {
       const jobObj = job as AnyRecord;
-      const data = (jobObj.attrs ?? {}) as AnyRecord;
+      const attrs = (jobObj.attrs ?? {}) as AnyRecord;
+      const data = (_.get(attrs, "data", attrs) ?? {}) as AnyRecord;
       const oid = _.get(data, "oid", null);
       const triggerConfiguration = _.get(data, "triggerConfiguration", null);
       const record = _.get(data, "record", null);

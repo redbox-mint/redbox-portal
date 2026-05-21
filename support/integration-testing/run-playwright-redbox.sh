@@ -7,6 +7,12 @@ cd /opt/redbox-portal
 
 npm install --ignore-scripts --strict-peer-deps
 
+npm run webpack
+
+# Redoc is only needed to build the browser bundle. Remove it before Sails boots so
+# moduleloader does not scan its transitive `should` package.
+rm -rf node_modules/redoc
+
 required_playwright_apps=(
   "local-auth"
   "record-search"

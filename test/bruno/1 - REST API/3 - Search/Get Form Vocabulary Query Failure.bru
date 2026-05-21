@@ -16,14 +16,14 @@ headers {
 }
 
 tests {
-  test("Status code is 500", function () {
-      expect(res.getStatus()).to.equal(500);
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
   });
 
-  test("Error code is query-vocab-failed", function () {
+  test("Error code is query-vocab-not-configured", function () {
       var jsonData = res.getBody();
       var err = jsonData.errors[0];
       expect(err).to.have.property('code');
-      expect(err.code).to.equal('query-vocab-failed');
+    expect(err.code).to.equal('query-vocab-not-configured');
   });
 }

@@ -156,9 +156,10 @@ export namespace Controllers {
         const key = req.param('key');
         const value = req.body?.value;
         const category = req.body?.category;
+        const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
-        try { TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
+        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
         return res.json(saved);
       } catch (err) {
         sails.log.error('Error in TranslationController.setEntryApp:', err);
@@ -192,7 +193,7 @@ export namespace Controllers {
         const data = req.body?.data || req.body;
         const displayName = req.body?.displayName;
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, displayName);
-        try { TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e instanceof Error ? e.message : String(e)); }
         return res.json(bundle);
       } catch (err) {
         sails.log.error('Error in TranslationController.setBundleApp:', err);

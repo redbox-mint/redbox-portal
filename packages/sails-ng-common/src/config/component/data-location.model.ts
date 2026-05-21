@@ -66,8 +66,8 @@ export class DataLocationFieldComponentDefinition extends FieldComponentDefiniti
     class = DataLocationComponentName;
     config?: DataLocationFieldComponentConfigOutline;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDataLocationFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDataLocationFieldComponentDefinition(this);
     }
 }
 
@@ -84,8 +84,8 @@ export class DataLocationFieldModelDefinition extends FieldModelDefinition<DataL
     class = DataLocationModelName;
     config?: DataLocationFieldModelConfigOutline;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDataLocationFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDataLocationFieldModelDefinition(this);
     }
 }
 
@@ -94,8 +94,8 @@ export class DataLocationFormComponentDefinition extends FormComponentDefinition
     public model?: DataLocationFieldModelDefinitionOutline;
     public layout?: AvailableFieldLayoutDefinitionOutlines;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDataLocationFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDataLocationFormComponentDefinition(this);
     }
 }
 

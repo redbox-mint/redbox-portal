@@ -27,8 +27,8 @@ export class PublishDataLocationRefreshFieldComponentDefinition
   class = PublishDataLocationRefreshComponentName;
   config?: PublishDataLocationRefreshFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitPublishDataLocationRefreshFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitPublishDataLocationRefreshFieldComponentDefinition(this);
   }
 }
 
@@ -40,8 +40,8 @@ export class PublishDataLocationRefreshFormComponentDefinition
   model?: never;
   layout?: AvailableFieldLayoutDefinitionOutlines;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitPublishDataLocationRefreshFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitPublishDataLocationRefreshFormComponentDefinition(this);
   }
 }
 

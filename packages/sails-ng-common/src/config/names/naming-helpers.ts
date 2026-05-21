@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { find, findByPointer, formatJsonPointer } from '@jsonjoy.com/json-pointer';
+import {find, findByPointer, formatJsonPointer} from '@jsonjoy.com/json-pointer';
 
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
@@ -132,4 +132,18 @@ export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): 
 export function getLastSegmentFromJSONPointer(pointer: string): string {
     const segments = pointer.split('/');
     return segments[segments.length - 1];
+}
+
+/**
+ * Normalise a string to reduce the potential variations in how characters are specified.
+ *
+ * @param value The value to normalise.
+ * @return The string normalised to remove visual variants.
+ */
+export function normaliseVisual(value: unknown): string {
+  const str = value?.toString() ?? "";
+
+  // Use NFKC: Compatibility Decomposition, followed by Canonical Composition.
+  // For Identifiers matching: Canonical form, no visual variants
+  return str.normalize("NFKC");
 }

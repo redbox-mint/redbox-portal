@@ -22,6 +22,6 @@ tests {
   test("Contains history-not-found error", function(){
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    expect(body.error).to.equal('history-not-found');
+    expect(body.message).to.equal('history-not-found');
   });
 }

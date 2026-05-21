@@ -54,8 +54,8 @@ export class QuestionTreeFieldComponentDefinition extends FieldComponentDefiniti
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitQuestionTreeFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitQuestionTreeFieldComponentDefinition(this);
     }
 }
 
@@ -75,8 +75,8 @@ export class QuestionTreeFieldModelDefinition extends FieldModelDefinition<Quest
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitQuestionTreeFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitQuestionTreeFieldModelDefinition(this);
     }
 }
 
@@ -91,8 +91,8 @@ export class QuestionTreeFormComponentDefinition extends FormComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitQuestionTreeFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitQuestionTreeFormComponentDefinition(this);
     }
 }
 

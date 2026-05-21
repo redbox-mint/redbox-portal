@@ -1,11 +1,14 @@
-import {FormValidatorControl, FormValidatorDefinition} from "./form.model";
+import { FormValidatorControl, FormValidatorDefinition } from "./form.model";
 import {
-    formValidatorGetDefinitionArray,
-    formValidatorGetDefinitionBoolean, formValidatorGetDefinitionItem,
-    formValidatorGetDefinitionNumber,
-    formValidatorGetDefinitionRegexp, formValidatorGetDefinitionString, formValidatorLengthOrSize
+  formValidatorGetDefinitionArray,
+  formValidatorGetDefinitionBoolean,
+  formValidatorGetDefinitionItem,
+  formValidatorGetDefinitionNumber,
+  formValidatorGetDefinitionRegexp,
+  formValidatorGetDefinitionString,
+  formValidatorLengthOrSize
 } from "./helpers";
-
+import { JSONataEvaluate } from "../jsonata-helpers";
 
 
 /**
@@ -16,19 +19,17 @@ import {
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 /**
- * Definitions of shared form validators.
+ * Definitions of form validators.
  *
- * These can be used on both server-side and client-side. The server provides them to the client.
- * These are the shared / common definitions.
- * ReDBox implementations can modify these validation definitions or add more.
+ * These can be used on both server-side and client-side.
+ * The server provides them to the client.
+ *
+ * Sails hooks can use these validators functions, but cannot extend or override them.
+ * Use the 'jsonata-expression' validator to create custom validator functions.
  *
  * The validators are based on:
- * angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
- * formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
- *
- * These validation definitions need to be on the server-side, and provided to the client-side from the server.
- * There are two sets of validator definitions - 1) shared / common definitions in the core; 2) definitions specific to a client.
- *    These two set of definitions need to be merged and provided by the server to the client.
+ * - angular built-in validators: https://github.com/angular/angular/blob/5105fd6f05f01f04873ab1c87d64079fd8519ad4/packages/forms/src/validators.ts
+ * - formly schema: https://github.com/ngx-formly/ngx-formly/blob/a2f7901b6c0895aee63b4b5fe748fc5ec0ad5475/src/core/src/lib/models/fieldconfig.ts
  */
 export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
@@ -48,9 +49,9 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
 
         let value;
         try {
-            value = parseFloat(control.value?.toString() ?? null);
+          value = parseFloat(control.value?.toString() ?? null);
         } catch (err) {
-            value = undefined;
+          value = undefined;
         }
 
         // Controls with NaN values after parsing should be treated as not having a
@@ -87,14 +88,14 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
 
         let value;
         try {
-            value = parseFloat(control.value?.toString() ?? null);
+          value = parseFloat(control.value?.toString() ?? null);
         } catch (err) {
-            value = undefined;
+          value = undefined;
         }
 
         // Controls with NaN values after parsing should be treated as not having a
         // maximum, per the HTML forms spec: https://www.w3.org/TR/html5/forms.html#attr-input-max
-          if (value === undefined || (!isNaN(value) && value > optionMaxValue)) {
+        if (value === undefined || (!isNaN(value) && value > optionMaxValue)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,
@@ -241,15 +242,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         const value = control.value?.toString() ?? "";
         const testOutcome = optionPatternValue.test(value);
         if (!testOutcome) {
-        return {
-          [optionNameValue]: {
-            [optionMessageKey]: optionMessageValue,
-            params: {
-              requiredPattern: optionPatternValue,
+          return {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                requiredPattern: optionPatternValue,
 
-              description: optionDescriptionValue,actual: control.value,
+                description: optionDescriptionValue, actual: control.value,
+              },
             },
-          },
           };
         }
         return null;
@@ -272,7 +273,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       let regexStr = (pattern instanceof RegExp ? pattern?.source : pattern?.toString()) ?? "";
 
       // The pattern must start with '^' (start anchor)
-      if (regexStr.charAt(0) !== "^"){
+      if (regexStr.charAt(0) !== "^") {
         regexStr = ("^" + regexStr);
       }
 
@@ -339,42 +340,44 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
   {
     class: "jsonata-expression",
     message: "@validator-error-jsonata-expression",
-    create: (config) => {
+    createAsync: (config) => {
       const optionNameKey = "class";
       const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey, "jsonata-expression");
       const optionMessageKey = "message";
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-jsonata-expression");
       const optionDescriptionKey = "description";
-      let optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey);
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, optionDescriptionKey, "");
       const optionExpressionKey = "expression";
       const expression = formValidatorGetDefinitionItem(config, optionExpressionKey);
       const optionEvaluatorKey = "evaluator";
-      const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as (control: FormValidatorControl) => boolean;
-      return (control) => {
-          if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-              return null; // don't validate empty values to allow optional controls
+      const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
+      return async (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const value = control.value;
+        let success: boolean | null = null;
+        try {
+          if (typeof evaluator !== "function") {
+            throw new Error("Missing evaluator");
           }
-          const value = control.value?.toString();
-          let success: boolean;
-          try {
-              success = evaluator(control)
-          } catch (err) {
-              success = false;
-              optionDescriptionValue = "the validator is not configured correctly"
-              console.error(`Validator 'jsonata-expression' could not run due to error: ${err}`);
-          }
-          return success
-              ? null
-              : {
-                  [optionNameValue]: {
-                      [optionMessageKey]: optionMessageValue,
-                      params: {
-                          expression: expression,
-                          description: optionDescriptionValue,
-                          actual: value,
-                      },
-                  },
-              };
+          success = await evaluator(value) === true;
+        } catch (err) {
+          success = false;
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+        }
+        return success
+          ? null
+          : {
+            [optionNameValue]: {
+              [optionMessageKey]: optionMessageValue,
+              params: {
+                expression: expression,
+                description: optionDescriptionValue,
+                actual: value,
+              },
+            },
+          };
       };
     },
   },

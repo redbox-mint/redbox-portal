@@ -162,271 +162,265 @@ export interface CanVisit {
   /**
    * Accept a visitor to this form field definition.
    */
-  accept(visitor: FormConfigVisitorOutline): void;
+  accept(visitor: FormConfigVisitorOutline): Promise<void>;
 }
 
 /**
  * Visitors must implement this structure.
  */
 export interface FormConfigVisitorOutline {
-  visitFormConfig(item: CanVisit): void;
+  visitFormConfig(item: CanVisit): Promise<void>;
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void;
+  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void;
+  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void;
+  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Content */
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void>;
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void;
+    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void>;
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void;
+    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void>;
 
   /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void;
+    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void>;
 
-  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void;
+  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void>;
 
-  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void;
+  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void>;
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void;
+  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void>;
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void;
+  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void>;
 
-  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void;
+  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void>;
 
-  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void;
+  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void>;
 
-  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void;
+  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void>;
 
   /* Group */
 
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void;
+  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void>;
 
-  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void;
+  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void>;
 
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void;
+  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void>;
 
   /* Tab  */
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void;
+  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void>;
 
-  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void;
+  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void>;
 
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void;
+  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void>;
 
   /* Accordion */
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void;
+  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void>;
 
-  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void;
+  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): Promise<void>;
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void;
+  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void>;
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void;
+  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void>;
 
-  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void;
+  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void>;
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void;
+  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void>;
 
   /*  Tab Content */
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void;
+  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void>;
 
-  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void;
+  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void>;
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void;
+  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void>;
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void;
+  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void>;
 
-  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void;
+  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void>;
 
   /* Save Status  */
 
-  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void;
+  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void>;
 
-  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void;
+  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void>;
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void;
+  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void>;
 
-  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void;
+  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void>;
 
   /* Delete Button  */
 
-  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void;
+  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void>;
 
-  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void;
+  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void>;
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void;
+  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void>;
 
-  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void;
+  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void>;
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void;
+  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void>;
 
-  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void;
+  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void>;
 
-  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void;
+  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void>;
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void;
+  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void>;
 
   /* Inline Layout  */
 
-  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void;
+  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): Promise<void>;
 
   /* Action Row Layout  */
 
-  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void;
+  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void>;
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void;
+  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void;
+  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void;
+  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void;
+  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void;
+  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void;
+  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void;
+  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void;
+  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void;
+  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void;
+  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void;
+  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void;
+  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Reusable */
 
-  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void;
+  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): Promise<void>;
 
-  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void;
+  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): Promise<void>;
 
   /* Question Tree */
 
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void;
+  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void>;
 
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void;
+  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void>;
 
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void;
+  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void>;
 
   /* Checkbox Tree */
 
-  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void;
+  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void>;
 
-  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void;
+  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void>;
 
-  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void;
+  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void>;
 
   /* Record Selector */
 
-  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void;
+  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void>;
 
-  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void;
+  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void>;
 
-  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void;
+  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void>;
 
   /* Typeahead Input */
 
-  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void;
+  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void>;
 
-  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void;
+  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void>;
 
-  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void;
+  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void>;
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void;
+  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void>;
 
-  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void;
+  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void>;
 
-  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void;
+  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void>;
 
   /* Map */
 
-  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void;
+  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void>;
 
-  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void;
+  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void>;
 
-  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void;
+  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void>;
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void;
+  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void>;
 
-  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void;
+  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void>;
 
-  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void;
+  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void>;
 
   /* PDF List */
 
-  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void;
+  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void>;
 
-  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void;
+  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void>;
 
-  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void;
+  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void>;
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(
-    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
-  ): void;
+  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void>;
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void;
+  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void>;
 
   /* Data Location */
 
-  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void;
+  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void>;
 
-  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void;
+  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void>;
 
-  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void;
+  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void>;
 
   // Refresh trigger gets dedicated visitor hooks because it is component-only
   // and should never be mistaken for a normal field+model pair.
-  visitPublishDataLocationRefreshFieldComponentDefinition(
-    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
-  ): void;
+  visitPublishDataLocationRefreshFieldComponentDefinition(item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void>;
 
-  visitPublishDataLocationRefreshFormComponentDefinition(
-    item: PublishDataLocationRefreshFormComponentDefinitionOutline
-  ): void;
+  visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void>;
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void;
+  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void>;
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void;
+  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void>;
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void;
+  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void>;
 
 }

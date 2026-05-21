@@ -26,8 +26,8 @@ export class DefaultFieldLayoutDefinition extends FieldLayoutDefinition implemen
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDefaultFieldLayoutDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDefaultFieldLayoutDefinition(this);
     }
 }
 

@@ -5,6 +5,8 @@
  * Dashboard type definitions with filtering and grouping rules.
  */
 
+import type { DashboardTableConfig } from './workflow.config';
+
 export interface DashboardFilterField {
     name: string;
     path: string;
@@ -43,6 +45,10 @@ export interface DashboardFormatRulesConfig {
 
 export interface DashboardTypeDefinition {
     formatRules: DashboardFormatRulesConfig;
+    tableConfig?: DashboardTableConfig;
+    description?: string;
+    searchable?: boolean;
+    system?: boolean;
 }
 
 export interface DashboardTypeConfig {

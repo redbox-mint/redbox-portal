@@ -38,7 +38,7 @@
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
     "typescript-require": "0.3.0",
-    "zone.js": "0.16.1"
+    "zone.js": "0.16.2"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -61,22 +61,29 @@
     "test:bruno:general:mount": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false --abort-on-container-exit --exit-code-from bruno-mount",
     "test:bruno:general:mount:debug": "docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml up --menu=false",
     "test:bruno:general:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.general.yml down -v",
+    "test:bruno:s3": "npm run test:bruno:s3:clean && npm run test:bruno:s3:mount",
+    "test:bruno:s3:ci": "bash -c 'compose=\"docker compose --profile ci -f ./support/integration-testing/docker-compose.bruno.s3.yml\"; $compose up --menu=false --abort-on-container-exit --exit-code-from bruno; status=$?; $compose down -v --remove-orphans --timeout 180; exit $status'",
+    "test:bruno:s3:mount": "bash -c 'compose=\"docker compose --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml\"; $compose up --menu=false --abort-on-container-exit --exit-code-from bruno-mount; status=$?; $compose down -v --remove-orphans --timeout 180; exit $status'",
+    "test:bruno:s3:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.bruno.s3.yml down -v --remove-orphans --timeout 180",
     "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down -v --remove-orphans --timeout 180",
     "test:playwright": "npm run test:playwright:clean && npm run test:playwright:mount",
     "test:playwright:ci": "bash -c 'docker compose --profile ci -f ./support/integration-testing/docker-compose.playwright.yml up --menu=false --abort-on-container-exit --exit-code-from playwright; status=$?; docker compose --profile ci -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180; exit $status'",
     "test:playwright:mount": "bash -c 'docker compose --profile mount -f ./support/integration-testing/docker-compose.playwright.yml up --menu=false --abort-on-container-exit --exit-code-from playwright-mount; status=$?; docker compose --profile mount -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180; exit $status'",
     "test:playwright:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180",
     "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
+    "test:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm run test && cd ../../",
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test && cd ../../",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm run test && cd ../../",
-    "doc-ng2": "npm -g install @compodoc/compodoc && npm -g install aglio && compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs && node support/build/render-ejs-template.js views/default/default/apidocsapib.ejs '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
+    "doc-ng2": "npm -g install @compodoc/compodoc aglio && compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs && npm run doc:api -- --branding=default --portal=rdmp && aglio -i support/docs/generated/api/apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
+    "validate:api-routes": "npm --prefix packages/redbox-core run test -- test/unit/api-routes.test.ts",
+    "doc:api": "npm --prefix packages/redbox-core run doc:api --",
     "compile:sails": "npm install --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
     "compile:core": "cd packages/redbox-core && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
-    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails",
-    "compile:all": "npm install --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails",
+    "compile:all": "npm install --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:sails && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common:prod": "cd ./packages/sails-ng-common && npm install --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc --project tsconfig.prod.json && cd ../../",
@@ -84,6 +91,7 @@
     "compile:rva": "cd ./packages/rva-registry && npm install --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm install --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:dev-tools": "cd packages/redbox-dev-tools && npm install --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
+    "compile:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm install --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
@@ -103,6 +111,22 @@
   "overrides": {
     "axios": "1.15.2",
     "@aws-sdk/xml-builder": "3.972.16",
+    "@aws-sdk/s3-request-presigner": {
+      "@aws-sdk/core": {
+        "@aws-sdk/xml-builder": {
+          "fast-xml-parser": "5.5.8"
+        }
+      },
+      "@aws-sdk/signature-v4-multi-region": {
+        "@aws-sdk/middleware-sdk-s3": {
+          "@aws-sdk/core": {
+            "@aws-sdk/xml-builder": {
+              "fast-xml-parser": "5.5.8"
+            }
+          }
+        }
+      }
+    },
     "@sailshq/router": {
       "path-to-regexp": "0.1.13"
     },
@@ -130,7 +154,7 @@
     "@uppy/companion": {
       "express": "4.22.1",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.7.0",
+      "fast-xml-parser": "5.5.8",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
     },
@@ -152,7 +176,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.5.8",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -178,24 +202,27 @@
     "uuid": "14.0.0",
     "webdav": {
       "minimatch": "9.0.9"
-    }
+    },
+    "oni-ocfl": "git+https://github.com/Language-Research-Technology/oni-ocfl.git#add9d36bd8a33b051e1a67f46a523ad88986a0e3",
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
+    "@playwright/test": "1.59.1",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.0",
     "@types/lodash-es": "4.17.12",
     "@types/mocha": "10.0.10",
     "@types/node": "24.12.0",
-    "@playwright/test": "1.59.1",
     "chai": "6.2.2",
     "css-loader": "7.1.4",
     "mini-css-extract-plugin": "2.10.2",
     "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
-    "oxlint": "1.57.0",
+    "oxlint": "1.63.0",
     "pino-test": "2.0.0",
     "prettier": "3.8.1",
+    "redoc": "2.5.2",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.0.5",

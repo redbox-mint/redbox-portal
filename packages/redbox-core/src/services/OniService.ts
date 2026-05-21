@@ -211,7 +211,7 @@ export namespace Services {
 					try {
 						await RecordsService.updateMeta(sails.config.auth.defaultBrand as unknown, oid, recordObj, {}, true, false);
 				} catch (err) {
-					this.recordPublicationError(oid, recordObj, this.asError(err));
+          await this.recordPublicationError(oid, recordObj, this.asError(err));
           const msg = `Error updating record metadata`;
           throw new RBValidationError({
             message: `${msg}: site ${optionsObj['site']} oid ${oid} `,

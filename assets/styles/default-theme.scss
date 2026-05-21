@@ -46,11 +46,11 @@ body, .preview-root { font-family: $body-font-family; }
 
 
 .header-area {
-    background: none repeat scroll 0 0 $header-branding-background-color;
+    background: none repeat scroll 0 0 var(--rb-header-branding-background-color, #{$header-branding-background-color});
 }
 
 .header-area a {
-    color: $header-branding-link-color;
+    color: var(--rb-header-branding-link-color, #{$header-branding-link-color});
 }
 .user-menu ul {
     list-style: outside none none;
@@ -59,7 +59,7 @@ body, .preview-root { font-family: $body-font-family; }
 }
 .user-menu li {
     display: inline-block;
-    color: $header-branding-text-color;
+    color: var(--rb-header-branding-text-color, #{$header-branding-text-color});
 }
 .user-menu li a {
     display: block;
@@ -91,7 +91,7 @@ body, .preview-root { font-family: $body-font-family; }
 }
 
 .mainmenu-area {
-background: none repeat scroll 0 0 $main-menu-branding-background-color;
+background: none repeat scroll 0 0 var(--rb-main-menu-branding-background-color, #{$main-menu-branding-background-color});
 font-family: $main-menu-branding-font-family;
 text-transform: uppercase;
 width: 100%;
@@ -105,82 +105,82 @@ z-index: 999;
     margin: 40px 0;font-weight: 400;
 }
 .logo h1 a {
-    color: $logo-link-color-branding;
+    color: var(--rb-logo-link-color-branding, #{$logo-link-color-branding});
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
 
 
 .mainmenu-area ul.navbar-nav li {
-    background-color: $main-menu-inactive-item-background-color;
+    background-color: var(--rb-main-menu-inactive-item-background-color, #{$main-menu-inactive-item-background-color});
 }
 
 .mainmenu-area ul.navbar-nav li a {
     font-size: 16px;
     font-weight: 700;
     padding: 20px;
-    color: $main-menu-inactive-item-color;
+    color: var(--rb-main-menu-inactive-item-color, #{$main-menu-inactive-item-color});
 }
 
 .mainmenu-area ul.navbar-nav li a:hover {
     font-size: 16px;
     font-weight: 700;
     padding: 20px;
-    color: $main-menu-inactive-item-color-hover;
+    color: var(--rb-main-menu-inactive-item-color-hover, #{$main-menu-inactive-item-color-hover});
 }
 
  .mainmenu-area ul.navbar-nav li.nav-active-item {
-     background-color: $main-menu-active-item-background-color;
-     color: $main-menu-active-item-color;
- }
+      background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
+      color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
+  }
 
 .mainmenu-area ul.navbar-nav li.nav-active-item:hover {
-     background-color: $main-menu-active-item-background-color-hover;
- }
+      background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
+  }
 
 .mainmenu-area ul.dropdown-menu li {
-    color: $main-menu-inactive-dropdown-item-color;
-    background-color: $main-menu-inactive-dropdown-item-background-color;
+    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
+    background-color: var(--rb-main-menu-inactive-dropdown-item-background-color, #{$main-menu-inactive-dropdown-item-background-color});
 }
 
 
-.mainmenu-area .nav > li > a:focus {color: $main-menu-selected-item-color}
+.mainmenu-area .nav > li > a:focus {color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})}
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a {
-    color:  $main-menu-active-item-color;
+    color:  var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
 }
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a:hover {
-    color:  $main-menu-active-item-color-hover;
+    color:  var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
 }
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item {
-    color: $main-menu-active-dropdown-item-color;
+    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
 }
 
 .mainmenu-area ul.dropdown-menu li a.dropdown-item.active,
 .mainmenu-area ul.dropdown-menu li a.dropdown-item:active {
-    color: $main-menu-active-dropdown-item-color;
-    background-color: $main-menu-active-dropdown-item-background-color;
+    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
+    background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
 }
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item:hover {
-    color: $main-menu-active-dropdown-item-color-hover;
-    background-color: $main-menu-active-dropdown-item-background-color-hover;
+    color: var(--rb-main-menu-active-dropdown-item-color-hover, #{$main-menu-active-dropdown-item-color-hover});
+    background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
 }
 
 .mainmenu-area ul.dropdown-menu li a.dropdown-item {
-    color: $main-menu-inactive-dropdown-item-color;
+    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
 }
 
 .mainmenu-area ul.dropdown-menu li a.dropdown-item:hover {
-    color: $main-menu-inactive-dropdown-item-color-hover;
+    color: var(--rb-main-menu-inactive-dropdown-item-color-hover, #{$main-menu-inactive-dropdown-item-color-hover});
 }
 
 .maincontent-area {padding-bottom: 170px}
 
 .footer-bottom-area, .preview-root .footer-bottom-area {
-  background: none repeat scroll 0 0  $footer-bottom-area-branding-background-color;
-  color: $footer-bottom-area-branding-color;
+  background: none repeat scroll 0 0  var(--rb-footer-bottom-area-branding-background-color, #{$footer-bottom-area-branding-background-color});
+  color: var(--rb-footer-bottom-area-branding-color, #{$footer-bottom-area-branding-color});
   padding-bottom: 40px;
 }
 
@@ -207,7 +207,7 @@ z-index: 999;
   font-weight: 200;
   margin: 0;
   padding: 10px 0;
-  color: $main-content-heading-text-branding-color;
+  color: var(--rb-main-content-heading-text-branding-color, #{$main-content-heading-text-branding-color});
 }
 
 .maincontent-body {
@@ -220,11 +220,11 @@ z-index: 999;
   }
 
 .site-branding-area {
-  background-color: $site-branding-area-background-color;
+  background-color: var(--rb-site-branding-area-background-color, #{$site-branding-area-background-color});
 }
 
 .site-branding-area h1 {
-  color: $site-branding-area-heading-color;
+  color: var(--rb-site-branding-area-heading-color, #{$site-branding-area-heading-color});
 }
 
 .site-branding-area > .container > .row {
@@ -241,13 +241,13 @@ input[type="text"], input[type="password"], input[type="email"], textarea {
     padding: 10px;
 }
 input[type="submit"], button[type=submit] {
-    background: none repeat scroll 0 0 $submit-button-background-color;
+    background: none repeat scroll 0 0 var(--rb-submit-button-background-color, #{$submit-button-background-color});
     border: medium none;
-    color: $submit-button-text-color;
+    color: var(--rb-submit-button-text-color, #{$submit-button-text-color});
     padding: 11px 20px;
     text-transform: uppercase;
 }
-input[type="submit"]:hover, button[type=submit]:hover {background-color: $submit-button-hover-background-color}
+input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--rb-submit-button-hover-background-color, #{$submit-button-hover-background-color})}
 .single-sidebar input[type="text"] {
     margin-bottom: 10px;
     width: 100%;
@@ -646,9 +646,9 @@ span.form-field-required-indicator {
 
 /* fixes for Bootstrap 5 */
 
-.bg-danger { background-color: $bg-danger-background-color !important }
-.bg-success { background-color: $bg-success-background-color !important }
-.bg-danger.text-danger a { color: $anchor-color }
+.bg-danger { background-color: var(--rb-danger, #{$bg-danger-background-color}) !important }
+.bg-success { background-color: var(--rb-success, #{$bg-success-background-color}) !important }
+.bg-danger.text-danger a { color: var(--rb-anchor-color, #{$anchor-color}) }
 a:not([href]):not([class]), a:not([href]):not([class]):hover { color: $nonlink-anchor-color }
 .nav-stacked {
   flex-direction: column!important; /* Depricated. using .flex-column mimic <ul class="nav flex-column">*/
@@ -2021,8 +2021,8 @@ html {
 body, .preview-root {
     font-size: 14px;
     line-height: 1.428571429;
-    color: $body-text-color;
-    background-color: $body-background-color
+    color: var(--rb-body-text-color, #{$body-text-color});
+    background-color: var(--rb-body-background-color, #{$body-background-color})
 }
 
 button,input,select,textarea {
@@ -2032,17 +2032,17 @@ button,input,select,textarea {
 }
 
 a {
-    color: $anchor-color;
+    color: var(--rb-anchor-color, #{$anchor-color});
     text-decoration: none
 }
 
 a:hover {
-    color: $anchor-color-hover;
+    color: var(--rb-anchor-color-hover, #{$anchor-color-hover});
     text-decoration: underline;
 }
 
 a:focus {
-    color: $anchor-color-focus;
+    color: var(--rb-anchor-color-focus, #{$anchor-color-focus});
     outline: 5px auto -webkit-focus-ring-color;
     outline-offset: -2px;
     text-decoration: underline
@@ -4070,9 +4070,9 @@ tbody.collapse.in {
 }
 
 .dropdown-menu>.active>a,.dropdown-menu>.active>a:focus,.dropdown-menu>.active>a:hover {
-    color: $main-menu-active-dropdown-item-color;
+    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
     text-decoration: none;
-    background-color: $main-menu-active-dropdown-item-background-color;
+    background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
     outline: 0
 }
 
@@ -6001,13 +6001,13 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
     .card.panel-style .card-body {
         padding: 15px;
     }
-    .card.panel-style .card-header {
+.card.panel-style .card-header {
         padding: 10px 15px;
         border-bottom: 1px solid transparent;
         border-top-left-radius: 3px;
         border-top-right-radius: 3px;
-        background-color: $panel-branding-background-color;
-        color: $panel-branding-color;
+        background-color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+        color: var(--rb-panel-branding-color, #{$panel-branding-color});
     }
     .card.panel-style .card-title {
         margin-top: 0;
@@ -6221,13 +6221,13 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
 }
 
 .panel-default {
-    border-color: $panel-branding-border-color;
+    border-color: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
 }
 
 .panel-default > .panel-heading {
-    background-color: $panel-branding-background-color;
-    color: $panel-branding-color;
-    border-color: $panel-branding-border-color;
+    background-color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+    color: var(--rb-panel-branding-color, #{$panel-branding-color});
+    border-color: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
 }
 
 .panel-default > .panel-heading .btn,
@@ -6235,15 +6235,15 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
 .panel-default > .panel-heading .btn:focus,
 .panel-default > .panel-heading .btn:active,
 .panel-default > .panel-heading .btn.active {
-    color: $panel-branding-color;
+    color: var(--rb-panel-branding-color, #{$panel-branding-color});
 }
 
 .panel-default>.panel-heading+.panel-collapse>.panel-body {
-    border-top-color: $panel-branding-border-color;
+    border-top-color: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
 }
 
 .panel-default>.panel-footer+.panel-collapse>.panel-body {
-    border-bottom-color: $panel-branding-border-color;
+    border-bottom-color: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
 }
 
 /*
@@ -6252,15 +6252,15 @@ a.list-group-item-danger.active,a.list-group-item-danger.active:focus,a.list-gro
   colours without duplicating hex values.
 */
 :root {
-    --mu-panel-bg: #{$panel-branding-background-color};
-    --mu-panel-color: #{$panel-branding-color};
-    --mu-panel-border: #{$panel-branding-border-color};
-    --mu-anchor-color: #{$anchor-color};
-    --mu-anchor-color-hover: #{$anchor-color-hover};
-    --mu-body-text: #{$body-text-color};
-    --mu-body-bg: #{$body-background-color};
-    --mu-submit-btn-bg: #{$submit-button-background-color};
-    --mu-submit-btn-color: #{$submit-button-text-color};
+    --mu-panel-bg: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+    --mu-panel-color: var(--rb-panel-branding-color, #{$panel-branding-color});
+    --mu-panel-border: var(--rb-panel-branding-border-color, #{$panel-branding-border-color});
+    --mu-anchor-color: var(--rb-anchor-color, #{$anchor-color});
+    --mu-anchor-color-hover: var(--rb-anchor-color-hover, #{$anchor-color-hover});
+    --mu-body-text: var(--rb-body-text-color, #{$body-text-color});
+    --mu-body-bg: var(--rb-body-background-color, #{$body-background-color});
+    --mu-submit-btn-bg: var(--rb-submit-button-background-color, #{$submit-button-background-color});
+    --mu-submit-btn-color: var(--rb-submit-button-text-color, #{$submit-button-text-color});
 }
 
 .embed-responsive {
@@ -7235,7 +7235,7 @@ button.close {
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  color: $panel-branding-background-color;
+  color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
   font-weight: 600;
   text-decoration: none;
   background-color: #fff;
@@ -7263,13 +7263,13 @@ button.close {
 .admin-sidebar-link {
   padding: 8px 15px 8px 25px;
   
-  a {
+    a {
     color: #495057;
     text-decoration: none;
     display: block;
     
     &:hover {
-      color: $panel-branding-background-color;
+      color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
       text-decoration: underline;
     }
   }
@@ -7283,8 +7283,8 @@ button.close {
   padding: 10px 15px;
   border-bottom: 1px solid #dee2e6;
   
-  a {
-    color: $panel-branding-background-color;
+    a {
+    color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
     text-decoration: none;
     
     &:hover {

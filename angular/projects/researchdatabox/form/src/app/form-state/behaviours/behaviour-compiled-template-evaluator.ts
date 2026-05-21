@@ -1,5 +1,5 @@
 import { LoggerService } from '@researchdatabox/portal-ng-common';
-import {DynamicScriptResponse} from "@researchdatabox/sails-ng-common";
+import {DynamicScriptResponse, jsonataLibrary} from "@researchdatabox/sails-ng-common";
 
 /**
  * Minimal shape needed from the dynamically imported compiled-items module.
@@ -38,8 +38,7 @@ export class BehaviourCompiledTemplateEvaluator {
   ): Promise<unknown> {
     const key = ['behaviours', behaviourIndex, ...propertyPath];
     try {
-      const { default: jsonata } = await import('jsonata');
-      return await this.compiledItems.evaluate(key, this.cloneContext(context), { libraries: { jsonata } });
+      return await this.compiledItems.evaluate(key, this.cloneContext(context), {libraries: jsonataLibrary});
     } catch (error) {
       this.logger.error('BehaviourCompiledTemplateEvaluator: Failed to evaluate compiled behaviour template.', {
         error,

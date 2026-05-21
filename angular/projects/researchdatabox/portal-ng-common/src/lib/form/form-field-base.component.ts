@@ -6,7 +6,7 @@ import {
   EffectRef, Injector, ApplicationRef
 } from '@angular/core';
 import { LoggerService } from '../logger.service';
-import {  isEmpty as _isEmpty, get as _get } from 'lodash-es';
+import {  isEmpty as _isEmpty, get as _get, set as _set } from 'lodash-es';
 import { UtilityService } from "../utility.service";
 import {
   FormComponentDefinitionFrame,
@@ -15,6 +15,7 @@ import {
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
+  toBoolean,
 } from '@researchdatabox/sails-ng-common';
 
 export interface FormFieldFocusRequestOptions {
@@ -111,6 +112,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     if (this.formFieldCompMapEntry.compConfigJson?.name) {
       this.name = this.formFieldCompMapEntry.compConfigJson.name;
     }
+
+    // If the component is disabled, set the component to disabled again, after the model is available.
+    // This allows components that have to link their model disabled property to
+    // be initialised in the correct state.
+    const isComponentDisabled = this.isDisabled;
+    if (isComponentDisabled) {
+      this.setDisabled(isComponentDisabled, {emitEvent: false, onlySelf: true});
+    }
+
   }
 
   ngAfterViewInit() {
@@ -134,43 +144,60 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     return _get(this.componentDefinition?.config, name, '');
   }
 
+  public setProperty(name: string, value: unknown): void {
+    // TODO: Can (and should) the name be restricted to only known / available properties?
+    if (this.componentDefinition?.config) {
+      if (name === 'disabled') {
+        this.setDisabled(toBoolean(value));
+      } else {
+        const currentValue = _get(this.componentDefinition?.config, name);
+        if (currentValue !== value) {
+          _set(this.componentDefinition.config, name, value);
+        }
+      }
+    }
+  }
+
   get isVisible(): boolean {
     return this.componentDefinition?.config?.visible ?? true;
   }
 
   get isReadonly(): boolean {
-    return this.componentDefinition?.config?.readonly ?? false;
+    return this.model?.isDisabled || this.componentDefinition?.config?.readonly || false;
   }
 
   /**
    * Get whether this component is disabled or not.
-   *
-   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl (e.g. [disabled]="isDisabled").
-   *       The formControl sets the disabled state on the HTML element DOM.
    */
   public get isDisabled(): boolean {
     return this.componentDefinition?.config?.disabled ?? false;
   }
 
   /**
-   * Set this component to be disabled or enabled.
+   * Set this component to be disabled or enabled. Also updates the model.
+   *
+   * If a component needs to manage the model differently,
+   * override this method in the component class.
+   *
+   * NOTE: Do not use isDisabled for HTML elements that are associated with an angular formControl.
+   *       The formControl sets the disabled state on the HTML element DOM.
+   *       This means that `[disabled]="isDisabled"` cannot be used together with `[formControl]="formControl"`.
+   *
    * @param disabled True for disabled, false for enabled.
    * @param opts The modify options.
    */
   public setDisabled(disabled: boolean, opts?: ModifyOptions) {
-    const current = this.isDisabled;
-    try {
-      this.model?.setDisabled(disabled, opts);
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = disabled;
-      }
-    } catch (error) {
-      if (this.componentDefinition?.config) {
-        this.componentDefinition.config.disabled = current;
-      }
-      this.loggerService.error(
-        `Could not set model disabled state with value ${disabled} and opts ${opts}.`, error);
+    const isConfigDisabled =  this.componentDefinition?.config?.disabled ?? false;
+    const isModelDisabled = this?.model?.isDisabled ?? false;
+    const hasFormControl = !!this.model?.formControl;
+    if (hasFormControl && isConfigDisabled !== isModelDisabled) {
+      this.loggerService.warn(`${this.logName}: component config disabled value '${isConfigDisabled}' does not match model disabled value '${isModelDisabled}'.`);
     }
+
+    if (this.componentDefinition?.config) {
+      this.componentDefinition.config.disabled = disabled;
+    }
+    this.model?.setDisabled(disabled, opts);
   }
 
   get label(): string {

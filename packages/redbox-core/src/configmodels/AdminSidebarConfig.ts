@@ -254,7 +254,6 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       items: [
         { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
         { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-        { id: 'support', labelKey: 'menu-supportagreement', href: '/admin/supportAgreement' },
         { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
         { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
         { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },

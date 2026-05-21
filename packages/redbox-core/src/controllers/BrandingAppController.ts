@@ -14,7 +14,7 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 function mapError(e: Error): { status: number; body: unknown } {
   const msg = e.message || '';
   if (msg === 'unauthorized') return { status: 403, body: { error: 'forbidden' } };
-  if (msg.startsWith('Invalid variable key')) return { status: 400, body: { error: 'invalid-variable', detail: msg } };
+  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value')) return { status: 400, body: { error: 'invalid-variable', detail: msg } };
   if (msg.startsWith('contrast-violation')) return { status: 400, body: { error: 'contrast', detail: msg } };
   if (msg === 'branding-not-found') return { status: 404, body: { error: 'branding-not-found' } };
   if (msg === 'history-not-found') return { status: 404, body: { error: 'history-not-found' } };

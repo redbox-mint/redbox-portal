@@ -188,4 +188,44 @@ describe("TypeaheadDataService", () => {
         });
     });
 
+    it("posts service lookup request and normalizes wrapped response", async () => {
+        const promise = service.searchService("contributors", "jan", 5, 20);
+        await Promise.resolve();
+
+        const req = httpTesting.expectOne((request) =>
+            request.method === "POST" &&
+            request.url.includes("/service/vocab/contributors")
+        );
+        expect(req.request.body).toEqual({
+            search: "jan",
+            start: 5,
+            rows: 20
+        });
+        req.flush({
+            data: [
+                {
+                    label: "Jane Doe",
+                    value: "party-1",
+                    historical: true,
+                    disabled: true,
+                    raw: { id: "party-1" }
+                }
+            ],
+            meta: {
+                total: 1
+            }
+        });
+
+        const result = await promise;
+        expect(result).toEqual([
+            {
+                label: "Jane Doe",
+                value: "party-1",
+                sourceType: "service",
+                historical: true,
+                disabled: true,
+                raw: { id: "party-1" }
+            }
+        ]);
+    });
 });

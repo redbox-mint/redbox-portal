@@ -348,12 +348,12 @@ describe("JSON Type Def Schema Visitor", async () => {
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new JsonTypeDefSchemaFormConfigVisitor(logger);
-            const actual = visitor.start({form: constructed});
+            const actual = await visitor.start({form: constructed});
             expect(actual).to.eql(expected);
         });
     });

@@ -1,6 +1,6 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormControl, Validators } from '@angular/forms';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService, ModifyOptions } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventConsumer } from './form-component-change-event-consumer';
 import {
@@ -10,6 +10,7 @@ import {
 import { ExpressionsConditionKind, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { Subject } from 'rxjs';
 import { CustomSetValueControl } from '../custom-set-value.control';
+import {createSetup} from "./spec-helper";
 
 describe('FormComponentValueChangeEventConsumer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -37,35 +38,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     consumer.destroy();
   });
 
-  function createSetup(expressions: FormExpressionsConfigFrame[]) {
-    const control = new FormControl('');
-    const component = {
-      formFieldConfigName: () => 'test-field',
-      model: {formControl: control},
-      componentDefinition: {config: {}},
-      setDisabled: function (
-        this: FormFieldBaseComponent<unknown>, disabled: boolean, opts?: ModifyOptions
-      ): void {
-        if (disabled) {
-          this.model?.formControl?.disable(opts);
-        } else {
-          this.model?.formControl?.enable(opts);
-        }
-        if (this?.componentDefinition?.config) {
-          this.componentDefinition.config.disabled = disabled;
-        }
-      }
-    } as unknown as FormFieldBaseComponent<unknown>;
-    const definition = {
-      model: {formControl: control},
-      expressions: expressions,
-      lineagePaths: {formConfig: ['root']},
-      layout: {componentDefinition: {config: {}}},
-      component: component,
-    } as unknown as FormFieldCompMapEntry;
 
-    return {control, definition, component};
-  }
 
   it('should subscribe to FIELD_VALUE_CHANGED events when bound', () => {
     const expr: FormExpressionsConfigFrame = {
@@ -276,6 +249,8 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(syncDisplayFromModel).toHaveBeenCalled();
   }));
 
+  describe('target updates', async () => {
+
   it('should update layout config when target starts with "layout."', fakeAsync(() => {
     const expr: FormExpressionsConfigFrame = {
       name: 'layout-update',
@@ -288,6 +263,9 @@ describe('FormComponentValueChangeEventConsumer', () => {
     const { definition, component } = createSetup([expr]);
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
 
     consumer.bind({ component, definition });
 
@@ -295,15 +273,16 @@ describe('FormComponentValueChangeEventConsumer', () => {
       type: 'field.value.changed',
       fieldId: 'otherField',
       sourceId: 'otherField',
-      value: 'red',
+      value: 'enabled',
       timestamp: Date.now()
     };
 
     eventStream$.next(event);
     tick();
 
-    const config = definition.layout?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['disabled']).toBe('red');
+    expect(layoutSetPropertySpy).toHaveBeenCalledOnceWith('disabled', 'enabled');
+    expect(componentSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
   }));
 
   it('should update component config when target starts with "component."', fakeAsync(() => {
@@ -318,6 +297,9 @@ describe('FormComponentValueChangeEventConsumer', () => {
     const { definition, component } = createSetup([expr]);
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
 
     consumer.bind({ component, definition });
 
@@ -332,8 +314,9 @@ describe('FormComponentValueChangeEventConsumer', () => {
     eventStream$.next(event);
     tick();
 
-    const config = definition.component?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['someSetting']).toBe('enabled');
+    expect(layoutSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(componentSetPropertySpy).toHaveBeenCalledOnceWith('someSetting', 'enabled');
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
   }));
 
   it('should update component config and formControl.disabled when target is "component.disabled"', fakeAsync(() => {
@@ -348,6 +331,9 @@ describe('FormComponentValueChangeEventConsumer', () => {
     const { control, definition, component } = createSetup([expr]);
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
 
     consumer.bind({ component, definition });
 
@@ -362,10 +348,111 @@ describe('FormComponentValueChangeEventConsumer', () => {
     eventStream$.next(event);
     tick();
 
-    const config = definition.component?.componentDefinition?.config as Record<string, unknown>;
-    expect(config['disabled']).toBe(true);
-    expect(control.disabled).toBe(true);
+    expect(layoutSetPropertySpy).toHaveBeenCalledTimes(0);
+    // The component.setProperty method has a special case for 'disabled' that also calls model.setDisabled.
+    expect(componentSetPropertySpy).toHaveBeenCalledOnceWith('disabled', 'enabled');
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
   }));
+  it('should update model disabled when target is model.disabled', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'model-disabled-update',
+      config: {
+        target: 'model.disabled',
+        condition: 'otherField',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'enabled',
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(layoutSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(componentSetPropertySpy).toHaveBeenCalledTimes(0);
+    expect(modelSetDisabledSpy).toHaveBeenCalledOnceWith(true, {emitEvent: false, onlySelf: true});
+    }));
+  it('should update component, layout, model disabled when target is field.disabled', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'field-disabled-update',
+      config: {
+        target: 'field.disabled',
+        condition: 'otherField',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: 'enabled',
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(layoutSetPropertySpy).toHaveBeenCalledOnceWith('disabled', true);
+    expect(componentSetPropertySpy).toHaveBeenCalledOnceWith('disabled', true);
+    expect(modelSetDisabledSpy).toHaveBeenCalledOnceWith(true, {emitEvent: false, onlySelf: true});
+    }));
+  it('should update component and layout visible when target is field.visible', fakeAsync(() => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'field-disabled-update',
+      config: {
+        target: 'field.visible',
+        condition: 'otherField',
+        template: ''
+      }
+    };
+    const { definition, component } = createSetup([expr]);
+
+    spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
+    const layoutSetPropertySpy = spyOn<any>(definition?.layout, 'setProperty');
+    const componentSetPropertySpy = spyOn<any>(definition?.component, 'setProperty');
+    const modelSetDisabledSpy = spyOn<any>(component?.model, 'setDisabled');
+
+    consumer.bind({ component, definition });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'otherField',
+      sourceId: 'otherField',
+      value: false,
+      timestamp: Date.now()
+    };
+
+    eventStream$.next(event);
+    tick();
+
+    expect(layoutSetPropertySpy).toHaveBeenCalledOnceWith('visible', false);
+    expect(componentSetPropertySpy).toHaveBeenCalledOnceWith('visible', false);
+    expect(modelSetDisabledSpy).toHaveBeenCalledTimes(0);
+    }));
+  });
 
   it('should use template evaluation when hasTemplate is true', fakeAsync(() => {
     const expr: FormExpressionsConfigFrame = {

@@ -8,6 +8,10 @@ interface CspConfig {
     extras?: string[];
 }
 
+function isAdminApiDocsPath(pathname: string): boolean {
+    return /\/admin\/api-docs(?:\/|$)/.test(pathname);
+}
+
 /**
  * ContentSecurityPolicy Policy
  *
@@ -57,9 +61,32 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
     // Merge settings: shallow for top-level, replace arrays for directives keys if provided
     const enabled = cfg.enabled != null ? !!cfg.enabled : defaults.enabled;
     const reportOnly = cfg.reportOnly != null ? !!cfg.reportOnly : defaults.reportOnly;
-    const addNonceTo = Array.isArray(cfg.addNonceTo) ? cfg.addNonceTo : defaults.addNonceTo;
+    let addNonceTo = Array.isArray(cfg.addNonceTo) ? cfg.addNonceTo : defaults.addNonceTo;
     const extras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
     const directives: Record<string, string[]> = Object.assign({}, defaults.directives, cfg.directives || {});
+
+    if (isAdminApiDocsPath(req.path)) {
+        addNonceTo = [];
+
+        const styleSrc = new Set([...(directives['style-src'] ?? [])]);
+        styleSrc.add("'unsafe-inline'");
+        styleSrc.add('https://fonts.googleapis.com');
+        styleSrc.add('https://fonts.gstatic.com');
+        directives['style-src'] = Array.from(styleSrc);
+
+        const imgSrc = new Set([...(directives['img-src'] ?? [])]);
+        imgSrc.add('data:');
+        imgSrc.add('https://cdn.redoc.ly');
+        directives['img-src'] = Array.from(imgSrc);
+
+        const workerSrc = new Set([...(directives['worker-src'] ?? [])]);
+        workerSrc.add('blob:');
+        directives['worker-src'] = Array.from(workerSrc);
+
+        const connectSrc = new Set([...(directives['connect-src'] ?? [])]);
+        connectSrc.add('blob:');
+        directives['connect-src'] = Array.from(connectSrc);
+    }
 
     if (!enabled) {
         return next();

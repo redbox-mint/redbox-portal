@@ -47,7 +47,8 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
-  buildLineagePaths as buildLineagePathsHelper, DynamicScriptResponse,
+  buildLineagePaths as buildLineagePathsHelper,
+  DynamicScriptResponse,
   FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
   FormComponentDefinitionKind,
@@ -60,15 +61,18 @@ import {
   FormValidatorComponentErrors,
   FormValidatorConfig,
   FormValidatorDefinition,
-  FormValidatorFn,
+  FormValidatorFns,
   FormValidatorSummaryErrors,
   FormPrehydratePayload,
   getObjectWithJsonPointer,
+  jsonataEvaluateFunc,
+  jsonataLibrary,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
   KindNameDefaultsMap,
   KindNameDefaultsMapType,
+  LineagePath,
   LineagePaths,
   queryJSONata,
   ValidatorsSupport,
@@ -78,7 +82,6 @@ import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
 import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from './service/vocab-tree.service';
-
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
 // `formValidatorDefinitions` is the historical synchronous accessor and is preserved
@@ -93,7 +96,7 @@ declare var redboxClientScript: {
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
   valueKey: string;
-  validatorFns: FormValidatorFn[];
+  validatorFns: FormValidatorFns;
   errors: FormValidatorComponentErrors[];
 }
 
@@ -129,6 +132,8 @@ export class FormService extends HttpClientService {
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
   private dynamicImportFormCompiledItemsPromises = new Map<string, DynamicImportCacheEntry>();
+  private formCompiledItems?: Promise<DynamicScriptResponse>;
+  private currentFormMode: FormModesConfig = 'edit';
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
   private suggestedValidatorSummaryCache = new WeakMap<AbstractControl, SuggestedValidatorSummaryCacheEntry>();
 
@@ -231,7 +236,8 @@ export class FormService extends HttpClientService {
     });
 
     // Resolve the field and component pairs
-    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta);
+    const formMode: FormModesConfig = editMode ? 'edit' : 'view';
+    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta, formMode);
   }
 
   /**
@@ -243,13 +249,21 @@ export class FormService extends HttpClientService {
    * @returns The config and the components built from the config.
    */
   public async createFormComponentsMap(
-    formConfig: FormConfigFrame, parentLineagePaths: LineagePaths, meta?: Record<string, unknown>): Promise<FormComponentsMap> {
+    formConfig: FormConfigFrame,
+    parentLineagePaths: LineagePaths,
+    meta?: Record<string, unknown>,
+    formMode?: FormModesConfig
+  ): Promise<FormComponentsMap> {
+    this.currentFormMode = formMode ?? this.currentFormMode ?? 'edit';
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
       const definitions = await this.resolveValidatorDefinitions();
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
+    this.formCompiledItems = formConfig?.type
+      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
+      : undefined;
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
 
@@ -415,7 +429,7 @@ export class FormService extends HttpClientService {
       compMapEntry.model = new ModelType(modelConfig);
       const formControl = compMapEntry.model.formControl;
       const validators = compMapEntry.model.validators;
-      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups);
+      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, undefined, compMapEntry);
       return compMapEntry.model;
     }
 
@@ -539,11 +553,11 @@ export class FormService extends HttpClientService {
   /**
    * Evaluate validators for advisory validation groups without attaching them to controls.
    */
-  public getSuggestedValidatorSummaryErrors(
+  public async getSuggestedValidatorSummaryErrors(
     mapEntry: FormFieldCompMapEntry | null,
     enabledValidationGroups: string[],
     validationGroups: FormValidationGroups
-  ): FormValidatorSummaryErrors[] {
+  ): Promise<FormValidatorSummaryErrors[]> {
     const result: FormValidatorSummaryErrors[] = [];
 
     if (!mapEntry) {
@@ -564,9 +578,9 @@ export class FormService extends HttpClientService {
     const validators = mapEntry.model?.validators ?? [];
     const lineagePaths = mapEntry.lineagePaths;
     if (formControl && !formControl.disabled && lineagePaths && validators.length > 0) {
-      const errors = this.getCachedSuggestedValidatorComponentErrors(
+      const errors = await this.getCachedSuggestedValidatorComponentErrors(
         formControl,
-        validators,
+        this.prepareValidatorConfigs(validators, mapEntry),
         enabledValidationGroups,
         validationGroups
       );
@@ -577,7 +591,7 @@ export class FormService extends HttpClientService {
     }
 
     for (const childMapEntry of mapEntry.component?.formFieldCompMapEntries ?? []) {
-      result.push(...this.getSuggestedValidatorSummaryErrors(childMapEntry, enabledValidationGroups, validationGroups));
+      result.push(...await this.getSuggestedValidatorSummaryErrors(childMapEntry, enabledValidationGroups, validationGroups));
     }
 
     return result;
@@ -588,12 +602,12 @@ export class FormService extends HttpClientService {
    * Cache the expensive validator construction and last error result so template reads
    * stay cheap while still recalculating when validation config or form values change.
    */
-  private getCachedSuggestedValidatorComponentErrors(
+  private async getCachedSuggestedValidatorComponentErrors(
     formControl: AbstractControl,
     validators: FormValidatorConfig[],
     enabledValidationGroups: string[],
     validationGroups: FormValidationGroups
-  ): FormValidatorComponentErrors[] {
+  ): Promise<FormValidatorComponentErrors[]> {
     const validatorKey = this.getSuggestedValidatorCacheKey(validators, enabledValidationGroups, validationGroups);
     // Validator output can depend on sibling fields, so include the root form value as well as this control's own value.
     const valueKey = this.getSuggestedValidatorValueKey(formControl);
@@ -607,13 +621,15 @@ export class FormService extends HttpClientService {
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
     const validatorFns = cached?.validatorKey === validatorKey
       ? cached.validatorFns
-      : this.validatorsSupport.createFormValidatorInstancesFromMapping(
-        this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>(),
-        enabledValidators
-      );
-    const errors = validatorFns.flatMap((validatorFn) =>
-      this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl))
-    );
+      : this.getValidatorInstances(enabledValidators);
+    const errors: FormValidatorComponentErrors[] = [];
+
+    for (const validatorFn of validatorFns.asyncDefs) {
+      errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(await validatorFn(formControl)));
+    }
+    for (const validatorFn of validatorFns.syncDefs) {
+      errors.push(...this.validatorsSupport.getFormValidatorComponentErrors(validatorFn(formControl)));
+    }
 
     this.suggestedValidatorSummaryCache.set(formControl, {
       validatorKey,
@@ -730,6 +746,7 @@ export class FormService extends HttpClientService {
     enabledValidationGroups?: string[] | null,
     validationGroups?: FormValidationGroups | null,
     updateValueAndValidityOpts?: { doUpdate?: boolean } & ModifyOptions,
+    mapEntry?: FormFieldCompMapEntry,
   ): void {
     if (!formControl) {
       this.loggerService.warn(`${this.logName}: Cannot set validators because formControl was not provided.`);
@@ -741,16 +758,17 @@ export class FormService extends HttpClientService {
     }
 
     // Get the form-level configs.
-    const defMap = this.loadedValidatorDefinitions ?? new Map<string, FormValidatorDefinition>();
     const availableGroups = validationGroups ?? {};
 
     if (!enabledValidationGroups) {
       enabledValidationGroups = [];
     }
 
+    validators = this.prepareValidatorConfigs(validators, mapEntry);
+
     // Filter the validator configs to the enabled ones.
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
-    const validatorFns = this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
+    const validatorFns = this.getValidatorInstances(enabledValidators)
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
@@ -758,7 +776,9 @@ export class FormService extends HttpClientService {
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
-    formControl.setValidators(validatorFns);
+
+    formControl.setValidators(validatorFns.syncDefs);
+    formControl.setAsyncValidators(validatorFns.asyncDefs);
     if (updateValueAndValidityOpts?.doUpdate !== false) {
       // TODO: Store the first created validator functions per formControl, and use that in .hasValidator.
       //       This should reduce the amount of churn and events.
@@ -783,7 +803,7 @@ export class FormService extends HttpClientService {
       const formControl = mapEntry?.model?.formControl;
       const validators = mapEntry?.model?.validators;
       const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };
-      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts);
+      this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts, mapEntry);
     }
 
     // Set the validators for any child controls.
@@ -839,39 +859,6 @@ export class FormService extends HttpClientService {
     this.loggerService.info(`Get model data from url: ${url}`, result);
     return result?.['data'] ?? {};
   }
-
-  // /**
-  //  * TODO: Use this script to validate the form data model structure matches the form config.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormStructureValidations(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formStructureValidations', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
-
-  // /**
-  //  * TODO: Use this script to validate the form data model values match the form config.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormDataValidations(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formDataValidations', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
-
-  // /**
-  //  * TODO: Use this script to run the form data model expressions.
-  //  * @param recordType
-  //  * @param oid
-  //  */
-  // public async getDynamicImportFormExpressions(recordType: string, oid: string) {
-  //   const path = ['dynamicAsset', 'formExpressions', recordType?.toString(), oid?.toString()];
-  //   const result = await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
 
   /**
    * Get all the compiled items for the form.
@@ -958,9 +945,8 @@ export class FormService extends HttpClientService {
 
   /**
    * Reshapes a FormFieldCompMapEntry into a JSONataClientQuerySourceProperty.
-   *
-   * @param item
-   * @returns
+   * @param item The form field entry to transform.
+   * @param isLayout True if the provided item is a layout.
    */
   public transformIntoJSONataProperty(item: FormFieldCompMapEntry, isLayout?: boolean): JSONataClientQuerySourceProperty {
     if (!item) {
@@ -998,9 +984,10 @@ export class FormService extends HttpClientService {
   /**
    * Transforms a JSONata entry to a JSON Pointer friendly object.
    *
-   * @param jsonDoc - arbitrary object to build on
+   * @param jsonDoc arbitrary object to build on
    * @param formFieldEntry The form field entry associated with the JSONata entry.
    * @param jsonataEntry The JSONata entry to be transformed into a JSON Pointer friendly object.
+   * @param isLayout True if the provided form field entry is a layout.
    */
   public transformJSONataEntryToJSONPointerSource(jsonDoc: Record<string, unknown>, formFieldEntry: FormFieldCompMapEntry, jsonataEntry: JSONataQuerySourceProperty, isLayout?: boolean): object {
     const object: JSONataResultDoc = {
@@ -1165,6 +1152,103 @@ export class FormService extends HttpClientService {
     // this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
 
     return enabledNames;
+  }
+
+  /**
+   * Find the first matching form field component map entry by name or lineage path.
+   * @param name The form config name or lineage path to look for.
+   * @param formFieldCompMapEntries The entries to search in, recursing into any children.
+   * @return The first matching entry, or undefined if none match.
+   */
+  public getFormFieldCompMapEntry(
+    name: string | Partial<LineagePaths>,
+    formFieldCompMapEntries: FormFieldCompMapEntry[],
+  ): FormFieldCompMapEntry | undefined {
+    // breadth first search
+    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
+      if (typeof name === "string") {
+        if (formFieldCompMapEntry.compConfigJson?.name === name) {
+          return formFieldCompMapEntry;
+        }
+      } else if (name && formFieldCompMapEntry.lineagePaths) {
+        const targets = name as Record<string, LineagePath | string | undefined>;
+        const available = formFieldCompMapEntry.lineagePaths;
+        const lineagePathMatch = Object.entries(available).some(([key, value]) => !!value && targets?.[key] === value);
+        if (lineagePathMatch) {
+          return formFieldCompMapEntry;
+        }
+      }
+    }
+
+    // If not found, continue to search in the component's children
+    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
+      const childFormFieldCompMapEntries = formFieldCompMapEntry.component?.formFieldCompMapEntries ?? [];
+      const match = this.getFormFieldCompMapEntry(name, childFormFieldCompMapEntries);
+      if (match !== undefined) {
+        return match;
+      }
+    }
+    return undefined;
+  }
+
+  private getValidatorInstances(enabledValidators: FormValidatorConfig[]) {
+    if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
+      const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
+    }
+    const defMap = this.loadedValidatorDefinitions;
+    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
+  }
+
+  private prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
+    const prepared = validators.map(validator => ({
+      ...validator,
+      config: validator.config ? { ...validator.config } : undefined,
+    }));
+    this.validatorsSupport.assignJsonataEvaluators(prepared, (validator: FormValidatorConfig, index: number): unknown => {
+      const expression = validator?.config?.['expression']?.toString() ?? "";
+      const keys = this.getValidatorCompiledItemKeys(mapEntry, index);
+      return async (value: unknown) => {
+        if (this.formCompiledItems && keys.length > 0) {
+          try {
+            const compiledItems = await this.formCompiledItems;
+            for (const key of keys) {
+              const result = await compiledItems.evaluate(key, value, { libraries: jsonataLibrary });
+              if (result !== undefined) {
+                return result;
+              }
+            }
+          } catch (error) {
+            this.loggerService.warn(`${this.logName}: Could not evaluate compiled jsonata validator.`, error);
+            return null;
+          }
+        }
+        return await jsonataEvaluateFunc(expression)(value);
+      };
+    });
+    return prepared;
+  }
+
+  private getValidatorCompiledItemKeys(mapEntry: FormFieldCompMapEntry | undefined, index: number): string[][] {
+    const rootKey = ['validators', index.toString(), 'config', 'expression'];
+    const formConfigPath = mapEntry?.lineagePaths?.formConfig ?? [];
+    if (formConfigPath.length === 0) {
+      return [rootKey];
+    }
+
+    const parentPath = formConfigPath.map(path => path.toString());
+    const normalizedParentPath = this.normalizeValidatorFormConfigPath(parentPath);
+    const canonicalKey = [...normalizedParentPath, 'config', 'validators', index.toString(), 'config', 'expression'];
+    const legacyKey = [...parentPath, 'model', 'config', 'validators', index.toString(), 'config', 'expression'];
+
+    return [canonicalKey, legacyKey];
+  }
+
+  private normalizeValidatorFormConfigPath(path: string[]): string[] {
+    if (path.length > 0 && path[0] === 'formConfig') {
+      return path.slice(1);
+    }
+    return path;
   }
 }
 

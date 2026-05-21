@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
@@ -128,17 +128,6 @@ describe("CheckboxTreeComponent", () => {
   });
 
   it("renders templated visible labels and updates selected item label value", async () => {
-    setUpDynamicAssets({
-      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-        switch (keyStr) {
-          case "componentDefinitions__0__component__config__labelTemplate":
-            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
-          default:
-            throw new Error(`Unknown key: ${keyStr}`);
-        }
-      }
-    });
-
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -165,8 +154,21 @@ describe("CheckboxTreeComponent", () => {
         }
       ]
     };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__component__config__labelTemplate":
+              return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        },
+      }]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(
+      formConfig, undefined, undefined, dynamicAssetOptions);
     const compiled = fixture.nativeElement as HTMLElement;
     expect((compiled.textContent ?? "").includes("300101 - Agricultural biotechnology diagnostics (incl. biosensors)")).toBeTrue();
 
@@ -182,17 +184,6 @@ describe("CheckboxTreeComponent", () => {
   });
 
   it("tracks the latest selected checkbox item for form event bindings", async () => {
-    setUpDynamicAssets({
-      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-        switch (keyStr) {
-          case "componentDefinitions__0__component__config__labelTemplate":
-            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
-          default:
-            throw new Error(`Unknown key: ${keyStr}`);
-        }
-      }
-    });
-
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -219,8 +210,20 @@ describe("CheckboxTreeComponent", () => {
         }
       ]
     };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__component__config__labelTemplate":
+              return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }
+      }]
+    };
+    const { fixture } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
     const compiled = fixture.nativeElement as HTMLElement;
     const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance as CheckboxTreeComponent;
 
@@ -490,6 +493,70 @@ describe("CheckboxTreeComponent", () => {
     fixture.detectChanges();
 
     expect((compiled.textContent ?? "").includes("Loading...")).toBeFalse();
+  });
+
+  it("queues overlapping display sync while lazy child nodes are loading", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const deferred = createDeferred<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>();
+    spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
+      if (!parentId) {
+        return Promise.resolve({
+          data: [{ id: "root", label: "Root", value: "01", notation: "01", parent: null, hasChildren: true }],
+          meta: { vocabularyId: "v1", parentId: null, total: 1 }
+        } as any);
+      }
+      return deferred.promise as Promise<any>;
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: []
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance as CheckboxTreeComponent;
+    const control = (formComponent as any).form.get("anzsrc");
+
+    control.setValue([{ notation: "0101", label: "Leaf 1", name: "0101 - Leaf 1", genealogy: ["01"] }], { emitEvent: false });
+    const firstSync = component.syncDisplayFromModel();
+    await Promise.resolve();
+    control.setValue([{ notation: "0102", label: "Leaf 2", name: "0102 - Leaf 2", genealogy: ["01"] }], { emitEvent: false });
+    const secondSync = component.syncDisplayFromModel();
+
+    deferred.resolve({
+      data: [
+        { id: "leaf-1", label: "Leaf 1", value: "0101", notation: "0101", parent: "root", hasChildren: false },
+        { id: "leaf-2", label: "Leaf 2", value: "0102", notation: "0102", parent: "root", hasChildren: false }
+      ],
+      meta: { vocabularyId: "v1", parentId: "root", total: 2 }
+    });
+    await firstSync;
+    await secondSync;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const checkboxes = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
+    expect(checkboxes.length).toBe(2);
+    expect(checkboxes[0].checked).toBeFalse();
+    expect(checkboxes[1].checked).toBeTrue();
   });
 
   it("handles empty vocabulary response without errors", async () => {

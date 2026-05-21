@@ -37,8 +37,8 @@ export class TabNavButtonFieldComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitTabNavButtonFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitTabNavButtonFieldComponentDefinition(this);
   }
 }
 
@@ -56,8 +56,8 @@ export class TabNavButtonFormComponentDefinition
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline) {
-    visitor.visitTabNavButtonFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitTabNavButtonFormComponentDefinition(this);
   }
 }
 
