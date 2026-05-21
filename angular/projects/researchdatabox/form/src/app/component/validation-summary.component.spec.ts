@@ -832,4 +832,17 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(link?.textContent?.trim()).toBe('Repeatable TextField with default wrapper defined');
   });
 
+  it('should include form component errors', async () => {
+    // TODO
+    // const formConfig = {    };
+    // formConfig.validators = [
+    //   {class: 'different-values', config: {controlNames: ['recommended_field', 'recommended_field']}, groups: {include: ['recommended'], exclude: ['all']} },
+    // ];
+    // const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    //
+    // const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
+    //
+    // expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([]);
+    // expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
+  });
 });

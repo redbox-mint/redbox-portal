@@ -117,19 +117,25 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
 
     // form validators
     // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
-    const formErrors = await this.formService.getCachedSuggestedValidatorComponentErrors(
-      this.formComponent.form,
-      this.formService.prepareValidatorConfigs(this.formComponent.formValidators),
-      this.enabledValidationGroups,
-      this.formComponent.validationGroups,
-    );
-    if (formErrors.length > 0) {
-      result.push({
-        id: this.formComponent.trimmedParams.formName(),
-        message: "form-suggested-labelMessage",
-        errors: formErrors,
-        lineagePaths: this.formService.buildLineagePaths(),
-      });
+    if (this.formComponent?.form) {
+      // This method can be called while this component is being created,
+      // and before the FormComponent form is available.
+      // A later 'queue' call should update it after the form is ready,
+      // so don't include the FormComponent.form if it is not available.
+      const formErrors = await this.formService.getCachedSuggestedValidatorComponentErrors(
+        this.formComponent.form,
+        this.formService.prepareValidatorConfigs(this.formComponent.formValidators),
+        this.enabledValidationGroups,
+        this.formComponent.validationGroups,
+      );
+      if (formErrors.length > 0) {
+        result.push({
+          id: this.formComponent.trimmedParams.formName(),
+          message: "form-suggested-labelMessage",
+          errors: formErrors,
+          lineagePaths: this.formService.buildLineagePaths(),
+        });
+      }
     }
 
     const mapEntries = this.formComponent.componentDefArr ?? [];

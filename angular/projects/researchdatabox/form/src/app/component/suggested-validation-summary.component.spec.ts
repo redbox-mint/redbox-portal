@@ -138,7 +138,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
                   },
                 },
               ],
-            } as TabFieldComponentConfigFrame,
+            },
           },
         },
         suggestedSummaryDefinition({ includeTabLabel: true }),
@@ -193,6 +193,24 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     expect((await summaryComponent.allValidationErrorsDisplay()).length).toBe(1);
     expect((await summaryComponent.allValidationErrorsDisplay()).length).toBe(1);
     expect(createValidatorsSpy.calls.count()).toBe(callsBeforeReads);
+  });
+
+  it('should include form component errors', async () => {
+    const formConfig = baseSuggestedFormConfig({
+      suggestedValue: '',
+      suggestedGroups: { include: ['recommended'], exclude: ['all'] },
+    });
+    formConfig.validators = [
+      {class: 'different-values', config: {controlNames: ['recommended_field', 'recommended_field']}, groups: {include: ['recommended'], exclude: ['all']} },
+    ];
+
+    // TODO
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
+
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
   });
 });
 

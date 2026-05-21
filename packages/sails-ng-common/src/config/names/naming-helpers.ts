@@ -132,7 +132,7 @@ export function getLastSegmentFromJSONPointer(pointer: string): string {
       return "";
     }
     if (!pointer.includes('/')) {
-      return "";
+      return pointer;
     }
     const segments = pointer.split('/');
     return segments[segments.length - 1];
