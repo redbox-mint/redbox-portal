@@ -99,7 +99,7 @@
     "uuid": "14.0.0",
     "webpack": "5.106.2",
     "wkt-parser-helper": "7.1.0",
-    "yaml": "1.10.3",
+    "yaml": "2.9.0",
     "zod": "3.5.1",
     "zod-to-openapi": "0.2.1"
   },

@@ -70,11 +70,25 @@ updates:
       interval: 'daily'
     target-branch: 'develop'
     groups:
+      tiptap:
+        applies-to: 'version-updates'
+        patterns:
+          - '@tiptap/*'
+          - 'ngx-tiptap'
+        update-types:
+          - 'minor'
+          - 'patch'
+      tiptap-major:
+        applies-to: 'version-updates'
+        patterns:
+          - '@tiptap/*'
+          - 'ngx-tiptap'
+        update-types:
+          - 'major'
       angular:
         applies-to: 'version-updates'
         group-by: 'dependency-name'
         patterns:
-          - '@tiptap/*'
           - '@angular/*'
           - '@angular-devkit/*'
           - 'ngx-bootstrap'
@@ -82,7 +96,6 @@ updates:
           - 'ng-packagr'
           - '@ngx-formly/*'
           - '@ngrx/*'
-          - 'ngx-tiptap'
         update-types:
           - 'minor'
           - 'patch'
@@ -90,7 +103,6 @@ updates:
         applies-to: 'version-updates'
         group-by: 'dependency-name'
         patterns:
-          - '@tiptap/*'
           - '@angular/*'
           - '@angular-devkit/*'
           - 'ngx-bootstrap'
@@ -98,7 +110,6 @@ updates:
           - 'ng-packagr'
           - '@ngx-formly/*'
           - '@ngrx/*'
-          - 'ngx-tiptap'
         update-types:
           - 'major'
     cooldown:
