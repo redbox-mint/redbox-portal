@@ -1099,7 +1099,7 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
     }
     const defMap = this.loadedValidatorDefinitions;
-    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
+    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
   }
 
   private prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
