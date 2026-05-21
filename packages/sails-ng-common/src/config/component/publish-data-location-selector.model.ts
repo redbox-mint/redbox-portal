@@ -65,8 +65,8 @@ export class PublishDataLocationSelectorFieldComponentDefinition
   class = PublishDataLocationSelectorComponentName;
   config?: PublishDataLocationSelectorFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitPublishDataLocationSelectorFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitPublishDataLocationSelectorFieldComponentDefinition(this);
   }
 }
 
@@ -87,8 +87,8 @@ export class PublishDataLocationSelectorFieldModelDefinition
   class = PublishDataLocationSelectorModelName;
   config?: PublishDataLocationSelectorFieldModelConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitPublishDataLocationSelectorFieldModelDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitPublishDataLocationSelectorFieldModelDefinition(this);
   }
 }
 
@@ -99,8 +99,8 @@ export class PublishDataLocationSelectorFormComponentDefinition
   public model?: PublishDataLocationSelectorFieldModelDefinitionOutline;
   public layout?: AvailableFieldLayoutDefinitionOutlines;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitPublishDataLocationSelectorFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitPublishDataLocationSelectorFormComponentDefinition(this);
   }
 }
 

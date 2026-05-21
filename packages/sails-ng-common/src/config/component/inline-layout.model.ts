@@ -21,8 +21,8 @@ export class InlineFieldLayoutDefinition extends FieldLayoutDefinition implement
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitInlineFieldLayoutDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitInlineFieldLayoutDefinition(this);
   }
 }
 

@@ -28,8 +28,8 @@ export class SaveStatusFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitSaveStatusFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSaveStatusFieldComponentDefinition(this);
     }
 }
 
@@ -44,8 +44,8 @@ export class SaveStatusFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitSaveStatusFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSaveStatusFormComponentDefinition(this);
     }
 }
 

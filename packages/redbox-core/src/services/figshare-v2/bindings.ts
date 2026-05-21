@@ -1,7 +1,6 @@
 import _ from 'lodash';
-import jsonata from 'jsonata';
 import Handlebars from 'handlebars';
-import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import {jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers} from '@researchdatabox/sails-ng-common';
 import { ValueBinding } from '../../configmodels/FigsharePublishing';
 import { AnyRecord } from './types';
 
@@ -53,8 +52,7 @@ export async function evaluateBinding(binding: ValueBinding | undefined, record:
     return value === '' ? binding.defaultValue : value;
   }
 
-  const compiled = jsonata(binding.expression);
-  compiled.registerFunction('eval', () => undefined);
-  const value = await compiled.evaluate(record);
+  const value = await jsonataCompileAndEvaluate(binding.expression, record);
+
   return value ?? binding.defaultValue;
 }

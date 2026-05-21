@@ -44,8 +44,8 @@ export class CheckboxInputFieldComponentDefinition extends FieldComponentDefinit
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitCheckboxInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxInputFieldComponentDefinition(this);
     }
 }
 
@@ -68,8 +68,8 @@ export class CheckboxInputFieldModelDefinition extends FieldModelDefinition<Chec
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitCheckboxInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxInputFieldModelDefinition(this);
     }
 }
 
@@ -84,8 +84,8 @@ export class CheckboxInputFormComponentDefinition extends FormComponentDefinitio
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitCheckboxInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxInputFormComponentDefinition(this);
     }
 }
 

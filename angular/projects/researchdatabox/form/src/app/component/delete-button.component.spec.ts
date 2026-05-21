@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from '../helpers.spec';
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from '../helpers.spec';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
 import { FormComponentEventBus } from '../form-state';
 import { DeleteButtonComponent } from './delete-button.component';
@@ -53,16 +53,19 @@ describe('DeleteButtonComponent', () => {
   });
 
   it('publishes form.delete.requested after confirmation', async () => {
-    setUpDynamicAssets({
-      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-123',
-      callable: (keyString, _key, context) => {
-        if (keyString === 'componentDefinitions__0__component__config__redirectLocation') {
-          return `/dashboard/${context.oid}`;
-        }
-        throw new Error(`Unknown key: ${keyString}`);
-      },
-    });
-    const { fixture } = await createFormAndWaitForReady(formConfig, { oid: 'oid-123', editMode: true } as any);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-123',
+        callable: (keyString, _key, context) => {
+          if (keyString === 'componentDefinitions__0__component__config__redirectLocation') {
+            return `/dashboard/${context.oid}`;
+          }
+          throw new Error(`Unknown key: ${keyString}`);
+        },
+      }]
+    };
+    const { fixture } = await createFormAndWaitForReady(
+      formConfig, { oid: 'oid-123', editMode: true } as any, undefined, dynamicAssetOptions);
     const confirmationDialogService = TestBed.inject(ConfirmationDialogService);
     spyOn(confirmationDialogService, 'confirm').and.resolveTo(true);
 

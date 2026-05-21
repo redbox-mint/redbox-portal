@@ -1,4 +1,4 @@
-import {createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets} from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
@@ -584,18 +584,20 @@ describe('QuestionTreeComponent', async () => {
     };
 
     it('should update the data model and component visibility as the answers are changed', async () => {
-      setUpDynamicAssets({
-        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
-        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-          if (keyStr in expressionsResults) {
-            return expressionsResults[keyStr](keyStr, key, context, extra);
+      const dynamicAssetOptions: DynamicAssetOptions = {
+        entries: [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+          callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+            if (keyStr in expressionsResults) {
+              return expressionsResults[keyStr](keyStr, key, context, extra);
+            }
+            throw new Error(`Unknown key: ${keyStr}`);
           }
-          throw new Error(`Unknown key: ${keyStr}`);
-        }
-      });
+        }]
+      };
 
-
-      const {fixture} = await createFormAndWaitForReady(clientFormConfig);
+      const {fixture} = await createFormAndWaitForReady(
+        clientFormConfig, undefined, undefined, dynamicAssetOptions);
       const eventBus = TestBed.inject(FormComponentEventBus);
       const element = fixture.nativeElement as HTMLElement;
 
@@ -720,16 +722,6 @@ describe('QuestionTreeComponent', async () => {
     });
 
     it('should load a record and update fields outside the question tree via expressions', async () => {
-      setUpDynamicAssets({
-        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
-        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-          if (keyStr in expressionsResults) {
-            return expressionsResults[keyStr](keyStr, key, context, extra);
-          }
-          throw new Error(`Unknown key: ${keyStr}`);
-        }
-      });
-
       const formConfigWithModelValue: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
       formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
         question_1: "no",
@@ -748,8 +740,19 @@ describe('QuestionTreeComponent', async () => {
         outcome: "@outcomes-value1",
         prop2: "@outcomes-prop2-value1"
       }];
-
-      const {fixture, formComponent} = await createFormAndWaitForReady(formConfigWithModelValue);
+      const dynamicAssetOptions: DynamicAssetOptions = {
+        entries: [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+          callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+            if (keyStr in expressionsResults) {
+              return expressionsResults[keyStr](keyStr, key, context, extra);
+            }
+            throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }]
+      };
+      const {fixture, formComponent} = await createFormAndWaitForReady(
+        formConfigWithModelValue, undefined, undefined, dynamicAssetOptions);
       const element = fixture.nativeElement as HTMLElement;
 
       const loadedQuestionTreeValue = formConfigWithModelValue.componentDefinitions[0].model!.config!.value as QuestionTreeModelValueType;
@@ -827,15 +830,17 @@ describe('QuestionTreeComponent', async () => {
     });
 
     it('should render a provided question label value directly', async () => {
-      setUpDynamicAssets({
-        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
-        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-          if (keyStr in expressionsResults) {
-            return expressionsResults[keyStr](keyStr, key, context, extra);
+      const dynamicAssetOptions: DynamicAssetOptions = {
+        entries: [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+          callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+            if (keyStr in expressionsResults) {
+              return expressionsResults[keyStr](keyStr, key, context, extra);
+            }
+            throw new Error(`Unknown key: ${keyStr}`);
           }
-          throw new Error(`Unknown key: ${keyStr}`);
-        }
-      });
+        }]
+      };
 
       // TODO: this sleep should not be necessary, but until we can figure out the timing issue,
       //       this is one way to make the test pass.
@@ -857,7 +862,8 @@ describe('QuestionTreeComponent', async () => {
       const events: any[] = [];
       const sub = eventBus.selectAll$().subscribe(e => events.push(e));
 
-      const {fixture} = await createFormAndWaitForReady(formConfigWithDirectQuestionLabel);
+      const {fixture} = await createFormAndWaitForReady(
+        formConfigWithDirectQuestionLabel, undefined, undefined, dynamicAssetOptions);
 
       try {
         fixture.detectChanges();

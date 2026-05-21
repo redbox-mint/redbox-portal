@@ -59,7 +59,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed);
@@ -92,7 +92,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed);
@@ -132,7 +132,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed);
@@ -184,7 +184,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
+        const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
@@ -228,7 +228,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
+        const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
@@ -269,7 +269,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit', record: { access_type: 'open' } });
+        const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'open' } });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
@@ -311,7 +311,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit', record: { status: ['active', 'old-b'] } });
+        const constructed = await constructor.start({ data: input, formMode: 'edit', record: { status: ['active', 'old-b'] } });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
@@ -353,7 +353,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default');
@@ -396,7 +396,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         let thrown: unknown = null;
@@ -447,7 +447,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default');
@@ -490,7 +490,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({ data: input, formMode: 'edit' });
+        const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
         const visitor = new VocabInlineFormConfigVisitor(logger);
         await visitor.resolveVocabs(constructed, 'default');
@@ -531,7 +531,7 @@ describe('VocabInlineFormConfigVisitor', () => {
         };
 
         const constructor = new ConstructFormConfigVisitor(logger as any);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: input,
             formMode: 'edit',
             record: {

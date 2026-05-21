@@ -352,33 +352,37 @@ export class ManageUsersComponent extends BaseComponent {
 
   genKey(userid: string) {
     this.setUpdateMessage('Generating...', 'primary');
+    const that = this;
     this.userService.genKey(userid).then((response) => {
       const saveRes = response as unknown as SaveResponse;
       if (saveRes.status) {
-        this.showToken = true;
-        if (this.currentUser != null) {
-          this.currentUser.token = saveRes.message;
+        that.showToken = true;
+        if (that.currentUser != null) {
+          that.currentUser.token = saveRes.message;
         }
-        this.refreshUsers();
-        this.setUpdateMessage('Token generated.', 'primary');
+        that.refreshUsers().then(() => {
+          that.setUpdateMessage('Token generated.', 'primary');
+        });
       } else {
-        this.setUpdateMessage(saveRes.message, 'danger');
+        that.setUpdateMessage(saveRes.message, 'danger');
       }
     });
   }
 
   revokeKey(userid: string) {
     this.setUpdateMessage('Revoking...', 'primary');
+    const that = this;
     this.userService.revokeKey(userid).then((response) => {
       const saveRes = response as unknown as SaveResponse;
       if (saveRes.status) {
-        if (this.currentUser != null) {
-          this.currentUser.token = '';
+        if (that.currentUser != null) {
+          that.currentUser.token = '';
         }
-        this.refreshUsers();
-        this.setUpdateMessage('Token revoked.', 'primary');
+        that.refreshUsers().then(() => {
+          that.setUpdateMessage('Token revoked.', 'primary');
+        });
       } else {
-        this.setUpdateMessage(saveRes.message, 'danger');
+        that.setUpdateMessage(saveRes.message, 'danger');
       }
     });
   }
@@ -399,7 +403,7 @@ export class ManageUsersComponent extends BaseComponent {
     const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideDetailsModal();
-      this.refreshUsers();
+      await this.refreshUsers();
       this.setUpdateMessage();
     } else {
       this.setUpdateMessage(saveRes.message, 'danger');
@@ -423,7 +427,7 @@ export class ManageUsersComponent extends BaseComponent {
     const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideNewUserModal();
-      this.refreshUsers();
+      await this.refreshUsers();
       this.setNewUserMessage();
     } else {
       this.setNewUserMessage(saveRes.message, 'danger');

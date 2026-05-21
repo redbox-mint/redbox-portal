@@ -65,89 +65,99 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     this.branding = branding;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.pendingResolutions = [];
-    form.accept(this);
+    await form.accept(this);
     await Promise.all(this.pendingResolutions);
   }
 
-  protected override notImplemented(): void {
+  protected override async notImplemented(): Promise<void> {
     // No-op for components that are irrelevant to inline vocab resolution.
   }
 
-  visitFormConfig(item: FormConfigOutline): void {
-    item.componentDefinitions.forEach((component) => {
-      component.accept(this);
-    });
+  async visitFormConfig(item: FormConfigOutline): Promise<void> {
+    for (const component of item.componentDefinitions) {
+      await component.accept(this);
+    }
   }
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item, item.component?.config, false);
+  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+    await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item, item.component?.config, false);
+  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+    await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item, item.component?.config, false);
+  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-    this.enqueueIfInlineVocab(item, item.component?.config, true);
+  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.enqueueIfInlineVocab(item, item.component?.config, true);
   }
 
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-    item.config?.tabs?.forEach((tab) => tab.accept(this));
+  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+    for (const tab of item.config?.tabs ?? []) {
+      await tab.accept(this);
+    }
   }
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
-    item.config?.panels?.forEach((panel) => panel.accept(this));
+  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
+    for (const panel of item.config?.panels ?? []) {
+      await panel.accept(this);
+    }
   }
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-    item.config?.componentDefinitions?.forEach((def) => def.accept(this));
+  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
   }
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-    item.component.accept(this);
+  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
   }
 
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-    item.config?.elementTemplate?.accept(this);
+  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+    await item.config?.elementTemplate?.accept(this);
   }
 
-  private enqueueIfInlineVocab(
+  private async enqueueIfInlineVocab(
     definition: FormComponentDefinitionOutline,
     componentConfig: ComponentConfigWithInlineVocab | undefined,
     treeMode: boolean
-  ): void {
+  ): Promise<void> {
     if (!componentConfig?.inlineVocab || !componentConfig.vocabRef) {
       return;
     }
@@ -165,7 +175,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
 
     try {
       const entries = await this.fetchAllEntries(this.branding, String(componentConfig.vocabRef ?? ''));
-      const filteredEntries = this.filterHistoricalEntries(entries, definition, componentConfig, treeMode);
+      const filteredEntries = await this.filterHistoricalEntries(entries, definition, componentConfig, treeMode);
       if (treeMode) {
         componentConfig.treeData = this.buildTreeData(filteredEntries, componentConfig);
         return;
@@ -221,12 +231,16 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     return allEntries;
   }
 
-  private filterHistoricalEntries(
+  private async filterHistoricalEntries(
     entries: VocabularyEntryAttributes[],
     definition: FormComponentDefinitionOutline,
     componentConfig: ComponentConfigWithInlineVocab,
     treeMode: boolean
-  ): VocabularyEntryAttributes[] {
+  ): Promise<VocabularyEntryAttributes[]> {
+    const selectedValues = treeMode
+      ? await this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
+      : await this.selectedValuesFromModelValue(definition?.model?.config?.value);
+
     return entries.filter((entry) => {
       if (!this.isHistorical(entry)) {
         return true;
@@ -237,10 +251,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       if (this.shouldDisableHistoricalEntry(entry, componentConfig)) {
         return true;
       }
-
-      const selectedValues = treeMode
-        ? this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
-        : this.selectedValuesFromModelValue(definition?.model?.config?.value);
       return this.entryMatchesSelectedValue(entry, selectedValues, treeMode);
     });
   }
@@ -280,40 +290,44 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     return String(entry?.identifier ?? '').trim() || String(entry?.value ?? '').trim();
   }
 
-  private selectedValuesFromModelValue(value: unknown): Set<string> {
+  private async selectedValuesFromModelValue(value: unknown): Promise<Set<string>> {
     const values = new Set<string>();
     if (value === null || value === undefined) {
       return values;
     }
     if (Array.isArray(value)) {
-      value.forEach((item) => this.addSelectedValue(values, item));
+      for (const item of value) {
+        await this.addSelectedValue(values, item);
+      }
       return values;
     }
-    this.addSelectedValue(values, value);
+    await this.addSelectedValue(values, value);
     return values;
   }
 
-  private selectedTreeValuesFromModelValue(value: unknown): Set<string> {
+  private async selectedTreeValuesFromModelValue(value: unknown): Promise<Set<string>> {
     const values = new Set<string>();
     if (value === null || value === undefined) {
       return values;
     }
     if (Array.isArray(value)) {
-      value.forEach((item) => this.addSelectedTreeValue(values, item));
+      for (const item of value) {
+        await this.addSelectedTreeValue(values, item);
+      }
       return values;
     }
-    this.addSelectedTreeValue(values, value);
+    await this.addSelectedTreeValue(values, value);
     return values;
   }
 
-  private addSelectedValue(values: Set<string>, item: unknown): void {
+  private async addSelectedValue(values: Set<string>, item: unknown): Promise<void> {
     if (item === null || item === undefined) {
       return;
     }
     values.add(String(item));
   }
 
-  private addSelectedTreeValue(values: Set<string>, item: unknown): void {
+  private async addSelectedTreeValue(values: Set<string>, item: unknown): Promise<void> {
     if (item === null || item === undefined) {
       return;
     }

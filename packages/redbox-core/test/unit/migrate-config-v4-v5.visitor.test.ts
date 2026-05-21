@@ -75,7 +75,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps MarkdownTextArea to RichTextEditor with markdown output format", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "rich-text-migration",
                 fields: [
@@ -103,7 +103,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("normalizes legacy top-level form css classes to rb-form classes", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "legacy-css-migration",
                 viewCssClasses: "row col-md-offset-1 col-md-10",
@@ -123,7 +123,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             warn: (message: unknown) => warnings.push(String(message ?? ''))
         };
         const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
           data: {
             name: 'checkbox-tree-edge',
             fields: [
@@ -161,7 +161,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('omits boolean defaults for legacy toggle fields migrated to CheckboxInput', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'legacy-toggle-migration',
                 fields: [
@@ -198,7 +198,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps LinkValueComponent to ContentComponent with a legacy-compatible link template', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'link-value-migration',
                 fields: [
@@ -245,7 +245,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('defaults migrated LinkValueComponent link targets to _blank when the legacy definition omits target', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'link-value-default-target-migration',
                 fields: [
@@ -274,7 +274,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps HtmlRawComponent to ContentComponent', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'html-raw-migration',
                 fields: [
@@ -305,7 +305,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             warn: (message: unknown) => warnings.push(String(message ?? ''))
         };
         const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "typeahead-edge",
                 fields: [
@@ -344,7 +344,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('migrates static typeahead options and prefers legacy options over staticOptions', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "typeahead-static-options",
                 fields: [
@@ -390,7 +390,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
             warn: (message: unknown) => warnings.push(String(message ?? ''))
         };
         const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'parameter-retriever-migration',
                 fields: [
@@ -421,7 +421,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps legacy RecordMetadataRetriever subscriptions into fetch expressions and downstream listeners', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'record-metadata-retriever-migration',
                 fields: [
@@ -517,7 +517,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('migrates legacy PDFList fields to PDFListComponent and survives visitor verification', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'pdf-list-migration',
                 fields: [
@@ -566,7 +566,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps legacy RecordMetadataRetriever request-param fetch expressions inside tab content containers', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'record-metadata-retriever-tab-migration',
                 fields: [
@@ -727,7 +727,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('omits the form-ready RecordMetadataRetriever fetch expression when parameter metadata is missing', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: 'record-metadata-retriever-without-parameter',
                 fields: [
@@ -754,7 +754,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps RepeatableVocabComponent to RepeatableComponent with Typeahead elementTemplate', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "repeatable-vocab-edge",
                 fields: [
@@ -804,7 +804,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps legacy external VocabField to external TypeaheadInput config', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "typeahead-external",
                 fields: [
@@ -837,7 +837,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps RepeatableContributor layout label from definition name when label is missing on both parent and child', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "repeatable-contributor-label-fallback",
                 fields: [
@@ -871,7 +871,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps RepeatableContributor layout label from inner field label when parent label is missing', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "repeatable-contributor-label-inner-fallback",
                 fields: [
@@ -906,7 +906,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it('maps legacy ContributorField with forceLookupOnly to the lookup-only reusable definition', async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "contributor-force-lookup-only",
                 fields: [
@@ -960,7 +960,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps legacy MapField to MapComponent and normalizes config/value", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "map-migration",
                 fields: [
@@ -1005,7 +1005,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("migrates ButtonBarContainer as expected", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "button-bar-migration",
                 fields: [
@@ -1059,7 +1059,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("migrates SaveButton targetStep into the v5 component config", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "save-button-target-step-migration",
                 fields: [
@@ -1082,7 +1082,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps AnchorOrButton links to ContentComponent anchor links with InlineLayout", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "anchor-or-button-migration",
                 fields: [
@@ -1123,7 +1123,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps legacy delete button redirectLocation tokens to a Handlebars template", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "delete-button-migration",
                 fields: [
@@ -1151,7 +1151,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps legacy form-inline groups to ActionRowLayout with InlineLayout children", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "inline-group-migration",
                 fields: [
@@ -1199,7 +1199,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("uses Handlebars translation helper for migrated TextBlock translation keys", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "text-block-translation-key",
                 fields: [
@@ -1224,7 +1224,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("uses heading wrapper from TextBlock type for heading content", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "text-block-heading-type",
                 fields: [
@@ -1250,7 +1250,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("binds TextBlock heading content from formData when value is missing and definition.name is present", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "text-block-heading-name-binding",
                 fields: [
@@ -1289,7 +1289,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps view-only markdown text areas to ContentComponent in view overrides", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "markdown-view-only",
                 fields: [
@@ -1314,7 +1314,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("keeps plain text TextBlock values as non-translated content templates", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "text-block-plain-text",
                 fields: [
@@ -1339,7 +1339,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("promotes legacy TextBlock span label/help blocks into layout label config", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "text-block-span-label-help",
                 fields: [
@@ -1370,7 +1370,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("populates attachmentFields from FileUpload components", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "attachment-fields-migration",
                 fields: [
@@ -1407,7 +1407,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps legacy DataLocation to DataLocationComponent with config fields", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "data-location-migration",
                 fields: [
@@ -1457,7 +1457,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("maps legacy PublishDataLocationSelector to the v5 selector component", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "publish-data-location-selector-migration",
                 fields: [
@@ -1531,7 +1531,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("uses the enclosing container path for migrated publish data location selector expressions", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "publish-data-location-selector-nested-migration",
                 fields: [
@@ -1590,7 +1590,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
 
     it("resolves cross-tab publish data location selector sources to their real component path", async function () {
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "publish-data-location-selector-cross-tab-migration",
                 fields: [
@@ -1674,7 +1674,7 @@ describe("Migrate v4 to v5 Visitor", async () => {
         // The migrated output must keep the button semantics without carrying
         // forward the old imperative-fetch implementation details.
         const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
-        const migrated = visitor.start({
+        const migrated = await visitor.start({
             data: {
                 name: "publish-data-location-refresh-migration",
                 fields: [
