@@ -116,6 +116,9 @@ declare global {
       create(params: object, cb: (err: Error, created: T) => void): void;
       create(params: Array<object>, cb: (err: Error, created: T[]) => void): void;
 
+      createEach(params: Array<object>): WaterlinePromise<T[]>;
+      createEach(params: Array<object>, cb: (err: Error, created: T[]) => void): void;
+
       find(): QueryBuilder;
       find(params: object): QueryBuilder;
 

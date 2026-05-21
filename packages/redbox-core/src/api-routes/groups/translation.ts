@@ -108,6 +108,10 @@ export const setBundleRoute = apiRoute(
   'setBundle',
   {
     params: bundleParams,
+    query: objectField({
+      splitToEntries: booleanField(),
+      overwriteEntries: booleanField(),
+    }),
     body: {
       required: true,
       content: {
