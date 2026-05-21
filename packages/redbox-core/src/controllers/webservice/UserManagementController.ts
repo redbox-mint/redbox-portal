@@ -334,16 +334,16 @@ export namespace Controllers {
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
             UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, roleIds).subscribe(
               (user: unknown) => {
-                //TODO: Add roles to the response
-                const u = user as globalThis.Record<string, unknown>;
-                const userResponse = new CreateUserAPIResponse();
-                userResponse.id = u.id as string;
-                userResponse.username = u.username as string;
-                userResponse.name = u.name as string;
-                userResponse.email = u.email as string;
-                userResponse.type = u.type as string;
-                userResponse.lastLogin = u.lastLogin as Date | null;
-                return this.apiRespond(req, res, userResponse, 201);
+            //TODO: Add roles to the response
+            const u = user as globalThis.Record<string, unknown>;
+            const userResponse = new CreateUserAPIResponse();
+            userResponse.id = u.id as string;
+            userResponse.username = u.username as string;
+            userResponse.name = u.name as string;
+            userResponse.email = u.email as string;
+            userResponse.type = u.type as string;
+            userResponse.lastLogin = u.lastLogin as Date | null;
+            return this.apiRespond(req, res, userResponse, 201);
               },
               (error: unknown) => {
                 sails.log.error('Failed to update user roles:');
@@ -658,14 +658,14 @@ export namespace Controllers {
       return this.apiRespond(req, res, response);
     }
 
-    public createSystemRole(req: Sails.Req, res: Sails.Res) {
+    public async createSystemRole(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const body = validated.body as Record<string, unknown>;
       const roleName = (body.roleName as string | undefined) ?? (validated.query.roleName as string | undefined);
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        RolesService.createRoleWithBrand(brand, roleName);
+        await RolesService.createRoleWithBrand(brand, roleName);
         const response: APIActionResponse = new APIActionResponse(
           roleName + ' create call success',
           roleName + ' create call success'

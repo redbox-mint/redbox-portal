@@ -410,12 +410,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
    */
-  start(options: {
+  async start(options: {
     data: FormConfigFrame;
     reusableFormDefs?: ReusableFormDefinitions;
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
-  }): FormConfigOutline {
+  }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
     this.reusableFormDefs = options.reusableFormDefs ?? {};
     this.formMode = options.formMode ?? 'view';
@@ -433,13 +433,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.formPathHelper.reset();
 
     this.formConfig = new FormConfig();
-    this.formConfig.accept(this);
+    await this.formConfig.accept(this);
     return this.formConfig;
   }
 
   /* Form Config */
 
-  visitFormConfig(item: FormConfigOutline): void {
+  async visitFormConfig(item: FormConfigOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFormConfig(currentData)) {
       throw new Error(
@@ -493,24 +493,24 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    currentData.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of currentData.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
 
       // Visit children
       const testing = this.formPathHelper.lineagePathsForFormConfigComponentDefinition(formComponent, index);
-      this.formPathHelper.acceptFormPath(formComponent, testing);
+      await this.formPathHelper.acceptFormPath(formComponent, testing);
 
       // After the construction is done, apply any transforms
       const itemTransformed = this.applyConstructPhaseTransform(formComponent);
 
       // Store the instance on the item
       item.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
+  async visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<SimpleInputFieldComponentDefinitionFrame>(currentData, SimpleInputComponentName)) {
@@ -529,7 +529,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('placeholder', item.config, config);
   }
 
-  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
+  async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<SimpleInputFieldModelDefinitionFrame>(currentData, SimpleInputModelName)) {
@@ -546,13 +546,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Content */
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
+  async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<ContentFieldComponentDefinitionFrame>(currentData, ContentComponentName)) {
@@ -573,14 +573,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('translationContentFormat', item.config, config);
   }
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
+  async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     // TODO: does the content component require the data model?
-    this.populateFormComponent(item);
+    await this.populateFormComponent(item);
   }
 
   /* Repeatable  */
 
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
+  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(currentData, RepeatableComponentName)) {
@@ -640,7 +640,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const formComponent = this.constructFormComponent(frame.elementTemplate);
 
     // Continue the construction
-    this.formPathHelper.acceptFormPath(
+    await this.formPathHelper.acceptFormPath(
       formComponent,
       this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(formComponent)
     );
@@ -659,7 +659,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.mostRecentRepeatableElementTemplatePath = previousMostRecentRepeatableElementTemplatePath;
   }
 
-  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
+  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RepeatableFieldModelDefinitionFrame>(currentData, RepeatableModelName)) {
@@ -676,7 +676,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
+  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -693,13 +693,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
   }
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
+  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -722,11 +722,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('showWhenValid', item.config, config);
   }
 
-  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
-  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<SuggestedValidationSummaryFieldComponentDefinitionFrame>(
@@ -749,13 +749,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('header', item.config, config);
   }
 
-  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Save Status */
 
-  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
+  async visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<SaveStatusFieldComponentDefinitionFrame>(currentData, SaveStatusComponentName)) {
       throw new Error(
@@ -769,13 +769,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
   }
 
-  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Group */
 
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
+  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<GroupFieldComponentDefinitionFrame>(currentData, GroupFieldComponentName)) {
@@ -796,11 +796,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    frame.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of frame.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
 
       // Continue the construction
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(formComponent, index)
       );
@@ -810,10 +810,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
-  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
+  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<GroupFieldModelDefinitionFrame>(currentData, GroupFieldModelName)) {
@@ -830,13 +830,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Tab  */
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
+  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TabFieldComponentDefinitionFrame>(currentData, TabComponentName)) {
@@ -865,7 +865,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     frame.tabs = tabs;
 
     // Visit the components
-    frame?.tabs.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (frame?.tabs ?? []).entries()) {
       if (
         isTypeFormComponentDefinitionName<TabContentFormComponentDefinitionFrame>(
           componentDefinition,
@@ -875,7 +875,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         const formComponent = this.constructFormComponent(componentDefinition);
 
         // Continue the construction
-        this.formPathHelper.acceptFormPath(
+        await this.formPathHelper.acceptFormPath(
           formComponent,
           this.formPathHelper.lineagePathsForTabFieldComponentDefinition(formComponent, index)
         );
@@ -889,10 +889,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         // Store the instance on the item
         item.config?.tabs.push(itemTransformed);
       }
-    });
+    }
   }
 
-  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
+  async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TabFieldLayoutDefinitionFrame>(currentData, TabLayoutName)) {
@@ -916,13 +916,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('buttonSectionAriaOrientation', item.config, config);
   }
 
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Accordion */
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
+  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<AccordionFieldComponentDefinitionFrame>(currentData, AccordionComponentName)) {
       throw new Error(
@@ -954,7 +954,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
     frame.panels = panels;
 
-    frame.panels.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of frame.panels.entries()) {
       if (
         isTypeFormComponentDefinitionName<AccordionPanelFormComponentDefinitionFrame>(
           componentDefinition,
@@ -962,7 +962,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         )
       ) {
         const formComponent = this.constructFormComponent(componentDefinition);
-        this.formPathHelper.acceptFormPath(
+        await this.formPathHelper.acceptFormPath(
           formComponent,
           this.formPathHelper.lineagePathsForAccordionFieldComponentDefinition(formComponent, index)
         );
@@ -973,10 +973,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
         item.config?.panels.push(itemTransformed);
       }
-    });
+    }
   }
 
-  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
+  async visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<AccordionFieldLayoutDefinitionFrame>(currentData, AccordionLayoutName)) {
       throw new Error(
@@ -989,11 +989,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, config);
   }
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
+  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<AccordionPanelFieldComponentDefinitionFrame>(currentData, AccordionPanelComponentName)
@@ -1012,19 +1012,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.reusableFormDefs
     );
 
-    config.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of config.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForAccordionPanelFieldComponentDefinition(formComponent, index)
       );
 
       const itemTransformed = this.applyConstructPhaseTransform(formComponent);
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
-  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
+  async visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<AccordionPanelFieldLayoutDefinitionFrame>(currentData, AccordionPanelLayoutName)) {
       throw new Error(
@@ -1038,13 +1038,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('buttonLabel', item.config, config);
   }
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Tab Content */
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
+  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TabContentFieldComponentDefinitionFrame>(currentData, TabContentComponentName)) {
@@ -1067,7 +1067,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     );
 
     // Visit the components
-    config?.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of (config?.componentDefinitions ?? []).entries()) {
       let formComponent: AllFormComponentDefinitionOutlines;
       try {
         formComponent = this.constructFormComponent(componentDefinition);
@@ -1079,7 +1079,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       }
 
       // Continue the construction
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(formComponent, index)
       );
@@ -1089,10 +1089,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
-  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
+  async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TabContentFieldLayoutDefinitionFrame>(currentData, TabContentLayoutName)) {
@@ -1110,13 +1110,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('buttonLabel', item.config, config);
   }
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
+  async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<SaveButtonFieldComponentDefinitionFrame>(currentData, SaveButtonComponentName)) {
@@ -1137,13 +1137,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
-  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
+  async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<CancelButtonFieldComponentDefinitionFrame>(currentData, CancelButtonComponentName)) {
@@ -1165,13 +1165,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
   }
 
-  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Delete Button  */
 
-  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
+  async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DeleteButtonFieldComponentDefinitionFrame>(currentData, DeleteButtonComponentName)) {
       throw new Error(
@@ -1194,13 +1194,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
   }
 
-  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
+  async visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TabNavButtonFieldComponentDefinitionFrame>(currentData, TabNavButtonComponentName)) {
@@ -1221,13 +1221,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('endDisplayMode', item.config, config);
   }
 
-  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
+  async visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TextAreaFieldComponentDefinitionFrame>(currentData, TextAreaComponentName)) {
@@ -1247,7 +1247,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('placeholder', item.config, config);
   }
 
-  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
+  async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TextAreaFieldModelDefinitionFrame>(currentData, TextAreaModelName)) {
@@ -1264,13 +1264,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
+  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RichTextEditorFieldComponentDefinitionFrame>(currentData, RichTextEditorComponentName)
@@ -1292,7 +1292,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('placeholder', item.config, config);
   }
 
-  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
+  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RichTextEditorFieldModelDefinitionFrame>(currentData, RichTextEditorModelName)) {
       throw new Error(
@@ -1307,14 +1307,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
-    this.ensureRichTextViewOverride(item);
+  async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+    await this.ensureRichTextViewOverride(item);
   }
 
   /* Map */
 
-  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
+  async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<MapFieldComponentDefinitionFrame>(currentData, MapComponentName)) {
       throw new Error(
@@ -1338,7 +1338,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config.enabledModes = this.sanitizeMapEnabledModes(item.config.enabledModes, 'construct');
   }
 
-  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
+  async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<MapFieldModelDefinitionFrame>(currentData, MapModelName)) {
       throw new Error(
@@ -1353,13 +1353,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
+  async visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<FileUploadFieldComponentDefinitionFrame>(currentData, FileUploadComponentName)) {
       throw new Error(
@@ -1380,7 +1380,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('tusHeaders', item.config, config);
   }
 
-  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
+  async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<FileUploadFieldModelDefinitionFrame>(currentData, FileUploadModelName)) {
       throw new Error(
@@ -1395,13 +1395,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* PDF List */
 
-  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
+  async visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<PDFListFieldComponentDefinitionFrame>(currentData, PDFListComponentName)) {
       throw new Error(
@@ -1427,7 +1427,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('fileNameTemplate', item.config, config);
   }
 
-  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
+  async visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<PDFListFieldModelDefinitionFrame>(currentData, PDFListModelName)) {
       throw new Error(
@@ -1442,15 +1442,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(
+  async visitRecordMetadataRetrieverFieldComponentDefinition(
     item: RecordMetadataRetrieverFieldComponentDefinitionOutline
-  ): void {
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RecordMetadataRetrieverFieldComponentDefinitionFrame>(
@@ -1467,15 +1467,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, currentData?.config);
   }
 
-  visitRecordMetadataRetrieverFormComponentDefinition(
+  async visitRecordMetadataRetrieverFormComponentDefinition(
     item: RecordMetadataRetrieverFormComponentDefinitionOutline
-  ): void {
-    this.populateFormComponent(item);
+  ): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Data Location */
 
-  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
+  async visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DataLocationFieldComponentDefinitionFrame>(currentData, DataLocationComponentName)) {
       throw new Error(
@@ -1515,7 +1515,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('hideNotesForLocationTypes', item.config, config);
   }
 
-  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
+  async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DataLocationFieldModelDefinitionFrame>(currentData, DataLocationModelName)) {
       throw new Error(
@@ -1530,15 +1530,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   // Construct the refresh trigger as a pure component definition. The click
   // token is synthetic, so no model instance should be created here.
-  visitPublishDataLocationRefreshFieldComponentDefinition(
+  async visitPublishDataLocationRefreshFieldComponentDefinition(
     item: PublishDataLocationRefreshFieldComponentDefinitionOutline
-  ): void {
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<PublishDataLocationRefreshFieldComponentDefinitionFrame>(
@@ -1555,15 +1555,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, currentData?.config);
   }
 
-  visitPublishDataLocationRefreshFormComponentDefinition(
+  async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
-  ): void {
-    this.populateFormComponent(item);
+  ): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(
+  async visitPublishDataLocationSelectorFieldComponentDefinition(
     item: PublishDataLocationSelectorFieldComponentDefinitionOutline
-  ): void {
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldComponentDefinitionFrame>(
@@ -1599,9 +1599,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('dataTypeLookup', item.config, config);
   }
 
-  visitPublishDataLocationSelectorFieldModelDefinition(
+  async visitPublishDataLocationSelectorFieldModelDefinition(
     item: PublishDataLocationSelectorFieldModelDefinitionOutline
-  ): void {
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<PublishDataLocationSelectorFieldModelDefinitionFrame>(
@@ -1619,15 +1619,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitPublishDataLocationSelectorFormComponentDefinition(
+  async visitPublishDataLocationSelectorFormComponentDefinition(
     item: PublishDataLocationSelectorFormComponentDefinitionOutline
-  ): void {
-    this.populateFormComponent(item);
+  ): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
+  async visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DefaultFieldLayoutDefinitionFrame>(currentData, DefaultLayoutName)) {
@@ -1642,7 +1642,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
   }
 
-  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void {
+  async visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<InlineFieldLayoutDefinitionFrame>(currentData, InlineLayoutName)) {
@@ -1655,7 +1655,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldLayoutConfig(item.config, currentData?.config);
   }
 
-  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
+  async visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<ActionRowFieldLayoutDefinitionFrame>(currentData, ActionRowLayoutName)) {
       throw new Error(
@@ -1674,7 +1674,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
+  async visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -1699,7 +1699,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
-  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
+  async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<CheckboxInputFieldModelDefinitionFrame>(currentData, CheckboxInputModelName)) {
@@ -1716,13 +1716,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Checkbox Tree */
 
-  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
+  async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<CheckboxTreeFieldComponentDefinitionFrame>(currentData, CheckboxTreeComponentName)) {
@@ -1746,7 +1746,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('labelTemplate', item.config, config);
   }
 
-  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
+  async visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<CheckboxTreeFieldModelDefinitionFrame>(currentData, CheckboxTreeModelName)) {
@@ -1763,13 +1763,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Record Selector */
 
-  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
+  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RecordSelectorFieldComponentDefinitionFrame>(currentData, RecordSelectorComponentName)
@@ -1791,7 +1791,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('filterFields', item.config, config);
   }
 
-  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
+  async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RecordSelectorFieldModelDefinitionFrame>(currentData, RecordSelectorModelName)) {
       throw new Error(
@@ -1804,13 +1804,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
+  async visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -1834,7 +1834,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
-  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
+  async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DropdownInputFieldModelDefinitionFrame>(currentData, DropdownInputModelName)) {
@@ -1851,13 +1851,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Typeahead Input */
 
-  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
+  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<TypeaheadInputFieldComponentDefinitionFrame>(currentData, TypeaheadInputComponentName)
@@ -1924,7 +1924,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config.multiSelect = Boolean(item.config.multiSelect);
   }
 
-  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
+  async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<TypeaheadInputFieldModelDefinitionFrame>(currentData, TypeaheadInputModelName)) {
       throw new Error(
@@ -1938,13 +1938,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
+  async visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RadioInputFieldComponentDefinitionFrame>(currentData, RadioInputComponentName)) {
@@ -1965,7 +1965,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
-  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
+  async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<RadioInputFieldModelDefinitionFrame>(currentData, RadioInputModelName)) {
@@ -1982,13 +1982,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
+  async visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DateInputFieldComponentDefinitionFrame>(currentData, DateInputComponentName)) {
@@ -2011,7 +2011,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('bsFullConfig', item.config, config);
   }
 
-  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
+  async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<DateInputFieldModelDefinitionFrame>(currentData, DateInputModelName)) {
@@ -2028,13 +2028,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Question Tree */
 
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
+  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(currentData, QuestionTreeComponentName)) {
       throw new Error(
@@ -2061,9 +2061,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formOverride.applyOverridesReusable(configFrame?.componentDefinitions ?? [], this.reusableFormDefs)
     );
 
-    configFrame.componentDefinitions.forEach((componentDefinition, index) => {
+    for (const [index, componentDefinition] of configFrame.componentDefinitions.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
-      this.formPathHelper.acceptFormPath(
+      await this.formPathHelper.acceptFormPath(
         formComponent,
         this.formPathHelper.lineagePathsForQuestionTreeFieldComponentDefinition(formComponent, index)
       );
@@ -2076,10 +2076,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
       // Store the instance on the item
       item.config?.componentDefinitions.push(itemTransformed);
-    });
+    }
   }
 
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
+  async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
     const currentData = this.getData();
     if (!isTypeFieldDefinitionName<QuestionTreeFieldModelDefinitionFrame>(currentData, QuestionTreeModelName)) {
       throw new Error(
@@ -2092,8 +2092,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
-    this.populateFormComponent(item);
+  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Shared */
@@ -2102,7 +2102,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     return this.sharedProps.sharedConstructFormComponent(item);
   }
 
-  protected populateFormComponent(item: FormComponentDefinitionOutline) {
+  protected async populateFormComponent(item: FormComponentDefinitionOutline) {
     const currentData = this.getData();
     if (!isTypeFormComponentDefinition(currentData)) {
       throw new Error(
@@ -2138,11 +2138,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
     if (!isElementTemplate && !isElementTemplateDescendant) {
-      this.mergeDefaultValues(itemName, itemDefaultValue);
+      await this.mergeDefaultValues(itemName, itemDefaultValue);
     }
 
     // Continue visiting
-    this.formPathHelper.acceptFormComponentDefinition(item);
+    await this.formPathHelper.acceptFormComponentDefinition(item);
   }
 
   protected applyConstructPhaseTransform(
@@ -2165,7 +2165,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }) as AllFormComponentDefinitionOutlines;
   }
 
-  protected ensureRichTextViewOverride(item: RichTextEditorFormComponentDefinitionOutline): void {
+  protected async ensureRichTextViewOverride(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
     const allowModes = item?.constraints?.allowModes;
     const hasExplicitViewMode = Array.isArray(allowModes) && allowModes.includes('view');
     const existingViewComponent = item?.overrides?.formModeClasses?.view?.component;
@@ -2347,7 +2347,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param itemDefaultValue The item's default value.
    * @protected
    */
-  protected mergeDefaultValues(itemName: string, itemDefaultValue: unknown): void {
+  protected async mergeDefaultValues(itemName: string, itemDefaultValue: unknown): Promise<void> {
     const isElementTemplate = this.isMostRecentRepeatableElementTemplate();
     const isElementTemplateDescendant = this.isRepeatableElementTemplateDescendant();
     if (isElementTemplate || isElementTemplateDescendant) {

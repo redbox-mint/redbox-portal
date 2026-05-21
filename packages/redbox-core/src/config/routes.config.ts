@@ -1,7 +1,7 @@
 /**
  * Routes Config Interface
  * (sails.config.routes)
- * 
+ *
  * URL to controller/action mapping configuration.
  */
 
@@ -164,9 +164,6 @@ export const routes: RoutesConfig = {
     'get /dynamic/:asset': 'DynamicAssetController.get',
     'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
     'get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?': 'DynamicAssetController.getFormCompiledItems',
-    'get /:branding/:portal/dynamicAsset/formStructureValidations/:recordType/:oid?': 'DynamicAssetController.getFormStructureValidations',
-    'get /:branding/:portal/dynamicAsset/formDataValidations/:recordType/:oid?': 'DynamicAssetController.getFormDataValidations',
-    'get /:branding/:portal/dynamicAsset/formExpressions/:recordType/:oid?': 'DynamicAssetController.getFormExpressions',
     'get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName': 'DynamicAssetController.getAdminReportTemplates',
     'get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage': 'DynamicAssetController.getRecordDashboardTemplates',
     'get /:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName': 'DynamicAssetController.getDashboardViewTemplates',

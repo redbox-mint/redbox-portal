@@ -27,7 +27,7 @@ export namespace Controllers {
     public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
         const response = new APIActionResponse();
-        TranslationService.reloadResources();
+        await TranslationService.reloadResources();
         sails.config.startupMinute = Math.floor(Date.now() / 60000);
 
         return this.apiRespond(req, res, response, 200);

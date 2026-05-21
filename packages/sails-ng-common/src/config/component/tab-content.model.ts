@@ -40,8 +40,8 @@ export class TabContentFieldComponentDefinition extends FieldComponentDefinition
     }
 
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTabContentFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabContentFieldComponentDefinition(this);
     }
 }
 
@@ -65,8 +65,8 @@ export class TabContentFieldLayoutDefinition extends FieldLayoutDefinition imple
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTabContentFieldLayoutDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabContentFieldLayoutDefinition(this);
     }
 }
 
@@ -81,8 +81,8 @@ export class TabContentFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitTabContentFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabContentFormComponentDefinition(this);
     }
 }
 

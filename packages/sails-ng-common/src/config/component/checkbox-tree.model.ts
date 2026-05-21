@@ -46,8 +46,8 @@ export class CheckboxTreeFieldComponentDefinition extends FieldComponentDefiniti
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitCheckboxTreeFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxTreeFieldComponentDefinition(this);
     }
 }
 
@@ -67,8 +67,8 @@ export class CheckboxTreeFieldModelDefinition extends FieldModelDefinition<Check
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitCheckboxTreeFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxTreeFieldModelDefinition(this);
     }
 }
 
@@ -83,8 +83,8 @@ export class CheckboxTreeFormComponentDefinition extends FormComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitCheckboxTreeFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitCheckboxTreeFormComponentDefinition(this);
     }
 }
 

@@ -106,8 +106,7 @@ export namespace Controllers {
           description,
         });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setEntry] reload failed', err.message);
@@ -144,8 +143,7 @@ export namespace Controllers {
           });
         }
         // Refresh i18n cache after deletion
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message);
@@ -210,8 +208,7 @@ export namespace Controllers {
           overwriteEntries,
         });
         // Refresh i18n cache after bundle update
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setBundle] reload failed', err.message);
@@ -238,8 +235,7 @@ export namespace Controllers {
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message);

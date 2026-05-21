@@ -31,8 +31,8 @@ export class ValidationSummaryFieldComponentDefinition extends FieldComponentDef
     }
 
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitValidationSummaryFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitValidationSummaryFieldComponentDefinition(this);
     }
 }
 
@@ -48,8 +48,8 @@ export class ValidationSummaryFormComponentDefinition extends FormComponentDefin
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitValidationSummaryFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitValidationSummaryFormComponentDefinition(this);
     }
 }
 

@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
@@ -128,17 +128,6 @@ describe("CheckboxTreeComponent", () => {
   });
 
   it("renders templated visible labels and updates selected item label value", async () => {
-    setUpDynamicAssets({
-      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-        switch (keyStr) {
-          case "componentDefinitions__0__component__config__labelTemplate":
-            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
-          default:
-            throw new Error(`Unknown key: ${keyStr}`);
-        }
-      }
-    });
-
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -165,8 +154,21 @@ describe("CheckboxTreeComponent", () => {
         }
       ]
     };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__component__config__labelTemplate":
+              return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        },
+      }]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(
+      formConfig, undefined, undefined, dynamicAssetOptions);
     const compiled = fixture.nativeElement as HTMLElement;
     expect((compiled.textContent ?? "").includes("300101 - Agricultural biotechnology diagnostics (incl. biosensors)")).toBeTrue();
 
@@ -182,17 +184,6 @@ describe("CheckboxTreeComponent", () => {
   });
 
   it("tracks the latest selected checkbox item for form event bindings", async () => {
-    setUpDynamicAssets({
-      callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-        switch (keyStr) {
-          case "componentDefinitions__0__component__config__labelTemplate":
-            return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
-          default:
-            throw new Error(`Unknown key: ${keyStr}`);
-        }
-      }
-    });
-
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -219,8 +210,20 @@ describe("CheckboxTreeComponent", () => {
         }
       ]
     };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          switch (keyStr) {
+            case "componentDefinitions__0__component__config__labelTemplate":
+              return `${String(context?.notation ?? "").split("/").at(-1)} - ${context?.label ?? ""}`;
+            default:
+              throw new Error(`Unknown key: ${keyStr}`);
+          }
+        }
+      }]
+    };
+    const { fixture } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
     const compiled = fixture.nativeElement as HTMLElement;
     const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance as CheckboxTreeComponent;
 

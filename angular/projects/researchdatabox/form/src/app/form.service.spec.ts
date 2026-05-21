@@ -12,16 +12,20 @@ import {
 } from "@researchdatabox/portal-ng-common";
 import { APP_BASE_HREF } from "@angular/common";
 import { Title } from "@angular/platform-browser";
-import {HttpContext, provideHttpClient} from "@angular/common/http";
+import { HttpContext, provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import {
   FormConfigFrame,
   FormFieldValidationGroup,
   FormModesConfig,
   FormValidationGroups,
+  FormValidatorConfig,
+  FormValidatorSummaryErrors,
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
-import {FormValidationGroupsChangeInitial} from "./form-state";
+import { FormValidationGroupsChangeInitial } from "./form-state";
+import { setUpDynamicAssets } from "./helpers.spec";
+import { FormControl } from "@angular/forms";
 
 
 describe('The FormService', () => {
@@ -29,6 +33,7 @@ describe('The FormService', () => {
   const translationService = getStubTranslationService();
   let service: FormService;
   let httpTesting: HttpTestingController;
+  const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -159,6 +164,117 @@ describe('The FormService', () => {
         workspace: 'active'
       });
     });
+
+    it('should evaluate jsonata-expression validator as part of suggested validation errors', async () => {
+      const expression = "$ = 45";
+      const mapEntry: FormFieldCompMapEntry = {
+        // @ts-ignore
+        model: {
+          formControl: new FormControl("hello world 2!"),
+          validators: [{
+            class: 'jsonata-expression',
+            config: {
+              description: "the description",
+              expression: expression,
+            },
+          },],
+        },
+        compConfigJson: {
+          name: "text_7",
+          component: {
+            class: "SimpleInputComponent"
+          }
+        },
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+          dataModel: ["text_7"],
+          angularComponents: ["text_7"],
+          angularComponentsJsonPointer: "/text_7",
+          layout: ["text_7-layout"],
+          layoutJsonPointer: "/text_7-layout",
+        },
+      };
+      const enabledValidationGroups: string[] = ["all"];
+      const validationGroups: FormValidationGroups = {};
+      const expected: FormValidatorSummaryErrors[] = [
+        {
+          errors: [
+            {
+              message: "@validator-error-jsonata-expression",
+              class: "jsonata-expression",
+              params: {
+                actual: "hello world 2!",
+                description: "the description",
+                expression: expression,
+              },
+            },
+          ],
+          id: "form-item-id-text-7",
+          message: null,
+          lineagePaths: {
+            formConfig: ["componentDefinitions", "0"],
+            dataModel: ["text_7"],
+            angularComponents: ["text_7"],
+            angularComponentsJsonPointer: "/text_7",
+            layout: ["text_7-layout"],
+            layoutJsonPointer: "/text_7-layout",
+          },
+        }
+      ];
+      const actual = await service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
+      expect(actual).toEqual(expected);
+    });
+
+    it('should attach jsonata-expression as a hard async validator failure', async () => {
+      const control = new FormControl("hello world 2!");
+      const validators: FormValidatorConfig[] = [{
+        class: 'jsonata-expression',
+        config: {
+          description: "the description",
+          expression: "$ = 45",
+        },
+      }];
+      const mapEntry = {
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+        },
+      } as unknown as FormFieldCompMapEntry;
+
+      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      await waitForAsyncValidation();
+
+      expect(control.invalid).toBeTrue();
+      expect(control.errors?.['jsonata-expression']).toEqual({
+        message: "@validator-error-jsonata-expression",
+        params: {
+          actual: "hello world 2!",
+          description: "the description",
+          expression: "$ = 45",
+        },
+      });
+    });
+
+    it('should attach jsonata-expression as a hard async validator pass', async () => {
+      const control = new FormControl(45);
+      const validators: FormValidatorConfig[] = [{
+        class: 'jsonata-expression',
+        config: {
+          description: "the description",
+          expression: "$ = 45",
+        },
+      }];
+      const mapEntry = {
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+        },
+      } as unknown as FormFieldCompMapEntry;
+
+      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      await waitForAsyncValidation();
+
+      expect(control.valid).toBeTrue();
+      expect(control.errors).toBeNull();
+    });
   });
 
   describe('getDynamicImportFormCompiledItems', () => {
@@ -204,6 +320,25 @@ describe('The FormService', () => {
         { edit: 'true' }
       );
     });
+
+    it('should use the provided form mode when building compiled validator imports', async () => {
+      const getDynamicImportFormCompiledItemsSpy = spyOn(service, 'getDynamicImportFormCompiledItems').and.resolveTo({ evaluate: () => '' } as any);
+      const formConfig: FormConfigFrame = {
+        name: 'testing',
+        type: 'rdmp',
+        componentDefinitions: []
+      };
+      const parentLineagePaths = service.buildLineagePaths({
+        angularComponents: [],
+        dataModel: [],
+        formConfig: [],
+        layout: []
+      });
+
+      await service.createFormComponentsMap(formConfig, parentLineagePaths, undefined, 'view');
+
+      expect(getDynamicImportFormCompiledItemsSpy).toHaveBeenCalledWith('rdmp', undefined, 'view');
+    });
   });
 
   describe('calculate enabled validation groups', async () => {
@@ -216,66 +351,66 @@ describe('The FormService', () => {
         groups?: FormFieldValidationGroup
       };
       expected: string[];
-    }[] =[
-      {
-        title: "be empty with empty parameters",
-        args: {currentValidationGroups:[], validationGroups: {} },
-        expected: [],
-      },
-      {
-        title: "add included group to current groups",
-        args: {
-          currentValidationGroups: ["none"],
-          validationGroups: {
-            "none": {description: "", initialMembership:"none"},
-            "tester": {description: ""}
-          },
-          initial: "current",
-          groups:{include: ["tester"]},
+    }[] = [
+        {
+          title: "be empty with empty parameters",
+          args: { currentValidationGroups: [], validationGroups: {} },
+          expected: [],
         },
-        expected: ["none", "tester"],
-      },
-      {
-        title: "remove excluded group from current groups",
-        args: {
-          currentValidationGroups: ["none"],
-          validationGroups: {
-            "none": {description: "", initialMembership:"none"},
-            "tester": {description: ""}
+        {
+          title: "add included group to current groups",
+          args: {
+            currentValidationGroups: ["none"],
+            validationGroups: {
+              "none": { description: "", initialMembership: "none" },
+              "tester": { description: "" }
+            },
+            initial: "current",
+            groups: { include: ["tester"] },
           },
-          initial: "current",
-          groups:{exclude: ["none"]},
+          expected: ["none", "tester"],
         },
-        expected: [],
-      },
-      {
-        title: "remove excluded group from all groups",
-        args: {
-          currentValidationGroups: [],
-          validationGroups: {
-            "none": {description: "", initialMembership:"none"},
-            "tester": {description: ""}
+        {
+          title: "remove excluded group from current groups",
+          args: {
+            currentValidationGroups: ["none"],
+            validationGroups: {
+              "none": { description: "", initialMembership: "none" },
+              "tester": { description: "" }
+            },
+            initial: "current",
+            groups: { exclude: ["none"] },
           },
-          initial: "all",
-          groups:{exclude: ["tester"]},
+          expected: [],
         },
-        expected: ["none"],
-      },
-      {
-        title: "set included group with initial none",
-        args: {
-          currentValidationGroups: ["none"],
-          validationGroups: {
-            "none": {description: "", initialMembership:"none"},
-            "tester": {description: ""}
+        {
+          title: "remove excluded group from all groups",
+          args: {
+            currentValidationGroups: [],
+            validationGroups: {
+              "none": { description: "", initialMembership: "none" },
+              "tester": { description: "" }
+            },
+            initial: "all",
+            groups: { exclude: ["tester"] },
           },
-          initial: "none",
-          groups:{include: ["tester"]},
+          expected: ["none"],
         },
-        expected: ["tester"],
-      },
-    ];
-    cases.forEach(({title, args, expected}) => {
+        {
+          title: "set included group with initial none",
+          args: {
+            currentValidationGroups: ["none"],
+            validationGroups: {
+              "none": { description: "", initialMembership: "none" },
+              "tester": { description: "" }
+            },
+            initial: "none",
+            groups: { include: ["tester"] },
+          },
+          expected: ["tester"],
+        },
+      ];
+    cases.forEach(({ title, args, expected }) => {
       it(`should ${title}`, async function () {
         const results = service.calculateValidationGroups(args.currentValidationGroups, args.validationGroups, args.initial, args.groups);
         expect(results).toEqual(expected);
@@ -311,15 +446,16 @@ describe('The FormService', () => {
       ]
     };
     const meta: Record<string, unknown> = {
-      workflow: {stage: 'draft', stageLabel: 'Draft'},
-      contextVariables: {'one': 1},
+      workflow: { stage: 'draft', stageLabel: 'Draft' },
+      contextVariables: { 'one': 1 },
     };
+    setUpDynamicAssets();
     const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
     const result = service.downloadFormComponents(oid, recordType, editMode, formName, modulePaths);
     const req = httpTesting.expectOne((request) =>
       request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`));
     expect(req.request.method).toBe('GET');
-    req.flush({data: basicFormConfig, meta: meta});
+    req.flush({ data: basicFormConfig, meta: meta });
     expect((await result).formConfigMeta).toEqual(meta);
   });
 });

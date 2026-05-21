@@ -135,7 +135,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     // Ensure the expected failures have the expected lineage paths.
     const validationSummary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
-    expect(validationSummary.allValidationErrorsDisplay).toEqual([
+    expect(await validationSummary.allValidationErrorsDisplay()).toEqual([
       {
         id: 'form-item-id-text-1-event',
         message: null,
@@ -150,6 +150,69 @@ describe('ValidationSummaryFieldComponent', () => {
         }
       }
     ]);
+  });
+
+  it('should remove a validation summary item when the field becomes valid while the form remains invalid', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
+    const initialSummaryErrors = await validationSummary.allValidationErrorsDisplay();
+    expect(initialSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-1-event');
+    expect(initialSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-2-event');
+
+    formComponent.form?.get('text_1_event')?.setValue('Valid project name');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const updatedSummaryErrors = await validationSummary.allValidationErrorsDisplay();
+    expect(formComponent.form?.status).toBe('INVALID');
+    expect(updatedSummaryErrors.map((summary) => summary.id)).not.toContain('form-item-id-text-1-event');
+    expect(updatedSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-2-event');
   });
 
   it('should produce unique error track keys across summaries for matching errors', async () => {
@@ -203,7 +266,7 @@ describe('ValidationSummaryFieldComponent', () => {
     // act
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
-    const summaryErrors = validationSummary.allValidationErrorsDisplay;
+    const summaryErrors = await validationSummary.allValidationErrorsDisplay();
 
     // assert
     expect(summaryErrors.length).toBe(2);

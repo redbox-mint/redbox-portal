@@ -17,7 +17,13 @@ import {
   VisitorLayoutClassDefMapType,
   VisitorModelClassDefMapType,
 } from '../dictionary.model';
-import { buildLineagePaths, LineagePath, LineagePaths, LineagePathsPartial } from '../names/naming-helpers';
+import {
+  buildLineagePaths,
+  LineagePath,
+  LineagePaths,
+  LineagePathsPartial,
+  normaliseVisual
+} from '../names/naming-helpers';
 import { AllFormComponentDefinitionOutlines } from '../dictionary.outline';
 import { FieldLayoutDefinitionKind, FieldModelDefinitionKind, FormComponentDefinitionKind } from '../shared.outline';
 
@@ -237,7 +243,7 @@ export class PropertiesHelper {
    */
   public toFieldReference(value: unknown): string {
     // Normalise the string to a form useful for comparing identifiers.
-    const fieldRaw = value?.toString()?.normalize("NFKC") ?? "";
+    const fieldRaw = normaliseVisual(value);
     // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt
     const fieldReference = [...fieldRaw].map((char) => {
       const codePoint = char.codePointAt(0);
@@ -348,7 +354,7 @@ export class FormPathHelper {
    * @param item The item to visit.
    * @param more The lineage paths to add to the end of the current paths.
    */
-  public acceptFormPath(item: CanVisit, more?: LineagePathsPartial): void {
+  public async acceptFormPath(item: CanVisit, more?: LineagePathsPartial): Promise<void> {
     if (!item) {
       this.logger?.warn?.(`${this.logName}: acceptFormPath requires an item: ${JSON.stringify(item)}`);
       return;
@@ -357,7 +363,7 @@ export class FormPathHelper {
     const original = buildLineagePaths(this._formPath);
     try {
       this._formPath = buildLineagePaths(original, more);
-      item.accept(this.visitor);
+      await item.accept(this.visitor);
     } catch (error) {
       throw error;
     } finally {
@@ -369,13 +375,13 @@ export class FormPathHelper {
    * Call accept on the properties of the form component definition outline that can be visited.
    * @param item The form component definition outline.
    */
-  public acceptFormComponentDefinition(item: FormComponentDefinitionOutline): void {
-    this.acceptFormPath(item.component, { formConfig: ['component'] });
+  public async acceptFormComponentDefinition(item: FormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormPath(item.component, {formConfig: ['component']});
     if (item.model) {
-      this.acceptFormPath(item.model, { formConfig: ['model'] });
+      await this.acceptFormPath(item.model, {formConfig: ['model']});
     }
     if (item.layout) {
-      this.acceptFormPath(item.layout, { formConfig: ['layout'] });
+      await this.acceptFormPath(item.layout, {formConfig: ['layout']});
     }
   }
 

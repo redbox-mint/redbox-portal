@@ -44,8 +44,8 @@ export class SimpleInputFieldComponentDefinition extends FieldComponentDefinitio
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitSimpleInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSimpleInputFieldComponentDefinition(this);
     }
 }
 
@@ -68,8 +68,8 @@ export class SimpleInputFieldModelDefinition extends FieldModelDefinition<Simple
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitSimpleInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSimpleInputFieldModelDefinition(this);
     }
 }
 
@@ -84,8 +84,8 @@ export class SimpleInputFormComponentDefinition extends FormComponentDefinition 
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitSimpleInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSimpleInputFormComponentDefinition(this);
     }
 }
 

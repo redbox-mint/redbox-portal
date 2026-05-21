@@ -157,7 +157,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
 
     expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
-    expect(summaryComponent.allValidationErrorsDisplay).toEqual([]);
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([]);
   });
 
   it('should ignore disabled controls when suggested validators fail', async () => {
@@ -173,7 +173,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
 
     expect(control?.disabled).toBeTrue();
-    expect(summaryComponent.allValidationErrorsDisplay).toEqual([]);
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([]);
     expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
   });
 
@@ -190,8 +190,8 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
     const callsBeforeReads = createValidatorsSpy.calls.count();
 
-    expect(summaryComponent.allValidationErrorsDisplay.length).toBe(1);
-    expect(summaryComponent.allValidationErrorsDisplay.length).toBe(1);
+    expect((await summaryComponent.allValidationErrorsDisplay()).length).toBe(1);
+    expect((await summaryComponent.allValidationErrorsDisplay()).length).toBe(1);
     expect(createValidatorsSpy.calls.count()).toBe(callsBeforeReads);
   });
 });

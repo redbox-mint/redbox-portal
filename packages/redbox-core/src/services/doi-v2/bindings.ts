@@ -1,7 +1,6 @@
 import _ from 'lodash';
-import jsonata from 'jsonata';
 import Handlebars from 'handlebars';
-import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import {jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers} from '@researchdatabox/sails-ng-common';
 import type { ValueBinding } from '../../configmodels/DoiPublishing';
 import type { DoiBindingContext, DoiBindingIterationContext } from './types';
 
@@ -36,12 +35,6 @@ export function validateHandlebarsTemplate(template: string): void {
   }
 }
 
-async function evaluateJsonata(expression: string, context: DoiBindingContext | DoiBindingIterationContext): Promise<unknown> {
-  const compiled = jsonata(expression);
-  compiled.registerFunction('eval', () => undefined);
-  return compiled.evaluate(context);
-}
-
 export async function evaluateBinding(
   binding: ValueBinding | undefined,
   context: DoiBindingContext | DoiBindingIterationContext
@@ -62,7 +55,7 @@ export async function evaluateBinding(
     return value === '' ? binding.defaultValue : value;
   }
 
-  const value = await evaluateJsonata(binding.expression, context);
+  const value = await jsonataCompileAndEvaluate(binding.expression, context);
   return value ?? binding.defaultValue;
 }
 

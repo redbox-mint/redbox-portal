@@ -36,8 +36,8 @@ export class SaveButtonFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitSaveButtonFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSaveButtonFieldComponentDefinition(this);
     }
 }
 
@@ -53,8 +53,8 @@ export class SaveButtonFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitSaveButtonFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitSaveButtonFormComponentDefinition(this);
     }
 }
 

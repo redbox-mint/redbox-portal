@@ -35,7 +35,7 @@ export class FormConfig implements FormConfigOutline {
 
   public attachmentFields?: string[];
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitFormConfig(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitFormConfig(this);
   }
 }

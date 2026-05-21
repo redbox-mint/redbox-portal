@@ -11,5 +11,5 @@ export abstract class FieldDefinition implements FieldDefinitionOutline {
     abstract class: string;
     abstract config?: object;
 
-    abstract accept(visitor: FormConfigVisitorOutline): void;
+    abstract accept(visitor: FormConfigVisitorOutline): Promise<void>;
 }

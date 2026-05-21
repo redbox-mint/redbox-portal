@@ -3,6 +3,7 @@ import {LineagePath, LineagePaths} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
+ * The parameters are different for each validator.
  *
  * These can be used with the translation message id to create the translated text.
  *
@@ -22,10 +23,13 @@ export type FormValidatorErrorParams = {
  *
  * This is similar to FormValidatorComponentErrors, but with the class as the key in a parent object.
  *
- * This is similar to the angular form ValidationErrors type.
+ * This is similar to the angular form ValidationErrors type (type ValidationErrors = { [key: string]: any;}).
  */
 export type FormValidatorErrors = {
-  [key: string]: { message: string; params: FormValidatorErrorParams };
+  [key: string]: {
+    message: string;
+    params: FormValidatorErrorParams;
+  };
 };
 
 /**
@@ -33,8 +37,6 @@ export type FormValidatorErrors = {
  * The config is different for each validator.
  */
 export type FormValidatorCreateConfig = {
-  class?: string;
-  message?: string;
   [key: string]: unknown;
 };
 
@@ -94,6 +96,19 @@ export interface FormValidatorFn {
 }
 
 /**
+ * The asynchronous validation function.
+ *
+ * Accepts an AbstractControl and returns a promise that resolves with either validation errors or no errors (null).
+ *
+ * This is similar to the angular form AsyncValidatorFn interface.
+ */
+export interface FormAsyncValidatorFn {
+  (control: FormValidatorControl): Promise<FormValidatorErrors | null>;
+}
+
+export type FormValidatorFns = {syncDefs: FormValidatorFn[], asyncDefs: FormAsyncValidatorFn[]};
+
+/**
  * The validation function creator.
  *
  * Takes one config argument, which contains config for the specific validator.
@@ -103,9 +118,18 @@ export interface FormValidatorFn {
 export type FormValidatorCreateFn = (config: FormValidatorCreateConfig | null | undefined) => FormValidatorFn;
 
 /**
- * The definition of a validator for a form or a form control.
+ * The asynchronous validation function creator.
+ *
+ * Takes one config argument, which contains config for the specific validator.
+ *
+ * Returns a form async validator function.
  */
-export interface FormValidatorDefinition {
+export type FormAsyncValidatorCreateFn = (config: FormValidatorCreateConfig | null | undefined) => FormAsyncValidatorFn;
+
+/**
+ * The definition of a validator for a form or a form control, with no create function.
+ */
+export interface FormBaseValidatorDefinition {
   /**
    * The unique name of the form validator.
    */
@@ -114,11 +138,32 @@ export interface FormValidatorDefinition {
    * The message id to display when the validator fails.
    */
   message: string;
+}
+
+/**
+ * The definition of a validator for a form or a form control.
+ */
+export interface FormSyncValidatorDefinition extends FormBaseValidatorDefinition {
   /**
    * The validation function creator.
    */
   create: FormValidatorCreateFn;
 }
+
+/**
+ * The definition of an async validator for a form or a form control.
+ */
+export interface FormAsyncValidatorDefinition extends FormBaseValidatorDefinition {
+  /**
+   * The async validation function creator.
+   */
+  createAsync: FormAsyncValidatorCreateFn;
+}
+
+/**
+ * The definition of a validator for a form or a form control.
+ */
+export type FormValidatorDefinition = FormSyncValidatorDefinition | FormAsyncValidatorDefinition;
 
 /**
  * The configuration block for a validator for a form or a form control.

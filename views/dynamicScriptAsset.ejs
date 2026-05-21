@@ -4,17 +4,8 @@ export function evaluate(key, context, extra) {
     key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
 
     // Provide libraries from context
-    let Handlebars = null;
-    if (extra?.libraries?.Handlebars) {
-        Handlebars = extra?.libraries?.Handlebars;
-    }
-
-    let jsonata = null;
-    if (extra?.libraries?.jsonata) {
-        jsonata = extra?.libraries?.jsonata;
-    }
-
-    // TODO: more validation / normalisation of key or context?
+    const Handlebars = extra?.libraries?.Handlebars ?? null;
+    const jsonata = extra?.libraries?.jsonata ?? null;
 
     switch (key) {
     <% for (const entry of entries) { %>

@@ -30,6 +30,19 @@ import("chai").then(mod => expect = mod.expect);
 
 const normalizeTemplate = (template: string): string => template.replace(/\s+/g, " ").trim();
 
+async function expectRejects(errorFunc: () => Promise<unknown>, message?: string): Promise<void> {
+    let actualError: unknown = null;
+    try {
+        await errorFunc();
+    } catch (error) {
+        actualError = error;
+    }
+    expect(actualError).to.be.instanceOf(Error);
+    if (message) {
+        expect((actualError as Error).message).to.contain(message);
+    }
+}
+
 describe("Construct Visitor", async () => {
     describe("basic constructing", async () => {
         const cases: {
@@ -212,7 +225,7 @@ describe("Construct Visitor", async () => {
         cases.forEach(({ title, args, expected }) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start({ data: args, formMode: "edit" });
+                const actual = await visitor.start({ data: args, formMode: "edit" });
                 expect(actual).to.deep.include({ name: expected.name });
 
                 const expectedDefs = expected.componentDefinitions ?? [];
@@ -233,7 +246,7 @@ describe("Construct Visitor", async () => {
 
         it("should retain checkbox tree labelTemplate config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "test",
@@ -259,7 +272,7 @@ describe("Construct Visitor", async () => {
 
         it("should set typeahead namedQuery defaults and cache behaviour", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "test",
@@ -287,7 +300,7 @@ describe("Construct Visitor", async () => {
 
         it("should preserve external typeahead provider config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "test",
@@ -320,7 +333,7 @@ describe("Construct Visitor", async () => {
 
         it("should preserve service typeahead config and disable caching by default", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "test",
@@ -349,7 +362,7 @@ describe("Construct Visitor", async () => {
 
         it("should normalize repeatable elementTemplate layout to RepeatableElementLayout", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "repeatable-layout-normalization",
@@ -385,7 +398,7 @@ describe("Construct Visitor", async () => {
                 warn: (message: unknown) => warnings.push(String(message ?? ""))
             };
             const visitor = new ConstructFormConfigVisitor(testLogger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "test",
@@ -415,7 +428,7 @@ describe("Construct Visitor", async () => {
 
         it("should not apply default view transform when allowModes explicitly includes view", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "test",
@@ -447,7 +460,7 @@ describe("Construct Visitor", async () => {
 
         it("should apply an explicit content view transform for rich text fields constrained to view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "test",
@@ -484,7 +497,7 @@ describe("Construct Visitor", async () => {
     describe("record metadata retriever", async () => {
         it("should construct RecordMetadataRetrieverComponent definitions with operation expressions and no model", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "form",
@@ -529,7 +542,7 @@ describe("Construct Visitor", async () => {
             // This locks in the design decision that the refresh trigger remains
             // stateless in V5 and only participates through behaviour events.
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "form",
@@ -621,7 +634,7 @@ describe("Construct Visitor", async () => {
         cases.forEach(({ title, args, expected }) => {
             it(`should ${title}`, async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                const actual = visitor.start({
+                const actual = await visitor.start({
                     data: args.formConfig,
                     formMode: args.formMode,
                     reusableFormDefs: args.reusableFormDefs
@@ -654,9 +667,9 @@ describe("Construct Visitor", async () => {
     });
     describe("expected errors", async () => {
         it("should fail when duplicate expression name is found", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -672,12 +685,12 @@ describe("Construct Visitor", async () => {
                     }
                 });
             };
-            expect(errorFunc).to.throw(Error, 'Duplicate name in expression: exp1');
+            await expectRejects(errorFunc, 'Duplicate name in expression: exp1');
         });
         it("should fail when repeatable elementTemplate is invalid", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -698,12 +711,12 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, `Repeatable element template overrides must result in exactly one item, got 3`);
+            await expectRejects(errorFunc, `Repeatable element template overrides must result in exactly one item, got 3`);
         });
         it("should fail when repeatable elementTemplate has defaultValue", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -724,12 +737,12 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
+            await expectRejects(errorFunc, "Set the repeatable elementTemplate new item default using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', set the repeatable default in 'repeatable.model.config.defaultValue'");
         });
         it("should fail when repeatable elementTemplate has descendant with defaultValue", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -763,13 +776,13 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
+            await expectRejects(errorFunc, "Set the repeatable elementTemplate descendant component new item default using 'elementTemplate.model.config.newEntryValue', set the repeatable default in 'repeatable.model.config.defaultValue', not the descendant components");
         });
         it("should fail when component class is not available", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -792,13 +805,13 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Could not find class for form component class name 'NotAClass'");
+            await expectRejects(errorFunc, "Could not find class for form component class name 'NotAClass'");
         });
         it("should fail when form component is invalid", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -820,13 +833,13 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error);
+            await expectRejects(errorFunc);
         });
         it("should fail when override has both reusable form name and other property", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -850,15 +863,15 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+            await expectRejects(errorFunc, "Invalid usage of reusable form config. " +
                 "Override for component name '' class 'ReusableComponent' must contain only 'reusableFormName', " +
                 "it cannot be combined with other properties '{\"reusableFormName\":\"standard-contributor-field\",\"replaceName\":\"new_name\"}'");
         });
         it("should fail when override for reusable form is invalid", async () => {
-            const errorFunc1 = function () {
+            const errorFunc1 = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -882,12 +895,12 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc1).to.throw(Error, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
+            await expectRejects(errorFunc1, "Invalid usage of reusable form config. Component class 'ReusableComponent' must be 'ReusableComponent' and reusableFormName");
 
-            const errorFunc2 = function () {
+            const errorFunc2 = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -911,13 +924,13 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc2).to.throw(Error, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
+            await expectRejects(errorFunc2, "Invalid usage of reusable form config. Component class 'TextAreaComponent' must be 'ReusableComponent' and reusableFormName");
         });
         it("should fail when override reusable form config tries to override a component that does not exist", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -943,15 +956,15 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+            await expectRejects(errorFunc, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a name that matches an item in the reusable form config 'standard-contributor-field'. " +
                 "Names 'a_name' did not match any reusable form config items. Available names ");
         });
         it("should fail when override reusable form config override does not have unique names", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -985,15 +998,15 @@ describe("Construct Visitor", async () => {
                 });
             }
                 ;
-            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+            await expectRejects(errorFunc, "Invalid usage of reusable form config. " +
                 "Each item in the ReusableComponent componentDefinitions must have a unique name. " +
                 "These names were not unique 'name'.");
         });
         it("should fail when reusable form config override tries to change the class name in the component definition", async () => {
-            const errorFunc = function () {
+            const errorFunc = async function () {
                 const visitor = new ConstructFormConfigVisitor(logger);
 
-                visitor.start({
+                return await visitor.start({
                     data: {
                         name: "form",
                         componentDefinitions: [
@@ -1019,7 +1032,7 @@ describe("Construct Visitor", async () => {
                     }, formMode: "edit", reusableFormDefs: reusableFormDefinitionsExample2
                 });
             };
-            expect(errorFunc).to.throw(Error, "Invalid usage of reusable form config. " +
+            await expectRejects(errorFunc, "Invalid usage of reusable form config. " +
                 "The class must match the reusable form config. " +
                 "To change the class, use 'formModeClasses'. " +
                 "The component class in reusable form config 'standard-contributor-field' item 'name' is 'SimpleInputComponent' given class was 'CheckboxInputComponent'");
@@ -1028,7 +1041,7 @@ describe("Construct Visitor", async () => {
     describe("model data special cases", async () => {
         it("should populate content component from record", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1070,7 +1083,7 @@ describe("Construct Visitor", async () => {
         });
         it("should populate transformed content component from record", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1163,7 +1176,7 @@ describe("Construct Visitor", async () => {
 
         it("should transform data location components to content in view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1220,7 +1233,7 @@ describe("Construct Visitor", async () => {
 
         it("should preserve data location placeholder config in edit mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1252,7 +1265,7 @@ describe("Construct Visitor", async () => {
 
         it("should transform publish data location selector components to content in view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1317,7 +1330,7 @@ describe("Construct Visitor", async () => {
 
         it("should populate transformed dropdown content component from record array values", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 data: {
                     name: "form",
                     componentDefinitions: [
@@ -1362,7 +1375,7 @@ describe("Construct Visitor", async () => {
     describe("accordion transformations", async () => {
         it("should transform tab to accordion in view mode", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1400,7 +1413,7 @@ describe("Construct Visitor", async () => {
 
         it("should transform empty tabs to accordion with zero panels in view mode", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1424,7 +1437,7 @@ describe("Construct Visitor", async () => {
 
         it("should apply transformed panel label fallback chain", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1471,7 +1484,7 @@ describe("Construct Visitor", async () => {
                 warn: (message: unknown) => warnings.push(String(message ?? ""))
             };
             const visitor = new ConstructFormConfigVisitor(testLogger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1500,7 +1513,7 @@ describe("Construct Visitor", async () => {
 
         it("should keep tab in edit mode", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "form",
@@ -1522,7 +1535,7 @@ describe("Construct Visitor", async () => {
 
         it("should construct direct accordion with default startingOpenMode", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1562,7 +1575,7 @@ describe("Construct Visitor", async () => {
             };
 
             const visitor = new ConstructFormConfigVisitor(testLogger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 data: {
                     name: "form",
@@ -1612,7 +1625,7 @@ describe("Construct Visitor", async () => {
                     }
                 ]
             };
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 reusableFormDefs,
                 data: {
@@ -1634,7 +1647,7 @@ describe("Construct Visitor", async () => {
 
         it("should keep repeatable and group components untransformed in view mode during construct phase", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 data: {
                     name: "form",
@@ -1756,7 +1769,7 @@ describe("Construct Visitor", async () => {
 
         it("should set model values as expected", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "view",
                 reusableFormDefs: reusableFormDefinitions,
                 data: {
@@ -1877,7 +1890,7 @@ describe("Construct Visitor", async () => {
 
         it("should set group model value from record metadata for tab descendants", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 record: {
                     contributor_ci: {
@@ -1973,7 +1986,7 @@ describe("Construct Visitor", async () => {
 
         it("should set group model value from record metadata for reusable contributor group with title", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 record: {
                     contributor_ci: {
@@ -2076,7 +2089,7 @@ describe("Construct Visitor", async () => {
 
         it("should preserve expressions on reusable wrapper fields that expand to a single component", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 formMode: "edit",
                 reusableFormDefs: {
                     "single-group": [
