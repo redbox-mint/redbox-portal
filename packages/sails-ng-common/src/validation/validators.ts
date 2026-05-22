@@ -9,6 +9,7 @@ import {
   formValidatorLengthOrSize
 } from "./helpers";
 import { JSONataEvaluate } from "../jsonata-helpers";
+import { cloneData } from "../config/helpers";
 
 
 /**
@@ -352,6 +353,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionEvaluatorKey = "evaluator";
       const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
       return async (control) => {
+
         // Notes:
         // 1. For the jsonata-expression validator, always validate the control value.
         //    This enables the expression to decide whether empty values are valid or not.
@@ -359,10 +361,18 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         // 2. jsonata tries to define a 'keepSingleton' property on the input value.
         //    Must clone the value because control values cannot be extended.
         //    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cant_define_property_object_not_extensible
-        const value = structuredClone(control.value);
+
         let success: boolean | null = null;
 
-        if (typeof evaluator !== "function") {
+        let value;
+        try {
+          value = cloneData(control.value, {onAllErrorThrow: true});
+        } catch (err) {
+          success = false;
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: control value cannot be cloned`);
+        }
+
+        if (success === null && typeof evaluator !== "function") {
           success = false;
           console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: evaluator is not a function`);
         }

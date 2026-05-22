@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { ElementRef, Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { isString as _isString, isUndefined as _isUndefined } from 'lodash-es';
-import { LineagePaths } from '@researchdatabox/sails-ng-common';
+import { cloneData, LineagePaths } from '@researchdatabox/sails-ng-common';
 import { FormComponentEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 
 export type DebugInfo = {
@@ -350,13 +350,9 @@ export class FormDebugStateService implements OnDestroy {
       return {};
     }
     try {
-      return structuredClone(cleaned as Record<string, unknown>);
-    } catch {
-      try {
-        return JSON.parse(JSON.stringify(cleaned)) as Record<string, unknown>;
-      } catch {
-        return {};
-      }
+      return cloneData(cleaned, {order: ['structuredClone', 'jsonParseStringify'], onAllErrorThrow: true});
+    } catch (err) {
+      return {};
     }
   }
 

@@ -22,7 +22,7 @@ import {
 } from './component/radio-input.outline';
 import { DateInputComponentName, DateInputFormComponentDefinitionOutline } from './component/date-input.outline';
 import { DefaultTransformsType, KnownTransformsType } from './form-override.outline';
-import { cloneDeep as _cloneDeep, merge as _merge, mergeWith as _mergeWith } from 'lodash';
+import { merge as _merge, mergeWith as _mergeWith } from 'lodash';
 
 import {
   DropdownInputComponentName,
@@ -79,6 +79,7 @@ import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { LineagePaths } from './names/naming-helpers';
 import {QuestionTreeHelper} from "./component/question-tree.helper";
+import {cloneData} from "./helpers";
 
 export class FormOverride {
     private logName = "FormOverride";
@@ -462,7 +463,7 @@ export class FormOverride {
     formMode: FormModesConfig,
     options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions }
   ): AllFormComponentDefinitionOutlines {
-    const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
+    const original = cloneData(source) as AllFormComponentDefinitionOutlines;
     const phase = options?.phase ?? 'construct';
     this.activeReusableFormDefs = options?.reusableFormDefs ?? {};
 

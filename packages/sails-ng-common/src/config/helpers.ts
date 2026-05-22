@@ -5,6 +5,7 @@ import {
     isPlainObject as _isPlainObject,
     isObjectLike as _isObjectLike,
     isFunction as _isFunction,
+    cloneDeep as _cloneDeep,
 } from "lodash";
 import {DateTime} from 'luxon';
 
@@ -135,6 +136,66 @@ export function arrayStartsWithArray(base: unknown[], check: unknown[]) {
     return false;
   }
   return base.every((value, index) => check[index] === value);
+}
+
+export type CloneDataOptionsOrder = "structuredClone"|"cloneDeep"|"jsonParseStringify";
+
+/**
+ * Do a deep / structured clone of data.
+ *
+ * This is needed because each clone approach has pros and cons, and different places have different trade-offs.
+ * We don't want to repeat this logic in every place, particularly the try / catch.
+ *
+ * @param data The item to clone.
+ * @param options The clone options.
+ * @param options.order The clone approaches and the order to try them. Default ['structuredClone', 'cloneDeep'].
+ * @param options.onAllErrorThrow True to throw an error if all clone approaches fail, false to return the original data. Default false.
+ */
+export function cloneData(
+  data: unknown,
+  options?: { order?: CloneDataOptionsOrder[], onAllErrorThrow?: boolean }
+) {
+  const order: CloneDataOptionsOrder[] = options?.order ?? ['structuredClone', 'cloneDeep'];
+  const onAllErrorThrow = options?.onAllErrorThrow ?? false;
+
+  if (order.length < 1) {
+    throw new Error("Must provide at least one clone approach.");
+  }
+
+  const approaches = {
+    "jsonParseStringify": {
+      "approach": (data: unknown) => JSON.parse(JSON.stringify(data)),
+      "errors": [],
+    },
+    "structuredClone": {"approach": structuredClone, "errors": ["DataCloneError"]},
+    "cloneDeep": {"approach": _cloneDeep, "errors": []},
+  }
+
+  for (const [index, approachName] of order.entries()) {
+    const approachInfo = approaches[approachName];
+    const approach: (data: unknown) => unknown = approachInfo.approach;
+    const errors: string[] = approachInfo.errors ?? [];
+
+    try {
+      return approach(data);
+    } catch (err) {
+      if (onAllErrorThrow && index === (order.length - 1)) {
+        throw err;
+      }
+      if (errors.length === 0 || (errors.length > 0 && err instanceof Error && errors.includes(err.name))) {
+        // expected error, continue
+        console.warn(`Could not clone data with approach ${approachName}, trying next approach.`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (onAllErrorThrow) {
+    throw Error(`All of the clone approaches failed ${order}.`);
+  } else {
+    return data;
+  }
 }
 
 /**
