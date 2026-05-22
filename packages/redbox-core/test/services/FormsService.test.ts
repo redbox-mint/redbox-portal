@@ -411,7 +411,7 @@ describe('FormsService', function () {
       expect(form).to.have.property('name');
       expect(form.name).to.eql(item.name);
 
-      const templates = visitor.start({ form });
+      const templates = await visitor.start({ form });
 
       const expected = [
         { kind: "handlebars" }, { kind: "jsonata" },

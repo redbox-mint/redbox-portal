@@ -67,6 +67,7 @@ describe('RecordController getWorkflowSteps', () => {
     controller.recordsService = {
       getMeta: sinon.stub(),
       hasViewAccess: sinon.stub().returns(true),
+      getAttachments: sinon.stub(),
     } as any;
   });
 
@@ -207,6 +208,23 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect((res.notFound as any).calledOnce).to.be.true;
     expect(sendViewStub.called).to.be.false;
+  });
+
+  it('returns server error when attachment listing fails', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      user: { username: 'alice' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (controller.recordsService.getAttachments as sinon.SinonStub).rejects(new Error('boom'));
+
+    controller.getAttachments(req, res);
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 500 });
   });
 
   it('uses saved metadata title on existing edit routes', async () => {

@@ -77,7 +77,7 @@ describe('FormRecordConsistencyService', function () {
   });
 
   describe('mergeRecordClientFormConfig', function () {
-    it('should delegate to mergeRecordMetadataPermitted', function () {
+    it('should delegate to mergeRecordMetadataPermitted', async function () {
       const original = { redboxOid: 'oid', metadata: { a: 1 } };
       const changed = { redboxOid: 'oid', metadata: { a: 2 } };
       const config = {};
@@ -86,12 +86,12 @@ describe('FormRecordConsistencyService', function () {
       sinon.stub(FormRecordConsistencyService, 'compareRecords').returns([]);
       sinon.stub(FormRecordConsistencyService, 'mergeRecordMetadataPermitted').returns({ merged: true });
 
-      const result = FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, config, 'edit');
+      const result = await FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, config, 'edit');
 
       expect(result.metadata).to.deep.equal({ merged: true });
     });
 
-    it('should strip hydrated model values before building schema', function () {
+    it('should strip hydrated model values before building schema', async function () {
       const original = { redboxOid: 'oid', metadata: { title: 'before' } };
       const changed = { redboxOid: 'oid', metadata: { title: 'after' } };
       const config = {
@@ -126,7 +126,7 @@ describe('FormRecordConsistencyService', function () {
       sinon.stub(FormRecordConsistencyService, 'compareRecords').returns([]);
       sinon.stub(FormRecordConsistencyService, 'mergeRecordMetadataPermitted').returns({ merged: true });
 
-      FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, config, 'edit');
+      await FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, config, 'edit');
 
       const schemaInput = buildSchemaStub.firstCall.args[0];
       const strippedTopLevel = schemaInput.componentDefinitions?.[0]?.model?.config?.value;

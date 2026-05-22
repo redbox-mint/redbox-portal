@@ -61,19 +61,19 @@ describe('Form behaviour visitors', () => {
     ],
   } as FormConfigFrame & { behaviours: unknown[] };
 
-  it('construct visitor preserves behaviours on form config', () => {
+  it('construct visitor preserves behaviours on form config', async () => {
     const visitor = new ConstructFormConfigVisitor(logger);
-    const constructed = visitor.start({ data: formConfig, formMode: 'edit' });
+    const constructed = await visitor.start({ data: formConfig, formMode: 'edit' });
 
     expect((constructed as any).behaviours).to.deep.equal(formConfig.behaviours);
   });
 
-  it('template visitor extracts compiled behaviour templates', () => {
+  it('template visitor extracts compiled behaviour templates', async () => {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({ data: formConfig, formMode: 'edit' });
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
     const visitor = new TemplateFormConfigVisitor(logger);
 
-    const actual = visitor.start({ form: constructed });
+    const actual = await visitor.start({ form: constructed });
 
     expect(actual).to.deep.equal([
       {
@@ -104,12 +104,12 @@ describe('Form behaviour visitors', () => {
     ]);
   });
 
-  it('client visitor strips behaviour template source and sets flags', () => {
+  it('client visitor strips behaviour template source and sets flags', async () => {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({ data: formConfig, formMode: 'edit' });
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
     const visitor = new ClientFormConfigVisitor(logger);
 
-    const actual = visitor.start({ form: constructed });
+    const actual = await visitor.start({ form: constructed });
     const behaviour = (actual as any).behaviours?.[0];
     const processor = behaviour?.processors?.[0];
     const action = behaviour?.actions?.[0];

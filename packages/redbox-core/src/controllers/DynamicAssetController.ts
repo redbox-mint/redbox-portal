@@ -19,7 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import { BrandingModel } from '../model/storage/BrandingModel';
+import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
 import { firstValueFrom } from "rxjs";
@@ -46,9 +46,6 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'get',
       'getFormCompiledItems',
-      'getFormStructureValidations',
-      'getFormDataValidations',
-      'getFormExpressions',
       'getAdminReportTemplates',
       'getRecordDashboardTemplates',
       'getDashboardViewTemplates',
@@ -131,41 +128,6 @@ export namespace Controllers {
     }
 
     /**
-    * Provide the client script that can validate the form data model matches the form config.
-    * @param req
-    * @param res
-    */
-    public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      //  Similar to FormRecordConsistency.validateRecordSchema.
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    /**
-    * Provide the client script that can validate the form data model values match the form config types.
-    * Similar to FormRecordConsistency.validateRecordValues.
-    * @param req
-    * @param res
-    */
-    public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    /**
-    * Provide the client script that can run the form expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
-    public getFormExpressions(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(res, entries);
-    }
-
-    /**
     * Provide the client script that can run the report expressions as jsonata expressions.
     * @param req
     * @param res
@@ -226,14 +188,6 @@ export namespace Controllers {
         sails.log.error("Could not build dashboard view templates:", error);
         return res.serverError();
       }
-    }
-
-    private isNewRecord(recordType: string, oid: string): boolean {
-      return !!(!oid && recordType && recordType !== this._recordTypeAuto);
-    }
-
-    private isExistingRecord(recordType: string, oid: string): boolean {
-      return !!oid && (recordType === this._recordTypeAuto || !!recordType);
     }
 
     private sendClientMappingJavascript(res: Sails.Res, inputs: TemplateCompileInput[]) {

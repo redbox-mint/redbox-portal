@@ -406,8 +406,8 @@ export class ${this.pascalName}FieldComponentDefinition extends FieldComponentDe
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visit${this.pascalName}FieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visit${this.pascalName}FieldComponentDefinition(this);
     }
 }
 
@@ -427,8 +427,8 @@ export class ${this.pascalName}FieldModelDefinition extends FieldModelDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visit${this.pascalName}FieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visit${this.pascalName}FieldModelDefinition(this);
     }
 }
 
@@ -443,8 +443,8 @@ export class ${this.pascalName}FormComponentDefinition extends FormComponentDefi
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visit${this.pascalName}FormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visit${this.pascalName}FormComponentDefinition(this);
     }
 }
 

@@ -17,8 +17,11 @@ import { APP_BASE_HREF, CommonModule } from "@angular/common";
 import { BrowserModule, Title } from "@angular/platform-browser";
 import { FormService } from "./form.service";
 import {
-  buildKeyString, DynamicScriptResponse, DynamicScriptResponseEvaluateContext,
-  DynamicScriptResponseEvaluateExtra, DynamicScriptResponseEvaluateKey,
+  buildKeyString,
+  DynamicScriptResponse,
+  DynamicScriptResponseEvaluateContext,
+  DynamicScriptResponseEvaluateExtra,
+  DynamicScriptResponseEvaluateKey,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
 } from "@researchdatabox/sails-ng-common";
@@ -43,10 +46,12 @@ import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
 import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
-import {ApplicationRef, ComponentRef} from "@angular/core";
+import { ApplicationRef, ComponentRef } from "@angular/core";
+import isSpy = jasmine.isSpy;
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
+
 
 export interface FormComponentProps {
   oid: string;
@@ -106,7 +111,12 @@ export function ensureApplicationRefFormComponent(componentRef: ComponentRef<For
   }
 }
 
-export async function createFormAndWaitForReady(formConfig: FormConfigFrame, formComponentProps?: FormComponentProps, formDebugUrlOptions?: FormDebugUrlOptions) {
+export async function createFormAndWaitForReady(
+  formConfig: FormConfigFrame,
+  formComponentProps?: FormComponentProps,
+  formDebugUrlOptions?: FormDebugUrlOptions,
+  dynamicAssetOptions?: DynamicAssetOptions,
+) {
   logFormTestHelper('createFormAndWaitForReady - starting');
   if (formDebugUrlOptions) {
     setFormDebugUrl(formDebugUrlOptions);
@@ -147,6 +157,7 @@ export async function createFormAndWaitForReady(formConfig: FormConfigFrame, for
   await fixture.whenStable();
 
   // Create the form component and field components from the form config.
+  setUpDynamicAssets(dynamicAssetOptions);
   await formComponent.downloadAndCreateFormComponents(formConfig);
 
   await fixture.whenStable();
@@ -242,32 +253,55 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   }
 }
 
-export function setUpDynamicAssets(opts?: {
-  urlKeyStart?: string,
-  callable?: (keyString: string, key: (string | number)[], context: any, extra?: any) => void
-}) {
-  if (!opts) {
-    opts = {};
-  }
-  if (!opts.urlKeyStart) {
-    opts.urlKeyStart = "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-";
-  }
+export type DynamicAssetEntry = {
+  urlKeyStart: string,
+  callable: (keyString: string, key: (string | number)[], context: any, extra?: any) => void,
+};
+export type DynamicAssetOptions = {
+  includeDefaultValidatorDefinitions?: boolean,
+  entries: DynamicAssetEntry[],
+}
+
+/**
+ * Mock the dynamic asset requests.
+ * @param opts The dynamic asset mock entries.
+ */
+export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
   const utilityService = TestBed.inject(UtilityService);
-  spyOn(utilityService, "getDynamicImport").and.callFake(
-    async (brandingAndPortalUrl: string, urlPath: string[], params?: { [key: string]: any }): Promise<DynamicScriptResponse> => {
+  const utilityServiceGetDynamicImport = isSpy(utilityService['getDynamicImport'])
+    ? utilityService.getDynamicImport as any
+    : spyOn(utilityService, "getDynamicImport");
+  utilityServiceGetDynamicImport.and.callFake(
+    async (brandingAndPortalUrl: string, urlPath: string[], params?: {
+      [key: string]: any
+    }): Promise<DynamicScriptResponse> => {
       const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
-      if (!opts.urlKeyStart || !urlKey.startsWith(opts.urlKeyStart)) {
-        throw new Error(`Expected url key '${opts.urlKeyStart}', but got unknown url key: ${urlKey}`);
+
+      const entries = opts?.entries?.length
+        ? opts.entries
+        : [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+          callable: (_keyStr: string) => {
+            throw new Error(`Unknown key: ${_keyStr}`);
+          }
+        }];
+
+      for (const entry of entries) {
+        if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {
+          continue;
+        }
+
+        return {
+          evaluate: function (key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
+            const keyStr = buildKeyString(key as string[]);
+            if (entry.callable) {
+              return entry.callable(keyStr, key, context, extra);
+            }
+            throw new Error(`Unknown evaluate key '${keyStr}' for url key '${urlKey}'.`);
+          }
+        };
       }
 
-      return {
-        evaluate: function(key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
-          const keyStr = buildKeyString(key as string[]);
-          if (opts.callable) {
-            return opts.callable(keyStr, key, context, extra);
-          }
-          throw new Error(`Unknown key: ${keyStr}`);
-        }
-      };
+      throw new Error(`Url key '${urlKey}' did not match any available keys ${entries.map(i => i.urlKeyStart)}`);
     });
 }

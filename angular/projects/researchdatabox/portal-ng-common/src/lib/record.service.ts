@@ -633,13 +633,6 @@ export class RecordService extends HttpClientService {
   protected getTargetStepParam(targetStep: string, delim: string) {
     return _isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
   }
-
-  // TODO:
-  // public async getDynamicImportRecordDashboardTemplates(recordType: string, workflowStage: string){
-  //   const path = ['dynamicAsset', 'recordDashboardTemplates', recordType?.toString(), workflowStage?.toString()];
-  //   const result = await this.utilService.getDynamicImport(this.brandingAndPortalUrl, path);
-  //   return result;
-  // }
 }
 
 export class RecordActionResult {

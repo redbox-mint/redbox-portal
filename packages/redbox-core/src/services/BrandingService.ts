@@ -23,7 +23,9 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 import * as crypto from 'crypto';
+import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
 
+declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 
 export namespace Services {
   /**
@@ -192,35 +194,7 @@ export namespace Services {
 
     /** Save draft variables after whitelist + contrast validation */
     public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: unknown; }): Promise<BrandingModel | null> {
-      const whitelist: string[] = _.get(sails, 'config.branding.variableAllowList', []) || [];
-      const normalized: Record<string, string> = {};
-      for (const [k, v] of Object.entries(input.variables || {})) {
-        const norm = k.startsWith('$') ? k.slice(1) : k;
-        if (!whitelist.includes(norm)) {
-          throw new Error('Invalid variable key: ' + norm);
-        }
-        normalized[norm] = v;
-      }
-      // Contrast validation: only enforce on pairs where both fg/bg provided in this input.
-      const colorKeysInInput = new Set<string>(Object.keys(normalized));
-      const contrastPairKeyMap: Record<string, [string, string]> = {
-        'primary-text-on-primary-bg': ['primary-text-color', 'primary-color'],
-        'secondary-text-on-secondary-bg': ['secondary-text-color', 'secondary-color'],
-        'accent-text-on-accent-bg': ['accent-text-color', 'accent-color'],
-        'body-text-on-surface': ['body-text-color', 'surface-color'],
-        'heading-text-on-surface': ['heading-text-color', 'surface-color']
-      };
-      const relevantPairProvided = Object.values(contrastPairKeyMap).some(([a, b]) => colorKeysInInput.has(a) && colorKeysInInput.has(b));
-      if (relevantPairProvided) {
-        const contrast = await ContrastService.validate(normalized);
-        const filteredViolations = contrast.violations.filter(v => {
-          const keys = contrastPairKeyMap[v.pair];
-          return keys && keys.every(k => colorKeysInInput.has(k));
-        });
-        if (filteredViolations.length) {
-          throw new Error('contrast-violation: ' + filteredViolations.map(v => v.pair).join(','));
-        }
-      }
+      const normalized = BrandingThemeCssService.validateVariables(input.variables || {});
       const brand = await BrandingConfig.findOne({ name: input.branding });
       if (!brand) throw new Error('branding-not-found');
       await BrandingConfig.update({ id: brand.id }, { variables: normalized });
@@ -232,7 +206,7 @@ export namespace Services {
     public async preview(branding: string, portal: string): Promise<{ token: string; url: string; hash: string; }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
-      const { css, hash } = await SassCompilerService.compile(brand.variables || {});
+      const { css, hash } = BrandingThemeCssService.generate(brand.variables || {});
       const token = crypto.randomBytes(16).toString('hex');
       const name = `branding-preview:${token}`;
       const ts = Math.floor(Date.now() / 1000);
@@ -264,7 +238,7 @@ export namespace Services {
       if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
         throw new Error('publish-conflict');
       }
-      const { css, hash } = await SassCompilerService.compile(brand.variables || {});
+      const { css, hash } = BrandingThemeCssService.generate(brand.variables || {});
       // Idempotency: if hash unchanged from last published, do not create new history/version
       if (brand.hash && brand.hash === hash) {
         return { version: brand.version || 0, hash: brand.hash, idempotent: true };

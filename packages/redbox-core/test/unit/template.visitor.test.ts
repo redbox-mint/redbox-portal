@@ -5,9 +5,9 @@ import {
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
 
-import {formConfigExample1} from "./example-data";
+import { formConfigExample1 } from "./example-data";
 import { logger } from "./helpers";
-import {reusableFormDefinitions} from "../../src";
+import { reusableFormDefinitions } from "../../src";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -18,176 +18,223 @@ describe("Template Visitor", async () => {
         args: FormConfigFrame;
         expected: TemplateCompileInput[];
     }[] = [
-        {
-            title: "create empty item",
-            args: { name: "", componentDefinitions: [] },
-            expected: []
-        },
-        {
-            title: "create full example",
-            args: formConfigExample1,
-            expected: [
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "0", "component", "config", "template"],
-                    kind: "handlebars",
-                    value: '<h3>{{content}}</h3>',
-                },
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "10", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: `value & "__suffix"`,
-                },
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "12", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: `value = "hide text_2_component_event"`,
-                },
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "14", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: `value = "hide text_3_layout_event"`,
-                },
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "0", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: `value = "hide group_1_component"`,
-                },
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: `value = "hide repeatable_textfield_1"`,
-                },
-                {
-                  // layout.visible
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions","2", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
-                    kind: "jsonata",
-                    value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
-                },
-                {
-                  // component.visible
-                    key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions","2", "component", "config", "componentDefinitions", "1", "expressions", "1", "config", "template"],
-                    kind: "jsonata",
-                    value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
-                },
-                {
-                  key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "2", "config", "template",],
-                  kind: "jsonata",
-                  value: "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
-                },
-            ]
-        },
-        {
-            title: "extract checkbox tree label template",
-            args: {
-                name: "test",
-                componentDefinitions: [
+            {
+                title: "create empty item",
+                args: { name: "", componentDefinitions: [] },
+                expected: []
+            },
+            {
+                title: "create full example",
+                args: formConfigExample1,
+                expected: [
                     {
-                        name: "anzsrc",
-                        component: {
-                            class: "CheckboxTreeComponent",
-                            config: {
-                                labelTemplate: "{{notation}} - {{label}}"
-                            }
-                        },
-                        model: { class: "CheckboxTreeModel", config: {} }
-                    }
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "0", "component", "config", "template"],
+                        kind: "handlebars",
+                        value: '<h3>{{content}}</h3>',
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "10", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: `value & "__suffix"`,
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "12", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: `value = "hide text_2_component_event"`,
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "0", "component", "config", "componentDefinitions", "14", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: `value = "hide text_3_layout_event"`,
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "0", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: `value = "hide group_1_component"`,
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: `value = "hide repeatable_textfield_1"`,
+                    },
+                    {
+                        // layout.visible
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
+                        kind: "jsonata",
+                        value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
+                    },
+                    {
+                        // component.visible
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "1", "config", "template"],
+                        kind: "jsonata",
+                        value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "2", "config", "template",],
+                        kind: "jsonata",
+                        value: "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
+                    },
                 ]
             },
-            expected: [
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
-                    kind: "handlebars",
-                    value: "{{notation}} - {{label}}"
-                }
-            ]
-        },
-        {
-            title: "extract typeahead label template",
-            args: {
-                name: "test",
-                componentDefinitions: [
-                    {
-                        name: "person_lookup",
-                        component: {
-                            class: "TypeaheadInputComponent",
-                            config: {
-                                sourceType: "namedQuery",
-                                queryId: "people",
-                                labelTemplate: "{{raw.title}} ({{raw.code}})"
-                            }
-                        },
-                        model: { class: "TypeaheadInputModel", config: {} }
-                    }
-                ]
-            },
-            expected: [
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
-                    kind: "handlebars",
-                    value: "{{raw.title}} ({{raw.code}})"
-                }
-            ]
-        },
-        {
-            title: "allow data location components without additional template extraction",
-            args: {
-                name: "test",
-                componentDefinitions: [
-                    {
-                        name: "dataLocations",
-                        component: {
-                            class: "DataLocationComponent",
-                            config: {
-                                label: "Data locations",
-                                dataTypes: [
-                                    { value: "url", label: "URL" }
-                                ]
-                            }
-                        },
-                        model: {
-                            class: "DataLocationModel",
-                            config: {}
+            {
+                title: "extract checkbox tree label template",
+                args: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "anzsrc",
+                            component: {
+                                class: "CheckboxTreeComponent",
+                                config: {
+                                    labelTemplate: "{{notation}} - {{label}}"
+                                }
+                            },
+                            model: { class: "CheckboxTreeModel", config: {} }
                         }
+                    ]
+                },
+                expected: [
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
+                        kind: "handlebars",
+                        value: "{{notation}} - {{label}}"
                     }
                 ]
             },
-            expected: []
-        },
-        {
-            title: "extract delete button redirectLocation template",
-            args: {
-                name: "test",
-                componentDefinitions: [
+            {
+                title: "extract typeahead label template",
+                args: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "person_lookup",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "namedQuery",
+                                    queryId: "people",
+                                    labelTemplate: "{{raw.title}} ({{raw.code}})"
+                                }
+                            },
+                            model: { class: "TypeaheadInputModel", config: {} }
+                        }
+                    ]
+                },
+                expected: [
                     {
-                        name: "delete_button",
-                        component: {
-                            class: "DeleteButtonComponent",
-                            config: {
-                                redirectLocation: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
+                        key: ["componentDefinitions", "0", "component", "config", "labelTemplate"],
+                        kind: "handlebars",
+                        value: "{{raw.title}} ({{raw.code}})"
+                    }
+                ]
+            },
+            {
+                title: "allow data location components without additional template extraction",
+                args: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "dataLocations",
+                            component: {
+                                class: "DataLocationComponent",
+                                config: {
+                                    label: "Data locations",
+                                    dataTypes: [
+                                        { value: "url", label: "URL" }
+                                    ]
+                                }
+                            },
+                            model: {
+                                class: "DataLocationModel",
+                                config: {}
                             }
                         }
+                    ]
+                },
+                expected: []
+            },
+            {
+                title: "extract delete button redirectLocation template",
+                args: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "delete_button",
+                            component: {
+                                class: "DeleteButtonComponent",
+                                config: {
+                                    redirectLocation: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
+                                }
+                            }
+                        }
+                    ]
+                },
+                expected: [
+                    {
+                        key: ["componentDefinitions", "0", "component", "config", "redirectLocation"],
+                        kind: "handlebars",
+                        value: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
                     }
                 ]
             },
-            expected: [
-                {
-                    key: ["componentDefinitions", "0", "component", "config", "redirectLocation"],
-                    kind: "handlebars",
-                    value: '{{concat "/" branding "/" portal "/dashboard/" oid}}'
-                }
-            ]
-        }
-    ];
+            {
+                title: "extract jsonata validator expression keys for form and component validators",
+                args: {
+                    name: "test",
+                    validators: [
+                        {
+                            class: "jsonata-expression",
+                            config: {
+                                expression: "$count(formData) > 0"
+                            }
+                        }
+                    ],
+                    componentDefinitions: [
+                        {
+                            name: "text_1",
+                            model: {
+                                class: "SimpleInputModel",
+                                config: {
+                                    validators: [
+                                        {
+                                            class: "jsonata-expression",
+                                            config: {
+                                                expression: "$ = \"ok\""
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            component: {
+                                class: "SimpleInputComponent"
+                            }
+                        }
+                    ]
+                },
+                expected: [
+                    {
+                        key: ["validators", "0", "config", "expression"],
+                        kind: "jsonata",
+                        value: "$count(formData) > 0"
+                    },
+                    {
+                        key: ["componentDefinitions", "0", "model", "config", "validators", "0", "config", "expression"],
+                        kind: "jsonata",
+                        value: "$ = \"ok\""
+                    }
+                ]
+            }
+        ];
 
     cases.forEach(({ title, args, expected }) => {
         it(`should ${title}`, async function () {
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
-              data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
+            const constructed = await constructor.start({
+                data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
             });
 
             const visitor = new TemplateFormConfigVisitor(logger);
-            const actual = visitor.start({ form: constructed });
+            const actual = await visitor.start({ form: constructed });
 
             expect(actual).to.eql(expected);
         });

@@ -106,8 +106,7 @@ export namespace Controllers {
           description,
         });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setEntry] reload failed', err.message);
@@ -144,8 +143,7 @@ export namespace Controllers {
           });
         }
         // Refresh i18n cache after deletion
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message);
@@ -195,23 +193,22 @@ export namespace Controllers {
     public async setBundle(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const { params, body } = validated;
+        const { params, body, query } = validated;
         const brandName: string = BrandingService.getBrandNameFromReq(req);
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const bodyObj = body as Record<string, unknown>;
         const data = (bodyObj?.data || body) as Record<string, unknown>;
-        const splitToEntries = bodyObj?.splitToEntries === true;
-        const overwriteEntries = bodyObj?.overwriteEntries === true;
+        const splitToEntries = bodyObj?.splitToEntries != null ? bodyObj.splitToEntries === true : query.splitToEntries !== false;
+        const overwriteEntries = bodyObj?.overwriteEntries != null ? bodyObj.overwriteEntries === true : query.overwriteEntries !== false;
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, {
           splitToEntries,
           overwriteEntries,
         });
         // Refresh i18n cache after bundle update
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setBundle] reload failed', err.message);
@@ -238,8 +235,7 @@ export namespace Controllers {
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try {
-          TranslationService.reloadResources();
+        try { await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message);

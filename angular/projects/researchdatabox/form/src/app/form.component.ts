@@ -26,6 +26,7 @@ import {
   model,
   OnDestroy,
   signal,
+  untracked,
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
@@ -58,7 +59,7 @@ import {
   FormRequestParamValue,
   FormStatus,
   FormValidatorSummaryErrors,
-  JSONataQuerySource,
+  JSONataQuerySource, LineagePaths,
 } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from './component/base-wrapper.component';
 import {FormComponentsMap, FormService} from './form.service';
@@ -388,8 +389,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
-    this.refreshTranslatedConfigDebugInfo(true);
-    this.refreshComponentDebugInfo();
+    if (this.shouldRefreshDebugSnapshots()) {
+      this.refreshTranslatedConfigDebugInfo(true);
+      if (this.shouldRefreshComponentDebugInfo()) {
+        this.refreshComponentDebugInfo();
+      }
+    }
     const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
     if (!compContainerRef) {
       throw new Error(`${this.logName}: No component container found. Cannot load components.`);
@@ -449,9 +454,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Initialize reactive effects
    */
   protected initEffects() {
-    // This is needed to update the debugging info when form status changes.
+    // Keep the expensive component tree snapshot lazy while still maintaining
+    // form/model snapshots whenever debug mode is enabled.
     effect(() => {
-      this.getDebugInfo();
+      const shouldRefreshSnapshots = this.shouldRefreshDebugSnapshots();
+      this.shouldRefreshComponentDebugInfo();
+      if (shouldRefreshSnapshots) {
+        untracked(() => this.refreshAllDebugInfo());
+      }
     });
 
     // Monitor async validation state and dispatch actions (R16.3, AC56)
@@ -525,8 +535,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['formDefinitionChangedDebugSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DEFINITION_CHANGED)
       .subscribe(() => {
+        if (!this.shouldRefreshDebugSnapshots()) {
+          return;
+        }
         this.refreshTranslatedConfigDebugInfo(false);
-        this.refreshComponentDebugInfo();
+        if (this.shouldRefreshComponentDebugInfo()) {
+          this.refreshComponentDebugInfo();
+        }
       });
     this.subMaps['formStatusDirtyRequestSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST)
@@ -582,6 +597,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
+        if (!this.shouldRefreshDebugSnapshots()) {
+          return;
+        }
         this.refreshAllDebugInfo({ captureModelPrevious: true });
       });
     }
@@ -798,10 +816,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private refreshAllDebugInfo(opts?: { captureModelPrevious?: boolean; resetConfigInitial?: boolean }) {
+    if (!this.shouldRefreshDebugSnapshots()) {
+      return;
+    }
     this.refreshTranslatedConfigDebugInfo(!!opts?.resetConfigInitial);
     this.refreshModelDebugInfo(!!opts?.captureModelPrevious);
-    this.refreshComponentDebugInfo();
+    if (this.shouldRefreshComponentDebugInfo()) {
+      this.refreshComponentDebugInfo();
+    }
     this.debugState.setFormValueSnapshots(this.getDebugFormValue(), this.getDebugRawFormValue());
+  }
+
+  private shouldRefreshDebugSnapshots(): boolean {
+    return this.debugState.isDebugEnabled();
+  }
+
+  private shouldRefreshComponentDebugInfo(): boolean {
+    return this.debugState.isDebugEnabled() &&
+      (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow());
   }
 
   private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
@@ -915,24 +947,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.debugState.safePlainObjectSnapshot(value);
   }
 
-  // Convenience method to find component definition by name, defaults to the this.componentDefArr if no array is provided.
+  /**
+   * Find the first matching form field component map entry by name or lineage path.
+   * @param name The form config name or lineage path to look for.
+   * @param componentDefArr The entries to search in, recursing into any children.
+   * @return The first matching entry, or undefined if none match.
+   */
   public getComponentDefByName(
-    name: string,
+    name: string | Partial<LineagePaths>,
     componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr
   ): FormFieldCompMapEntry | undefined {
-    let foundComponentDef = componentDefArr.find(comp => {
-      return comp.compConfigJson?.name === name;
-    });
-    // If not found, continue to search in the component's children
-    if (!foundComponentDef) {
-      let componentDef = foundComponentDef as any;
-      if (!_isEmpty(componentDef?.component?.components)) {
-        for (const child of componentDef?.component?.components) {
-          foundComponentDef = this.getComponentDefByName(name, child.component?.components || []);
-        }
-      }
-    }
-    return foundComponentDef;
+    return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
   }
 
   public async saveForm(

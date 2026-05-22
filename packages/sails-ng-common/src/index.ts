@@ -5,6 +5,7 @@ export * from './status.model';
 export * from './template.outline';
 export * from './date-format-helpers';
 export * from './handlebars-helpers';
+export * from './jsonata-helpers';
 export * from './html-helpers';
 export * from './translation-helpers';
 // config

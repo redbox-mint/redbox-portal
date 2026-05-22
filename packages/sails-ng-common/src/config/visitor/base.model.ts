@@ -171,445 +171,439 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Form Config */
 
-  visitFormConfig(item: FormConfigOutline): void {
-    this.notImplemented();
+  async visitFormConfig(item: FormConfigOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* SimpleInput */
 
-  visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Content */
 
-  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Repeatable  */
 
-  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Validation Summary */
 
-  visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Group */
 
-  visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Tab  */
 
-  visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Accordion */
 
-  visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionFieldLayoutDefinition(item: AccordionFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionPanelFieldLayoutDefinition(item: AccordionPanelFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /*  Tab Content */
 
-  visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Save Button  */
 
-  visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Cancel Button  */
 
-  visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Delete Button  */
 
-  visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Tab Nav Button  */
 
-  visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Text Area */
 
-  visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Default Layout  */
 
-  visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): void {
-    this.notImplemented();
+  async visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Inline Layout  */
 
-  visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): void {
-    this.visitDefaultFieldLayoutDefinition(item as any);
+  async visitInlineFieldLayoutDefinition(item: InlineFieldLayoutDefinitionOutline): Promise<void> {
+    await this.visitDefaultFieldLayoutDefinition(item as any);
   }
 
-  visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): void {
-    this.visitDefaultFieldLayoutDefinition(item as any);
+  async visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void> {
+    await this.visitDefaultFieldLayoutDefinition(item as any);
   }
 
   /* Checkbox Input */
 
-  visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Dropdown Input */
 
-  visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Radio Input */
 
-  visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Date Input */
 
-  visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Reusable */
 
-  visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Question Tree */
 
-  visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Checkbox Tree */
 
-  visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Record Selector */
 
-  visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Typeahead Input */
 
-  visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Rich Text Editor */
 
-  visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Map */
 
-  visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* File Upload */
 
-  visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(
-    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
-  ): void {
-    this.notImplemented();
+  async visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Data Location */
 
-  visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   // Default stubs keep the new component aligned with the rest of the visitor
   // contract until each concrete visitor opts in explicitly.
-  visitPublishDataLocationRefreshFieldComponentDefinition(
-    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
-  ): void {
-    this.notImplemented();
+  async visitPublishDataLocationRefreshFieldComponentDefinition(item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPublishDataLocationRefreshFormComponentDefinition(
-    item: PublishDataLocationRefreshFormComponentDefinitionOutline
-  ): void {
-    this.notImplemented();
+  async visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): void {
-    this.notImplemented();
+  async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): void {
-    this.notImplemented();
+  async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
   }
 
   /* Shared */
 
-  protected notImplemented() {
+  protected async notImplemented() {
     throw new Error(`Visitor method must be implemented.`);
   }
 }

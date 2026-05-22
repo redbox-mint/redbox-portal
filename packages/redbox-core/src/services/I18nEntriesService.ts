@@ -26,15 +26,16 @@ import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
 
 export namespace Services {
 
-export type Bundle = I18nBundleAttributes;
-type I18nData = Record<string, unknown>;
-type TranslationContentFormat = 'plain' | 'html';
-type MetaEntry = { category?: string; description?: string; contentFormat?: unknown };
-type MetaMap = Record<string, MetaEntry>;
+  export type Bundle = I18nBundleAttributes;
+  type I18nData = Record<string, unknown>;
+  type TranslationContentFormat = 'plain' | 'html';
+  type MetaEntry = { category?: string; description?: string; contentFormat?: unknown };
+  type MetaMap = Record<string, MetaEntry>;
+  type BundleSetOptions = { splitToEntries?: boolean; overwriteEntries?: boolean };
 
-export function isBundle(obj: unknown): obj is Bundle {
-  return !!obj && typeof obj === 'object' && 'data' in obj && 'locale' in obj;
-}
+  export function isBundle(obj: unknown): obj is Bundle {
+    return !!obj && typeof obj === 'object' && 'data' in obj && 'locale' in obj;
+  }
 
   /**
    * I18nEntriesService: Manage i18next translations stored in DB.
@@ -44,21 +45,21 @@ export function isBundle(obj: unknown): obj is Bundle {
   @PopulateExportedMethods
   export class I18nEntries extends services.Core.Service {
 
-    
-  /**
-   * Seed default i18n bundles into DB from language-defaults for the default brand.
-   * - Only creates bundles if none exist (no overwrite).
-   * @param languages Optional list of languages to bootstrap. If omitted, scans language-defaults.
-   */
-  public async bootstrap(languages?: string[]): Promise<void> {
+
+    /**
+     * Seed default i18n bundles into DB from language-defaults for the default brand.
+     * - Only creates bundles if none exist (no overwrite).
+     * @param languages Optional list of languages to bootstrap. If omitted, scans language-defaults.
+     */
+    public async bootstrap(languages?: string[]): Promise<void> {
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         // Discover supported languages by scanning language-defaults directory
         const localesDir = path.join(sails.config.appPath, 'language-defaults');
         const supported: string[] = [];
-        
+
         if (languages && languages.length > 0) {
           supported.push(...languages);
         } else {
@@ -66,13 +67,13 @@ export function isBundle(obj: unknown): obj is Bundle {
             const entries = fs.readdirSync(localesDir, { withFileTypes: true });
             supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
           }
-          
+
           // Fallback to config if no directories found
           if (supported.length === 0) {
             supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
           }
         }
-        
+
         const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         // Default brand
@@ -85,7 +86,7 @@ export function isBundle(obj: unknown): obj is Bundle {
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
-              
+
               const filePath = path.join(localesDir, lng, `${ns}.json`);
               if (!fs.existsSync(filePath)) {
                 continue; // nothing to seed/sync for this pair
@@ -98,22 +99,31 @@ export function isBundle(obj: unknown): obj is Bundle {
                 await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
                 this.logger.debug(`Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               } else {
-                // Incremental: merge defaults into existing bundle data
-                // Clone to ensure we have a plain object and don't run into ORM object issues
-                const dbData = _.cloneDeep(existing.data || {});
-                
-                // defaultsDeep fills in missing properties in dbData from json
-                _.defaultsDeep(dbData, json);
-                
-                // Update the bundle with merged data
-                const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: dbData });
-                
-                // Sync entries to match the updated bundle
-                // Use the updated record when available to avoid type/refresh edge cases
-                this.syncEntriesFromBundle(updatedBundle || { ...existing, data: dbData }, false)
-                  .catch(err => this.logger.warn(`Background sync failed for ${defaultBrand.id}:${lng}:${ns}`, err));
-                
-                this.logger.debug(`Merged defaults and synced keys for ${defaultBrand.id}:${lng}:${ns}`);
+                const existingFlat = this.flatten(existing.data || {});
+                const defaultFlatAll = this.flatten(json);
+                const defaultFlat: I18nData = {};
+                let hasMissingDefaults = false;
+
+                for (const key of Object.keys(defaultFlatAll)) {
+                  if (key === '_meta' || key.startsWith('_meta.')) continue;
+                  defaultFlat[key] = defaultFlatAll[key];
+                  if (!Object.prototype.hasOwnProperty.call(existingFlat, key)) {
+                    hasMissingDefaults = true;
+                  }
+                }
+
+                if (!hasMissingDefaults) {
+                  this.logger.debug(`No default key changes for ${defaultBrand.id}:${lng}:${ns}`);
+                  continue;
+                }
+
+                const mergedData = _.cloneDeep(existing.data || {});
+                _.defaultsDeep(mergedData, json);
+                const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: mergedData });
+                const bundleToSync = updatedBundle || { ...existing, data: mergedData };
+                const createdCount = await this.addMissingDefaultEntriesFromBundle(bundleToSync, json);
+
+                this.logger.debug(`Merged defaults and added ${createdCount} entries for ${defaultBrand.id}:${lng}:${ns}`);
               }
             } catch (e) {
               this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
@@ -189,15 +199,15 @@ export function isBundle(obj: unknown): obj is Bundle {
       delete cursor[parts[parts.length - 1]];
     }
 
-private resolveBrandingId(branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined): string {
-  if (!branding) return 'global';
-  if (typeof branding === 'string') return branding;
-  if (typeof branding === 'object' && branding !== null) {
-    if ('id' in branding && branding.id != null) return String(branding.id);
-    if ('_id' in branding && branding._id != null) return String(branding._id);
-  }
-  return String(branding);
-}
+    private resolveBrandingId(branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined): string {
+      if (!branding) return 'global';
+      if (typeof branding === 'string') return branding;
+      if (typeof branding === 'object' && branding !== null) {
+        if ('id' in branding && branding.id != null) return String(branding.id);
+        if ('_id' in branding && branding._id != null) return String(branding._id);
+      }
+      return String(branding);
+    }
 
     private buildUid(branding: BrandingModel, locale: string, namespace: string, key: string): string {
       const brandingPart = this.resolveBrandingId(branding);
@@ -293,53 +303,120 @@ private resolveBrandingId(branding: BrandingModel | string | { id?: string | num
       return await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
     }
 
-public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {
+    public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
       return await I18nBundle.findOne({ uid });
     }
 
-public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
+    public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
       return await I18nBundle.find({ branding: brandingId }) as unknown as I18nBundleAttributes[];
     }
 
-  public async setBundle(
-    branding: BrandingModel,
-    locale: string,
-    namespace: string,
-    data: I18nData,
-    displayName?: string,
-    _options?: { splitToEntries?: boolean; overwriteEntries?: boolean }
-  ): Promise<I18nBundleAttributes | null> {
+    private async addMissingDefaultEntriesFromBundle(
+      bundle: I18nBundleAttributes,
+      defaultData: I18nData
+    ): Promise<number> {
+      const brandingId = this.resolveBrandingId(bundle.branding as BrandingModel | string | { id?: string | number; _id?: string | number });
+      const locale = bundle.locale ?? 'en';
+      const namespace = bundle.namespace ?? 'translation';
+      const bundleId = bundle.id != null ? String(bundle.id) : undefined;
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta: MetaMap = (defaultData && typeof defaultData._meta === 'object') ? (defaultData._meta as MetaMap) : {};
+      const meta = { ...centralizedMeta, ...fileMeta };
+      const flatAll = this.flatten(defaultData || {});
+      const flat: I18nData = {};
+
+      Object.keys(flatAll).forEach(key => {
+        if (key === '_meta' || key.startsWith('_meta.')) return;
+        flat[key] = flatAll[key];
+      });
+
+      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace }) as unknown as I18nTranslationAttributes[];
+      const existingKeys = new Set(existingEntries.map(entry => entry.key));
+      const records: Partial<I18nTranslationAttributes>[] = [];
+
+      for (const key of Object.keys(flat)) {
+        if (existingKeys.has(key)) continue;
+
+        let value = flat[key];
+        if (value === null || value === undefined) {
+          value = key;
+        }
+
+        const record: Partial<I18nTranslationAttributes> = {
+          branding: brandingId,
+          bundle: bundleId,
+          key,
+          locale,
+          namespace,
+          value
+        };
+
+        if (meta[key]?.category !== undefined) record.category = meta[key].category;
+        if (meta[key]?.description !== undefined) record.description = meta[key].description;
+
+        const contentFormat = this.normalizeContentFormat(meta[key]?.contentFormat);
+        if (contentFormat !== undefined) record.contentFormat = contentFormat;
+
+        records.push(record);
+      }
+
+      if (records.length === 0) {
+        return 0;
+      }
+
+      await I18nTranslation.createEach(records);
+
+      try {
+        TranslationService.reloadResources(brandingId);
+      } catch (_e) {
+        // ignore reload failures after the write has completed
+      }
+
+      return records.length;
+    }
+
+    public async setBundle(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      data: I18nData,
+      displayName?: string,
+      options?: BundleSetOptions
+    ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
-      
+
       // Use provided display name or get default for the language
       const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
-      
+
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle: I18nBundleAttributes | null;
       if (existing) {
-        bundle = await I18nBundle.updateOne({ id: existing.id }).set({ 
-          data, 
-          branding: brandingId, 
-          locale, 
+        bundle = await I18nBundle.updateOne({ id: existing.id }).set({
+          data,
+          branding: brandingId,
+          locale,
           namespace,
-          displayName: finalDisplayName 
+          displayName: finalDisplayName
         }) as I18nBundleAttributes | null;
       } else {
-        bundle = await I18nBundle.create({ 
-          data, 
-          branding: brandingId, 
-          locale, 
+        bundle = await I18nBundle.create({
+          data,
+          branding: brandingId,
+          locale,
           namespace,
-          displayName: finalDisplayName 
+          displayName: finalDisplayName
         }) as unknown as I18nBundleAttributes;
       }
-      // Always synchronise entries with the saved bundle (force overwrite & prune) to avoid desync.
+      const shouldSplitToEntries = options?.splitToEntries ?? true;
+      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
+
+      // Keep full-update behaviour by default, but allow bootstrap to seed without overwriting.
       try {
-        if (bundle) {
-          await this.syncEntriesFromBundle(bundle, true /* overwrite */);
+        if (bundle && shouldSplitToEntries) {
+          await this.syncEntriesFromBundle(bundle, shouldOverwriteEntries);
         }
       } catch (e) {
         this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
@@ -349,24 +426,24 @@ public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[
       return bundle ?? null;
     }
 
-public async updateBundleEnabled(
-  branding: BrandingModel,
-  locale: string,
-  namespace: string,
-  enabled: boolean
-): Promise<I18nBundleAttributes> {
+    public async updateBundleEnabled(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      enabled: boolean
+    ): Promise<I18nBundleAttributes> {
       const brandingId = this.resolveBrandingId(branding);
-      
-      const bundle = await I18nBundle.updateOne({ 
-        branding: brandingId, 
-        locale, 
-        namespace 
+
+      const bundle = await I18nBundle.updateOne({
+        branding: brandingId,
+        locale,
+        namespace
       }).set({ enabled }) as I18nBundleAttributes | null;
-      
+
       if (!bundle) {
         throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
       }
-      
+
       return bundle;
     }
 
@@ -378,7 +455,7 @@ public async updateBundleEnabled(
       return this.unflatten(flat);
     }
 
-public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | number, overwrite = false): Promise<void> {
+    public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | number, overwrite = false): Promise<void> {
       const bundle = isBundle(bundleOrId)
         ? bundleOrId
         : await I18nBundle.findOne({ id: bundleOrId });
@@ -389,14 +466,14 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
       const safeNamespace = namespace ?? 'translation';
       const brandingId = this.resolveBrandingId(branding as BrandingModel | string | { id?: string | number; _id?: string | number });
       const data: I18nData = bundle.data || {};
-      
+
       // Load centralized metadata
       const centralizedMeta = await this.loadCentralizedMeta();
-      
+
       // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
       // File-specific _meta overrides centralized meta
       const fileMeta: MetaMap = (data && typeof data._meta === 'object') ? (data._meta as MetaMap) : {};
-      
+
       // Merge centralized meta with file-specific meta (file-specific takes precedence)
       const meta = { ...centralizedMeta, ...fileMeta };
 
@@ -472,7 +549,7 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         const metaPath = path.join(sails.config.appPath, 'language-defaults', 'meta.json');
         if (fs.existsSync(metaPath)) {
           const metaContent = fs.readFileSync(metaPath, 'utf8');
@@ -492,7 +569,7 @@ public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | n
       try {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        
+
         const namesPath = path.join(sails.config.appPath, 'language-defaults', 'language-names.json');
         if (fs.existsSync(namesPath)) {
           const namesContent = fs.readFileSync(namesPath, 'utf8');

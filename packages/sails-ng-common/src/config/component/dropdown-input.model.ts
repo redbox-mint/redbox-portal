@@ -43,8 +43,8 @@ export class DropdownInputFieldComponentDefinition extends FieldComponentDefinit
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDropdownInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDropdownInputFieldComponentDefinition(this);
     }
 }
 
@@ -67,8 +67,8 @@ export class DropdownInputFieldModelDefinition extends FieldModelDefinition<Drop
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDropdownInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDropdownInputFieldModelDefinition(this);
     }
 }
 
@@ -83,8 +83,8 @@ export class DropdownInputFormComponentDefinition extends FormComponentDefinitio
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitDropdownInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDropdownInputFormComponentDefinition(this);
     }
 }
 

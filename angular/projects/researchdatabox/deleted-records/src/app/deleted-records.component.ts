@@ -232,7 +232,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     });
 
     // Load the first page of records
-    this.gotoPage(1);
+    await this.gotoPage(1);
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 

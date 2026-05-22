@@ -3,7 +3,7 @@ import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
@@ -346,17 +346,19 @@ describe("TypeaheadInputComponent", () => {
     });
 
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
-        setUpDynamicAssets({
-            callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-                switch (keyStr) {
-                    case "componentDefinitions__0__component__config__labelTemplate":
-                        return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
-                    default:
-                        throw new Error(`Unknown key: ${keyStr}`);
-                }
+      const dynamicAssetOptions: DynamicAssetOptions = {
+        entries: [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+          callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+            switch (keyStr) {
+              case "componentDefinitions__0__component__config__labelTemplate":
+                return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
+              default:
+                throw new Error(`Unknown key: ${keyStr}`);
             }
-        });
-
+          }
+        }]
+      };
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
             {
@@ -389,7 +391,8 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(
+          formConfig, undefined, undefined, dynamicAssetOptions);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("atlas");
         const options = await firstValueFrom(component.suggestions$);

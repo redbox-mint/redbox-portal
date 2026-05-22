@@ -43,8 +43,8 @@ export class DateInputFieldComponentDefinition extends FieldComponentDefinition 
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDateInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDateInputFieldComponentDefinition(this);
     }
 }
 
@@ -67,8 +67,8 @@ export class DateInputFieldModelDefinition extends FieldModelDefinition<DateInpu
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitDateInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDateInputFieldModelDefinition(this);
     }
 }
 
@@ -83,8 +83,8 @@ export class DateInputFormComponentDefinition extends FormComponentDefinition im
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitDateInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitDateInputFormComponentDefinition(this);
     }
 }
 

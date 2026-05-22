@@ -311,7 +311,7 @@ describe('The FormRecordConsistencyService', function () {
       },
     ];
     cases.forEach(({ args, expected }) => {
-      it(`should merge as expected ${JSON.stringify(expected)} for args ${JSON.stringify(args)}`, done => {
+      it(`should merge as expected ${JSON.stringify(expected)} for args ${JSON.stringify(args)}`, async () => {
         const clientFormConfig: FormConfigFrame = {
           name: 'client-form-config',
           type: 'rdmp',
@@ -324,14 +324,13 @@ describe('The FormRecordConsistencyService', function () {
           enabledValidationGroups: ['all'],
           componentDefinitions: args.componentDefinitions ?? [],
         };
-        const result = FormRecordConsistencyService.mergeRecordClientFormConfig(
+        const result = await FormRecordConsistencyService.mergeRecordClientFormConfig(
           args.original,
           args.changed,
           clientFormConfig,
           'edit'
         );
         expect(result).to.eql(expected);
-        done();
       });
     });
 
@@ -354,7 +353,7 @@ describe('The FormRecordConsistencyService', function () {
   });
 
   describe('buildDataModelDefault methods', function () {
-    it('creates the expected default data model by using the most specific defaultValue', function () {
+    it('creates the expected default data model by using the most specific defaultValue', async function () {
       const formConfig: FormConfigFrame = {
         name: 'remove-item-constraint-roles',
         type: 'rdmp',
@@ -531,7 +530,7 @@ describe('The FormRecordConsistencyService', function () {
         },
         repeatable_1: [{ text_group_repeatable_1: 'hello world from repeating groups' }],
       };
-      const result = FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, 'edit');
+      const result = await FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, 'edit');
       expect(result).to.eql(expected);
     });
   });
@@ -1023,7 +1022,7 @@ describe('The FormRecordConsistencyService', function () {
   });
 
   describe('buildSchemaForFormConfig methods', function () {
-    it('builds the expected schema', function () {
+    it('builds the expected schema', async function () {
       const formConfig: FormModel & FormConfigFrame = {
         ...formModelConfigStandard,
         componentDefinitions: [
@@ -1216,7 +1215,7 @@ describe('The FormRecordConsistencyService', function () {
         },
       };
 
-      const actual = FormRecordConsistencyService.buildSchemaForFormConfig(formConfig, 'edit');
+      const actual = await FormRecordConsistencyService.buildSchemaForFormConfig(formConfig, 'edit');
       expect(actual).to.eql(expected);
     });
   });

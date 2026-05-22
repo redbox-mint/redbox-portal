@@ -90,11 +90,11 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.recordsPerPage = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'recordsPerPage', this.recordsPerPage);
     this.dateParamTz = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'dateParamTz', this.dateParamTz);
     this.paginationMaxSize = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'paginationMaxSize', this.paginationMaxSize);
-    
+
     // Extract branding and portal from the URL for template loading
     this.branding = sysConfig.branding || '';
     this.portal = sysConfig.portal || '';
-    
+
     // Load pre-compiled Handlebars templates for this report
     try {
       await this.handlebarsTemplateService.loadReportTemplates(this.branding, this.portal, this.reportName);
@@ -106,7 +106,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.report = await this.reportService.getReportConfig(this.reportName);
     this.tableHeaders = this.report.columns;
     this.initTracker.reportLoaded = true;
-    this.gotoPage(1);
+    await this.gotoPage(1);
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 

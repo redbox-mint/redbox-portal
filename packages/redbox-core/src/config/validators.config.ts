@@ -1,15 +1,17 @@
 /**
  * Validators Config
- * 
+ *
  * Sails config for the validators available in the core redbox project.
- * Sails hooks can extend or override these using the _dontMerge or _delete
- * or create a validator definition with the same name.
+ *
+ * Sails hooks cannot extend or override these.
+ * This is because the functions require utility functions,
+ * which are provided to the client in a way that sails hooks cannot extend or override.
  */
 
-import { formValidatorsSharedDefinitions } from "@researchdatabox/sails-ng-common";
+import {FormValidatorDefinition, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
 
 export interface ValidatorsConfig {
-    definitions: typeof formValidatorsSharedDefinitions;
+    definitions: FormValidatorDefinition[];
 }
 
 export const validators: ValidatorsConfig = {

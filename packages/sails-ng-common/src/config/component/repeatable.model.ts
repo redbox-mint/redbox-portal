@@ -67,8 +67,8 @@ export class RepeatableFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRepeatableFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRepeatableFieldComponentDefinition(this);
     }
 }
 
@@ -88,8 +88,8 @@ export class RepeatableFieldModelDefinition extends FieldModelDefinition<Repeata
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRepeatableFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRepeatableFieldModelDefinition(this);
     }
 }
 
@@ -109,8 +109,8 @@ export class RepeatableElementFieldLayoutDefinition extends FieldLayoutDefinitio
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRepeatableElementFieldLayoutDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRepeatableElementFieldLayoutDefinition(this);
     }
 }
 
@@ -125,8 +125,8 @@ export class RepeatableFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRepeatableFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRepeatableFormComponentDefinition(this);
     }
 }
 

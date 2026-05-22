@@ -44,8 +44,8 @@ export class AccordionFieldComponentDefinition extends FieldComponentDefinition 
   class = AccordionComponentName;
   config?: AccordionFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionFieldComponentDefinition(this);
   }
 }
 
@@ -70,8 +70,8 @@ export class AccordionPanelFieldComponentDefinition
   class = AccordionPanelComponentName;
   config?: AccordionPanelFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionPanelFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionPanelFieldComponentDefinition(this);
   }
 }
 
@@ -87,8 +87,8 @@ export class AccordionFieldLayoutDefinition extends FieldLayoutDefinition implem
   class = AccordionLayoutName;
   config?: AccordionFieldLayoutConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionFieldLayoutDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionFieldLayoutDefinition(this);
   }
 }
 
@@ -112,8 +112,8 @@ export class AccordionPanelFieldLayoutDefinition
   class = AccordionPanelLayoutName;
   config?: AccordionPanelFieldLayoutConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionPanelFieldLayoutDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionPanelFieldLayoutDefinition(this);
   }
 }
 
@@ -124,8 +124,8 @@ export class AccordionFormComponentDefinition extends FormComponentDefinition im
   public model?: never;
   public layout?: AccordionFieldLayoutDefinitionOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionFormComponentDefinition(this);
   }
 }
 
@@ -137,8 +137,8 @@ export class AccordionPanelFormComponentDefinition
   public model?: never;
   public layout?: AccordionPanelFieldLayoutDefinitionOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitAccordionPanelFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitAccordionPanelFormComponentDefinition(this);
   }
 }
 

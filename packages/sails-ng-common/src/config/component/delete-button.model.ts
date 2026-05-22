@@ -28,8 +28,8 @@ export class DeleteButtonFieldComponentDefinition
   class = DeleteButtonComponentName;
   config?: DeleteButtonFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitDeleteButtonFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitDeleteButtonFieldComponentDefinition(this);
   }
 }
 
@@ -41,8 +41,8 @@ export class DeleteButtonFormComponentDefinition
   model?: never;
   layout?: AvailableFieldLayoutDefinitionOutlines;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitDeleteButtonFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitDeleteButtonFormComponentDefinition(this);
   }
 }
 

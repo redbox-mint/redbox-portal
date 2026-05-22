@@ -21,7 +21,7 @@ describe('ContextVariablesFormConfigVisitor', () => {
     blank: () => undefined,
   };
 
-  it('replaces tokens only in scoped fields and supports overlapping keys', () => {
+  it('replaces tokens only in scoped fields and supports overlapping keys', async () => {
     const input: FormConfigFrame = {
       name: 'test',
       expressions: [{
@@ -106,10 +106,10 @@ describe('ContextVariablesFormConfigVisitor', () => {
     };
 
     const constructor = new ConstructFormConfigVisitor(logger as any);
-    const constructed = constructor.start({ data: input, formMode: 'edit' });
+    const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
     const visitor = new ContextVariablesFormConfigVisitor(logger);
-    visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
+    await visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
 
     const content = constructed.componentDefinitions?.[0]?.component?.config as { content?: string };
     const inputComponent = constructed.componentDefinitions?.[1] as {

@@ -6,6 +6,7 @@
 @import "~bootstrap/scss/bootstrap";
 @import "default-theme";
 @import "custom-theme";
+// Layouts load only style.min.css, so responsive rules must stay in this bundle.
 @import "default-responsive";
 @import "custom-responsive";
 @import "print";

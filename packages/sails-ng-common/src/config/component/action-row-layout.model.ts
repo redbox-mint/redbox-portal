@@ -29,8 +29,8 @@ export class ActionRowFieldLayoutDefinition extends FieldLayoutDefinition implem
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitActionRowFieldLayoutDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitActionRowFieldLayoutDefinition(this);
   }
 }
 
