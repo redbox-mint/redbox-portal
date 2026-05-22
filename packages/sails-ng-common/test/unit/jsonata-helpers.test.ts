@@ -72,7 +72,7 @@ describe('JSONata helpers', function () {
       }
 
       try {
-        const evaluateFunc = await jsonataEvaluateFunc(args.expression, args.bindings);
+        const evaluateFunc = jsonataEvaluateFunc(args.expression, args.bindings);
         const evaluateFuncResult = await evaluateFunc(args.input);
         expect(evaluateFuncResult).to.eql(expected);
       } catch (error) {

@@ -201,16 +201,63 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
     });
     formConfig.validators = [
-      {class: 'different-values', config: {controlNames: ['recommended_field', 'recommended_field']}, groups: {include: ['recommended'], exclude: ['all']} },
+      {
+        class: 'different-values',
+        config: {controlNames: ['recommended_field', 'recommended_field']},
+        groups: {include: ['recommended'], exclude: ['all']}
+      },
     ];
 
-    // TODO
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
+    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+    control?.setValue('change value');
+    control?.setValue('');
+    formComponent.form!.markAsDirty();
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
 
-    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([]);
-    expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
+      {
+        id: 'default-1.0-draft',
+        message: 'form-suggested-labelMessage',
+        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
+            controlNames: [ 'recommended_field', 'recommended_field' ],
+            controlCount: 2,
+            valueCount: 1,
+            values: [ '' ],
+          },
+        }],
+        lineagePaths: {
+          formConfig: [],
+          dataModel: [],
+          angularComponents: [],
+          layout: [],
+          angularComponentsJsonPointer: '',
+          layoutJsonPointer: ''
+        }
+      },
+      {
+        id: 'form-item-id-recommended-field',
+        message: '@recommended-field-label',
+        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['recommended_field'],
+          angularComponents: ['recommended_field'],
+          layout: ['recommended_field-layout'],
+          angularComponentsJsonPointer: '/recommended_field',
+          layoutJsonPointer: '/recommended_field-layout'
+        }
+      }
+    ]);
+    expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeTruthy();
   });
 });
 

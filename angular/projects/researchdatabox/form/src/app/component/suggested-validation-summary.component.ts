@@ -1,12 +1,11 @@
-import { Component, inject, Input } from '@angular/core';
-import { FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { Component } from '@angular/core';
 import {
-  FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
+  isTypeFieldDefinitionName,
   SuggestedValidationSummaryComponentName,
   SuggestedValidationSummaryFieldComponentConfigFrame,
+  SuggestedValidationSummaryFieldComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
-import { FormService } from '../form.service';
 import { ValidationSummaryFieldComponent } from './validation-summary.component';
 
 @Component({
@@ -100,14 +99,6 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
 export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryFieldComponent {
   protected override logName = SuggestedValidationSummaryComponentName;
 
-  override allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
-    return Promise.resolve(this.validationErrorsDisplay$.value);
-  }
-
-  override trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
-    return super.trackValidationError(error, errorIndex);
-  }
-
   public get header(): string {
     return this.suggestedConfig.header ?? '@dmpt-form-suggested-validation-summary-header';
   }
@@ -146,7 +137,9 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
         this.formComponent.validationGroups
       ));
     }
+
     this.validationErrorsDisplay$.next(result);
+    this.changeDetectorRef.markForCheck();
   }
 
   private get enabledValidationGroups(): string[] {
@@ -154,6 +147,13 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
   }
 
   private get suggestedConfig(): SuggestedValidationSummaryFieldComponentConfigFrame {
-    return this.formFieldCompMapEntry?.compConfigJson?.component?.config as SuggestedValidationSummaryFieldComponentConfigFrame | undefined ?? {};
+    const componentDef = this.formFieldCompMapEntry?.compConfigJson?.component;
+    if (
+      isTypeFieldDefinitionName<SuggestedValidationSummaryFieldComponentDefinitionFrame>(
+        componentDef, SuggestedValidationSummaryComponentName
+      )) {
+      return componentDef.config ?? {};
+    }
+    return {};
   }
 }

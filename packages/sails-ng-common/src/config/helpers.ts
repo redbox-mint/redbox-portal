@@ -121,6 +121,23 @@ export function toBoolean(value: unknown): boolean {
 }
 
 /**
+ * Check whether a 'check' array starts with a 'base' array.
+ * Both arrays must have at least one element.
+ * @param base The shorter array.
+ * @param check The longer array.
+ * @private
+ */
+export function arrayStartsWithArray(base: unknown[], check: unknown[]) {
+  if (!base || !check) {
+    return false;
+  }
+  if (base.length > check.length) {
+    return false;
+  }
+  return base.every((value, index) => check[index] === value);
+}
+
+/**
  * Extract all properties of the type T that are of the type U.
  */
 export type ExtractPropertyNamesOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];

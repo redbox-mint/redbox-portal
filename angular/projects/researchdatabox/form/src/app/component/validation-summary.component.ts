@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, inject, Injector, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
@@ -111,19 +111,12 @@ import {FormService} from "../form.service";
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ValidationSummaryComponentName;
 
-  /**
-   * The model associated with this component.
-   *
-   * @type {FieldModel<any>}
-   * @memberof FieldComponent
-   */
   @Input() public override model?: never;
 
-  private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
   protected readonly formService = inject(FormService);
-  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  protected readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
   private validationRefreshQueued = false;
@@ -426,33 +419,18 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return this.formService.translate("@validator-label-default");
   }
 
-  private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {
-    let currentEntries = this.getFormComponent?.componentDefArr ?? [];
-    let currentEntry: FormFieldCompMapEntry | undefined;
-
-    for (const segment of angularPath) {
-      const segmentName = String(segment);
-      currentEntry = currentEntries.find((entry) => entry.compConfigJson?.name === segmentName);
-      if (!currentEntry) {
-        return undefined;
-      }
-      currentEntries = currentEntry.component?.formFieldCompMapEntries ?? [];
-    }
-
-    return currentEntry;
+  private findComponentEntryFromLineage(angularPath: Array<string | number>, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(
+      {angularComponents: angularPath},
+      entries ?? this.getFormComponent?.componentDefArr ?? [],
+    );
   }
 
-  private findComponentEntryByName(name: string, entries: FormFieldCompMapEntry[] = this.getFormComponent?.componentDefArr ?? []): FormFieldCompMapEntry | undefined {
-    for (const entry of entries) {
-      if (entry.compConfigJson?.name === name) {
-        return entry;
-      }
-      const childEntry = this.findComponentEntryByName(name, entry.component?.formFieldCompMapEntries ?? []);
-      if (childEntry) {
-        return childEntry;
-      }
-    }
-    return undefined;
+  private findComponentEntryByName(name: string, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(
+      name,
+      entries ?? this.getFormComponent?.componentDefArr ?? [],
+    );
   }
 
   private get getFormComponent(): FormComponent {

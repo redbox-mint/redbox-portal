@@ -47,6 +47,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
+  arrayStartsWithArray,
   buildLineagePaths as buildLineagePathsHelper,
   DynamicScriptResponse,
   FieldModelDefinitionKind,
@@ -1086,28 +1087,41 @@ export class FormService extends HttpClientService {
     name: string | Partial<LineagePaths>,
     formFieldCompMapEntries: FormFieldCompMapEntry[],
   ): FormFieldCompMapEntry | undefined {
-    // breadth first search
-    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
-      if (typeof name === "string") {
-        if (formFieldCompMapEntry.compConfigJson?.name === name) {
-          return formFieldCompMapEntry;
-        }
-      } else if (name && formFieldCompMapEntry.lineagePaths) {
-        const targets = name as Record<string, LineagePath | string | undefined>;
-        const available = formFieldCompMapEntry.lineagePaths;
-        const lineagePathMatch = Object.entries(available).some(([key, value]) => !!value && targets?.[key] === value);
-        if (lineagePathMatch) {
-          return formFieldCompMapEntry;
-        }
-      }
-    }
+    const collection: FormFieldCompMapEntry[] = [...formFieldCompMapEntries];
 
-    // If not found, continue to search in the component's children
-    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
-      const childFormFieldCompMapEntries = formFieldCompMapEntry.component?.formFieldCompMapEntries ?? [];
-      const match = this.getFormFieldCompMapEntry(name, childFormFieldCompMapEntries);
-      if (match !== undefined) {
-        return match;
+    // Use a breadth first search and return the first matching entry.
+    while (collection.length > 0) {
+      const mapEntry: FormFieldCompMapEntry | undefined = collection.shift();
+      if (mapEntry === undefined) {
+        return undefined;
+      }
+
+      if (typeof name === "string") {
+        // Find component by name only.
+        if (mapEntry.compConfigJson?.name === name) {
+          return mapEntry;
+        }
+
+        // If not found, add the component's children to search.
+        collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+
+      } else if (name && mapEntry.lineagePaths) {
+        // Find component by any matching lineage path.
+        const targets = name as Record<string, LineagePath | string | undefined>;
+        const available = mapEntry.lineagePaths;
+
+        for (const [key, value] of Object.entries(available)) {
+          const target = targets?.[key];
+          if (!!value && target === value) {
+            return mapEntry;
+          }
+          // Add the mapEntry's children if any of the mapEntry's lineagePaths start with the target.
+          if (typeof target === 'string' && !!target && typeof value === 'string' && value.startsWith(target)) {
+            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+          } else if (Array.isArray(value) && Array.isArray(target) && arrayStartsWithArray(value, target)) {
+            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+          }
+        }
       }
     }
     return undefined;
@@ -1145,7 +1159,7 @@ export class FormService extends HttpClientService {
             return null;
           }
         }
-        return await jsonataEvaluateFunc(expression)(value);
+        return jsonataEvaluateFunc(expression)(value);
       };
     });
     return prepared;
