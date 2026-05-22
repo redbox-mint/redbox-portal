@@ -72,14 +72,16 @@ import {
   createFormDefinitionReadyEvent,
   createFormDeleteFailureEvent,
   createFormDeleteSuccessEvent,
+  createFormRedirectRequestedEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
   createFormValidationBroadcastEvent,
+  DeleteEventConfig,
   FormComponentEvent,
   FormComponentEventType,
   FormStatusDirtyRequestEvent,
   FormValidationGroupsChangeInitial,
-  FormValidationGroupsChangeRequestEvent,
+  FormValidationGroupsChangeRequestEvent, SaveOperationEventConfig, SaveRedirectEventConfig,
 } from './form-state/events/form-component-event.types';
 import {FormStateFacade} from './form-state/facade/form-state.facade';
 import {Store} from '@ngrx/store';
@@ -507,7 +509,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const force = !!evt.force;
         const targetStep = evt.targetStep ?? '';
         const enabledValidationGroups = evt.enabledValidationGroups ?? [];
-        await this.saveForm(force, targetStep, enabledValidationGroups);
+        const closeOnSave = evt?.closeOnSave;
+        const redirectLocation = evt?.redirectLocation;
+        const redirectDelaySeconds = evt?.redirectDelaySeconds;
+        await this.saveForm({
+          force, targetStep, enabledValidationGroups,
+          closeOnSave, redirectLocation, redirectDelaySeconds,
+        });
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
@@ -960,11 +968,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
   }
 
-  public async saveForm(
-    forceSave: boolean = false,
-    targetStep: string = '',
-    enabledValidationGroups: string[] = ['all']
-  ) {
+  public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    const forceSave = options?.force ?? false;
+    const targetStep = options?.targetStep ?? '';
+    const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
+
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
@@ -1005,6 +1013,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 savedData: currentFormValue,
                 oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
                 response,
+                closeOnSave: options?.closeOnSave,
+                redirectLocation: options?.redirectLocation,
+                redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
           } else {
@@ -1052,7 +1063,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }) {
+  public async deleteRecord(options?: DeleteEventConfig) {
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
       this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
@@ -1077,6 +1088,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         );
+
+        this.eventBus.publish(
+          createFormRedirectRequestedEvent({
+            redirectLocation: options?.redirectLocation,
+            redirectDelaySeconds: options?.redirectDelaySeconds,
+          })
+        )
 
         if (options?.closeOnDelete && !_isEmpty(options?.redirectLocation)) {
           const redirectLocation = this.resolveRedirectLocation(String(options.redirectLocation), oid);

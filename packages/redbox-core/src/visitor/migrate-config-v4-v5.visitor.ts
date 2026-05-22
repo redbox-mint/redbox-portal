@@ -1414,7 +1414,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
     this.sharedProps.setPropOverride('closeOnDelete', item.config, {
-      closeOnDelete: field?.definition?.closeOnSave,
+      closeOnDelete: field?.definition?.closeOnDelete,
     });
     this.sharedProps.setPropOverride('redirectLocation', item.config, field?.definition);
     if (typeof item.config.redirectLocation === 'string' && item.config.redirectLocation.trim()) {

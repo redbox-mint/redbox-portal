@@ -157,33 +157,37 @@ export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
   readonly reason?: string;
 }
 
+export interface SaveRedirectEventConfig extends RedirectLocationEventBase {
+  readonly closeOnSave?: boolean;
+}
+
+export interface SaveOperationEventConfig {
+  readonly force?: boolean;
+  readonly enabledValidationGroups?: string[];
+  readonly targetStep?: string;
+}
+
 /**
  * Form save requested event
  * Published by UI (e.g., SaveButton) to request a save
  */
-export interface FormSaveRequestedEvent extends FormComponentEventBase, RedirectLocationEventBase {
+export interface FormSaveRequestedEvent extends FormComponentEventBase, SaveOperationEventConfig, SaveRedirectEventConfig {
   readonly type: 'form.save.requested';
-  readonly force?: boolean;
-  readonly enabledValidationGroups?: string[];
-  readonly targetStep?: string;
 }
 
 /**
  * Form save execute command event
  * Published by effects to instruct the component to execute saveForm
  */
-export interface FormSaveExecuteEvent extends FormComponentEventBase, RedirectLocationEventBase {
+export interface FormSaveExecuteEvent extends FormComponentEventBase, SaveOperationEventConfig, SaveRedirectEventConfig {
   readonly type: 'form.save.execute';
-  readonly force?: boolean;
-  readonly enabledValidationGroups?: string[];
-  readonly targetStep?: string;
 }
 
 /**
  * Form save success event
  * Published when a save operation completed successfully
  */
-export interface FormSaveSuccessEvent extends FormComponentEventBase, RedirectLocationEventBase {
+export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedirectEventConfig {
   readonly type: 'form.save.success';
   readonly savedData?: any;
   readonly oid?: string;
