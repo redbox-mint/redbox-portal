@@ -381,9 +381,9 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             items: [
                 { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
                 { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-                { id: 'support', labelKey: 'menu-supportagreement', href: '/admin/supportAgreement' },
                 { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-                { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' }
+                { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
+                { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' }
             ]
         },
         {

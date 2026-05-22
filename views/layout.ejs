@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>
-    <%=typeof title == 'undefined' ? 'ReDBox' : title%>
+    <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
   </title>
 
   <!-- Google Fonts -->
@@ -20,9 +20,7 @@
   <!-- Font Awesome included via compiled SCSS (FA6) -->
 
   <!-- Custom CSS -->
-
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.min.css">
   <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
 
   <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>

@@ -2,6 +2,9 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { toBoolean } from '@researchdatabox/sails-ng-common';
 
+type FormVocabularyUserContext = Record<string, unknown>;
+type FormVocabularyExternalServiceParams = Parameters<typeof FormVocabularyService.findInExternalService>[1];
+
 export namespace Controllers {
   export class FormVocabulary extends controllers.Core.Controller {
 
@@ -10,7 +13,8 @@ export namespace Controllers {
       'entries',
       'children',
       'getRecords',
-      'externalEntries'
+      'externalEntries',
+      'serviceEntries'
     ];
 
     public async get(req: Sails.Req, res: Sails.Res): Promise<unknown> {
@@ -210,13 +214,13 @@ export namespace Controllers {
 
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       try {
-        const response = await VocabService.findRecords(
+        const response = await FormVocabularyService.findRecords(
           queryId,
           brand,
           searchString,
           start,
           rows,
-          req.user! as Parameters<typeof VocabService.findRecords>[5]
+          req.user! as FormVocabularyUserContext
         );
         return this.sendResp(req, res, {
           data: response,
@@ -224,6 +228,24 @@ export namespace Controllers {
           chronicle: {formVocabularyRetrieveSuccess: true},
         });
       } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'query-vocab-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders(),
+            chronicle: {formVocabularyRetrieveError: true},
+          });
+        }
+        if (errorCode === 'query-vocab-invalid-config') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders(),
+            chronicle: {formVocabularyRetrieveError: true},
+          });
+        }
+
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'query-vocab-failed' }],
@@ -248,9 +270,9 @@ export namespace Controllers {
       }
 
       try {
-        const response = await VocabService.findInExternalService(
+        const response = await FormVocabularyService.findInExternalService(
           provider,
-          req.body as Parameters<typeof VocabService.findInExternalService>[1]
+          req.body as FormVocabularyExternalServiceParams
         );
         return this.sendResp(req, res, {
           data: response,
@@ -258,12 +280,94 @@ export namespace Controllers {
           chronicle: {formVocabularyRetrieveSuccess: true},
         });
       } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'external-vocab-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders(),
+            chronicle: {formVocabularyRetrieveError: true},
+          });
+        }
+        if (errorCode === 'external-vocab-invalid-config') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders(),
+            chronicle: {formVocabularyRetrieveError: true},
+          });
+        }
+
+        sails.log.verbose('Error getting external vocabulary entries:');
+        sails.log.verbose(error);
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'query-vocab-failed' }],
           errors: [error],
           headers: this.getNoCacheHeaders(),
           chronicle: {formVocabularyRetrieveError: true},
+        });
+      }
+    }
+
+    public async serviceEntries(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      const serviceId = String(req.param('serviceId') ?? '').trim();
+      const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+        ? req.body as Record<string, unknown>
+        : {};
+      const rawStart = body['start'] ?? req.param('start') ?? 0;
+      const rawRows = body['rows'] ?? req.param('rows') ?? 25;
+      const search = String(body['search'] ?? req.param('search') ?? '');
+      const start = rawStart === '' ? 0 : Number(rawStart);
+      const rows = rawRows === '' ? 25 : Number(rawRows);
+
+      if (!serviceId || !Number.isInteger(start) || start < 0 || !Number.isInteger(rows) || rows <= 0) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'invalid-query-params' }],
+          headers: this.getNoCacheHeaders()
+        });
+      }
+
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const response = await FormVocabularyService.findInServiceLookup(serviceId, {
+          search,
+          start,
+          rows,
+          branding: String(req.param('branding') ?? req.session.branding ?? ''),
+          portal: String(req.param('portal') ?? ''),
+          brand,
+          user: req.user && typeof req.user === 'object' ? req.user as Record<string, unknown> : {}
+        });
+        return this.sendResp(req, res, {
+          data: response.data,
+          meta: response.meta,
+          headers: this.getNoCacheHeaders()
+        });
+      } catch (error) {
+        const errorCode = String((error as { code?: string } | null)?.code ?? '');
+        if (errorCode === 'service-lookup-not-configured') {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+        if (errorCode === 'service-lookup-invalid-target' || errorCode === 'service-lookup-invalid-response') {
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ code: errorCode }],
+            headers: this.getNoCacheHeaders()
+          });
+        }
+
+        sails.log.verbose('Error getting service vocabulary entries:');
+        sails.log.verbose(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ code: 'query-vocab-failed' }],
+          headers: this.getNoCacheHeaders()
         });
       }
     }

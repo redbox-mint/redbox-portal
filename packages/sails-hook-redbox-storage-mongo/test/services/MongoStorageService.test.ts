@@ -332,10 +332,81 @@ describe('MongoStorageService', function () {
 
     const result = await service.getRelatedRecords('oid-1', { id: 'brand-1' });
 
-    expect(result.processedRelationships).to.deep.equal(['parent', 'child']);
+    expect(result.rootOid).to.equal('oid-1');
+    expect(result.edges).to.deep.equal([
+      {
+        relationId: 'parent__child__parentId',
+        label: undefined,
+        sourceOid: 'oid-1',
+        targetOid: 'child-1',
+        targetRecordType: 'child'
+      }
+    ]);
     expect(result.relatedObjects.parent).to.have.length(1);
     expect(result.relatedObjects.child).to.have.length(1);
     expect(Record.find.calledOnce).to.be.true;
+    expect(metaQuery.meta.calledOnce).to.be.true;
+  });
+
+  it('emits inbound relationship edges in reverse while keeping the same lookup query', async function () {
+    const getMetaStub = sandbox.stub(service, 'getMeta');
+    getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
+    getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
+    (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
+      of(recordTypeName === 'parent'
+        ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', direction: 'inbound', cardinality: 'many' }] }
+        : { relatedTo: [] })
+    );
+    const metaQuery = { meta: sandbox.stub().resolves([{ redboxOid: 'child-1', parentId: 'oid-1' }]) };
+    Record.find.returns(metaQuery);
+
+    const result = await service.getRelatedRecords('oid-1', { id: 'brand-1' });
+
+    expect(Record.find.calledOnceWith({ 'metaMetadata.type': 'child', parentId: 'oid-1' })).to.be.true;
+    expect(result.edges).to.deep.equal([
+      {
+        relationId: 'parent__child__parentId',
+        label: undefined,
+        sourceOid: 'child-1',
+        targetOid: 'oid-1',
+        targetRecordType: 'parent'
+      }
+    ]);
+    expect(result.relatedObjects.parent).to.have.length(1);
+    expect(result.relatedObjects.child).to.have.length(1);
+    expect(metaQuery.meta.calledOnce).to.be.true;
+  });
+
+  it('keeps only the first deterministic match for one-cardinality relationships', async function () {
+    const getMetaStub = sandbox.stub(service, 'getMeta');
+    getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
+    getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
+    (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
+      of(recordTypeName === 'parent'
+        ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', cardinality: 'one' }] }
+        : { relatedTo: [] })
+    );
+    const metaQuery = {
+      meta: sandbox.stub().resolves([
+        { redboxOid: 'child-2', parentId: 'oid-1' },
+        { redboxOid: 'child-1', parentId: 'oid-1' }
+      ])
+    };
+    Record.find.returns(metaQuery);
+
+    const result = await service.getRelatedRecords('oid-1', { id: 'brand-1' });
+
+    expect(Record.find.calledOnceWith({ 'metaMetadata.type': 'child', parentId: 'oid-1' })).to.be.true;
+    expect(result.edges).to.deep.equal([
+      {
+        relationId: 'parent__child__parentId',
+        label: undefined,
+        sourceOid: 'oid-1',
+        targetOid: 'child-1',
+        targetRecordType: 'child'
+      }
+    ]);
+    expect(result.relatedObjects.child).to.deep.equal([{ redboxOid: 'child-1', parentId: 'oid-1' }]);
     expect(metaQuery.meta.calledOnce).to.be.true;
   });
 

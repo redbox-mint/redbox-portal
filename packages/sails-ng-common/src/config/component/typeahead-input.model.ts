@@ -26,10 +26,11 @@ import {
 /* Typeahead Input Component */
 
 export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputFieldComponentConfigOutline {
-    sourceType: "static" | "vocabulary" | "namedQuery" | "external" = "static";
+    sourceType: "static" | "vocabulary" | "namedQuery" | "external" | "service" = "static";
     staticOptions: TypeaheadOption[] = [];
     vocabRef?: string;
     queryId?: string;
+    serviceId?: string;
     provider?: string;
     resultArrayProperty?: string;
     labelField?: string;
@@ -59,8 +60,8 @@ export class TypeaheadInputFieldComponentDefinition extends FieldComponentDefini
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTypeaheadInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTypeaheadInputFieldComponentDefinition(this);
     }
 }
 
@@ -80,8 +81,8 @@ export class TypeaheadInputFieldModelDefinition extends FieldModelDefinition<Typ
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTypeaheadInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTypeaheadInputFieldModelDefinition(this);
     }
 }
 
@@ -96,8 +97,8 @@ export class TypeaheadInputFormComponentDefinition extends FormComponentDefiniti
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitTypeaheadInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTypeaheadInputFormComponentDefinition(this);
     }
 }
 

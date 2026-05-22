@@ -47,39 +47,31 @@ describe('The BrandingService', function () {
       await BrandingConfigHistory.destroy({ branding: brand.id });
     });
 
-    it('saveDraft accepts valid variables', async () => {
+    it('saveDraft accepts valid variables and rejects invalid keys', async () => {
       const updated = await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#ffffff' }, actor: admin });
       expect(updated.variables).to.have.property('site-branding-area-background-color', '#ffffff');
-    });
 
-    it('saveDraft rejects invalid variable key', async () => {
-      let err; try { await BrandingService.saveDraft({ branding: 'default', variables: { 'not-allowed-var': '#fff' }, actor: admin }); } catch (e) { err = e; }
+      let err;
+      try { await BrandingService.saveDraft({ branding: 'default', variables: { 'branding-font-family': 'Arial, sans-serif' }, actor: admin }); } catch (e) { err = e; }
       expect(err).to.exist;
       expect(err.message).to.match(/Invalid variable key/);
     });
 
-    it('saveDraft rejects contrast violations', async () => {
-      // Provide two very similar colors for a validated pair
-      let err; try {
-        await BrandingService.saveDraft({ branding: 'default', variables: { 'primary-color': '#ffffff', 'primary-text-color': '#fefefe' }, actor: admin });
-      } catch (e) { err = e; }
-      expect(err).to.exist;
-      expect(err.message).to.match(/contrast-violation/);
-    });
-
     it('preview issues token and stores CSS', async () => {
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#abcabc' }, actor: admin });
-      const { token, url, hash } = await BrandingService.preview('default', 'default', admin);
+      const { token, url, hash } = await BrandingService.preview('default', 'default');
       expect(token).to.match(/^[0-9a-f]{32}$/);
       expect(url).to.include(token);
       expect(hash).to.match(/^[0-9a-f]{32}$/);
       const data = await BrandingService.fetchPreview(token);
       expect(data.css).to.be.a('string');
+      expect(data.css).to.include('--rb-site-branding-area-background-color: #abcabc;');
+      expect(data.css).to.include('--mu-panel-bg: var(--rb-panel-branding-background-color, #b1101a);');
     });
 
     it('preview token expires after TTL', async () => {
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#123123' }, actor: admin });
-      const { token } = await BrandingService.preview('default', 'default', admin);
+      const { token } = await BrandingService.preview('default', 'default');
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL
@@ -103,6 +95,7 @@ describe('The BrandingService', function () {
       const firstHash = brandAfterFirst.hash;
       const histories1 = await BrandingConfigHistory.find({ branding: brandAfterFirst.id });
       expect(histories1).to.have.length(1 + baseVersion); // include any pre-existing history entries
+      expect(brandAfterFirst.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
 
       // Second draft & publish with different value
       await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#112233' }, actor: admin });
@@ -120,6 +113,7 @@ describe('The BrandingService', function () {
       const brandAfterRollback = await BrandingConfig.findOne({ name: 'default' });
       expect(brandAfterRollback.variables['site-branding-area-background-color']).to.equal('#aabbcc');
       expect(brandAfterRollback.hash).to.equal(firstHash);
+      expect(brandAfterRollback.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
     });
   });
 });

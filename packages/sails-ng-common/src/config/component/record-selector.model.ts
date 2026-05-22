@@ -26,6 +26,7 @@ export class RecordSelectorFieldComponentConfig
   implements RecordSelectorFieldComponentConfigOutline
 {
   columnTitle = 'Record title';
+  relationshipId?: string;
   recordType?: string;
   workflowState = '';
   filterMode = 'default';
@@ -39,8 +40,8 @@ export class RecordSelectorFieldComponentDefinition
   class = RecordSelectorComponentName;
   config?: RecordSelectorFieldComponentConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitRecordSelectorFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRecordSelectorFieldComponentDefinition(this);
   }
 }
 
@@ -55,8 +56,8 @@ export class RecordSelectorFieldModelDefinition
   class = RecordSelectorModelName;
   config?: RecordSelectorFieldModelConfigOutline;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitRecordSelectorFieldModelDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRecordSelectorFieldModelDefinition(this);
   }
 }
 
@@ -68,8 +69,8 @@ export class RecordSelectorFormComponentDefinition
   public model?: RecordSelectorFieldModelDefinitionOutline;
   public layout?: AvailableFieldLayoutDefinitionOutlines;
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitRecordSelectorFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRecordSelectorFormComponentDefinition(this);
   }
 }
 

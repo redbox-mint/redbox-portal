@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { RecordModel } from './model';
 import { StorageServiceResponse } from './StorageServiceResponse';
+import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './RecordsService';
 
 /**
  * Service interface for Storage operations.
@@ -13,7 +14,7 @@ export interface StorageService {
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   provideUserAccessAndRemovePendingAccess(oid: unknown, userid: unknown, pendingValue: unknown): void;
-  getRelatedRecords(oid: unknown, brand: unknown): Promise<unknown>;
+  getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
   delete(oid: unknown, permanentlyDelete: unknown): Promise<StorageServiceResponse>;
   updateNotificationLog(oid: unknown, record: unknown, options: unknown): Promise<unknown>;
 

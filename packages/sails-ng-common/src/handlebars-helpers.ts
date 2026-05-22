@@ -26,6 +26,7 @@ import {
   isArray as _isArray,
   isPlainObject as _isPlainObject,
 } from 'lodash';
+import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
@@ -40,25 +41,6 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
 }
 
 // TODO: this is because the DateInputComponent needs Luxon style formatters. We have a moment shim on the server side but not on the client.
-function mapMomentToLuxonFormat(fmt: string): string {
-  if (!fmt) {
-    return fmt;
-  }
-
-  return fmt
-    .replace(/YYYY/g, 'yyyy')
-    .replace(/YY/g, 'yy')
-    .replace(/MMMM/g, 'LLLL')
-    .replace(/MMM/g, 'LLL')
-    .replace(/\bMM\b/g, 'LL')
-    .replace(/\bM\b/g, 'L')
-    .replace(/\bDD\b/g, 'dd')
-    .replace(/\bD\b/g, 'd')
-    .replace(/dddd/g, 'cccc')
-    .replace(/ddd/g, 'ccc')
-    .replace(/A/g, 'a');
-}
-
 function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>): string | undefined {
   if (typeof formatOrOptions === 'string') {
     return mapMomentToLuxonFormat(formatOrOptions);
@@ -467,6 +449,24 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Convert a value to lowercase text.
+   *
+   * @example {{toLower value}}
+   */
+  toLower: function (value: unknown): string {
+    return String(value ?? '').toLowerCase();
+  },
+
+  /**
+   * Convert a value to uppercase text.
+   *
+   * @example {{toUpper value}}
+   */
+  toUpper: function (value: unknown): string {
+    return String(value ?? '').toUpperCase();
+  },
+
+  /**
    * Translation helper - looks up translation from context.translationService.
    * The translation service must be provided in the template context.
    *
@@ -527,6 +527,34 @@ export const handlebarsHelperDefinitions = {
       return '';
     }
     return parts[normalizedIndex];
+  },
+
+  /**
+   * Encode user-controlled URL path values while preserving path separators.
+   * Trailing slashes are trimmed so prefixed paths can be safely concatenated.
+   *
+   * @example {{urlEncode oid}}
+   */
+  urlEncode: function (value: unknown): string {
+    const rawText = String(value ?? '');
+    if (!rawText) {
+      return '';
+    }
+
+    let endIndex = rawText.length;
+    while (endIndex > 0 && rawText[endIndex - 1] === '/') {
+      endIndex--;
+    }
+
+    const text = rawText.slice(0, endIndex);
+    if (!text) {
+      return '';
+    }
+
+    return text
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
   },
 
   /**

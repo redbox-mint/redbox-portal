@@ -21,6 +21,7 @@ export class ContentFieldComponentConfig extends FieldComponentConfig implements
     template?: string;
     content?: unknown;
     contentIsTranslationCode?: boolean;
+    translationContentFormat?: 'plain' | 'html';
     outputFormat?: string;
 
     constructor() {
@@ -37,8 +38,8 @@ export class ContentFieldComponentDefinition extends FieldComponentDefinition im
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitContentFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitContentFieldComponentDefinition(this);
     }
 }
 
@@ -53,8 +54,8 @@ export class ContentFormComponentDefinition extends FormComponentDefinition impl
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitContentFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitContentFormComponentDefinition(this);
     }
 }
 

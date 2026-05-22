@@ -11,6 +11,7 @@ export interface SmokeRoute {
   requiredSelectors: string[];
   fallbackSelectors: string[];
   requiredAssetIncludes: string[];
+  includeBaseAssets?: boolean;
 }
 
 export const baseAssetIncludes = [
@@ -89,6 +90,16 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['.admin-main-content h1', '.admin-sidebar'],
     fallbackSelectors: [],
     requiredAssetIncludes: []
+  },
+  {
+    path: '/default/rdmp/admin/api-docs',
+    auth: 'admin',
+    type: 'ejs',
+    rootSelector: '#redoc',
+    requiredSelectors: ['#redoc'],
+    fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
+    includeBaseAssets: false,
+    requiredAssetIncludes: ['/default/default/js/redoc.standalone.js', '/default/default/js/admin-api-docs-bootstrap.js', '/default/default/js/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
   },
   {
     path: '/default/rdmp/admin/reports',

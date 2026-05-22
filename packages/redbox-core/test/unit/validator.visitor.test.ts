@@ -3,7 +3,9 @@ import {
   buildLineagePaths,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
-  FormValidatorSummaryErrors
+  FormValidatorSummaryErrors,
+  jsonataCompile,
+  jsonataEvaluate
 } from "@researchdatabox/sails-ng-common";
 import {ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor} from "../../src";
 import { logger } from "./helpers";
@@ -100,10 +102,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["minimumCreate", "minimumUpdate"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -195,10 +197,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit" });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["transitionDraftToSubmitted"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -273,10 +275,10 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({ data: formConfig, formMode: "edit", record });
+        const constructed = await constructor.start({ data: formConfig, formMode: "edit", record });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
@@ -435,12 +437,12 @@ describe("Validator Visitor", async () => {
         ];
 
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
           data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitions
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions,
@@ -450,7 +452,7 @@ describe("Validator Visitor", async () => {
 
     it("should report typeahead configuration errors for unsupported/invalid config", async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: {
                 name: "typeahead-validator",
                 componentDefinitions: [
@@ -472,7 +474,7 @@ describe("Validator Visitor", async () => {
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions
@@ -484,7 +486,7 @@ describe("Validator Visitor", async () => {
 
     it("should report external typeahead provider requirement", async function () {
         const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = constructor.start({
+        const constructed = await constructor.start({
             data: {
                 name: "typeahead-external-validator",
                 componentDefinitions: [
@@ -505,13 +507,45 @@ describe("Validator Visitor", async () => {
         });
 
         const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = visitor.start({
+        const actual = await visitor.start({
             form: constructed,
             enabledValidationGroups: ["all"],
             validatorDefinitions: formValidatorsSharedDefinitions
         });
         const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
         expect(classNames).to.contain("typeaheadProvider");
+    });
+
+    it("should report service typeahead serviceId requirement", async function () {
+        const constructor = new ConstructFormConfigVisitor(logger);
+        const constructed = await constructor.start({
+            data: {
+                name: "typeahead-service-validator",
+                componentDefinitions: [
+                    {
+                        name: "serviceLookup",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "service"
+                            }
+                        },
+                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
+                    }
+                ]
+            },
+            formMode: "edit",
+            reusableFormDefs: reusableFormDefinitions,
+        });
+
+        const visitor = new ValidatorFormConfigVisitor(logger);
+        const actual = await visitor.start({
+            form: constructed,
+            enabledValidationGroups: ["all"],
+            validatorDefinitions: formValidatorsSharedDefinitions
+        });
+        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
+        expect(classNames).to.contain("typeaheadServiceId");
     });
 
     describe("HTML Sanitization", () => {
@@ -556,7 +590,7 @@ describe("Validator Visitor", async () => {
             const constructor = new ConstructFormConfigVisitor(logger);
             let constructed;
             try {
-                constructed = constructor.start({
+                constructed = await constructor.start({
                   data: formConfig, formMode: "edit",
                   reusableFormDefs: reusableFormDefinitions,
                 });
@@ -571,7 +605,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -603,7 +637,7 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: formConfig, formMode: "edit",
               reusableFormDefs: reusableFormDefinitions,
             });
@@ -613,7 +647,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -644,7 +678,7 @@ describe("Validator Visitor", async () => {
             };
 
             const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = constructor.start({
+            const constructed = await constructor.start({
               data: formConfig, formMode: "edit",
               reusableFormDefs: reusableFormDefinitions,
             });
@@ -653,7 +687,7 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = visitor.start({
+            const actual = await visitor.start({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
@@ -661,5 +695,96 @@ describe("Validator Visitor", async () => {
 
             expect(actual).to.have.length(0);
         });
+    });
+
+    it("should include jsonata-expression validator results", async function () {
+      const expression = "$ = 45";
+      async function jsonataEvaluateCustomFunc(value: unknown){
+        const compiled = jsonataCompile(expression);
+        return await jsonataEvaluate(compiled, value);
+      }
+      const formConfig: FormConfigFrame = {
+        name: "default-1.0-draft",
+        componentDefinitions: [
+          {
+            name: 'text_7',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+                validators: [
+                  {
+                    class: 'jsonata-expression',
+                    config: {
+                      description: "the description",
+                      expression: expression,
+                      evaluator: jsonataEvaluateCustomFunc
+                    },
+                  },
+                  {
+                    class: 'minLength',
+                    message: "@validator-error-custom-text_7",
+                    config: { minLength: 100 }
+                  },
+                ]
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent'
+            }
+          },
+        ]
+      };
+      const expected: FormValidatorSummaryErrors[] = [
+        {
+          errors: [
+            {
+              message: "@validator-error-jsonata-expression",
+              class: "jsonata-expression",
+              params: {
+                actual: "hello world 2!",
+                description: "the description",
+                expression: expression,
+              },
+            },
+            {
+              message: "@validator-error-custom-text_7",
+              class: "minLength",
+              params: {
+                actualLength: 14,
+                requiredLength: 100,
+              },
+            },
+          ],
+          id: "text_7",
+          message: "TextField with default wrapper defined",
+          lineagePaths: {
+            formConfig: ["componentDefinitions", "0"],
+            dataModel: ["text_7"],
+            angularComponents: ["text_7"],
+            angularComponentsJsonPointer: "/text_7",
+            layout: ["text_7-layout"],
+            layoutJsonPointer: "/text_7-layout",
+          },
+        }
+      ];
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
+
+      const visitor = new ValidatorFormConfigVisitor(logger);
+      const actual = await visitor.start({
+        form: constructed,
+        enabledValidationGroups: ["all"],
+        validatorDefinitions: formValidatorsSharedDefinitions
+      });
+      expect(actual).to.eql(expected);
     });
 });

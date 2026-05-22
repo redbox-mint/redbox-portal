@@ -13,6 +13,7 @@ import { lastValueFrom, Observable } from 'rxjs';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
+import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
@@ -80,8 +81,6 @@ export async function coreBootstrap(): Promise<void> {
     }
 
     sails.log.verbose("Forms service, bootstrapped.");
-    await lastValueFrom(sails.services.vocabservice.bootstrap() as Observable<unknown>);
-    sails.log.verbose("Vocab service, bootstrapped.");
     await sails.services.vocabularyservice.bootstrapData();
     sails.log.verbose("Vocabulary bootstrap data, loaded.");
     await sails.services.recordsservice.bootstrapData();
@@ -185,6 +184,7 @@ export function preLiftSetup(): void {
     sails.config.log.customLogger.level = sails.config.log.level;
 
     sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
+    void getMergedApiRoutes();
 
     // Initialize all services that have an init() method
     // This allows services registered via redbox-loader shims to perform
@@ -201,14 +201,14 @@ export function preLiftSetup(): void {
     // Controllers register their init as sails actions (e.g., 'webservice/search/init')
     const sailsWithActions = sails as Sails.Application & { _actions?: Record<string, () => void> };
     const actions = sailsWithActions._actions;
-    if (!actions) {
-        return;
-    }
-
-    for (const actionKey of Object.keys(actions)) {
-        if (actionKey.endsWith('/init')) {
-            actions[actionKey]();
-            sails.log.verbose(`${actionKey} controller action, initialized.`);
+    if (actions) {
+        for (const actionKey of Object.keys(actions)) {
+            if (actionKey.endsWith('/init')) {
+                actions[actionKey]();
+                sails.log.verbose(`${actionKey} controller action, initialized.`);
+            }
         }
     }
+
+    resetResolvedApiRouteCache();
 }

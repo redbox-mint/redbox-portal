@@ -6,6 +6,7 @@ declare const AppConfigService: any;
 
 declare const BrandingService: any;
 declare const BrandingLogoService: any;
+declare const BrandingThemeCssService: any;
 declare const BrandingConfig: any;
 declare const BrandingConfigHistory: any;
 
@@ -43,7 +44,7 @@ declare const TemplateService: any;
 declare const TriggerService: any;
 
 declare const UsersService: any;
-declare const VocabService: any;
+declare const FormVocabularyService: any;
 
 declare const WorkflowStepsService: any;
 

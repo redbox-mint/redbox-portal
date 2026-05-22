@@ -20,10 +20,11 @@ tests {
   });
   
   test("Body has attachment content", function () {
+    const expectedSizeInBytes = 30148;
     const body = res.getBody();
-    const size = res.getSize();
+    const sizeInBytes = res.getSize().body;
     expect(body).to.exist;
-    expect(size.body).to.equal(30148);
+    expect(sizeInBytes).to.equal(expectedSizeInBytes);
     expect(res.headers['content-type']).to.eql('image/png');
   });
 }

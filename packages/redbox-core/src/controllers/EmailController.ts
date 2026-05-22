@@ -1,48 +1,53 @@
 import { Controllers as controllers } from '../CoreController';
+import { APIActionResponse } from '../model/APIActionResponse';
 import { Services } from '../services/EmailService';
+import { getValidatedApiRequest } from '../api-routes/validation';
 
 
 export namespace Controllers {
-  /**
-   *  Redbox email message queue stuff
-   *
-   * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
-   */
-  export class Email extends controllers.Core.Controller {
+    /**
+     *  Redbox email message queue stuff
+     *
+     * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
+     */
+    export class Email extends controllers.Core.Controller {
 
-      protected emailService!: Services.Email;
+        protected emailService!: Services.Email;
 
-      /**
-       * Exported methods, accessible from internet.
-       */
-      protected override _exportedMethods: string[] = [
-          'init',
-          'sendNotification'
-      ];
+        /**
+         * Exported methods, accessible from internet.
+         */
+        protected override _exportedMethods: string[] = [
+            'init',
+            'sendNotification'
+        ];
 
-      public init() {
-          this.emailService = sails.services.emailservice as unknown as Services.Email;
-      }
+        public init() {
+            this.emailService = sails.services.emailservice as unknown as Services.Email;
+        }
 
-      /**
-       * Send Email Notification
-       *
-       * @param req
-       * @param res
-       *
-       * USAGE (ng2):
-            var data = {};
-            data['data'] = 'test';
-            this.emailService.sendNotification('user@example.com', 'template', data, subject?, from?)
-            .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)});
-       *
-       * TODO
-       *    • proper email address validation
-       *    • support for multiple email addresses (trivial: make array)
-       */
+        /**
+         * Send Email Notification
+         *
+         * @param req
+         * @param res
+         *
+         * USAGE (ng2):
+              var data = {};
+              data['data'] = 'test';
+              this.emailService.sendNotification('user@example.com', 'template', data, subject?, from?)
+              .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)});
+         *
+         * TODO
+         *    • proper email address validation
+         *    • support for multiple email addresses (trivial: make array)
+         */
 
         public sendNotification(req: Sails.Req, res: Sails.Res) {
-            if (!req.body.to){
+            const validated = getValidatedApiRequest(req);
+            const body = validated.body as Record<string, unknown>;
+
+            if (!body.to) {
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No email recipient in email notification request!" }],
@@ -51,7 +56,7 @@ export namespace Controllers {
                 });
                 return;
             }
-            if (!req.body.template){
+            if (!body.template) {
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No template specified in email notification request!" }],
@@ -62,21 +67,21 @@ export namespace Controllers {
             }
 
             const options = {
-                format: req.body.format,
-                from: req.body.from,
-                to: req.body.to,
-                cc: req.body.cc,
-                bcc: req.body.bcc,
-                subject: req.body.subject,
-                template: req.body.template,
+                format: body.format,
+                from: body.from,
+                to: body.to,
+                cc: body.cc,
+                bcc: body.bcc,
+                subject: body.subject,
+                template: body.template,
             };
             this.updateChronicle(req, {emailOptions: options});
             const config = {};
-            const templateDate = req.body.data;
+            const templateDate = body.data;
 
             let emailProperties;
             try {
-                emailProperties = this.emailService.evaluateProperties(options, config, templateDate);
+                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined);
             } catch (error) {
                 return this.sendResp(req, res, {
                     status: 500,
@@ -159,6 +164,6 @@ export namespace Controllers {
                 });
             });
 
-       }
-  }
+        }
+    }
 }

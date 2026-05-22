@@ -197,6 +197,8 @@ export function getStubRecordService(recordData: any = {}) {
       return recordData['types'];
     }, getDashboardType: function () {
       return recordData['dashboardType'];
+    }, getDashboardView: function () {
+      return recordData['dashboardView'];
     }, getWorkflowSteps: function () {
       return recordData['step'];
     }, getRecords: function () {

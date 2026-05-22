@@ -199,6 +199,23 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('string case helpers', function () {
+        it('toLower should lowercase text values', function () {
+            const result = handlebarsHelperDefinitions.toLower('Ada Lovelace');
+            expect(result).to.equal('ada lovelace');
+        });
+
+        it('toUpper should uppercase text values', function () {
+            const result = handlebarsHelperDefinitions.toUpper('Ada Lovelace');
+            expect(result).to.equal('ADA LOVELACE');
+        });
+
+        it('should treat nullish values as empty strings', function () {
+            expect(handlebarsHelperDefinitions.toLower(null)).to.equal('');
+            expect(handlebarsHelperDefinitions.toUpper(undefined)).to.equal('');
+        });
+    });
+
     describe('join', function () {
         it('should join array elements', function () {
             const result = handlebarsHelperDefinitions.join(['a', 'b', 'c'], ', ');
@@ -227,6 +244,20 @@ describe('Shared Handlebars Helpers', function () {
         it('should return all segments when index is omitted', function () {
             const result = handlebarsHelperDefinitions.split('a/b/c', '/');
             expect(result).to.deep.equal(['a', 'b', 'c']);
+        });
+    });
+
+    describe('urlEncode', function () {
+        it('should encode path segment values and preserve path separators', function () {
+            const result = handlebarsHelperDefinitions.urlEncode('/mounted app/oid with spaces/#1/');
+
+            expect(result).to.equal('/mounted%20app/oid%20with%20spaces/%231');
+        });
+
+        it('should return an empty string for empty input', function () {
+            const result = handlebarsHelperDefinitions.urlEncode('');
+
+            expect(result).to.equal('');
         });
     });
 

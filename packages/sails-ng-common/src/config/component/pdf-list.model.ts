@@ -40,8 +40,8 @@ export class PDFListFieldComponentDefinition extends FieldComponentDefinition im
     class = PDFListComponentName;
     config?: PDFListFieldComponentConfigOutline;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitPDFListFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitPDFListFieldComponentDefinition(this);
     }
 }
 
@@ -58,8 +58,8 @@ export class PDFListFieldModelDefinition extends FieldModelDefinition<PDFListMod
     class = PDFListModelName;
     config?: PDFListFieldModelConfigOutline;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitPDFListFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitPDFListFieldModelDefinition(this);
     }
 }
 
@@ -68,8 +68,8 @@ export class PDFListFormComponentDefinition extends FormComponentDefinition impl
     public model?: PDFListFieldModelDefinitionOutline;
     public layout?: AvailableFieldLayoutDefinitionOutlines;
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitPDFListFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitPDFListFormComponentDefinition(this);
     }
 }
 

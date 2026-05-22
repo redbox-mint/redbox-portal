@@ -43,11 +43,9 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'get',
       'getFormCompiledItems',
-      'getFormStructureValidations',
-      'getFormDataValidations',
-      'getFormExpressions',
       'getAdminReportTemplates',
       'getRecordDashboardTemplates',
+      'getDashboardViewTemplates',
     ];
 
     private _recordTypeAuto = "auto";
@@ -134,41 +132,6 @@ export namespace Controllers {
     }
 
     /**
-    * Provide the client script that can validate the form data model matches the form config.
-    * @param req
-    * @param res
-    */
-    public getFormStructureValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      //  Similar to FormRecordConsistency.validateRecordSchema.
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(req, res, entries);
-    }
-
-    /**
-    * Provide the client script that can validate the form data model values match the form config types.
-    * Similar to FormRecordConsistency.validateRecordValues.
-    * @param req
-    * @param res
-    */
-    public getFormDataValidations(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(req, res, entries);
-    }
-
-    /**
-    * Provide the client script that can run the form expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
-    public getFormExpressions(req: Sails.Req, res: Sails.Res) {
-      // TODO:
-      const entries: TemplateCompileInput[] = [];
-      return this.sendClientMappingJavascript(req, res, entries);
-    }
-
-    /**
     * Provide the client script that can run the report expressions as jsonata expressions.
     * @param req
     * @param res
@@ -208,6 +171,26 @@ export namespace Controllers {
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {
         this.updateChronicle(req, {recordDashboardTemplatesFailed: true}, [error]);
+        return res.serverError();
+      }
+    }
+
+    public async getDashboardViewTemplates(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const dashboardView = req.param("dashboardView") || "";
+      const stepName = req.param("stepName") || "";
+      const dashboardType = req.param("dashboardType") || "";
+
+      if (!dashboardView || !stepName) {
+        sails.log.warn(`getDashboardViewTemplates called without dashboardView or stepName`);
+        return this.sendClientMappingJavascript(req, res, []);
+      }
+
+      try {
+        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, dashboardType);
+        return this.sendClientMappingJavascript(req, res, entries);
+      } catch (error) {
+        sails.log.error("Could not build dashboard view templates:", error);
         return res.serverError();
       }
     }

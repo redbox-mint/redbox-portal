@@ -36,8 +36,8 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTabFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabFieldComponentDefinition(this);
     }
 }
 
@@ -67,8 +67,8 @@ export class TabFieldLayoutDefinition extends FieldLayoutDefinition implements T
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitTabFieldLayoutDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabFieldLayoutDefinition(this);
     }
 }
 
@@ -84,8 +84,8 @@ export class TabFormComponentDefinition extends FormComponentDefinition implemen
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitTabFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitTabFormComponentDefinition(this);
     }
 }
 

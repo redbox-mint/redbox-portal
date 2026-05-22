@@ -20,7 +20,7 @@
 import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-
+import { toParamString } from '../utilities/RequestParamUtils';
 
 export namespace Controllers {
   /**
@@ -42,9 +42,9 @@ export namespace Controllers {
 
     public async getNamespace(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
-        const lng = req.params.lng;
-        const ns = req.params.ns || 'translation';
+        const brandingName = toParamString(req.params.branding);
+        const lng = toParamString(req.params.lng);
+        const ns = toParamString(req.params.ns, 'translation');
 
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id, translationLng: lng, translationNs: ns});
@@ -99,7 +99,7 @@ export namespace Controllers {
      */
     public async getLanguages(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
@@ -141,7 +141,7 @@ export namespace Controllers {
      */
     public async listEntriesApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
@@ -167,7 +167,7 @@ export namespace Controllers {
 
     public async setEntryApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
@@ -179,6 +179,7 @@ export namespace Controllers {
         const key = req.param('key');
         const value = req.body?.value;
         const category = req.body?.category;
+        const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
         this.updateChronicle(req, {
           translationLocale: locale,
@@ -188,7 +189,7 @@ export namespace Controllers {
           translationCategory: category,
           translationDescription: description,
         });
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, description });
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat,description });
         try {
           await TranslationService.reloadResources();
         } catch (e) {
@@ -204,7 +205,7 @@ export namespace Controllers {
 
     public async getBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
@@ -229,7 +230,7 @@ export namespace Controllers {
 
     public async setBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = req.params.branding;
+        const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {

@@ -1,5 +1,10 @@
-import { APIErrorResponse, BrandingModel, Controllers as controllers } from '../../index';
-
+import {
+  APIErrorResponse,
+  BrandingModel,
+  Controllers as controllers,
+  getValidatedApiRequest,
+  executeNamedQueryRoute,
+} from '../../index';
 
 export namespace Controllers {
   /**
@@ -8,13 +13,10 @@ export namespace Controllers {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Report extends controllers.Core.Controller {
-
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'executeNamedQuery'
-    ];
+    protected override _exportedMethods: string[] = ['executeNamedQuery'];
 
     /**
      **************************************************************************************************
@@ -22,44 +24,48 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() {
-
-    }
-
+    public bootstrap() { }
 
     public async executeNamedQuery(req: Sails.Req, res: Sails.Res) {
       try {
+        const validated = getValidatedApiRequest(req);
+        const { query } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const queryName = req.param('queryName');
+        const queryName = query.queryName as string;
         this.updateChronicle(req, {namedQueryName: queryName});
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
-        if (_.isEmpty(namedQuery)) {
+        if (!namedQuery) {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: "Named query not found" }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
         let start = 0;
         let rows = 10;
-        if (!_.isEmpty(req.param('start'))) {
-          start = _.toNumber(req.param('start'))
+        if (!_.isEmpty(query.start)) {
+          start = _.toNumber(query.start);
         }
-        if (!_.isEmpty(req.param('rows'))) {
-          rows = _.toNumber(req.param('rows'))
+        if (!_.isEmpty(query.rows)) {
+          rows = _.toNumber(query.rows);
         }
         this.updateChronicle(req, {namedQueryPagingStart: start, namedQueryPagingRows: rows});
         if (rows > 100) {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: "Rows must not be greater than 100" }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
-        const namedQueryConfig = sails.config.namedQuery[queryName];
-        const paramMap = _.clone(req.query);
-        const response = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const paramMap = _.clone(query);
+        const response = await NamedQueryService.performNamedQueryFromConfig(
+          namedQuery,
+          paramMap,
+          brand,
+          start,
+          rows
+        );
         this.updateChronicle(req, {namedQueryResponse: response});
         this.sendResp(req, res, {
           data: response,
@@ -70,11 +76,10 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           errors: [error],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
-
 
     /**
      **************************************************************************************************

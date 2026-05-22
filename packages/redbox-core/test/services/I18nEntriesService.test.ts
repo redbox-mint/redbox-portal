@@ -1,6 +1,8 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 
 describe('I18nEntriesService', function() {
@@ -8,6 +10,7 @@ describe('I18nEntriesService', function() {
   let I18nEntriesService: any;
   let mockI18nTranslation: any;
   let mockI18nBundle: any;
+  let testLocalesDir: string;
 
   beforeEach(function() {
     mockSails = createMockSails({
@@ -37,6 +40,7 @@ describe('I18nEntriesService', function() {
         sort: sinon.stub().resolves([])
       }),
       create: sinon.stub().resolves({ id: 'new-id' }),
+      createEach: sinon.stub().resolves([]),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves({}) }),
       destroyOne: sinon.stub().resolves({})
     };
@@ -61,9 +65,12 @@ describe('I18nEntriesService', function() {
 
     const { Services } = require('../../src/services/I18nEntriesService');
     I18nEntriesService = new Services.I18nEntries();
+    testLocalesDir = path.join(mockSails.config.appPath, 'language-defaults');
+    fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
   });
 
   afterEach(function() {
+    fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
     cleanupServiceTestGlobals();
     delete (global as any).I18nTranslation;
     delete (global as any).I18nBundle;
@@ -184,6 +191,24 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.updateOne.calledWith({ id: 'existing-id' })).to.be.true;
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
+
+    it('should persist valid contentFormat', async function() {
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nBundle.findOne.resolves(null);
+
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'html' });
+
+      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
+    });
+
+    it('should ignore invalid contentFormat values', async function() {
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nBundle.findOne.resolves(null);
+
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'xml' });
+
+      expect(mockI18nTranslation.create.firstCall.args[0]).not.to.have.property('contentFormat');
+    });
   });
 
   describe('deleteEntry', function() {
@@ -247,6 +272,16 @@ describe('I18nEntriesService', function() {
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' });
       
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
+    });
+
+    it('should honour overwriteEntries=false when syncing entries', async function() {
+      mockI18nBundle.findOne.resolves(null);
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' }, undefined, { overwriteEntries: false });
+
+      expect(I18nEntriesService.syncEntriesFromBundle.calledWith(sinon.match.any, false)).to.be.true;
     });
   });
 
@@ -341,6 +376,166 @@ describe('I18nEntriesService', function() {
 
       expect(mockI18nTranslation.create.called).to.be.true;
       expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('');
+    });
+
+    it('should copy contentFormat from bundle metadata', async function() {
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: {
+          key: '<p>value</p>',
+          _meta: {
+            key: {
+              contentFormat: 'html'
+            }
+          }
+        }
+      };
+
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nTranslation.create.resolves({});
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+
+      expect(mockI18nTranslation.create.called).to.be.true;
+      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
+    });
+  });
+
+  describe('bootstrap additive defaults', function() {
+    function writeDefaults(locale: string, namespace: string, data: Record<string, unknown>): void {
+      const localeDir = path.join(testLocalesDir, locale);
+      fs.mkdirSync(localeDir, { recursive: true });
+      fs.writeFileSync(path.join(localeDir, `${namespace}.json`), JSON.stringify(data));
+    }
+
+    it('should skip bundle update and translation create when no defaults are missing', async function() {
+      writeDefaults('en', 'translation', { existing: 'default' });
+      mockI18nBundle.findOne.resolves({
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'translation',
+        data: { existing: 'custom' }
+      });
+      mockI18nTranslation.find.resolves([{ key: 'existing' }]);
+
+      await I18nEntriesService.bootstrap(['en']);
+
+      expect(mockI18nBundle.updateOne.called).to.be.false;
+      expect(mockI18nTranslation.createEach.called).to.be.false;
+      expect(mockI18nTranslation.create.called).to.be.false;
+    });
+
+    it('should add only missing default keys for existing bundles', async function() {
+      writeDefaults('en', 'translation', { existing: 'default', added: 'new' });
+      mockI18nBundle.findOne.resolves({
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'translation',
+        data: { existing: 'custom' }
+      });
+      mockI18nBundle.updateOne.returns({
+        set: sinon.stub().resolves({
+          id: 'bundle-1',
+          branding: 'brand-1',
+          locale: 'en',
+          namespace: 'translation',
+          data: { existing: 'custom', added: 'new' }
+        })
+      });
+      mockI18nTranslation.find.resolves([{ key: 'existing' }, { key: 'custom.only' }]);
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
+        added: {
+          category: 'General',
+          description: 'Added key',
+          contentFormat: 'html'
+        }
+      });
+
+      await I18nEntriesService.bootstrap(['en']);
+
+      expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
+      expect(mockI18nTranslation.createEach.calledOnce).to.be.true;
+      expect(mockI18nTranslation.destroyOne.called).to.be.false;
+
+      const updatedData = mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data;
+      expect(updatedData).to.deep.equal({ existing: 'custom', added: 'new' });
+
+      const createdRecords = mockI18nTranslation.createEach.firstCall.args[0];
+      expect(createdRecords).to.have.length(1);
+      expect(createdRecords[0]).to.deep.include({
+        branding: 'brand-1',
+        bundle: 'bundle-1',
+        locale: 'en',
+        namespace: 'translation',
+        key: 'added',
+        value: 'new',
+        category: 'General',
+        description: 'Added key',
+        contentFormat: 'html'
+      });
+    });
+
+    it('should preserve empty strings and file metadata for new defaults', async function() {
+      writeDefaults('en', 'translation', {
+        existing: 'default',
+        empty: '',
+        _meta: {
+          empty: {
+            category: 'Formatting',
+            description: 'May be blank',
+            contentFormat: 'plain'
+          }
+        }
+      });
+      mockI18nBundle.findOne.resolves({
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'translation',
+        data: { existing: 'custom' }
+      });
+      mockI18nBundle.updateOne.returns({
+        set: sinon.stub().resolves({
+          id: 'bundle-1',
+          branding: 'brand-1',
+          locale: 'en',
+          namespace: 'translation',
+          data: { existing: 'custom', empty: '', _meta: { empty: { category: 'Formatting', description: 'May be blank', contentFormat: 'plain' } } }
+        })
+      });
+      mockI18nTranslation.find.resolves([{ key: 'existing' }]);
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+
+      await I18nEntriesService.bootstrap(['en']);
+
+      expect(mockI18nTranslation.createEach.calledOnce).to.be.true;
+      const createdRecords = mockI18nTranslation.createEach.firstCall.args[0];
+      expect(createdRecords).to.have.length(1);
+      expect(createdRecords[0]).to.deep.include({
+        key: 'empty',
+        value: '',
+        category: 'Formatting',
+        description: 'May be blank',
+        contentFormat: 'plain'
+      });
+    });
+
+    it('should seed first-time bundles without forcing overwrite mode', async function() {
+      writeDefaults('en', 'translation', { added: 'new' });
+      mockI18nBundle.findOne.resolves(null);
+      const setBundleStub = sinon.stub(I18nEntriesService, 'setBundle').resolves({ id: 'bundle-1' } as any);
+
+      await I18nEntriesService.bootstrap(['en']);
+
+      expect(setBundleStub.calledOnce).to.be.true;
+      expect(setBundleStub.firstCall.args[5]).to.deep.equal({ splitToEntries: true, overwriteEntries: false });
     });
   });
 });

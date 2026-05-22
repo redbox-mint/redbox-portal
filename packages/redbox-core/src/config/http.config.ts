@@ -303,10 +303,12 @@ export const http: HttpConfig = {
         // Lazy load passport middleware to use sails.config.passport
         // This ensures we use the same passport instance that has deserializeUser configured
         passportInit: function (req: Request, res: Response, next: NextFunction) {
-            return sails.config.passport.initialize()(req, res, next);
+            const middleware = sails.config.passport.initialize() as unknown as RequestHandler;
+            return middleware(req, res, next);
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
-            const result = sails.config.passport.session()(req, res, next);
+            const middleware = sails.config.passport.session() as unknown as RequestHandler;
+            const result = middleware(req, res, next);
             const user = req.user as UserModel | undefined | null;
             RequestChronicleHelper.fromReq(req).addInfo({
               userId: user?.id,

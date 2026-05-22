@@ -3,7 +3,7 @@ import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import { createFormAndWaitForReady, createTestbedModule, setUpDynamicAssets } from "../helpers.spec";
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
@@ -323,18 +323,42 @@ describe("TypeaheadInputComponent", () => {
         expect(text).toContain("Missing provider for external typeahead source");
     });
 
-    it("renders named query suggestions with labelTemplate from query response fields", async () => {
-        setUpDynamicAssets({
-            callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
-                switch (keyStr) {
-                    case "componentDefinitions__0__component__config__labelTemplate":
-                        return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
-                    default:
-                        throw new Error(`Unknown key: ${keyStr}`);
+    it("shows misconfiguration message when service source lacks serviceId", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "broken_service_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "service"
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
                 }
-            }
-        });
+            ]
+        };
 
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
+        expect(text).toContain("Missing serviceId for service typeahead source");
+    });
+
+    it("renders named query suggestions with labelTemplate from query response fields", async () => {
+      const dynamicAssetOptions: DynamicAssetOptions = {
+        entries: [{
+          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
+          callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+            switch (keyStr) {
+              case "componentDefinitions__0__component__config__labelTemplate":
+                return `${context?.raw?.title ?? ""} (${context?.raw?.code ?? ""})`;
+              default:
+                throw new Error(`Unknown key: ${keyStr}`);
+            }
+          }
+        }]
+      };
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchNamedQuery").and.resolveTo([
             {
@@ -367,7 +391,8 @@ describe("TypeaheadInputComponent", () => {
             ]
         };
 
-        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(
+          formConfig, undefined, undefined, dynamicAssetOptions);
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("atlas");
         const options = await firstValueFrom(component.suggestions$);
@@ -420,6 +445,44 @@ describe("TypeaheadInputComponent", () => {
             "utf8_name",
             "utf8_name"
         );
+    });
+
+    it("calls service lookup for service-backed typeahead sources", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        spyOn(typeaheadDataService, "searchService").and.resolveTo([
+            {
+                label: "Jane Doe",
+                value: "party-1",
+                sourceType: "service",
+                raw: { id: "party-1" }
+            }
+        ]);
+
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "service_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "service",
+                            serviceId: "contributors",
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("jan");
+        const options = await firstValueFrom(component.suggestions$);
+
+        expect(options[0]?.label).toBe("Jane Doe");
+        expect(typeaheadDataService.searchService).toHaveBeenCalledWith("contributors", "jan", 0, 25);
     });
 
     it("resolves pre-populated historical vocabulary labels in hide mode", async () => {

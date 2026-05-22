@@ -5,17 +5,21 @@
 
 // Import all service modules and re-export
 import * as AgendaQueueServiceModule from './AgendaQueueService';
+import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
 import * as BrandingServiceModule from './BrandingService';
+import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
 import * as CacheServiceModule from './CacheService';
 import * as ConfigServiceModule from './ConfigService';
 import * as ContrastServiceModule from './ContrastService';
+import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
 import * as FigshareServiceModule from './FigshareService';
+import * as FormVocabularyServiceModule from './FormVocabularyService';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
 import * as FormsServiceModule from './FormsService';
 import * as IntegrationAuditServiceModule from './IntegrationAuditService';
@@ -39,7 +43,6 @@ import * as TranslationServiceModule from './TranslationService';
 import * as TriggerServiceModule from './TriggerService';
 import * as UsersServiceModule from './UsersService';
 import * as ViewUtilsServiceModule from './ViewUtilsService';
-import * as VocabServiceModule from './VocabService';
 import * as VocabularyServiceModule from './VocabularyService';
 import * as WorkflowStepsServiceModule from './WorkflowStepsService';
 import * as WorkspaceAsyncServiceModule from './WorkspaceAsyncService';
@@ -51,17 +54,21 @@ import * as StandardDatastreamServiceModule from './StandardDatastreamService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
+export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
 export { BrandingLogoServiceModule as BrandingLogoService };
 export { BrandingServiceModule as BrandingService };
+export { BrandingThemeCssServiceModule as BrandingThemeCssService };
 export { CacheServiceModule as CacheService };
 export { ConfigServiceModule as ConfigService };
 export { ContrastServiceModule as ContrastService };
+export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
 export { FigshareServiceModule as FigshareService };
+export { FormVocabularyServiceModule as FormVocabularyService };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
 export { FormsServiceModule as FormsService };
 export { IntegrationAuditServiceModule as IntegrationAuditService };
@@ -85,7 +92,6 @@ export { TranslationServiceModule as TranslationService };
 export { TriggerServiceModule as TriggerService };
 export { UsersServiceModule as UsersService };
 export { ViewUtilsServiceModule as ViewUtilsService };
-export { VocabServiceModule as VocabService };
 export { VocabularyServiceModule as VocabularyService };
 export { WorkflowStepsServiceModule as WorkflowStepsService };
 export { WorkspaceAsyncServiceModule as WorkspaceAsyncService };
@@ -120,6 +126,11 @@ export const ServiceExports = {
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()
     );
   },
+  get AttachmentMetadataService() {
+    return getOrCreateService('AttachmentMetadataService', () =>
+      new AttachmentMetadataServiceModule.Services.AttachmentMetadataService().exports()
+    );
+  },
   get AppConfigService() {
     return getOrCreateService('AppConfigService', () => new AppConfigServiceModule.Services.AppConfigs().exports());
   },
@@ -134,6 +145,11 @@ export const ServiceExports = {
   get BrandingService() {
     return getOrCreateService('BrandingService', () => new BrandingServiceModule.Services.Branding().exports());
   },
+  get BrandingThemeCssService() {
+    return getOrCreateService('BrandingThemeCssService', () =>
+      new BrandingThemeCssServiceModule.Services.BrandingThemeCss().exports()
+    );
+  },
   get CacheService() {
     return getOrCreateService('CacheService', () => new CacheServiceModule.Services.Cache().exports());
   },
@@ -142,6 +158,11 @@ export const ServiceExports = {
   },
   get ContrastService() {
     return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
+  },
+  get DashboardConfigService() {
+    return getOrCreateService('DashboardConfigService', () =>
+      new DashboardConfigServiceModule.Services.DashboardConfig().exports()
+    );
   },
   get DashboardTypesService() {
     return getOrCreateService('DashboardTypesService', () =>
@@ -156,6 +177,11 @@ export const ServiceExports = {
   },
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
+  },
+  get FormVocabularyService() {
+    return getOrCreateService('FormVocabularyService', () =>
+      new FormVocabularyServiceModule.Services.FormVocabulary().exports()
+    );
   },
   get IntegrationAuditService() {
     return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
@@ -241,9 +267,6 @@ export const ServiceExports = {
   },
   get ViewUtilsService() {
     return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
-  },
-  get VocabService() {
-    return getOrCreateService('VocabService', () => new VocabServiceModule.Services.Vocab().exports());
   },
   get VocabularyService() {
     return getOrCreateService('VocabularyService', () =>

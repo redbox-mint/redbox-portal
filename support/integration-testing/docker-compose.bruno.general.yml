@@ -117,13 +117,9 @@ services:
   redboxportal:
     <<: *rbportal-service
     profiles: [ci]
-    ports:
-      - '1500:1500'
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
-    ports:
-      - '1500:1500'
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
       - '../../:/opt/redbox-portal:delegated'
@@ -140,8 +136,6 @@ services:
   mongodb:
     image: mongo:latest
     pull_policy: 'missing'
-    ports:
-      - '27017:27017'
     networks:
       main:
         aliases:

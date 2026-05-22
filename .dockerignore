@@ -6,6 +6,7 @@
 .circleci
 **/node_modules
 *.log
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
 support/development

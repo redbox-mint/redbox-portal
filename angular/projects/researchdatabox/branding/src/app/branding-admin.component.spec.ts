@@ -9,7 +9,7 @@ import { LoggerService, TranslationService, ConfigService, UtilityService } from
 import { getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 
 // Stubs mirroring those used in other specs (e.g., deleted-records)
-class LoggerStub { debug(){/*noop*/} error(){/*noop*/} }
+class LoggerStub { debug() {/*noop*/ } error() {/*noop*/ } }
 // Use existing helper stub factories for consistency
 const configStubInstance: any = getStubConfigService();
 const translationStubInstance: any = getStubTranslationService({});
@@ -18,8 +18,8 @@ const testConfig = { baseUrl: 'http://test', branding: 'default', portal: 'rdmp'
 configStubInstance.getConfig = async () => testConfig;
 configStubInstance.config = testConfig;
 class UtilityStub {
-  wait(ms: number){ return Promise.resolve(); }
-  async waitForDependencies(deps: any[]){
+  wait(ms: number) { return Promise.resolve(); }
+  async waitForDependencies(deps: any[]) {
     for (const d of deps) { if (d && typeof d.waitForInit === 'function') { await d.waitForInit(); } }
   }
 }
@@ -34,25 +34,25 @@ describe('BrandingAdminComponent', () => {
     await TestBed.configureTestingModule({
       imports: [BrandingAdminComponent, HttpClientTestingModule, FormsModule],
       providers: [
-  { provide: APP_BASE_HREF, useValue: '' },
-  { provide: LoggerService, useClass: LoggerStub },
-  { provide: TranslationService, useValue: translationStubInstance },
-  { provide: ConfigService, useValue: configStubInstance },
+        { provide: APP_BASE_HREF, useValue: '' },
+        { provide: LoggerService, useClass: LoggerStub },
+        { provide: TranslationService, useValue: translationStubInstance },
+        { provide: ConfigService, useValue: configStubInstance },
         { provide: UtilityService, useClass: UtilityStub },
         BrandingAdminService
       ]
     }).compileComponents();
 
-  httpMock = TestBed.inject(HttpTestingController);
-  brandingService = TestBed.inject(BrandingAdminService);
-  fixture = TestBed.createComponent(BrandingAdminComponent);
-  component = fixture.componentInstance;
-  // Explicitly wait for the service init (avoids race with BaseComponent async init)
-  await brandingService.waitForInit();
-  // NOTE: We intentionally do NOT call fixture.detectChanges() here so the component's
-  // BaseComponent-driven init (which would auto-call loadConfig) is skipped. Each test
-  // takes explicit control of when loadConfig is invoked, preventing stray unflushed
-  // HTTP GET /app/branding/config requests that were causing verify() failures.
+    httpMock = TestBed.inject(HttpTestingController);
+    brandingService = TestBed.inject(BrandingAdminService);
+    fixture = TestBed.createComponent(BrandingAdminComponent);
+    component = fixture.componentInstance;
+    // Explicitly wait for the service init (avoids race with BaseComponent async init)
+    await brandingService.waitForInit();
+    // NOTE: We intentionally do NOT call fixture.detectChanges() here so the component's
+    // BaseComponent-driven init (which would auto-call loadConfig) is skipped. Each test
+    // takes explicit control of when loadConfig is invoked, preventing stray unflushed
+    // HTTP GET /app/branding/config requests that were causing verify() failures.
   });
 
   // We'll manually verify inside each test after flushing expected requests to avoid timing races.
@@ -65,52 +65,88 @@ describe('BrandingAdminComponent', () => {
   it('loads config and sets publishedConfig', async () => {
     const loadPromise = component.loadConfig();
     const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-    cfgReq.flush({ branding: { variables: { 'primary-color': '#123456' }, version: 1 } });
+    cfgReq.flush({ branding: { variables: { primary: '#123456' }, version: 1 } });
     await loadPromise;
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#123456');
+    expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
     httpMock.verify();
+  });
+
+  it('filters legacy variables from draftConfig on load', async () => {
+    const loadPromise = component.loadConfig();
+    const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
+    cfgReq.flush({
+      branding: {
+        variables: {
+          primary: '#123456',
+          'branding-font-family': 'Arial, sans-serif',
+        },
+        version: 1
+      }
+    });
+    await loadPromise;
+
+    expect(component.draftConfig['primary']).toBe('#123456');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    httpMock.verify();
+  });
+
+  it('filters legacy variables when resetting the draft', () => {
+    component.publishedConfig = {
+      variables: {
+        primary: '#123456',
+        'branding-font-family': 'Arial, sans-serif',
+      },
+      version: '1'
+    };
+    component.draftConfig = { primary: '#abcdef' };
+
+    component.resetDraft();
+
+    expect(component.draftConfig['primary']).toBe('#123456');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    expect(component.message).toBe('Draft reset to published config');
   });
 
   it('saveDraft sets message on success', async () => {
     const loadPromise = component.loadConfig();
     httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
     await loadPromise;
-    component.draftConfig['primary-color'] = '#abcdef';
+    component.draftConfig['primary'] = '#abcdef';
     const savePromise = component.saveDraft();
     const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
     // Assert the POST body format is { variables: {...} }
     expect(saveReq.request.method).toBe('POST');
     expect(saveReq.request.body).toEqual({ variables: component.draftConfig });
-    saveReq.flush({ branding: { variables: { 'primary-color': '#abcdef' }, version: 1 } });
+    saveReq.flush({ branding: { variables: { primary: '#abcdef' }, version: 1 } });
     await savePromise;
     expect(component.message).toBe('Draft saved');
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#abcdef');
+    expect(component.publishedConfig?.variables?.['primary']).toBe('#abcdef');
     httpMock.verify();
   });
 
-  it('saveDraft shows error message on contrast violation', async () => {
+  it('saveDraft shows error message on invalid variables', async () => {
     const loadPromise = component.loadConfig();
     httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
     await loadPromise;
-    component.draftConfig['body-text-color'] = '#000000';
-    component.draftConfig['surface-color'] = '#000000';
+    component.draftConfig['branding-font-family'] = 'Arial, sans-serif';
     const savePromise = component.saveDraft();
     const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
-    saveReq.flush({ error: 'contrast-violation', message: 'contrast-violation: body-text-on-surface' }, { status: 400, statusText: 'Bad Request' });
-    await savePromise.catch(() => {});
-    expect(component.error).toContain('contrast-violation');
+    saveReq.flush({ error: 'invalid-variable', message: 'Invalid variable key: branding-font-family' }, { status: 400, statusText: 'Bad Request' });
+    await savePromise.catch(() => { });
+    expect(component.error).toContain('Invalid variable key: branding-font-family');
     httpMock.verify();
   });
 
   it('createPreview stores previewToken', async () => {
-    const loadPromise = component.loadConfig();
-    httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
-    await loadPromise;
-    const promise = component.createPreview();
-    const previewReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/preview'));
-    previewReq.flush({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
-    await promise;
+    component.draftConfig['primary'] = '#123456';
+    const componentBrandingService = (component as any).brandingService as BrandingAdminService;
+    const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#123456' }, version: 1 } });
+    const previewSpy = spyOn(componentBrandingService, 'createPreview').and.resolveTo({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
+    await component.createPreview();
+    expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
+    expect(previewSpy).toHaveBeenCalled();
     expect(component.previewToken).toBe('preview-token-123');
+    expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
     // Base/preview CSS URLs set after preview
     expect(component.previewBaseCssUrl).toContain('/styles/style.min.css');
     expect(component.previewCssUrl).toContain('/preview/preview-token-123.css');
@@ -132,23 +168,16 @@ describe('BrandingAdminComponent', () => {
     expect(allKeys).toContain('footer-bottom-area-branding-background-color');
   });
 
-  it('publish reloads config', async () => {
-  // Initial explicit config load
-  const initialLoad = component.loadConfig();
-  const firstCfg = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-  firstCfg.flush({ branding: { variables: {}, version: 1 } });
-  await initialLoad;
-  // Directly invoke service.publish to ensure request creation (component.publish wraps and then calls loadConfig)
-  const publishPromise = brandingService.publish({});
-  const publishReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/publish'));
-  publishReq.flush({ ok: true });
-  await publishPromise;
-  // Manually call component.loadConfig to simulate post-publish refresh
-  const reloadPromise = component.loadConfig();
-  const reloadReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-  reloadReq.flush({ branding: { variables: { 'primary-color': '#fff000' }, version: 2 } });
-  await reloadPromise;
-  expect(component.publishedConfig?.variables?.['primary-color']).toBe('#fff000');
-  httpMock.verify();
+  it('publish saves draft before publishing and reloads config', async () => {
+    component.publishedConfig = { variables: {}, version: '1' };
+    component.draftConfig['primary'] = '#fff000';
+    const componentBrandingService = (component as any).brandingService as BrandingAdminService;
+    const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#fff000' }, version: 1 } });
+    const publishSpy = spyOn(componentBrandingService, 'publish').and.resolveTo({ version: 2, hash: 'abcd' });
+    const loadSpy = spyOn(component, 'loadConfig').and.resolveTo();
+    await component.publish();
+    expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
+    expect(publishSpy).toHaveBeenCalledWith(1);
+    expect(loadSpy).toHaveBeenCalled();
   });
 });

@@ -609,16 +609,16 @@ export namespace Services {
       contextVariablesMap?: Record<string, unknown>
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+      const constructed = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding, {
         includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
       });
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-      contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
+      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
+      const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
       if (!result) {
         throw new Error(`The form config is invalid because all form fields were removed, ` +
           `the form config must have at least one field the current user can view: ${JSON.stringify({

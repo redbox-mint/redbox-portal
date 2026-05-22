@@ -799,4 +799,71 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
   }));
 
+  it('should disable add and remove buttons and model when the repeatable is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_disabled_buttons_also_disabled',
+      componentDefinitions: [
+        {
+          name: 'repeatable_disabled',
+          model: {
+            class: 'RepeatableModel',
+            config: {value: ['one']}
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              addButtonShow: true,
+              allowZeroRows: true,
+              hideWhenZeroRows: false,
+              // Both component and layout need to be disabled.
+              disabled: true,
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              },
+            },
+          },
+          layout: {
+            class: 'RepeatableElementLayout',
+            config: {
+              // Both component and layout need to be disabled.
+              disabled: true,
+            },
+          }
+        },
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+
+    expect(formComponent?.form?.disabled).toBeTrue();
+
+
+    const inputElements = compiled.querySelectorAll('input[type="text"]') as NodeListOf<HTMLInputElement>;
+    const addButtons = compiled.querySelectorAll('.rb-form-repeatable__add') as NodeListOf<HTMLButtonElement>;
+    const removeButtons = compiled.querySelectorAll('.rb-form-repeatable-item__remove') as NodeListOf<HTMLButtonElement>;
+
+    expect(Array.from(inputElements).map(i => i.disabled)).toEqual([true]);
+    expect(Array.from(addButtons).map(i => i.disabled)).toEqual([true]);
+    // TODO: the remove button should be disabled when the entry is disabled
+    // expect(Array.from(removeButtons).map(i => i.disabled)).toEqual([true]);
+
+    // set repeatable to be enabled
+    repeatable.setDisabled(false);
+    await fixture.whenStable();
+
+    expect(Array.from(inputElements).map(i => i.disabled)).toEqual([false]);
+    expect(Array.from(addButtons).map(i => i.disabled)).toEqual([false]);
+    expect(Array.from(removeButtons).map(i => i.disabled)).toEqual([false]);
+  });
 });

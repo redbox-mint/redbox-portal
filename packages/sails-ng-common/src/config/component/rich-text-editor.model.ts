@@ -50,8 +50,8 @@ export class RichTextEditorFieldComponentDefinition extends FieldComponentDefini
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitRichTextEditorFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRichTextEditorFieldComponentDefinition(this);
     }
 }
 
@@ -71,8 +71,8 @@ export class RichTextEditorFieldModelDefinition extends FieldModelDefinition<Ric
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitRichTextEditorFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRichTextEditorFieldModelDefinition(this);
     }
 }
 
@@ -87,8 +87,8 @@ export class RichTextEditorFormComponentDefinition extends FormComponentDefiniti
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRichTextEditorFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRichTextEditorFormComponentDefinition(this);
     }
 }
 

@@ -18,7 +18,7 @@ export function isTypeFormValidatorDefinition(item: unknown): item is FormValida
     const hasExpectedPropMessage = 'message' in i && guessType(i.message) === 'string';
     const hasExpectedPropMessageValue = i.message?.toString()?.trim().length > 0;
 
-    const hasExpectedPropCreate = 'create' in i;
+    const hasExpectedPropCreate = 'create' in i || 'createAsync' in i;
 
     return hasExpectedPropClass && hasExpectedPropClassValue
         && hasExpectedPropMessage && hasExpectedPropMessageValue

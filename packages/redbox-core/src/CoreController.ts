@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import { ILogger } from './Logger';
+import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -341,6 +342,46 @@ export namespace Controllers.Core {
       this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
 
       res.view(resolvedView, mergedLocal);
+    }
+
+    protected getSiteTitle(locals?: Record<string, unknown>): string {
+      return resolveSiteTitle('Site', locals);
+    }
+
+    protected formatDocumentTitle(pageTitle?: unknown, locals?: Record<string, unknown>): string {
+      const siteTitle = this.getSiteTitle(locals);
+      const resolvedPageTitle = String(pageTitle ?? '').trim();
+
+      if (!resolvedPageTitle || resolvedPageTitle === siteTitle) {
+        return siteTitle;
+      }
+
+      return `${resolvedPageTitle} | ${siteTitle}`;
+    }
+
+    protected translate(key: string, locals?: Record<string, unknown>): string {
+      return resolveTranslation(key, locals);
+    }
+
+    protected resolvePageTitleFromLocals(locals?: Record<string, unknown>): string | undefined {
+      if (!locals) {
+        return undefined;
+      }
+
+      if (typeof locals.pageTitle === 'string') {
+        const literalPageTitle = locals.pageTitle.trim();
+        if (literalPageTitle) {
+          return literalPageTitle;
+        }
+      }
+
+      const pageTitleKey = typeof locals.pageTitleKey === 'string' ? locals.pageTitleKey.trim() : '';
+      if (!pageTitleKey) {
+        return undefined;
+      }
+
+      const translatedTitle = resolveTranslation(pageTitleKey, locals);
+      return translatedTitle || undefined;
     }
 
     /**

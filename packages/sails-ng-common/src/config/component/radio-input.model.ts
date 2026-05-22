@@ -42,8 +42,8 @@ export class RadioInputFieldComponentDefinition extends FieldComponentDefinition
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitRadioInputFieldComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRadioInputFieldComponentDefinition(this);
     }
 }
 
@@ -66,8 +66,8 @@ export class RadioInputFieldModelDefinition extends FieldModelDefinition<RadioIn
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline): void {
-        visitor.visitRadioInputFieldModelDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRadioInputFieldModelDefinition(this);
     }
 }
 
@@ -82,8 +82,8 @@ export class RadioInputFormComponentDefinition extends FormComponentDefinition i
         super();
     }
 
-    accept(visitor: FormConfigVisitorOutline) {
-        visitor.visitRadioInputFormComponentDefinition(this);
+    async accept(visitor: FormConfigVisitorOutline) {
+        await visitor.visitRadioInputFormComponentDefinition(this);
     }
 }
 

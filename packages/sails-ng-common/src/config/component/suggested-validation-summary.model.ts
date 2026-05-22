@@ -29,8 +29,8 @@ export class SuggestedValidationSummaryFieldComponentDefinition extends FieldCom
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitSuggestedValidationSummaryFieldComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitSuggestedValidationSummaryFieldComponentDefinition(this);
   }
 }
 
@@ -43,8 +43,8 @@ export class SuggestedValidationSummaryFormComponentDefinition extends FormCompo
     super();
   }
 
-  accept(visitor: FormConfigVisitorOutline): void {
-    visitor.visitSuggestedValidationSummaryFormComponentDefinition(this);
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitSuggestedValidationSummaryFormComponentDefinition(this);
   }
 }
 

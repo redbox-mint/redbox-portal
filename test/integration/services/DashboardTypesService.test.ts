@@ -6,15 +6,18 @@ declare var global: any;
 describe('DashboardTypesService', function () {
     let originalRecordTypesService;
     let originalWorkflowStepsService;
+    let originalDashboardConfigService;
 
     before(function () {
         originalRecordTypesService = global.RecordTypesService;
         originalWorkflowStepsService = global.WorkflowStepsService;
+        originalDashboardConfigService = global.DashboardConfigService;
     });
 
     after(function () {
         global.RecordTypesService = originalRecordTypesService;
         global.WorkflowStepsService = originalWorkflowStepsService;
+        global.DashboardConfigService = originalDashboardConfigService;
     });
 
     // Helper to mock Waterline queries which are expected by CoreService.getObservable
@@ -50,6 +53,7 @@ describe('DashboardTypesService', function () {
              
              global.DashboardType = {
                  find: () => Promise.resolve([]),
+                 findOne: () => mockQuery(null),
                  create: (data) => mockQuery(data)
              };
              
@@ -67,7 +71,55 @@ describe('DashboardTypesService', function () {
             global.sails.config.appmode = { bootstrapAlways: false };
 
             const result = await DashboardTypesService.bootstrap({ id: 'brand1' });
-            expect(result).to.deep.equal(mockDashboardTypes);
+            expect(result).to.deep.equal([{
+                name: 'existing',
+                description: undefined,
+                formatRules: {},
+                searchable: true,
+                system: false,
+                tableConfig: {
+                    rowConfig: [
+                        {
+                            title: 'Record Title',
+                            variable: 'metadata.title',
+                            template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
+            <span class="dashboard-controls">
+              {{#if hasEditAccess}}
+                <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+              {{/if}}
+            </span>
+          `,
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-ci',
+                            variable: 'metadata.contributor_ci.text_full_name',
+                            template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-data-manager',
+                            variable: 'metadata.contributor_data_manager.text_full_name',
+                            template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-created',
+                            variable: 'metaMetadata.createdOn',
+                            template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
+                            initialSort: 'desc'
+                        },
+                        {
+                            title: 'header-modified',
+                            variable: 'metaMetadata.lastSaveDate',
+                            template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
+                            initialSort: 'desc',
+                            defaultSort: true
+                        }
+                    ]
+                }
+            }]);
+            expect(result[0].tableConfig.rowConfig).to.be.an('array').that.is.not.empty;
         });
     });
 
@@ -148,6 +200,10 @@ describe('DashboardTypesService', function () {
             global.WorkflowStepsService = {
                 get: () => of({ config: { dashboard: { table: explicitConfig } } })
             };
+            global.DashboardConfigService = {
+                getMergedDashboardTableConfig: () => Promise.resolve(null),
+                getMergedDashboardTypeFormatRules: () => Promise.resolve({ filterBy: {}, queryFilters: {} })
+            };
 
             const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft');
 
@@ -161,6 +217,7 @@ describe('DashboardTypesService', function () {
 
         it('should extract templates from queryFilters in DashboardType config', async function () {
             let originalDashboardType = global.DashboardType;
+            let originalDashboardConfigService = global.DashboardConfigService;
             
             // Mock RecordTypesService
             global.RecordTypesService = {
@@ -190,6 +247,10 @@ describe('DashboardTypesService', function () {
             global.DashboardType = {
                 findOne: () => mockQuery(mockDashboardType)
             };
+            global.DashboardConfigService = {
+                getMergedDashboardTableConfig: () => Promise.resolve(null),
+                getMergedDashboardTypeFormatRules: () => Promise.resolve(mockDashboardType.formatRules)
+            };
             
             try {
                 const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft', 'standard');
@@ -199,6 +260,7 @@ describe('DashboardTypesService', function () {
                 expect(filterTemplate.key).to.include('filters');
             } finally {
                 global.DashboardType = originalDashboardType;
+                global.DashboardConfigService = originalDashboardConfigService;
             }
         });
     });

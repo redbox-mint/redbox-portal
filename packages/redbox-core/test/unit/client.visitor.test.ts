@@ -44,14 +44,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: "edit",
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
 
       expect(repeatableConfig.addButtonShow).to.equal(false);
@@ -59,7 +59,7 @@ describe("Client Visitor", async () => {
       expect(repeatableConfig.hideWhenZeroRows).to.equal(true);
     });
 
-    it('should propagate syncSources through sharedPopulateFieldComponentConfig', () => {
+    it('should propagate syncSources through sharedPopulateFieldComponentConfig', async () => {
       const args: FormConfigFrame = {
         name: 'repeatable-sync-sources-preserve',
         componentDefinitions: [
@@ -96,14 +96,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
 
       expect(repeatableConfig.syncSources).to.deep.equal([
@@ -222,14 +222,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
 
       expect(value).to.have.length(1);
@@ -297,14 +297,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
 
       expect(value).to.have.length(1);
@@ -366,14 +366,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const repeatable = actual.componentDefinitions?.[0];
 
       expect(repeatable.component?.config?.visible).to.equal(false);
@@ -424,14 +424,14 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       const repeatable = actual.componentDefinitions?.[0];
       const repeatableValue = repeatable?.model?.config?.value as unknown[] | undefined;
       const repeatableConfig = repeatable?.component?.config as RepeatableFieldComponentConfigFrame | undefined;
@@ -486,7 +486,7 @@ describe("Client Visitor", async () => {
       };
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: args,
         reusableFormDefs: reusableFormDefinitions,
         formMode: 'edit',
@@ -499,7 +499,7 @@ describe("Client Visitor", async () => {
       });
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({
+      const actual = await visitor.start({
         form: constructed,
         reusableFormDefs: reusableFormDefinitions,
         formMode: 'edit',
@@ -549,14 +549,14 @@ describe("Client Visitor", async () => {
     const args = formConfigExample1;
 
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       data: args,
       formMode: "edit",
       reusableFormDefs: reusableFormDefinitions,
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({form: constructed});
+    const actual = await visitor.start({form: constructed});
 
     const stringified = JSON.stringify(actual);
 
@@ -1178,10 +1178,10 @@ describe("Client Visitor", async () => {
   cases.forEach(({title, args, expected}) => {
     it(`should ${title}`, async function () {
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({data: args, formMode: "edit"});
+      const constructed = await constructor.start({data: args, formMode: "edit"});
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const actual = visitor.start({form: constructed});
+      const actual = await visitor.start({form: constructed});
       expect(actual).to.eql(expected);
     });
   });
@@ -1226,14 +1226,14 @@ describe("Client Visitor", async () => {
     };
 
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       data: formConfig,
       formMode: "edit",
       record: {text_2: "text_2_value"}
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({
+    const actual = await visitor.start({
       form: constructed,
       formMode: "view",
       userRoles: ["Librarian"],
@@ -1243,7 +1243,7 @@ describe("Client Visitor", async () => {
 
   it(`should keep transformed accordion in view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "view",
       data: {
         name: "form",
@@ -1271,13 +1271,13 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
   });
 
   it(`should prune edit-only repeatables nested in transformed tabs for view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "view",
       record: { finalKeywords: ["alpha", "beta"] },
       data: {
@@ -1330,7 +1330,7 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     const accordion = actual.componentDefinitions[0];
     expect(accordion.component.class).to.eql("AccordionComponent");
     const panel = (accordion.component.config as any).panels?.[0];
@@ -1340,7 +1340,7 @@ describe("Client Visitor", async () => {
 
   it(`should keep explicit view repeatables in view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "view",
       record: { actions: ["Edit this plan", "Create a data record from this plan"] },
       data: {
@@ -1371,13 +1371,13 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     expect(actual.componentDefinitions[0].component.class).to.eql("RepeatableComponent");
   });
 
   it(`should prune edit-only repeatables in view mode before view transforms`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "view",
       data: {
         name: "form",
@@ -1427,13 +1427,79 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     expect(actual.componentDefinitions ?? []).to.have.length(0);
+  });
+
+  it(`should omit non-renderable fields from group view transforms`, async function () {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = await constructor.start({
+      formMode: "view",
+      data: {
+        name: "form",
+        componentDefinitions: [
+          {
+            name: "contributor",
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "name",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Mrs First01 Last01" } },
+                    layout: { class: "DefaultLayout", config: { label: "Name" } },
+                  },
+                  {
+                    name: "email",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "first01.last01@example.com" } },
+                    layout: { class: "DefaultLayout", config: { label: "Email" } },
+                  },
+                  {
+                    name: "given_name",
+                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "First01" } },
+                    layout: { class: "DefaultLayout", config: { visible: false } },
+                  },
+                  {
+                    name: "family_name",
+                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Last01" } },
+                    layout: { class: "DefaultLayout", config: { visible: false } },
+                  },
+                  {
+                    name: "nickname",
+                    component: { class: "SimpleInputComponent", config: {} },
+                    model: { class: "SimpleInputModel", config: { defaultValue: "Nick01" } },
+                    layout: { class: "DefaultLayout", config: { label: "Nickname", visible: false } },
+                  },
+                ]
+              }
+            },
+            model: { class: "GroupModel", config: {} }
+          }
+        ]
+      }
+    });
+
+    const visitor = new ClientFormConfigVisitor(logger);
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
+    const transformed = actual.componentDefinitions[0];
+
+    expect(transformed.component.class).to.equal("ContentComponent");
+    const template = (transformed.component.config as { template?: string }).template ?? "";
+    expect(template).to.contain("Name");
+    expect(template).to.contain("Email");
+    expect(template).to.not.contain("given_name");
+    expect(template).to.not.contain("family_name");
+    expect(template).to.not.contain("Nickname");
+    expect(template).to.not.contain("nickname");
   });
 
   it(`should keep action row groups in view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "view",
       data: {
         name: "form",
@@ -1468,14 +1534,14 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     expect(actual.componentDefinitions[0].component.class).to.eql("GroupComponent");
     expect(actual.componentDefinitions[0].layout?.class).to.eql("ActionRowLayout");
   });
 
   it(`should keep tab in edit mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       formMode: "edit",
       data: {
         name: "form",
@@ -1503,7 +1569,7 @@ describe("Client Visitor", async () => {
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "edit" });
+    const actual = await visitor.start({ form: constructed, formMode: "edit" });
     expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
   });
 
@@ -1735,16 +1801,24 @@ describe("Client Visitor", async () => {
     };
 
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       data: formConfig,
       formMode: "edit",
       reusableFormDefs: reusableFormDefinitions,
     });
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({form: constructed});
+    const actual = await visitor.start({form: constructed});
 
     expect(actual).to.containSubset(expected);
+    const questionTree = actual.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
+    for (const componentDefinition of questionTree.component.config?.componentDefinitions ?? []) {
+      for (const expression of componentDefinition.expressions ?? []) {
+        if (expression.config.template !== undefined) {
+          expect(expression.config.hasTemplate, expression.name).to.equal(true);
+        }
+      }
+    }
   });
 
   it("should transform question tree answers to content in view mode", async () => {
@@ -1803,7 +1877,7 @@ describe("Client Visitor", async () => {
     };
 
     const constructor = new ConstructFormConfigVisitor(logger);
-    const constructed = constructor.start({
+    const constructed = await constructor.start({
       data: formConfig,
       formMode: "view",
       reusableFormDefs: reusableFormDefinitions,
@@ -1830,7 +1904,7 @@ describe("Client Visitor", async () => {
     }
 
     const visitor = new ClientFormConfigVisitor(logger);
-    const actual = visitor.start({ form: constructed, formMode: "view" });
+    const actual = await visitor.start({ form: constructed, formMode: "view" });
     const transformed = actual.componentDefinitions[0];
 
     expect(transformed.component.class).to.equal("ContentComponent");
@@ -2039,7 +2113,7 @@ describe("Client Visitor", async () => {
 
 
       const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = constructor.start({
+      const constructed = await constructor.start({
         data: serverFormConfig,
         formMode: "edit",
         reusableFormDefs: reusableFormDefinitions,
@@ -2049,7 +2123,7 @@ describe("Client Visitor", async () => {
       await vocabVisitor.resolveVocabs(constructed, 'default');
 
       const visitor = new ClientFormConfigVisitor(logger);
-      const result = visitor.start({form: constructed});
+      const result = await visitor.start({form: constructed});
       expect(result.componentDefinitions).to.have.length(3);
       const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
       expect(qt.component.config?.componentDefinitions).to.have.length(4);
@@ -2166,7 +2240,7 @@ describe("Client Visitor", async () => {
     };
 
     const constructVisitor = new ConstructFormConfigVisitor(logger);
-    const constructForm = constructVisitor.start({
+    const constructForm = await constructVisitor.start({
       data,
       formMode: 'edit',
       reusableFormDefs: reusableFormDefinitions,
@@ -2174,7 +2248,7 @@ describe("Client Visitor", async () => {
     // expect(constructForm).to.containSubset(expected);
 
     const clientFormVisitor = new ClientFormConfigVisitor(logger);
-    const clientForm = clientFormVisitor.start({
+    const clientForm = await clientFormVisitor.start({
       form: constructForm,
       formMode: 'edit',
       reusableFormDefs: reusableFormDefinitions,

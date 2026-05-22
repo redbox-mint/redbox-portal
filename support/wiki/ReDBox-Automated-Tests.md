@@ -39,11 +39,13 @@ These tests run the Sails.js backend logic in a Docker container.
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
     - Always includes the bootstrap test (`test/bootstrap.test.ts` when present, otherwise `test/bootstrap.test.js`).
     - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
+    - Live external-network integration tests are disabled by default. Enable them with `RUN_LIVE_INTEGRATION_TESTS=true` when you want to verify real downstream services from a dev environment.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
     - **Fast Mode**: Use `npm run test:mocha:mount` to mount your local source into the container for dev and avoid image rebuilds.
     - **CI Mode**: `npm run test:mocha` runs against the locally built image (the CircleCI path).
     - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
       - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
+      - Example live run: `RUN_LIVE_INTEGRATION_TESTS=true RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/FormVocabularyService.test.ts" npm run test:mocha:mount`
 
 Relevant current coverage includes `test/integration/services/AdminUserManagementAjax.test.ts`, which verifies the CSRF-backed admin user-management AJAX routes for link-candidate search, linking, linked-account retrieval, disable/enable, and user-audit retrieval.
 
@@ -97,4 +99,4 @@ Some packages have their own independent test suites.
   Runs Mocha tests specifically for the shared models package.
 
 ## Continuous Integration
-Tests are automatically run in CircleCI on every push. See `.circleci/config.yml` for the full pipeline definition.
+Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
