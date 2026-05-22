@@ -350,7 +350,7 @@ export class FormDebugStateService implements OnDestroy {
       return {};
     }
     try {
-      return cloneData(cleaned, {order: ['structuredClone', 'jsonParseStringify'], onAllErrorThrow: true});
+      return cloneData(cleaned, {order: ['structuredClone', 'jsonParseStringify'], onAllErrorThrow: true}) as Record<string, unknown>;
     } catch (err) {
       return {};
     }
