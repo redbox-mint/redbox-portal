@@ -517,6 +517,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           closeOnSave, redirectLocation, redirectDelaySeconds,
         });
       });
+    this.subMaps['saveSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnSave) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
+      });
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
       .subscribe(async (evt) => {
@@ -525,6 +537,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           redirectLocation: evt.redirectLocation,
           redirectDelaySeconds: evt.redirectDelaySeconds,
         });
+      });
+    this.subMaps['deleteSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DELETE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnDelete) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              // if closeOnDelete is true, but no redirect is specified, go to the previous page.
+              historyDelta: !evt?.redirectLocation ? -1: undefined,
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
       });
     // Listen for any changes components have made to their own definitions and update the query source
     this.subMaps['componentDefChangesRequestSub'] = this.eventBus
@@ -589,6 +615,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.broadcastFormStatus();
 
         this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
+      });
+
+    this.subMaps['redirectRequestedSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
+      .subscribe(evt => {
+        this.doRedirect({
+          historyDelta: evt?.historyDelta,
+          redirectLocation: evt?.redirectLocation,
+          redirectDelaySeconds: evt?.redirectDelaySeconds,
+        })
       });
 
     if (this.form) {
@@ -1095,19 +1131,42 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         )
-
-        if (options?.closeOnDelete && !_isEmpty(options?.redirectLocation)) {
-          const redirectLocation = this.resolveRedirectLocation(String(options.redirectLocation), oid);
-          const redirectDelaySeconds = Math.max(0, Number(options.redirectDelaySeconds ?? 3));
-          window.setTimeout(() => {
-            window.location.href = redirectLocation;
-          }, redirectDelaySeconds * 1000);
-        }
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
+    }
+  }
+
+  /**
+   * Redirect to another page.
+   * @param options
+   */
+  public doRedirect(options?: {
+    historyDelta?: number,
+    redirectLocation?: string,
+    redirectDelaySeconds?: number,
+  }) {
+    const historyDelta = options?.historyDelta;
+    const redirectLocation = options?.redirectLocation;
+    const redirectDelayMs = Math.max(0, options?.redirectDelaySeconds ?? 3) * 1000;
+
+    if (!!historyDelta && !!redirectLocation) {
+      throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
+    }
+    if (!historyDelta && !redirectLocation) {
+      throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
+    }
+
+    if (historyDelta) {
+      window.setTimeout(() => {
+        window.history.go(historyDelta);
+      }, redirectDelayMs);
+    } else if (redirectLocation) {
+      window.setTimeout(() => {
+        window.location.href = redirectLocation;
+      }, redirectDelayMs);
     }
   }
 
