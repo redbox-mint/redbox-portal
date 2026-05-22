@@ -1118,8 +1118,10 @@ export class FormService extends HttpClientService {
           // Add the mapEntry's children if any of the mapEntry's lineagePaths start with the target.
           if (typeof target === 'string' && !!target && typeof value === 'string' && value.startsWith(target)) {
             collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+            break;
           } else if (Array.isArray(value) && Array.isArray(target) && arrayStartsWithArray(value, target)) {
             collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+            break;
           }
         }
       }
