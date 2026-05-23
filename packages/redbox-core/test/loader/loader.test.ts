@@ -300,6 +300,157 @@ describe('redbox-loader', function () {
             await fsPromises.mkdir(configDir, { recursive: true });
         });
 
+        it('should append agendaQueue jobs from hooks instead of merging by array index', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                {
+                    agendaQueue: {
+                        jobs: [
+                            { name: 'core-a', fnName: 'core.a' },
+                            { name: 'core-b', fnName: 'core.b' }
+                        ]
+                    }
+                },
+                {
+                    agendaQueue: {
+                        jobs: [
+                            { name: 'hook-c', fnName: 'hook.c' }
+                        ]
+                    }
+                }
+            );
+
+            expect((merged.agendaQueue as any).jobs).to.deep.equal([
+                { name: 'core-a', fnName: 'core.a' },
+                { name: 'core-b', fnName: 'core.b' },
+                { name: 'hook-c', fnName: 'hook.c' }
+            ]);
+        });
+
+        it('should deep-merge duplicate agendaQueue jobs with later sources winning', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                {
+                    agendaQueue: {
+                        jobs: [
+                            {
+                                name: 'core-a',
+                                fnName: 'core.a',
+                                options: {
+                                    lockLifetime: 3000,
+                                    concurrency: 1
+                                }
+                            },
+                            { name: 'core-b', fnName: 'core.b' }
+                        ]
+                    }
+                },
+                {
+                    agendaQueue: {
+                        jobs: [
+                            {
+                                name: 'core-a',
+                                options: {
+                                    concurrency: 5
+                                }
+                            },
+                            { name: 'hook-c', fnName: 'hook.c' }
+                        ]
+                    }
+                }
+            );
+
+            expect((merged.agendaQueue as any).jobs).to.deep.equal([
+                {
+                    name: 'core-a',
+                    fnName: 'core.a',
+                    options: {
+                        lockLifetime: 3000,
+                        concurrency: 5
+                    }
+                },
+                { name: 'core-b', fnName: 'core.b' },
+                { name: 'hook-c', fnName: 'hook.c' }
+            ]);
+        });
+
+        it('should support configured merge keys other than name', function () {
+            redboxLoader.NAMED_CONFIG_ARRAY_PATHS['sample.providers'] = { key: 'id' };
+            try {
+                const merged = redboxLoader.mergeRedboxConfig(
+                    {
+                        sample: {
+                            providers: [
+                                { id: 'a', enabled: false, options: { retries: 1 } }
+                            ]
+                        }
+                    },
+                    {
+                        sample: {
+                            providers: [
+                                { id: 'a', enabled: true },
+                                { id: 'b', enabled: true }
+                            ]
+                        }
+                    }
+                );
+
+                expect((merged.sample as any).providers).to.deep.equal([
+                    { id: 'a', enabled: true, options: { retries: 1 } },
+                    { id: 'b', enabled: true }
+                ]);
+            } finally {
+                delete redboxLoader.NAMED_CONFIG_ARRAY_PATHS['sample.providers'];
+            }
+        });
+
+        it('should append unkeyed items in configured named arrays', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                {
+                    agendaQueue: {
+                        jobs: [
+                            { name: 'core-a', fnName: 'core.a' }
+                        ]
+                    }
+                },
+                {
+                    agendaQueue: {
+                        jobs: [
+                            { fnName: 'hook.unnamed' }
+                        ]
+                    }
+                }
+            );
+
+            expect((merged.agendaQueue as any).jobs).to.deep.equal([
+                { name: 'core-a', fnName: 'core.a' },
+                { fnName: 'hook.unnamed' }
+            ]);
+        });
+
+        it('should keep existing lodash array merge behavior for non-allowlisted arrays', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                {
+                    sample: {
+                        items: [
+                            { first: true },
+                            { second: true }
+                        ]
+                    }
+                },
+                {
+                    sample: {
+                        items: [
+                            { hook: true }
+                        ]
+                    }
+                }
+            );
+
+            expect((merged.sample as any).items).to.deep.equal([
+                { first: true, hook: true },
+                { second: true }
+            ]);
+        });
+
         it('should sanitize package names with dots when generating config shims', async function () {
             const hookConfigs = [
                 { name: '@org/test.hook', module: '@org/test.hook' }
@@ -318,6 +469,84 @@ describe('redbox-loader', function () {
                 content.includes("const _org_test_hook_config = require('@org/test.hook').registerRedboxConfig();")
             )).to.be.true;
             expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
+            expect(shimContents.some(content => content.includes("const { Config, Loader } = require('@researchdatabox/redbox-core');"))).to.be.true;
+            expect(shimContents.some(content => content.includes('Loader.mergeRedboxConfig'))).to.be.true;
+        });
+
+        it('should generate agendaQueue shim that merges hook jobs by name', async function () {
+            const hookConfigs = [
+                { name: 'test-hook', module: 'test-hook' }
+            ];
+
+            await redboxLoader.generateConfigShims(configDir, hookConfigs);
+
+            const content = await fsPromises.readFile(path.join(configDir, 'agendaQueue.js'), 'utf8');
+            const sandbox = {
+                module: { exports: {} as Record<string, unknown> },
+                require: (moduleName: string) => {
+                    if (moduleName === '@researchdatabox/redbox-core') {
+                        return {
+                            Config: {
+                                agendaQueue: {
+                                    jobs: [
+                                        { name: 'core-a', fnName: 'core.a' }
+                                    ]
+                                }
+                            },
+                            Loader: redboxLoader
+                        };
+                    }
+                    if (moduleName === 'test-hook') {
+                        return {
+                            registerRedboxConfig: () => ({
+                                agendaQueue: {
+                                    jobs: [
+                                        { name: 'hook-b', fnName: 'hook.b' }
+                                    ]
+                                }
+                            })
+                        };
+                    }
+                    throw new Error(`Unexpected module: ${moduleName}`);
+                }
+            };
+
+            vm.runInNewContext(content, sandbox);
+
+            expect((sandbox.module.exports.agendaQueue as any).jobs).to.deep.equal([
+                { name: 'core-a', fnName: 'core.a' },
+                { name: 'hook-b', fnName: 'hook.b' }
+            ]);
+        });
+
+        it('should use named array merge behavior in pre-lift snapshots', async function () {
+            process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
+            const hookName = 'test-hook';
+            await createHookModule(
+                sandboxDir,
+                hookName,
+                { name: hookName, version: '1.0.0' },
+                `module.exports.registerRedboxConfig = function() {
+                    return {
+                        agendaQueue: {
+                            jobs: [
+                                { name: 'hook-snapshot-job', fnName: 'hook.snapshot' }
+                            ]
+                        }
+                    };
+                };`
+            );
+
+            await redboxLoader.generatePreLiftSnapshot(sandboxDir, [
+                { name: hookName, module: path.join(sandboxDir, 'node_modules', hookName) }
+            ]);
+
+            const snapshotPath = path.join(sandboxDir, 'support', 'debug-config', 'pre-lift-config.json');
+            const snapshot = JSON.parse(await fsPromises.readFile(snapshotPath, 'utf8'));
+            const jobNames = snapshot.agendaQueue.jobs.map((job: { name: string }) => job.name);
+
+            expect(jobNames).to.include('SolrSearchService-CreateOrUpdateIndex');
+            expect(jobNames).to.include('hook-snapshot-job');
         });
     });
 

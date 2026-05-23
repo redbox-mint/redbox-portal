@@ -80,6 +80,20 @@ module.exports.registerRedboxConfig = function() {
 
 Hook configurations are merged with core defaults in alphabetical order by package name.
 
+Most config values use the normal deep-merge behavior. Some config arrays are
+allowlisted as keyed arrays so hooks can add or override entries without
+replacing array items by index. For example, `agendaQueue.jobs` is merged by
+each job's `name` field:
+
+- A hook job with a new `name` is appended after the existing jobs.
+- A hook job with an existing `name` deep-merges with that job and the hook
+  value wins for conflicting fields.
+- Existing job order is preserved; new hook jobs are appended in hook load
+  order.
+
+Additional keyed arrays can be added in the loader by configuring a path and
+key field, for example `someConfig.providers` with key `id`.
+
 ## Environment variables
 
 It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as Docker. Please see [Sails configuration documentation for more information](https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables).

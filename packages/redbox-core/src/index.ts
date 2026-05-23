@@ -127,6 +127,7 @@ export { Config, SailsConfig } from './config';
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
 export { generateAllShims } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult } from './loader/index';
+export * as Loader from './loader';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';
 
