@@ -334,10 +334,11 @@ export namespace Services {
           || primaryDisk.exists(destKey);
       }
 
+      const metadata = await stagingDisk.getMetaData(fileId);
       const readable = await stagingDisk.getStream(fileId);
 
       try {
-        await primaryDisk.putStream(destKey, readable);
+        await this.putStagedObject(primaryDisk, destKey, stagingDisk, fileId, readable, metadata.contentLength);
       } catch (err) {
         readable.destroy();
         if (!this.isStorageAlreadyExistsError(err) || !(await primaryDisk.exists(destKey))) {
@@ -377,9 +378,10 @@ export namespace Services {
         return false;
       }
 
+      const contentLength = await this.sumDiskObjectContentLength(stagingDisk, partKeys);
       const readable = Readable.from(this.streamDiskObjects(stagingDisk, partKeys));
       try {
-        await primaryDisk.putStream(destKey, readable);
+        await primaryDisk.putStream(destKey, readable, { contentLength });
         await stagingDisk.deleteAll(this.tusPartsPrefix(fileId));
         await stagingDisk.delete(this.tusInfoKey(fileId)).catch((err) => {
           if (!this.isStorageNotFoundError(err)) {
@@ -415,6 +417,15 @@ export namespace Services {
         return candidate.name;
       }
       return undefined;
+    }
+
+    private async sumDiskObjectContentLength(stagingDisk: IDisk, keys: string[]): Promise<number> {
+      let total = 0;
+      for (const key of keys) {
+        const metadata = await stagingDisk.getMetaData(key);
+        total += metadata.contentLength;
+      }
+      return total;
     }
 
     private tusPartsPrefix(fileId: string): string {
@@ -483,8 +494,12 @@ export namespace Services {
           mergeMap(form => {
 
             const reqs: Promise<unknown>[] = [];
-            const attachmentFields = form?.configuration?.attachmentFields;
-            if (attachmentFields) {
+            const attachmentFields = _.get(
+              form,
+              'configuration.attachmentFields',
+              _.get(form, 'attachmentFields', [])
+            ) as string[];
+            if (attachmentFields.length > 0) {
               typedRecord.metaMetadata.attachmentFields = attachmentFields;
 
               for (const attField of attachmentFields) {
@@ -589,9 +604,10 @@ export namespace Services {
         return { success: true, key: destKey };
       }
 
+      const metadata = await effectiveStagingDisk.getMetaData(fileId);
       const readable = await effectiveStagingDisk.getStream(fileId);
       try {
-        await primaryDisk.putStream(destKey, readable);
+        await this.putStagedObject(primaryDisk, destKey, effectiveStagingDisk, fileId, readable, metadata.contentLength);
       } catch (err) {
         readable.destroy();
         throw err;
@@ -602,6 +618,50 @@ export namespace Services {
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
       return { success: true, key: destKey };
+    }
+
+    private async putStagedObject(
+      primaryDisk: IDisk,
+      destKey: string,
+      stagingDisk: IDisk,
+      fileId: string,
+      readable: Readable,
+      contentLength: number
+    ): Promise<void> {
+      try {
+        await primaryDisk.putStream(destKey, readable, { contentLength });
+      } catch (err) {
+        if (!this.isNonRetryableStreamingWriteError(err)) {
+          throw err;
+        }
+        const bytes = await this.readDiskObjectToBuffer(stagingDisk, fileId);
+        await primaryDisk.put(destKey, bytes, { contentLength: bytes.length });
+      }
+    }
+
+    private async readDiskObjectToBuffer(stagingDisk: IDisk, fileId: string): Promise<Buffer> {
+      const readable = await stagingDisk.getStream(fileId);
+      return this.readStreamToBuffer(readable);
+    }
+
+    private async readStreamToBuffer(readable: Readable): Promise<Buffer> {
+      const chunks: Buffer[] = [];
+      for await (const chunk of readable) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    }
+
+    private isNonRetryableStreamingWriteError(err: unknown): boolean {
+      const candidates = [
+        err,
+        _.get(err, 'cause'),
+        _.get(err, 'cause.cause'),
+      ];
+      return candidates.some((candidate) => {
+        const message = String(_.get(candidate, 'message', '')).toLowerCase();
+        return message.includes('non-retryable streaming request');
+      });
     }
 
     private async afterDatastreamPromoted(oid: string, fileId: string, destKey: string, datastream: Datastream): Promise<void> {

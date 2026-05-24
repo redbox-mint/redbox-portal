@@ -759,6 +759,52 @@ describe('StorageManagerService', function () {
       expect(capturedOpts.visibility).to.equal('private');
     });
 
+    it('should normalize string S3 boolean options from environment config', async function () {
+      mockSails.config.storage.disks = {
+        s3disk: {
+          driver: 's3',
+          config: {
+            key: 'AK',
+            secret: 'SK',
+            bucket: 'my-bucket',
+            region: 'us-east-1',
+            forcePathStyle: 'true',
+            bucketEndpoint: 'false',
+            tls: 'false',
+            useAccelerateEndpoint: 'true',
+            supportsACL: 'false',
+          },
+        },
+      };
+      mockSails.config.storage.stagingDisk = undefined;
+      mockSails.config.storage.primaryDisk = undefined;
+      setupServiceTestGlobals(mockSails);
+
+      const { Services } = require('../../src/services/StorageManagerService');
+      const service = new Services.StorageManager();
+
+      let capturedOpts: any = null;
+      (service as any)._DiskConstructor = class {
+        constructor(_driver: unknown) { }
+        exists() {
+          return Promise.resolve(false);
+        }
+      };
+      (service as any)._S3Driver = class {
+        constructor(opts: any) {
+          capturedOpts = opts;
+        }
+      };
+
+      await service.bootstrap();
+
+      expect(capturedOpts.forcePathStyle).to.equal(true);
+      expect(capturedOpts.bucketEndpoint).to.equal(false);
+      expect(capturedOpts.tls).to.equal(false);
+      expect(capturedOpts.useAccelerateEndpoint).to.equal(true);
+      expect(capturedOpts.supportsACL).to.equal(false);
+    });
+
     it('should omit extended S3 driver options when they are not configured', async function () {
       mockSails.config.storage.disks = {
         s3disk: {
@@ -798,7 +844,7 @@ describe('StorageManagerService', function () {
       expect(capturedOpts).to.not.have.property('bucketEndpoint');
       expect(capturedOpts).to.not.have.property('tls');
       expect(capturedOpts).to.not.have.property('useAccelerateEndpoint');
-      expect(capturedOpts).to.not.have.property('supportsACL');
+      expect(capturedOpts.supportsACL).to.equal(false);
       expect(capturedOpts.visibility).to.equal('public');
     });
   });

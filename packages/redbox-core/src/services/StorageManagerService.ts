@@ -252,6 +252,8 @@ export namespace Services {
             region: diskConf.config.region,
             bucket: diskConf.config.bucket,
             visibility,
+            requestChecksumCalculation: diskConf.config.requestChecksumCalculation ?? 'WHEN_REQUIRED',
+            supportsACL: this.normalizeOptionalBoolean(diskConf.config.supportsACL) ?? false,
           };
           const accessKeyId = String(diskConf.config.key ?? '').trim();
           const secretAccessKey = String(diskConf.config.secret ?? '').trim();
@@ -265,19 +267,16 @@ export namespace Services {
             opts.endpoint = diskConf.config.endpoint;
           }
           if (diskConf.config.forcePathStyle !== undefined) {
-            opts.forcePathStyle = diskConf.config.forcePathStyle;
+            opts.forcePathStyle = this.normalizeOptionalBoolean(diskConf.config.forcePathStyle);
           }
           if (diskConf.config.bucketEndpoint !== undefined) {
-            opts.bucketEndpoint = diskConf.config.bucketEndpoint;
+            opts.bucketEndpoint = this.normalizeOptionalBoolean(diskConf.config.bucketEndpoint);
           }
           if (diskConf.config.tls !== undefined) {
-            opts.tls = diskConf.config.tls;
+            opts.tls = this.normalizeOptionalBoolean(diskConf.config.tls);
           }
           if (diskConf.config.useAccelerateEndpoint !== undefined) {
-            opts.useAccelerateEndpoint = diskConf.config.useAccelerateEndpoint;
-          }
-          if (diskConf.config.supportsACL !== undefined) {
-            opts.supportsACL = diskConf.config.supportsACL;
+            opts.useAccelerateEndpoint = this.normalizeOptionalBoolean(diskConf.config.useAccelerateEndpoint);
           }
           return new this._S3Driver(opts);
         }
@@ -299,6 +298,22 @@ export namespace Services {
 
     private normalizeGridFSString(value: string | undefined, fallback: string): string {
       return typeof value === 'string' && value.trim() ? value : fallback;
+    }
+
+    private normalizeOptionalBoolean(value: unknown): boolean | undefined {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') {
+          return true;
+        }
+        if (normalized === 'false') {
+          return false;
+        }
+      }
+      return undefined;
     }
 
     /**
