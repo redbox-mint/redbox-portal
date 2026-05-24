@@ -1,4 +1,4 @@
-import { FormValidatorControl, FormValidatorDefinition } from "./form.model";
+import { FormValidatorDefinition } from "./form.model";
 import {
   formValidatorGetDefinitionArray,
   formValidatorGetDefinitionBoolean,
@@ -9,7 +9,6 @@ import {
   formValidatorLengthOrSize
 } from "./helpers";
 import { JSONataEvaluate } from "../jsonata-helpers";
-import { cloneData } from "../config/helpers";
 
 
 /**
@@ -366,7 +365,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
 
         let value;
         try {
-          value = cloneData(control.value, {onAllErrorThrow: true});
+          value = structuredClone(control.value);
         } catch (err) {
           success = false;
           console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: control value cannot be cloned`);
