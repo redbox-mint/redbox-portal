@@ -184,6 +184,14 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayComponentName,
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+  RecordMetadataDisplayModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RecordMetadataDisplayFieldComponentConfig, RecordMetadataDisplayFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorComponentName,
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
@@ -466,6 +474,16 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     ANDSVocabComponent: {
       componentClassName: CheckboxTreeComponentName,
       modelClassName: CheckboxTreeModelName,
+    },
+  },
+  RecordMetadataDisplay: {
+    '': {
+      componentClassName: RecordMetadataDisplayComponentName,
+      modelClassName: RecordMetadataDisplayModelName,
+    },
+    RecordMetadataDisplayComponent: {
+      componentClassName: RecordMetadataDisplayComponentName,
+      modelClassName: RecordMetadataDisplayModelName,
     },
   },
   RelatedObjectSelector: {
@@ -1875,6 +1893,22 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new RecordMetadataDisplayFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new RecordMetadataDisplayFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 

@@ -84,6 +84,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -424,6 +429,18 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(_item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> { }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    this.setFromModelDefinition(item);
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

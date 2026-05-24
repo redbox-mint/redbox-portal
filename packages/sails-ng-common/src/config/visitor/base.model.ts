@@ -110,6 +110,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '../component/checkbox-tree.outline';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '../component/record-metadata-display.outline';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -472,6 +477,20 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();
   }
 

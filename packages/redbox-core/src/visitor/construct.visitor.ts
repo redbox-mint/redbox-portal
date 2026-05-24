@@ -248,6 +248,16 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { CheckboxTreeFieldComponentConfig, CheckboxTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayComponentName,
+  RecordMetadataDisplayFieldComponentDefinitionFrame,
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionFrame,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+  RecordMetadataDisplayModelName,
+} from '@researchdatabox/sails-ng-common';
+import { RecordMetadataDisplayFieldComponentConfig, RecordMetadataDisplayFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorComponentName,
   RecordSelectorFieldComponentDefinitionFrame,
   RecordSelectorFieldComponentDefinitionOutline,
@@ -1764,6 +1774,56 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<RecordMetadataDisplayFieldComponentDefinitionFrame>(
+        currentData,
+        RecordMetadataDisplayComponentName
+      )
+    ) {
+      throw new Error(
+        `Invalid ${RecordMetadataDisplayComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new RecordMetadataDisplayFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('template', item.config, config);
+    this.sharedProps.setPropOverride('itemTemplate', item.config, config);
+    this.sharedProps.setPropOverride('emptyContent', item.config, config);
+    this.sharedProps.setPropOverride('loadingContent', item.config, config);
+    this.sharedProps.setPropOverride('errorContent', item.config, config);
+    this.sharedProps.setPropOverride('failedItemContent', item.config, config);
+    this.sharedProps.setPropOverride('renderMode', item.config, config);
+    this.sharedProps.setPropOverride('separator', item.config, config);
+    this.sharedProps.setPropOverride('tableColumns', item.config, config);
+    this.sharedProps.setPropOverride('metadataAlias', item.config, config);
+    this.sharedProps.setPropOverride('hasTemplate', item.config, config);
+    this.sharedProps.setPropOverride('hasItemTemplate', item.config, config);
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RecordMetadataDisplayFieldModelDefinitionFrame>(currentData, RecordMetadataDisplayModelName)) {
+      throw new Error(
+        `Invalid ${RecordMetadataDisplayModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    item.config = new RecordMetadataDisplayFieldModelConfig();
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.setModelValue(item, currentData?.config);
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 

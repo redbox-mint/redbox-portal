@@ -7,6 +7,7 @@ import {
   getStubTranslationService,
   LoggerService,
   providePortalI18nTesting,
+  RecordService,
   TranslationService,
   UtilityService
 } from "@researchdatabox/portal-ng-common";
@@ -25,6 +26,7 @@ import {
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
 import { FormValidationGroupsChangeInitial } from "./form-state";
+import { RecordMetadataDisplayDataService } from "./service/record-metadata-display-data.service";
 import { VocabTreeService } from "./service/vocab-tree.service";
 import { setUpDynamicAssets } from "./helpers.spec";
 import { FormControl } from "@angular/forms";
@@ -35,9 +37,12 @@ describe('The FormService', () => {
   const translationService = getStubTranslationService();
   let service: FormService;
   let httpTesting: HttpTestingController;
+  let recordService: jasmine.SpyObj<RecordService>;
   const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
   beforeEach(() => {
     (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
+    recordService = jasmine.createSpyObj<RecordService>('RecordService', ['waitForInit', 'getRecordMeta']);
+    recordService.waitForInit.and.resolveTo(recordService);
     TestBed.configureTestingModule({
       providers: [
         {
@@ -56,6 +61,10 @@ describe('The FormService', () => {
         },
         Title,
         FormService,
+        {
+          provide: RecordService,
+          useValue: recordService
+        },
         VocabTreeService,
         providePortalI18nTesting(),
         provideHttpClient(),
@@ -76,6 +85,16 @@ describe('The FormService', () => {
 
   it('should create an instance', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('should delegate oid model data lookups to RecordService', async () => {
+    recordService.getRecordMeta.and.resolveTo({ data: { title: 'Existing record' } } as never);
+
+    const result = await service.getModelData('oid-1');
+
+    expect(recordService.waitForInit).toHaveBeenCalled();
+    expect(recordService.getRecordMeta).toHaveBeenCalledWith('oid-1');
+    expect(result).toEqual({ title: 'Existing record' });
   });
 
   it('should resolve accordion component classes from static map', async () => {
@@ -486,5 +505,37 @@ describe('The FormService', () => {
     expect(seedVocabSpy).toHaveBeenCalled();
     expect(createSpy).toHaveBeenCalled();
     expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
+  });
+
+  it("should seed record metadata prehydrate payload before creating form components", async function () {
+    const basicFormConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      componentDefinitions: []
+    };
+    const recordMetadataService = TestBed.inject(RecordMetadataDisplayDataService);
+    const seedRecordMetadataSpy = spyOn(recordMetadataService, 'seedFromPayload');
+    const createSpy = spyOn(service, 'createFormComponentsMap').and.resolveTo({ formConfigMeta: {} } as any);
+
+    const promise = service.downloadFormComponents('oid', 'auto', false, '', []);
+    const req = httpTesting.expectOne((request) =>
+      request.url.startsWith('http://localhost/default/rdmp/record/form/auto/oid'));
+    req.flush({
+      data: basicFormConfig,
+      meta: {},
+      prehydrate: {
+        recordMetadata: {
+          'oid-1': { oid: 'oid-1', data: { title: 'Related title' } }
+        }
+      }
+    });
+    await promise;
+
+    expect(seedRecordMetadataSpy).toHaveBeenCalledWith({
+      recordMetadata: {
+        'oid-1': { oid: 'oid-1', data: { title: 'Related title' } }
+      }
+    });
+    expect(createSpy).toHaveBeenCalled();
   });
 });

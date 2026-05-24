@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareService';
 import { ServiceExports } from '../../src/services';

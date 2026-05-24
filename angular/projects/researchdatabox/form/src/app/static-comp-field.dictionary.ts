@@ -37,6 +37,7 @@ import {
   PublishDataLocationSelectorModel,
 } from './component/publish-data-location-selector.component';
 import { PublishDataLocationRefreshComponent } from './component/publish-data-location-refresh.component';
+import { RecordMetadataDisplayComponent, RecordMetadataDisplayModel } from './component/record-metadata-display.component';
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { FormFieldBaseComponent, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
@@ -62,6 +63,8 @@ import {
   DataLocationModelName,
   PublishDataLocationRefreshComponentName,
   PublishDataLocationSelectorModelName,
+  RecordMetadataDisplayComponentName,
+  RecordMetadataDisplayModelName,
   RecordMetadataRetrieverComponentName,
   RepeatableComponentName,
   SaveButtonComponentName,
@@ -136,6 +139,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [MapComponentName]: MapComponent,
   [FileUploadComponentName]: FileUploadComponent,
   [PDFListComponentName]: PDFListComponent,
+  [RecordMetadataDisplayComponentName]: RecordMetadataDisplayComponent,
   [RecordMetadataRetrieverComponentName]: RecordMetadataRetrieverComponent,
   // Register as component-only on purpose; refresh clicks should not create a
   // backing model object in submitted form data.
@@ -170,6 +174,7 @@ export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [MapModelName]: MapModel,
   [FileUploadModelName]: FileUploadModel,
   [PDFListModelName]: PDFListModel,
+  [RecordMetadataDisplayModelName]: RecordMetadataDisplayModel,
   [DataLocationModelName]: DataLocationModel,
   [PublishDataLocationSelectorModelName]: PublishDataLocationSelectorModel,
 });

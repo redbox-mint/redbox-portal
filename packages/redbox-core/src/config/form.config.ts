@@ -23,6 +23,7 @@ export interface FormConfig {
     prehydrate?: {
         enabled: boolean;
         maxVocabSelections?: number;
+        maxRecordMetadataOids?: number;
     };
 }
 

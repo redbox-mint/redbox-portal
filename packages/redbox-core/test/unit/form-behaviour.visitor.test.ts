@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { TemplateFormConfigVisitor } from '../../src/visitor/template.visitor';

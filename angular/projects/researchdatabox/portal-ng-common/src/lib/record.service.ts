@@ -202,17 +202,13 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  public async getRecordMeta(oid: string) {
-    // Cache-bust metadata reads so publication refreshes do not reuse a stale
-    // browser response after the related record has been saved elsewhere.
-    const ts = Date.now();
-    let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}?ts=${ts}`;
-    const result$ = this.http.get(url).pipe(map(res => res));
-    let result = await firstValueFrom(result$);
-    return result;
+  public async getRecordMeta(oid: string): Promise<Record<string, unknown>> {
+    // Keep the plain metadata read routed through the shared implementation so
+    // callers do not fork endpoint construction and cache-busting behavior.
+    return await this.getRecordMetaWithOptions(oid);
   }
 
-  public async getRecordMetaWithOptions(oid: string, options: { includeRelationships?: boolean; relationshipDepth?: number; relationshipFields?: 'summary' | 'full' } = {}) {
+  public async getRecordMetaWithOptions(oid: string, options: { includeRelationships?: boolean; relationshipDepth?: number; relationshipFields?: 'summary' | 'full' } = {}): Promise<Record<string, unknown>> {
     const ts = Date.now();
     let params = new HttpParams().set('ts', String(ts));
     if (options.includeRelationships) {
@@ -227,13 +223,18 @@ export class RecordService extends HttpClientService {
 
     const requestOptions = this.getHttpOptions();
     const url = `${this.brandingAndPortalUrl}/record/metadata/${oid}`;
-    const httpOptions = {
-      ...requestOptions,
-      observe: 'body' as const,
-      responseType: 'json' as const,
+    const httpOptions: {
+      context?: typeof requestOptions.context;
+      observe: 'body';
+      responseType: 'json';
+      params: HttpParams;
+    } = {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
       params,
     };
-    const result$ = this.http.get(url, httpOptions).pipe(map(res => res));
+    const result$ = this.http.get<Record<string, unknown>>(url, httpOptions).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 

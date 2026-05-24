@@ -67,6 +67,7 @@ import { PDFListComponent } from './component/pdf-list.component';
 import { DataLocationComponent } from './component/data-location.component';
 import { PublishDataLocationRefreshComponent } from './component/publish-data-location-refresh.component';
 import { PublishDataLocationSelectorComponent } from './component/publish-data-location-selector.component';
+import { RecordMetadataDisplayComponent } from './component/record-metadata-display.component';
 import { RecordMetadataRetrieverComponent } from './component/record-metadata-retriever.component';
 import { A11yModule } from '@angular/cdk/a11y';
 import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
@@ -115,6 +116,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     MapComponent,
     FileUploadComponent,
     PDFListComponent,
+    RecordMetadataDisplayComponent,
     RecordMetadataRetrieverComponent,
     // Dedicated V5 replacement for the legacy publish-data-location refresh button.
     PublishDataLocationRefreshComponent,

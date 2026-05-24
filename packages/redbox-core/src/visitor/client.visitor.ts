@@ -84,6 +84,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -745,6 +750,39 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+    const config = item.config as {
+      template?: string;
+      itemTemplate?: string;
+      hasTemplate?: boolean;
+      hasItemTemplate?: boolean;
+      tableColumns?: Array<{ template?: string; hasTemplate?: boolean }>;
+    } | undefined;
+    if (config?.template) {
+      config.hasTemplate = true;
+    }
+    if (config?.itemTemplate) {
+      config.hasItemTemplate = true;
+    }
+    for (const column of config?.tableColumns ?? []) {
+      if (column?.template) {
+        column.hasTemplate = true;
+      }
+    }
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    this.processFieldModelDefinition(item);
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

@@ -1,9 +1,12 @@
-process.env.TS_NODE_PROJECT = process.env.TS_NODE_PROJECT || 'test/tsconfig.json';
+const path = require('node:path');
+
+process.env.TS_NODE_PROJECT = process.env.TS_NODE_PROJECT || path.join(__dirname, 'test/tsconfig.json');
+process.env.TS_NODE_FILES = process.env.TS_NODE_FILES || 'true';
 
 module.exports = {
     extension: ['ts'],
     spec: ['test/**/*.test.ts'],
-    require: ['ts-node/register', 'test/setup.ts'],
+    require: ['chai/register-expect.js', 'ts-node/register', path.join(__dirname, 'test/setup.ts')],
     timeout: 5000
 };
 

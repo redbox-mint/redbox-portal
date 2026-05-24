@@ -85,6 +85,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -432,6 +437,26 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(_item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> { }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    const modelValue = item?.config?.value ?? item?.config?.defaultValue;
+    if (Array.isArray(modelValue)) {
+      _set(this.jsonTypeDef, this.jsonTypeDefPath, {
+        elements: { type: 'string' }
+      });
+      return;
+    }
+
+    _set(this.jsonTypeDef, this.jsonTypeDefPath, { type: 'string' });
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

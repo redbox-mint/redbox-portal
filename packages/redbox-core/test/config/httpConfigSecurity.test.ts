@@ -1,6 +1,6 @@
-import { expect } from 'chai';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
+import { createMockSails, setupServiceTestGlobals } from '../services/testHelper';
 import {
   buildCompanionSendTokenConfig,
   buildCompanionSendTokenHtml,
@@ -94,6 +94,7 @@ describe('HTTP config security helpers', function () {
     let originalCustomConfig: unknown;
 
     beforeEach(function () {
+      setupServiceTestGlobals(createMockSails());
       originalSessionConfig = (global as any).sails.config.session;
       originalCustomConfig = (global as any).sails.config.custom;
       (global as any).sails.config.session = { cookie: { maxAge: 600000 } };

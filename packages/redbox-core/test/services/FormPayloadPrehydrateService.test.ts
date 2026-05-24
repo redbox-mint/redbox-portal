@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
@@ -13,6 +12,7 @@ describe('FormPayloadPrehydrateService', function () {
           prehydrate: {
             enabled: true,
             maxVocabSelections: 50,
+            maxRecordMetadataOids: 50,
           }
         }
       },
@@ -43,6 +43,21 @@ describe('FormPayloadPrehydrateService', function () {
         { id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' },
       ]),
     };
+    (global as any).RecordsService = {
+      getMeta: sinon.stub().callsFake(async (oid: string) => ({
+        redboxOid: oid,
+        metadata: { title: `Title ${oid}` },
+        metaMetadata: {},
+      })),
+      hasViewAccess: sinon.stub().returns(true),
+    };
+    (global as any).FormsService = {
+      getFormByName: sinon.stub(),
+      buildClientFormConfig: sinon.stub(),
+    };
+    (global as any).FormRecordConsistencyService = {
+      mergeRecordClientFormConfig: sinon.stub(),
+    };
 
     const { Services } = require('../../src/services/FormPayloadPrehydrateService');
     service = new Services.FormPayloadPrehydrateService();
@@ -51,6 +66,9 @@ describe('FormPayloadPrehydrateService', function () {
   afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).VocabularyService;
+    delete (global as any).RecordsService;
+    delete (global as any).FormsService;
+    delete (global as any).FormRecordConsistencyService;
     sinon.restore();
   });
 
@@ -135,5 +153,141 @@ describe('FormPayloadPrehydrateService', function () {
     expect(payload?.vocabTrees?.anzsrc?.selectedNotations).to.deep.equal(['0101']);
     expect(payload?.vocabTrees?.anzsrc?.childrenByParentId.__root__).to.exist;
     expect(payload).to.not.have.property('typeaheadLabels');
+  });
+
+  it('extracts record metadata targets from nested groups, tabs and panels', function () {
+    const extracted = service.extractRecordMetadataTargets({
+      name: 'test-form',
+      componentDefinitions: [
+        {
+          name: 'group',
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'display-1',
+                  component: { class: 'RecordMetadataDisplayComponent', config: {} },
+                  model: { config: { value: 'oid-1' } }
+                }
+              ]
+            }
+          }
+        },
+        {
+          name: 'tabs',
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'display-2',
+                          component: { class: 'RecordMetadataDisplayComponent', config: {} },
+                          model: { config: { value: ['oid-2', 'oid-1'] } }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          name: 'accordion',
+          component: {
+            class: 'AccordionComponent',
+            config: {
+              panels: [
+                {
+                  component: {
+                    class: 'AccordionPanelComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'display-3',
+                          component: { class: 'RecordMetadataDisplayComponent', config: {} },
+                          model: { config: { value: ['oid-3', ''] } }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    });
+
+    expect(extracted).to.deep.equal([
+      { oid: 'oid-1' },
+      { oid: 'oid-2' },
+      { oid: 'oid-3' },
+    ]);
+  });
+
+  it('builds record metadata payloads and tolerates partial lookup failures', async function () {
+    (global as any).RecordsService.getMeta = sinon.stub().callsFake(async (oid: string) => {
+      if (oid === 'oid-fail') {
+        throw new Error('boom');
+      }
+      return {
+        redboxOid: oid,
+        metadata: { title: `Title ${oid}` },
+        metaMetadata: {},
+      };
+    });
+
+    const payload = await service.build({
+      branding: { id: 'default', name: 'default' },
+      user: { roles: [] },
+      formConfig: {
+        name: 'test-form',
+        componentDefinitions: [
+          {
+            name: 'display',
+            component: { class: 'RecordMetadataDisplayComponent', config: {} },
+            model: { config: { value: ['oid-1', 'oid-fail', 'oid-1'] } }
+          }
+        ]
+      },
+    });
+
+    expect((global as any).RecordsService.getMeta.calledTwice).to.be.true;
+    expect(payload?.recordMetadata).to.deep.equal({
+      'oid-1': { oid: 'oid-1', data: { title: 'Title oid-1' } },
+      'oid-fail': { oid: 'oid-fail', error: true }
+    });
+  });
+
+  it('omits inaccessible records from record metadata prehydrate', async function () {
+    (global as any).RecordsService.hasViewAccess = sinon.stub().callsFake((_branding: unknown, _user: unknown, _roles: unknown, record: any) => {
+      return record.redboxOid !== 'oid-hidden';
+    });
+
+    const payload = await service.build({
+      branding: { id: 'default', name: 'default' },
+      user: { roles: [] },
+      formConfig: {
+        name: 'test-form',
+        componentDefinitions: [
+          {
+            name: 'display',
+            component: { class: 'RecordMetadataDisplayComponent', config: {} },
+            model: { config: { value: ['oid-visible', 'oid-hidden'] } }
+          }
+        ]
+      },
+    });
+
+    expect(payload?.recordMetadata).to.deep.equal({
+      'oid-visible': { oid: 'oid-visible', data: { title: 'Title oid-visible' } }
+    });
   });
 });

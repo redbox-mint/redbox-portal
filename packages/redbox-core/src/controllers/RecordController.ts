@@ -626,7 +626,8 @@ export namespace Controllers {
         const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
         const prehydrate = await prehydrateService.build({
           branding: brand,
-          formConfig: mergedForm
+          formConfig: mergedForm,
+          user: req.user ?? {}
         });
 
         // return the form config

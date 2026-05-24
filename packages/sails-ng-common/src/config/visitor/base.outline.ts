@@ -107,6 +107,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '../component/checkbox-tree.outline';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '../component/record-metadata-display.outline';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -348,6 +353,14 @@ export interface FormConfigVisitorOutline {
   visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void>;
 
   visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void>;
+
+  /* Record Metadata Display */
+
+  visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void>;
+
+  visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void>;
+
+  visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void>;
 
   /* Record Selector */
 

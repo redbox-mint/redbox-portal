@@ -35,6 +35,7 @@ import { DateInputTypes } from './component/date-input.outline';
 import {  ReusableTypes} from './component/reusable.outline';
 import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
+import { RecordMetadataDisplayTypes } from './component/record-metadata-display.outline';
 import { RecordSelectorTypes } from './component/record-selector.outline';
 import { TypeaheadInputTypes } from './component/typeahead-input.outline';
 import { RichTextEditorTypes } from './component/rich-text-editor.outline';
@@ -81,6 +82,7 @@ export type AllTypes =
   | ReusableTypes
   | QuestionTreeTypes
   | CheckboxTreeTypes
+  | RecordMetadataDisplayTypes
   | RecordSelectorTypes
   | TypeaheadInputTypes
   | RichTextEditorTypes

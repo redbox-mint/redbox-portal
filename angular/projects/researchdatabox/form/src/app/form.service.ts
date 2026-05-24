@@ -42,6 +42,7 @@ import {
   HttpClientService,
   JSONataClientQuerySourceProperty,
   LoggerService, ModifyOptions,
+  RecordService,
   TranslationService,
   UtilityService
 } from '@researchdatabox/portal-ng-common';
@@ -81,6 +82,7 @@ import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
 import { FormValidationGroupsChangeInitial } from "./form-state";
+import { RecordMetadataDisplayDataService } from './service/record-metadata-display-data.service';
 import { VocabTreeService } from './service/vocab-tree.service';
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
@@ -142,6 +144,8 @@ export class FormService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(RecordMetadataDisplayDataService) private recordMetadataDisplayDataService: RecordMetadataDisplayDataService,
+    @Inject(RecordService) private recordService: RecordService,
     @Inject(VocabTreeService) private vocabTreeService: VocabTreeService,
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -226,6 +230,7 @@ export class FormService extends HttpClientService {
     }
 
     this.vocabTreeService.seedFromPayload(formConfigResp?.prehydrate);
+    this.recordMetadataDisplayDataService.seedFromPayload(formConfigResp?.prehydrate);
 
     // This form config is the top of the lineage.
     const parentLineagePaths = this.buildLineagePaths({
@@ -848,11 +853,15 @@ export class FormService extends HttpClientService {
       throw new Error("Must provide oid or recordType.")
     }
 
-    const ts = new Date().getTime().toString();
+    if (oid) {
+      await this.recordService.waitForInit();
+      const result = await this.recordService.getRecordMeta(oid) as { data?: Record<string, unknown> };
+      this.loggerService.info(`Get model data from RecordService for oid: ${oid}`, result);
+      return result?.['data'] ?? {};
+    }
 
-    const url = oid
-      ? new URL(`${this.brandingAndPortalUrl}/record/metadata/${oid}`)
-      : new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
+    const ts = new Date().getTime().toString();
+    const url = new URL(`${this.brandingAndPortalUrl}/record/default/${recordType}`);
     url.searchParams.set('ts', ts);
 
     const result = await firstValueFrom(this.http.get<{ data: Record<string, unknown> }>(url.href, this.requestOptions));

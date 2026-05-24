@@ -17,6 +17,8 @@ import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
@@ -98,6 +100,10 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     await item.model?.accept(this);
   }
 
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
+    await item.model?.accept(this);
+  }
+
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
   }
@@ -165,6 +171,10 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
 
   async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
     await this.replaceModelConfigStringValues(item.config);
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigDeepValues(item.config);
   }
 
   async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {

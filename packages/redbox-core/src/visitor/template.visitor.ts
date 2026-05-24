@@ -84,6 +84,11 @@ import {
   CheckboxTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RecordMetadataDisplayFieldComponentDefinitionOutline,
+  RecordMetadataDisplayFieldModelDefinitionOutline,
+  RecordMetadataDisplayFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RecordSelectorFieldComponentDefinitionOutline,
   RecordSelectorFieldModelDefinitionOutline,
   RecordSelectorFormComponentDefinitionOutline,
@@ -446,6 +451,48 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* Record Metadata Display */
+
+  async visitRecordMetadataDisplayFieldComponentDefinition(item: RecordMetadataDisplayFieldComponentDefinitionOutline): Promise<void> {
+    const template = (item.config?.template ?? '').trim();
+    if (template) {
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'template'],
+        value: template,
+        kind: 'handlebars',
+      });
+    }
+
+    const itemTemplate = (item.config?.itemTemplate ?? '').trim();
+    if (itemTemplate) {
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'itemTemplate'],
+        value: itemTemplate,
+        kind: 'handlebars',
+      });
+    }
+
+    for (const [index, column] of (item.config?.tableColumns ?? []).entries()) {
+      const columnTemplate = String(column?.template ?? '').trim();
+      if (!columnTemplate) {
+        continue;
+      }
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'tableColumns', String(index), 'template'],
+        value: columnTemplate,
+        kind: 'handlebars',
+      });
+    }
+  }
+
+  async visitRecordMetadataDisplayFieldModelDefinition(item: RecordMetadataDisplayFieldModelDefinitionOutline): Promise<void> {
+    await this.extractValidators(item.config?.validators);
+  }
+
+  async visitRecordMetadataDisplayFormComponentDefinition(item: RecordMetadataDisplayFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

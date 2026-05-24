@@ -16,6 +16,13 @@ export interface FormPrehydrateVocabTreePayload {
   selectedNotations: string[];
 }
 
+export interface FormPrehydrateRecordMetadataItem {
+  oid: string;
+  data?: Record<string, unknown>;
+  error?: true;
+}
+
 export interface FormPrehydratePayload {
   vocabTrees?: Record<string, FormPrehydrateVocabTreePayload>;
+  recordMetadata?: Record<string, FormPrehydrateRecordMetadataItem>;
 }

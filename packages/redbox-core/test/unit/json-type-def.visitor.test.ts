@@ -343,6 +343,50 @@ describe("JSON Type Def Schema Visitor", async () => {
                     }
                 }
             }
+        },
+        {
+            title: "create record metadata display schema from model values",
+            args: {
+                name: "record-metadata-display-form",
+                componentDefinitions: [
+                    {
+                        name: "single_related_record",
+                        component: {
+                            class: "RecordMetadataDisplayComponent"
+                        },
+                        model: {
+                            class: "RecordMetadataDisplayModel",
+                            config: {
+                                defaultValue: null
+                            }
+                        }
+                    },
+                    {
+                        name: "multiple_related_records",
+                        component: {
+                            class: "RecordMetadataDisplayComponent"
+                        },
+                        model: {
+                            class: "RecordMetadataDisplayModel",
+                            config: {
+                                defaultValue: ["oid-1", "oid-2"]
+                            }
+                        }
+                    }
+                ]
+            },
+            expected: {
+                properties: {
+                    single_related_record: {
+                        type: "string"
+                    },
+                    multiple_related_records: {
+                        elements: {
+                            type: "string"
+                        }
+                    }
+                }
+            }
         }
     ];
     cases.forEach(({title, args, expected}) => {
