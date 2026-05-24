@@ -47,7 +47,6 @@
     "@types/sinon": "21.0.1",
     "@types/node": "24.12.0",
     "chai": "6.2.2",
-    "fs": "0.0.1-security",
     "luxon": "3.7.2",
     "mocha": "11.7.5",
     "mocha-junit-reporter": "2.2.1",
