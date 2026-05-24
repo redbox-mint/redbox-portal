@@ -1609,13 +1609,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       (config as { headerActions?: AvailableFormComponentDefinitionFrames[] } | undefined)?.headerActions ?? [],
       this.reusableFormDefs
     );
-    item.config.headerActions = headerActionsRaw.map((componentDefinition, index) => {
+    item.config.headerActions = [];
+    for (const [index, componentDefinition] of headerActionsRaw.entries()) {
       const formComponent = this.constructFormComponent(componentDefinition);
-      this.formPathHelper.acceptFormPath(formComponent, {
+      await this.formPathHelper.acceptFormPath(formComponent, {
         formConfig: ['config', 'headerActions', index.toString()],
       });
-      return this.applyConstructPhaseTransform(formComponent);
-    });
+      item.config.headerActions.push(this.applyConstructPhaseTransform(formComponent));
+    }
   }
 
   async visitPublishDataLocationSelectorFieldModelDefinition(
