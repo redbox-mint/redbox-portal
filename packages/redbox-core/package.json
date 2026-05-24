@@ -85,7 +85,7 @@
     "sails-mongo": "2.1.2",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
-    "skipper": "0.9.6",
+    "skipper": "0.9.7",
     "skipper-gridfs": "1.0.2",
     "typescript": "5.9.2",
     "typescript-json-schema": "0.67.1",
