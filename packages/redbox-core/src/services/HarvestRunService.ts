@@ -200,7 +200,7 @@ export namespace Services {
 
     private getHarvestRunCollection(): HarvestRunCollection | null {
       const datastore = typeof HarvestRun.getDatastore === 'function'
-        ? HarvestRun.getDatastore() as { manager?: { collection?: (name: string) => HarvestRunCollection } } | null
+        ? HarvestRun.getDatastore() as unknown as { manager?: { collection?: (name: string) => HarvestRunCollection } } | null
         : null;
       if (!datastore?.manager || typeof datastore.manager.collection !== 'function') {
         return null;
@@ -653,6 +653,50 @@ export namespace Services {
       for (let index = 0; index < events.length; index += batchSize) {
         await HarvestRecordEvent.createEach(events.slice(index, index + batchSize));
       }
+    }
+
+    private buildCountersFromTrackedEvents(events: HarvestRecordEventRow[]): HarvestCounterSummary {
+      const counters = this.buildEmptyCounters();
+      for (const event of events) {
+        this.incrementCounters(counters, ((event.outcome as HarvestOutcome) ?? HarvestOutcome.failed));
+      }
+      return counters;
+    }
+
+    private async listCheckpointedChunkEvents(
+      runId: string | undefined,
+      brandId: string,
+      chunkIds: string[]
+    ): Promise<HarvestRecordEventRow[]> {
+      const resolvedChunkIds = _.uniq(chunkIds.filter(chunkId => !_.isEmpty(chunkId)));
+      if (_.isEmpty(runId) || resolvedChunkIds.length === 0) {
+        return [];
+      }
+      return await HarvestRecordEvent.find({
+        runId,
+        brandId,
+        chunkId: { in: resolvedChunkIds },
+      }).sort('createdAt ASC') as HarvestRecordEventRow[];
+    }
+
+    private async checkpointChunkProgress(
+      chunkId: string | undefined,
+      recordCount: number,
+      counters: HarvestCounterSummary
+    ): Promise<void> {
+      if (_.isEmpty(chunkId)) {
+        return;
+      }
+      await HarvestRunChunk.updateOne({ id: chunkId }).set({
+        recordCount,
+        totalProcessed: counters.totalProcessed,
+        created: counters.created,
+        updated: counters.updated,
+        deleted: counters.deleted,
+        unchanged: counters.unchanged,
+        failed: counters.failed,
+        responseSummary: this.buildChunkResponseSummary(counters),
+      });
     }
 
     private canonicalizeValue(value: unknown, seen = new WeakSet<object>()): unknown {
@@ -1268,6 +1312,9 @@ export namespace Services {
       }
 
       const processingChunk = existingChunks.find(chunk => chunk.status === HarvestChunkStatus.processing);
+      const resumeChunkIds = existingChunks
+        .filter(chunk => chunk.status === HarvestChunkStatus.failed || chunk.status === HarvestChunkStatus.failedStale)
+        .map(chunk => String(chunk.id ?? ''));
       if (processingChunk) {
         if (!this.isProcessingChunkStale(processingChunk)) {
           throw new HarvestRunServiceError('Chunk is already processing', 409);
@@ -1277,6 +1324,12 @@ export namespace Services {
           completedAt: this.nowIso(),
           errorMessage: 'Processing chunk was marked stale before retry.',
         });
+        resumeChunkIds.push(String(processingChunk.id ?? ''));
+      }
+
+      const checkpointedEvents = await this.listCheckpointedChunkEvents(run.id, brandId, resumeChunkIds);
+      if (checkpointedEvents.length > request.records.length) {
+        throw new HarvestRunServiceError('Tracked harvest retry state is inconsistent with the submitted payload.', 409);
       }
 
       const submittedAt = this.nowIso();
@@ -1304,8 +1357,8 @@ export namespace Services {
         responseSummary: this.buildChunkResponseSummary(this.buildEmptyCounters()),
       }).fetch() as HarvestRunChunkRow;
 
+      const counters = this.buildCountersFromTrackedEvents(checkpointedEvents);
       try {
-        const counters = this.buildEmptyCounters();
         const duplicateHarvestIds = this.getDuplicateHarvestIds(request.records);
         const existingByHarvestId = await this.findExistingTrackedHarvestRecordsBatch(
           brandId,
@@ -1317,11 +1370,13 @@ export namespace Services {
           existingByHarvestId,
           events: [],
         };
-        for (const record of request.records) {
+        for (const record of request.records.slice(checkpointedEvents.length)) {
           const result = await this.processTrackedRecord(brand, recordTypeModel, run, createdChunk, record, user, context);
+          await this.persistTrackedEvents(context.events);
+          context.events = [];
           this.incrementCounters(counters, result.outcome as HarvestOutcome);
+          await this.checkpointChunkProgress(createdChunk.id, request.records.length, counters);
         }
-        await this.persistTrackedEvents(context.events);
 
         const completedAt = this.nowIso();
         const chunkUpdates: Partial<HarvestRunChunkRow> = {
@@ -1346,8 +1401,16 @@ export namespace Services {
       } catch (error) {
         await HarvestRunChunk.updateOne({ id: createdChunk.id }).set({
           status: HarvestChunkStatus.failed,
+          recordCount: request.records.length,
+          totalProcessed: counters.totalProcessed,
+          created: counters.created,
+          updated: counters.updated,
+          deleted: counters.deleted,
+          unchanged: counters.unchanged,
+          failed: counters.failed,
           completedAt: this.nowIso(),
           errorMessage: this.asError(error).message,
+          responseSummary: this.buildChunkResponseSummary(counters),
         });
         throw error;
       }
