@@ -10,6 +10,34 @@ import {
 } from "./helpers";
 import { JSONataEvaluate } from "../jsonata-helpers";
 
+function hasMeaningfulValue(value: unknown): boolean {
+  if (value == null) {
+    return false;
+  }
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+  const lengthOrSize = formValidatorLengthOrSize(value);
+  if (lengthOrSize !== null) {
+    return lengthOrSize > 0;
+  }
+  return true;
+}
+
+function hasRequiredFieldValue(value: unknown, fieldNames: string[]): boolean {
+  if (fieldNames.length === 0) {
+    return hasMeaningfulValue(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some(item => hasRequiredFieldValue(item, fieldNames));
+  }
+  if (value == null || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return fieldNames.some(fieldName => hasMeaningfulValue(candidate[fieldName]));
+}
+
 
 /**
  * A regular expression for validating an email address.
@@ -179,8 +207,11 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey, "@validator-error-required");
       const optionRequiredKey = "required";
       const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      const optionAnyOfFields = Array.isArray(config?.['anyOfFields'])
+        ? config['anyOfFields'].map(item => item?.toString() ?? "").filter(item => item.length > 0)
+        : [];
       return (control) => {
-        if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
+        if (optionRequiredValue && !hasRequiredFieldValue(control.value, optionAnyOfFields)) {
           return {
             [optionNameValue]: {
               [optionMessageKey]: optionMessageValue,

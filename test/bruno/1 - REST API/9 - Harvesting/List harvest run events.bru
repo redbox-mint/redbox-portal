@@ -1,0 +1,37 @@
+meta {
+  name: List harvest run events
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/api/harvest-runs/{{trackedHarvestRunId}}/events?page=1&pageSize=20
+  body: none
+  auth: none
+}
+
+query {
+  page: 1
+  pageSize: 20
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Harvest run events include the tracked harvest id", function () {
+    var body = res.getBody();
+    expect(body).to.have.property('records');
+    expect(body.records.length).to.be.greaterThan(0);
+    var event = body.records.find(function (item) {
+      return item.harvestId === bru.getEnvVar('trackedHarvestId');
+    });
+    expect(event, 'tracked event not found in list response').to.not.equal(undefined);
+    expect(event).to.have.property('runId', bru.getEnvVar('trackedHarvestRunId'));
+  });
+}

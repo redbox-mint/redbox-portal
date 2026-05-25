@@ -32,6 +32,7 @@ import * as WSBrandingControllerModule from './webservice/BrandingController';
 import * as WSExportControllerModule from './webservice/ExportController';
 import * as WSFormManagementControllerModule from './webservice/FormManagementController';
 import * as WSIntegrationAuditControllerModule from './webservice/IntegrationAuditController';
+import * as WSHarvestRunControllerModule from './webservice/HarvestRunController';
 import * as WSRecordControllerModule from './webservice/RecordController';
 import * as WSRecordTypeControllerModule from './webservice/RecordTypeController';
 import * as WSReportControllerModule from './webservice/ReportController';
@@ -80,6 +81,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
     get ExportController() { return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports()); },
     get FormManagementController() { return getOrCreate('WS_FormManagementController', () => new WSFormManagementControllerModule.Controllers.FormManagement().exports()); },
+    get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
     get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
     get RecordController() { return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports()); },
     get RecordTypeController() { return getOrCreate('WS_RecordTypeController', () => new WSRecordTypeControllerModule.Controllers.RecordType().exports()); },
@@ -123,6 +125,7 @@ export const WebserviceControllerNames = [
     'DashboardConfigController',
     'ExportController',
     'FormManagementController',
+    'HarvestRunController',
     'IntegrationAuditController',
     'RecordController',
     'RecordTypeController',

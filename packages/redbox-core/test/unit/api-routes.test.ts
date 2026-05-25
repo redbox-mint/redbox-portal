@@ -26,8 +26,13 @@ import {
   buildResponseTypeSchema,
   createUserApiResponseSchema,
   dataResponseV2Schema,
+  enhancedHarvestChunkResponseSchema,
   errorResponseItemV2Schema,
   errorResponseV2Schema,
+  harvestRouteResponseSchema,
+  harvestRunDetailResponseSchema,
+  harvestRunEventSchema,
+  harvestRunSummarySchema,
   listApiResponseSchema,
   storageServiceResponseSchema,
   userApiTokenApiResponseSchema,
@@ -493,6 +498,131 @@ describe('API routes contract layer', async () => {
     expect(apiActionResponseSchema.safeParse({ message: 'Done', details: '' }).success).to.equal(true);
     expect(apiObjectActionResponseSchema.safeParse({ oid: 'record-1', message: 'Queued', details: '' }).success).to.equal(true);
     expect(apiHarvestResponseSchema.safeParse({ harvestId: 'harvest-1', oid: 'record-1', message: 'Created', details: '', status: true }).success).to.equal(true);
+    expect(enhancedHarvestChunkResponseSchema.safeParse({
+      run: {
+        id: 'run-1',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        recordType: 'rdmp',
+        sourceName: 'source-a',
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 1,
+        duplicateChunks: 0,
+      },
+      chunk: {
+        id: 'chunk-1',
+        contentHash: 'hash-1',
+        status: 'processed',
+        recordCount: 1,
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        duplicate: false,
+      },
+      records: [
+        {
+          harvestId: 'harvest-1',
+          oid: 'record-1',
+          operation: 'upsert',
+          outcome: 'created',
+          status: true,
+          message: 'Created',
+          details: '',
+          createdAt: '2026-05-25T00:00:00Z',
+        },
+      ],
+    }).success).to.equal(true);
+    expect(harvestRouteResponseSchema.safeParse({
+      run: {
+        id: 'run-1',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        recordType: 'rdmp',
+        sourceName: 'source-a',
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 1,
+        duplicateChunks: 0,
+      },
+      chunk: {
+        id: 'chunk-1',
+        contentHash: 'hash-1',
+        status: 'processed',
+        recordCount: 1,
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        duplicate: false,
+      },
+      records: [],
+    }).success).to.equal(true);
+    expect(harvestRunSummarySchema.safeParse({
+      id: 'run-1',
+      sourceRunId: 'source-run-1',
+      status: 'running',
+      recordType: 'rdmp',
+      sourceName: 'source-a',
+      totalProcessed: 1,
+      created: 1,
+      updated: 0,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 1,
+      duplicateChunks: 0,
+    }).success).to.equal(true);
+    expect(harvestRunEventSchema.safeParse({
+      id: 'event-1',
+      harvestId: 'harvest-1',
+      operation: 'upsert',
+      outcome: 'created',
+      status: true,
+      createdAt: '2026-05-25T00:00:00Z',
+    }).success).to.equal(true);
+    expect(harvestRunDetailResponseSchema.safeParse({
+      run: {
+        id: 'run-1',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        recordType: 'rdmp',
+        sourceName: 'source-a',
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 1,
+        duplicateChunks: 0,
+      },
+      chunks: [],
+      events: [],
+      aggregateCounts: {
+        totalProcessed: 1,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 1,
+        duplicateChunks: 0,
+      },
+    }).success).to.equal(true);
     expect(storageServiceResponseSchema.safeParse({
       success: true,
       oid: 'record-1',
@@ -593,7 +723,24 @@ describe('API routes contract layer', async () => {
 
     const harvestRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/harvest/{recordType}']?.post);
     const harvestSchema = asOpenApiSchema(harvestRoute.responses?.['200']?.content?.['application/json']?.schema);
-    expect(harvestSchema.items?.properties).to.have.property('harvestId');
+    const harvestVariants = (harvestSchema.anyOf ?? harvestSchema.oneOf ?? []) as OpenApiSchema[];
+    const legacyVariant = harvestVariants.find((variant) => variant.type === 'array');
+    const trackedVariant = harvestVariants.find((variant) => variant.properties?.run != null);
+    expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
+    expect(trackedVariant?.properties).to.have.property('run');
+
+    const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
+    const harvestRunsSchema = asOpenApiSchema(harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(asOpenApiSchema(harvestRunsSchema.properties?.records).items?.properties).to.have.property('sourceRunId');
+
+    const harvestRunDetailRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}']?.get);
+    const harvestRunDetailSchema = asOpenApiSchema(harvestRunDetailRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(harvestRunDetailSchema.properties).to.have.property('run');
+    expect(harvestRunDetailSchema.properties).to.have.property('chunks');
+
+    const harvestRunEventsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get);
+    const harvestRunEventsSchema = asOpenApiSchema(harvestRunEventsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
   });
 
   it('should include shared 400 and 500 error envelopes in OpenAPI', function () {

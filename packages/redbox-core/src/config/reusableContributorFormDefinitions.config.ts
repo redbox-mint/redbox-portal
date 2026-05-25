@@ -368,7 +368,6 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
                 newEntryValue: {
                   role: "View"
                 },
-                validators: [{class: "required"}],
               },
             },
             layout: {
@@ -389,7 +388,14 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
               role: "View"
             }
           ],
-          validators: [{class: "required"}],
+          validators: [
+            {
+              class: "required",
+              config: {
+                anyOfFields: ["name", "email", "username", "orcid"],
+              },
+            }
+          ],
         },
       },
       layout: {

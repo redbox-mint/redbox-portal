@@ -94,6 +94,10 @@ export const routes: RoutesConfig = {
         action: 'render',
         locals: { 'view': 'admin/translation' }
     },
+    '/:branding/:portal/admin/harvest-runs': {
+        controller: 'AdminController',
+        action: 'harvestRunsIndex'
+    },
     '/:branding/:portal/admin/roles': {
         controller: 'AdminController',
         action: 'rolesIndex',

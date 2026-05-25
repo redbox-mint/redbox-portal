@@ -68,6 +68,7 @@ describe('Webservice RecordController body source', () => {
     let originalBrandingService: any;
     let originalRecordTypesService: any;
     let originalWorkflowStepsService: any;
+    let originalHarvestRunService: any;
     let recordsService: {
         getMeta: sinon.SinonStub;
         updateMeta: sinon.SinonStub;
@@ -84,6 +85,7 @@ describe('Webservice RecordController body source', () => {
         originalBrandingService = (global as any).BrandingService;
         originalRecordTypesService = (global as any).RecordTypesService;
         originalWorkflowStepsService = (global as any).WorkflowStepsService;
+        originalHarvestRunService = (global as any).HarvestRunService;
 
         (global as any).sails = {
             config: {
@@ -116,6 +118,15 @@ describe('Webservice RecordController body source', () => {
         (global as any).WorkflowStepsService = {
             get: sinon.stub(),
         };
+        (global as any).HarvestRunService = {
+            submitCompatibilityRecords: sinon.stub().resolves([{ harvestId: 'harvest-1', oid: 'record-1', status: true }]),
+            submitLegacyRecords: sinon.stub().resolves([{ harvestId: 'legacy-harvest-1', oid: 'record-2', status: true }]),
+            submitChunk: sinon.stub().resolves({
+                run: { id: 'run-1', sourceRunId: 'source-run-1', status: 'running' },
+                chunk: { id: 'chunk-1', contentHash: 'hash-1', status: 'processed', recordCount: 1, duplicate: false },
+                records: [{ harvestId: 'harvest-1', oid: 'record-1', operation: 'upsert', outcome: 'created', status: true, message: 'Created', details: '' }],
+            }),
+        };
 
         controller = new Controllers.Record();
         recordsService = {
@@ -135,6 +146,7 @@ describe('Webservice RecordController body source', () => {
         (global as any).BrandingService = originalBrandingService;
         (global as any).RecordTypesService = originalRecordTypesService;
         (global as any).WorkflowStepsService = originalWorkflowStepsService;
+        (global as any).HarvestRunService = originalHarvestRunService;
     });
 
     describe('permission handlers', () => {
@@ -413,18 +425,6 @@ describe('Webservice RecordController body source', () => {
                     },
                 ],
             };
-            const existingRecords = [
-                {
-                    redboxOid: 'record-1',
-                    metadata: { title: 'Existing harvest metadata' },
-                },
-            ];
-            const findExistingHarvestRecordStub = sinon
-                .stub(controller as any, 'findExistingHarvestRecord')
-                .resolves(existingRecords);
-            const updateHarvestRecordStub = sinon
-                .stub(controller as any, 'updateHarvestRecord')
-                .resolves({ harvestId: 'harvest-1', oid: 'record-1', status: true });
             const req = makeThrowingRequest({
                 params: { recordType: 'dataset' },
                 query: {},
@@ -435,10 +435,61 @@ describe('Webservice RecordController body source', () => {
 
             await controller.harvest(req, {} as Sails.Res);
 
-            expect(findExistingHarvestRecordStub.calledOnce).to.be.true;
-            expect(updateHarvestRecordStub.calledOnce).to.be.true;
-            expect(updateHarvestRecordStub.firstCall.args[3]).to.deep.equal(body.records[0].recordRequest.metadata);
+            expect((global as any).HarvestRunService.submitCompatibilityRecords.calledOnce).to.be.true;
+            expect((global as any).HarvestRunService.submitCompatibilityRecords.firstCall.args[2]).to.deep.equal(body);
             expect(sendRespStub.calledOnce).to.be.true;
+        });
+
+        it('delegates tracked harvest bodies to HarvestRunService.submitChunk', async () => {
+            const body = {
+                sourceRunId: 'source-run-1',
+                sourceName: 'source-a',
+                chunk: { index: 1 },
+                records: [
+                    {
+                        harvestId: 'harvest-1',
+                        operation: 'upsert',
+                        recordRequest: {
+                            metadata: {
+                                title: 'Tracked metadata',
+                            },
+                        },
+                    },
+                ],
+            };
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body,
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.harvest(req, {} as Sails.Res);
+
+            expect((global as any).HarvestRunService.submitChunk.calledOnce).to.be.true;
+            expect((global as any).HarvestRunService.submitChunk.firstCall.args[2]).to.deep.equal(body);
+            expect(sendRespStub.calledOnce).to.be.true;
+        });
+
+        it('rejects tracked harvest requests that also specify updateMode', async () => {
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: { updateMode: 'merge' },
+                body: {
+                    sourceRunId: 'source-run-1',
+                    sourceName: 'source-a',
+                    chunk: { index: 1 },
+                    records: [{ harvestId: 'harvest-1' }],
+                },
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.harvest(req, {} as Sails.Res);
+
+            expect((global as any).HarvestRunService.submitChunk.called).to.be.false;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
         it('uses req.apiRequest body in legacyHarvest', async () => {
@@ -454,18 +505,6 @@ describe('Webservice RecordController body source', () => {
                     },
                 ],
             };
-            const existingRecords = [
-                {
-                    redboxOid: 'record-2',
-                    metadata: { title: 'Existing legacy metadata' },
-                },
-            ];
-            const findExistingHarvestRecordStub = sinon
-                .stub(controller as any, 'findExistingHarvestRecord')
-                .resolves(existingRecords);
-            const updateHarvestRecordStub = sinon
-                .stub(controller as any, 'updateHarvestRecord')
-                .resolves({ harvestId: 'legacy-harvest-1', oid: 'record-2', status: true });
             const req = makeThrowingRequest({
                 params: { recordType: 'dataset' },
                 query: {},
@@ -476,9 +515,8 @@ describe('Webservice RecordController body source', () => {
 
             await controller.legacyHarvest(req, {} as Sails.Res);
 
-            expect(findExistingHarvestRecordStub.calledOnce).to.be.true;
-            expect(updateHarvestRecordStub.calledOnce).to.be.true;
-            expect(updateHarvestRecordStub.firstCall.args[3]).to.deep.equal(body.records[0].metadata.data);
+            expect((global as any).HarvestRunService.submitLegacyRecords.calledOnce).to.be.true;
+            expect((global as any).HarvestRunService.submitLegacyRecords.firstCall.args[2]).to.deep.equal(body);
             expect(sendRespStub.calledOnce).to.be.true;
         });
     });

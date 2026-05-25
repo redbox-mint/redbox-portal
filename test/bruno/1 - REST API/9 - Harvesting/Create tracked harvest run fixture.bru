@@ -1,0 +1,66 @@
+meta {
+  name: Create tracked harvest run fixture
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/harvest/rdmp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+script:pre-request {
+  var unique = Date.now().toString().slice(-10);
+  bru.setEnvVar('trackedHarvestId', 'tracked-' + unique);
+  bru.setEnvVar('trackedHarvestSourceRunId', 'source-run-' + unique);
+  bru.setEnvVar('trackedHarvestSourceName', 'source-' + unique);
+}
+
+body:json {
+  {
+    "records": [
+      {
+        "harvestId": "{{trackedHarvestId}}",
+        "operation": "upsert",
+        "recordRequest": {
+          "metadata": {
+            "title": "Tracked harvest fixture",
+            "identifier": "{{trackedHarvestId}}"
+          }
+        }
+      }
+    ],
+    "sourceRunId": "{{trackedHarvestSourceRunId}}",
+    "sourceName": "{{trackedHarvestSourceName}}",
+    "finalChunk": true,
+    "chunk": {
+      "index": 1,
+      "label": "fixture"
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Tracked harvest response includes the harvest id", function () {
+    var body = res.getBody();
+    expect(body).to.have.property('run');
+    expect(body).to.have.property('chunk');
+    expect(body).to.have.property('records');
+    expect(body.run).to.have.property('sourceRunId', bru.getEnvVar('trackedHarvestSourceRunId'));
+    expect(body.chunk).to.have.property('sourceRunId', bru.getEnvVar('trackedHarvestSourceRunId'));
+    expect(body.records).to.be.an('array');
+    expect(body.records.length).to.be.greaterThan(0);
+    expect(body.records[0]).to.have.property('harvestId', bru.getEnvVar('trackedHarvestId'));
+    expect(body.records[0]).to.have.property('oid');
+  });
+}

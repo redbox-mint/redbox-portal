@@ -199,5 +199,18 @@ export const smokeRoutes: SmokeRoute[] = [
       '/angular/deleted-records/browser/main',
       '/angular/deleted-records/browser/styles'
     ]
+  },
+  {
+    path: '/default/rdmp/admin/harvest-runs',
+    auth: 'admin',
+    type: 'angular',
+    rootSelector: 'harvest-runs',
+    requiredSelectors: ['harvest-runs', 'harvest-runs .harvest-runs-layout'],
+    fallbackSelectors: ['harvest-runs img[src$="/images/loading.svg"]'],
+    requiredAssetIncludes: [
+      '/angular/harvest-runs/browser/polyfills',
+      '/angular/harvest-runs/browser/main',
+      '/angular/harvest-runs/browser/styles'
+    ]
   }
 ];

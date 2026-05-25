@@ -537,6 +537,52 @@ describe("Validator", async () => {
     });
   });
 
+  describe("required anyOfFields", async () => {
+    const cases: {
+      title: string;
+      args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
+      expected: FormValidatorErrors | null;
+    }[] = [
+      {
+        title: "required anyOfFields - expect failure for default permission row",
+        args: {
+          value: [{ role: "View" }],
+          definition: formValidatorsSharedDefinitions,
+          block: {
+            class: "required",
+            config: { anyOfFields: ["name", "email", "username", "orcid"] },
+          },
+        },
+        expected: {
+          required: {
+            message: "@validator-error-required",
+            params: {
+              required: true,
+              actual: [{ role: "View" }],
+            },
+          },
+        },
+      },
+      {
+        title: "required anyOfFields - expect pass when contributor identity exists",
+        args: {
+          value: [{ role: "View", name: "Daniel Nguyen" }],
+          definition: formValidatorsSharedDefinitions,
+          block: {
+            class: "required",
+            config: { anyOfFields: ["name", "email", "username", "orcid"] },
+          },
+        },
+        expected: null,
+      },
+    ];
+    cases.forEach(({title, args, expected}) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({title, args, expected});
+      });
+    });
+  });
+
   describe("is enabled", async () => {
     const defaultGroups: FormValidationGroups = {
       all: {
