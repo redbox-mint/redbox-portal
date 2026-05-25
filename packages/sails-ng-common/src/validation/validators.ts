@@ -24,9 +24,20 @@ function hasMeaningfulValue(value: unknown): boolean {
   return true;
 }
 
+function hasLegacyRequiredValue(value: unknown): boolean {
+  if (value == null) {
+    return false;
+  }
+  const lengthOrSize = formValidatorLengthOrSize(value);
+  if (lengthOrSize !== null) {
+    return lengthOrSize > 0;
+  }
+  return true;
+}
+
 function hasRequiredFieldValue(value: unknown, fieldNames: string[]): boolean {
   if (fieldNames.length === 0) {
-    return hasMeaningfulValue(value);
+    return hasLegacyRequiredValue(value);
   }
   if (Array.isArray(value)) {
     return value.some(item => hasRequiredFieldValue(item, fieldNames));
@@ -413,7 +424,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           } catch (err) {
             success = false;
             console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
-        }
+          }
         }
 
         return success

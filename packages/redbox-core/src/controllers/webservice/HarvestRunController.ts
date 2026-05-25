@@ -115,6 +115,15 @@ export namespace Controllers {
           });
         }
 
+        const run = await HarvestRunService.getRun(brand, runId);
+        if (!run) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'Harvest run not found.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+
         const { query } = validated;
         const page = this.parsePositiveInt(query.page, 'page') ?? 1;
         const pageSize = this.parsePositiveInt(query.pageSize, 'pageSize') ?? 20;

@@ -35,278 +35,286 @@ describe("Validator", async () => {
     }
   }
 
-    describe("simple definitions", async () => {
-        const cases: TestCase[] =
-            [
-                {
-                    title: "min - expect failure",
-                    args: {
-                        value: 2, definition: formValidatorsSharedDefinitions,
-                        block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
-                    },
-                    expected: {
-                        min: {
-                            message: "@validator-error-custom-text_2",
-                            params: {actual: 2, requiredThreshold: 3}
-                        }
-                    },
-                },
-                {
-                    title: "min - expect pass",
-                    // (note, it looks like the HTML WHATWG spec treats a value that cannot be converted to a number as not having a minimum)
-                    args: {
-                        value: "aa", definition: formValidatorsSharedDefinitions,
-                        block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "min - expect pass",
-                    args: {
-                        value: 4, definition: formValidatorsSharedDefinitions,
-                        block: {class: "min", message: "@validator-error-custom-text_2", config: {min: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "max - expect failure",
-                    args: {
-                        value: 6, definition: formValidatorsSharedDefinitions,
-                        block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
-                    },
-                    expected: {
-                        max: {
-                            message: "@validator-error-custom-text_2",
-                            params: {actual: 6, requiredThreshold: 3}
-                        }
-                    },
-                },
-                {
-                    title: "max - expect pass",
-                    args: {
-                        value: "aaa", definition: formValidatorsSharedDefinitions,
-                        block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "max - expect pass",
-                    args: {
-                        value: 2, definition: formValidatorsSharedDefinitions,
-                        block: {class: "max", message: "@validator-error-custom-text_2", config: {max: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "minLength - expect failure",
-                    args: {
-                        value: "b", definition: formValidatorsSharedDefinitions,
-                        block: {class: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
-                    },
-                    expected: {
-                        minLength: {
-                            message: "@validator-error-custom-text_2",
-                            params: {actualLength: 1, requiredLength: 3}
-                        }
-                    },
-                },
-                {
-                    title: "minLength - expect pass",
-                    args: {
-                        value: "bbb", definition: formValidatorsSharedDefinitions,
-                        block: {class: "minLength", message: "@validator-error-custom-text_2", config: {minLength: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "maxLength - expect failure",
-                    args: {
-                        value: "bbbb", definition: formValidatorsSharedDefinitions,
-                        block: {class: "maxLength", config: {maxLength: 3}},
-                    },
-                    expected: {
-                        maxLength: {
-                            message: "@validator-error-max-length",
-                            params: {actualLength: 4, requiredLength: 3}
-                        }
-                    },
-                },
-                {
-                    title: "maxLength - expect pass",
-                    args: {
-                        value: "bbb", definition: formValidatorsSharedDefinitions,
-                        block: {class: "maxLength", config: {maxLength: 3}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "required - expect failure",
-                    args: {
-                        value: null, definition: formValidatorsSharedDefinitions,
-                        block: {class: "required"}
-                    },
-                    expected: {
-                        required: {
-                            message: "@validator-error-required",
-                            params: {actual: null, required: true}
-                        }
-                    },
-                },
-                {
-                    title: "required - expect pass",
-                    args: {
-                        value: null, definition: formValidatorsSharedDefinitions,
-                        block: {class: "required"}
-                    },
-                    expected: {
-                        required: {
-                            message: "@validator-error-required",
-                            params: {actual: null, required: true}
-                        }
-                    },
-                },
-                {
-                    title: "requiredTrue - expect failure",
-                    args: {
-                        value: null, definition: formValidatorsSharedDefinitions,
-                        block: {class: "requiredTrue"}
-                    },
-                    expected: {
-                        requiredTrue: {
-                            message: "@validator-error-required-true",
-                            params: {actual: null, required: true}
-                        }
-                    },
-                },
-                {
-                    title: "requiredTrue - expect failure",
-                    args: {
-                        value: "somevalue", definition: formValidatorsSharedDefinitions,
-                        block: {class: "requiredTrue"}
-                    },
-                    expected: {
-                        requiredTrue: {
-                            message: "@validator-error-required-true",
-                            params: {actual: "somevalue", required: true}
-                        }
-                    },
-                },
-                {
-                    title: "requiredTrue - expect pass",
-                    args: {
-                        value: true, definition: formValidatorsSharedDefinitions,
-                        block: {class: "requiredTrue"}
-                    },
-                    expected: null,
-                },
-                {
-                    title: "email - expect failure",
-                    args: {
-                        value: "example.com", definition: formValidatorsSharedDefinitions,
-                        block: {class: "email", config: {description: "email must be in format (name)@(domain.tld)"}},
-                    },
-                    expected: {
-                        email: {
-                            message: "@validator-error-email",
-                            params: {
-                                actual: "example.com",
-                                description: "email must be in format (name)@(domain.tld)",
-                                requiredPattern: FORM_VALIDATOR_EMAIL_REGEXP
-                            },
-                        },
-                    },
-                },
-                {
-                    title: "email - expect pass",
-                    args: {
-                        value: "example@example.com", definition: formValidatorsSharedDefinitions,
-                        block: {class: "email", config: {}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "pattern - expect failure with regex",
-                    args: {
-                        value: "a", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: new RegExp("prefix.*"), description: "must start with prefix"}},
-                    },
-                    expected: {
-                        pattern: {
-                            message: "@validator-error-pattern",
-                            params: {actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$"},
-                        },
-                    },
-                },
-                {
-                    title: "pattern - expect failure with string",
-                    args: {
-                        value: "a", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: "prefix.*", description: "must start with prefix"}},
-                    },
-                    expected: {
-                        pattern: {
-                            message: "@validator-error-pattern",
-                            params: {actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$"},
-                        },
-                    },
-                },
-                {
-                    title: "pattern - expect pass",
-                    args: {
-                        value: "prefixa", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: new RegExp("prefix.*"), description: "must start with prefix"}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "pattern - expect pass",
-                    args: {
-                        value: "prefixa", definition: formValidatorsSharedDefinitions,
-                        block: {class: "pattern", config: {pattern: "^prefix.*", description: "must start with prefix"}},
-                    },
-                    expected: null,
-                },
-                {
-                    title: "different-values - expect failure",
-                    args: {
-                        value: {
-                            item1: new SimpleServerFormValidatorControl("value"),
-                            item2: new SimpleServerFormValidatorControl("value"),
-                        },
-                        definition: formValidatorsSharedDefinitions,
-                        block: {class: "different-values", config: {controlNames: ['item1', 'item2']}},
-                    },
-                    expected: {
-                        "different-values": {
-                            message: "@validator-error-different-values",
-                            params: {
-                                controlCount: 2,
-                                controlNames: ['item1', 'item2'],
-                                valueCount: 1,
-                                values: ['value']
-                            },
-                        },
-                    },
-                },
-                {
-                    title: "different-values - expect pass",
-                    args: {
-                        value: {
-                            item1: new SimpleServerFormValidatorControl("value1"),
-                            item2: new SimpleServerFormValidatorControl("value2"),
-                        },
-                        definition: formValidatorsSharedDefinitions,
-                        block: {class: "different-values", config: {controlNames: ['item1', 'item2']}},
-                    },
-                    expected: null,
-                },
-            ];
-        cases.forEach(({title, args, expected}) => {
-            it(`should validate ${title}`, async () => {
-              await checkValidator({title, args, expected});
-            });
-        });
+  describe("simple definitions", async () => {
+    const cases: TestCase[] =
+      [
+        {
+          title: "min - expect failure",
+          args: {
+            value: 2, definition: formValidatorsSharedDefinitions,
+            block: { class: "min", message: "@validator-error-custom-text_2", config: { min: 3 } },
+          },
+          expected: {
+            min: {
+              message: "@validator-error-custom-text_2",
+              params: { actual: 2, requiredThreshold: 3 }
+            }
+          },
+        },
+        {
+          title: "min - expect pass",
+          // (note, it looks like the HTML WHATWG spec treats a value that cannot be converted to a number as not having a minimum)
+          args: {
+            value: "aa", definition: formValidatorsSharedDefinitions,
+            block: { class: "min", message: "@validator-error-custom-text_2", config: { min: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "min - expect pass",
+          args: {
+            value: 4, definition: formValidatorsSharedDefinitions,
+            block: { class: "min", message: "@validator-error-custom-text_2", config: { min: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "max - expect failure",
+          args: {
+            value: 6, definition: formValidatorsSharedDefinitions,
+            block: { class: "max", message: "@validator-error-custom-text_2", config: { max: 3 } },
+          },
+          expected: {
+            max: {
+              message: "@validator-error-custom-text_2",
+              params: { actual: 6, requiredThreshold: 3 }
+            }
+          },
+        },
+        {
+          title: "max - expect pass",
+          args: {
+            value: "aaa", definition: formValidatorsSharedDefinitions,
+            block: { class: "max", message: "@validator-error-custom-text_2", config: { max: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "max - expect pass",
+          args: {
+            value: 2, definition: formValidatorsSharedDefinitions,
+            block: { class: "max", message: "@validator-error-custom-text_2", config: { max: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "minLength - expect failure",
+          args: {
+            value: "b", definition: formValidatorsSharedDefinitions,
+            block: { class: "minLength", message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+          },
+          expected: {
+            minLength: {
+              message: "@validator-error-custom-text_2",
+              params: { actualLength: 1, requiredLength: 3 }
+            }
+          },
+        },
+        {
+          title: "minLength - expect pass",
+          args: {
+            value: "bbb", definition: formValidatorsSharedDefinitions,
+            block: { class: "minLength", message: "@validator-error-custom-text_2", config: { minLength: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "maxLength - expect failure",
+          args: {
+            value: "bbbb", definition: formValidatorsSharedDefinitions,
+            block: { class: "maxLength", config: { maxLength: 3 } },
+          },
+          expected: {
+            maxLength: {
+              message: "@validator-error-max-length",
+              params: { actualLength: 4, requiredLength: 3 }
+            }
+          },
+        },
+        {
+          title: "maxLength - expect pass",
+          args: {
+            value: "bbb", definition: formValidatorsSharedDefinitions,
+            block: { class: "maxLength", config: { maxLength: 3 } },
+          },
+          expected: null,
+        },
+        {
+          title: "required - expect failure",
+          args: {
+            value: null, definition: formValidatorsSharedDefinitions,
+            block: { class: "required" }
+          },
+          expected: {
+            required: {
+              message: "@validator-error-required",
+              params: { actual: null, required: true }
+            }
+          },
+        },
+        {
+          title: "required - expect pass",
+          args: {
+            value: null, definition: formValidatorsSharedDefinitions,
+            block: { class: "required" }
+          },
+          expected: {
+            required: {
+              message: "@validator-error-required",
+              params: { actual: null, required: true }
+            }
+          },
+        },
+        {
+          title: "required whitespace-only string - expect pass",
+          args: {
+            value: "   ", definition: formValidatorsSharedDefinitions,
+            block: { class: "required" }
+          },
+          expected: null,
+        },
+        {
+          title: "requiredTrue - expect failure",
+          args: {
+            value: null, definition: formValidatorsSharedDefinitions,
+            block: { class: "requiredTrue" }
+          },
+          expected: {
+            requiredTrue: {
+              message: "@validator-error-required-true",
+              params: { actual: null, required: true }
+            }
+          },
+        },
+        {
+          title: "requiredTrue - expect failure",
+          args: {
+            value: "somevalue", definition: formValidatorsSharedDefinitions,
+            block: { class: "requiredTrue" }
+          },
+          expected: {
+            requiredTrue: {
+              message: "@validator-error-required-true",
+              params: { actual: "somevalue", required: true }
+            }
+          },
+        },
+        {
+          title: "requiredTrue - expect pass",
+          args: {
+            value: true, definition: formValidatorsSharedDefinitions,
+            block: { class: "requiredTrue" }
+          },
+          expected: null,
+        },
+        {
+          title: "email - expect failure",
+          args: {
+            value: "example.com", definition: formValidatorsSharedDefinitions,
+            block: { class: "email", config: { description: "email must be in format (name)@(domain.tld)" } },
+          },
+          expected: {
+            email: {
+              message: "@validator-error-email",
+              params: {
+                actual: "example.com",
+                description: "email must be in format (name)@(domain.tld)",
+                requiredPattern: FORM_VALIDATOR_EMAIL_REGEXP
+              },
+            },
+          },
+        },
+        {
+          title: "email - expect pass",
+          args: {
+            value: "example@example.com", definition: formValidatorsSharedDefinitions,
+            block: { class: "email", config: {} },
+          },
+          expected: null,
+        },
+        {
+          title: "pattern - expect failure with regex",
+          args: {
+            value: "a", definition: formValidatorsSharedDefinitions,
+            block: { class: "pattern", config: { pattern: new RegExp("prefix.*"), description: "must start with prefix" } },
+          },
+          expected: {
+            pattern: {
+              message: "@validator-error-pattern",
+              params: { actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$" },
+            },
+          },
+        },
+        {
+          title: "pattern - expect failure with string",
+          args: {
+            value: "a", definition: formValidatorsSharedDefinitions,
+            block: { class: "pattern", config: { pattern: "prefix.*", description: "must start with prefix" } },
+          },
+          expected: {
+            pattern: {
+              message: "@validator-error-pattern",
+              params: { actual: "a", description: "must start with prefix", requiredPattern: "^prefix.*$" },
+            },
+          },
+        },
+        {
+          title: "pattern - expect pass",
+          args: {
+            value: "prefixa", definition: formValidatorsSharedDefinitions,
+            block: { class: "pattern", config: { pattern: new RegExp("prefix.*"), description: "must start with prefix" } },
+          },
+          expected: null,
+        },
+        {
+          title: "pattern - expect pass",
+          args: {
+            value: "prefixa", definition: formValidatorsSharedDefinitions,
+            block: { class: "pattern", config: { pattern: "^prefix.*", description: "must start with prefix" } },
+          },
+          expected: null,
+        },
+        {
+          title: "different-values - expect failure",
+          args: {
+            value: {
+              item1: new SimpleServerFormValidatorControl("value"),
+              item2: new SimpleServerFormValidatorControl("value"),
+            },
+            definition: formValidatorsSharedDefinitions,
+            block: { class: "different-values", config: { controlNames: ['item1', 'item2'] } },
+          },
+          expected: {
+            "different-values": {
+              message: "@validator-error-different-values",
+              params: {
+                controlCount: 2,
+                controlNames: ['item1', 'item2'],
+                valueCount: 1,
+                values: ['value']
+              },
+            },
+          },
+        },
+        {
+          title: "different-values - expect pass",
+          args: {
+            value: {
+              item1: new SimpleServerFormValidatorControl("value1"),
+              item2: new SimpleServerFormValidatorControl("value2"),
+            },
+            definition: formValidatorsSharedDefinitions,
+            block: { class: "different-values", config: { controlNames: ['item1', 'item2'] } },
+          },
+          expected: null,
+        },
+      ];
+    cases.forEach(({ title, args, expected }) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({ title, args, expected });
+      });
     });
+  });
 
   describe("orcid", async () => {
     const cases: {
@@ -319,7 +327,7 @@ describe("Validator", async () => {
           title: "orcid - expect pass (valid with hyphens)",
           args: {
             value: "0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
@@ -327,7 +335,7 @@ describe("Validator", async () => {
           title: "orcid - expect pass (valid without hyphens)",
           args: {
             value: "0000000218250097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
@@ -335,7 +343,7 @@ describe("Validator", async () => {
           title: "orcid - expect pass (valid with X checksum)",
           args: {
             value: "0000-0002-1694-233X", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
@@ -343,7 +351,7 @@ describe("Validator", async () => {
           title: "orcid - expect pass (valid with lowercase x checksum)",
           args: {
             value: "0000-0002-1694-233x", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
@@ -351,12 +359,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (URL https)",
           args: {
             value: "https://orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "https://orcid.org/0000-0002-1825-0097"}
+              params: { actual: "https://orcid.org/0000-0002-1825-0097" }
             }
           },
         },
@@ -365,12 +373,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (URL www)",
           args: {
             value: "https://www.orcid.org/0000-0002-1825-0097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "https://www.orcid.org/0000-0002-1825-0097"}
+              params: { actual: "https://www.orcid.org/0000-0002-1825-0097" }
             }
           },
         },
@@ -378,12 +386,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (misplaced hyphen)",
           args: {
             value: "00000002182-50097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "00000002182-50097"}
+              params: { actual: "00000002182-50097" }
             }
           },
         },
@@ -391,12 +399,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (URL with misplaced hyphen)",
           args: {
             value: "https://www.orcid.org/00000002182-50097", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "https://www.orcid.org/00000002182-50097"}
+              params: { actual: "https://www.orcid.org/00000002182-50097" }
             }
           },
         },
@@ -404,12 +412,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (invalid length)",
           args: {
             value: "0000-0002-1825-009", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "0000-0002-1825-009"}
+              params: { actual: "0000-0002-1825-009" }
             }
           },
         },
@@ -417,12 +425,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (invalid format)",
           args: {
             value: "0000-0002-1825-009A", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "0000-0002-1825-009A"}
+              params: { actual: "0000-0002-1825-009A" }
             }
           },
         },
@@ -430,12 +438,12 @@ describe("Validator", async () => {
           title: "orcid - expect failure (invalid checksum)",
           args: {
             value: "0000-0002-1825-0098", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: {
             orcid: {
               message: "@validator-error-orcid",
-              params: {actual: "0000-0002-1825-0098"}
+              params: { actual: "0000-0002-1825-0098" }
             }
           },
         },
@@ -443,7 +451,7 @@ describe("Validator", async () => {
           title: "orcid - expect pass (empty)",
           args: {
             value: "", definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
@@ -451,21 +459,21 @@ describe("Validator", async () => {
           title: "orcid - expect pass (null)",
           args: {
             value: null, definition: formValidatorsSharedDefinitions,
-            block: {class: "orcid"},
+            block: { class: "orcid" },
           },
           expected: null,
         },
       ];
-    cases.forEach(({title, args, expected}) => {
+    cases.forEach(({ title, args, expected }) => {
       it(`should validate ${title}`, async () => {
-        await checkValidator({title, args, expected});
+        await checkValidator({ title, args, expected });
       });
     });
   });
 
   describe("jsonata-expression", async () => {
     const expression = "$ = 45";
-    async function jsonataEvaluateCustomFunc(value: unknown){
+    async function jsonataEvaluateCustomFunc(value: unknown) {
       const compiled = jsonataCompile(expression);
       return await jsonataEvaluate(compiled, value);
     }
@@ -482,7 +490,7 @@ describe("Validator", async () => {
             definition: formValidatorsSharedDefinitions,
             block: {
               class: "jsonata-expression",
-              config: {description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc}
+              config: { description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc }
             },
           },
           expected: null,
@@ -494,7 +502,7 @@ describe("Validator", async () => {
             definition: formValidatorsSharedDefinitions,
             block: {
               class: "jsonata-expression",
-              config: {description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc}
+              config: { description: "the description", expression: expression, evaluator: jsonataEvaluateCustomFunc }
             },
           },
           expected: {
@@ -515,7 +523,7 @@ describe("Validator", async () => {
             definition: formValidatorsSharedDefinitions,
             block: {
               class: "jsonata-expression",
-              config: {description: "the description", expression: "$sum(2, 4)", evaluator: null}
+              config: { description: "the description", expression: "$sum(2, 4)", evaluator: null }
             },
           },
           expected: {
@@ -530,9 +538,9 @@ describe("Validator", async () => {
           },
         },
       ];
-    cases.forEach(({title, args, expected}) => {
+    cases.forEach(({ title, args, expected }) => {
       it(`should validate ${title}`, async () => {
-        await checkValidator({title, args, expected});
+        await checkValidator({ title, args, expected });
       });
     });
   });
@@ -543,42 +551,42 @@ describe("Validator", async () => {
       args: { value: unknown; definition: FormValidatorDefinition[]; block: FormValidatorConfig };
       expected: FormValidatorErrors | null;
     }[] = [
-      {
-        title: "required anyOfFields - expect failure for default permission row",
-        args: {
-          value: [{ role: "View" }],
-          definition: formValidatorsSharedDefinitions,
-          block: {
-            class: "required",
-            config: { anyOfFields: ["name", "email", "username", "orcid"] },
+        {
+          title: "required anyOfFields - expect failure for default permission row",
+          args: {
+            value: [{ role: "View" }],
+            definition: formValidatorsSharedDefinitions,
+            block: {
+              class: "required",
+              config: { anyOfFields: ["name", "email", "username", "orcid"] },
+            },
           },
-        },
-        expected: {
-          required: {
-            message: "@validator-error-required",
-            params: {
-              required: true,
-              actual: [{ role: "View" }],
+          expected: {
+            required: {
+              message: "@validator-error-required",
+              params: {
+                required: true,
+                actual: [{ role: "View" }],
+              },
             },
           },
         },
-      },
-      {
-        title: "required anyOfFields - expect pass when contributor identity exists",
-        args: {
-          value: [{ role: "View", name: "Daniel Nguyen" }],
-          definition: formValidatorsSharedDefinitions,
-          block: {
-            class: "required",
-            config: { anyOfFields: ["name", "email", "username", "orcid"] },
+        {
+          title: "required anyOfFields - expect pass when contributor identity exists",
+          args: {
+            value: [{ role: "View", name: "Daniel Nguyen" }],
+            definition: formValidatorsSharedDefinitions,
+            block: {
+              class: "required",
+              config: { anyOfFields: ["name", "email", "username", "orcid"] },
+            },
           },
+          expected: null,
         },
-        expected: null,
-      },
-    ];
-    cases.forEach(({title, args, expected}) => {
+      ];
+    cases.forEach(({ title, args, expected }) => {
       it(`should validate ${title}`, async () => {
-        await checkValidator({title, args, expected});
+        await checkValidator({ title, args, expected });
       });
     });
   });
@@ -603,27 +611,27 @@ describe("Validator", async () => {
         {
           title: "enable validator with no group when enabledGroups is empty array",
           args: {
-            availableGroups: {...defaultGroups},
+            availableGroups: { ...defaultGroups },
             enabledGroups: [],
-            validators: [{class: 'required'}],
+            validators: [{ class: 'required' }],
           },
           expected: [true]
         },
         {
           title: "enable validator when enabledGroups is 'all'",
           args: {
-            availableGroups: {...defaultGroups},
+            availableGroups: { ...defaultGroups },
             enabledGroups: ["all"],
-            validators: [{class: 'required'}],
+            validators: [{ class: 'required' }],
           },
           expected: [true]
         },
         {
           title: "disable validator when enabledGroups is 'none'",
           args: {
-            availableGroups: {...defaultGroups},
+            availableGroups: { ...defaultGroups },
             enabledGroups: ["none"],
-            validators: [{class: 'required'}],
+            validators: [{ class: 'required' }],
           },
           expected: [false]
         },
@@ -632,11 +640,11 @@ describe("Validator", async () => {
           args: {
             availableGroups: {
               ...defaultGroups,
-              "include-validator": {description: "", initialMembership: "none"},
-              "exclude-validator": {description: "", initialMembership: "none"},
+              "include-validator": { description: "", initialMembership: "none" },
+              "exclude-validator": { description: "", initialMembership: "none" },
             },
             enabledGroups: ["include-validator", "exclude-validator"],
-            validators: [{class: 'required', groups: {include:["include-validator"], exclude: ["exclude-validator"]}}],
+            validators: [{ class: 'required', groups: { include: ["include-validator"], exclude: ["exclude-validator"] } }],
           },
           expected: [true]
         },
@@ -645,14 +653,14 @@ describe("Validator", async () => {
           args: {
             availableGroups: {
               ...defaultGroups,
-              "validator1": {description: "", initialMembership: "none"},
-              "validator2": {description: "", initialMembership: "all"},
+              "validator1": { description: "", initialMembership: "none" },
+              "validator2": { description: "", initialMembership: "all" },
             },
             enabledGroups: ["none", "validator2"],
             validators: [
-              {class: 'required', groups: {include:["validator1"]}},
-              {class: 'required', groups: {exclude: ["validator2"]}},
-              ],
+              { class: 'required', groups: { include: ["validator1"] } },
+              { class: 'required', groups: { exclude: ["validator2"] } },
+            ],
           },
           expected: [
             // First validator is included by validator2 initial all
@@ -662,7 +670,7 @@ describe("Validator", async () => {
           ],
         },
       ];
-    cases.forEach(({title, args, expected}) => {
+    cases.forEach(({ title, args, expected }) => {
       it(`should ${title}`, async function () {
         const results = args.validators.map(validator =>
           new ValidatorsSupport().isValidatorEnabled(args.availableGroups, args.enabledGroups, validator)
@@ -673,21 +681,21 @@ describe("Validator", async () => {
 
     it(`should filter validators to only enabled validators`, async function () {
       const availableGroups: FormValidationGroups = {
-        "one": {description: "", initialMembership: "all"},
-        "two": {description: "", initialMembership: "all"},
-        "three": {description: "", initialMembership: "none"},
+        "one": { description: "", initialMembership: "all" },
+        "two": { description: "", initialMembership: "all" },
+        "three": { description: "", initialMembership: "none" },
       };
       const enabledGroups: string[] = ["one", "three"];
       const validators: FormValidatorConfig[] = [
-        {class: "required"},
-        {class: "required", groups: {include: ["three"], exclude: ["one", "two"]}},
-        {class: "required", groups: { exclude: ["one"]}},
-        {class: "required", groups: { exclude: ["one", "two"]}},
+        { class: "required" },
+        { class: "required", groups: { include: ["three"], exclude: ["one", "two"] } },
+        { class: "required", groups: { exclude: ["one"] } },
+        { class: "required", groups: { exclude: ["one", "two"] } },
       ];
       const result = new ValidatorsSupport().enabledValidators(availableGroups, enabledGroups, validators);
       expect(result).to.eql([
-        {class: "required"},
-        {class: "required", groups: {include: ["three"], exclude: ["one", "two"]}},
+        { class: "required" },
+        { class: "required", groups: { include: ["three"], exclude: ["one", "two"] } },
       ]);
     });
   });
@@ -701,7 +709,7 @@ describe("Validator", async () => {
       expect(func).throws(`Unknown enabled validation groups ["not-a-group"].`);
     });
     it(`should pass when an enabled group is in the available groups`, async function () {
-      new ValidatorsSupport().checkValidationGroups({"a-group": {description: "", initialMembership: "all"}}, ["a-group"]);
+      new ValidatorsSupport().checkValidationGroups({ "a-group": { description: "", initialMembership: "all" } }, ["a-group"]);
     });
   });
 });

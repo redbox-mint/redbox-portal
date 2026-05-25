@@ -35,7 +35,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/admin/translation', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/api-docs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/admin/api-docs(/*)', role: 'Admin', can_read: true },
-        { path: '/:branding/:portal/admin/harvest-runs', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/harvest-runs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/app/i18n(/*)', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/reports', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/getReport', role: 'Librarians', can_update: true },

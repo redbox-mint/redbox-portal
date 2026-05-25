@@ -69,6 +69,7 @@ describe('HarvestRunService', function () {
       updateOne: sinon.stub(),
       find: sinon.stub(),
       count: sinon.stub(),
+      getDatastore: sinon.stub().returns(null),
     };
     (global as any).HarvestRunChunk = {
       findOne: sinon.stub(),
@@ -437,6 +438,200 @@ describe('HarvestRunService', function () {
 
     expect(recordsService.delete.calledOnce).to.equal(true);
     expect(response.records).to.equal(undefined);
+  });
+
+  it('updates tracked records when incoming metadata removes an existing field', async function () {
+    (global as any).HarvestRun.findOne.resolves(null);
+    (global as any).HarvestRun.create.returns({
+      fetch: sinon.stub().resolves({
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 0,
+        duplicateChunks: 0,
+      }),
+    });
+    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
+    (global as any).HarvestRunChunk.create.returns({
+      fetch: sinon.stub().resolves({
+        id: 'chunk-1',
+        runId: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceRunId: 'source-run-1',
+        contentHash: 'hash-1',
+        attempt: 1,
+        status: 'processing',
+        recordCount: 1,
+        duplicate: false,
+        submittedAt: '2026-05-25T00:00:00.000Z',
+      }),
+    });
+    (global as any).HarvestRunChunk.updateOne.returns({
+      set: sinon.stub().resolves({
+        id: 'chunk-1',
+        runId: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceRunId: 'source-run-1',
+        contentHash: 'hash-1',
+        status: 'processed',
+        recordCount: 1,
+        totalProcessed: 1,
+        created: 0,
+        updated: 1,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        duplicate: false,
+        submittedAt: '2026-05-25T00:00:00.000Z',
+        responseSummary: { totalProcessed: 1, created: 0, updated: 1, deleted: 0, unchanged: 0, failed: 0 },
+      }),
+    });
+    (global as any).HarvestRun.updateOne.returns({
+      set: sinon.stub().resolves({
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 1,
+        created: 0,
+        updated: 1,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 1,
+        duplicateChunks: 0,
+      }),
+    });
+    (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
+    (global as any).Record.find.callsFake(() => ({
+      meta: sinon.stub().resolves([
+        {
+          harvestId: 'harvest-1',
+          redboxOid: 'record-1',
+          metadata: { title: 'Existing', description: 'To remove' },
+          metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+        },
+      ]),
+    }));
+    recordsService.getMeta.resolves({
+      metadata: { title: 'Existing', description: 'To remove' },
+      authorization: { edit: true },
+    });
+    recordsService.updateMeta.resolves({
+      oid: 'record-1',
+      message: 'Updated',
+      details: '',
+      isSuccessful: () => true,
+    });
+
+    const response = await service.submitChunk(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        chunk: { index: 1 },
+        records: [{ harvestId: 'harvest-1', operation: 'upsert', recordRequest: { metadata: { title: 'Existing' } } }],
+      },
+      { username: 'tester' }
+    );
+
+    expect(recordsService.updateMeta.calledOnce).to.equal(true);
+    expect(response.chunk.responseSummary).to.deep.include({ updated: 1, unchanged: 0 });
+  });
+
+  it('atomically increments run counters when a datastore manager is available', async function () {
+    const findOneAndUpdate = sinon.stub().resolves({
+      value: {
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        lastChunkAt: '2026-05-25T00:05:00.000Z',
+        totalProcessed: 3,
+        created: 2,
+        updated: 1,
+        deleted: 0,
+        unchanged: 0,
+        failed: 1,
+        chunksProcessed: 2,
+        duplicateChunks: 0,
+      },
+    });
+    const collection = { findOneAndUpdate };
+    (global as any).HarvestRun.getDatastore.returns({
+      manager: {
+        collection: sinon.stub().withArgs('harvestrun').returns(collection),
+      },
+    });
+
+    const updatedRun = await service.updateRunAfterChunk(
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 0,
+        duplicateChunks: 0,
+      },
+      { totalProcessed: 2, created: 1, updated: 1, deleted: 0, unchanged: 0, failed: 1 },
+      false,
+      '2026-05-25T00:05:00.000Z'
+    );
+
+    expect(findOneAndUpdate.calledOnce).to.equal(true);
+    expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ id: 'run-1' });
+    expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
+      {
+        $set: {
+          lastChunkAt: '2026-05-25T00:05:00.000Z',
+          totalProcessed: { $add: [{ $ifNull: ['$totalProcessed', 0] }, 2] },
+          created: { $add: [{ $ifNull: ['$created', 0] }, 1] },
+          updated: { $add: [{ $ifNull: ['$updated', 0] }, 1] },
+          deleted: { $add: [{ $ifNull: ['$deleted', 0] }, 0] },
+          unchanged: { $add: [{ $ifNull: ['$unchanged', 0] }, 0] },
+          failed: { $add: [{ $ifNull: ['$failed', 0] }, 1] },
+          chunksProcessed: { $add: [{ $ifNull: ['$chunksProcessed', 0] }, 1] },
+          status: {
+            $cond: [
+              { $eq: ['$status', 'completed'] },
+              'completedWithErrors',
+              '$status',
+            ],
+          },
+        },
+      },
+    ]);
+    expect((global as any).HarvestRun.updateOne.called).to.equal(false);
+    expect(updatedRun.totalProcessed).to.equal(3);
+    expect(updatedRun.failed).to.equal(1);
   });
 
   it('lists runs and events with brand-scoped filters', async function () {

@@ -119,4 +119,23 @@ describe('Webservice HarvestRunController', () => {
     expect((global as any).HarvestRunService.listRunEvents.firstCall.args[1]).to.equal('run-1');
     expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'event-1', harvestId: 'harvest-1' }]);
   });
+
+  it('returns 404 when listing events for a missing run', async () => {
+    (global as any).HarvestRunService.getRun.resolves(null);
+    const req = {
+      session: { branding: 'default' },
+      apiRequest: {
+        params: { id: 'run-1' },
+        query: { page: '1', pageSize: '10' },
+        body: {},
+        files: {},
+      },
+    } as unknown as Sails.Req;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.listRunEvents(req, {} as Sails.Res);
+
+    expect((global as any).HarvestRunService.listRunEvents.called).to.equal(false);
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+  });
 });

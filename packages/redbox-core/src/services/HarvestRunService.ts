@@ -43,6 +43,13 @@ type HarvestRunRow = HarvestRunAttributes & { id?: string };
 type HarvestRunChunkRow = HarvestRunChunkAttributes & { id?: string };
 type HarvestRecordEventRow = HarvestRecordEventAttributes & { id?: string };
 type HarvestRecordEventCreateInput = Omit<HarvestRecordEventAttributes, 'id'>;
+type HarvestRunCollection = {
+  findOneAndUpdate: (
+    filter: Record<string, unknown>,
+    update: unknown,
+    options?: Record<string, unknown>
+  ) => Promise<HarvestRunRow | { value?: HarvestRunRow | null } | null>;
+};
 type TrackedOperation = HarvestOperation | 'invalid';
 type TrackedUpdateStrategy = 'replace' | 'merge' | 'ignoreIfExists';
 type ProcessingContext = {
@@ -178,13 +185,80 @@ export namespace Services {
     }
 
     private isMetadataEqual(meta1: AnyRecord, meta2: AnyRecord): boolean {
-      const keys = _.keys(meta1);
-      for (const key of keys) {
+      const keys1 = _.keys(meta1);
+      const keys2 = _.keys(meta2);
+      if (keys1.length !== keys2.length) {
+        return false;
+      }
+      for (const key of keys1) {
         if (!_.isEqual(meta1?.[key], meta2?.[key])) {
           return false;
         }
       }
       return true;
+    }
+
+    private getHarvestRunCollection(): HarvestRunCollection | null {
+      const datastore = typeof HarvestRun.getDatastore === 'function'
+        ? HarvestRun.getDatastore() as { manager?: { collection?: (name: string) => HarvestRunCollection } } | null
+        : null;
+      if (!datastore?.manager || typeof datastore.manager.collection !== 'function') {
+        return null;
+      }
+      return datastore.manager.collection('harvestrun');
+    }
+
+    private extractUpdatedRun(
+      result: HarvestRunRow | { value?: HarvestRunRow | null } | null | undefined
+    ): HarvestRunRow | null {
+      if (_.isNil(result)) {
+        return null;
+      }
+      if (_.isPlainObject(result) && 'value' in result) {
+        return (result as { value?: HarvestRunRow | null }).value ?? null;
+      }
+      return result as HarvestRunRow;
+    }
+
+    private buildAtomicRunCounterUpdate(
+      counters: HarvestCounterSummary,
+      completedAt: string,
+      finalChunk: boolean
+    ): Array<Record<string, unknown>> {
+      const failedExpression = {
+        $add: [{ $ifNull: ['$failed', 0] }, counters.failed],
+      };
+      const updateStage: Record<string, unknown> = {
+        lastChunkAt: completedAt,
+        totalProcessed: { $add: [{ $ifNull: ['$totalProcessed', 0] }, counters.totalProcessed] },
+        created: { $add: [{ $ifNull: ['$created', 0] }, counters.created] },
+        updated: { $add: [{ $ifNull: ['$updated', 0] }, counters.updated] },
+        deleted: { $add: [{ $ifNull: ['$deleted', 0] }, counters.deleted] },
+        unchanged: { $add: [{ $ifNull: ['$unchanged', 0] }, counters.unchanged] },
+        failed: failedExpression,
+        chunksProcessed: { $add: [{ $ifNull: ['$chunksProcessed', 0] }, 1] },
+      };
+
+      if (finalChunk) {
+        updateStage.status = {
+          $cond: [
+            { $gt: [failedExpression, 0] },
+            HarvestRunStatus.completedWithErrors,
+            HarvestRunStatus.completed,
+          ],
+        };
+        updateStage.completedAt = completedAt;
+      } else if (counters.failed > 0) {
+        updateStage.status = {
+          $cond: [
+            { $eq: ['$status', HarvestRunStatus.completed] },
+            HarvestRunStatus.completedWithErrors,
+            '$status',
+          ],
+        };
+      }
+
+      return [{ $set: updateStage }];
     }
 
     private toRunModel(row: HarvestRunRow): HarvestRunModel {
@@ -728,6 +802,18 @@ export namespace Services {
       finalChunk: boolean,
       completedAt: string
     ): Promise<HarvestRunRow> {
+      const collection = this.getHarvestRunCollection();
+      if (collection && run.id) {
+        const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
+          { id: run.id },
+          this.buildAtomicRunCounterUpdate(counters, completedAt, finalChunk),
+          { returnDocument: 'after' }
+        ));
+        if (updated) {
+          return updated;
+        }
+      }
+
       const nextFailed = Number(run.failed ?? 0) + counters.failed;
       const updates: Partial<HarvestRunRow> = {
         lastChunkAt: completedAt,
@@ -748,6 +834,23 @@ export namespace Services {
     }
 
     private async bumpDuplicateChunkCount(run: HarvestRunRow): Promise<HarvestRunRow> {
+      const collection = this.getHarvestRunCollection();
+      if (collection && run.id) {
+        const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
+          { id: run.id },
+          [{
+            $set: {
+              duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },
+              lastChunkAt: this.nowIso(),
+            },
+          }],
+          { returnDocument: 'after' }
+        ));
+        if (updated) {
+          return updated;
+        }
+      }
+
       const updates: Partial<HarvestRunRow> = {
         duplicateChunks: Number(run.duplicateChunks ?? 0) + 1,
         lastChunkAt: this.nowIso(),
