@@ -135,7 +135,7 @@ export namespace Controllers {
             const func = (req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void };
             const funcResult = func('logo');
             funcResult.upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded));
-          } catch (e) {
+          } catch (_e) {
             resolve([]);
           }
         });

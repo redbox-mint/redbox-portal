@@ -1,5 +1,4 @@
 import { Controllers as controllers } from '../CoreController';
-import { APIActionResponse } from '../model/APIActionResponse';
 import { Services } from '../services/EmailService';
 import { getValidatedApiRequest } from '../api-routes/validation';
 
