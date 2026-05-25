@@ -16,6 +16,7 @@ import {
   FormPrehydrateRootKey,
   FormPrehydrateVocabTreePayload,
   RecordMetadataDisplayComponentName,
+  ReusableFormDefinitions,
   VocabTreeChildrenResponse,
 } from '@researchdatabox/sails-ng-common';
 
@@ -326,7 +327,8 @@ export namespace Services {
     }
 
     private getPrehydrateConfig(): PrehydrateConfig {
-      const configured = (sails.config.form?.prehydrate ?? {}) as {
+      const formConfig = sails.config.form;
+      const configured = (formConfig.prehydrate ?? {}) as {
         enabled?: boolean;
         maxVocabSelections?: number;
         maxRecordMetadataOids?: number;
@@ -341,6 +343,7 @@ export namespace Services {
           : 50,
       };
     }
+
 
     private normalizeRecordMetadataOids(value: unknown): string[] {
       if (typeof value === 'string') {
@@ -378,7 +381,7 @@ export namespace Services {
         const userRoles = ((user?.['roles'] ?? []) as AnyRecord[])
           .map((role: AnyRecord) => String(role['name'] ?? ''))
           .filter((name: string) => !!name);
-        const reusableFormDefs = sails.config.reusableFormDefinitions;
+        const reusableFormDefs = sails.config.reusableFormDefinitions as ReusableFormDefinitions | undefined;
         const clientFormConfig = await FormsService.buildClientFormConfig(
           formConfiguration,
           'edit',
