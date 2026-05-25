@@ -1,3 +1,5 @@
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';

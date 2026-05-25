@@ -1,3 +1,5 @@
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import { buildDoiPayload } from '../../../src/services/doi-v2/payload';
 import { createDefaultBinding, type DoiProfile } from '../../../src/configmodels/DoiPublishing';
 

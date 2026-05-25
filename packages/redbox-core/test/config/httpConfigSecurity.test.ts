@@ -1,3 +1,5 @@
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import { createMockSails, setupServiceTestGlobals } from '../services/testHelper';

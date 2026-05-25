@@ -1,3 +1,5 @@
+let expect: Chai.ExpectStatic;
+import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareService';
 import { ServiceExports } from '../../src/services';
@@ -305,7 +307,7 @@ describe('FigshareService', function () {
     client.publishArticle.rejects(new Error('publish failed'));
     try {
       await service.publishAfterUploadFilesJob({
-      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
+        attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
       } as any);
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
