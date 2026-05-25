@@ -124,7 +124,6 @@ describe('Webservice RecordController body source', () => {
             submitChunk: sinon.stub().resolves({
                 run: { id: 'run-1', sourceRunId: 'source-run-1', status: 'running' },
                 chunk: { id: 'chunk-1', contentHash: 'hash-1', status: 'processed', recordCount: 1, duplicate: false },
-                records: [{ harvestId: 'harvest-1', oid: 'record-1', operation: 'upsert', outcome: 'created', status: true, message: 'Created', details: '' }],
             }),
         };
 

@@ -6,8 +6,10 @@ export enum HarvestRunStatus {
 }
 
 export enum HarvestChunkStatus {
+  processing = 'processing',
   processed = 'processed',
   failed = 'failed',
+  failedStale = 'failed_stale',
 }
 
 export enum HarvestOperation {
@@ -70,6 +72,7 @@ export class HarvestRunChunkModel {
   recordType = '';
   sourceRunId = '';
   contentHash = '';
+  attempt = 1;
   chunkIndex?: number;
   chunkLabel?: string;
   totalExpected?: number;

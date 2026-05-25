@@ -44,6 +44,7 @@ export interface HarvestRunChunkSummary {
   recordType?: string;
   sourceRunId?: string;
   contentHash: string;
+  attempt?: number;
   chunkIndex?: number;
   chunkLabel?: string;
   totalExpected?: number;

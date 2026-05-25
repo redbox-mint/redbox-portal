@@ -51,16 +51,14 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("Tracked harvest response includes the harvest id", function () {
+  test("Tracked harvest response includes run and chunk summaries", function () {
     var body = res.getBody();
     expect(body).to.have.property('run');
     expect(body).to.have.property('chunk');
-    expect(body).to.have.property('records');
+    expect(body).to.not.have.property('records');
     expect(body.run).to.have.property('sourceRunId', bru.getEnvVar('trackedHarvestSourceRunId'));
     expect(body.chunk).to.have.property('sourceRunId', bru.getEnvVar('trackedHarvestSourceRunId'));
-    expect(body.records).to.be.an('array');
-    expect(body.records.length).to.be.greaterThan(0);
-    expect(body.records[0]).to.have.property('harvestId', bru.getEnvVar('trackedHarvestId'));
-    expect(body.records[0]).to.have.property('oid');
+    expect(body.chunk).to.have.property('totalProcessed', 1);
+    expect(body.chunk).to.have.property('created', 1);
   });
 }

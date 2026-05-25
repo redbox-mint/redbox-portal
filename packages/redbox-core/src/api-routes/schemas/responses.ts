@@ -133,6 +133,7 @@ export const harvestRunChunkSummarySchema = withOpenApi(
         recordType: z.string().optional(),
         sourceRunId: z.string().optional(),
         contentHash: z.string(),
+        attempt: z.number().int().optional(),
         chunkIndex: z.number().int().optional(),
         chunkLabel: z.string().optional(),
         totalExpected: z.number().int().optional(),
@@ -204,7 +205,7 @@ export const enhancedHarvestChunkResponseSchema = withOpenApi(
     z.object({
         run: harvestRunSummarySchema,
         chunk: harvestRunChunkSummarySchema,
-        records: z.array(harvestChunkRecordResponseSchema),
+        records: z.array(harvestChunkRecordResponseSchema).optional(),
     }),
     { description: 'Tracked harvest chunk response envelope' }
 );

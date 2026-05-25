@@ -4,7 +4,9 @@ import { HarvestChunkStatus } from '../model/storage/HarvestRunModel';
 
 @Entity('harvestrunchunk', {
   indexes: [
-    { attributes: { runId: 1, contentHash: 1 }, unique: true },
+    { attributes: { runId: 1, contentHash: 1, attempt: 1 }, unique: true },
+    { attributes: { runId: 1, contentHash: 1, status: 1 } },
+    { attributes: { runId: 1, chunkIndex: 1 } },
     { attributes: { runId: 1, submittedAt: 1 } },
   ],
 })
@@ -23,6 +25,9 @@ export class HarvestRunChunkClass {
 
   @Attr({ type: 'string', required: true })
   public contentHash!: string;
+
+  @Attr({ type: 'number', defaultsTo: 1 })
+  public attempt?: number;
 
   @Attr({ type: 'number' })
   public chunkIndex?: number;
@@ -81,6 +86,7 @@ export interface HarvestRunChunkAttributes extends Sails.WaterlineAttributes {
   recordType: string;
   sourceRunId: string;
   contentHash: string;
+  attempt?: number;
   chunkIndex?: number;
   chunkLabel?: string;
   totalExpected?: number;

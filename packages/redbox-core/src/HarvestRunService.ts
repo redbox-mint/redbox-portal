@@ -43,7 +43,7 @@ export type HarvestTrackedRecordResponse = {
 export type HarvestTrackedChunkResponse = {
   run: HarvestRunModel;
   chunk: HarvestRunChunkModel;
-  records: HarvestTrackedRecordResponse[];
+  records?: HarvestTrackedRecordResponse[];
 };
 
 export class HarvestRunServiceError extends Error {

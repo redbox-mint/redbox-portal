@@ -517,6 +517,7 @@ describe('API routes contract layer', async () => {
       chunk: {
         id: 'chunk-1',
         contentHash: 'hash-1',
+        attempt: 1,
         status: 'processed',
         recordCount: 1,
         totalProcessed: 1,
@@ -527,18 +528,6 @@ describe('API routes contract layer', async () => {
         failed: 0,
         duplicate: false,
       },
-      records: [
-        {
-          harvestId: 'harvest-1',
-          oid: 'record-1',
-          operation: 'upsert',
-          outcome: 'created',
-          status: true,
-          message: 'Created',
-          details: '',
-          createdAt: '2026-05-25T00:00:00Z',
-        },
-      ],
     }).success).to.equal(true);
     expect(harvestRouteResponseSchema.safeParse({
       run: {
@@ -559,6 +548,7 @@ describe('API routes contract layer', async () => {
       chunk: {
         id: 'chunk-1',
         contentHash: 'hash-1',
+        attempt: 1,
         status: 'processed',
         recordCount: 1,
         totalProcessed: 1,
@@ -569,7 +559,6 @@ describe('API routes contract layer', async () => {
         failed: 0,
         duplicate: false,
       },
-      records: [],
     }).success).to.equal(true);
     expect(harvestRunSummarySchema.safeParse({
       id: 'run-1',

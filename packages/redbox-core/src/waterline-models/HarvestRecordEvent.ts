@@ -4,8 +4,9 @@ import { HarvestOperation, HarvestOutcome } from '../model/storage/HarvestRunMod
 
 @Entity('harvestrecordevent', {
   indexes: [
-    { attributes: { runId: 1, createdAt: 1 } },
-    { attributes: { runId: 1, outcome: 1 } },
+    { attributes: { runId: 1, brandId: 1, createdAt: -1 } },
+    { attributes: { runId: 1, brandId: 1, outcome: 1, createdAt: -1 } },
+    { attributes: { runId: 1, brandId: 1, operation: 1, createdAt: -1 } },
     { attributes: { harvestId: 1, recordType: 1, brandId: 1 } },
     { attributes: { oid: 1 } },
   ],
