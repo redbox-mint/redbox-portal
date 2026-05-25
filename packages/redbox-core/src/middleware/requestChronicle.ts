@@ -1,4 +1,3 @@
-import {set as _set} from 'lodash';
 import {RequestChronicleHelper} from "../utilities/RequestChronicle";
 
 
@@ -9,7 +8,7 @@ import {RequestChronicleHelper} from "../utilities/RequestChronicle";
  * @param next The next middleware callback.
  */
 export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
-  const item = RequestChronicleHelper.fromReq(req);
+  const item = RequestChronicleHelper.fromReq(sails.log, req);
   item.start();
 
   // Initialize the request chronicle with request context

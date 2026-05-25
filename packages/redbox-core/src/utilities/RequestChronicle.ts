@@ -68,7 +68,10 @@ export interface RequestChronicle {
 export class RequestChronicleHelper {
   #data: RequestChronicle = {};
 
-  public static fromReq(req: Sails.Req | Request): RequestChronicleHelper {
+  constructor(private logger: ILogger) {
+  }
+
+  public static fromReq(logger: ILogger, req: Sails.Req | Request): RequestChronicleHelper {
     const request = 'options' in req ? req : (req as { options?: Sails.ReqOptions });
     if (!('options' in req) || request?.options === undefined || request?.options === null) {
       request.options = {};
@@ -77,7 +80,7 @@ export class RequestChronicleHelper {
     if (request?.options?.requestChronicleHelper === undefined || request?.options?.requestChronicleHelper === null) {
       // Make the event accessible to other middleware, plus anywhere that can access the req.
       // TODO: This could use opentelemetry span or logs or trace, but that doesn't have to happen right now.
-      request.options.requestChronicleHelper = new RequestChronicleHelper();
+      request.options.requestChronicleHelper = new RequestChronicleHelper(logger);
     }
 
     return request.options.requestChronicleHelper;
@@ -88,7 +91,7 @@ export class RequestChronicleHelper {
       this.#data.result = {};
     }
     if (this.isRunning || this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot start request chronicle that is running or finished.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot start request chronicle that is running or finished.`);
       return;
     }
     this.#data.result.timestamp = (new Date()).toISOString();
@@ -99,7 +102,7 @@ export class RequestChronicleHelper {
       this.#data.result = {};
     }
     if (!this.isRunning || this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot finish request chronicle that is not running or already finished.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot finish request chronicle that is not running or already finished.`);
       return;
     }
     const dateNow = Date.now();
@@ -120,7 +123,7 @@ export class RequestChronicleHelper {
 
   updateReq(req: Sails.Req): void {
     if (!this.isRunning || this.isFinished || this.#data.req !== undefined) {
-      sails.log.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing req.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing req.`);
       return;
     }
 
@@ -133,7 +136,7 @@ export class RequestChronicleHelper {
 
   updateRes(res: Sails.Res): void {
     if (!this.isRunning || this.isFinished || this.#data.res !== undefined) {
-      sails.log.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing res.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing res.`);
       return;
     }
 
@@ -144,7 +147,7 @@ export class RequestChronicleHelper {
 
   public log(logger: ILogger) {
     if (!this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
+      this.logger.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
       // return;
     }
     const data = this.#data;
@@ -176,7 +179,7 @@ export class RequestChronicleHelper {
 
   public addError(error?: unknown): void {
     if (!this.isRunning || this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
       // return;
     }
     if (!Array.isArray(this.#data.errors)) {
@@ -191,19 +194,19 @@ export class RequestChronicleHelper {
 
   public addInfo(info: Record<string, unknown>) {
     if (!this.isRunning || this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
       // return;
     }
     const notAllowedKeys = ['result', 'req', 'res', 'errors'];
     for (const [key, value] of Object.entries(info ?? {})) {
       if (notAllowedKeys.includes(key)) {
-        sails.log.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}'.`);
+        this.logger.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}'.`);
       }
       // TODO: Expecting only top-level properties, not nested props.
       //       If nested props are wanted, this might need to merge instead of replace.
       // TODO: should it be allowed to replace an existing arbitrary property?
       if (this.#data[key] !== null && this.#data[key] !== undefined && this.#data[key] !== value) {
-        sails.log.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`);
+        this.logger.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`);
       }
       this.#data[key] = value;
     }
@@ -216,7 +219,7 @@ export class RequestChronicleHelper {
    */
   private classify(): RequestChronicleClassificationsType | undefined {
     if (this.isRunning || !this.isFinished) {
-      sails.log.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
+      this.logger.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
       // return undefined;
     }
     const item = this.#data;

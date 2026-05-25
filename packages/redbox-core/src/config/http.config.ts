@@ -22,6 +22,7 @@ import * as PathRulesServiceModule from '../services/PathRulesService';
 import {requestChronicle} from "../middleware/requestChronicle";
 import {RequestChronicleHelper} from "../utilities/RequestChronicle";
 import {UserModel} from "../model";
+import {consoleLogger} from "../Logger";
 
 // Declare Sails and its config structure
 declare const sails: {
@@ -323,7 +324,7 @@ export const http: HttpConfig = {
             const middleware = sails.config.passport.session() as unknown as RequestHandler;
             const result = middleware(req, res, next);
             const user = req.user as UserModel | undefined | null;
-            RequestChronicleHelper.fromReq(req).addInfo({
+            RequestChronicleHelper.fromReq(consoleLogger, req).addInfo({
               userId: user?.id,
               userUsername: user?.username,
               userType: user?.type,
@@ -556,7 +557,7 @@ export const http: HttpConfig = {
                     req.url = resolvedPath;
                 }
 
-              RequestChronicleHelper.fromReq(req).addInfo({
+              RequestChronicleHelper.fromReq(consoleLogger, req).addInfo({
                 branding: branding ?? extendedReq.options.locals.branding,
                 portal: portal ?? extendedReq.options.locals.portal,
               });

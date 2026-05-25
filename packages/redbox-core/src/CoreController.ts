@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
-import { ILogger } from './Logger';
+import {consoleLogger, ILogger} from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import {
   BuildResponseType,
@@ -77,22 +77,7 @@ export namespace Controllers.Core {
     private _logger: ILogger | null = null;
 
     private getFallbackLogger(): ILogger {
-      const log = (...args: unknown[]): void => console.log(...args);
-      const noop = (): void => undefined;
-      return {
-        silly: log,
-        verbose: log,
-        trace: (...args: unknown[]): void => console.trace(...args),
-        debug: (...args: unknown[]): void => console.debug(...args),
-        log: (...args: unknown[]): void => console.log(...args),
-        info: (...args: unknown[]): void => console.info(...args),
-        warn: (...args: unknown[]): void => console.warn(...args),
-        error: (...args: unknown[]): void => console.error(...args),
-        crit: (...args: unknown[]): void => console.error(...args),
-        fatal: (...args: unknown[]): void => console.error(...args),
-        silent: noop,
-        blank: (): void => console.log(''),
-      };
+      return consoleLogger;
     }
 
     /**
@@ -580,7 +565,7 @@ export namespace Controllers.Core {
     }
 
     protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
-      const rc = RequestChronicleHelper.fromReq(req);
+      const rc = RequestChronicleHelper.fromReq(sails.log, req);
       rc?.addInfo(info ?? {});
       (errors ?? []).forEach(error => rc?.addError(error));
     }
