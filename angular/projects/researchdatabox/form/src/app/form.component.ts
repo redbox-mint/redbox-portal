@@ -628,11 +628,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['redirectRequestedSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
       .subscribe(evt => {
-        this.doRedirect({
+        const redirectOptions = {
           historyDelta: evt?.historyDelta,
           redirectLocation: evt?.redirectLocation,
           redirectDelaySeconds: evt?.redirectDelaySeconds,
-        })
+        };
+        try {
+          this.doRedirect(redirectOptions);
+        } catch (err) {
+          this.loggerService.error(`${this.logName}: Redirect failed with options ${redirectOptions}`, err);
+        }
       });
 
     if (this.form) {
@@ -1142,7 +1147,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   /**
    * Redirect to another page.
-   * @param options
+   * @param options The redirect options.
+   * @param options.historyDelta Allows using the History.go interface to move forward and backward in the browser's session history.
+   * @param options.redirectLocation The relative url to redirect to on a successful save if closeOnSave is true.
+   * @param options.redirectDelaySeconds Wait this many seconds before the redirect. Default is 3 seconds delay.
    */
   public doRedirect(options?: {
     historyDelta?: number,
@@ -1153,6 +1161,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const redirectLocation = options?.redirectLocation;
     const redirectDelayMs = Math.max(0, options?.redirectDelaySeconds ?? 3) * 1000;
 
+    // Check for falsy means that history delta cannot be used to do a page reload `.historyGo(0)`.
+    // This is intended - if a page reload is needed, do it some other way.
     if (!!historyDelta && !!redirectLocation) {
       throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
     }

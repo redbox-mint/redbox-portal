@@ -34,7 +34,7 @@ export interface RedirectLocationEventBase {
   /**
    * Wait this many seconds before the redirect.
    * This is mainly used to give time for a user to see the outcome of a form action before leaving the page.
-   * Default is no delay.
+   * Default is 3 seconds delay.
    */
   readonly redirectDelaySeconds?: number;
 }
