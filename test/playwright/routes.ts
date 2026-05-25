@@ -205,7 +205,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'harvest-runs',
-    requiredSelectors: ['harvest-runs', 'harvest-runs .harvest-runs-layout'],
+    requiredSelectors: ['harvest-runs .hr-panel'],
     fallbackSelectors: ['harvest-runs img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/harvest-runs/browser/polyfills',
