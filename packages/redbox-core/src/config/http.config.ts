@@ -109,6 +109,8 @@ let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
+let _cachedBodyParserSkipPathConfig: CustomConfig['bodyParser']['skipPaths'] | undefined;
+let _cachedBodyParserSkipPathMatchers: RegExp[] = [];
 
 function isStaticAssetPath(reqPath: string): boolean {
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
@@ -162,6 +164,18 @@ function resolveBodyParserSkipPaths(customConfig?: Partial<CustomConfig>): strin
         return Object.values(configuredSkipPaths).filter((skipPath): skipPath is string => typeof skipPath === 'string');
     }
     return [];
+}
+
+function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): RegExp[] {
+    const configuredSkipPaths = customConfig?.bodyParser?.skipPaths;
+    if (_cachedBodyParserSkipPathConfig !== configuredSkipPaths) {
+        _cachedBodyParserSkipPathConfig = configuredSkipPaths;
+        _cachedBodyParserSkipPathMatchers = resolveBodyParserSkipPaths(customConfig)
+            .map((skipPath) => buildBodyParserRouteMatcher(skipPath))
+            .filter((matcher): matcher is RegExp => matcher !== null);
+    }
+
+    return _cachedBodyParserSkipPathMatchers;
 }
 
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
@@ -634,8 +648,9 @@ export const http: HttpConfig = {
 
         myBodyParser: function (req: Request, res: Response, next: NextFunction) {
             const requestPath = req.originalUrl ?? req.url;
-            const skipPaths = resolveBodyParserSkipPaths(sails.config.custom);
-            if (shouldSkipBodyParser(requestPath, skipPaths)) {
+            const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+            const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
+            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) {
                 return next();
             }
             const skipperMiddleware = skipper({

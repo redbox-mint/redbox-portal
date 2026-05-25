@@ -12,7 +12,7 @@ export interface CustomCacheControlConfig {
 
 export interface CustomBodyParserConfig {
     /** Route patterns that should bypass the body parser */
-    skipPaths: Record<string, string>;
+    skipPaths: string[] | Record<string, string>;
 }
 
 export interface CustomConfig {
