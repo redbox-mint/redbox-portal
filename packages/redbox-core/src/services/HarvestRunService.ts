@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
 
 import { Services as services } from '../CoreService';
+import { RecordsService as RecordsServiceContract } from '../RecordsService';
 import { HarvestRunService as HarvestRunServiceContract, HarvestRunServiceError, HarvestTrackedChunkRequest, HarvestTrackedChunkResponse, HarvestTrackedRecordRequest, HarvestTrackedRecordResponse } from '../HarvestRunService';
 import { APIHarvestResponse } from '../model/APIHarvestResponse';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -28,6 +29,9 @@ import { HarvestRunsConfig } from '../config/harvestRuns.config';
 import { HarvestRecordEventAttributes } from '../waterline-models/HarvestRecordEvent';
 import { HarvestRunChunkAttributes } from '../waterline-models/HarvestRunChunk';
 import { HarvestRunAttributes } from '../waterline-models/HarvestRun';
+import '../waterline-models/types';
+
+declare const RecordsService: RecordsServiceContract;
 
 declare const WorkflowStepsService: {
   get: (recordTypeModel: RecordTypeModel, workflowStage: string) => Observable<unknown>;

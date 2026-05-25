@@ -61,6 +61,7 @@ describe('HarvestRunService', function () {
       },
     });
     setupServiceTestGlobals(mockSails);
+    (global as any).RecordsService = recordsService;
 
     (global as any).HarvestRun = {
       findOne: sinon.stub(),
@@ -96,6 +97,7 @@ describe('HarvestRunService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
+    delete (global as any).RecordsService;
     (global as any).Record = originalRecord;
     (global as any).HarvestRun = originalHarvestRun;
     (global as any).HarvestRunChunk = originalHarvestRunChunk;
