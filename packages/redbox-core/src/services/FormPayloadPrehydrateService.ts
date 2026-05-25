@@ -16,8 +16,6 @@ import {
   FormPrehydrateRootKey,
   FormPrehydrateVocabTreePayload,
   RecordMetadataDisplayComponentName,
-  FormPrehydrateRootKey,
-  FormPrehydrateVocabTreePayload,
   VocabTreeChildrenResponse,
 } from '@researchdatabox/sails-ng-common';
 
