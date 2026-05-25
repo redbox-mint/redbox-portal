@@ -458,7 +458,7 @@ describe('ValidationSummaryFieldComponent', () => {
                   }
                 }
               ]
-            } as TabFieldComponentConfigFrame
+            }
           },
           layout: {
             class: 'TabLayout'
@@ -574,7 +574,7 @@ describe('ValidationSummaryFieldComponent', () => {
                   }
                 }
               ]
-            } as TabFieldComponentConfigFrame
+            }
           },
           layout: {
             class: 'TabLayout'
@@ -781,7 +781,7 @@ describe('ValidationSummaryFieldComponent', () => {
               }
             }
           ]
-        } as TabFieldComponentConfigFrame
+        }
       },
       layout: { class: 'TabLayout' }
     });
@@ -892,4 +892,121 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(link?.textContent?.trim()).toBe('Repeatable TextField with default wrapper defined');
   });
 
+  it('should include form component errors', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      validators : [
+        {
+          class: 'different-values',
+          config: {controlNames: ['text_1_event', 'text_2_event']},
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
+    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+    control?.setValue('change value');
+    control?.setValue('');
+    formComponent.form!.markAsDirty();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const summaryComponent = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
+
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
+      {
+        id: 'default-1.0-draft',
+        message: 'form-labelMessage',
+        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
+            controlNames: [ 'text_1_event', 'text_2_event' ],
+            controlCount: 2,
+            valueCount: 1,
+            values: [ '' ],
+          },
+        }],
+        lineagePaths: {
+          formConfig: [],
+          dataModel: [],
+          angularComponents: [],
+          layout: [],
+          angularComponentsJsonPointer: '',
+          layoutJsonPointer: ''
+        }
+      },
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          layout: ['text_1_event-layout'],
+          angularComponentsJsonPointer: '/text_1_event',
+          layoutJsonPointer: '/text_1_event-layout'
+        }
+      },
+      {
+        id: 'form-item-id-text-2-event',
+        message: null,
+        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 1],
+          dataModel: ['text_2_event'],
+          angularComponents: ['text_2_event'],
+          layout: ['text_2_event-layout'],
+          angularComponentsJsonPointer: '/text_2_event',
+          layoutJsonPointer: '/text_2_event-layout'
+        }
+      },
+    ]);
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('form-labelMessage');
+  });
 });

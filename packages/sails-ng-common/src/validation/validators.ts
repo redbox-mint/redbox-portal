@@ -1,4 +1,4 @@
-import { FormValidatorControl, FormValidatorDefinition } from "./form.model";
+import { FormValidatorDefinition } from "./form.model";
 import {
   formValidatorGetDefinitionArray,
   formValidatorGetDefinitionBoolean,
@@ -352,20 +352,39 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       const optionEvaluatorKey = "evaluator";
       const evaluator = formValidatorGetDefinitionItem(config, optionEvaluatorKey) as JSONataEvaluate;
       return async (control) => {
-        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
-          return null; // don't validate empty values to allow optional controls
-        }
-        const value = control.value;
+
+        // Notes:
+        // 1. For the jsonata-expression validator, always validate the control value.
+        //    This enables the expression to decide whether empty values are valid or not.
+        //    If empty values were not validated, then the expression would not have the option to treat empty values as invalid.
+        // 2. jsonata tries to define a 'keepSingleton' property on the input value.
+        //    Must clone the value because control values cannot be extended.
+        //    See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cant_define_property_object_not_extensible
+
         let success: boolean | null = null;
+
+        let value;
         try {
-          if (typeof evaluator !== "function") {
-            throw new Error("Missing evaluator");
-          }
-          success = await evaluator(value) === true;
+          value = structuredClone(control.value);
         } catch (err) {
           success = false;
-          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: control value cannot be cloned`);
         }
+
+        if (success === null && typeof evaluator !== "function") {
+          success = false;
+          console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: evaluator is not a function`);
+        }
+
+        if (success === null) {
+          try {
+            success = await evaluator(value) === true;
+          } catch (err) {
+            success = false;
+            console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
+        }
+        }
+
         return success
           ? null
           : {
