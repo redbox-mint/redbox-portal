@@ -102,6 +102,7 @@ export const listHarvestRunEventsRoute = apiRoute(
     responses: {
       200: responseField(listApiResponseSchema(harvestRunEventSchema), 'Harvest run event list'),
       400: badRequestResponse,
+      404: notFoundResponse,
       500: internalServerErrorResponse,
     },
   }

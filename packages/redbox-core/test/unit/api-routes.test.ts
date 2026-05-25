@@ -730,6 +730,7 @@ describe('API routes contract layer', async () => {
     const harvestRunEventsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get);
     const harvestRunEventsSchema = asOpenApiSchema(harvestRunEventsRoute.responses?.['200']?.content?.['application/json']?.schema);
     expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
+    expect(harvestRunEventsRoute.responses).to.have.property('404');
   });
 
   it('should include shared 400 and 500 error envelopes in OpenAPI', function () {
