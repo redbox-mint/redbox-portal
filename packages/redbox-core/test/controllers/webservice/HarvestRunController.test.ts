@@ -48,6 +48,7 @@ describe('Webservice HarvestRunController', () => {
           duplicateChunks: 0,
         },
       }),
+      runExists: sinon.stub().resolves(true),
       listRunEvents: sinon.stub().resolves({ rows: [{ id: 'event-1', harvestId: 'harvest-1' }], total: 1 }),
     };
     (global as any)._ = require('lodash');
@@ -115,13 +116,14 @@ describe('Webservice HarvestRunController', () => {
 
     await controller.listRunEvents(req, {} as Sails.Res);
 
+    expect((global as any).HarvestRunService.runExists.calledOnce).to.equal(true);
     expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
     expect((global as any).HarvestRunService.listRunEvents.firstCall.args[1]).to.equal('run-1');
     expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'event-1', harvestId: 'harvest-1' }]);
   });
 
   it('returns 404 when listing events for a missing run', async () => {
-    (global as any).HarvestRunService.getRun.resolves(null);
+    (global as any).HarvestRunService.runExists.resolves(false);
     const req = {
       session: { branding: 'default' },
       apiRequest: {

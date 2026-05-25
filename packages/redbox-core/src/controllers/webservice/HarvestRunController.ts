@@ -115,8 +115,8 @@ export namespace Controllers {
           });
         }
 
-        const run = await HarvestRunService.getRun(brand, runId);
-        if (!run) {
+        const runExists = await HarvestRunService.runExists(brand, runId);
+        if (!runExists) {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ detail: 'Harvest run not found.' }],

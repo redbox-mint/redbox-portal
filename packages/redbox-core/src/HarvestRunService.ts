@@ -79,6 +79,7 @@ export interface HarvestRunService {
   ): Promise<HarvestTrackedChunkResponse>;
   listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult>;
   getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null>;
+  runExists(brand: BrandingModel, runId: string): Promise<boolean>;
   listRunEvents(
     brand: BrandingModel,
     runId: string,

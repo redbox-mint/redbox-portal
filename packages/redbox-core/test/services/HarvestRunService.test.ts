@@ -38,6 +38,7 @@ describe('HarvestRunService', function () {
     getMeta: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
     delete: sinon.SinonStub;
+    restoreRecord: sinon.SinonStub;
     setWorkflowStepRelatedMetadata: sinon.SinonStub;
   };
 
@@ -52,6 +53,7 @@ describe('HarvestRunService', function () {
       getMeta: sinon.stub(),
       updateMeta: sinon.stub(),
       delete: sinon.stub(),
+      restoreRecord: sinon.stub(),
       setWorkflowStepRelatedMetadata: sinon.stub(),
     };
 
@@ -692,6 +694,189 @@ describe('HarvestRunService', function () {
 
     expect(recordsService.updateMeta.calledOnce).to.equal(true);
     expect(response.chunk.responseSummary).to.deep.include({ updated: 1, unchanged: 0 });
+  });
+
+  it('rolls back created records when event persistence fails before checkpointing', async function () {
+    (global as any).HarvestRun.findOne.resolves(null);
+    (global as any).HarvestRun.create.returns({
+      fetch: sinon.stub().resolves({
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 0,
+        duplicateChunks: 0,
+      }),
+    });
+    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
+    (global as any).HarvestRunChunk.create.returns({
+      fetch: sinon.stub().resolves({
+        id: 'chunk-1',
+        runId: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceRunId: 'source-run-1',
+        contentHash: 'hash-1',
+        attempt: 1,
+        status: 'processing',
+        recordCount: 1,
+        duplicate: false,
+        submittedAt: '2026-05-25T00:00:00.000Z',
+      }),
+    });
+    (global as any).HarvestRunChunk.updateOne.returns({ set: sinon.stub().resolves(null) });
+    (global as any).HarvestRun.updateOne.returns({ set: sinon.stub().resolves(null) });
+    (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+    (global as any).Record.find.callsFake(() => ({ meta: sinon.stub().resolves([]) }));
+    recordsService.create.resolves({
+      oid: 'record-1',
+      message: 'Created',
+      details: '',
+      isSuccessful: () => true,
+    });
+    recordsService.getMeta.resolves({
+      redboxOid: 'record-1',
+      metadata: { title: 'Test' },
+      metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+    });
+    recordsService.delete.resolves({
+      message: 'Deleted',
+      details: '',
+      isSuccessful: () => true,
+    });
+
+    try {
+      await service.submitChunk(
+        { id: 'brand-1', name: 'default' },
+        { name: 'dataset' },
+        {
+          sourceRunId: 'source-run-1',
+          sourceName: 'source-a',
+          chunk: { index: 1 },
+          records: [{ harvestId: 'harvest-1', operation: 'create', recordRequest: { metadata: { title: 'Test' } } }],
+        },
+        { username: 'tester' }
+      );
+      throw new Error('Expected submitChunk to fail when event persistence fails');
+    } catch (error) {
+      expect((error as Error).message).to.equal('event write failed');
+    }
+
+    expect(recordsService.create.calledOnce).to.equal(true);
+    expect(recordsService.delete.calledOnce).to.equal(true);
+    expect((global as any).HarvestRun.updateOne.called).to.equal(false);
+  });
+
+  it('retries non-atomic run counter updates when the row changes concurrently', async function () {
+    const firstSet = sinon.stub().resolves(null);
+    const secondSet = sinon.stub().resolves({
+      id: 'run-1',
+      brandId: 'brand-1',
+      recordType: 'dataset',
+      sourceName: 'source-a',
+      sourceRunId: 'source-run-1',
+      status: 'running',
+      startedAt: '2026-05-25T00:00:00.000Z',
+      totalProcessed: 7,
+      created: 5,
+      updated: 2,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 4,
+      duplicateChunks: 0,
+      lastChunkAt: '2026-05-25T00:05:00.000Z',
+    });
+    (global as any).HarvestRun.updateOne
+      .onFirstCall().returns({ set: firstSet })
+      .onSecondCall().returns({ set: secondSet });
+    (global as any).HarvestRun.findOne.onFirstCall().resolves({
+      id: 'run-1',
+      brandId: 'brand-1',
+      recordType: 'dataset',
+      sourceName: 'source-a',
+      sourceRunId: 'source-run-1',
+      status: 'running',
+      startedAt: '2026-05-25T00:00:00.000Z',
+      totalProcessed: 5,
+      created: 4,
+      updated: 1,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 3,
+      duplicateChunks: 0,
+    });
+
+    const updatedRun = await service.updateRunAfterChunk(
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 0,
+        duplicateChunks: 0,
+      },
+      { totalProcessed: 2, created: 1, updated: 1, deleted: 0, unchanged: 0, failed: 0 },
+      false,
+      '2026-05-25T00:05:00.000Z'
+    );
+
+    expect((global as any).HarvestRun.updateOne.calledTwice).to.equal(true);
+    expect((global as any).HarvestRun.findOne.calledOnce).to.equal(true);
+    expect((global as any).HarvestRun.updateOne.firstCall.args[0]).to.deep.include({
+      id: 'run-1',
+      totalProcessed: 0,
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 0,
+      status: 'running',
+    });
+    expect((global as any).HarvestRun.updateOne.secondCall.args[0]).to.deep.include({
+      id: 'run-1',
+      totalProcessed: 5,
+      created: 4,
+      updated: 1,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 3,
+      status: 'running',
+    });
+    expect(secondSet.firstCall.args[0]).to.deep.include({
+      totalProcessed: 7,
+      created: 5,
+      updated: 2,
+      chunksProcessed: 4,
+      lastChunkAt: '2026-05-25T00:05:00.000Z',
+    });
+    expect(updatedRun.totalProcessed).to.equal(7);
+  });
+
+  it('treats asymmetric metadata field removal as a real change', function () {
+    expect(service.isMetadataEqual({ title: 'Existing' }, { title: 'Existing', description: 'To remove' })).to.equal(false);
+    expect(service.isMetadataEqual({ title: 'Existing', description: 'To remove' }, { title: 'Existing' })).to.equal(false);
   });
 
   it('atomically increments run counters when a datastore manager is available', async function () {
