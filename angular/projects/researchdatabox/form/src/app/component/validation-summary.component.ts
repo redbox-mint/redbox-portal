@@ -128,6 +128,8 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
   private validationRefreshQueued = false;
+  private validationRefreshDeferred = false;
+  private formChangesBound = false;
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
     'select:not([disabled])',
@@ -143,16 +145,33 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   protected override async initEventHandlers(): Promise<void> {
     await super.initEventHandlers();
-    this.triggerValidationErrorsRefresh('init');
+    this.bindFormChangeStreamsIfReady();
+    this.queueValidationErrorsRefresh();
 
-    const form = this.getFormComponent.form;
-    if (form) {
-      merge(form.valueChanges, form.statusChanges)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.queueValidationErrorsRefresh());
-    }
+    this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.bindFormChangeStreamsIfReady();
+        this.queueValidationErrorsRefresh();
+      });
 
     this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.queueValidationErrorsRefresh());
+  }
+
+  private bindFormChangeStreamsIfReady(): void {
+    if (this.formChangesBound) {
+      return;
+    }
+
+    const form = this.getFormComponent.form;
+    if (!form) {
+      return;
+    }
+
+    this.formChangesBound = true;
+    merge(form.valueChanges, form.statusChanges)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
   }
@@ -175,8 +194,33 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   protected async refreshValidationErrors(): Promise<void> {
-    this.validationErrorsDisplay$.next(this.getFormComponent.getValidationErrors() ?? []);
+    this.bindFormChangeStreamsIfReady();
+    if (!this.isValidationSnapshotReady()) {
+      this.deferValidationErrorsRefresh();
+      return;
+    }
+
+    this.validationErrorsDisplay$.next(await this.collectValidationErrors());
     this.changeDetectorRef.markForCheck();
+  }
+
+  protected async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
+    return this.getFormComponent.getValidationErrors() ?? [];
+  }
+
+  private isValidationSnapshotReady(): boolean {
+    return !!this.getFormComponent.form && this.getFormComponent.componentsLoaded();
+  }
+
+  private deferValidationErrorsRefresh(): void {
+    if (this.validationRefreshDeferred) {
+      return;
+    }
+    this.validationRefreshDeferred = true;
+    setTimeout(() => {
+      this.validationRefreshDeferred = false;
+      this.queueValidationErrorsRefresh();
+    }, 0);
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {

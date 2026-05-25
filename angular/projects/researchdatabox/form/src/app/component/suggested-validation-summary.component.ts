@@ -116,7 +116,7 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
     return this.suggestedConfig.header ?? '@dmpt-form-suggested-validation-summary-header';
   }
 
-  protected override async refreshValidationErrors(): Promise<void> {
+  protected override async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
     const mapEntries = this.formComponent.componentDefArr ?? [];
     const result: FormValidatorSummaryErrors[] = [];
     for (const mapEntry of mapEntries) {
@@ -126,7 +126,7 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
         this.formComponent.validationGroups
       ));
     }
-    this.validationErrorsDisplay$.next(result);
+    return result;
   }
 
   private get enabledValidationGroups(): string[] {

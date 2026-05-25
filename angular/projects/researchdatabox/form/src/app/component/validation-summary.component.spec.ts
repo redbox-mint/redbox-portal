@@ -152,6 +152,66 @@ describe('ValidationSummaryFieldComponent', () => {
     ]);
   });
 
+  it('should not keep a stale required error for a hydrated repeatable field', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+        {
+          name: 'contributor_dmp_permissions',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: [
+                { name: 'Existing User', email: 'existing@example.edu', role: 'View&Edit' }
+              ],
+              validators: [{ class: 'required' }]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {}
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              }
+            }
+          },
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: '@dmpt-user-permissions-tab-dmp-permissions'
+            }
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const validationSummary = fixture.componentInstance.componentDefArr[0].component as ValidationSummaryFieldComponent;
+    const summaryErrors = await validationSummary.allValidationErrorsDisplay();
+    expect(summaryErrors.map((summary) => summary.id)).not.toContain('form-item-id-contributor-dmp-permissions');
+    expect(fixture.nativeElement.querySelector('[data-validation-summary-id="form-item-id-contributor-dmp-permissions"]')).toBeNull();
+  });
+
   it('should remove a validation summary item when the field becomes valid while the form remains invalid', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
