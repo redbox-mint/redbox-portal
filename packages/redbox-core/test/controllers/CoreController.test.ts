@@ -15,7 +15,7 @@ describe('CoreController sendResp wrappers', () => {
 
     (global as any).sails = {
       config: {},
-      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() }
+      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub(), warn: sinon.stub() }
     };
 
     (global as any).TranslationService = { t: (s: any) => s };

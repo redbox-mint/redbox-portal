@@ -17,7 +17,7 @@ describe('FormVocabularyController', () => {
 
   beforeEach(() => {
     (global as any).sails = {
-      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() },
+      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub(), warn: sinon.stub() },
       services: {
         vocabularyservice: {
           getByIdOrSlug: sinon.stub(),

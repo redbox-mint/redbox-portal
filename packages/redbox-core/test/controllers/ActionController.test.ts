@@ -21,7 +21,7 @@ describe('ActionController', () => {
                     }
                 }
             },
-            log: { verbose: sinon.stub(), error: sinon.stub() }
+            log: { verbose: sinon.stub(), error: sinon.stub(), warn: sinon.stub() }
         };
         (global as any).sails = mockSails;
         controller = new Controllers.Action();
@@ -40,7 +40,7 @@ describe('ActionController', () => {
             } as unknown as Sails.Req;
             paramStub.withArgs('action').returns('testAction');
             paramStub.withArgs('oid').returns('123');
-            
+
             const res = {
                 writableEnded: true
             } as unknown as Sails.Res;
@@ -58,7 +58,7 @@ describe('ActionController', () => {
             } as unknown as Sails.Req;
             paramStub.withArgs('action').returns('testAction');
             paramStub.withArgs('oid').returns('123');
-            
+
             const res = {
                 writableEnded: false
             } as unknown as Sails.Res;
