@@ -148,8 +148,55 @@ export class HarvestRunsComponent extends BaseComponent {
     }
   }
 
+  public getStatusVariant(status?: string): string {
+    switch (String(status ?? '').trim()) {
+      case 'completed':
+        return 'success';
+      case 'completed_with_errors':
+        return 'warning';
+      case 'failed':
+        return 'danger';
+      case 'aborted':
+        return 'muted';
+      case 'timed_out':
+        return 'warning';
+      case 'running':
+        return 'info';
+      default:
+        return 'neutral';
+    }
+  }
+
   public getChunkBadgeClass(status?: string): string {
     return String(status ?? '').trim() === 'processed' ? 'text-bg-success' : 'text-bg-danger';
+  }
+
+  public getChunkVariant(status?: string): string {
+    const value = String(status ?? '').trim();
+    if (value === 'processed') {
+      return 'success';
+    }
+    if (value === 'processing') {
+      return 'info';
+    }
+    return 'danger';
+  }
+
+  public getOutcomeVariant(outcome?: string): string {
+    switch (String(outcome ?? '').trim()) {
+      case 'created':
+        return 'success';
+      case 'updated':
+        return 'info';
+      case 'deleted':
+        return 'warning';
+      case 'unchanged':
+        return 'muted';
+      case 'failed':
+        return 'danger';
+      default:
+        return 'neutral';
+    }
   }
 
   public getEventMessage(event: HarvestRunEvent): string {
@@ -179,21 +226,21 @@ export class HarvestRunsComponent extends BaseComponent {
     );
   }
 
-  public getSummaryCounts(): Array<{ labelKey: string; value: number }> {
+  public getSummaryCounts(): Array<{ labelKey: string; value: number; accent: string }> {
     const counts = this.selectedRun?.aggregateCounts;
     if (!counts) {
       return [];
     }
 
     return [
-      { labelKey: 'harvest-runs-col-processed', value: counts.totalProcessed },
-      { labelKey: 'harvest-runs-col-created', value: counts.created },
-      { labelKey: 'harvest-runs-col-updated', value: counts.updated },
-      { labelKey: 'harvest-runs-col-deleted', value: counts.deleted },
-      { labelKey: 'harvest-runs-col-unchanged', value: counts.unchanged },
-      { labelKey: 'harvest-runs-col-failed', value: counts.failed },
-      { labelKey: 'harvest-runs-col-chunks-processed', value: counts.chunksProcessed },
-      { labelKey: 'harvest-runs-col-duplicate-chunks', value: counts.duplicateChunks }
+      { labelKey: 'harvest-runs-col-processed', value: counts.totalProcessed, accent: 'primary' },
+      { labelKey: 'harvest-runs-col-created', value: counts.created, accent: 'success' },
+      { labelKey: 'harvest-runs-col-updated', value: counts.updated, accent: 'info' },
+      { labelKey: 'harvest-runs-col-deleted', value: counts.deleted, accent: 'warning' },
+      { labelKey: 'harvest-runs-col-unchanged', value: counts.unchanged, accent: 'muted' },
+      { labelKey: 'harvest-runs-col-failed', value: counts.failed, accent: 'danger' },
+      { labelKey: 'harvest-runs-col-chunks-processed', value: counts.chunksProcessed, accent: 'neutral' },
+      { labelKey: 'harvest-runs-col-duplicate-chunks', value: counts.duplicateChunks, accent: 'neutral' }
     ];
   }
 
