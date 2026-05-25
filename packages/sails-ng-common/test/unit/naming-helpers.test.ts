@@ -142,4 +142,15 @@ describe('Naming Helpers: getObjectWithJsonPointer', () => {
     expect(ref.key).to.equal(0);
     expect(ref.obj).to.equal(doc['a/b']['c~d']);
   });
+
+  it('returns undefined when the pointer string traverses through a non-object intermediate', () => {
+    // /a/b/c walks into `1` which is not an object — the underlying library throws NOT_FOUND.
+    const doc = { a: { b: 1 } };
+    expect(getObjectWithJsonPointer(doc, '/a/b/c')).to.equal(undefined);
+  });
+
+  it('returns undefined when the path-segment array traverses through a non-object intermediate', () => {
+    const doc = { a: { b: 1 } };
+    expect(getObjectWithJsonPointer(doc, ['a', 'b', 'c'])).to.equal(undefined);
+  });
 });

@@ -43,4 +43,8 @@ export interface BuildResponseType {
    * The payload to use for responses in the API V1 structure.
    */
   v1?: unknown;
+  /**
+   * Optional additive payload for v2 responses.
+   */
+  prehydrate?: unknown;
 }

@@ -1,7 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
-import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
+import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } from "../helpers.spec";
 import { CheckboxTreeComponent } from "./checkbox-tree.component";
 import { VocabTreeService } from "../service/vocab-tree.service";
 
@@ -588,6 +588,215 @@ describe("CheckboxTreeComponent", () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(0);
     expect((compiled.textContent ?? "").includes("Unable to load vocabulary tree.")).toBeFalse();
+  });
+
+  it("hydrates selected vocab paths from loaded children without expandPath when genealogy is available", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const getChildren = spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
+      if (!parentId) {
+        return Promise.resolve({
+          data: [{ id: "root", label: "Root", value: "08", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/08", parent: null, hasChildren: true }],
+          meta: { vocabularyId: "v1", parentId: null, total: 1 }
+        } as any);
+      }
+      if (parentId === "root") {
+        return Promise.resolve({
+          data: [
+            { id: "leaf", label: "Leaf", value: "0801", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/0801", parent: "root", hasChildren: false },
+            { id: "sibling", label: "Sibling", value: "0802", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/0802", parent: "root", hasChildren: false }
+          ],
+          meta: { vocabularyId: "v1", parentId: "root", total: 2 }
+        } as any);
+      }
+      return Promise.resolve({ data: [], meta: { vocabularyId: "v1", parentId: parentId ?? null, total: 0 } } as any);
+    });
+    const expandPath = spyOn(vocabTreeService, "expandPath").and.rejectWith(new Error("expandPath should not be called"));
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [
+                {
+                  notation: "0801",
+                  label: "Leaf",
+                  name: "0801 - Leaf",
+                  genealogy: ["https://linked.data.gov.au/def/anzsrc-for/2020/08"]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(expandPath).not.toHaveBeenCalled();
+    expect(getChildren).toHaveBeenCalledWith("anzsrc-2020-for");
+    expect(getChildren).toHaveBeenCalledWith("anzsrc-2020-for", "root");
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(3);
+    expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
+    expect((compiled.textContent ?? "").includes("Sibling")).toBeTrue();
+  });
+
+  it("matches selected shorthand notations against loaded URI nodes without rescanning selections", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
+      if (!parentId) {
+        return Promise.resolve({
+          data: [{ id: "root", label: "Root", value: "08", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/08", parent: null, hasChildren: true }],
+          meta: { vocabularyId: "v1", parentId: null, total: 1 }
+        } as any);
+      }
+      if (parentId === "root") {
+        return Promise.resolve({
+          data: [
+            { id: "leaf", label: "Leaf", value: "0801", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/0801", parent: "root", hasChildren: false }
+          ],
+          meta: { vocabularyId: "v1", parentId: "root", total: 1 }
+        } as any);
+      }
+      return Promise.resolve({ data: [], meta: { vocabularyId: "v1", parentId: parentId ?? null, total: 0 } } as any);
+    });
+    spyOn(vocabTreeService, "expandPath").and.resolveTo({
+      data: {
+        "0801": [
+          {
+            id: "root",
+            label: "Root",
+            value: "08",
+            notation: "https://linked.data.gov.au/def/anzsrc-for/2020/08",
+            parent: null,
+            hasChildren: true,
+            children: [
+              { id: "leaf", label: "Leaf", value: "0801", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/0801", parent: "root", hasChildren: false }
+            ]
+          },
+          { id: "leaf", label: "Leaf", value: "0801", notation: "https://linked.data.gov.au/def/anzsrc-for/2020/0801", parent: "root", hasChildren: false }
+        ]
+      },
+      meta: { vocabularyId: "v1", notations: ["0801"] }
+    } as any);
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [
+                {
+                  notation: "0801",
+                  label: "Leaf",
+                  name: "0801 - Leaf"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance as CheckboxTreeComponent;
+
+    const rootNode = component.rootNodes[0];
+    expect(rootNode).toBeDefined();
+    expect(component.isSelected(rootNode)).toBeFalse();
+
+    await component.toggleExpand(rootNode, 1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const leafNode = component.rootNodes[0]?.children?.[0];
+    expect(leafNode).toBeDefined();
+    expect(component.isSelected(leafNode!)).toBeTrue();
+  });
+
+  it("uses expandPath when selected values do not include genealogy", async () => {
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const getChildren = spyOn(vocabTreeService, "getChildren").and.resolveTo({
+      data: [{ id: "root", label: "Root", value: "08", notation: "08", parent: null, hasChildren: true }],
+      meta: { vocabularyId: "v1", parentId: null, total: 1 }
+    } as any);
+    const expandPath = spyOn(vocabTreeService, "expandPath").and.resolveTo({
+      data: {
+        "0801": [
+          {
+            id: "root",
+            label: "Root",
+            value: "08",
+            notation: "08",
+            parent: null,
+            hasChildren: true,
+            children: [
+              { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
+            ]
+          },
+          { id: "leaf", label: "Leaf", value: "0801", notation: "0801", parent: "root", hasChildren: false }
+        ]
+      },
+      meta: { vocabularyId: "v1", notations: ["0801"] }
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "anzsrc",
+          component: {
+            class: "CheckboxTreeComponent",
+            config: {
+              vocabRef: "anzsrc-2020-for",
+              inlineVocab: false,
+              leafOnly: true
+            }
+          },
+          model: {
+            class: "CheckboxTreeModel",
+            config: {
+              value: [
+                {
+                  notation: "0801",
+                  label: "Leaf",
+                  name: "0801 - Leaf"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(expandPath).toHaveBeenCalledOnceWith("anzsrc-2020-for", ["0801"]);
+    expect(getChildren).toHaveBeenCalledWith("anzsrc-2020-for");
+    expect(compiled.querySelectorAll('[role="treeitem"]').length).toBe(2);
+    expect((compiled.textContent ?? "").includes("Leaf")).toBeTrue();
   });
 
   it("deduplicates duplicate node ids in inline tree data", async () => {

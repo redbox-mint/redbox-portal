@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, Injector, Input, OnDestroy, ViewChild, inject} from "@angular/core";
+import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
 import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
@@ -8,19 +8,76 @@ import {
   MapModelValueType,
   MapTileLayerConfig
 } from "@researchdatabox/sails-ng-common";
-import * as L from "leaflet";
-import * as TerraDrawLibrary from "terra-draw";
-import * as TerraDrawLeafletAdapterLibrary from "terra-draw-leaflet-adapter";
-import {kml as parseKmlToGeoJson} from "@tmcw/togeojson";
+// Type-only imports keep these libraries out of the eager bundle.
+// The runtime modules are loaded on demand by `loadMapDependencies()` below
+// so a record without a map field never pays the cost of leaflet, terra-draw,
+// terra-draw-leaflet-adapter or @tmcw/togeojson.
+import type * as L from "leaflet";
+import type * as TerraDrawLibrary from "terra-draw";
+import type * as TerraDrawLeafletAdapterLibrary from "terra-draw-leaflet-adapter";
+import type {kml as ParseKmlToGeoJson} from "@tmcw/togeojson";
 import {FormComponent} from "../form.component";
 
 const mapMarkerIconPath = "assets/leaflet/marker-icon.png";
 const mapMarkerIconRetinaPath = "assets/leaflet/marker-icon-2x.png";
 const mapMarkerShadowPath = "assets/leaflet/marker-shadow.png";
-L.Icon.Default.mergeOptions({
-  iconUrl: mapMarkerIconPath,
-  iconRetinaUrl: mapMarkerIconRetinaPath,
-  shadowUrl: mapMarkerShadowPath
+
+export interface MapDependencies {
+  L: typeof L;
+  terraDraw: typeof TerraDrawLibrary;
+  terraDrawLeafletAdapter: typeof TerraDrawLeafletAdapterLibrary;
+  parseKmlToGeoJson: typeof ParseKmlToGeoJson;
+}
+
+let mapDependenciesPromise: Promise<MapDependencies> | undefined;
+let leafletIconDefaultsApplied = false;
+
+/**
+ * Lazily resolve all runtime map dependencies as a single split chunk.
+ *
+ * Calling more than once returns the same promise so concurrent map fields on
+ * the same form share one network/cache hit. The leaflet default-icon merge
+ * runs once on first resolve so subsequent map instances see the correct icon
+ * paths.
+ */
+function loadMapDependencies(): Promise<MapDependencies> {
+  if (!mapDependenciesPromise) {
+    mapDependenciesPromise = (async () => {
+      // webpackChunkName lets the lazy chunk show up with a stable filename.
+      const [leafletMod, terraDrawMod, terraDrawAdapterMod, toGeoJsonMod] = await Promise.all([
+        import(/* webpackChunkName: "leaflet" */ "leaflet"),
+        import(/* webpackChunkName: "terra-draw" */ "terra-draw"),
+        import(/* webpackChunkName: "terra-draw-leaflet-adapter" */ "terra-draw-leaflet-adapter"),
+        import(/* webpackChunkName: "togeojson" */ "@tmcw/togeojson"),
+      ]);
+      // Some bundlers wrap CommonJS namespaces in a `default` field. Unwrap if present.
+      const leaflet = ((leafletMod as { default?: typeof L }).default ?? leafletMod) as typeof L;
+      if (!leafletIconDefaultsApplied) {
+        leaflet.Icon.Default.mergeOptions({
+          iconUrl: mapMarkerIconPath,
+          iconRetinaUrl: mapMarkerIconRetinaPath,
+          shadowUrl: mapMarkerShadowPath
+        });
+        leafletIconDefaultsApplied = true;
+      }
+      return {
+        L: leaflet,
+        terraDraw: terraDrawMod as typeof TerraDrawLibrary,
+        terraDrawLeafletAdapter: terraDrawAdapterMod as typeof TerraDrawLeafletAdapterLibrary,
+        parseKmlToGeoJson: (toGeoJsonMod as { kml: typeof ParseKmlToGeoJson }).kml,
+      };
+    })();
+    // Drop the cached promise on failure so a retry can re-fetch the chunk.
+    mapDependenciesPromise.catch(() => {
+      mapDependenciesPromise = undefined;
+    });
+  }
+  return mapDependenciesPromise;
+}
+
+export const MAP_DEPENDENCIES_LOADER = new InjectionToken<() => Promise<MapDependencies>>("MAP_DEPENDENCIES_LOADER", {
+  providedIn: "root",
+  factory: () => loadMapDependencies
 });
 
 const emptyFeatureCollection = (): MapModelValueType => ({
@@ -139,6 +196,7 @@ export class MapModel extends FormFieldModel<MapModelValueType> {
 })
 export class MapComponent extends FormFieldBaseComponent<MapModelValueType> implements AfterViewInit, OnDestroy {
   protected override logName = MapComponentName;
+  private readonly loadMapDependencies = inject(MAP_DEPENDENCIES_LOADER);
 
   @Input() public override model?: MapModel;
   @ViewChild("mapHost", {static: false}) private mapHost?: ElementRef<HTMLDivElement>;
@@ -153,6 +211,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private map?: L.Map;
   private draw?: any;
   private featureLayer?: L.GeoJSON;
+  // Resolved on first ngAfterViewInit; held as an instance ref so render/import
+  // helpers can use leaflet etc. without re-awaiting the shared module promise.
+  private mapDeps?: MapDependencies;
+  private _destroyed = false;
   private visibilityObserver?: IntersectionObserver;
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
@@ -192,10 +254,27 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
   override ngAfterViewInit(): void {
     super.ngAfterViewInit();
-    this.initialiseMap();
+    // Kick off lazy load of the map runtime. The component remains in the
+    // eager Angular bundle (registered as a form component) but the leaflet/
+    // terra-draw chunks only download when a record actually has a map field.
+    void this.loadMapDependencies()
+      .then((deps) => {
+        if (this._destroyed) {
+          return;
+        }
+        this.mapDeps = deps;
+        this.initialiseMap();
+      })
+      .catch((error) => {
+        this.loggerService.warn(
+          `${this.logName}: failed to load map dependencies, map will not render.`,
+          error
+        );
+      });
   }
 
   ngOnDestroy(): void {
+    this._destroyed = true;
     this.visibilityObserver?.disconnect();
     this.visibilityObserver = undefined;
     try {
@@ -223,17 +302,18 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private initialiseMap(): void {
-    if (!this.mapHost?.nativeElement || this.map) {
+    if (!this.mapHost?.nativeElement || this.map || !this.mapDeps) {
       return;
     }
+    const {L: leaflet} = this.mapDeps;
     const tileLayerConfig = this.tileLayers[0] ?? {
       name: "OpenStreetMap",
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       options: {maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"}
     };
-    const tileLayer = L.tileLayer(tileLayerConfig.url, (tileLayerConfig.options ?? {}) as L.TileLayerOptions);
+    const tileLayer = leaflet.tileLayer(tileLayerConfig.url, (tileLayerConfig.options ?? {}) as L.TileLayerOptions);
 
-    this.map = L.map(this.mapHost.nativeElement, {
+    this.map = leaflet.map(this.mapHost.nativeElement, {
       center: this.center,
       zoom: this.zoom,
       layers: [tileLayer]
@@ -254,7 +334,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private initialiseDraw(): void {
-    if (!this.map) {
+    if (!this.map || !this.mapDeps) {
       return;
     }
 
@@ -270,7 +350,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       if (!TerraDrawCtor || !AdapterCtor) {
         return;
       }
-      const adapter = new AdapterCtor({map: this.map, lib: L});
+      const adapter = new AdapterCtor({map: this.map, lib: this.mapDeps.L});
       const modes: unknown[] = [];
       if (this.enabledModes.includes("point") && PointMode) {
         modes.push(new PointMode());
@@ -315,12 +395,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private getTerraDrawDependencies(): TerraDrawDependencies {
-    const testDeps = (globalThis as Record<string, unknown>)["__redboxMapTerraDrawDeps"];
-    if (testDeps && typeof testDeps === "object") {
-      return testDeps as TerraDrawDependencies;
+    if (!this.mapDeps) {
+      return {};
     }
-    const terraDraw = TerraDrawLibrary as any;
-    const terraDrawLeafletAdapter = TerraDrawLeafletAdapterLibrary as any;
+    const terraDraw = this.mapDeps.terraDraw as any;
+    const terraDrawLeafletAdapter = this.mapDeps.terraDrawLeafletAdapter as any;
     return {
       TerraDrawCtor: terraDraw.TerraDraw,
       AdapterCtor: terraDrawLeafletAdapter.TerraDrawLeafletAdapter,
@@ -333,11 +412,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private renderReadonlyLayer(value: MapModelValueType): void {
-    if (!this.map) {
+    if (!this.map || !this.mapDeps) {
       return;
     }
     this.featureLayer?.removeFrom(this.map);
-    this.featureLayer = L.geoJSON(value as any);
+    this.featureLayer = this.mapDeps.L.geoJSON(value as any);
     this.featureLayer.addTo(this.map);
     this.fitToLayerBounds(this.featureLayer);
   }
@@ -435,8 +514,12 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     try {
       if (trimmed.startsWith("<")) {
+        if (!this.mapDeps) {
+          this.importError = "Map import is not ready yet, please try again in a moment.";
+          return null;
+        }
         const xmlDoc = new DOMParser().parseFromString(trimmed, "text/xml");
-        const converted = parseKmlToGeoJson(xmlDoc);
+        const converted = this.mapDeps.parseKmlToGeoJson(xmlDoc);
         return this.normalizeFeatureCollection(converted);
       }
       const parsed = JSON.parse(trimmed);

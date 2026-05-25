@@ -195,7 +195,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     await this.prepareLabelTemplate();
-    await this.resolvePrepopulatedLabel();
   }
 
 
@@ -403,13 +402,16 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private applyInitialDisplayFromModel(): void {
     const value = this.model?.getValue();
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
+      this.setHistoricalLookupState((value.sourceType as string | undefined) === 'historical');
       this.setDisplayValue(value.label);
       return;
     }
     if (this.valueMode === 'value' && typeof value === 'string') {
+      this.setHistoricalLookupState(this.sourceType === 'vocabulary' && value.trim().length > 0);
       this.setDisplayValue(value);
       return;
     }
+    this.setHistoricalLookupState(false);
     this.setDisplayValue('');
   }
 
@@ -425,37 +427,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   private async syncDisplayFromModel(): Promise<void> {
     this.applyInitialDisplayFromModel();
-    await this.resolvePrepopulatedLabel();
-  }
-
-  private async resolvePrepopulatedLabel(): Promise<void> {
-    if (this.valueMode !== 'value') {
-      this.setHistoricalLookupState(false);
-      return;
-    }
-    const storedValue = this.model?.getValue();
-    if (typeof storedValue !== 'string' || !storedValue.trim()) {
-      this.setHistoricalLookupState(false);
-      return;
-    }
-    if (this.sourceType === 'static') {
-      const found = this.staticOptions.find(opt => opt.value === storedValue || opt.label === storedValue);
-      if (found?.label) {
-        this.setDisplayValue(found.label);
-      }
-      this.setHistoricalLookupState(false);
-      return;
-    }
-    try {
-      const matches = await this.lookup(storedValue, this.sourceType === 'vocabulary');
-      const exactMatch = matches.find(opt => opt.value === storedValue || opt.label === storedValue);
-      this.setHistoricalLookupState(!exactMatch || this.isHistoricalOption(exactMatch));
-      if (exactMatch?.label) {
-        this.setDisplayValue(exactMatch.label);
-      }
-    } catch {
-      // Non-blocking label resolution by design.
-    }
+    const value = this.model?.getValue();
+    this.setHistoricalLookupState(this.sourceType === 'vocabulary' && typeof value === 'string' && value.trim().length > 0);
   }
 
   private shouldAutoSyncDisplayFromModel(): boolean {

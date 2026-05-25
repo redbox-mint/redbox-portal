@@ -4,6 +4,8 @@ import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
   buildCompanionSendTokenConfig,
   buildCompanionSendTokenHtml,
+  http,
+  isImmutableAssetPath,
   resolvePublicAssetPath,
   sanitizeStaticResourcePath,
   sanitizeStaticSegment
@@ -76,6 +78,68 @@ describe('HTTP config security helpers', function () {
         path.join(publicBase, 'default', 'rdmp', 'assets/app.js')
       );
       expect(resolvePublicAssetPath(publicBase, 'default', '..', '..', 'secrets.txt')).to.equal(null);
+    });
+
+    it('should only mark fingerprinted static asset paths as immutable', function () {
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/main-ABC123DEF.js')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/styles-ABC123DEF.css')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/js/index.bundle.js')).to.equal(false);
+      expect(isImmutableAssetPath('/default/default/js/jquery.min.js')).to.equal(false);
+      expect(isImmutableAssetPath('/default/default/images/logo.png')).to.equal(false);
+    });
+  });
+
+  describe('cache-control middleware', function () {
+    let originalSessionConfig: unknown;
+    let originalCustomConfig: unknown;
+
+    beforeEach(function () {
+      originalSessionConfig = (global as any).sails.config.session;
+      originalCustomConfig = (global as any).sails.config.custom;
+      (global as any).sails.config.session = { cookie: { maxAge: 600000 } };
+      (global as any).sails.config.custom = { cacheControl: { noCache: [] } };
+    });
+
+    afterEach(function () {
+      (global as any).sails.config.session = originalSessionConfig;
+      (global as any).sails.config.custom = originalCustomConfig;
+    });
+
+    function runCacheControl(pathname: string): Record<string, string> {
+      const headers: Record<string, string> = {};
+      const req = { path: pathname } as any;
+      const res = {
+        set(name: string, value: string) {
+          headers[name] = value;
+          return this;
+        },
+        setHeader(name: string, value: number | string | readonly string[]) {
+          headers[name] = Array.isArray(value) ? value.join(',') : String(value);
+          return this;
+        },
+        removeHeader(name: string) {
+          delete headers[name];
+        }
+      } as any;
+
+      http.middleware.cacheControl?.(req, res, () => undefined);
+      return headers;
+    }
+
+    it('should keep immutable caching for fingerprinted Angular bundles', function () {
+      const headers = runCacheControl('/default/default/angular/form/browser/main-ABC123DEF.js');
+
+      expect(headers['Cache-Control']).to.equal('public, max-age=31536000, immutable');
+      expect(headers['Pragma']).to.equal(undefined);
+      expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+    });
+
+    it('should fall back to non-immutable caching for unversioned js bundles', function () {
+      const headers = runCacheControl('/default/default/js/index.bundle.js');
+
+      expect(headers['Cache-Control']).to.equal('max-age=600, private');
+      expect(headers['Pragma']).to.equal('no-cache');
+      expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
     });
   });
 });

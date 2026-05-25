@@ -83,7 +83,6 @@ export interface HttpMiddlewareConfig {
     redirectNoCacheHeaders?: MiddlewareFunction;
     cacheControl?: MiddlewareFunction;
     cookieParser?: RequestHandler;
-    compress?: RequestHandler;
     router?: RequestHandler;
     www?: RequestHandler;
     favicon?: RequestHandler;
@@ -113,6 +112,20 @@ let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
+
+function isStaticAssetPath(reqPath: string): boolean {
+    return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
+        /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+}
+
+export function isImmutableAssetPath(reqPath: string): boolean {
+    if (!isStaticAssetPath(reqPath)) {
+        return false;
+    }
+
+    const fileName = path.posix.basename(reqPath);
+    return /(?:^|[-.])[A-Za-z0-9]{8,}\.[^.]+$/.test(fileName);
+}
 
 export interface CompanionAuthorizationDecision {
     isCompanionRequest: boolean;
@@ -302,7 +315,7 @@ export const http: HttpConfig = {
             if (!_lazyRedboxSessionMiddleware) {
                 // Initialize the session middleware with the resolved Sails config so environment overrides apply.
                 const resolvedSessionConfig = (sails.config as { redboxSession?: typeof redboxSessionConfigValue }).redboxSession || redboxSessionConfigValue;
-                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(resolvedSessionConfig);
+                _lazyRedboxSessionMiddleware = redboxSessionMiddleware(resolvedSessionConfig) as unknown as RequestHandler;
             }
             return _lazyRedboxSessionMiddleware(req, res, next);
         },
@@ -557,7 +570,6 @@ export const http: HttpConfig = {
             'passportSession',
             'companion',
             'myBodyParser',
-            'compress',
             'poweredBy',
             'router',
             'translate',
@@ -609,7 +621,18 @@ export const http: HttpConfig = {
             const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
-            if (sessionTimeoutSeconds > 0) {
+            const isImmutableAsset = isImmutableAssetPath(req.path);
+            if (isImmutableAsset) {
+                cacheControlHeaderVal = 'public, max-age=31536000, immutable';
+                expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
+                const originalSetHeader = res.setHeader.bind(res);
+                res.setHeader = function (name: string, value: number | string | readonly string[]) {
+                    if (name.toLowerCase() === 'set-cookie') {
+                        return res;
+                    }
+                    return originalSetHeader(name, value);
+                } as typeof res.setHeader;
+            } else if (sessionTimeoutSeconds > 0) {
                 // Warning: sails.config.custom might differ at runtime verify structure
                 const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
                 const isMatch = _.find(noCachePaths, (path => {
@@ -637,7 +660,11 @@ export const http: HttpConfig = {
             // Required for OAuth popup flows (e.g. Uppy Companion providers)
             // so window.opener/window.closed checks are not blocked by COOP.
             res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-            res.set('Pragma', 'no-cache');
+            if (isImmutableAsset) {
+                res.removeHeader('Pragma');
+            } else {
+                res.set('Pragma', 'no-cache');
+            }
             return next();
         }
     },
