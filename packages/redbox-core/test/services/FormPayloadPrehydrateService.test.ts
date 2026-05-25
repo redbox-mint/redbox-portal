@@ -27,7 +27,6 @@ describe('FormPayloadPrehydrateService', function () {
         trace: sinon.stub(),
       }
     });
-    setupServiceTestGlobals(mockSails);
     (global as any).VocabularyService = {
       getChildren: sinon.stub().resolves({
         entries: [{ id: 'e1', label: 'Root', value: '01', identifier: '01', hasChildren: true }],

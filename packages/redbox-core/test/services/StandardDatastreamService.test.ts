@@ -683,6 +683,45 @@ describe('StandardDatastreamService', function () {
       });
     });
 
+    it('should support legacy top-level form attachmentFields', function (done) {
+      const mockFormsService = {
+        getFormByName: sinon.stub().returns(of({ attachmentFields: ['dataLocations'] })),
+      };
+      (global as any).FormsService = mockFormsService;
+
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      const record = {
+        metaMetadata: { form: 'test-form-1.0-draft', brandId: 'brand-1' },
+        metadata: {
+          dataLocations: [],
+        },
+      };
+
+      const newMetadata = {
+        dataLocations: [
+          { fileId: 'new-file', type: 'attachment' },
+        ],
+      };
+
+      const fileIdsAdded: any[] = [];
+
+      service.updateDatastream('oid-123', record, newMetadata, mockStagingDisk, fileIdsAdded).subscribe({
+        next: (reqs: Promise<unknown>[]) => {
+          expect(reqs).to.have.length(1);
+          expect(fileIdsAdded.map((ds: any) => ds.fileId)).to.deep.equal(['new-file']);
+
+          delete (global as any).FormsService;
+          done();
+        },
+        error: (err: any) => {
+          delete (global as any).FormsService;
+          done(err);
+        },
+      });
+    });
+
     it('should handle null form gracefully', function (done) {
       const mockFormsService = {
         getFormByName: sinon.stub().returns(of(null)),
