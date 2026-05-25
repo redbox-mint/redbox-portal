@@ -17,6 +17,7 @@ import { HttpTestingController, provideHttpClientTesting } from "@angular/common
 import {
   FormConfigFrame,
   FormFieldValidationGroup,
+  formValidatorsSharedDefinitions,
   FormModesConfig,
   FormValidationGroups,
   FormValidatorConfig,
@@ -24,6 +25,7 @@ import {
   LineagePaths
 } from "@researchdatabox/sails-ng-common";
 import { FormValidationGroupsChangeInitial } from "./form-state";
+import { VocabTreeService } from "./service/vocab-tree.service";
 import { setUpDynamicAssets } from "./helpers.spec";
 import { FormControl } from "@angular/forms";
 
@@ -35,6 +37,7 @@ describe('The FormService', () => {
   let httpTesting: HttpTestingController;
   const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
   beforeEach(() => {
+    (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
     TestBed.configureTestingModule({
       providers: [
         {
@@ -53,6 +56,7 @@ describe('The FormService', () => {
         },
         Title,
         FormService,
+        VocabTreeService,
         providePortalI18nTesting(),
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -457,5 +461,30 @@ describe('The FormService', () => {
     expect(req.request.method).toBe('GET');
     req.flush({ data: basicFormConfig, meta: meta });
     expect((await result).formConfigMeta).toEqual(meta);
+  });
+
+  it("should seed vocab-tree prehydrate payload before creating form components", async function () {
+    const basicFormConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      componentDefinitions: []
+    };
+    const vocabTreeService = TestBed.inject(VocabTreeService);
+    const seedVocabSpy = spyOn(vocabTreeService, 'seedFromPayload');
+    const createSpy = spyOn(service, 'createFormComponentsMap').and.resolveTo({ formConfigMeta: {} } as any);
+
+    const promise = service.downloadFormComponents('oid', 'auto', false, '', []);
+    const req = httpTesting.expectOne((request) =>
+      request.url.startsWith('http://localhost/default/rdmp/record/form/auto/oid'));
+    req.flush({
+      data: basicFormConfig,
+      meta: {},
+      prehydrate: { vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } }
+    });
+    await promise;
+
+    expect(seedVocabSpy).toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalled();
+    expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
   });
 });

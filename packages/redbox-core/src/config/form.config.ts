@@ -19,6 +19,11 @@ export interface FormConfig {
     formConfigRegistry?: {
         [formName: string]: unknown;
     };
+
+    prehydrate?: {
+        enabled: boolean;
+        maxVocabSelections?: number;
+    };
 }
 
 // Note: The runtime config/form.js now delegates to api/form-config shims.

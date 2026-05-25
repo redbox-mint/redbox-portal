@@ -9,11 +9,13 @@ import type { Configuration } from 'webpack';
 // Plugins (CommonJS require due to compatibility)
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 // Use process.cwd() as topDir (project root) instead of __dirname relative resolution
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
+const isDevelopmentAssetMode = process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
 const enableCssMinimizerPlugin = process.env.WEBPACK_ENABLE_CSS_MINI_PLUGIN === 'true';
 
 export interface WebpackConfig {
@@ -32,9 +34,8 @@ export const webpack: WebpackConfig = {
             stats: {
                 loggingDebug: ["sass-loader"],
             },
-            // webpack no longer runs in production mode, assume non-'docker' values to be production mode
-            mode: process.env.NODE_ENV === 'docker' ? 'development' : 'production',
-            devtool: process.env.NODE_ENV === 'docker' ? 'inline-cheap-source-map' : undefined,
+            mode: isDevelopmentAssetMode ? 'development' : 'production',
+            devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
             entry: './assets/default/default/js/client-script.js',
             output: {
                 filename: './default/default/js/index.bundle.js',
@@ -108,15 +109,14 @@ export const webpack: WebpackConfig = {
                 ]
             },
             optimization: {
-                minimizer: enableCssMinimizerPlugin
+                minimizer: !isDevelopmentAssetMode || enableCssMinimizerPlugin
                     ? [
                         // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
-                        // `...`,
-                        new (require("css-minimizer-webpack-plugin"))(),
+                        `...`,
+                        new CssMinimizerPlugin(),
                     ]
                     : undefined,
-                // disabled by default for local development
-                minimize: false,
+                minimize: !isDevelopmentAssetMode,
             },
             ignoreWarnings: [
                 {

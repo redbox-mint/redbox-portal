@@ -20,7 +20,7 @@ tests {
   });
   
   test("Has valid content", function () {
-      expect(res.getBody()).to.match(/@charset "UTF-8"/s)
+      expect(res.getBody()).to.match(/\{.*\}/s)
   });
   
 }

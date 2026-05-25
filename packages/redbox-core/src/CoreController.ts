@@ -532,6 +532,7 @@ export namespace Controllers.Core {
         errors = [],
         displayErrors = [],
         meta = {},
+        prehydrate = undefined,
         v1 = null,
         chronicle = {},
       } = buildResponse ?? {};
@@ -553,7 +554,7 @@ export namespace Controllers.Core {
       }
 
       if (apiVersion === ApiVersion.VERSION_2_0) {
-        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta);
+        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta, prehydrate);
       }
 
       const unknownSituation = {
@@ -806,10 +807,15 @@ export namespace Controllers.Core {
       collectedErrors: Error[],
       collectedDisplayErrors: ErrorResponseItemV2[],
       data: unknown,
-      meta: Record<string, unknown>
+      meta: Record<string, unknown>,
+      prehydrate?: unknown
     ) {
       // Success path for v2
       if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {
+        if (prehydrate !== null && prehydrate !== undefined) {
+          sails.log.verbose(`Send response status ${status} api version 2 format json with prehydrate.`);
+          return res.json({ data: data, meta: meta, prehydrate });
+        }
         return this.sendSuccessJson(res, ApiVersion.VERSION_2_0, status, data, meta, null);
       }
 

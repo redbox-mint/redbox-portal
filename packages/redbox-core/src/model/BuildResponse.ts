@@ -44,6 +44,10 @@ export interface BuildResponseType {
    */
   v1?: unknown;
   /**
+   * Optional additive payload for v2 responses.
+   */
+  prehydrate?: unknown;
+  /**
    * Arbitrary data to add to the request chronicle.
    */
   chronicle?: Record<string, unknown>;

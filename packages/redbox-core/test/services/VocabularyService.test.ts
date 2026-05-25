@@ -326,6 +326,35 @@ describe('VocabularyService', () => {
     expect(result?.entries[0].hasChildren).to.equal(true);
   });
 
+  it('getEntryByNotation resolves identifier and value matches within the vocabulary', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    g.VocabularyEntry.findOne = sinon.stub().resolves({
+      id: 'e1', vocabulary: 'v1', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: null
+    }) as unknown as VocabularyEntryModelStub['findOne'];
+
+    const result = await service.getEntryByNotation('default', 'anzsrc-2020-for', '0101');
+
+    expect(result?.id).to.equal('e1');
+    expect((g.VocabularyEntry.findOne as sinon.SinonStub).calledOnce).to.equal(true);
+  });
+
+  it('getAncestorChain returns root-to-leaf order', async () => {
+    g.Vocabulary.findOne = sinon.stub().resolves({
+      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+    }) as unknown as VocabularyModelStub['findOne'];
+    const findOneStub = sinon.stub();
+    findOneStub.onCall(0).resolves({ id: 'e3', vocabulary: 'v1', label: 'Leaf', value: '010101', identifier: '010101', parent: 'e2' });
+    findOneStub.onCall(1).resolves({ id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' });
+    findOneStub.onCall(2).resolves({ id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null });
+    g.VocabularyEntry.findOne = findOneStub as unknown as VocabularyEntryModelStub['findOne'];
+
+    const chain = await service.getAncestorChain('default', 'anzsrc-2020-for', '010101');
+
+    expect(chain.map((entry) => entry.id)).to.deep.equal(['e1', 'e2', 'e3']);
+  });
+
   it('upserts entries with synthetic parent ids by remapping parents after create', async () => {
     const updateSetStub = sinon.stub().resolves({ id: 'ok' });
     const updateOneStub = sinon.stub().callsFake(() => ({ set: updateSetStub }));

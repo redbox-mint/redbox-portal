@@ -63,7 +63,9 @@ import {
   FormValidatorDefinition,
   FormValidatorFns,
   FormValidatorSummaryErrors,
-  getObjectWithJsonPointer, jsonataEvaluateFunc,
+  FormPrehydratePayload,
+  getObjectWithJsonPointer,
+  jsonataEvaluateFunc,
   jsonataLibrary,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
@@ -79,15 +81,28 @@ import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
 import { FormValidationGroupsChangeInitial } from "./form-state";
+import { VocabTreeService } from './service/vocab-tree.service';
 
-// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
-declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
+// Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
+// `formValidatorDefinitions` is the historical synchronous accessor and is preserved
+// for any external consumer that still reads it, but the form app now prefers
+// `getFormValidatorDefinitions()` so the heavy sails-ng-common deps (jsonata, lodash,
+// luxon, marked) load in a separate chunk on demand instead of on every page open.
+declare var redboxClientScript: {
+  formValidatorDefinitions?: FormValidatorDefinition[];
+  getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]>;
+};
 
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
   valueKey: string;
   validatorFns: FormValidatorFns;
   errors: FormValidatorComponentErrors[];
+}
+
+interface DynamicImportCacheEntry {
+  promise: Promise<DynamicScriptResponse>;
+  createdAt: number;
 }
 
 /**
@@ -105,6 +120,9 @@ interface SuggestedValidatorSummaryCacheEntry {
 )
 export class FormService extends HttpClientService {
   protected logName = "FormService";
+  private static readonly MAX_DYNAMIC_IMPORT_CACHE_SIZE = 100;
+  // Set to a positive number to enable time-based expiry.
+  private static readonly DYNAMIC_IMPORT_CACHE_TTL_MS = 0;
   protected compClassMap: AllComponentClassMapType = {};
   protected modelClassMap: AllModelClassMapType = {};
   protected layoutClassMap: AllLayoutClassMapType = {};
@@ -113,6 +131,7 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
+  private dynamicImportFormCompiledItemsPromises = new Map<string, DynamicImportCacheEntry>();
   private formCompiledItems?: Promise<DynamicScriptResponse>;
   private currentFormMode: FormModesConfig = 'edit';
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
@@ -123,6 +142,7 @@ export class FormService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(VocabTreeService) private vocabTreeService: VocabTreeService,
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -173,6 +193,28 @@ export class FormService extends HttpClientService {
    * Returns:
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
+  /**
+   * Bridge to the `redboxClientScript` global exposed by index.bundle.js.
+   *
+   * Prefers the lazy `getFormValidatorDefinitions()` getter so heavy deps
+   * (jsonata, lodash, luxon, marked) load in their own chunk on demand. Falls
+   * back to the pre-existing eager `formValidatorDefinitions` array for
+   * backwards compatibility with hosts that still expose only the synchronous
+   * shape (older builds, the unit-test setup in `helpers.spec.ts`).
+   */
+  private async resolveValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
+    const bridge = (typeof redboxClientScript !== 'undefined' ? redboxClientScript : undefined) as
+      | { formValidatorDefinitions?: FormValidatorDefinition[]; getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]> }
+      | undefined;
+    if (bridge?.getFormValidatorDefinitions) {
+      return bridge.getFormValidatorDefinitions();
+    }
+    if (Array.isArray(bridge?.formValidatorDefinitions)) {
+      return bridge.formValidatorDefinitions;
+    }
+    throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
+  }
+
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
@@ -182,6 +224,8 @@ export class FormService extends HttpClientService {
     if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
+
+    this.vocabTreeService.seedFromPayload(formConfigResp?.prehydrate);
 
     // This form config is the top of the lineage.
     const parentLineagePaths = this.buildLineagePaths({
@@ -213,8 +257,8 @@ export class FormService extends HttpClientService {
     this.currentFormMode = formMode ?? this.currentFormMode ?? 'edit';
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
-      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
+      const definitions = await this.resolveValidatorDefinitions();
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
     this.formCompiledItems = formConfig?.type
@@ -787,7 +831,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown> };
+    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };
     const rawResp = this.http.get<rawRespType>(url.href, this.requestOptions);
     const result = await firstValueFrom(rawResp);
     this.loggerService.info(`Get form fields from url: ${url}`, result);
@@ -826,12 +870,66 @@ export class FormService extends HttpClientService {
     recordType: string, oid?: string, formMode?: FormModesConfig
   ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
+    const cacheKey = JSON.stringify([normalizedRecordType, oid ?? '', formMode ?? '']);
+    const cachedPromise = this.getDynamicImportFormCompiledItemsPromise(cacheKey);
+    if (cachedPromise) {
+      return cachedPromise;
+    }
     const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
-    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
+    const promise = this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params)
+      .catch((error) => {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        throw error;
+      });
+    this.setDynamicImportFormCompiledItemsPromise(cacheKey, promise);
+    return await promise;
+  }
+
+  /**
+   * Clear dynamic import cache manually, e.g. after runtime asset refresh.
+   */
+  public clearDynamicImportFormCompiledItemsCache(): void {
+    this.dynamicImportFormCompiledItemsPromises.clear();
+  }
+
+  private getDynamicImportFormCompiledItemsPromise(cacheKey: string): Promise<DynamicScriptResponse> | undefined {
+    const cacheEntry = this.dynamicImportFormCompiledItemsPromises.get(cacheKey);
+    if (!cacheEntry) {
+      return undefined;
+    }
+
+    if (FormService.DYNAMIC_IMPORT_CACHE_TTL_MS > 0) {
+      const ageMs = Date.now() - cacheEntry.createdAt;
+      if (ageMs > FormService.DYNAMIC_IMPORT_CACHE_TTL_MS) {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        return undefined;
+      }
+    }
+
+    // Refresh insertion order so this key becomes MRU.
+    this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, cacheEntry);
+    return cacheEntry.promise;
+  }
+
+  private setDynamicImportFormCompiledItemsPromise(cacheKey: string, promise: Promise<DynamicScriptResponse>): void {
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, {
+      promise,
+      createdAt: Date.now()
+    });
+
+    if (this.dynamicImportFormCompiledItemsPromises.size <= FormService.MAX_DYNAMIC_IMPORT_CACHE_SIZE) {
+      return;
+    }
+
+    const lruCacheKey = this.dynamicImportFormCompiledItemsPromises.keys().next().value;
+    if (lruCacheKey) {
+      this.dynamicImportFormCompiledItemsPromises.delete(lruCacheKey);
+    }
   }
 
   /**
