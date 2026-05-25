@@ -512,10 +512,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const closeOnSave = evt?.closeOnSave;
         const redirectLocation = evt?.redirectLocation;
         const redirectDelaySeconds = evt?.redirectDelaySeconds;
-        await this.saveForm({
-          force, targetStep, enabledValidationGroups,
-          closeOnSave, redirectLocation, redirectDelaySeconds,
-        });
+
+        const opts: Record<string, unknown> = {force, targetStep, enabledValidationGroups};
+        if (closeOnSave !== undefined) {
+          opts["closeOnSave"] = closeOnSave;
+        }
+        if (redirectLocation !== undefined) {
+          opts["redirectLocation"] = redirectLocation;
+        }
+        if (redirectDelaySeconds !== undefined) {
+          opts["redirectDelaySeconds"] = redirectDelaySeconds;
+        }
+        await this.saveForm(opts);
       });
     this.subMaps['saveSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
@@ -1124,13 +1132,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         );
-
-        this.eventBus.publish(
-          createFormRedirectRequestedEvent({
-            redirectLocation: options?.redirectLocation,
-            redirectDelaySeconds: options?.redirectDelaySeconds,
-          })
-        )
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
@@ -1159,13 +1160,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
     }
 
+    const that = this;
     if (historyDelta) {
       window.setTimeout(() => {
-        window.history.go(historyDelta);
+        that.locationService.historyGo(historyDelta);
       }, redirectDelayMs);
     } else if (redirectLocation) {
       window.setTimeout(() => {
-        window.location.href = redirectLocation;
+        that.locationService.go(redirectLocation)
       }, redirectDelayMs);
     }
   }

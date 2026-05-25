@@ -111,7 +111,11 @@ describe('Form Save Flow Integration', () => {
       expect(executeEvents[0].type).toBe('form.save.execute');
 
       // Assert: 4) FormComponent.saveForm invoked with expected args
-      expect(formComponent.saveForm).toHaveBeenCalledWith(true, 'next_step', ["none"]);
+      expect(formComponent.saveForm).toHaveBeenCalledWith({
+        force: true,
+        targetStep: 'next_step',
+        enabledValidationGroups:  ['none'],
+      });
     } finally {
       requestedSub.unsubscribe();
       executeSub.unsubscribe();
