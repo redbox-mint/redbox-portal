@@ -32,7 +32,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import {Subscription} from 'rxjs';
-import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import {DOCUMENT, Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
 import {FormControlStatus, FormGroup, PristineChangeEvent, StatusChangeEvent, ValueChangeEvent} from '@angular/forms';
 import {
   get as _get,
@@ -291,6 +291,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private behaviourManager = inject(FormBehaviourManager);
 
+  private readonly document = inject(DOCUMENT);
+  private window: Window & typeof globalThis | null;
+
   protected configObj: Record<string, unknown> = {};
 
   public get config() {
@@ -307,6 +310,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ) {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
+    this.window = this.document.defaultView;
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
@@ -1175,12 +1179,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     const that = this;
     if (historyDelta) {
-      window.setTimeout(() => {
+      this.window?.setTimeout(() => {
         that.locationService.historyGo(historyDelta);
       }, redirectDelayMs);
     } else if (redirectLocation) {
-      window.setTimeout(() => {
-        window.location.href = redirectLocation;
+      this.window?.setTimeout(() => {
+        if (this.window?.location) {
+          this.window.location.href = redirectLocation;
+        }
       }, redirectDelayMs);
     }
   }

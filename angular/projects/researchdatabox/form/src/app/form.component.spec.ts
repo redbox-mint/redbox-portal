@@ -1283,14 +1283,14 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormRedirectRequestedEvent[] = [];
     const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(window.location, 'href', 'set').and.stub();
+      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormSaveSuccessEvent({
         closeOnSave: true,
@@ -1340,14 +1340,14 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormRedirectRequestedEvent[] = [];
     const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(window.location, 'href', 'set').and.stub();
+      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormDeleteSuccessEvent({
         closeOnDelete: true,
@@ -1396,14 +1396,14 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormRedirectRequestedEvent[] = [];
     const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(window.location, 'href', 'set').and.stub();
+      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormSaveSuccessEvent({
         redirectLocation: 'redirect-location/two',
@@ -1442,14 +1442,14 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const {fixture} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormRedirectRequestedEvent[] = [];
     const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(window.location, 'href', 'set').and.stub();
+      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormDeleteSuccessEvent({
         closeOnDelete: false,
