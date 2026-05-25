@@ -151,6 +151,7 @@ describe('HTTP config security helpers', function () {
       expect(shouldSkipBodyParser('/DEFAULT/RDMP/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach?foo=bar', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach////', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/user/login_oidc', ['/user/login_oidc'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/user/login_oidc'])).to.equal(false);
       expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/:branding/:portal/user/login_oidc'])).to.equal(true);

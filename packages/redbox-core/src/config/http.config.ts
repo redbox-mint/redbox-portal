@@ -121,7 +121,16 @@ function normalizeBodyParserPath(value: string): string {
         return '/';
     }
     const normalizedPath = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
-    return normalizedPath.length > 1 ? normalizedPath.replace(/\/+$/, '') || '/' : normalizedPath;
+    if (normalizedPath.length <= 1) {
+        return normalizedPath;
+    }
+
+    let endIndex = normalizedPath.length;
+    while (endIndex > 1 && normalizedPath.charCodeAt(endIndex - 1) === 47) {
+        endIndex -= 1;
+    }
+
+    return normalizedPath.slice(0, endIndex) || '/';
 }
 
 function escapeRegExp(value: string): string {
