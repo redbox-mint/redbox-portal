@@ -882,7 +882,7 @@ describe('HarvestRunService', function () {
   it('atomically increments run counters when a datastore manager is available', async function () {
     const findOneAndUpdate = sinon.stub().resolves({
       value: {
-        id: 'run-1',
+        _id: 'run-1',
         brandId: 'brand-1',
         recordType: 'dataset',
         sourceName: 'source-a',
@@ -931,7 +931,7 @@ describe('HarvestRunService', function () {
     );
 
     expect(findOneAndUpdate.calledOnce).to.equal(true);
-    expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ id: 'run-1' });
+    expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ _id: 'run-1' });
     expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
       {
         $set: {
@@ -954,8 +954,74 @@ describe('HarvestRunService', function () {
       },
     ]);
     expect((global as any).HarvestRun.updateOne.called).to.equal(false);
+    expect(updatedRun.id).to.equal('run-1');
     expect(updatedRun.totalProcessed).to.equal(3);
     expect(updatedRun.failed).to.equal(1);
+  });
+
+  it('atomically increments duplicate chunk counts when a datastore manager is available', async function () {
+    const findOneAndUpdate = sinon.stub().resolves({
+      value: {
+        _id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        lastChunkAt: '2026-05-25T00:05:00.000Z',
+        totalProcessed: 3,
+        created: 2,
+        updated: 1,
+        deleted: 0,
+        unchanged: 0,
+        failed: 1,
+        chunksProcessed: 2,
+        duplicateChunks: 1,
+      },
+    });
+    (global as any).HarvestRun.getDatastore.returns({
+      manager: {
+        collection: sinon.stub().withArgs('harvestrun').returns({ findOneAndUpdate }),
+      },
+    });
+
+    const clock = sinon.useFakeTimers(new Date('2026-05-25T00:05:00.000Z'));
+    try {
+      const updatedRun = await service.bumpDuplicateChunkCount({
+        id: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceName: 'source-a',
+        sourceRunId: 'source-run-1',
+        status: 'running',
+        startedAt: '2026-05-25T00:00:00.000Z',
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        chunksProcessed: 0,
+        duplicateChunks: 0,
+      });
+
+      expect(findOneAndUpdate.calledOnce).to.equal(true);
+      expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ _id: 'run-1' });
+      expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
+        {
+          $set: {
+            duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },
+            lastChunkAt: '2026-05-25T00:05:00.000Z',
+          },
+        },
+      ]);
+      expect((global as any).HarvestRun.updateOne.called).to.equal(false);
+      expect(updatedRun.id).to.equal('run-1');
+      expect(updatedRun.duplicateChunks).to.equal(1);
+    } finally {
+      clock.restore();
+    }
   });
 
   it('lists runs and events with brand-scoped filters', async function () {

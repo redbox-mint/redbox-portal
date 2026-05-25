@@ -247,10 +247,23 @@ export namespace Services {
       if (_.isNil(result)) {
         return null;
       }
+      const normalizeRow = (row: HarvestRunRow | null | undefined): HarvestRunRow | null => {
+        if (_.isNil(row)) {
+          return null;
+        }
+        const rawId = (row as HarvestRunRow & { _id?: unknown })._id;
+        if (_.isNil(row.id) && !_.isNil(rawId)) {
+          return {
+            ...row,
+            id: String(rawId),
+          };
+        }
+        return row;
+      };
       if (_.isPlainObject(result) && 'value' in result) {
-        return (result as { value?: HarvestRunRow | null }).value ?? null;
+        return normalizeRow((result as { value?: HarvestRunRow | null }).value);
       }
-      return result as HarvestRunRow;
+      return normalizeRow(result as HarvestRunRow);
     }
 
     private buildAtomicRunCounterUpdate(
@@ -916,7 +929,7 @@ export namespace Services {
       const collection = this.getHarvestRunCollection();
       if (collection && run.id) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
-          { id: run.id },
+          { _id: run.id },
           this.buildAtomicRunCounterUpdate(counters, completedAt, finalChunk),
           { returnDocument: 'after' }
         ));
@@ -955,7 +968,7 @@ export namespace Services {
       const collection = this.getHarvestRunCollection();
       if (collection && run.id) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
-          { id: run.id },
+          { _id: run.id },
           [{
             $set: {
               duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },
