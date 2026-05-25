@@ -531,6 +531,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         if (evt.closeOnSave) {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
+              // if closeOnSave is true, but no redirect is specified, go to the previous page.
+              historyDelta: evt?.redirectLocation ? undefined : -1,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
             })
@@ -553,7 +555,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
               // if closeOnDelete is true, but no redirect is specified, go to the previous page.
-              historyDelta: !evt?.redirectLocation ? -1: undefined,
+              historyDelta: evt?.redirectLocation ? undefined : -1,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
             })
@@ -1056,14 +1058,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
+            const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
                 savedData: currentFormValue,
-                oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
+                oid: oid,
                 response,
                 closeOnSave: options?.closeOnSave,
-                redirectLocation: options?.redirectLocation,
+                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
@@ -1133,7 +1136,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             oid,
             response,
             closeOnDelete: options?.closeOnDelete,
-            redirectLocation: options?.redirectLocation,
+            redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         );
@@ -1177,7 +1180,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }, redirectDelayMs);
     } else if (redirectLocation) {
       window.setTimeout(() => {
-        that.locationService.go(redirectLocation)
+        window.location.href = redirectLocation;
       }, redirectDelayMs);
     }
   }
