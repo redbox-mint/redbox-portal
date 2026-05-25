@@ -17,6 +17,7 @@ const skipper = require('skipper');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
 import type { CompanionConfig } from './companion.config';
+import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 
@@ -32,11 +33,7 @@ declare const sails: {
                 maxAge?: number;
             };
         };
-        custom: {
-            cacheControl: {
-                noCache: string[];
-            };
-        };
+        custom: CustomConfig;
     };
     hooks?: {
         http?: {
@@ -116,6 +113,52 @@ let _lazyCompanionSocketWired = false;
 function isStaticAssetPath(reqPath: string): boolean {
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
         /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+}
+
+function normalizeBodyParserPath(value: string): string {
+    const withoutQuery = String(value ?? '').trim().split('?')[0]?.toLowerCase() ?? '';
+    if (!withoutQuery) {
+        return '/';
+    }
+    const normalizedPath = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+    return normalizedPath.length > 1 ? normalizedPath.replace(/\/+$/, '') || '/' : normalizedPath;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildBodyParserRouteMatcher(routePattern: string): RegExp | null {
+    const normalizedRoutePattern = normalizeBodyParserPath(routePattern);
+    if (normalizedRoutePattern === '/') {
+        return null;
+    }
+
+    const matcherParts = normalizedRoutePattern
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment));
+
+    return new RegExp(`^/${matcherParts.join('/')}$`, 'i');
+}
+
+function resolveBodyParserSkipPaths(customConfig?: Partial<CustomConfig>): string[] {
+    const configuredSkipPaths = customConfig?.bodyParser?.skipPaths;
+    if (Array.isArray(configuredSkipPaths)) {
+        return configuredSkipPaths.filter((skipPath): skipPath is string => typeof skipPath === 'string');
+    }
+    if (configuredSkipPaths && typeof configuredSkipPaths === 'object') {
+        return Object.values(configuredSkipPaths).filter((skipPath): skipPath is string => typeof skipPath === 'string');
+    }
+    return [];
+}
+
+export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
+    const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+    return configuredSkipPaths.some((configuredSkipPath) => {
+        const routeMatcher = buildBodyParserRouteMatcher(configuredSkipPath);
+        return routeMatcher?.test(normalizedRequestPath) ?? false;
+    });
 }
 
 export function isImmutableAssetPath(reqPath: string): boolean {
@@ -579,8 +622,9 @@ export const http: HttpConfig = {
         ],
 
         myBodyParser: function (req: Request, res: Response, next: NextFunction) {
-            // ignore if there is '/attach/' on the url
-            if (req.url.toLowerCase().includes('/attach')) {
+            const requestPath = req.originalUrl ?? req.url;
+            const skipPaths = resolveBodyParserSkipPaths(sails.config.custom);
+            if (shouldSkipBodyParser(requestPath, skipPaths)) {
                 return next();
             }
             const skipperMiddleware = skipper({

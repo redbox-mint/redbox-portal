@@ -7,6 +7,7 @@ import {
   http,
   isImmutableAssetPath,
   resolvePublicAssetPath,
+  shouldSkipBodyParser,
   sanitizeStaticResourcePath,
   sanitizeStaticSegment
 } from '../../src/config/http.config';
@@ -140,6 +141,59 @@ describe('HTTP config security helpers', function () {
       expect(headers['Cache-Control']).to.equal('max-age=600, private');
       expect(headers['Pragma']).to.equal('no-cache');
       expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+    });
+  });
+
+  describe('body parser skip path helpers', function () {
+    it('should only match branded routes when the configured pattern includes branding and portal placeholders', function () {
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/file-1', ['/:branding/:portal/record/:oid/attach/:attachId'])).to.equal(true);
+      expect(shouldSkipBodyParser('/user/login_oidc', ['/user/login_oidc'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/user/login_oidc'])).to.equal(false);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/:branding/:portal/user/login_oidc'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login', ['/user/login_oidc'])).to.equal(false);
+    });
+
+    it('should support hook-provided skip paths alongside the defaults', function () {
+      const configuredSkipPaths = Object.values({
+        attachmentUpload: '/:branding/:portal/record/:oid/attach',
+        openIdConnectLogin: '/user/login_oidc',
+        hookCallback: '/:branding/:portal/hook/callback'
+      });
+
+      expect(shouldSkipBodyParser('/default/rdmp/hook/callback', configuredSkipPaths)).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', configuredSkipPaths)).to.equal(true);
+      expect(shouldSkipBodyParser('/hook/callback', configuredSkipPaths)).to.equal(false);
+      expect(shouldSkipBodyParser('/default/rdmp/hook/other', configuredSkipPaths)).to.equal(false);
+    });
+
+    it('should let middleware read configured skip paths from sails.config.custom', function () {
+      const originalCustomConfig = (global as any).sails.config.custom;
+      (global as any).sails.config.custom = {
+        cacheControl: { noCache: [] },
+        bodyParser: {
+          skipPaths: {
+            attachmentUpload: '/:branding/:portal/record/:oid/attach',
+            openIdConnectLogin: '/user/login_oidc',
+            hookCallback: '/:branding/:portal/hook/callback'
+          }
+        }
+      };
+
+      let nextCalls = 0;
+      try {
+        http.middleware.myBodyParser?.(
+          { originalUrl: '/default/rdmp/hook/callback', url: '/default/rdmp/hook/callback' } as any,
+          {} as any,
+          () => {
+            nextCalls += 1;
+          }
+        );
+      } finally {
+        (global as any).sails.config.custom = originalCustomConfig;
+      }
+
+      expect(nextCalls).to.equal(1);
     });
   });
 });
