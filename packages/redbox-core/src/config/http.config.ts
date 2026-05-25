@@ -130,6 +130,8 @@ function escapeRegExp(value: string): string {
 
 function buildBodyParserRouteMatcher(routePattern: string): RegExp | null {
     const normalizedRoutePattern = normalizeBodyParserPath(routePattern);
+
+    // Exclude root path '/' from matching to prevent skipping body parser globally
     if (normalizedRoutePattern === '/') {
         return null;
     }

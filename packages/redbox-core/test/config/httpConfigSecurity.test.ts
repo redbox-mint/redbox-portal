@@ -148,6 +148,9 @@ describe('HTTP config security helpers', function () {
     it('should only match branded routes when the configured pattern includes branding and portal placeholders', function () {
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/file-1', ['/:branding/:portal/record/:oid/attach/:attachId'])).to.equal(true);
+      expect(shouldSkipBodyParser('/DEFAULT/RDMP/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach?foo=bar', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
       expect(shouldSkipBodyParser('/user/login_oidc', ['/user/login_oidc'])).to.equal(true);
       expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/user/login_oidc'])).to.equal(false);
       expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/:branding/:portal/user/login_oidc'])).to.equal(true);
@@ -194,6 +197,63 @@ describe('HTTP config security helpers', function () {
       }
 
       expect(nextCalls).to.equal(1);
+    });
+
+    it('should delegate non-matching requests to skipper instead of calling next directly', function () {
+      const originalCustomConfig = (global as any).sails.config.custom;
+      const httpConfigModulePath = require.resolve('../../src/config/http.config');
+      const skipperModulePath = require.resolve('skipper');
+      const originalHttpModule = require.cache[httpConfigModulePath];
+      const originalSkipperModule = require.cache[skipperModulePath];
+      const originalSkipperExports = originalSkipperModule?.exports;
+
+      let nextCalls = 0;
+      let skipperCalls = 0;
+
+      try {
+        (global as any).sails.config.custom = {
+          cacheControl: { noCache: [] },
+          bodyParser: {
+            skipPaths: {
+              attachmentUpload: '/:branding/:portal/record/:oid/attach',
+              openIdConnectLogin: '/user/login_oidc',
+              hookCallback: '/:branding/:portal/hook/callback'
+            }
+          }
+        };
+
+        if (originalSkipperModule) {
+          originalSkipperModule.exports = function () {
+            return function () {
+              skipperCalls += 1;
+            };
+          };
+        }
+
+        delete require.cache[httpConfigModulePath];
+        const reloadedHttp = require('../../src/config/http.config').http;
+
+        reloadedHttp.middleware.myBodyParser?.(
+          { originalUrl: '/default/rdmp/hook/other', url: '/default/rdmp/hook/other' } as any,
+          {} as any,
+          () => {
+            nextCalls += 1;
+          }
+        );
+      } finally {
+        (global as any).sails.config.custom = originalCustomConfig;
+        if (originalSkipperModule) {
+          originalSkipperModule.exports = originalSkipperExports;
+        }
+        if (originalHttpModule) {
+          require.cache[httpConfigModulePath] = originalHttpModule;
+        } else {
+          delete require.cache[httpConfigModulePath];
+        }
+      }
+
+      expect(skipperCalls).to.equal(1);
+      expect(nextCalls).to.equal(0);
     });
   });
 });
