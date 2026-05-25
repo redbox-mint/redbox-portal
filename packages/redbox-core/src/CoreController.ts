@@ -839,5 +839,42 @@ export namespace Controllers.Core {
     private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
       res.set(this.getNoCacheHeaders());
     }
+
+    /**
+     * Parse a floating point number from a value.
+     * @param value The value to parse.
+     * @param defaultValue The default if the value cannot be parsed.
+     * @param min The optional minimum value.
+     * @param max The optional maximum value.
+     * @return The parsed number, or default if parsing failed, constrained between min and max if supplied.
+     * @protected
+     */
+    protected getNumber(value?: unknown, defaultValue?: number, min?: number, max?: number): number | undefined {
+      let result: number | null = null;
+      if (value !== null && value !== undefined && typeof value === 'number' && Number.isFinite(value)) {
+        result = value;
+      }
+
+      const parsed = Number.parseFloat(value?.toString() ?? "");
+      if (result === null && parsed !== null && parsed !== undefined && typeof parsed === 'number' && Number.isFinite(parsed)) {
+        result = parsed;
+      }
+
+      if (result === null && defaultValue !== null && defaultValue !== undefined && typeof defaultValue === 'number' && Number.isFinite(defaultValue)) {
+        result = defaultValue;
+      }
+
+      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(defaultValue)) {
+        return undefined;
+      }
+
+      if (min !== null && min !== undefined && Number.isFinite(min)) {
+        result = Math.max(result, min);
+      }
+      if (max !== null && max !== undefined && Number.isFinite(max)) {
+        result = Math.min(result, max);
+      }
+      return Number.isFinite(result) ? result : undefined;
+    }
   }
 }

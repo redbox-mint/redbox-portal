@@ -48,10 +48,9 @@ export namespace Controllers {
 
     public getResults(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-
       const name = req.param('name');
-      const start = Number(req.param('start'));
-      const rows = Number(req.param('rows'));
+      const start = this.getNumber(req.param('start'), 0);
+      const rows = this.getNumber(req.param('rows'), 10);
 
       this.updateChronicle(req, {reportName: name, reportPagingStart: start, reportPagingRows: rows});
 
