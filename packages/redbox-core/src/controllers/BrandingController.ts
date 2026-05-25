@@ -3,6 +3,7 @@ import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
 import * as BrandingThemeCssServiceModule from '../services/BrandingThemeCssService';
 import * as crypto from 'crypto';
+const CleanCSS = require('clean-css');
 import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-routes';
 
 const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
@@ -15,6 +16,16 @@ declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.Br
 export namespace Controllers {
 
   export class Branding extends controllers.Core.Controller {
+    private static readonly CSS_CACHE_MAX_SIZE = 100;
+    private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
+    private readonly cssMinifier = new CleanCSS({
+      level: {
+        1: { all: true },
+        2: { all: false }
+      }
+    });
+    private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
+
     /**
      * Generate a weak ETag for the given content hash or string.
      * @param hashOrContent - Either a pre-computed hash string or content to hash
@@ -31,6 +42,48 @@ export namespace Controllers {
         hash = crypto.createHash('sha256').update(hashOrContent).digest('hex');
       }
       return `W/"${prefix}${hash}"`;
+    }
+
+    private minifyCss(css: string): string {
+      const result = this.cssMinifier.minify(css);
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(`CSS minification failed: ${result.errors.join('; ')}`);
+      }
+      return result.styles;
+    }
+
+    private getCssCacheControlHeader(): string {
+      // theme.css URL is not content-versioned, so avoid immutable year-long caching.
+      return 'public, max-age=300, must-revalidate';
+    }
+
+    private getCachedCssResponse(cacheKey: string): { css: string; etag: string } | undefined {
+      const entry = this.cssResponseCache.get(cacheKey);
+      if (!entry) {
+        return undefined;
+      }
+
+      if ((Date.now() - entry.createdAt) > Branding.CSS_CACHE_TTL_MS) {
+        this.cssResponseCache.delete(cacheKey);
+        return undefined;
+      }
+
+      // Mark as most-recently-used.
+      this.cssResponseCache.delete(cacheKey);
+      this.cssResponseCache.set(cacheKey, entry);
+      return { css: entry.css, etag: entry.etag };
+    }
+
+    private setCachedCssResponse(cacheKey: string, css: string, etag: string): void {
+      this.cssResponseCache.set(cacheKey, { css, etag, createdAt: Date.now() });
+
+      while (this.cssResponseCache.size > Branding.CSS_CACHE_MAX_SIZE) {
+        const lruKey = this.cssResponseCache.keys().next().value;
+        if (!lruKey) {
+          break;
+        }
+        this.cssResponseCache.delete(lruKey);
+      }
     }
 
     /**
@@ -66,23 +119,56 @@ export namespace Controllers {
         // If brand (or css) not present, serve generated default variable CSS
         if (!brand || !brand.css) {
           const { css, hash } = BrandingThemeCssService.generate({});
-          const etag = this.generateETag(hash);
+          const defaultCssCacheKey = `default:${hash}`;
+          let cachedDefaultCss = this.getCachedCssResponse(defaultCssCacheKey);
+          if (!cachedDefaultCss) {
+            const minifiedCss = this.minifyCss(css);
+            const etag = this.generateETag(hash);
+            this.setCachedCssResponse(defaultCssCacheKey, minifiedCss, etag);
+            cachedDefaultCss = { css: minifiedCss, etag };
+          }
+          const { css: minifiedCss, etag } = cachedDefaultCss;
           res.set('ETag', etag);
           if (req.headers['if-none-match'] === etag) {
             return res.status(304).end();
           }
-          res.set('Cache-Control', 'public, max-age=300');
-          return res.send(css);
+          res.set('Cache-Control', this.getCssCacheControlHeader());
+          res.removeHeader('Pragma');
+          res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
+          return res.send(minifiedCss);
         }
-        // Ensure hash is lowercase hex; fall back to sha256 hex of css if stored hash is missing or not hex.
-        const safeHash = (brand.hash && /^[a-f0-9]+$/.test(brand.hash)) ? brand.hash : crypto.createHash('sha256').update(brand.css).digest('hex');
-        const etag = this.generateETag(safeHash);
+        const sourceHash = crypto.createHash('sha256').update(brand.css).digest('hex');
+        const brandCssCacheKey = `brand:${brand.id}:${brand.hash || ''}:${sourceHash}`;
+        let cachedBrandCss = this.getCachedCssResponse(brandCssCacheKey);
+        if (!cachedBrandCss) {
+          const minifiedCss = this.minifyCss(brand.css);
+          const minifiedHash = crypto.createHash('sha256').update(minifiedCss).digest('hex').substring(0, 32);
+          const hasValidStoredHash = Boolean(brand.hash && /^[a-f0-9]+$/.test(brand.hash) && brand.hash === minifiedHash);
+          const safeHash = hasValidStoredHash ? brand.hash! : minifiedHash;
+
+          if (!hasValidStoredHash && brand.id) {
+            try {
+              await BrandingConfig.update({ id: brand.id }, { hash: safeHash });
+            } catch (updateError) {
+              sails.log.warn('Failed to persist corrected branding hash:', updateError);
+            }
+          }
+
+          const etag = this.generateETag(safeHash);
+          this.setCachedCssResponse(brandCssCacheKey, minifiedCss, etag);
+          cachedBrandCss = { css: minifiedCss, etag };
+        }
+
+        const { css: minifiedCss } = cachedBrandCss;
+        const { etag } = cachedBrandCss;
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) {
           return res.status(304).end();
         }
-        res.set('Cache-Control', 'public, max-age=300');
-        return res.send(brand.css);
+        res.set('Cache-Control', this.getCssCacheControlHeader());
+        res.removeHeader('Pragma');
+        res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
+        return res.send(minifiedCss);
       } catch (e) {
         sails.log.error('Error serving CSS:', e);
         return res.status(500).send('/* error serving theme */');

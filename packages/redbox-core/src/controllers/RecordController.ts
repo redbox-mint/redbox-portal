@@ -41,6 +41,7 @@ import type { Upload } from '@tus/server';
 import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
@@ -622,6 +623,11 @@ export namespace Controllers {
           String(brand?.name ?? ''),
           contextVariablesMap
         );
+        const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
+        const prehydrate = await prehydrateService.build({
+          branding: brand,
+          formConfig: mergedForm
+        });
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
@@ -634,6 +640,7 @@ export namespace Controllers {
               workflow: recordData?.workflow,
               contextVariables: contextVariablesMap
             },
+            prehydrate,
           });
         } else {
           const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;

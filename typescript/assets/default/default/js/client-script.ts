@@ -5,9 +5,41 @@
 import "../../../styles/style.scss";
 // import "../../../styles/default.css";
 
-import {formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
+// Type-only import. The runtime value is loaded lazily below so the entry chunk
+// stays free of jsonata/lodash/luxon/marked etc. The Angular form app is the
+// only consumer and already awaits this getter.
+import type { FormValidatorDefinition } from "@researchdatabox/sails-ng-common";
 
-export const formValidatorDefinitions = formValidatorsSharedDefinitions;
+let formValidatorDefinitionsPromise: Promise<FormValidatorDefinition[]> | undefined;
+
+/**
+ * Lazily resolve the shared form validator definitions.
+ *
+ * Loading sails-ng-common pulls in jsonata, lodash, luxon and the rest of the
+ * validation helpers. Splitting that into a separate chunk keeps the eager
+ * page-load bundle small for non-form pages and defers the cost on form pages
+ * until the Angular form app actually starts building controls.
+ */
+export function getFormValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
+  if (!formValidatorDefinitionsPromise) {
+    // webpackChunkName lets the lazy chunk show up with a stable filename.
+    formValidatorDefinitionsPromise = import(
+      /* webpackChunkName: "sails-ng-common-validators" */
+      "@researchdatabox/sails-ng-common"
+    ).then((mod) => {
+      const definitions = (mod as { formValidatorsSharedDefinitions?: unknown }).formValidatorsSharedDefinitions;
+      if (!Array.isArray(definitions)) {
+        throw new Error("Invalid form validator definitions export");
+      }
+      return definitions as FormValidatorDefinition[];
+    }).catch((error) => {
+      formValidatorDefinitionsPromise = undefined;
+      console.error("Failed to load form validator definitions", error);
+      throw error;
+    });
+  }
+  return formValidatorDefinitionsPromise;
+}
 
 function safeStorageGet(key: string): any {
   try {

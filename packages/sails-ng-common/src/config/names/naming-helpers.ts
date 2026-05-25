@@ -113,15 +113,23 @@ export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
  */
 export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
   try {
-    if (Array.isArray(pointer)) {
-        return find(obj, pointer);
+        if (Array.isArray(pointer)) {
+            return find(obj, pointer);
+        }
+        // Documentation has the order of the parameters reversed compared to the type definition.
+        return findByPointer(pointer, obj);
+    } catch (e: unknown) {
+        console.error(`getObjectWithJsonPointer failed with obj '${obj}' and pointer '${pointer}'`, e);
+        // @jsonjoy.com/json-pointer throws on missing keys: `find` throws `new Error("NOT_FOUND")`,
+        // `findByPointer` throws the literal string "NOT_FOUND". All current callers are written
+        // as tolerant lookups (optional chaining / undefined checks), so treat a miss as undefined
+        // instead of letting the throw escape into Angular's global ErrorHandler.
+        const msg = e instanceof Error ? e.message : e;
+        if (msg === 'NOT_FOUND') {
+            return undefined;
+        }
+        throw e;
     }
-    // Documentation has the order of the parameters reversed compared to the type definition.
-    return findByPointer(pointer, obj);
-  } catch (err) {
-    console.error(`getObjectWithJsonPointer failed with obj '${obj}' and pointer '${pointer}'`, err);
-    return null;
-  }
 }
 
 /**

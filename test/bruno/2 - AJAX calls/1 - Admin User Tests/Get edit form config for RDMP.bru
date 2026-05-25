@@ -41,4 +41,17 @@ tests {
       const jsonData = res.getBody();
       expect(jsonData.componentDefinitions).to.be.an('array').that.is.not.empty
   });
+
+  test("Optional prehydrate payload shape is valid when present", function () {
+      const jsonData = res.getBody();
+      if (jsonData.prehydrate === undefined) {
+          expect(jsonData).to.not.have.property('prehydrate');
+          return;
+      }
+
+      expect(jsonData.prehydrate).to.be.an('object');
+      if (jsonData.prehydrate.vocabTrees !== undefined) {
+          expect(jsonData.prehydrate.vocabTrees).to.be.an('object');
+      }
+  });
 }
