@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
@@ -34,6 +34,19 @@ describe('ValidationSummaryFieldComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  it('should cancel a deferred validation refresh when destroyed', fakeAsync(() => {
+    const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+    const component = fixture.componentInstance as any;
+    const queueRefreshSpy = spyOn(component, 'queueValidationErrorsRefresh');
+
+    component.deferValidationErrorsRefresh();
+    fixture.destroy();
+    tick(0);
+
+    expect(queueRefreshSpy).not.toHaveBeenCalled();
+  }));
+
   it('should hide the valid banner by default when the form has no errors', async () => {
     // arrange
     const formConfig: FormConfigFrame = {

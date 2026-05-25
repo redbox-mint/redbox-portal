@@ -121,6 +121,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
   private validationRefreshQueued = false;
   private validationRefreshDeferred = false;
+  private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
   private formChangesBound = false;
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
@@ -130,6 +131,11 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     'a[href]:not([disabled])',
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
+
+  constructor() {
+    super();
+    this.destroyRef.onDestroy(() => this.clearDeferredValidationErrorsRefresh());
+  }
 
   public allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
     return Promise.resolve(this.validationErrorsDisplay$.value);
@@ -209,10 +215,19 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return;
     }
     this.validationRefreshDeferred = true;
-    setTimeout(() => {
+    this.validationRefreshDeferredHandle = setTimeout(() => {
+      this.validationRefreshDeferredHandle = undefined;
       this.validationRefreshDeferred = false;
       this.queueValidationErrorsRefresh();
     }, 0);
+  }
+
+  private clearDeferredValidationErrorsRefresh(): void {
+    if (this.validationRefreshDeferredHandle !== undefined) {
+      clearTimeout(this.validationRefreshDeferredHandle);
+      this.validationRefreshDeferredHandle = undefined;
+    }
+    this.validationRefreshDeferred = false;
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
