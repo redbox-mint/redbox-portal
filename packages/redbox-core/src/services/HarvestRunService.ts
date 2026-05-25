@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 
 import { Services as services } from '../CoreService';
 import { HarvestRunService as HarvestRunServiceContract, HarvestRunServiceError, HarvestTrackedChunkRequest, HarvestTrackedChunkResponse, HarvestTrackedRecordRequest, HarvestTrackedRecordResponse } from '../HarvestRunService';
@@ -24,14 +24,13 @@ import {
   HarvestRunModel,
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
-import { RecordsService } from '../RecordsService';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
 import { HarvestRecordEventAttributes } from '../waterline-models/HarvestRecordEvent';
 import { HarvestRunChunkAttributes } from '../waterline-models/HarvestRunChunk';
 import { HarvestRunAttributes } from '../waterline-models/HarvestRun';
 
 declare const WorkflowStepsService: {
-  get: (recordTypeModel: RecordTypeModel, workflowStage: string) => unknown;
+  get: (recordTypeModel: RecordTypeModel, workflowStage: string) => Observable<unknown>;
 };
 
 type AnyRecord = Record<string, unknown>;
@@ -62,10 +61,6 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'HarvestRunService::';
-    }
-
-    private recordsService(): RecordsService {
-      return sails.services.recordsservice as unknown as RecordsService;
     }
 
     private asError(error: unknown): Error {
@@ -314,7 +309,7 @@ export namespace Services {
     ): Promise<APIHarvestResponse> {
       const shouldMerge = updateMode === 'merge';
       try {
-        const record: RecordModel = await this.recordsService().getMeta(oid);
+        const record: RecordModel = await RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return new APIHarvestResponse(
             harvestId,
@@ -340,7 +335,7 @@ export namespace Services {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
         }
 
-        await this.recordsService().updateMeta(brand, oid, record, user);
+        await RecordsService.updateMeta(brand, oid, record, user);
         return new APIHarvestResponse(harvestId, oid, true, shouldMerge ? 'Record merged successfully' : 'Record updated successfully');
       } catch (error) {
         const result = new APIHarvestResponse(
@@ -372,11 +367,13 @@ export namespace Services {
       request['metadata'] = metadata == null ? body : metadata;
 
       try {
-        const response = await this.recordsService().create(brand, request, recordTypeModel, user);
+        const response = await RecordsService.create(brand, request, recordTypeModel, user);
         if (workflowStage) {
           try {
-            const wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeModel, String(workflowStage)));
-            this.recordsService().setWorkflowStepRelatedMetadata(request, wfStep as AnyRecord);
+            const wfStep = await firstValueFrom(
+              WorkflowStepsService.get(recordTypeModel, String(workflowStage)) as Observable<unknown>
+            );
+            RecordsService.setWorkflowStepRelatedMetadata(request, wfStep as AnyRecord);
           } catch (error) {
             this.logger.warn(`${this.logHeader} Failed to resolve workflow step ${String(workflowStage)}`, error);
           }
@@ -425,7 +422,7 @@ export namespace Services {
       };
 
       try {
-        const response = await this.recordsService().create(brand, request, recordTypeModel, user);
+        const response = await RecordsService.create(brand, request, recordTypeModel, user);
         if (response.isSuccessful()) {
           return {
             harvestId,
@@ -463,7 +460,7 @@ export namespace Services {
     ): Promise<{ success: boolean; message: string; details: string }> {
       const shouldMerge = strategy === 'merge';
       try {
-        const record: RecordModel = await this.recordsService().getMeta(oid);
+        const record: RecordModel = await RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return {
             success: false,
@@ -488,7 +485,7 @@ export namespace Services {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
         }
 
-        const response = await this.recordsService().updateMeta(brand, oid, record, user);
+        const response = await RecordsService.updateMeta(brand, oid, record, user);
         if (!response.isSuccessful()) {
           return {
             success: false,
@@ -879,7 +876,7 @@ export namespace Services {
           const existingRecord = existingRecords[0] as AnyRecord;
           const oid = String(existingRecord.redboxOid ?? '');
           try {
-            const deleteResponse = await this.recordsService().delete(oid, false, existingRecord, recordTypeModel, user);
+            const deleteResponse = await RecordsService.delete(oid, false, existingRecord, recordTypeModel, user);
             const response: HarvestTrackedRecordResponse = {
               harvestId,
               oid,
@@ -1343,4 +1340,8 @@ export namespace Services {
       };
     }
   }
+}
+
+declare global {
+  let HarvestRunService: Services.HarvestRunService;
 }
