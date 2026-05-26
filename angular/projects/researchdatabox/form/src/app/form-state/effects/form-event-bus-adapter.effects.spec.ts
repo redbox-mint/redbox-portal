@@ -510,7 +510,14 @@ describe('FormEventBusAdapterEffects', () => {
       effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
 
       eventBus.publish<FormSaveRequestedEvent>({
-        ...createFormSaveRequestedEvent({ force: true, enabledValidationGroups: ["none"], targetStep: 'next' })
+        ...createFormSaveRequestedEvent({
+          force: true,
+          enabledValidationGroups: ["none"],
+          targetStep: 'next',
+          closeOnSave: true,
+          redirectLocation: 'redirect-location/one',
+          redirectDelaySeconds: 2
+        })
       });
 
       tick(10);
@@ -520,7 +527,10 @@ describe('FormEventBusAdapterEffects', () => {
       expect(promoted[0]).toEqual(jasmine.objectContaining({
         force: true,
         enabledValidationGroups: ["none"],
-        targetStep: 'next'
+        targetStep: 'next',
+        closeOnSave: true,
+        redirectLocation: 'redirect-location/one',
+        redirectDelaySeconds: 2
       }));
     }));
 
