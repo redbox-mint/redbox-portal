@@ -1708,8 +1708,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'iscHeader',
       'iscEnabled',
       'notesEnabled',
-      'noLocationSelectedText',
-      'noLocationSelectedHelp',
       'publicCheck',
       'selectionCriteria',
       'dataTypes',

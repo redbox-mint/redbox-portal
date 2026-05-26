@@ -2,7 +2,7 @@
   <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
 
   @if (dataLocations.length > 0) {
-    <div class="table-responsive mt-2">
+    <div class="table-responsive">
       <table class="table table-bordered table-striped table-hover mb-0">
         <thead>
           <tr>
@@ -87,10 +87,23 @@
     </div>
   }
 
-  @if (shouldShowNoLocationSelected()) {
-    <div class="mt-2">
-      <h5 class="fw-bold">{{ noLocationSelectedText | i18next }}</h5>
-      <p>{{ noLocationSelectedHelp | i18next }}</p>
+  @if (shouldShowEmptyBanner()) {
+    <div class="alert alert-info mt-2" role="status">
+      <strong>{{ noLocationsAvailableTitle | i18next }}</strong>
+      @if (noLocationsAvailableBody) {
+        <p class="mb-0 mt-1">{{ noLocationsAvailableBody | i18next }}</p>
+      }
+    </div>
+  } @else if (shouldShowMetadataOnlyBanner()) {
+    <div class="alert alert-info mt-2" role="status">
+      <strong>{{ metadataOnlyTitle | i18next }}</strong>
+      @if (metadataOnlyBody) {
+        <p class="mb-0 mt-1">{{ metadataOnlyBody | i18next }}</p>
+      }
+    </div>
+  } @else {
+    <div class="alert alert-success mt-2 py-2" role="status">
+      {{ getSelectionSummary() }}
     </div>
   }
 
