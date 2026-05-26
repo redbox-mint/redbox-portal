@@ -393,7 +393,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
               params: {
                 expression: expression,
                 description: optionDescriptionValue,
-                actual: value,
+                actual: control.value,
               },
             },
           };

@@ -65,6 +65,7 @@ import {
   FormRequestParamValue,
   FormStatus,
   FormValidatorSummaryErrors,
+  FormValidatorTargetFieldConfig,
   JSONataQuerySource, LineagePaths,
 } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from './component/base-wrapper.component';
@@ -775,7 +776,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const result: FormValidatorSummaryErrors[] = [];
 
     // form validators
-    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
     if (this.form) {
       // This method can be called while this component is being created,
       // and before the FormComponent form is available.
@@ -783,12 +783,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // so don't include the FormComponent.form if it is not available.
       const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
       if (formErrors.length > 0) {
-        result.push({
-          id: this.trimmedParams.formName(),
-          message: "form-labelMessage",
-          errors: formErrors,
-          lineagePaths: this.formService.buildLineagePaths()
-        });
+        // TODO: extract the step of assigning form-level validation errors to a method in the form service,
+        //       so the SuggestedValidationSummaryComponent can use it as well.
+        const stillFormErrors: FormValidatorSummaryErrors[] = [];
+        // allow form validators to specify a component to 'own' the validator errors
+        const formValidators = this.formValidators;
+        for (const formError of formErrors) {
+          const formValidator = formValidators.find((v) => v.class === formError.class);
+          if (formValidator === undefined) {
+            continue;
+          }
+          if (!formValidator.targetField) {
+            continue;
+          }
+          // TODO: check result to see if there are any existing errors for the matching lineage paths
+          // TODO: add the error to any existing summary error for the component, or add a new summary error for the component
+        }
+        if (stillFormErrors.length > 0) {
+          result.push({
+            id: this.trimmedParams.formName(),
+            message: "form-labelMessage",
+            errors: formErrors,
+            lineagePaths: this.formService.buildLineagePaths()
+          });
+        }
       }
     }
 
@@ -1261,7 +1279,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Get the form-level validators.
    */
-  public get formValidators() {
+  public get formValidators(): FormValidatorTargetFieldConfig[] {
     return this.formDefMap?.formConfig?.validators ?? [];
   }
 

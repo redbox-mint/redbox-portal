@@ -197,6 +197,16 @@ export interface FormValidatorConfig {
 }
 
 /**
+ * Form-level validator config that allows specifying a field to 'own' any validation failures.
+ */
+export interface FormValidatorTargetFieldConfig extends FormValidatorConfig {
+  /**
+   * Lineage paths to a target field that will 'own' any validation failures.
+   */
+  targetField?: Partial<LineagePaths>;
+}
+
+/**
  * One validator error.
  */
 export interface FormValidatorComponentErrors {
