@@ -22,7 +22,7 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import {
     guessType, FormValidatorSummaryErrors,
     FormConfigFrame, TemplateCompileInput, FormModesConfig,
-    ReusableFormDefinitions
+    ReusableFormDefinitions, arrayStartsWithArray
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
@@ -188,7 +188,7 @@ export namespace Services {
 
             // filter the changes to only those relevant to the current path
             const relevantChanges = changes?.filter(i => {
-                return !currentPath || this.arrayStartsWithArray(currentPath, i?.path);
+                return !currentPath || arrayStartsWithArray(currentPath, i?.path);
             });
 
             // check all keys in either the original or changes objects
@@ -270,7 +270,7 @@ export namespace Services {
                             //       because that default is for new entries, not existing entries.
                             const originalElement = {};
                             const newPath = [...currentPath, key, index];
-                            const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                            const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
                             sails.log.verbose(`mergeRecordMetadataPermitted - array`, {
                                 originalElement: originalElement,
                                 changedElement: changedElement,
@@ -296,7 +296,7 @@ export namespace Services {
                     // Evaluate the properties of the object.
                     const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
                     const newPath = [...currentPath, key];
-                    const keyChanges = relevantChanges?.filter(i => this.arrayStartsWithArray(newPath, i?.path));
+                    const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
                     result[key] = this.mergeRecordMetadataPermitted(originalValue as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
 
                 } else if (isKeyInPermittedChange && isKeyInChanged) {

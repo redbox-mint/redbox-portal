@@ -61,7 +61,7 @@ export class ValidatorsSupport {
       } else if ('createAsync' in def) {
         result.asyncDefs.push(def.createAsync(createConfig));
       } else {
-        throw new Error(`Validator definition '${validatorClass}' does not provide a create or createAsync factory.`);
+        throw new Error(`Invalid validator definition: must specify 'create' or 'createAsync' function. Definition is ${JSON.stringify(validatorConfigItem)}.`);
       }
     }
     return result;

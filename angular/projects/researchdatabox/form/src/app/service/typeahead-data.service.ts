@@ -10,6 +10,13 @@ type WrappedResponse<T> = { data?: T; meta?: Record<string, unknown> };
 
 @Injectable({ providedIn: "root" })
 export class TypeaheadDataService extends HttpClientService {
+    // In-flight request dedup keyed per search method.
+    // Only dedups *concurrent* identical lookups — once the request resolves, the entry is
+    // removed so subsequent callers always re-fetch. This avoids serving stale results for
+    // user-typed terms while still collapsing the burst of identical lookups that fire when
+    // multiple typeahead instances on the same form initialise with the same stored value.
+    private readonly inFlight = new Map<string, Promise<TypeaheadOption[]>>();
+
     constructor(
         @Inject(HttpClient) protected override http: HttpClient,
         @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -17,6 +24,18 @@ export class TypeaheadDataService extends HttpClientService {
         @Inject(ConfigService) protected override configService: ConfigService
     ) {
         super(http, rootContext, utilService, configService);
+    }
+
+    private dedupe(key: string, fetcher: () => Promise<TypeaheadOption[]>): Promise<TypeaheadOption[]> {
+        const existing = this.inFlight.get(key);
+        if (existing) {
+            return existing;
+        }
+        const pending = fetcher();
+        this.inFlight.set(key, pending);
+        const cleanup = () => this.inFlight.delete(key);
+        pending.then(cleanup, cleanup);
+        return pending;
     }
 
     public override async waitForInit(): Promise<this> {
@@ -41,16 +60,21 @@ export class TypeaheadDataService extends HttpClientService {
         }));
     }
 
-    public async searchVocabularyEntries(vocabRef: string, search: string, limit = 25, offset = 0, includeHistoricalValues = false): Promise<TypeaheadOption[]> {
-        await this.waitForInit();
+    public searchVocabularyEntries(vocabRef: string, search: string, limit = 25, offset = 0, includeHistoricalValues = false): Promise<TypeaheadOption[]> {
         const trimmedVocabRef = String(vocabRef ?? "").trim();
         if (!trimmedVocabRef) {
-            throw new Error("vocabRef is required");
+            return Promise.reject(new Error("vocabRef is required"));
         }
+        const trimmedSearch = String(search ?? "");
+        const key = `vocab|${trimmedVocabRef}|${trimmedSearch}|${limit}|${offset}|${includeHistoricalValues ? 1 : 0}`;
+        return this.dedupe(key, () => this.fetchVocabularyEntries(trimmedVocabRef, trimmedSearch, limit, offset, includeHistoricalValues));
+    }
 
-        const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(trimmedVocabRef)}/entries`;
+    private async fetchVocabularyEntries(vocabRef: string, search: string, limit: number, offset: number, includeHistoricalValues: boolean): Promise<TypeaheadOption[]> {
+        await this.waitForInit();
+        const url = `${this.brandingAndPortalUrl}/vocab/${encodeURIComponent(vocabRef)}/entries`;
         const params: Record<string, string> = {
-            search: String(search ?? ""),
+            search,
             limit: String(limit),
             offset: String(offset)
         };
@@ -78,7 +102,7 @@ export class TypeaheadDataService extends HttpClientService {
             .filter((entry) => Boolean(entry.label || entry.value));
     }
 
-    public async searchNamedQuery(
+    public searchNamedQuery(
         queryId: string,
         search: string,
         start = 0,
@@ -86,20 +110,34 @@ export class TypeaheadDataService extends HttpClientService {
         labelField = "label",
         valueField = "value"
     ): Promise<TypeaheadOption[]> {
-        await this.waitForInit();
         const trimmedQueryId = String(queryId ?? "").trim();
         if (!trimmedQueryId) {
-            throw new Error("queryId is required");
+            return Promise.reject(new Error("queryId is required"));
         }
+        const trimmedSearch = String(search ?? "");
+        const resolvedLabelField = String(labelField ?? "").trim() || "label";
+        const resolvedValueField = String(valueField ?? "").trim() || "value";
+        const key = `namedQuery|${trimmedQueryId}|${trimmedSearch}|${start}|${rows}|${resolvedLabelField}|${resolvedValueField}`;
+        return this.dedupe(key, () => this.fetchNamedQuery(trimmedQueryId, trimmedSearch, start, rows, resolvedLabelField, resolvedValueField));
+    }
 
-        const url = `${this.brandingAndPortalUrl}/query/vocab/${encodeURIComponent(trimmedQueryId)}`;
+    private async fetchNamedQuery(
+        queryId: string,
+        search: string,
+        start: number,
+        rows: number,
+        labelField: string,
+        valueField: string
+    ): Promise<TypeaheadOption[]> {
+        await this.waitForInit();
+        const url = `${this.brandingAndPortalUrl}/query/vocab/${encodeURIComponent(queryId)}`;
         const response = await firstValueFrom(
             this.http.get<WrappedResponse<unknown> | unknown>(url, {
                 responseType: "json",
                 observe: "body",
                 context: this.httpContext,
                 params: {
-                    search: String(search ?? ""),
+                    search,
                     start: String(start),
                     rows: String(rows)
                 }
@@ -107,12 +145,10 @@ export class TypeaheadDataService extends HttpClientService {
         );
 
         const records = this.extractNamedQueryRecords(response);
-        const resolvedLabelField = String(labelField ?? "").trim() || "label";
-        const resolvedValueField = String(valueField ?? "").trim() || "value";
         return records
             .map((record) => {
-                const label = this.getPathValue(record, resolvedLabelField);
-                const value = this.getPathValue(record, resolvedValueField);
+                const label = this.getPathValue(record, labelField);
+                const value = this.getPathValue(record, valueField);
                 return {
                     label: String(label ?? ""),
                     value: String(value ?? label ?? ""),
@@ -161,24 +197,38 @@ export class TypeaheadDataService extends HttpClientService {
             .filter((entry) => Boolean(entry.label || entry.value));
     }
 
-    public async searchExternal(
+    public searchExternal(
         provider: string,
         search: string,
         resultArrayProperty = "",
         labelField = "label",
         valueField = "value"
     ): Promise<TypeaheadOption[]> {
-        await this.waitForInit();
         const trimmedProvider = String(provider ?? "").trim();
         if (!trimmedProvider) {
-            throw new Error("provider is required");
+            return Promise.reject(new Error("provider is required"));
         }
+        const trimmedSearch = String(search ?? "");
+        const trimmedResultArrayProperty = String(resultArrayProperty ?? "").trim();
+        const resolvedLabelField = String(labelField ?? "").trim() || "label";
+        const resolvedValueField = String(valueField ?? "").trim() || "value";
+        const key = `external|${trimmedProvider}|${trimmedSearch}|${trimmedResultArrayProperty}|${resolvedLabelField}|${resolvedValueField}`;
+        return this.dedupe(key, () => this.fetchExternal(trimmedProvider, trimmedSearch, trimmedResultArrayProperty, resolvedLabelField, resolvedValueField));
+    }
 
-        const url = `${this.brandingAndPortalUrl}/external/vocab/${encodeURIComponent(trimmedProvider)}`;
+    private async fetchExternal(
+        provider: string,
+        search: string,
+        resultArrayProperty: string,
+        labelField: string,
+        valueField: string
+    ): Promise<TypeaheadOption[]> {
+        await this.waitForInit();
+        const url = `${this.brandingAndPortalUrl}/external/vocab/${encodeURIComponent(provider)}`;
         const response = await firstValueFrom(
             this.http.post<WrappedResponse<unknown> | unknown>(url, {
                 options: {
-                    query: String(search ?? "")
+                    query: search
                 }
             }, {
                 responseType: "json",
@@ -188,12 +238,10 @@ export class TypeaheadDataService extends HttpClientService {
         );
 
         const records = this.extractExternalRecords(response, resultArrayProperty);
-        const resolvedLabelField = String(labelField ?? "").trim() || "label";
-        const resolvedValueField = String(valueField ?? "").trim() || "value";
         return records
             .map((record) => {
-                const label = this.getPathValue(record, resolvedLabelField);
-                const value = this.getPathValue(record, resolvedValueField);
+                const label = this.getPathValue(record, labelField);
+                const value = this.getPathValue(record, valueField);
                 return {
                     label: String(label ?? ""),
                     value: String(value ?? label ?? ""),

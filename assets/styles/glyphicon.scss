@@ -2,7 +2,8 @@
 @font-face {
     font-family: "Glyphicons Halflings";
     src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot");
-    src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot?#iefix") format("embedded-opentype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff2") format("woff2"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff") format("woff"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.ttf") format("truetype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.svg#glyphicons_halflingsregular") format("svg")
+    src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot?#iefix") format("embedded-opentype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff2") format("woff2"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff") format("woff"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.ttf") format("truetype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.svg#glyphicons_halflingsregular") format("svg");
+    font-display: swap;
 }
 
 .glyphicon {

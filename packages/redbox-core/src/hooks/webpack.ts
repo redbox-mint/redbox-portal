@@ -60,13 +60,25 @@ export function defineWebpackHook(sailsInstance: Sails.Application, _webpack = w
                 return;
             }
 
-            // Enable minimization of CSS when explicitly told so
-            if (process.env.WEBPACK_CSS_MINI === 'true') {
-                if (sailsInstance.config.webpack.config?.[0]) {
-                    sailsInstance.config.webpack.config[0].optimization = sailsInstance.config.webpack.config[0].optimization || {};
-                    sailsInstance.config.webpack.config[0].optimization.minimize = true;
+            const webpackConfigs = sailsInstance.config.webpack.config;
+            if (!Array.isArray(webpackConfigs) || webpackConfigs.length === 0) {
+                sailsInstance.log.warn('sails-hook-webpack: Expected webpack.config to be a non-empty array.');
+            } else {
+                const firstWebpackConfig = webpackConfigs[0];
+                const isCssMiniEnabled = process.env.WEBPACK_CSS_MINI === 'true';
+                const isProductionAssetMode = process.env.REDBOX_ASSET_MODE === 'production';
+
+                if (isCssMiniEnabled || isProductionAssetMode) {
+                    firstWebpackConfig.optimization = firstWebpackConfig.optimization || {};
+                    firstWebpackConfig.optimization.minimize = true;
+
+                    if (isProductionAssetMode) {
+                        firstWebpackConfig.mode = 'production';
+                        firstWebpackConfig.devtool = false;
+                    }
+
+                    sailsInstance.log.info(`Webpack hook enabled minimization (cssMini=${isCssMiniEnabled}, productionMode=${isProductionAssetMode}).`);
                 }
-                sailsInstance.log.info(`Webpack hook is configured for CSS minimization.`);
             }
 
             const compiler = _webpack(sailsInstance.config.webpack.config);

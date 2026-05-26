@@ -1,7 +1,7 @@
 import {TestBed} from "@angular/core/testing";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
-import {MapComponent} from "./map.component";
+import {MAP_DEPENDENCIES_LOADER, MapComponent} from "./map.component";
 import * as L from "leaflet";
 
 describe("MapComponent", () => {
@@ -51,25 +51,33 @@ describe("MapComponent", () => {
       return {};
     }
 
-    (globalThis as any).__redboxMapTerraDrawDeps = {
-      TerraDrawCtor: FakeTerraDrawCtor as unknown as new (...args: unknown[]) => unknown,
-      AdapterCtor: FakeAdapterCtor as unknown as new (...args: unknown[]) => unknown,
-      PointMode: FakeModeCtor as unknown as new (...args: unknown[]) => unknown,
-      PolygonMode: FakeModeCtor as unknown as new (...args: unknown[]) => unknown,
-      LineStringMode: FakeModeCtor as unknown as new (...args: unknown[]) => unknown,
-      RectangleMode: FakeModeCtor as unknown as new (...args: unknown[]) => unknown,
-      SelectMode: FakeModeCtor as unknown as new (...args: unknown[]) => unknown
-    };
+    const mapDependencies = {
+      L,
+      terraDraw: {
+        TerraDraw: FakeTerraDrawCtor,
+        TerraDrawPointMode: FakeModeCtor,
+        TerraDrawPolygonMode: FakeModeCtor,
+        TerraDrawLineStringMode: FakeModeCtor,
+        TerraDrawRectangleMode: FakeModeCtor,
+        TerraDrawSelectMode: FakeModeCtor
+      },
+      terraDrawLeafletAdapter: {
+        TerraDrawLeafletAdapter: FakeAdapterCtor
+      },
+      parseKmlToGeoJson: () => ({type: "FeatureCollection", features: []})
+    } as any;
 
     await createTestbedModule({
       declarations: {
         "MapComponent": MapComponent
+      },
+      providers: {
+        "MAP_DEPENDENCIES_LOADER": {
+          provide: MAP_DEPENDENCIES_LOADER,
+          useValue: () => Promise.resolve(mapDependencies)
+        }
       }
     });
-  });
-
-  afterEach(() => {
-    delete (globalThis as any).__redboxMapTerraDrawDeps;
   });
 
   it("should create component", () => {

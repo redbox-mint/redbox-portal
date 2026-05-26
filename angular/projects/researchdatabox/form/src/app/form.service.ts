@@ -47,6 +47,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
+  arrayStartsWithArray,
   buildLineagePaths as buildLineagePathsHelper,
   DynamicScriptResponse,
   FieldModelDefinitionKind,
@@ -63,7 +64,9 @@ import {
   FormValidatorDefinition,
   FormValidatorFns,
   FormValidatorSummaryErrors,
-  getObjectWithJsonPointer, jsonataEvaluateFunc,
+  FormPrehydratePayload,
+  getObjectWithJsonPointer,
+  jsonataEvaluateFunc,
   jsonataLibrary,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
@@ -79,15 +82,28 @@ import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
 import { FormValidationGroupsChangeInitial } from "./form-state";
+import { VocabTreeService } from './service/vocab-tree.service';
 
-// redboxClientScript.formValidatorDefinitions is provided from index.bundle.js, via client-script.js
-declare var redboxClientScript: { formValidatorDefinitions: FormValidatorDefinition[] };
+// Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
+// `formValidatorDefinitions` is the historical synchronous accessor and is preserved
+// for any external consumer that still reads it, but the form app now prefers
+// `getFormValidatorDefinitions()` so the heavy sails-ng-common deps (jsonata, lodash,
+// luxon, marked) load in a separate chunk on demand instead of on every page open.
+declare var redboxClientScript: {
+  formValidatorDefinitions?: FormValidatorDefinition[];
+  getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]>;
+};
 
 interface SuggestedValidatorSummaryCacheEntry {
   validatorKey: string;
   valueKey: string;
   validatorFns: FormValidatorFns;
   errors: FormValidatorComponentErrors[];
+}
+
+interface DynamicImportCacheEntry {
+  promise: Promise<DynamicScriptResponse>;
+  createdAt: number;
 }
 
 /**
@@ -105,6 +121,9 @@ interface SuggestedValidatorSummaryCacheEntry {
 )
 export class FormService extends HttpClientService {
   protected logName = "FormService";
+  private static readonly MAX_DYNAMIC_IMPORT_CACHE_SIZE = 100;
+  // Set to a positive number to enable time-based expiry.
+  private static readonly DYNAMIC_IMPORT_CACHE_TTL_MS = 0;
   protected compClassMap: AllComponentClassMapType = {};
   protected modelClassMap: AllModelClassMapType = {};
   protected layoutClassMap: AllLayoutClassMapType = {};
@@ -113,6 +132,7 @@ export class FormService extends HttpClientService {
 
   private requestOptions: Record<string, unknown> = {};
   private loadedValidatorDefinitions?: Map<string, FormValidatorDefinition>;
+  private dynamicImportFormCompiledItemsPromises = new Map<string, DynamicImportCacheEntry>();
   private formCompiledItems?: Promise<DynamicScriptResponse>;
   private currentFormMode: FormModesConfig = 'edit';
   // Suggested validation is read from template getters, so cache by control to avoid rebuilding validators on every change detection pass.
@@ -123,6 +143,7 @@ export class FormService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UtilityService) private utilityService: UtilityService,
+    @Inject(VocabTreeService) private vocabTreeService: VocabTreeService,
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -173,6 +194,28 @@ export class FormService extends HttpClientService {
    * Returns:
    *  array of form fields containing the corresponding component information, ready for rendering.
    */
+  /**
+   * Bridge to the `redboxClientScript` global exposed by index.bundle.js.
+   *
+   * Prefers the lazy `getFormValidatorDefinitions()` getter so heavy deps
+   * (jsonata, lodash, luxon, marked) load in their own chunk on demand. Falls
+   * back to the pre-existing eager `formValidatorDefinitions` array for
+   * backwards compatibility with hosts that still expose only the synchronous
+   * shape (older builds, the unit-test setup in `helpers.spec.ts`).
+   */
+  private async resolveValidatorDefinitions(): Promise<FormValidatorDefinition[]> {
+    const bridge = (typeof redboxClientScript !== 'undefined' ? redboxClientScript : undefined) as
+      | { formValidatorDefinitions?: FormValidatorDefinition[]; getFormValidatorDefinitions?: () => Promise<FormValidatorDefinition[]> }
+      | undefined;
+    if (bridge?.getFormValidatorDefinitions) {
+      return bridge.getFormValidatorDefinitions();
+    }
+    if (Array.isArray(bridge?.formValidatorDefinitions)) {
+      return bridge.formValidatorDefinitions;
+    }
+    throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
+  }
+
   public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
@@ -182,6 +225,8 @@ export class FormService extends HttpClientService {
     if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
+
+    this.vocabTreeService.seedFromPayload(formConfigResp?.prehydrate);
 
     // This form config is the top of the lineage.
     const parentLineagePaths = this.buildLineagePaths({
@@ -202,6 +247,7 @@ export class FormService extends HttpClientService {
    * @param formConfig The form configuration.
    * @param parentLineagePaths The linage paths of the parent item.
    * @param meta The metadata from the API request to get the form config.
+   * @param formMode The form mode to use.
    * @returns The config and the components built from the config.
    */
   public async createFormComponentsMap(
@@ -213,13 +259,17 @@ export class FormService extends HttpClientService {
     this.currentFormMode = formMode ?? this.currentFormMode ?? 'edit';
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
       // load the validator definitions to be used when constructing the form controls
-      const validatorDefinitions = redboxClientScript.formValidatorDefinitions;
-      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
+      const definitions = await this.resolveValidatorDefinitions();
+      this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
     this.formCompiledItems = formConfig?.type
       ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
       : undefined;
+
+    if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
+      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode);
+    }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
 
@@ -533,7 +583,15 @@ export class FormService extends HttpClientService {
     const formControl = mapEntry.model?.formControl;
     const validators = mapEntry.model?.validators ?? [];
     const lineagePaths = mapEntry.lineagePaths;
-    if (formControl && !formControl.disabled && lineagePaths && validators.length > 0) {
+    const shouldGetValidationErrors = !!formControl && !formControl.disabled && !!lineagePaths && validators.length > 0;
+
+    // For debugging:
+    // this.loggerService.warn(`${this.logName}: getSuggestedValidatorSummaryErrors ${JSON.stringify({
+    //   formControlDisabled: formControl?.disabled, validators, lineagePaths,
+    //   enabledValidationGroups, validationGroups, shouldGetValidationErrors
+    // })}`);
+
+    if (shouldGetValidationErrors) {
       const errors = await this.getCachedSuggestedValidatorComponentErrors(
         formControl,
         this.prepareValidatorConfigs(validators, mapEntry),
@@ -558,7 +616,7 @@ export class FormService extends HttpClientService {
    * Cache the expensive validator construction and last error result so template reads
    * stay cheap while still recalculating when validation config or form values change.
    */
-  private async getCachedSuggestedValidatorComponentErrors(
+  public async getCachedSuggestedValidatorComponentErrors(
     formControl: AbstractControl,
     validators: FormValidatorConfig[],
     enabledValidationGroups: string[],
@@ -568,6 +626,12 @@ export class FormService extends HttpClientService {
     // Validator output can depend on sibling fields, so include the root form value as well as this control's own value.
     const valueKey = this.getSuggestedValidatorValueKey(formControl);
     const cached = this.suggestedValidatorSummaryCache.get(formControl);
+
+    // For debugging:
+    // this.loggerService.warn(`${this.logName}: getCachedSuggestedValidatorComponentErrors ${JSON.stringify({
+    //   validators, enabledValidationGroups, validationGroups,
+    //   validatorKey, valueKey, cached
+    // })}`);
 
     if (cached?.validatorKey === validatorKey && cached.valueKey === valueKey) {
       return cached.errors;
@@ -695,6 +759,7 @@ export class FormService extends HttpClientService {
    * @param validationGroups The available validation groups.
    * @param updateValueAndValidityOpts Recalculates the value and validation status of the control.
    *    By default, it also updates the value and validity of its ancestors.
+   * @param mapEntry The component map entry related to the form control.
    */
   public setValidators(
     formControl?: AbstractControl | null,
@@ -728,7 +793,7 @@ export class FormService extends HttpClientService {
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
-    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value});
+    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns});
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
@@ -787,7 +852,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown> };
+    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };
     const rawResp = this.http.get<rawRespType>(url.href, this.requestOptions);
     const result = await firstValueFrom(rawResp);
     this.loggerService.info(`Get form fields from url: ${url}`, result);
@@ -826,12 +891,66 @@ export class FormService extends HttpClientService {
     recordType: string, oid?: string, formMode?: FormModesConfig
   ): Promise<DynamicScriptResponse> {
     const normalizedRecordType = String(recordType ?? '').trim() || (oid ? 'auto' : '');
+    const cacheKey = JSON.stringify([normalizedRecordType, oid ?? '', formMode ?? '']);
+    const cachedPromise = this.getDynamicImportFormCompiledItemsPromise(cacheKey);
+    if (cachedPromise) {
+      return cachedPromise;
+    }
     const path = ['dynamicAsset', 'formCompiledItems', normalizedRecordType];
     if (oid) {
       path.push(oid?.toString());
     }
     const params = formMode === "edit" ? { edit: "true" } : undefined;
-    return await this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params);
+    const promise = this.utilityService.getDynamicImport(this.brandingAndPortalUrl, path, params)
+      .catch((error) => {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        throw error;
+      });
+    this.setDynamicImportFormCompiledItemsPromise(cacheKey, promise);
+    return await promise;
+  }
+
+  /**
+   * Clear dynamic import cache manually, e.g. after runtime asset refresh.
+   */
+  public clearDynamicImportFormCompiledItemsCache(): void {
+    this.dynamicImportFormCompiledItemsPromises.clear();
+  }
+
+  private getDynamicImportFormCompiledItemsPromise(cacheKey: string): Promise<DynamicScriptResponse> | undefined {
+    const cacheEntry = this.dynamicImportFormCompiledItemsPromises.get(cacheKey);
+    if (!cacheEntry) {
+      return undefined;
+    }
+
+    if (FormService.DYNAMIC_IMPORT_CACHE_TTL_MS > 0) {
+      const ageMs = Date.now() - cacheEntry.createdAt;
+      if (ageMs > FormService.DYNAMIC_IMPORT_CACHE_TTL_MS) {
+        this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+        return undefined;
+      }
+    }
+
+    // Refresh insertion order so this key becomes MRU.
+    this.dynamicImportFormCompiledItemsPromises.delete(cacheKey);
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, cacheEntry);
+    return cacheEntry.promise;
+  }
+
+  private setDynamicImportFormCompiledItemsPromise(cacheKey: string, promise: Promise<DynamicScriptResponse>): void {
+    this.dynamicImportFormCompiledItemsPromises.set(cacheKey, {
+      promise,
+      createdAt: Date.now()
+    });
+
+    if (this.dynamicImportFormCompiledItemsPromises.size <= FormService.MAX_DYNAMIC_IMPORT_CACHE_SIZE) {
+      return;
+    }
+
+    const lruCacheKey = this.dynamicImportFormCompiledItemsPromises.keys().next().value;
+    if (lruCacheKey) {
+      this.dynamicImportFormCompiledItemsPromises.delete(lruCacheKey);
+    }
   }
 
   /**
@@ -1066,28 +1185,43 @@ export class FormService extends HttpClientService {
     name: string | Partial<LineagePaths>,
     formFieldCompMapEntries: FormFieldCompMapEntry[],
   ): FormFieldCompMapEntry | undefined {
-    // breadth first search
-    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
-      if (typeof name === "string") {
-        if (formFieldCompMapEntry.compConfigJson?.name === name) {
-          return formFieldCompMapEntry;
-        }
-      } else if (name && formFieldCompMapEntry.lineagePaths) {
-        const targets = name as Record<string, LineagePath | string | undefined>;
-        const available = formFieldCompMapEntry.lineagePaths;
-        const lineagePathMatch = Object.entries(available).some(([key, value]) => !!value && targets?.[key] === value);
-        if (lineagePathMatch) {
-          return formFieldCompMapEntry;
-        }
-      }
-    }
+    const collection: FormFieldCompMapEntry[] = [...formFieldCompMapEntries];
 
-    // If not found, continue to search in the component's children
-    for (const formFieldCompMapEntry of formFieldCompMapEntries) {
-      const childFormFieldCompMapEntries = formFieldCompMapEntry.component?.formFieldCompMapEntries ?? [];
-      const match = this.getFormFieldCompMapEntry(name, childFormFieldCompMapEntries);
-      if (match !== undefined) {
-        return match;
+    // Use a breadth first search and return the first matching entry.
+    while (collection.length > 0) {
+      const mapEntry: FormFieldCompMapEntry | undefined = collection.shift();
+      if (mapEntry === undefined) {
+        return undefined;
+      }
+
+      if (typeof name === "string") {
+        // Find component by name only.
+        if (mapEntry.compConfigJson?.name === name) {
+          return mapEntry;
+        }
+
+        // If not found, add the component's children to search.
+        collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+
+      } else if (name && mapEntry.lineagePaths) {
+        // Find component by any matching lineage path.
+        const targets = name as Record<string, LineagePath | string | undefined>;
+        const available = mapEntry.lineagePaths;
+
+        for (const [key, value] of Object.entries(available)) {
+          const target = targets?.[key];
+          if (!!value && target === value) {
+            return mapEntry;
+          }
+          // Add the mapEntry's children if any of the mapEntry's lineagePaths start with the target.
+          if (typeof target === 'string' && !!target && typeof value === 'string' && value.startsWith(target)) {
+            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+            break;
+          } else if (Array.isArray(value) && Array.isArray(target) && arrayStartsWithArray(value, target)) {
+            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+            break;
+          }
+        }
       }
     }
     return undefined;
@@ -1099,10 +1233,10 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(validatorDefinitions);
     }
     const defMap = this.loadedValidatorDefinitions;
-    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators);
+    return this.validatorsSupport.createFormValidatorInstancesFromMapping(defMap, enabledValidators) ?? [];
   }
 
-  private prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
+  public prepareValidatorConfigs(validators: FormValidatorConfig[], mapEntry?: FormFieldCompMapEntry): FormValidatorConfig[] {
     const prepared = validators.map(validator => ({
       ...validator,
       config: validator.config ? { ...validator.config } : undefined,
@@ -1125,7 +1259,7 @@ export class FormService extends HttpClientService {
             return null;
           }
         }
-        return await jsonataEvaluateFunc(expression)(value);
+        return jsonataEvaluateFunc(expression)(value);
       };
     });
     return prepared;
@@ -1140,8 +1274,8 @@ export class FormService extends HttpClientService {
 
     const parentPath = formConfigPath.map(path => path.toString());
     const normalizedParentPath = this.normalizeValidatorFormConfigPath(parentPath);
-    const canonicalKey = [...normalizedParentPath, 'config', 'validators', index.toString(), 'config', 'expression'];
-    const legacyKey = [...parentPath, 'model', 'config', 'validators', index.toString(), 'config', 'expression'];
+    const canonicalKey = [...normalizedParentPath, 'config', ...rootKey];
+    const legacyKey = [...parentPath, 'model', 'config', ...rootKey];
 
     return [canonicalKey, legacyKey];
   }

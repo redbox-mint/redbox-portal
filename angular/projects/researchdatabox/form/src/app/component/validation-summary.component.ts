@@ -1,7 +1,6 @@
-import { ChangeDetectorRef, Component, DestroyRef, inject, Injector, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
-import { TranslationService } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
 import {
@@ -15,10 +14,10 @@ import {
   TabContentLayoutName,
   ValidationSummaryComponentName,
 } from "@researchdatabox/sails-ng-common";
-import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
-import { createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
-import { BehaviorSubject, merge } from 'rxjs';
+import { FormComponentEventBus, createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state';
+import {BehaviorSubject, merge} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {FormService} from "../form.service";
 
 
 @Component({
@@ -112,22 +111,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ValidationSummaryComponentName;
 
-  /**
-   * The model associated with this component.
-   *
-   * @type {FieldModel<any>}
-   * @memberof FieldComponent
-   */
   @Input() public override model?: never;
 
-  private _injector = inject(Injector);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly doc = inject(DOCUMENT);
-  private readonly translationService = inject(TranslationService);
-  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  protected readonly formService = inject(FormService);
+  protected readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
   private validationRefreshQueued = false;
+  private validationRefreshDeferred = false;
+  private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
+  private formChangesBound = false;
   private readonly focusableSelector = [
     'input:not([type="hidden"]):not([disabled])',
     'select:not([disabled])',
@@ -137,22 +132,44 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
 
+  constructor() {
+    super();
+    this.destroyRef.onDestroy(() => this.clearDeferredValidationErrorsRefresh());
+  }
+
   public allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
     return Promise.resolve(this.validationErrorsDisplay$.value);
   }
 
   protected override async initEventHandlers(): Promise<void> {
     await super.initEventHandlers();
-    this.triggerValidationErrorsRefresh('init');
+    this.bindFormChangeStreamsIfReady();
+    this.queueValidationErrorsRefresh();
 
-    const form = this.getFormComponent.form;
-    if (form) {
-      merge(form.valueChanges, form.statusChanges)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.queueValidationErrorsRefresh());
-    }
+    this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.bindFormChangeStreamsIfReady();
+        this.queueValidationErrorsRefresh();
+      });
 
     this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.queueValidationErrorsRefresh());
+  }
+
+  private bindFormChangeStreamsIfReady(): void {
+    if (this.formChangesBound) {
+      return;
+    }
+
+    const form = this.getFormComponent.form;
+    if (!form) {
+      return;
+    }
+
+    this.formChangesBound = true;
+    merge(form.valueChanges, form.statusChanges)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
   }
@@ -175,8 +192,42 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   }
 
   protected async refreshValidationErrors(): Promise<void> {
-    this.validationErrorsDisplay$.next(this.getFormComponent.getValidationErrors() ?? []);
+    this.bindFormChangeStreamsIfReady();
+    if (!this.isValidationSnapshotReady()) {
+      this.deferValidationErrorsRefresh();
+      return;
+    }
+
+    this.validationErrorsDisplay$.next(await this.collectValidationErrors());
     this.changeDetectorRef.markForCheck();
+  }
+
+  protected async collectValidationErrors(): Promise<FormValidatorSummaryErrors[]> {
+    return this.getFormComponent.getValidationErrors() ?? [];
+  }
+
+  private isValidationSnapshotReady(): boolean {
+    return !!this.getFormComponent.form && this.getFormComponent.componentsLoaded();
+  }
+
+  private deferValidationErrorsRefresh(): void {
+    if (this.validationRefreshDeferred) {
+      return;
+    }
+    this.validationRefreshDeferred = true;
+    this.validationRefreshDeferredHandle = setTimeout(() => {
+      this.validationRefreshDeferredHandle = undefined;
+      this.validationRefreshDeferred = false;
+      this.queueValidationErrorsRefresh();
+    }, 0);
+  }
+
+  private clearDeferredValidationErrorsRefresh(): void {
+    if (this.validationRefreshDeferredHandle !== undefined) {
+      clearTimeout(this.validationRefreshDeferredHandle);
+      this.validationRefreshDeferredHandle = undefined;
+    }
+    this.validationRefreshDeferred = false;
   }
 
   public trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
@@ -298,7 +349,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           this.isRepeatableEntry(entry) ||
           (this.includeTabLabel && this.isTabEntry(entry));
         if (includeLabel) {
-          labels.push(this.translate(labelKey));
+          labels.push(this.formService.translate(labelKey));
         }
       }
 
@@ -336,7 +387,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
         this.isRepeatableDefinition(current) ||
         (this.includeTabLabel && this.isTabDefinition(current));
       if (includeLabel) {
-        labels.push(this.translate(labelKey));
+        labels.push(this.formService.translate(labelKey));
       }
     }
 
@@ -419,49 +470,26 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   private getLeafValidationLabel(summary: FormValidatorSummaryErrors): string {
     if (summary.message) {
-      return this.translate(summary.message);
+      return this.formService.translate(summary.message);
     }
     if (summary.id) {
       return summary.id;
     }
-    return this.translate("@validator-label-default");
+    return this.formService.translate("@validator-label-default");
   }
 
-  private translate(key: string): string {
-    const translated = this.translationService.t(key);
-    if (translated === undefined || translated === null || translated === '') {
-      return key;
-    }
-    return translated.toString();
+  private findComponentEntryFromLineage(angularPath: Array<string | number>, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(
+      {angularComponents: angularPath},
+      entries ?? this.getFormComponent?.componentDefArr ?? [],
+    );
   }
 
-  private findComponentEntryFromLineage(angularPath: Array<string | number>): FormFieldCompMapEntry | undefined {
-    let currentEntries = this.getFormComponent?.componentDefArr ?? [];
-    let currentEntry: FormFieldCompMapEntry | undefined;
-
-    for (const segment of angularPath) {
-      const segmentName = String(segment);
-      currentEntry = currentEntries.find((entry) => entry.compConfigJson?.name === segmentName);
-      if (!currentEntry) {
-        return undefined;
-      }
-      currentEntries = currentEntry.component?.formFieldCompMapEntries ?? [];
-    }
-
-    return currentEntry;
-  }
-
-  private findComponentEntryByName(name: string, entries: FormFieldCompMapEntry[] = this.getFormComponent?.componentDefArr ?? []): FormFieldCompMapEntry | undefined {
-    for (const entry of entries) {
-      if (entry.compConfigJson?.name === name) {
-        return entry;
-      }
-      const childEntry = this.findComponentEntryByName(name, entry.component?.formFieldCompMapEntries ?? []);
-      if (childEntry) {
-        return childEntry;
-      }
-    }
-    return undefined;
+  private findComponentEntryByName(name: string, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
+    return this.formService.getFormFieldCompMapEntry(
+      name,
+      entries ?? this.getFormComponent?.componentDefArr ?? [],
+    );
   }
 
   private get getFormComponent(): FormComponent {

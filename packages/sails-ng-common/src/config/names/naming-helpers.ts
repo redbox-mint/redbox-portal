@@ -96,7 +96,12 @@ export function buildLineagePaths(base?: LineagePaths, more?: LineagePathsPartia
  */
 
 export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
+  try {
     return formatJsonPointer(paths);
+  } catch (err) {
+    console.error(`getJSONPointerByArrayPaths failed with paths '${paths}'`, err);
+    return "";
+  }
 }
 
 /**
@@ -107,17 +112,36 @@ export function getJSONPointerByArrayPaths(paths: (string | number)[]): string {
  * @returns JSON Pointer reference: {key: 'key', val: 'object value at key', obj: 'context object, 1 level up from key'}
  */
 export function getObjectWithJsonPointer(obj: any, pointer: string | string[]): any {
-    if (Array.isArray(pointer)) {
-        return find(obj, pointer);
+  try {
+        if (Array.isArray(pointer)) {
+            return find(obj, pointer);
+        }
+        // Documentation has the order of the parameters reversed compared to the type definition.
+        return findByPointer(pointer, obj);
+    } catch (e: unknown) {
+        console.error(`getObjectWithJsonPointer failed with obj '${obj}' and pointer '${pointer}'`, e);
+        // @jsonjoy.com/json-pointer throws on missing keys: `find` throws `new Error("NOT_FOUND")`,
+        // `findByPointer` throws the literal string "NOT_FOUND". All current callers are written
+        // as tolerant lookups (optional chaining / undefined checks), so treat a miss as undefined
+        // instead of letting the throw escape into Angular's global ErrorHandler.
+        const msg = e instanceof Error ? e.message : e;
+        if (msg === 'NOT_FOUND') {
+            return undefined;
+        }
+        throw e;
     }
-    // Documentation has the order of the parameters reversed compared to the type definition.
-    return findByPointer(pointer, obj);
 }
 
 /**
  * Retrieve the last segment of a JSONPointer string
  */
 export function getLastSegmentFromJSONPointer(pointer: string): string {
+    if (!pointer) {
+      return "";
+    }
+    if (!pointer.includes('/')) {
+      return pointer;
+    }
     const segments = pointer.split('/');
     return segments[segments.length - 1];
 }

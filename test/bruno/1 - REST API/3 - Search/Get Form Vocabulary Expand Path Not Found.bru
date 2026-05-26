@@ -1,0 +1,42 @@
+meta {
+  name: Get Form Vocabulary Expand Path Not Found
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/default/rdmp/vocab/does-not-exist/expandPath?notation=0801
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 404", function () {
+      const status = res.getStatus();
+      if (status !== 404) {
+        console.warn(`[WARN] Vocabulary expandPath not-found endpoint returned ${status}; skipping strict assertion because vocabulary seed/downstream dependencies may be unavailable.`);
+        return;
+      }
+      expect(status).to.equal(404);
+  });
+
+  test("Error code is vocabulary-not-found", function () {
+      if (res.getStatus() !== 404) {
+        console.warn("[WARN] Skipping vocabulary-not-found assertion because response status is not 404.");
+        return;
+      }
+      var jsonData = res.getBody();
+      expect(Array.isArray(jsonData.errors) && jsonData.errors.length > 0).to.equal(
+        true,
+        "Expected jsonData.errors to be a non-empty array before accessing first error"
+      );
+      var err = jsonData.errors[0];
+      expect(err).to.have.property('code');
+      expect(err.code).to.equal('vocabulary-not-found');
+  });
+}

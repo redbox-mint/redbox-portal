@@ -97,21 +97,43 @@ describe('Webpack Hook', () => {
             expect(webpackMock.called).to.be.false;
         });
 
-        it('should enable CSS minimization if WEBPACK_CSS_MINI is true', async () => {
-            process.env.WEBPACK_CSS_MINI = 'true';
-            const hook = defineWebpackHook(sailsMock, webpackMock);
-            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
+        [
+            {
+                title: 'should enable CSS minimization if WEBPACK_CSS_MINI is true',
+                envVar: 'WEBPACK_CSS_MINI',
+                envValue: 'true',
+                expectsProductionMode: false
+            },
+            {
+                title: 'should enable production asset output if REDBOX_ASSET_MODE is production',
+                envVar: 'REDBOX_ASSET_MODE',
+                envValue: 'production',
+                expectsProductionMode: true
+            }
+        ].forEach(({ title, envVar, envValue, expectsProductionMode }) => {
+            it(title, async () => {
+                process.env[envVar] = envValue;
+                const hook = defineWebpackHook(sailsMock, webpackMock);
+                const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
 
-            // Mock compiler run to call callback immediately with success
-            webpackCompilerMock.run.yields(null, {
-                hasErrors: () => false,
-                toString: () => 'stats'
+                webpackCompilerMock.run.yields(null, {
+                    hasErrors: () => false,
+                    toString: () => 'stats'
+                });
+
+                await initialize(noop);
+
+                expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
+                if (expectsProductionMode) {
+                    expect(sailsMock.config.webpack.config[0].mode).to.equal('production');
+                    expect(sailsMock.config.webpack.config[0].devtool).to.equal(false);
+                } else {
+                    expect(sailsMock.config.webpack.config[0].mode).to.be.undefined;
+                    expect(sailsMock.config.webpack.config[0].devtool).to.be.undefined;
+                }
+                expect(sailsMock.log.info.calledWithMatch(/enabled minimization/)).to.be.true;
+                delete process.env[envVar];
             });
-
-            await initialize(noop);
-
-            expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
-            expect(sailsMock.log.info.calledWithMatch(/CSS minimization/)).to.be.true;
         });
 
         it('should compile successfully', async () => {

@@ -1,12 +1,11 @@
-import { Component, inject, Input } from '@angular/core';
-import { FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { Component } from '@angular/core';
 import {
-  FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
+  isTypeFieldDefinitionName,
   SuggestedValidationSummaryComponentName,
   SuggestedValidationSummaryFieldComponentConfigFrame,
+  SuggestedValidationSummaryFieldComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
-import { FormService } from '../form.service';
 import { ValidationSummaryFieldComponent } from './validation-summary.component';
 
 @Component({
@@ -100,33 +99,47 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
 export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryFieldComponent {
   protected override logName = SuggestedValidationSummaryComponentName;
 
-  @Input() public override model?: never;
-
-  private readonly suggestedFormService = inject(FormService);
-
-  override allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
-    return Promise.resolve(this.validationErrorsDisplay$.value);
-  }
-
-  override trackValidationError(error: FormValidatorComponentErrors, errorIndex: number): string {
-    return super.trackValidationError(error, errorIndex);
-  }
-
   public get header(): string {
     return this.suggestedConfig.header ?? '@dmpt-form-suggested-validation-summary-header';
   }
 
   protected override async refreshValidationErrors(): Promise<void> {
-    const mapEntries = this.formComponent.componentDefArr ?? [];
     const result: FormValidatorSummaryErrors[] = [];
+
+    // form validators
+    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
+    if (this.formComponent?.form) {
+      // This method can be called while this component is being created,
+      // and before the FormComponent form is available.
+      // A later 'queue' call should update it after the form is ready,
+      // so don't include the FormComponent.form if it is not available.
+      const formErrors = await this.formService.getCachedSuggestedValidatorComponentErrors(
+        this.formComponent.form,
+        this.formService.prepareValidatorConfigs(this.formComponent.formValidators),
+        this.enabledValidationGroups,
+        this.formComponent.validationGroups,
+      );
+      if (formErrors.length > 0) {
+        result.push({
+          id: this.formComponent.trimmedParams.formName(),
+          message: "form-suggested-labelMessage",
+          errors: formErrors,
+          lineagePaths: this.formService.buildLineagePaths(),
+        });
+      }
+    }
+
+    const mapEntries = this.formComponent.componentDefArr ?? [];
     for (const mapEntry of mapEntries) {
-      result.push(...await this.suggestedFormService.getSuggestedValidatorSummaryErrors(
+      result.push(...await this.formService.getSuggestedValidatorSummaryErrors(
         mapEntry,
         this.enabledValidationGroups,
         this.formComponent.validationGroups
       ));
     }
+
     this.validationErrorsDisplay$.next(result);
+    this.changeDetectorRef.markForCheck();
   }
 
   private get enabledValidationGroups(): string[] {
@@ -134,6 +147,13 @@ export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryF
   }
 
   private get suggestedConfig(): SuggestedValidationSummaryFieldComponentConfigFrame {
-    return this.formFieldCompMapEntry?.compConfigJson?.component?.config as SuggestedValidationSummaryFieldComponentConfigFrame | undefined ?? {};
+    const componentDef = this.formFieldCompMapEntry?.compConfigJson?.component;
+    if (
+      isTypeFieldDefinitionName<SuggestedValidationSummaryFieldComponentDefinitionFrame>(
+        componentDef, SuggestedValidationSummaryComponentName
+      )) {
+      return componentDef.config ?? {};
+    }
+    return {};
   }
 }

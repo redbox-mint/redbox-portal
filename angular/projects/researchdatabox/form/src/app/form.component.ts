@@ -33,7 +33,13 @@ import {
 } from '@angular/core';
 import {Subscription} from 'rxjs';
 import {DOCUMENT, Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
-import {FormControlStatus, FormGroup, PristineChangeEvent, StatusChangeEvent, ValueChangeEvent} from '@angular/forms';
+import {
+  FormControlStatus,
+  FormGroup,
+  PristineChangeEvent,
+  StatusChangeEvent,
+  ValueChangeEvent
+} from '@angular/forms';
 import {
   get as _get,
   isEmpty as _isEmpty,
@@ -776,6 +782,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public getValidationErrors(): FormValidatorSummaryErrors[] {
     const result: FormValidatorSummaryErrors[] = [];
+
+    // form validators
+    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
+    if (this.form) {
+      // This method can be called while this component is being created,
+      // and before the FormComponent form is available.
+      // A later 'queue' call should update it after the form is ready,
+      // so don't include the FormComponent.form if it is not available.
+      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
+      if (formErrors.length > 0) {
+        result.push({
+          id: this.trimmedParams.formName(),
+          message: "form-labelMessage",
+          errors: formErrors,
+          lineagePaths: this.formService.buildLineagePaths()
+        });
+      }
+    }
+
+    // component validators
     const mapEntries = this.formDefMap?.components ?? [];
     for (const mapEntry of mapEntries) {
       const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);

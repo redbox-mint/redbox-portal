@@ -4,7 +4,10 @@ import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
   buildCompanionSendTokenConfig,
   buildCompanionSendTokenHtml,
+  http,
+  isImmutableAssetPath,
   resolvePublicAssetPath,
+  shouldSkipBodyParser,
   sanitizeStaticResourcePath,
   sanitizeStaticSegment
 } from '../../src/config/http.config';
@@ -76,6 +79,182 @@ describe('HTTP config security helpers', function () {
         path.join(publicBase, 'default', 'rdmp', 'assets/app.js')
       );
       expect(resolvePublicAssetPath(publicBase, 'default', '..', '..', 'secrets.txt')).to.equal(null);
+    });
+
+    it('should only mark fingerprinted static asset paths as immutable', function () {
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/main-ABC123DEF.js')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/styles-ABC123DEF.css')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/js/index.bundle.js')).to.equal(false);
+      expect(isImmutableAssetPath('/default/default/js/jquery.min.js')).to.equal(false);
+      expect(isImmutableAssetPath('/default/default/images/logo.png')).to.equal(false);
+    });
+  });
+
+  describe('cache-control middleware', function () {
+    let originalSessionConfig: unknown;
+    let originalCustomConfig: unknown;
+
+    beforeEach(function () {
+      originalSessionConfig = (global as any).sails.config.session;
+      originalCustomConfig = (global as any).sails.config.custom;
+      (global as any).sails.config.session = { cookie: { maxAge: 600000 } };
+      (global as any).sails.config.custom = { cacheControl: { noCache: [] } };
+    });
+
+    afterEach(function () {
+      (global as any).sails.config.session = originalSessionConfig;
+      (global as any).sails.config.custom = originalCustomConfig;
+    });
+
+    function runCacheControl(pathname: string): Record<string, string> {
+      const headers: Record<string, string> = {};
+      const req = { path: pathname } as any;
+      const res = {
+        set(name: string, value: string) {
+          headers[name] = value;
+          return this;
+        },
+        setHeader(name: string, value: number | string | readonly string[]) {
+          headers[name] = Array.isArray(value) ? value.join(',') : String(value);
+          return this;
+        },
+        removeHeader(name: string) {
+          delete headers[name];
+        }
+      } as any;
+
+      http.middleware.cacheControl?.(req, res, () => undefined);
+      return headers;
+    }
+
+    it('should keep immutable caching for fingerprinted Angular bundles', function () {
+      const headers = runCacheControl('/default/default/angular/form/browser/main-ABC123DEF.js');
+
+      expect(headers['Cache-Control']).to.equal('public, max-age=31536000, immutable');
+      expect(headers['Pragma']).to.equal(undefined);
+      expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+    });
+
+    it('should fall back to non-immutable caching for unversioned js bundles', function () {
+      const headers = runCacheControl('/default/default/js/index.bundle.js');
+
+      expect(headers['Cache-Control']).to.equal('max-age=600, private');
+      expect(headers['Pragma']).to.equal('no-cache');
+      expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
+    });
+  });
+
+  describe('body parser skip path helpers', function () {
+    it('should only match branded routes when the configured pattern includes branding and portal placeholders', function () {
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/file-1', ['/:branding/:portal/record/:oid/attach/:attachId'])).to.equal(true);
+      expect(shouldSkipBodyParser('/DEFAULT/RDMP/record/oid-1/attach', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach?foo=bar', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach/', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach////', ['/:branding/:portal/record/:oid/attach'])).to.equal(true);
+      expect(shouldSkipBodyParser('/user/login_oidc', ['/user/login_oidc'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/user/login_oidc'])).to.equal(false);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login_oidc', ['/:branding/:portal/user/login_oidc'])).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/user/login', ['/user/login_oidc'])).to.equal(false);
+    });
+
+    it('should support hook-provided skip paths alongside the defaults', function () {
+      const configuredSkipPaths = Object.values({
+        attachmentUpload: '/:branding/:portal/record/:oid/attach',
+        openIdConnectLogin: '/user/login_oidc',
+        hookCallback: '/:branding/:portal/hook/callback'
+      });
+
+      expect(shouldSkipBodyParser('/default/rdmp/hook/callback', configuredSkipPaths)).to.equal(true);
+      expect(shouldSkipBodyParser('/default/rdmp/record/oid-1/attach', configuredSkipPaths)).to.equal(true);
+      expect(shouldSkipBodyParser('/hook/callback', configuredSkipPaths)).to.equal(false);
+      expect(shouldSkipBodyParser('/default/rdmp/hook/other', configuredSkipPaths)).to.equal(false);
+    });
+
+    it('should let middleware read configured skip paths from sails.config.custom', function () {
+      const originalCustomConfig = (global as any).sails.config.custom;
+      (global as any).sails.config.custom = {
+        cacheControl: { noCache: [] },
+        bodyParser: {
+          skipPaths: {
+            attachmentUpload: '/:branding/:portal/record/:oid/attach',
+            openIdConnectLogin: '/user/login_oidc',
+            hookCallback: '/:branding/:portal/hook/callback'
+          }
+        }
+      };
+
+      let nextCalls = 0;
+      try {
+        http.middleware.myBodyParser?.(
+          { originalUrl: '/default/rdmp/hook/callback', url: '/default/rdmp/hook/callback' } as any,
+          {} as any,
+          () => {
+            nextCalls += 1;
+          }
+        );
+      } finally {
+        (global as any).sails.config.custom = originalCustomConfig;
+      }
+
+      expect(nextCalls).to.equal(1);
+    });
+
+    it('should delegate non-matching requests to skipper instead of calling next directly', function () {
+      const originalCustomConfig = (global as any).sails.config.custom;
+      const httpConfigModulePath = require.resolve('../../src/config/http.config');
+      const skipperModulePath = require.resolve('skipper');
+      const originalHttpModule = require.cache[httpConfigModulePath];
+      const originalSkipperModule = require.cache[skipperModulePath];
+      const originalSkipperExports = originalSkipperModule?.exports;
+
+      let nextCalls = 0;
+      let skipperCalls = 0;
+
+      try {
+        (global as any).sails.config.custom = {
+          cacheControl: { noCache: [] },
+          bodyParser: {
+            skipPaths: {
+              attachmentUpload: '/:branding/:portal/record/:oid/attach',
+              openIdConnectLogin: '/user/login_oidc',
+              hookCallback: '/:branding/:portal/hook/callback'
+            }
+          }
+        };
+
+        if (originalSkipperModule) {
+          originalSkipperModule.exports = function () {
+            return function () {
+              skipperCalls += 1;
+            };
+          };
+        }
+
+        delete require.cache[httpConfigModulePath];
+        const reloadedHttp = require('../../src/config/http.config').http;
+
+        reloadedHttp.middleware.myBodyParser?.(
+          { originalUrl: '/default/rdmp/hook/other', url: '/default/rdmp/hook/other' } as any,
+          {} as any,
+          () => {
+            nextCalls += 1;
+          }
+        );
+      } finally {
+        (global as any).sails.config.custom = originalCustomConfig;
+        if (originalSkipperModule) {
+          originalSkipperModule.exports = originalSkipperExports;
+        }
+        if (originalHttpModule) {
+          require.cache[httpConfigModulePath] = originalHttpModule;
+        } else {
+          delete require.cache[httpConfigModulePath];
+        }
+      }
+
+      expect(skipperCalls).to.equal(1);
+      expect(nextCalls).to.equal(0);
     });
   });
 });

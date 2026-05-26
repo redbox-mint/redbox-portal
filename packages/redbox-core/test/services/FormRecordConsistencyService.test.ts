@@ -334,20 +334,4 @@ describe('FormRecordConsistencyService', function () {
       expect(result.keys).to.include(1);
     });
   });
-
-  describe('arrayStartsWithArray (private)', function () {
-    it('should return true if array starts with another', function () {
-      const base = [1, 2];
-      const check = [1, 2, 3];
-      const result = (FormRecordConsistencyService as any).arrayStartsWithArray(base, check);
-      expect(result).to.be.true;
-    });
-
-    it('should return false if array does not start with another', function () {
-      const base = [1, 3];
-      const check = [1, 2, 3];
-      const result = (FormRecordConsistencyService as any).arrayStartsWithArray(base, check);
-      expect(result).to.be.false;
-    });
-  });
 });
