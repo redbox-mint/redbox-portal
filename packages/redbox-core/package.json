@@ -25,7 +25,7 @@
   "dependencies": {
     "@agendajs/mongo-backend": "4.0.2",
     "@apidevtools/swagger-parser": "12.1.0",
-    "@aws-sdk/s3-request-presigner": "3.1045.0",
+    "@aws-sdk/s3-request-presigner": "3.1049.0",
     "@opentelemetry/api": "1.9.1",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
