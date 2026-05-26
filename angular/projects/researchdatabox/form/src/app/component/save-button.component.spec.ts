@@ -155,6 +155,11 @@ describe('SaveButtonComponent', () => {
   });
 
   it('clicking save button should publish form.save.requested with config options', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    saveButtonConfig['closeOnSave'] = true;
+    saveButtonConfig['redirectLocation'] = 'redirect-location/one';
+    saveButtonConfig['redirectDelaySeconds'] = 2;
+
     const {fixture} = await createFormAndWaitForReady(formConfig);
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
@@ -177,6 +182,9 @@ describe('SaveButtonComponent', () => {
       expect(events[0].type).toBe('form.save.requested');
       expect(events[0].force).toBe(true);
       expect(events[0].targetStep).toBe('next_step');
+      expect(events[0].closeOnSave).toBe(true);
+      expect(events[0].redirectLocation).toBe('redirect-location/one');
+      expect(events[0].redirectDelaySeconds).toBe(2);
       expect(events[0].enabledValidationGroups).toEqual(["none"]);
       // name configured for the component in formConfig
       expect(events[0].sourceId).toBe('save_button');
