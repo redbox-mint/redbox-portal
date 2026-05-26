@@ -17,6 +17,7 @@ const skipper = require('skipper');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
 import type { CompanionConfig } from './companion.config';
+import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 
@@ -32,11 +33,7 @@ declare const sails: {
                 maxAge?: number;
             };
         };
-        custom: {
-            cacheControl: {
-                noCache: string[];
-            };
-        };
+        custom: CustomConfig;
     };
     hooks?: {
         http?: {
@@ -112,10 +109,81 @@ let _lazyRedboxSessionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMiddleware: RequestHandler | null = null;
 let _lazyCompanionMountPath = '/companion';
 let _lazyCompanionSocketWired = false;
+let _cachedBodyParserSkipPathConfig: CustomConfig['bodyParser']['skipPaths'] | undefined;
+let _cachedBodyParserSkipPathMatchers: RegExp[] = [];
 
 function isStaticAssetPath(reqPath: string): boolean {
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
         /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+}
+
+function normalizeBodyParserPath(value: string): string {
+    const withoutQuery = String(value ?? '').trim().split('?')[0]?.toLowerCase() ?? '';
+    if (!withoutQuery) {
+        return '/';
+    }
+    const normalizedPath = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+    if (normalizedPath.length <= 1) {
+        return normalizedPath;
+    }
+
+    let endIndex = normalizedPath.length;
+    while (endIndex > 1 && normalizedPath.charCodeAt(endIndex - 1) === 47) {
+        endIndex -= 1;
+    }
+
+    return normalizedPath.slice(0, endIndex) || '/';
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildBodyParserRouteMatcher(routePattern: string): RegExp | null {
+    const normalizedRoutePattern = normalizeBodyParserPath(routePattern);
+
+    // Exclude root path '/' from matching to prevent skipping body parser globally
+    if (normalizedRoutePattern === '/') {
+        return null;
+    }
+
+    const matcherParts = normalizedRoutePattern
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment));
+
+    return new RegExp(`^/${matcherParts.join('/')}$`, 'i');
+}
+
+function resolveBodyParserSkipPaths(customConfig?: Partial<CustomConfig>): string[] {
+    const configuredSkipPaths = customConfig?.bodyParser?.skipPaths;
+    if (Array.isArray(configuredSkipPaths)) {
+        return configuredSkipPaths.filter((skipPath): skipPath is string => typeof skipPath === 'string');
+    }
+    if (configuredSkipPaths && typeof configuredSkipPaths === 'object') {
+        return Object.values(configuredSkipPaths).filter((skipPath): skipPath is string => typeof skipPath === 'string');
+    }
+    return [];
+}
+
+function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): RegExp[] {
+    const configuredSkipPaths = customConfig?.bodyParser?.skipPaths;
+    if (_cachedBodyParserSkipPathConfig !== configuredSkipPaths) {
+        _cachedBodyParserSkipPathConfig = configuredSkipPaths;
+        _cachedBodyParserSkipPathMatchers = resolveBodyParserSkipPaths(customConfig)
+            .map((skipPath) => buildBodyParserRouteMatcher(skipPath))
+            .filter((matcher): matcher is RegExp => matcher !== null);
+    }
+
+    return _cachedBodyParserSkipPathMatchers;
+}
+
+export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
+    const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+    return configuredSkipPaths.some((configuredSkipPath) => {
+        const routeMatcher = buildBodyParserRouteMatcher(configuredSkipPath);
+        return routeMatcher?.test(normalizedRequestPath) ?? false;
+    });
 }
 
 export function isImmutableAssetPath(reqPath: string): boolean {
@@ -579,8 +647,10 @@ export const http: HttpConfig = {
         ],
 
         myBodyParser: function (req: Request, res: Response, next: NextFunction) {
-            // ignore if there is '/attach/' on the url
-            if (req.url.toLowerCase().includes('/attach')) {
+            const requestPath = req.originalUrl ?? req.url;
+            const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+            const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
+            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) {
                 return next();
             }
             const skipperMiddleware = skipper({
