@@ -13,6 +13,10 @@ export namespace Controllers {
   export class HarvestRun extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = ['listRuns', 'getRun', 'listRunEvents'];
 
+    private parsePageSize(value: unknown): number {
+      return Math.min(this.parsePositiveInt(value, 'pageSize') ?? 20, 100);
+    }
+
     private parseDate(value: unknown, fieldName: string): Date | undefined {
       if (_.isEmpty(value)) {
         return undefined;
@@ -41,7 +45,7 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const page = this.parsePositiveInt(query.page, 'page') ?? 1;
-        const pageSize = this.parsePositiveInt(query.pageSize, 'pageSize') ?? 20;
+        const pageSize = this.parsePageSize(query.pageSize);
 
         const result = await HarvestRunService.listRuns(brand, {
           brandId: String(brand.id ?? ''),
@@ -126,7 +130,7 @@ export namespace Controllers {
 
         const { query } = validated;
         const page = this.parsePositiveInt(query.page, 'page') ?? 1;
-        const pageSize = this.parsePositiveInt(query.pageSize, 'pageSize') ?? 20;
+        const pageSize = this.parsePageSize(query.pageSize);
         const result = await HarvestRunService.listRunEvents(brand, runId, {
           runId,
           brandId: String(brand.id ?? ''),

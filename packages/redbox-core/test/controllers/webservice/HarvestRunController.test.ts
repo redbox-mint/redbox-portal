@@ -84,6 +84,26 @@ describe('Webservice HarvestRunController', () => {
     expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(1);
   });
 
+  it('caps run page size to match the service limit', async () => {
+    const req = {
+      session: { branding: 'default' },
+      apiRequest: {
+        params: {},
+        query: { page: '2', pageSize: '500' },
+        body: {},
+        files: {},
+      },
+    } as unknown as Sails.Req;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.listRuns(req, {} as Sails.Res);
+
+    expect((global as any).HarvestRunService.listRuns.calledOnce).to.equal(true);
+    expect((global as any).HarvestRunService.listRuns.firstCall.args[1]).to.include({ page: 2, pageSize: 100 });
+    expect(sendRespStub.calledOnce).to.equal(true);
+    expect(sendRespStub.firstCall.args[2]?.data?.summary?.start).to.equal(100);
+  });
+
   it('returns 404 when a run is not found', async () => {
     (global as any).HarvestRunService.getRun.resolves(null);
     const req = {
@@ -120,6 +140,27 @@ describe('Webservice HarvestRunController', () => {
     expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
     expect((global as any).HarvestRunService.listRunEvents.firstCall.args[1]).to.equal('run-1');
     expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'event-1', harvestId: 'harvest-1' }]);
+  });
+
+  it('caps event page size to match the service limit', async () => {
+    const req = {
+      session: { branding: 'default' },
+      apiRequest: {
+        params: { id: 'run-1' },
+        query: { page: '3', pageSize: '500' },
+        body: {},
+        files: {},
+      },
+    } as unknown as Sails.Req;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.listRunEvents(req, {} as Sails.Res);
+
+    expect((global as any).HarvestRunService.runExists.calledOnce).to.equal(true);
+    expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
+    expect((global as any).HarvestRunService.listRunEvents.firstCall.args[2]).to.include({ page: 3, pageSize: 100 });
+    expect(sendRespStub.calledOnce).to.equal(true);
+    expect(sendRespStub.firstCall.args[2]?.data?.summary?.start).to.equal(200);
   });
 
   it('returns 404 when listing events for a missing run', async () => {
