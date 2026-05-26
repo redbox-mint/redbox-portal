@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
+import { ObjectId } from 'mongodb';
 import { firstValueFrom, Observable } from 'rxjs';
 
 import { Services as services } from '../CoreService';
@@ -239,6 +240,13 @@ export namespace Services {
         return null;
       }
       return datastore.manager.collection('harvestrun');
+    }
+
+    private toNativeRunId(runId: string | undefined): ObjectId | null {
+      if (!runId || !ObjectId.isValid(runId)) {
+        return null;
+      }
+      return new ObjectId(runId);
     }
 
     private extractUpdatedRun(
@@ -927,9 +935,10 @@ export namespace Services {
       completedAt: string
     ): Promise<HarvestRunRow> {
       const collection = this.getHarvestRunCollection();
-      if (collection && run.id) {
+      const nativeRunId = this.toNativeRunId(run.id);
+      if (collection && nativeRunId) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
-          { _id: run.id },
+          { _id: nativeRunId },
           this.buildAtomicRunCounterUpdate(counters, completedAt, finalChunk),
           { returnDocument: 'after' }
         ));
@@ -966,9 +975,10 @@ export namespace Services {
 
     private async bumpDuplicateChunkCount(run: HarvestRunRow): Promise<HarvestRunRow> {
       const collection = this.getHarvestRunCollection();
-      if (collection && run.id) {
+      const nativeRunId = this.toNativeRunId(run.id);
+      if (collection && nativeRunId) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
-          { _id: run.id },
+          { _id: nativeRunId },
           [{
             $set: {
               duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },

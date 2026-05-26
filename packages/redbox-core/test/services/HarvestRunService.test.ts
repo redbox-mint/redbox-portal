@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import { ObjectId } from 'mongodb';
 import * as sinon from 'sinon';
 
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
@@ -880,9 +881,10 @@ describe('HarvestRunService', function () {
   });
 
   it('atomically increments run counters when a datastore manager is available', async function () {
+    const runId = '507f1f77bcf86cd799439011';
     const findOneAndUpdate = sinon.stub().resolves({
       value: {
-        _id: 'run-1',
+        _id: new ObjectId(runId),
         brandId: 'brand-1',
         recordType: 'dataset',
         sourceName: 'source-a',
@@ -909,7 +911,7 @@ describe('HarvestRunService', function () {
 
     const updatedRun = await service.updateRunAfterChunk(
       {
-        id: 'run-1',
+        id: runId,
         brandId: 'brand-1',
         recordType: 'dataset',
         sourceName: 'source-a',
@@ -931,7 +933,8 @@ describe('HarvestRunService', function () {
     );
 
     expect(findOneAndUpdate.calledOnce).to.equal(true);
-    expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ _id: 'run-1' });
+    expect(findOneAndUpdate.firstCall.args[0]._id).to.be.instanceOf(ObjectId);
+    expect(findOneAndUpdate.firstCall.args[0]._id.toHexString()).to.equal(runId);
     expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
       {
         $set: {
@@ -954,15 +957,16 @@ describe('HarvestRunService', function () {
       },
     ]);
     expect((global as any).HarvestRun.updateOne.called).to.equal(false);
-    expect(updatedRun.id).to.equal('run-1');
+    expect(updatedRun.id).to.equal(runId);
     expect(updatedRun.totalProcessed).to.equal(3);
     expect(updatedRun.failed).to.equal(1);
   });
 
   it('atomically increments duplicate chunk counts when a datastore manager is available', async function () {
+    const runId = '507f1f77bcf86cd799439012';
     const findOneAndUpdate = sinon.stub().resolves({
       value: {
-        _id: 'run-1',
+        _id: new ObjectId(runId),
         brandId: 'brand-1',
         recordType: 'dataset',
         sourceName: 'source-a',
@@ -989,7 +993,7 @@ describe('HarvestRunService', function () {
     const clock = sinon.useFakeTimers(new Date('2026-05-25T00:05:00.000Z'));
     try {
       const updatedRun = await service.bumpDuplicateChunkCount({
-        id: 'run-1',
+        id: runId,
         brandId: 'brand-1',
         recordType: 'dataset',
         sourceName: 'source-a',
@@ -1007,7 +1011,8 @@ describe('HarvestRunService', function () {
       });
 
       expect(findOneAndUpdate.calledOnce).to.equal(true);
-      expect(findOneAndUpdate.firstCall.args[0]).to.deep.equal({ _id: 'run-1' });
+      expect(findOneAndUpdate.firstCall.args[0]._id).to.be.instanceOf(ObjectId);
+      expect(findOneAndUpdate.firstCall.args[0]._id.toHexString()).to.equal(runId);
       expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
         {
           $set: {
@@ -1017,7 +1022,7 @@ describe('HarvestRunService', function () {
         },
       ]);
       expect((global as any).HarvestRun.updateOne.called).to.equal(false);
-      expect(updatedRun.id).to.equal('run-1');
+      expect(updatedRun.id).to.equal(runId);
       expect(updatedRun.duplicateChunks).to.equal(1);
     } finally {
       clock.restore();
