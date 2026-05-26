@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
@@ -34,6 +34,19 @@ describe('ValidationSummaryFieldComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  it('should cancel a deferred validation refresh when destroyed', fakeAsync(() => {
+    const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+    const component = fixture.componentInstance as any;
+    const queueRefreshSpy = spyOn(component, 'queueValidationErrorsRefresh');
+
+    component.deferValidationErrorsRefresh();
+    fixture.destroy();
+    tick(0);
+
+    expect(queueRefreshSpy).not.toHaveBeenCalled();
+  }));
+
   it('should hide the valid banner by default when the form has no errors', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
@@ -150,6 +163,66 @@ describe('ValidationSummaryFieldComponent', () => {
         }
       }
     ]);
+  });
+
+  it('should not keep a stale required error for a hydrated repeatable field', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+        {
+          name: 'contributor_dmp_permissions',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: [
+                { name: 'Existing User', email: 'existing@example.edu', role: 'View&Edit' }
+              ],
+              validators: [{ class: 'required' }]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {}
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              }
+            }
+          },
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: '@dmpt-user-permissions-tab-dmp-permissions'
+            }
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const validationSummary = fixture.componentInstance.componentDefArr[0].component as ValidationSummaryFieldComponent;
+    const summaryErrors = await validationSummary.allValidationErrorsDisplay();
+    expect(summaryErrors.map((summary) => summary.id)).not.toContain('form-item-id-contributor-dmp-permissions');
+    expect(fixture.nativeElement.querySelector('[data-validation-summary-id="form-item-id-contributor-dmp-permissions"]')).toBeNull();
   });
 
   it('should remove a validation summary item when the field becomes valid while the form remains invalid', async () => {
@@ -398,7 +471,7 @@ describe('ValidationSummaryFieldComponent', () => {
                   }
                 }
               ]
-            } as TabFieldComponentConfigFrame
+            }
           },
           layout: {
             class: 'TabLayout'
@@ -514,7 +587,7 @@ describe('ValidationSummaryFieldComponent', () => {
                   }
                 }
               ]
-            } as TabFieldComponentConfigFrame
+            }
           },
           layout: {
             class: 'TabLayout'
@@ -721,7 +794,7 @@ describe('ValidationSummaryFieldComponent', () => {
               }
             }
           ]
-        } as TabFieldComponentConfigFrame
+        }
       },
       layout: { class: 'TabLayout' }
     });
@@ -832,4 +905,121 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(link?.textContent?.trim()).toBe('Repeatable TextField with default wrapper defined');
   });
 
+  it('should include form component errors', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      validators : [
+        {
+          class: 'different-values',
+          config: {controlNames: ['text_1_event', 'text_2_event']},
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
+    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+    control?.setValue('change value');
+    control?.setValue('');
+    formComponent.form!.markAsDirty();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const summaryComponent = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
+
+    expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
+      {
+        id: 'default-1.0-draft',
+        message: 'form-labelMessage',
+        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
+            controlNames: [ 'text_1_event', 'text_2_event' ],
+            controlCount: 2,
+            valueCount: 1,
+            values: [ '' ],
+          },
+        }],
+        lineagePaths: {
+          formConfig: [],
+          dataModel: [],
+          angularComponents: [],
+          layout: [],
+          angularComponentsJsonPointer: '',
+          layoutJsonPointer: ''
+        }
+      },
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          layout: ['text_1_event-layout'],
+          angularComponentsJsonPointer: '/text_1_event',
+          layoutJsonPointer: '/text_1_event-layout'
+        }
+      },
+      {
+        id: 'form-item-id-text-2-event',
+        message: null,
+        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 1],
+          dataModel: ['text_2_event'],
+          angularComponents: ['text_2_event'],
+          layout: ['text_2_event-layout'],
+          angularComponentsJsonPointer: '/text_2_event',
+          layoutJsonPointer: '/text_2_event-layout'
+        }
+      },
+    ]);
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const link = nativeEl.querySelector('.validation-summary-item a');
+    expect(link).toBeTruthy();
+    expect(link?.textContent?.trim()).toBe('form-labelMessage');
+  });
 });

@@ -17,7 +17,9 @@ import {
 export class PublishDataLocationRefreshFieldComponentConfig
   extends FieldComponentConfig
   implements PublishDataLocationRefreshFieldComponentConfigOutline
-{}
+{
+  eventFieldId?: string;
+}
 
 /** Visitor-aware definition for the stateless refresh trigger component. */
 export class PublishDataLocationRefreshFieldComponentDefinition

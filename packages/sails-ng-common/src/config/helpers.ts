@@ -5,6 +5,7 @@ import {
     isPlainObject as _isPlainObject,
     isObjectLike as _isObjectLike,
     isFunction as _isFunction,
+    cloneDeep as _cloneDeep,
 } from "lodash";
 import {DateTime} from 'luxon';
 
@@ -118,6 +119,23 @@ export function toBoolean(value: unknown): boolean {
   const normalized = String(value ?? '').trim().toLowerCase();
   const trueValues = ["true", "t", "1", "yes", "y", "on", "enable", "enabled"];
   return trueValues.includes(normalized);
+}
+
+/**
+ * Check whether a 'check' array starts with a 'base' array.
+ * Both arrays must have at least one element.
+ * @param base The shorter array.
+ * @param check The longer array.
+ * @private
+ */
+export function arrayStartsWithArray(base: unknown[], check: unknown[]) {
+  if (!base || !check) {
+    return false;
+  }
+  if (base.length > check.length) {
+    return false;
+  }
+  return base.every((value, index) => check[index] === value);
 }
 
 /**

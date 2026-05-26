@@ -505,7 +505,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       form: {
         value: {
           source: {
-            bad: () => 'not cloneable'
+            bad: () => 'not cloneable 1'
           }
         }
       }
@@ -517,7 +517,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
       fieldId: 'source',
       sourceId: 'source',
       value: {
-        bad: () => 'not cloneable'
+        bad: () => 'not cloneable 2'
       },
       timestamp: Date.now()
     };
@@ -526,7 +526,22 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     expect(result).toBe('templatedValue');
     expect(evaluateSpy).toHaveBeenCalled();
-    expect(loggerService.warn).toHaveBeenCalled();
+    expect(loggerService.warn).toHaveBeenCalledTimes(3);
+    expect(loggerService.warn.calls.allArgs().map(args => [args[0], args[1]?.toString()])).toEqual([
+      [
+        'FormComponentValueChangeEventConsumer: Failed to clone value for JSONata context. Falling back to the original value.',
+        "DataCloneError: Failed to execute 'structuredClone' on 'Window': () => 'not cloneable 1' could not be cloned.",
+      ],
+      [
+        'FormComponentValueChangeEventConsumer: Failed to clone event for JSONata context. Falling back to the original value.',
+        "DataCloneError: Failed to execute 'structuredClone' on 'Window': () => 'not cloneable 2' could not be cloned.",
+      ],
+      [
+        'FormComponentValueChangeEventConsumer: Failed to clone formData for JSONata context. Falling back to the original value.',
+        "DataCloneError: Failed to execute 'structuredClone' on 'Window': () => 'not cloneable 1' could not be cloned.",
+      ]
+    ]);
+    expect(loggerService.error).not.toHaveBeenCalled();
 
     const [templateKey, context] = evaluateSpy.calls.mostRecent().args;
     expect(templateKey).toEqual(['root', 'expressions', 0, 'config', 'template']);

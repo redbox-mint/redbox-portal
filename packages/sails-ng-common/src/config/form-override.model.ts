@@ -80,6 +80,7 @@ import { SimpleInputFormComponentDefinitionFrame } from './component/simple-inpu
 import { LineagePaths } from './names/naming-helpers';
 import {QuestionTreeHelper} from "./component/question-tree.helper";
 
+
 export class FormOverride {
     private logName = "FormOverride";
   private propertiesHelper: PropertiesHelper;
