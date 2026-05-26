@@ -24,7 +24,13 @@ export type PublishDataLocationRefreshComponentNameType = typeof PublishDataLoca
 // This component is intentionally config-light: the runtime behaviour lives in
 // form behaviours, while the component itself only needs common field options
 // such as label/visibility/disabled state.
-export interface PublishDataLocationRefreshFieldComponentConfigFrame extends FieldComponentConfigFrame {}
+export interface PublishDataLocationRefreshFieldComponentConfigFrame extends FieldComponentConfigFrame {
+  /**
+   * Optional explicit field id for emitted refresh events. When omitted, the
+   * component emits using its own resolved lineage path.
+   */
+  eventFieldId?: string;
+}
 
 export interface PublishDataLocationRefreshFieldComponentConfigOutline
   extends PublishDataLocationRefreshFieldComponentConfigFrame,

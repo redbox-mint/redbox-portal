@@ -583,8 +583,14 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitPublishDataLocationSelectorFieldComponentDefinition(
-    _item: PublishDataLocationSelectorFieldComponentDefinitionOutline
-  ): Promise<void> { }
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
+    for (const [index, componentDefinition] of (item.config?.headerActions ?? []).entries()) {
+      await this.formPathHelper.acceptFormPath(componentDefinition, {
+        formConfig: ['config', 'headerActions', index.toString()],
+      });
+    }
+  }
 
   async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
     await this.extractValidators(item.config?.validators);
