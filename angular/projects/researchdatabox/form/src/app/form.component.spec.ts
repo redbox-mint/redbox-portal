@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -8,11 +8,25 @@ import {
   createFormAndWaitForReady,
   createTestbedModule,
   DynamicAssetOptions,
-  ensureApplicationRefFormComponent, setUpDynamicAssets
+  ensureApplicationRefFormComponent,
+  setUpDynamicAssets,
 } from "./helpers.spec";
 import { FormService } from './form.service';
-import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, createFormDefinitionChangedEvent, createFormSaveExecuteEvent, createFormStatusDirtyRequestEvent, createFormValidationGroupsChangeRequestEvent, FormComponentEventType, FormValidationBroadcastEvent } from './form-state/events/form-component-event.types';
+import {
+  FormComponentEventBus,
+  createFieldValueChangedEvent,
+  createFormDefinitionChangedEvent,
+  createFormDeleteSuccessEvent,
+  createFormSaveExecuteEvent,
+  createFormSaveSuccessEvent,
+  createFormStatusDirtyRequestEvent,
+  createFormValidationGroupsChangeRequestEvent,
+  FormComponentEventType,
+  FormRedirectRequestedEvent,
+  FormSaveSuccessEvent,
+  FormValidationBroadcastEvent,
+} from './form-state';
+
 
 describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
@@ -170,7 +184,10 @@ describe('FormComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith(true, 'S1', ["none"]);
+    expect(spy).toHaveBeenCalledWith({
+      force: true, targetStep: 'S1', enabledValidationGroups: ["none"],
+      closeOnSave: undefined, redirectLocation: undefined, redirectDelaySeconds: undefined,
+    });
   });
 
   it('broadcastFormStatus publishes current validation status and refreshes the status signal', async () => {
@@ -308,8 +325,16 @@ describe('FormComponent', () => {
 
     const { formComponent } = await createFormAndWaitForReady(formConfig);
     const submitSpy = spyOn(formComponent, 'saveForm').and.stub();
-    await formComponent.saveForm(true, 'legacy-step', ["none"]);
-    expect(submitSpy).toHaveBeenCalledWith(true, 'legacy-step', ["none"]);
+    await formComponent.saveForm({
+      force: true,
+        targetStep: 'legacy-step',
+      enabledValidationGroups:  ['none'],
+    });
+    expect(submitSpy).toHaveBeenCalledWith({
+      force: true,
+      targetStep: 'legacy-step',
+      enabledValidationGroups:  ['none'],
+    });
   });
 
   it('omits disabled controls from Form Values Debug data', async () => {
@@ -356,7 +381,7 @@ describe('FormComponent', () => {
     expect(debugValues['disabled_group']).toBeUndefined();
   });
 
-  it('updates URL to edit path after successful create', async () => {
+  it('updates URL to edit path and publishes event after successful create', async () => {
     const formConfig: FormConfigFrame = {
       name: 'create-url-update',
       debugValue: false,
@@ -383,19 +408,35 @@ describe('FormComponent', () => {
       formName: 'default-1.0-draft',
       downloadAndCreateOnInit: false
     });
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => events.push(event));
 
-    const location = fixture.debugElement.injector.get(Location);
-    const replaceStateSpy = spyOn(location, 'replaceState').and.stub();
-    (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
-    spyOn(formComponent.recordService, 'create').and.resolveTo({
-      success: true,
-      oid: 'oid-123'
-    } as any);
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const replaceStateSpy = spyOn(location, 'replaceState').and.stub();
+      (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
+      spyOn(formComponent.recordService, 'create').and.resolveTo({
+        success: true,
+        oid: 'oid-123'
+      } as any);
 
-    await formComponent.saveForm(true);
+      await formComponent.saveForm({force: true});
 
-    expect(formComponent.oid()).toBe('oid-123');
-    expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
+      expect(formComponent.oid()).toBe('oid-123');
+      expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
+
+      expect(events.length).toBe(1);
+      expect(events[0].type).toEqual(FormComponentEventType.FORM_SAVE_SUCCESS);
+      expect(events[0].savedData).toEqual({text_create: 'create value'});
+      expect(events[0].oid).toEqual('oid-123');
+      expect(events[0].response).toEqual({success: true, oid: 'oid-123'});
+      expect(events[0].closeOnSave).toEqual(undefined);
+      expect(events[0].redirectLocation).toEqual(undefined);
+      expect(events[0].redirectDelaySeconds).toEqual(undefined);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('renders the debug panel component when URL debug mode is enabled', async () => {
@@ -1222,4 +1263,210 @@ describe('FormComponent', () => {
     }
   });
 
+  it('should publish a redirect requested event and redirect on save success and closeOnSave is truthy', fakeAsync(async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormRedirectRequestedEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
+
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+      const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
+      bus.publish(createFormSaveSuccessEvent({
+        closeOnSave: true,
+        redirectLocation: 'redirect-location/one',
+        redirectDelaySeconds: 2,
+      }));
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      flushMicrotasks();
+      tick(2000);
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(changeLocationHrefSpy).toHaveBeenCalledWith('redirect-location/one');
+      expect(locationHistoryGoSpy).not.toHaveBeenCalled();
+      expect(events.length).toEqual(1);
+      expect(events[0].historyDelta).toEqual(undefined);
+      expect(events[0].redirectLocation).toEqual('redirect-location/one');
+      expect(events[0].redirectDelaySeconds).toEqual(2);
+    } finally {
+      sub?.unsubscribe();
+    }
+  }));
+  it('should publish a redirect requested event and redirect on delete success and closeOnDelete is truthy', fakeAsync(async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormRedirectRequestedEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
+
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+      const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
+      bus.publish(createFormDeleteSuccessEvent({
+        closeOnDelete: true,
+        redirectDelaySeconds: 2,
+      }));
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      flushMicrotasks();
+      tick(2000);
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
+      expect(locationHistoryGoSpy).toHaveBeenCalledWith(-1);
+      expect(events.length).toEqual(1);
+      expect(events[0].historyDelta).toEqual(-1);
+      expect(events[0].redirectLocation).toEqual(undefined);
+      expect(events[0].redirectDelaySeconds).toEqual(2);
+    } finally {
+      sub?.unsubscribe();
+    }
+  }));
+  it('should not publish a redirect requested event on save success and closeOnSave is falsy', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormRedirectRequestedEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
+
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+      const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
+      bus.publish(createFormSaveSuccessEvent({
+        redirectLocation: 'redirect-location/two',
+        redirectDelaySeconds: 10,
+      }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
+      expect(locationHistoryGoSpy).not.toHaveBeenCalled();
+      expect(events.length).toEqual(0);
+    } finally {
+      sub?.unsubscribe();
+    }
+  });
+  it('should not publish a redirect requested event on delete success and closeOnDelete is falsy', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'save-exec-test',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'text_exec',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'trigger save exec'
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        }
+      ]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormRedirectRequestedEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_REDIRECT_REQUESTED).subscribe(event => events.push(event));
+
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+      const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
+      bus.publish(createFormDeleteSuccessEvent({
+        closeOnDelete: false,
+        redirectDelaySeconds: 2,
+      }));
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
+      expect(locationHistoryGoSpy).not.toHaveBeenCalled();
+      expect(events.length).toEqual(0);
+    } finally {
+      sub?.unsubscribe();
+    }
+  });
 });

@@ -32,7 +32,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import {Subscription} from 'rxjs';
-import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import {DOCUMENT, Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
 import {
   FormControlStatus,
   FormGroup,
@@ -78,14 +78,16 @@ import {
   createFormDefinitionReadyEvent,
   createFormDeleteFailureEvent,
   createFormDeleteSuccessEvent,
+  createFormRedirectRequestedEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
   createFormValidationBroadcastEvent,
+  DeleteEventConfig,
   FormComponentEvent,
   FormComponentEventType,
   FormStatusDirtyRequestEvent,
   FormValidationGroupsChangeInitial,
-  FormValidationGroupsChangeRequestEvent,
+  FormValidationGroupsChangeRequestEvent, SaveOperationEventConfig, SaveRedirectEventConfig,
 } from './form-state/events/form-component-event.types';
 import {FormStateFacade} from './form-state/facade/form-state.facade';
 import {Store} from '@ngrx/store';
@@ -295,6 +297,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private behaviourManager = inject(FormBehaviourManager);
 
+  private readonly document = inject(DOCUMENT);
+  private window: Window & typeof globalThis | null;
+
   protected configObj: Record<string, unknown> = {};
 
   public get config() {
@@ -311,6 +316,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ) {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
+    this.window = this.document.defaultView;
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
@@ -509,11 +515,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
       .subscribe(async evt => {
-        // Default payload handling with safe fallbacks
-        const force = !!evt.force;
-        const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups ?? [];
-        await this.saveForm(force, targetStep, enabledValidationGroups);
+        const force = evt.force;
+        const targetStep = evt.targetStep;
+        const enabledValidationGroups = evt.enabledValidationGroups;
+        const closeOnSave = evt?.closeOnSave;
+        const redirectLocation = evt?.redirectLocation;
+        const redirectDelaySeconds = evt?.redirectDelaySeconds;
+        await this.saveForm({
+          force, targetStep, enabledValidationGroups,
+          closeOnSave, redirectLocation, redirectDelaySeconds,
+        });
+      });
+    this.subMaps['saveSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnSave) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              // if closeOnSave is true, but no redirect is specified, go to the previous page.
+              historyDelta: evt?.redirectLocation ? undefined : -1,
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
@@ -523,6 +548,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           redirectLocation: evt.redirectLocation,
           redirectDelaySeconds: evt.redirectDelaySeconds,
         });
+      });
+    this.subMaps['deleteSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DELETE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnDelete) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              // if closeOnDelete is true, but no redirect is specified, go to the previous page.
+              historyDelta: evt?.redirectLocation ? undefined : -1,
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
       });
     // Listen for any changes components have made to their own definitions and update the query source
     this.subMaps['componentDefChangesRequestSub'] = this.eventBus
@@ -587,6 +626,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.broadcastFormStatus();
 
         this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
+      });
+
+    this.subMaps['redirectRequestedSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
+      .subscribe(evt => {
+        const redirectOptions = {
+          historyDelta: evt?.historyDelta,
+          redirectLocation: evt?.redirectLocation,
+          redirectDelaySeconds: evt?.redirectDelaySeconds,
+        };
+        try {
+          this.doRedirect(redirectOptions);
+        } catch (err) {
+          this.loggerService.error(`${this.logName}: Redirect failed with options ${redirectOptions}`, err);
+        }
       });
 
     if (this.form) {
@@ -986,11 +1040,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
   }
 
-  public async saveForm(
-    forceSave: boolean = false,
-    targetStep: string = '',
-    enabledValidationGroups: string[] = ['all']
-  ) {
+  public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    const forceSave = options?.force ?? false;
+    const targetStep = options?.targetStep ?? '';
+    const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
+
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
@@ -1025,12 +1079,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
+            const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
                 savedData: currentFormValue,
-                oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
+                oid: oid,
                 response,
+                closeOnSave: options?.closeOnSave,
+                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
+                redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
           } else {
@@ -1078,7 +1136,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }) {
+  public async deleteRecord(options?: DeleteEventConfig) {
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
       this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
@@ -1099,23 +1157,58 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             oid,
             response,
             closeOnDelete: options?.closeOnDelete,
-            redirectLocation: options?.redirectLocation,
+            redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         );
-
-        if (options?.closeOnDelete && !_isEmpty(options?.redirectLocation)) {
-          const redirectLocation = this.resolveRedirectLocation(String(options.redirectLocation), oid);
-          const redirectDelaySeconds = Math.max(0, Number(options.redirectDelaySeconds ?? 3));
-          window.setTimeout(() => {
-            window.location.href = redirectLocation;
-          }, redirectDelaySeconds * 1000);
-        }
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
+    }
+  }
+
+  /**
+   * Redirect to another page.
+   * @param options The redirect options.
+   * @param options.historyDelta Allows using the History.go interface to move forward and backward in the browser's session history.
+   * @param options.redirectLocation The relative url to redirect to on a successful save if closeOnSave is true.
+   * @param options.redirectDelaySeconds Wait this many seconds before the redirect. Default is 3 seconds delay.
+   */
+  public doRedirect(options?: {
+    historyDelta?: number,
+    redirectLocation?: string,
+    redirectDelaySeconds?: number,
+  }) {
+    const historyDelta = options?.historyDelta;
+    const redirectLocation = options?.redirectLocation;
+    const redirectDelayMs = Math.max(0, options?.redirectDelaySeconds ?? 3) * 1000;
+
+    // Check for falsy means that history delta cannot be used to do a page reload `.historyGo(0)`.
+    // This is intended - if a page reload is needed, do it some other way.
+    if (!!historyDelta && !!redirectLocation) {
+      throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
+    }
+    if (!historyDelta && !redirectLocation) {
+      throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
+    }
+
+    const that = this;
+    if (historyDelta) {
+      this.window?.setTimeout(() => {
+        that.locationService.historyGo(historyDelta);
+      }, redirectDelayMs);
+    } else if (redirectLocation) {
+      this.window?.setTimeout(() => {
+        that.changeLocationHref(redirectLocation);
+      }, redirectDelayMs);
+    }
+  }
+
+  protected changeLocationHref(redirectLocation: string): void {
+    if (this.window?.location) {
+      this.window.location.href = redirectLocation;
     }
   }
 

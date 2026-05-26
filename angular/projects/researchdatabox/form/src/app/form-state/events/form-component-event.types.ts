@@ -23,6 +23,23 @@ export interface FieldScopedEventBase extends FormComponentEventBase {
 }
 
 /**
+ * Base for events that are able to trigger a redirect to another location.
+ */
+export interface RedirectLocationEventBase {
+  /**
+   * Redirect to this relative url.
+   * Can contain context variables.
+   */
+  readonly redirectLocation?: string;
+  /**
+   * Wait this many seconds before the redirect.
+   * This is mainly used to give time for a user to see the outcome of a form action before leaving the page.
+   * Default is 3 seconds delay.
+   */
+  readonly redirectDelaySeconds?: number;
+}
+
+/**
  * Field value changed event
  * Published when a field's value changes
  */
@@ -140,33 +157,37 @@ export interface FormStatusDirtyRequestEvent extends FormComponentEventBase {
   readonly reason?: string;
 }
 
+export interface SaveRedirectEventConfig extends RedirectLocationEventBase {
+  readonly closeOnSave?: boolean;
+}
+
+export interface SaveOperationEventConfig {
+  readonly force?: boolean;
+  readonly enabledValidationGroups?: string[];
+  readonly targetStep?: string;
+}
+
 /**
  * Form save requested event
  * Published by UI (e.g., SaveButton) to request a save
  */
-export interface FormSaveRequestedEvent extends FormComponentEventBase {
+export interface FormSaveRequestedEvent extends FormComponentEventBase, SaveOperationEventConfig, SaveRedirectEventConfig {
   readonly type: 'form.save.requested';
-  readonly force?: boolean;
-  readonly enabledValidationGroups?: string[];
-  readonly targetStep?: string;
 }
 
 /**
  * Form save execute command event
  * Published by effects to instruct the component to execute saveForm
  */
-export interface FormSaveExecuteEvent extends FormComponentEventBase {
+export interface FormSaveExecuteEvent extends FormComponentEventBase, SaveOperationEventConfig, SaveRedirectEventConfig {
   readonly type: 'form.save.execute';
-  readonly force?: boolean;
-  readonly enabledValidationGroups?: string[];
-  readonly targetStep?: string;
 }
 
 /**
  * Form save success event
  * Published when a save operation completed successfully
  */
-export interface FormSaveSuccessEvent extends FormComponentEventBase {
+export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedirectEventConfig {
   readonly type: 'form.save.success';
   readonly savedData?: any;
   readonly oid?: string;
@@ -182,10 +203,8 @@ export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly error?: string;
 }
 
-export interface DeleteEventConfig {
+export interface DeleteEventConfig extends RedirectLocationEventBase {
   readonly closeOnDelete?: boolean;
-  readonly redirectLocation?: string;
-  readonly redirectDelaySeconds?: number;
 }
 
 export interface FormDeleteRequestedEvent extends FormComponentEventBase, DeleteEventConfig {
@@ -217,6 +236,18 @@ export interface FieldItemSelectedEvent extends FieldScopedEventBase {
 }
 
 /**
+ * A request to redirect to a new relative url.
+ * Either 'redirectLocation' or 'historyDelta' are required.
+ */
+export interface FormRedirectRequestedEvent extends FormComponentEventBase, RedirectLocationEventBase {
+  readonly type: 'form.redirect.requested';
+  /**
+   * Allows using the History.go interface to move forward and backward in the browser's session history.
+   */
+  readonly historyDelta?: number;
+}
+
+/**
  * Discriminated union of all form component events
  */
 export type FormComponentEvent =
@@ -238,7 +269,9 @@ export type FormComponentEvent =
   | FormDefinitionChangeRequestEvent
   | FormDefinitionChangedEvent
   | FormDefinitionReadyEvent
-  | FieldItemSelectedEvent;
+  | FieldItemSelectedEvent
+  | FormRedirectRequestedEvent
+  ;
 
 /**
  * Event type literals for type-safe subscriptions (R15.17)
@@ -263,6 +296,7 @@ export const FormComponentEventType = {
   FORM_DELETE_SUCCESS: 'form.delete.success' as const,
   FORM_DELETE_FAILURE: 'form.delete.failure' as const,
   FIELD_ITEM_SELECTED: 'field.item.selected' as const,
+  FORM_REDIRECT_REQUESTED: 'form.redirect.requested' as const,
 } as const;
 
 export type FormComponentEventTypeValue = (typeof FormComponentEventType)[keyof typeof FormComponentEventType];
@@ -293,6 +327,7 @@ export interface FormComponentEventMap {
   'form.delete.success': FormDeleteSuccessEvent;
   'form.delete.failure': FormDeleteFailureEvent;
   'field.item.selected': FieldItemSelectedEvent;
+  'form.redirect.requested': FormRedirectRequestedEvent;
 }
 
 /** Shared options bag for event helper factories */
@@ -481,4 +516,13 @@ export function createFieldItemSelectedEvent(
   options: FormComponentEventOptions<FieldItemSelectedEvent>
 ): FormComponentEventResult<FieldItemSelectedEvent> {
   return createEventResult<FieldItemSelectedEvent>(FormComponentEventType.FIELD_ITEM_SELECTED, options);
+}
+
+/**
+ * Helper factory for creating form redirection requested events
+ */
+export function createFormRedirectRequestedEvent(
+  options: FormComponentEventOptions<FormRedirectRequestedEvent> = {}
+): FormComponentEventResult<FormRedirectRequestedEvent> {
+  return createEventResult<FormRedirectRequestedEvent>(FormComponentEventType.FORM_REDIRECT_REQUESTED, options);
 }

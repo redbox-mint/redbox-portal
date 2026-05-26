@@ -206,7 +206,10 @@ export class FormEffects {
             createFormSaveExecuteEvent({
               force: action.force,
               enabledValidationGroups: action.enabledValidationGroups,
-              targetStep: action.targetStep
+              targetStep: action.targetStep,
+              closeOnSave: action.closeOnSave,
+              redirectLocation: action.redirectLocation,
+              redirectDelaySeconds: action.redirectDelaySeconds,
             })
           );
         }),

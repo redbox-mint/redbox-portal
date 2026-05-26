@@ -13,6 +13,7 @@ import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import {DeleteEventConfig} from "../events";
 
 /**
  * FormStateFacade
@@ -111,7 +112,7 @@ export class FormStateFacade {
     );
   }
 
-  deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }): void {
+  deleteRecord(options?: DeleteEventConfig): void {
     if (this.isBusy()) {
       return;
     }
