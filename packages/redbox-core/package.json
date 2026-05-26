@@ -97,7 +97,7 @@
     "skipper": "0.9.7",
     "skipper-gridfs": "1.0.2",
     "typescript": "5.9.2",
-    "typescript-json-schema": "0.67.3",
+    "typescript-json-schema": "0.67.4",
     "url-pattern": "1.0.3",
     "uuid": "14.0.0",
     "webpack": "5.106.2",
