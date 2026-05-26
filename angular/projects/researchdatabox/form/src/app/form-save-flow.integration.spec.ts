@@ -112,9 +112,8 @@ describe('Form Save Flow Integration', () => {
 
       // Assert: 4) FormComponent.saveForm invoked with expected args
       expect(formComponent.saveForm).toHaveBeenCalledWith({
-        force: true,
-        targetStep: 'next_step',
-        enabledValidationGroups:  ['none'],
+        force: true, targetStep: 'next_step', enabledValidationGroups:  ['none'],
+        closeOnSave: undefined, redirectLocation: undefined, redirectDelaySeconds: undefined,
       });
     } finally {
       requestedSub.unsubscribe();

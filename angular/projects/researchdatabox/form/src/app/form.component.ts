@@ -515,25 +515,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
       .subscribe(async evt => {
-        // Default payload handling with safe fallbacks
-        const force = !!evt.force;
-        const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups ?? [];
+        const force = evt.force;
+        const targetStep = evt.targetStep;
+        const enabledValidationGroups = evt.enabledValidationGroups;
         const closeOnSave = evt?.closeOnSave;
         const redirectLocation = evt?.redirectLocation;
         const redirectDelaySeconds = evt?.redirectDelaySeconds;
-
-        const opts: Record<string, unknown> = {force, targetStep, enabledValidationGroups};
-        if (closeOnSave !== undefined) {
-          opts["closeOnSave"] = closeOnSave;
-        }
-        if (redirectLocation !== undefined) {
-          opts["redirectLocation"] = redirectLocation;
-        }
-        if (redirectDelaySeconds !== undefined) {
-          opts["redirectDelaySeconds"] = redirectDelaySeconds;
-        }
-        await this.saveForm(opts);
+        await this.saveForm({
+          force, targetStep, enabledValidationGroups,
+          closeOnSave, redirectLocation, redirectDelaySeconds,
+        });
       });
     this.subMaps['saveSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
@@ -1096,7 +1087,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 oid: oid,
                 response,
                 closeOnSave: options?.closeOnSave,
-                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
+                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
@@ -1210,10 +1201,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }, redirectDelayMs);
     } else if (redirectLocation) {
       this.window?.setTimeout(() => {
-        if (this.window?.location) {
-          this.window.location.href = redirectLocation;
-        }
+        that.changeLocationHref(redirectLocation);
       }, redirectDelayMs);
+    }
+  }
+
+  protected changeLocationHref(redirectLocation: string): void {
+    if (this.window?.location) {
+      this.window.location.href = redirectLocation;
     }
   }
 

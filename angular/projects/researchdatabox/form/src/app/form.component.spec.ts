@@ -184,7 +184,10 @@ describe('FormComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith({force: true, targetStep: 'S1', enabledValidationGroups: ["none"]});
+    expect(spy).toHaveBeenCalledWith({
+      force: true, targetStep: 'S1', enabledValidationGroups: ["none"],
+      closeOnSave: undefined, redirectLocation: undefined, redirectDelaySeconds: undefined,
+    });
   });
 
   it('broadcastFormStatus publishes current validation status and refreshes the status signal', async () => {
@@ -1290,7 +1293,7 @@ describe('FormComponent', () => {
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormSaveSuccessEvent({
         closeOnSave: true,
@@ -1307,7 +1310,7 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(windowLocationHrefSpy).toHaveBeenCalledWith('redirect-location/one');
+      expect(changeLocationHrefSpy).toHaveBeenCalledWith('redirect-location/one');
       expect(locationHistoryGoSpy).not.toHaveBeenCalled();
       expect(events.length).toEqual(1);
       expect(events[0].historyDelta).toEqual(undefined);
@@ -1347,7 +1350,7 @@ describe('FormComponent', () => {
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormDeleteSuccessEvent({
         closeOnDelete: true,
@@ -1363,7 +1366,7 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(windowLocationHrefSpy).not.toHaveBeenCalled();
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
       expect(locationHistoryGoSpy).toHaveBeenCalledWith(-1);
       expect(events.length).toEqual(1);
       expect(events[0].historyDelta).toEqual(-1);
@@ -1403,7 +1406,7 @@ describe('FormComponent', () => {
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormSaveSuccessEvent({
         redirectLocation: 'redirect-location/two',
@@ -1412,7 +1415,7 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(windowLocationHrefSpy).not.toHaveBeenCalled();
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
       expect(locationHistoryGoSpy).not.toHaveBeenCalled();
       expect(events.length).toEqual(0);
     } finally {
@@ -1449,7 +1452,7 @@ describe('FormComponent', () => {
 
     try {
       const location = fixture.debugElement.injector.get(Location);
-      const windowLocationHrefSpy = spyOnProperty(formComponent['window']?.location!, 'href', 'set').and.stub();
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
       const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
       bus.publish(createFormDeleteSuccessEvent({
         closeOnDelete: false,
@@ -1459,7 +1462,7 @@ describe('FormComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(windowLocationHrefSpy).not.toHaveBeenCalled();
+      expect(changeLocationHrefSpy).not.toHaveBeenCalled();
       expect(locationHistoryGoSpy).not.toHaveBeenCalled();
       expect(events.length).toEqual(0);
     } finally {
