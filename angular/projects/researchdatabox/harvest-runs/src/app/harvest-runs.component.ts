@@ -222,7 +222,6 @@ export class HarvestRunsComponent extends BaseComponent {
       || run.unchanged !== counts.unchanged
       || run.failed !== counts.failed
       || run.chunksProcessed !== counts.chunksProcessed
-      || run.duplicateChunks !== counts.duplicateChunks
     );
   }
 
