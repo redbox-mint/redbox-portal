@@ -369,6 +369,88 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item')).toBeTruthy();
   });
 
+  it('should mark inline field repeatable items with a generic modifier class', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_inline_fields_css',
+      componentDefinitions: [
+        {
+          name: 'repeatable_inline_fields_css',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent',
+                  config: {
+                    hostCssClasses: 'rb-form-inline-fields rb-form-grid-cols-3',
+                  }
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item--inline-fields')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-grid-cols-3')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item--contributor')).toBeFalsy();
+  });
+
+  it('should treat legacy contributor inline classes as inline field repeatable items', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_legacy_contributor_inline_css',
+      componentDefinitions: [
+        {
+          name: 'repeatable_legacy_contributor_inline_css',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: ['one']
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: "",
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {
+                    value: 'one',
+                  }
+                },
+                component: {
+                  class: 'SimpleInputComponent',
+                  config: {
+                    hostCssClasses: 'rb-form-contributor-inline',
+                  }
+                }
+              },
+            },
+          }
+        },
+      ]
+    };
+    const {fixture} = await createFormAndWaitForReady(formConfig);
+
+    expect(fixture.nativeElement.querySelector('.rb-form-repeatable-item--inline-fields')).toBeTruthy();
+  });
+
   it('should support zero-row repeatables with hidden add button', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_zero_rows',
