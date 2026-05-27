@@ -564,6 +564,7 @@
   .rb-form-inline-fields--split-end,
   .rb-form-grid-split-end
 ) > .rb-form-group {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--rb-form-gap-2);
 }
