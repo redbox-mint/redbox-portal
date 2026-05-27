@@ -339,8 +339,7 @@
   margin-top: 0;
 }
 
-.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--inline-fields .rb-form-repeatable-item__remove,
-.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--contributor .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--inline-fields .rb-form-repeatable-item__remove {
   margin-top: 2.25rem;
 }
 
@@ -505,6 +504,10 @@
 }
 
 @media (min-width: 992px) {
+  .rb-form-edit .rb-form-contributor-inline .rb-form-group {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
   .rb-form-edit .rb-form-grid-cols-2 .rb-form-group {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
