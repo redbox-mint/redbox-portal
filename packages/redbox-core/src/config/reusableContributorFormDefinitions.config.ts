@@ -154,6 +154,37 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
+   * Standard contributor form fields in lookup-only mode without ORCID.
+   */
+  "standard-contributor-fields-lookup-only-name-email": [
+    {
+      overrides: {reusableFormName: "standard-contributor-field-name"},
+      name: "standard_contributor_field_name",
+      component: {
+        class: "ReusableComponent", config: {
+          componentDefinitions: [
+            {
+              name: "name", component: {class: "TypeaheadInputComponent", config: {requireSelection: true}}
+            }
+          ]
+        }
+      },
+    },
+    {
+      overrides: {reusableFormName: "standard-contributor-field-email"},
+      name: "standard_contributor_field_email",
+      component: {
+        class: "ReusableComponent", config: {
+          componentDefinitions: [
+            {
+              name: "email", component: {class: "SimpleInputComponent", config: {readonly: true}}
+            }
+          ]
+        }
+      },
+    },
+  ],
+  /**
    * Standard contributor form fields with title for people sections.
    */
   "standard-contributor-fields-with-title": [
@@ -230,6 +261,29 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
+   * Standard contributor form fields group in lookup-only mode without ORCID.
+   */
+  "standard-contributor-fields-lookup-only-name-email-group": [
+    {
+      name: "standard_contributor_fields_lookup_only_name_email_group",
+      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
+      model: {class: "GroupModel", config: {}},
+      component: {
+        class: "GroupComponent",
+        config: {
+          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-2",
+          componentDefinitions: [
+            {
+              overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email"},
+              name: "standard_contributor_fields_lookup_only_name_email_reusable",
+              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+            },
+          ],
+        },
+      },
+    },
+  ],
+  /**
    * Standard contributor form fields group with title for people sections.
    */
   "standard-contributor-fields-with-title-group": [
@@ -276,12 +330,12 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
-   * Contributor DMP permissions repeatable.
-   * Consuming configs should override syncSources and add expressions.
+   * Contributor permissions repeatable.
+   * Consuming configs should override labels, syncSources, and expressions as needed.
    */
-  "contributor-dmp-permissions": [
+  "contributor-permissions": [
     {
-      name: "contributor_dmp_permissions_repeatable",
+      name: "contributor_permissions_repeatable",
       component: {
         class: "RepeatableComponent",
         config: {
@@ -291,34 +345,34 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           syncSources: [
             {
               fieldName: "",
-              blankCheckFields: ["name", "email", "orcid", "username"],
+              blankCheckFields: ["name", "email", "username"],
               defaultTemplate: {username: null, role: "View&Edit"}
             },
             {
               fieldName: "",
-              blankCheckFields: ["name", "email", "orcid", "username"],
+              blankCheckFields: ["name", "email", "username"],
               defaultTemplate: {username: null, role: "View&Edit"}
             }
           ],
           elementTemplate: {
             name: "",
-            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-group"},
+            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email-group"},
             component: {
               class: "ReusableComponent",
               config: {
                 label: "@dmpt-user-permissions-tab-dmp-permissions",
                 componentDefinitions: [
                   {
-                    name: "standard_contributor_fields_lookup_only_group",
+                    name: "standard_contributor_fields_lookup_only_name_email_group",
                     overrides: {replaceName: ""},
                     component: {
                       class: "GroupComponent",
                       config: {
-                        hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4",
+                        hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
                         componentDefinitions: [
                           {
-                            overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
-                            name: "standard_contributor_fields_lookup_only_reusable",
+                            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email"},
+                            name: "standard_contributor_fields_lookup_only_name_email_reusable",
                             component: {class: "ReusableComponent", config: {componentDefinitions: []}},
                           },
                           {
