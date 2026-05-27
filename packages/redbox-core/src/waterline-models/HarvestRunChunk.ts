@@ -38,7 +38,7 @@ export class HarvestRunChunkClass {
   @Attr({ type: 'number' })
   public totalExpected?: number;
 
-  @Attr({ type: 'string', defaultsTo: HarvestChunkStatus.processed })
+  @Attr({ type: 'string', defaultsTo: HarvestChunkStatus.processing })
   public status!: string;
 
   @Attr({ type: 'number', defaultsTo: 0 })
