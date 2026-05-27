@@ -917,39 +917,27 @@ describe('ValidationSummaryFieldComponent', () => {
       validators : [
         {
           class: 'different-values',
+          config: {controlNames: ['text_2_event', 'text_1_event']},
+        },
+        {
+          class: 'different-values',
           config: {controlNames: ['text_1_event', 'text_2_event']},
+          targetField: {formConfig: ['componentDefinitions', 0]},
         },
       ],
       componentDefinitions: [
         {
           name: 'text_1_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: '',
-              validators: [
-                { class: 'required' },
-              ]
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
+          model: {class: 'SimpleInputModel', config: {value: ''}},
+          component: {class: 'SimpleInputComponent'}
         },
         {
           name: 'text_2_event',
           model: {
             class: 'SimpleInputModel',
-            config: {
-              value: '',
-              validators: [
-                { class: 'required' },
-              ]
-            }
+            config: {value: '', validators: [{ class: 'required' }]}
           },
-          component: {
-            class: 'SimpleInputComponent'
-          }
+          component: {class: 'SimpleInputComponent'}
         },
         {
           name: 'validation_summary_1',
@@ -971,15 +959,15 @@ describe('ValidationSummaryFieldComponent', () => {
 
     expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
       {
-        id: 'default-1.0-draft',
-        message: 'form-labelMessage',
-        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
-            controlNames: [ 'text_1_event', 'text_2_event' ],
-            controlCount: 2,
-            valueCount: 1,
-            values: [ '' ],
-          },
-        }],
+        id: null,
+        message:  '@validator-error-form-level',
+        errors: [
+          {
+            class: 'different-values', message: '@validator-error-different-values', params: {
+              controlNames: ['text_1_event', 'text_2_event'], controlCount: 2, valueCount: 1, values: [''],
+            },
+          }
+        ],
         lineagePaths: {
           formConfig: [],
           dataModel: [],
@@ -987,19 +975,6 @@ describe('ValidationSummaryFieldComponent', () => {
           layout: [],
           angularComponentsJsonPointer: '',
           layoutJsonPointer: ''
-        }
-      },
-      {
-        id: 'form-item-id-text-1-event',
-        message: null,
-        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
-        lineagePaths: {
-          formConfig: ['componentDefinitions', 0],
-          dataModel: ['text_1_event'],
-          angularComponents: ['text_1_event'],
-          layout: ['text_1_event-layout'],
-          angularComponentsJsonPointer: '/text_1_event',
-          layoutJsonPointer: '/text_1_event-layout'
         }
       },
       {
@@ -1013,6 +988,26 @@ describe('ValidationSummaryFieldComponent', () => {
           layout: ['text_2_event-layout'],
           angularComponentsJsonPointer: '/text_2_event',
           layoutJsonPointer: '/text_2_event-layout'
+        }
+      },
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [
+          {
+            class: 'different-values', message: '@validator-error-different-values', params: {
+              controlNames: ['text_1_event', 'text_2_event'], controlCount: 2, valueCount: 1, values: ['']
+            },
+            targetField: {angularComponents: ['text_1_event']},
+          }
+        ],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          layout: ['text_1_event-layout'],
+          angularComponentsJsonPointer: '/text_1_event',
+          layoutJsonPointer: '/text_1_event-layout'
         }
       },
     ]);
