@@ -12,7 +12,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
         config: {
           type: "text",
           hostCssClasses: "d-block",
-          wrapperCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
+          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
           onItemSelect: {rawPath: 'metadata.title'},
         }
       },
@@ -33,7 +33,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
         class: "TypeaheadInputComponent",
         config: {
           hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-contributor-inline__field",
+          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
           vocabRef: 'party',
           sourceType: 'namedQuery',
           queryId: 'party',
@@ -64,7 +64,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
         config: {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-contributor-inline__field",
+          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
           onItemSelect: {rawPath: 'metadata.email'},
         }
       },
@@ -86,7 +86,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
         config: {
           type: "text",
           hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-contributor-inline__field",
+          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
           onItemSelect: {rawPath: 'metadata.orcid'},
         }
       },
@@ -194,7 +194,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "GroupComponent",
         config: {
-          hostCssClasses: "rb-form-contributor-inline",
+          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
           componentDefinitions: [
             {
               overrides: {reusableFormName: "standard-contributor-fields"},
@@ -217,7 +217,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "GroupComponent",
         config: {
-          hostCssClasses: "rb-form-contributor-inline",
+          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
           componentDefinitions: [
             {
               overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
@@ -240,7 +240,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "GroupComponent",
         config: {
-          hostCssClasses: "rb-form-contributor-inline rb-form-contributor-inline--with-title",
+          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title",
           componentDefinitions: [
             {
               overrides: {reusableFormName: "standard-contributor-fields-with-title"},
@@ -263,7 +263,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "GroupComponent",
         config: {
-          hostCssClasses: "rb-form-contributor-inline rb-form-contributor-inline--with-title",
+          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title",
           componentDefinitions: [
             {
               overrides: {reusableFormName: "standard-contributor-fields-with-title-lookup-only"},
@@ -314,6 +314,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
                     component: {
                       class: "GroupComponent",
                       config: {
+                        hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4",
                         componentDefinitions: [
                           {
                             overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
@@ -325,7 +326,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
                             component: {
                               class: "DropdownInputComponent",
                               config: {
-                                hostCssClasses: "rb-form-contributor-inline__field rb-form-contributor-inline__field--role",
+                                hostCssClasses: "rb-form-inline-fields__field rb-form-inline-fields__field--fixed rb-form-contributor-inline__field rb-form-contributor-inline__field--role",
                                 options: [
                                   {
                                     label: "View",
