@@ -300,6 +300,81 @@ describe('HarvestRunService', function () {
     expect(response.records).to.equal(undefined);
   });
 
+  it('derives run aggregate counts from chunk rows', async function () {
+    (global as any).HarvestRun.findOne.resolves({
+      id: 'run-1',
+      brandId: 'brand-1',
+      recordType: 'dataset',
+      sourceName: 'source-a',
+      sourceRunId: 'source-run-1',
+      status: 'completed',
+      startedAt: '2026-05-25T00:00:00.000Z',
+      totalProcessed: 99,
+      created: 99,
+      updated: 99,
+      deleted: 99,
+      unchanged: 99,
+      failed: 99,
+      chunksProcessed: 99,
+      duplicateChunks: 99,
+    });
+    (global as any).HarvestRunChunk.find.returns(createChainableQuery([
+      {
+        id: 'chunk-1',
+        runId: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceRunId: 'source-run-1',
+        contentHash: 'hash-1',
+        attempt: 1,
+        status: 'processed',
+        recordCount: 1,
+        totalProcessed: 2,
+        created: 1,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        duplicate: false,
+        submittedAt: '2026-05-25T00:00:00.000Z',
+      },
+      {
+        id: 'chunk-2',
+        runId: 'run-1',
+        brandId: 'brand-1',
+        recordType: 'dataset',
+        sourceRunId: 'source-run-1',
+        contentHash: 'hash-2',
+        attempt: 1,
+        status: 'processed',
+        recordCount: 1,
+        totalProcessed: 3,
+        created: 0,
+        updated: 2,
+        deleted: 1,
+        unchanged: 0,
+        failed: 0,
+        duplicate: true,
+        submittedAt: '2026-05-25T00:01:00.000Z',
+      },
+    ]));
+    (global as any).HarvestRecordEvent.find.returns(createChainableQuery([]));
+
+    const result = await service.getRun({ id: 'brand-1', name: 'default' }, 'run-1');
+
+    expect(result).to.not.equal(null);
+    expect(result.aggregateCounts).to.deep.equal({
+      totalProcessed: 5,
+      created: 1,
+      updated: 2,
+      deleted: 1,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 2,
+      duplicateChunks: 1,
+    });
+  });
+
   it('rejects tracked chunks over the configured record limit before processing', async function () {
     mockSails.config.harvestRuns = { maxRecordsPerChunk: 1, maxChunkBytes: 5_000_000 };
 

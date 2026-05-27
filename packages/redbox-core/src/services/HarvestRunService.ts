@@ -407,6 +407,31 @@ export namespace Services {
       });
     }
 
+    private toAggregateCounts(chunks: HarvestRunChunkRow[]): HarvestRunDetailResult['aggregateCounts'] {
+      return chunks.reduce(
+        (counts, chunk) => ({
+          totalProcessed: counts.totalProcessed + Number(chunk.totalProcessed ?? 0),
+          created: counts.created + Number(chunk.created ?? 0),
+          updated: counts.updated + Number(chunk.updated ?? 0),
+          deleted: counts.deleted + Number(chunk.deleted ?? 0),
+          unchanged: counts.unchanged + Number(chunk.unchanged ?? 0),
+          failed: counts.failed + Number(chunk.failed ?? 0),
+          chunksProcessed: counts.chunksProcessed + 1,
+          duplicateChunks: counts.duplicateChunks + (chunk.duplicate ? 1 : 0),
+        }),
+        {
+          totalProcessed: 0,
+          created: 0,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 0,
+          duplicateChunks: 0,
+        }
+      );
+    }
+
     private toEventModel(row: HarvestRecordEventRow): HarvestRecordEventModel {
       const outcome = (row.outcome as HarvestOutcome) ?? HarvestOutcome.failed;
       return new HarvestRecordEventModel({
@@ -1636,22 +1661,14 @@ export namespace Services {
         return null;
       }
 
-      const chunks = await HarvestRunChunk.find({ runId, brandId }).sort('submittedAt ASC').limit(100) as HarvestRunChunkRow[];
+      const allChunks = await HarvestRunChunk.find({ runId, brandId }).sort('submittedAt ASC') as HarvestRunChunkRow[];
+      const chunks = allChunks.slice(0, 100);
       const events = await HarvestRecordEvent.find({ runId, brandId }).sort('createdAt DESC').limit(20) as HarvestRecordEventRow[];
       return {
         run: this.toRunModel(run),
         chunks: chunks.map(row => this.toChunkModel(row)),
         events: events.map(row => this.toEventModel(row)),
-        aggregateCounts: {
-          totalProcessed: Number(run.totalProcessed ?? 0),
-          created: Number(run.created ?? 0),
-          updated: Number(run.updated ?? 0),
-          deleted: Number(run.deleted ?? 0),
-          unchanged: Number(run.unchanged ?? 0),
-          failed: Number(run.failed ?? 0),
-          chunksProcessed: Number(run.chunksProcessed ?? chunks.length),
-          duplicateChunks: Number(run.duplicateChunks ?? 0),
-        },
+        aggregateCounts: this.toAggregateCounts(allChunks),
       };
     }
 
