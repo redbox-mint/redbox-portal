@@ -499,26 +499,26 @@
 .rb-form-edit .rb-form-inline-fields .rb-form-group,
 .rb-form-edit .rb-form-contributor-inline .rb-form-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: var(--rb-form-inline-grid-columns, repeat(auto-fit, minmax(130px, 1fr)));
   gap: var(--rb-form-gap-1);
 }
 
 @media (min-width: 992px) {
   .rb-form-edit .rb-form-contributor-inline .rb-form-group {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    --rb-form-inline-grid-columns: repeat(4, minmax(0, 1fr));
   }
 
   .rb-form-edit .rb-form-grid-cols-2 .rb-form-group {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    --rb-form-inline-grid-columns: repeat(2, minmax(0, 1fr));
   }
 
   .rb-form-edit .rb-form-grid-cols-3 .rb-form-group {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    --rb-form-inline-grid-columns: repeat(3, minmax(0, 1fr));
   }
 
   .rb-form-edit .rb-form-grid-cols-4 .rb-form-group,
   .rb-form-edit .rb-form-contributor-inline--with-title .rb-form-group {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    --rb-form-inline-grid-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -559,29 +559,35 @@
   width: 100%;
 }
 
-.rb-form-edit .rb-form-funding-inline > .rb-form-group,
-.rb-form-edit .rb-form-inline-fields--split-end > .rb-form-group,
-.rb-form-edit .rb-form-grid-split-end > .rb-form-group {
+.rb-form-edit :is(
+  .rb-form-funding-inline,
+  .rb-form-inline-fields--split-end,
+  .rb-form-grid-split-end
+) > .rb-form-group {
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--rb-form-gap-2);
 }
 
-.rb-form-edit .rb-form-funding-inline > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field,
-.rb-form-edit .rb-form-funding-inline > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field,
-.rb-form-edit .rb-form-inline-fields--split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field,
-.rb-form-edit .rb-form-inline-fields--split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field,
-.rb-form-edit .rb-form-grid-split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field,
-.rb-form-edit .rb-form-grid-split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field {
+.rb-form-edit :is(
+  .rb-form-funding-inline,
+  .rb-form-inline-fields--split-end,
+  .rb-form-grid-split-end
+) > .rb-form-group > redbox-form-base-wrapper:is(
+  .rb-form-inline-fields__field,
+  .rb-form-contributor-inline__field
+) {
   min-width: 0;
   width: 100%;
 }
 
-.rb-form-edit .rb-form-funding-inline > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field--fixed,
-.rb-form-edit .rb-form-funding-inline > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field--role,
-.rb-form-edit .rb-form-inline-fields--split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field--fixed,
-.rb-form-edit .rb-form-inline-fields--split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field--role,
-.rb-form-edit .rb-form-grid-split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-inline-fields__field--fixed,
-.rb-form-edit .rb-form-grid-split-end > .rb-form-group > redbox-form-base-wrapper.rb-form-contributor-inline__field--role {
+.rb-form-edit :is(
+  .rb-form-funding-inline,
+  .rb-form-inline-fields--split-end,
+  .rb-form-grid-split-end
+) > .rb-form-group > redbox-form-base-wrapper:is(
+  .rb-form-inline-fields__field--fixed,
+  .rb-form-contributor-inline__field--role
+) {
   width: 35rem;
 }
 
