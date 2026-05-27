@@ -505,7 +505,7 @@
 
 @media (min-width: 992px) {
   .rb-form-edit .rb-form-contributor-inline .rb-form-group {
-    --rb-form-inline-grid-columns: repeat(4, minmax(0, 1fr));
+    --rb-form-inline-grid-columns: minmax(0, 0.65fr) minmax(0, 1.15fr) repeat(2, minmax(0, 1fr));
   }
 
   .rb-form-edit .rb-form-grid-cols-2 .rb-form-group {
@@ -522,19 +522,19 @@
   }
 }
 
-.rb-form-edit .rb-form-inline-fields .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-1 {
+.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-1 {
   grid-column: span 1 !important;
 }
 
-.rb-form-edit .rb-form-inline-fields .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-2 {
+.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-2 {
   grid-column: span 2 !important;
 }
 
-.rb-form-edit .rb-form-inline-fields .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-3 {
+.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-3 {
   grid-column: span 3 !important;
 }
 
-.rb-form-edit .rb-form-inline-fields .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-full {
+.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-full {
   grid-column: 1 / -1 !important;
 }
 
