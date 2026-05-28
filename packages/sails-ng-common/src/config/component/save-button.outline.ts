@@ -36,6 +36,11 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
      */
     buttonCssClasses?: string;
   /**
+   * Validation groups to enable for this save request.
+   * Defaults to the form's current enabled validation groups.
+   */
+  enabledValidationGroups?: string[];
+  /**
    * Whether to 'close' the form by redirecting on a successful save. Default false.
    */
   closeOnSave?: boolean;

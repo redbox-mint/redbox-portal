@@ -207,6 +207,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private eventBus = inject(FormComponentEventBus);
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
+  private preTemporarySaveValidationGroups: string[] = [];
+  private resetTemporaryValidationGroupsOnNextChange = false;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
@@ -657,6 +659,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
+        if (this.resetTemporaryValidationGroupsOnNextChange) {
+          this.resetTemporaryValidationGroups();
+        }
         if (!this.shouldRefreshDebugSnapshots()) {
           return;
         }
@@ -1045,6 +1050,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
 
+    if (this.form && options?.enabledValidationGroups) {
+      this.preTemporarySaveValidationGroups = [...this.enabledValidationGroups];
+      this.enabledValidationGroups = enabledValidationGroups;
+      this.resetTemporaryValidationGroupsOnNextChange = !this.validationGroupNamesEqual(
+        enabledValidationGroups,
+        this.preTemporarySaveValidationGroups
+      );
+      const validationGroups = this.validationGroups;
+      this.componentDefArr?.forEach(mapEntry =>
+        this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
+      );
+      this.form.updateValueAndValidity({ emitEvent: false });
+      this.broadcastFormStatus();
+    }
+
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
@@ -1134,6 +1154,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
       this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
     }
+  }
+
+  private resetTemporaryValidationGroups(): void {
+    if (!this.form || this.validationGroupNamesEqual(this.enabledValidationGroups, this.preTemporarySaveValidationGroups)) {
+      this.resetTemporaryValidationGroupsOnNextChange = false;
+      return;
+    }
+    const enabledValidationGroups = [...this.preTemporarySaveValidationGroups];
+    this.enabledValidationGroups = enabledValidationGroups;
+    const validationGroups = this.validationGroups;
+    this.componentDefArr?.forEach(mapEntry =>
+      this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
+    );
+    this.form.updateValueAndValidity({ emitEvent: false });
+    this.broadcastFormStatus();
+    this.resetTemporaryValidationGroupsOnNextChange = false;
+  }
+
+  private validationGroupNamesEqual(first: string[], second: string[]): boolean {
+    return first.length === second.length && first.every((value, index) => value === second[index]);
   }
 
   public async deleteRecord(options?: DeleteEventConfig) {

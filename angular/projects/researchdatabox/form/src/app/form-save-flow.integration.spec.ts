@@ -53,6 +53,7 @@ describe('Form Save Flow Integration', () => {
               label: 'Save',
               targetStep: 'next_step',
               forceSave: true,
+              enabledValidationGroups: ['all', 'review-submit'],
             },
           },
         },
@@ -100,7 +101,7 @@ describe('Form Save Flow Integration', () => {
       expect(requestedEvents[0].type).toBe('form.save.requested');
       expect(requestedEvents[0].force).toBe(true);
       expect(requestedEvents[0].targetStep).toBe('next_step');
-      expect(requestedEvents[0].enabledValidationGroups).toEqual(["none"]);
+      expect(requestedEvents[0].enabledValidationGroups).toEqual(['all', 'review-submit']);
 
       // Assert: 2) NgRx submitForm action observed (promotion by adapter effect)
       const sawSubmitForm = observedActions.some(a => a.type === FormActions.submitForm.type);
@@ -112,7 +113,7 @@ describe('Form Save Flow Integration', () => {
 
       // Assert: 4) FormComponent.saveForm invoked with expected args
       expect(formComponent.saveForm).toHaveBeenCalledWith({
-        force: true, targetStep: 'next_step', enabledValidationGroups:  ['none'],
+        force: true, targetStep: 'next_step', enabledValidationGroups: ['all', 'review-submit'],
         closeOnSave: undefined, redirectLocation: undefined, redirectDelaySeconds: undefined,
       });
     } finally {
