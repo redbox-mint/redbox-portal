@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {find, findByPointer, formatJsonPointer} from '@jsonjoy.com/json-pointer';
+import {arrayStartsWithArray} from "../helpers";
 
 // Shared lineage path helpers and types.
 // Moved from FormService and form-field-base.component to make them reusable across libs.
@@ -63,6 +64,9 @@ export interface LineagePaths {
 /**
  * Allow providing a partial lineage paths object.
  * This is for adding to an existing lineage path.
+ *
+ * This does not include the calculated json pointer fields on purpose.
+ * Use LineagePathsOptional to include the json pointer fields.
  */
 export interface LineagePathsPartial {
     formConfig?: LineagePath;
@@ -70,6 +74,14 @@ export interface LineagePathsPartial {
     angularComponents?: LineagePath;
     layout?: LineagePath;
 }
+
+/**
+ * Allow providing any of the lineage paths properties.
+ *
+ * This does include the calculated json pointer fields on purpose.
+ * Use LineagePathsPartial to include only the fields that are not calculated.
+ */
+export type LineagePathsOptional = Partial<LineagePaths>;
 
 /**
  * Build the lineage paths from a base item, and add the entries in `more` as relative
@@ -158,4 +170,83 @@ export function normaliseVisual(value: unknown): string {
   // Use NFKC: Compatibility Decomposition, followed by Canonical Composition.
   // For Identifiers matching: Canonical form, no visual variants
   return str.normalize("NFKC");
+}
+
+/**
+ * Determine if every key present in both lineage paths match.
+ * @param a The first lineage paths object.
+ * @param b The second lineage paths object.
+ */
+export function isMatchingLineagePaths(a: LineagePathsOptional, b: LineagePathsOptional): boolean {
+  const aRecord: Record<string, LineagePath | string | undefined> = a ?? {};
+  const bRecord: Record<string, LineagePath | string | undefined> = b ?? {};
+  const keys = Array.from(new Set<string>([...Object.keys(aRecord), ...Object.keys(bRecord)]));
+  return keys.every(key => {
+    if (key in aRecord && key in bRecord) {
+      const aValue = aRecord[key] ?? "";
+      const bValue = bRecord[key] ?? "";
+      return aValue === bValue || isMatchingLineagePath(aValue, bValue);
+    }
+    // A key in only a or b is allowed.
+    return true;
+  });
+}
+
+/**
+ * Determine if two lineage paths or strings are equal.
+ * @param a The first lineage path or string.
+ * @param b The second lineage path or string.
+ */
+export function isMatchingLineagePath(a: LineagePath | string, b: LineagePath | string): boolean {
+  if (typeof a === "string" && typeof b === "string") {
+    return a === b;
+  }
+  if (!Array.isArray(a) || !Array.isArray(b)) {
+    return false;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((aValue, aIndex) => aValue?.toString() === b[aIndex]?.toString());
+}
+
+/**
+ * Determine if every key (present in both lineage paths) of a lineage path starts with a base lineage path.
+ * @param base The prefix lineage paths object.
+ * @param check The lineage paths object that should start with the prefix.
+ */
+export function isPrefixLineagePaths(base: LineagePathsOptional, check: LineagePathsOptional): boolean {
+  const aRecord: Record<string, LineagePath | string | undefined> = base ?? {};
+  const bRecord: Record<string, LineagePath | string | undefined> = check ?? {};
+  const keys = Array.from(new Set<string>([...Object.keys(aRecord), ...Object.keys(bRecord)]));
+  return keys.every(key => {
+    if (key in aRecord && key in bRecord) {
+      const aValue = aRecord[key] ?? "";
+      const bValue = bRecord[key] ?? "";
+      return aValue === bValue || isPrefixLineagePath(aValue, bValue);
+    }
+    // A key in only base or check is allowed.
+    return true;
+  });
+}
+
+/**
+ * Determine if a check lineage path starts with a base lineage path.
+ * @param base The prefix.
+ * @param check The item that should start with prefix.
+ */
+export function isPrefixLineagePath(base: LineagePath | string, check: LineagePath | string): boolean {
+  if (typeof base === "string" && typeof check === "string") {
+    return base === check || check.startsWith(base + '/');
+  }
+  if (!Array.isArray(base) || !Array.isArray(check)) {
+    return false;
+  }
+  if (base.length === 0 && check.length === 0) {
+    return true;
+  }
+  return arrayStartsWithArray(
+    base.map(i => i?.toString()),
+    check.map(i => i?.toString()),
+  );
 }
