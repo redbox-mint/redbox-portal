@@ -165,6 +165,45 @@ describe('ValidationSummaryFieldComponent', () => {
     ]);
   });
 
+  it('should translate validation summary ids when a language entry exists', async () => {
+    translationService.translationMap['form-item-id-text-1-event'] = 'Translated Text Field';
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
+    expect(link?.textContent).toContain('Translated Text Field');
+  });
+
   it('should not keep a stale required error for a hydrated repeatable field', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
