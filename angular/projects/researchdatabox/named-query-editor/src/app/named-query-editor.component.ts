@@ -212,7 +212,6 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return {
       name: '',
       collectionName: '',
-      brandIdFieldPath: '',
       mongoQuery: {},
       queryParams: {},
       resultObjectMapping: {},
@@ -236,7 +235,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return {
       name: q.name?.trim() || undefined,
       collectionName: q.collectionName?.trim() || '',
-      brandIdFieldPath: q.brandIdFieldPath?.trim() || undefined,
+      brandIdFieldPath: 'metaMetadata.brandId',
       mongoQuery: q.mongoQuery || {},
       queryParams: q.queryParams || {},
       resultObjectMapping: q.resultObjectMapping || {},

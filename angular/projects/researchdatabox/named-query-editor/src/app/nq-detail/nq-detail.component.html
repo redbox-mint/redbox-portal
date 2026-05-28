@@ -59,15 +59,6 @@
                  [attr.placeholder]="'named-query-collection-placeholder' | i18next" />
         </div>
       </div>
-      <div class="row g-2">
-        <div class="form-group col-12">
-          <label for="nq-brand-path">{{ 'named-query-brand-id-path' | i18next }}</label>
-          <input id="nq-brand-path" type="text" class="form-control"
-                 [(ngModel)]="draft.brandIdFieldPath"
-                 [attr.placeholder]="'named-query-brand-id-path-placeholder' | i18next" />
-          <small class="form-text text-muted">{{ 'named-query-brand-id-path-help' | i18next }}</small>
-        </div>
-      </div>
       <div class="form-check">
         <input id="nq-expand-relations" type="checkbox" class="form-check-input"
                [(ngModel)]="draft.expandRelations" />

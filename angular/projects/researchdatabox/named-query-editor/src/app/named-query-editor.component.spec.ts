@@ -530,7 +530,6 @@ describe('NamedQueryEditorComponent', () => {
     const result = (component as any).sanitizeQuery({
       name: '',
       collectionName: '',
-      brandIdFieldPath: '',
       mongoQuery: undefined,
       queryParams: undefined,
       resultObjectMapping: undefined,
@@ -540,7 +539,7 @@ describe('NamedQueryEditorComponent', () => {
     });
     expect(result.name).toBeUndefined();
     expect(result.collectionName).toBe('');
-    expect(result.brandIdFieldPath).toBeUndefined();
+    expect(result.brandIdFieldPath).toBe('metaMetadata.brandId');
     expect(result.mongoQuery).toEqual({});
     expect(result.queryParams).toEqual({});
     expect(result.resultObjectMapping).toEqual({});
