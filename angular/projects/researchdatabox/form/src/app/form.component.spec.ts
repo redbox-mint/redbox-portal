@@ -350,12 +350,12 @@ describe('FormComponent', () => {
           resolveValidation = () => resolve(null);
         });
       }
-      return Promise.resolve(null);
+      return new Promise<null>(() => undefined);
     };
     formComponent.form = new FormGroup({
-      async_field: new FormControl('ready', {
-        asyncValidators: [asyncValidator],
-      }),
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [asyncValidator],
     });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
@@ -376,6 +376,34 @@ describe('FormComponent', () => {
 
     expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
     expect(saveCompleted).toBeTrue();
+    expect(validatorRuns).toBe(1);
+  });
+
+  it('fails save when pending async validation times out', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    (formComponent as any).pendingValidationTimeoutMs = 1;
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [() => new Promise<null>(() => undefined)],
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(failureEvents.length).toBe(1);
+      expect(failureEvents[0].error).toBe('Form validation timed out. Please try again.');
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('applies requested validation groups before saving', async () => {

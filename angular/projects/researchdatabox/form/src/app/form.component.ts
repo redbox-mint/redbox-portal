@@ -213,6 +213,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
   private preTemporarySaveValidationGroups: string[] = [];
   private resetTemporaryValidationGroupsOnNextChange = false;
+  private pendingValidationTimeoutMs = 30000;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
@@ -1129,11 +1130,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsModified = this.form?.dirty || forceSave;
     if (this.form?.pending && !forceSave) {
-      await this.waitForPendingValidation();
+      const validationSettled = await this.waitForPendingValidation();
       if (this.isDestroyed) {
         return;
       }
-      this.broadcastFormStatus();
+      if (!validationSettled) {
+        this.saveResponse.set(undefined);
+        const message = 'Form validation timed out. Please try again.';
+        this.loggerService.warn(`${this.logName}: ${message}`);
+        this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
+        return;
+      }
     }
     // At this point, only the validators that we want to run will be set on the angular components.
     const formIsValid = this.form?.valid || forceSave;
@@ -1223,11 +1230,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  private async waitForPendingValidation(): Promise<void> {
-    // TODO: Maybe add a timeout here to prevent infinite waiting if something goes wrong with the form validation?
+  private async waitForPendingValidation(): Promise<boolean> {
+    const startedAt = Date.now();
     while (this.form?.pending && !this.isDestroyed) {
+      if (Date.now() - startedAt >= this.pendingValidationTimeoutMs) {
+        return false;
+      }
       await new Promise<void>(resolve => setTimeout(resolve, 0));
     }
+    return true;
   }
 
   private resetTemporaryValidationGroups(): void {
