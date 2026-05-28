@@ -64,8 +64,12 @@ import {
   FormRequestParamsMap,
   FormRequestParamValue,
   FormStatus,
+  FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
-  JSONataQuerySource, LineagePaths,
+  FormValidatorTargetFieldConfig,
+  isMatchingLineagePaths,
+  JSONataQuerySource,
+  LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import {FormBaseWrapperComponent} from './component/base-wrapper.component';
 import {FormComponentsMap, FormService} from './form.service';
@@ -347,10 +351,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.refreshRequestParamsFromUrl();
     this.initEffects();
-  }
-
-  protected get getFormService() {
-    return this.formService;
   }
 
   protected async initComponent(): Promise<void> {
@@ -772,33 +772,89 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Get the validation errors from all the controls in this form, and recurse into the control's child controls.
    */
   public getValidationErrors(): FormValidatorSummaryErrors[] {
-    const result: FormValidatorSummaryErrors[] = [];
-
-    // form validators
-    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
-    if (this.form) {
-      // This method can be called while this component is being created,
-      // and before the FormComponent form is available.
-      // A later 'queue' call should update it after the form is ready,
-      // so don't include the FormComponent.form if it is not available.
-      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
-      if (formErrors.length > 0) {
-        result.push({
-          id: this.trimmedParams.formName(),
-          message: "form-labelMessage",
-          errors: formErrors,
-          lineagePaths: this.formService.buildLineagePaths()
-        });
-      }
-    }
+    const summaryErrors: FormValidatorSummaryErrors[] = [];
 
     // component validators
     const mapEntries = this.formDefMap?.components ?? [];
     for (const mapEntry of mapEntries) {
       const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);
-      result.push(...errors);
+      summaryErrors.push(...errors);
     }
-    return result;
+
+    /* Form validator notes:
+     * 1. `getValidationErrors` can be called while this component is being created,
+     *  and before the FormComponent.form is available.
+     *  A later 'queue' call should update it after the form is ready,
+     *  so don't try to process the FormComponent.form if it is not available.
+     * 2. Collect the form-level validation errors after component validation errors,
+     *  so that any component details are already present, and it is clear whether assigning
+     *  errors to a component can re-use existing details or requires creating a new entry.
+     */
+    if (this.form) {
+      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
+      this.assignFormValidatorErrorsToComponent(summaryErrors, formErrors);
+    }
+
+    return summaryErrors;
+  }
+
+  /**
+   * Assign form-level validation errors to components using the form validators config.
+   * @param summaryErrors The current summary errors.
+   * @param formErrors The form-level validation errors.
+   */
+  public assignFormValidatorErrorsToComponent(
+    summaryErrors: FormValidatorSummaryErrors[],
+    formErrors: FormValidatorComponentErrors[],
+  ): void {
+    if (formErrors.length < 1) {
+      return;
+    }
+
+    const unownedFormError: FormValidatorComponentErrors[] = [];
+    for (const componentError of formErrors) {
+      // If there is no target field, this validation error is 'unowned' and is an overall form error.
+      const targetFieldLineagePaths = componentError.targetField;
+      if (targetFieldLineagePaths === undefined) {
+        unownedFormError.push(componentError);
+        continue;
+      }
+
+      // Find any existing errors for the matching lineage paths.
+      const summaryError = summaryErrors.find(s =>
+        isMatchingLineagePaths(s.lineagePaths, targetFieldLineagePaths));
+
+      if (summaryError !== undefined) {
+        // Add the error to any existing summary error for the component.
+        if (!summaryError.errors.includes(componentError)) {
+          summaryError.errors.push(componentError);
+        }
+      } else {
+        // Find the component using the lineage path and add the summary error.
+        const componentMapEntry = this.getComponentDefByName(targetFieldLineagePaths);
+        if (!!componentMapEntry?.lineagePaths) {
+          const {id, labelMessage} = this.formService.componentIdLabel(componentMapEntry.compConfigJson);
+          summaryErrors.push({
+            id: id,
+            message: labelMessage,
+            lineagePaths: componentMapEntry.lineagePaths,
+            errors: [componentError],
+          });
+        } else {
+          this.loggerService.warn(`${this.logName}: Could not assign validation error to component ${JSON.stringify({componentError, targetFieldLineagePaths})}`);
+        }
+      }
+    }
+
+    // Add any form-level errors at the start of the array of summary errors.
+    if (unownedFormError.length > 0) {
+      summaryErrors.unshift({
+        id: null,
+        message: "@validator-error-form-level",
+        errors: unownedFormError,
+        lineagePaths: this.formService.buildLineagePaths()
+      });
+    }
   }
 
   public getDebugInfo() {
@@ -1034,10 +1090,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * @return The first matching entry, or undefined if none match.
    */
   public getComponentDefByName(
-    name: string | Partial<LineagePaths>,
-    componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr
+    name: string | LineagePathsOptional,
+    componentDefArr?: FormFieldCompMapEntry[]
   ): FormFieldCompMapEntry | undefined {
-    return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
+    return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
@@ -1261,7 +1317,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Get the form-level validators.
    */
-  public get formValidators() {
+  public get formValidators(): FormValidatorTargetFieldConfig[] {
     return this.formDefMap?.formConfig?.validators ?? [];
   }
 
