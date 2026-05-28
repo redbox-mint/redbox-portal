@@ -379,6 +379,49 @@ describe('FormComponent', () => {
     expect(validatorRuns).toBe(1);
   });
 
+  it('waits for pending async validation started without emitting form events', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    let resolveValidation: (() => void) | undefined;
+    const asyncValidator = () => new Promise<null>(resolve => {
+      resolveValidation = () => resolve(null);
+    });
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    });
+    formComponent.form.setAsyncValidators([asyncValidator]);
+    formComponent.form.updateValueAndValidity({ emitEvent: false });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const savePromise = formComponent.saveForm();
+    await Promise.resolve();
+
+    expect(formComponent.form.pending).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    resolveValidation?.();
+    await savePromise;
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+  });
+
+  it('saves without delay when validation is already settled', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({
+      settled_field: new FormControl('ready'),
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '');
+  });
+
   it('fails save when pending async validation times out', async () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;
@@ -404,6 +447,28 @@ describe('FormComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('does not save when destroyed while async validation is pending', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [() => new Promise<null>(() => undefined)],
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const savePromise = formComponent.saveForm();
+    await Promise.resolve();
+    expect(formComponent.form.pending).toBeTrue();
+
+    formComponent.ngOnDestroy();
+    await savePromise;
+
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('applies requested validation groups before saving', async () => {

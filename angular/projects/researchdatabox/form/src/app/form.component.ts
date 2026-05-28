@@ -31,7 +31,20 @@ import {
   ViewContainerRef,
   ViewEncapsulation,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import {
+  catchError,
+  filter,
+  firstValueFrom,
+  interval,
+  map,
+  merge,
+  of,
+  startWith,
+  Subject,
+  Subscription,
+  take,
+  timeout
+} from 'rxjs';
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import {
   FormControlStatus,
@@ -272,6 +285,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   subMaps: Record<string, Subscription> = {};
 
   private isDestroyed = false;
+  private readonly destroy$ = new Subject<void>();
 
   /**
    * Debug info structure
@@ -1231,14 +1245,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private async waitForPendingValidation(): Promise<boolean> {
-    const startedAt = Date.now();
-    while (this.form?.pending && !this.isDestroyed) {
-      if (Date.now() - startedAt >= this.pendingValidationTimeoutMs) {
-        return false;
-      }
-      await new Promise<void>(resolve => setTimeout(resolve, 0));
+    const form = this.form;
+    if (!form) {
+      return true;
     }
-    return true;
+    return firstValueFrom(
+      merge(form.statusChanges, form.valueChanges, this.destroy$, interval(0)).pipe(
+        startWith(null),
+        filter(() => !form.pending || this.isDestroyed),
+        take(1),
+        map(() => true),
+        timeout({ first: this.pendingValidationTimeoutMs }),
+        catchError(() => of(false))
+      )
+    );
   }
 
   private resetTemporaryValidationGroups(): void {
@@ -1416,6 +1436,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   override ngOnDestroy(): void {
     super.ngOnDestroy();
     this.isDestroyed = true;
+    this.destroy$.next();
+    this.destroy$.complete();
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.focusRequestCoordinator.destroy();
