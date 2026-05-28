@@ -31,8 +31,8 @@ import {
   ViewContainerRef,
   ViewEncapsulation,
 } from '@angular/core';
-import {Subscription} from 'rxjs';
-import {DOCUMENT, Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import { Subscription } from 'rxjs';
+import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import {
   FormControlStatus,
   FormGroup,
@@ -71,9 +71,9 @@ import {
   JSONataQuerySource,
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
-import {FormBaseWrapperComponent} from './component/base-wrapper.component';
-import {FormComponentsMap, FormService} from './form.service';
-import {FormComponentEventBus} from './form-state/events/form-component-event-bus.service';
+import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { FormComponentsMap, FormService } from './form.service';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
 } from './form-state/events/form-component-focus-request-coordinator.service';
@@ -93,12 +93,12 @@ import {
   FormValidationGroupsChangeInitial,
   FormValidationGroupsChangeRequestEvent, SaveOperationEventConfig, SaveRedirectEventConfig,
 } from './form-state/events/form-component-event.types';
-import {FormStateFacade} from './form-state/facade/form-state.facade';
-import {Store} from '@ngrx/store';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
-import {FormComponentValueChangeEventConsumer} from './form-state/events/';
-import {DebugInfo, FormDebugStateService} from './form-debug/form-debug-state.service';
-import {FormBehaviourManager} from './form-state/behaviours/form-behaviour-manager.service';
+import { FormComponentValueChangeEventConsumer } from './form-state/events/';
+import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
+import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
 
 /**
  * The ReDBox Form
@@ -840,7 +840,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         // Find the component using the lineage path and add the summary error.
         const componentMapEntry = this.getComponentDefByName(targetFieldLineagePaths);
         if (!!componentMapEntry?.lineagePaths) {
-          const {id, labelMessage} = this.formService.componentIdLabel(componentMapEntry.compConfigJson);
+          const { id, labelMessage } = this.formService.componentIdLabel(componentMapEntry.compConfigJson);
           summaryErrors.push({
             id: id,
             message: labelMessage,
@@ -848,7 +848,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             errors: [componentError],
           });
         } else {
-          this.loggerService.warn(`${this.logName}: Could not assign validation error to component ${JSON.stringify({componentError, targetFieldLineagePaths})}`);
+          this.loggerService.warn(`${this.logName}: Could not assign validation error to component ${JSON.stringify({ componentError, targetFieldLineagePaths })}`);
         }
       }
     }
@@ -1221,6 +1221,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private async waitForPendingValidation(): Promise<void> {
+    // TODO: Maybe add a timeout here to prevent infinite waiting if something goes wrong with the form validation?
     while (this.form?.pending && !this.isDestroyed) {
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
@@ -1411,7 +1412,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.componentDefQuerySource;
   }
 
-  public get formConfigMeta(): Record<string,unknown> {
+  public get formConfigMeta(): Record<string, unknown> {
     return this.formDefMap?.formConfigMeta ?? {};
   }
 
