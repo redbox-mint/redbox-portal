@@ -1,8 +1,8 @@
 import {
   buildLineagePaths,
   getJSONPointerByArrayPaths,
-  getObjectWithJsonPointer,
-  LineagePaths
+  getObjectWithJsonPointer, isMatchingLineagePaths, isPrefixLineagePaths,
+  LineagePaths, LineagePathsOptional
 } from '../../src';
 
 let expect: Chai.ExpectStatic;
@@ -152,5 +152,113 @@ describe('Naming Helpers: getObjectWithJsonPointer', () => {
   it('returns undefined when the path-segment array traverses through a non-object intermediate', () => {
     const doc = { a: { b: 1 } };
     expect(getObjectWithJsonPointer(doc, ['a', 'b', 'c'])).to.equal(undefined);
+  });
+});
+
+describe('Naming Helpers: matching lineage paths', () => {
+  const isMatchingLineagePathsCases: {
+    title: string, args: { a: LineagePathsOptional, b: LineagePathsOptional }, expected: boolean
+  }[] = [
+    {
+      title: "exact match",
+      args: {
+        a: {dataModel: ["one", "two"], angularComponents: []},
+        b: {dataModel: ["one", "two"], angularComponents: []},
+      },
+      expected: true,
+    },
+    {
+      title: "no match",
+      args: {
+        a: {dataModel: ["two"]},
+        b: {dataModel: ["one"]},
+      },
+      expected: false,
+    },
+    {
+      title: "a has extra",
+      args: {
+        a: {dataModel: ["one", "two"], angularComponents: []},
+        b: {dataModel: ["one"], formConfig: ["componentDefinitions", 0]},
+      },
+      expected: false,
+    },
+    {
+      title: "matches with extra props",
+      args: {
+        a: {dataModel: ["one"], angularComponents: []},
+        b: {dataModel: ["one"], formConfig: ["componentDefinitions", 0]},
+      },
+      expected: true,
+    },
+    {
+      title: "b has extra",
+      args: {
+        a: {dataModel: ["one"]},
+        b: {dataModel: ["one", "two"]},
+      },
+      expected: false,
+    },
+  ];
+  isMatchingLineagePathsCases.forEach(({title, args, expected}) => {
+    it(`${title} returns ${expected} given args ${JSON.stringify(args)}`, () => {
+      expect(isMatchingLineagePaths(args.a, args.b)).to.eql(expected);
+    });
+  });
+});
+describe('Naming Helpers: prefix lineage paths', () => {
+  const isMatchingLineagePathsCases: {
+    title: string, args: {base: LineagePathsOptional, check: LineagePathsOptional}, expected:boolean
+  }[] = [
+    {
+      title: "exact match",
+      args: {base: {dataModel: ["one", "two"]}, check: {dataModel: ["one", "two"]}},
+      expected: true,
+    },
+    {
+      title: "no match",
+      args: {
+        base: {dataModel: ["two"]},
+        check: {dataModel: ["one"]},
+      },
+      expected: false,
+    },
+    {
+      title: "base has extra",
+      args: {
+        base: {dataModel: ["one", "two"]},
+        check: {dataModel: ["one"]},
+      },
+      expected: false,
+    },
+    {
+      title: "matches with extra props",
+      args: {
+        base: {dataModel: ["one", "two"], formConfig: ["componentDefinitions", 0]},
+        check: {dataModel: ["one", "two", "three"], angularComponents: []},
+      },
+      expected: true,
+    },
+    {
+      title: "check has extra",
+      args: {
+        base: {dataModel: ["one"]},
+        check: {dataModel: ["one", "two"]},
+      },
+      expected: true,
+    },
+    {
+      title: "extra prop",
+      args: {
+        base: {dataModel: ["one"], angularComponents: []},
+        check: {dataModel: ["one", "two"]},
+      },
+      expected: true,
+    },
+  ];
+  isMatchingLineagePathsCases.forEach(({title, args, expected}) => {
+    it(`${title} returns ${expected} given args ${JSON.stringify(args)}`, () => {
+      expect(isPrefixLineagePaths(args.base, args.check)).to.eql(expected);
+    });
   });
 });
