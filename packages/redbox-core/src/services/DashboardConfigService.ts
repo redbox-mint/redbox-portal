@@ -132,6 +132,7 @@ export namespace Services {
       }
       return _.mergeWith({}, ...validConfigs, (_objValue: unknown, srcValue: unknown) => {
         if (_.isArray(srcValue)) {
+          // Dashboard table config arrays are override-only; do not rely on lodash's default index-wise array merge.
           return _.cloneDeep(srcValue);
         }
         return undefined;
