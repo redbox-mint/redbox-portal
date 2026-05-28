@@ -148,6 +148,11 @@ describe('TranslationService testing', () => {
     expect((translationService as any).serializeTranslationCacheKeyPart(circularArray)).toEqual('array:[array:[circular]]');
   });
 
+  it('should create distinct cache keys when string values contain pipe characters', function () {
+    expect((translationService as any).buildTranslationCacheKey('a|string:b', undefined, undefined))
+      .not.toEqual((translationService as any).buildTranslationCacheKey('a', 'b|undefined', undefined));
+  });
+
   it('should resolve translation keys containing colon characters', async function () {
     const mockConfigData = {
       csrfToken: 'test',

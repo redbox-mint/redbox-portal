@@ -87,7 +87,7 @@ export class TranslationService extends HttpClientService implements Service {
   private readonly translationKeyValueCache: Map<string, TranslationResult> = new Map();
 
   private buildTranslationCacheKey(...parts: unknown[]): string {
-    return parts.map((part) => this.serializeTranslationCacheKeyPart(part)).join('|');
+    return JSON.stringify(parts.map((part) => this.serializeTranslationCacheKeyPart(part)));
   }
 
   private serializeTranslationCacheKeyPart(value: unknown, seen: WeakSet<object> = new WeakSet<object>()): string {
