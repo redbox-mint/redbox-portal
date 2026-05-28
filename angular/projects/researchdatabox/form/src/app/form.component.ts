@@ -1127,14 +1127,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
-    const formIsSaving = _isNull(this.saveResponse());
     const formIsModified = this.form?.dirty || forceSave;
     if (this.form?.pending && !forceSave) {
       await this.waitForPendingValidation();
+      if (this.isDestroyed) {
+        return;
+      }
       this.broadcastFormStatus();
     }
     // At this point, only the validators that we want to run will be set on the angular components.
     const formIsValid = this.form?.valid || forceSave;
+    const formIsSaving = _isNull(this.saveResponse());
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
@@ -1223,7 +1226,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private async waitForPendingValidation(): Promise<void> {
     // TODO: Maybe add a timeout here to prevent infinite waiting if something goes wrong with the form validation?
     while (this.form?.pending && !this.isDestroyed) {
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     }
   }
 
