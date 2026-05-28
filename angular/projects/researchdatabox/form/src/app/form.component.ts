@@ -1051,7 +1051,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
 
     if (this.form && options?.enabledValidationGroups) {
-      this.preTemporarySaveValidationGroups = [...this.enabledValidationGroups];
+      if (!this.resetTemporaryValidationGroupsOnNextChange) {
+        this.preTemporarySaveValidationGroups = [...this.enabledValidationGroups];
+      }
       this.enabledValidationGroups = enabledValidationGroups;
       this.resetTemporaryValidationGroupsOnNextChange = !this.validationGroupNamesEqual(
         enabledValidationGroups,
@@ -1173,7 +1175,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private validationGroupNamesEqual(first: string[], second: string[]): boolean {
-    return first.length === second.length && first.every((value, index) => value === second[index]);
+    if (first.length !== second.length) {
+      return false;
+    }
+    const sortedFirst = [...first].sort();
+    const sortedSecond = [...second].sort();
+    return sortedFirst.every((value, index) => value === sortedSecond[index]);
   }
 
   public async deleteRecord(options?: DeleteEventConfig) {

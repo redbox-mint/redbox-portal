@@ -409,12 +409,31 @@ describe('FormComponent', () => {
     expect(formComponent.form?.get('review_required')?.hasError('required')).toBeTrue();
     expect(updateSpy).not.toHaveBeenCalled();
 
+    await formComponent.saveForm({
+      targetStep: 'queued',
+      enabledValidationGroups: ['all', 'value-driven', 'submit-for-review'],
+    });
+
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
+    expect(formComponent.form?.valid).toBeFalse();
+    expect(updateSpy).not.toHaveBeenCalled();
+
     formComponent.form?.get('dirty_field')?.setValue('changed again');
     await fixture.whenStable();
 
     expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven']);
     expect(formComponent.form?.get('review_required')?.hasError('required')).toBeFalse();
     expect(formComponent.form?.valid).toBeTrue();
+  });
+
+  it('compares validation groups independent of order', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance as unknown as {
+      validationGroupNamesEqual: (first: string[], second: string[]) => boolean;
+    };
+
+    expect(formComponent.validationGroupNamesEqual(['all', 'value-driven'], ['value-driven', 'all'])).toBeTrue();
+    expect(formComponent.validationGroupNamesEqual(['all', 'value-driven'], ['all', 'submit-for-review'])).toBeFalse();
   });
 
   it('omits disabled controls from Form Values Debug data', async () => {
