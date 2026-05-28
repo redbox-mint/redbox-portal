@@ -72,7 +72,7 @@
     "test:playwright:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180",
     "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
     "test:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm run test && cd ../../",
-    "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test && cd ../../",
+    "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run pretest && npm run test && cd ../../",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm run test && cd ../../",
     "doc-ng2": "npm -g install @compodoc/compodoc aglio && compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs && npm run doc:api -- --branding=default --portal=rdmp && aglio -i support/docs/generated/api/apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
