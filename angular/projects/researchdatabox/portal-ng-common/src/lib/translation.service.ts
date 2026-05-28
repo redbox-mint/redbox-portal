@@ -100,7 +100,15 @@ export class TranslationService extends HttpClientService implements Service {
     }
 
     if (Array.isArray(value)) {
-      return `array:[${value.map((item) => this.serializeTranslationCacheKeyPart(item, seen)).join(',')}]`;
+      if (seen.has(value)) {
+        return 'array:[circular]';
+      }
+
+      seen.add(value);
+      const items = value.map((item) => this.serializeTranslationCacheKeyPart(item, seen));
+      seen.delete(value);
+
+      return `array:[${items.join(',')}]`;
     }
 
     if (typeof value === 'object') {

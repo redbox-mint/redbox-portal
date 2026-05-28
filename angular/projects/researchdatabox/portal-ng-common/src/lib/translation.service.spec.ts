@@ -141,6 +141,13 @@ describe('TranslationService testing', () => {
     expect(translationService.t('dashboard-heading', secondOptions)).toEqual('My Draft Records');
   });
 
+  it('should serialize circular arrays in translation cache keys', function () {
+    const circularArray: unknown[] = [];
+    circularArray.push(circularArray);
+
+    expect((translationService as any).serializeTranslationCacheKeyPart(circularArray)).toEqual('array:[array:[circular]]');
+  });
+
   it('should resolve translation keys containing colon characters', async function () {
     const mockConfigData = {
       csrfToken: 'test',
