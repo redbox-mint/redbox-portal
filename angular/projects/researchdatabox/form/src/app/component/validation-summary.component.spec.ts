@@ -916,8 +916,8 @@ describe('ValidationSummaryFieldComponent', () => {
       editCssClasses: "redbox-form form",
       validators : [
         {
-          class: 'different-values',
-          config: {controlNames: ['text_2_event', 'text_1_event']},
+          class: 'pattern',
+          config: {pattern: '[0-9]+', description: "must be a number"},
         },
         {
           class: 'different-values',
@@ -928,14 +928,17 @@ describe('ValidationSummaryFieldComponent', () => {
       componentDefinitions: [
         {
           name: 'text_1_event',
-          model: {class: 'SimpleInputModel', config: {value: ''}},
+          model: {
+            class: 'SimpleInputModel',
+            config: {value: ''},
+          },
           component: {class: 'SimpleInputComponent'}
         },
         {
           name: 'text_2_event',
           model: {
             class: 'SimpleInputModel',
-            config: {value: '', validators: [{ class: 'required' }]}
+            config: {value: '', validators: [{class: 'required'}]},
           },
           component: {class: 'SimpleInputComponent'}
         },
@@ -963,8 +966,10 @@ describe('ValidationSummaryFieldComponent', () => {
         message:  '@validator-error-form-level',
         errors: [
           {
-            class: 'different-values', message: '@validator-error-different-values', params: {
-              controlNames: ['text_1_event', 'text_2_event'], controlCount: 2, valueCount: 1, values: [''],
+            class: 'pattern', message: '@validator-error-pattern', params: {
+              requiredPattern: '^[0-9]+$',
+              description: 'must be a number',
+              actual: '[object Object]',
             },
           }
         ],
@@ -998,7 +1003,7 @@ describe('ValidationSummaryFieldComponent', () => {
             class: 'different-values', message: '@validator-error-different-values', params: {
               controlNames: ['text_1_event', 'text_2_event'], controlCount: 2, valueCount: 1, values: ['']
             },
-            targetField: {angularComponents: ['text_1_event']},
+            targetField: {formConfig: ['componentDefinitions', 0]},
           }
         ],
         lineagePaths: {
@@ -1013,8 +1018,12 @@ describe('ValidationSummaryFieldComponent', () => {
     ]);
 
     const nativeEl: HTMLElement = fixture.nativeElement;
-    const link = nativeEl.querySelector('.validation-summary-item a');
-    expect(link).toBeTruthy();
-    expect(link?.textContent?.trim()).toBe('form-labelMessage');
+    const summaryItems = nativeEl.querySelectorAll('.validation-summary-item');
+    expect(summaryItems.length).toEqual(3);
+    expect(Array.from(summaryItems).map(l => l.textContent?.trim())).toEqual([
+      '@validator-error-form-level@validator-error-pattern',
+      'form-item-id-text-2-event@validator-error-required',
+      'form-item-id-text-1-event@validator-error-different-values',
+    ]);
   });
 });

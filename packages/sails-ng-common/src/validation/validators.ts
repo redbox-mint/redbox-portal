@@ -244,15 +244,15 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           ?.filter(i => i !== null && i !== undefined)
           ?.map(n => control?.get(n?.toString())) ?? [];
         const values = new Set(controls?.map(c => c?.value) ?? []);
-        if (values.size !== controls.length) {
-          return formValidatorBuildError(config, {
+        const compare = values.size === controls.length;
+        return compare
+          ? null
+          : formValidatorBuildError(config, {
             controlNames: optionControlNamesValue,
             controlCount: optionControlNamesValue?.length,
             valueCount: values.size,
             values: Array.from(values),
           });
-        }
-        return null;
       };
     },
   },

@@ -173,9 +173,9 @@ export function normaliseVisual(value: unknown): string {
 }
 
 /**
- * Determine if any lineage path in two lineage paths match.
- * @param a The first lineage paths.
- * @param b The second lineage paths.
+ * Determine if every key present in both lineage paths match.
+ * @param a The first lineage paths object.
+ * @param b The second lineage paths object.
  */
 export function isMatchingLineagePaths(a: LineagePathsOptional, b: LineagePathsOptional): boolean {
   const aRecord: Record<string, LineagePath | string | undefined> = a ?? {};
@@ -211,9 +211,9 @@ export function isMatchingLineagePath(a: LineagePath | string, b: LineagePath | 
 }
 
 /**
- * Determine if a check lineage path starts with a base lineage path.
- * @param base The prefix.
- * @param check The item that should start with prefix.
+ * Determine if every key (present in both lineage paths) of a lineage path starts with a base lineage path.
+ * @param base The prefix lineage paths object.
+ * @param check The lineage paths object that should start with the prefix.
  */
 export function isPrefixLineagePaths(base: LineagePathsOptional, check: LineagePathsOptional): boolean {
   const aRecord: Record<string, LineagePath | string | undefined> = base ?? {};

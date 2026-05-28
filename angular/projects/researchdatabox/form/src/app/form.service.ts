@@ -77,6 +77,7 @@ import {
   ValidatorsSupport,
   LineagePathsOptional,
   isPrefixLineagePaths,
+  isMatchingLineagePaths,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -792,8 +793,8 @@ export class FormService extends HttpClientService {
     const validatorFns = this.getValidatorInstances(enabledValidators)
 
     // For debugging:
-    this.loggerService.debug(`${this.logName}: setting validators to formControl`,
-      {definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns});
+    // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
+    //   JSON.stringify({definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns}));
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
@@ -1207,9 +1208,12 @@ export class FormService extends HttpClientService {
         // Find component by checking if any mapEntry lineage path starts with the name.
         const base = name;
         const check = mapEntry.lineagePaths;
-        const isMatch = isPrefixLineagePaths(base, check);
 
-        if (isMatch) {
+        if (isMatchingLineagePaths(base, check)) {
+          return mapEntry;
+        }
+
+        if (isPrefixLineagePaths(base, check)) {
           // Add the mapEntry's children
           collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
         }

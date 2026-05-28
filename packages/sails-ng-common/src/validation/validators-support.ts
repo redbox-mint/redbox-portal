@@ -76,6 +76,7 @@ export class ValidatorsSupport {
    * @param errors The control's errors.
    */
   public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
+    console.warn(`getFormValidatorComponentErrors errors: ${JSON.stringify(errors)}`);
     const result: FormValidatorComponentErrors[] = [];
     for (const [key, value] of Object.entries(errors ?? {})) {
       const item: FormValidatorComponentErrors = {
@@ -88,6 +89,7 @@ export class ValidatorsSupport {
       }
       result.push(item);
     }
+    console.warn(`getFormValidatorComponentErrors result: ${JSON.stringify(result)}`);
     return result;
   }
 
