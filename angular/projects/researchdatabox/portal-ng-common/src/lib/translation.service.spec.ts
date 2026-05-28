@@ -82,6 +82,65 @@ describe('TranslationService testing', () => {
     expect(translationService.t('key1')).toEqual("value1");
   });
 
+  it('should cache translations separately for different interpolation option objects', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        resources: {
+          en: {
+            translation: {
+              'dashboard-heading': 'My {{stage}} {{recordTypeName}}'
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+
+    expect(translationService.t('dashboard-heading', { stage: 'Draft', recordTypeName: 'Records' })).toEqual('My Draft Records');
+    expect(translationService.t('dashboard-heading', { stage: 'Queued For Review', recordTypeName: 'Records' })).toEqual('My Queued For Review Records');
+  });
+
+  it('should create the same cache entry for equivalent option objects with different property order', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en'],
+        ns: ['translation'],
+        resources: {
+          en: {
+            translation: {
+              'dashboard-heading': 'My {{stage}} {{recordTypeName}}'
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+
+    const firstOptions = { stage: 'Draft', recordTypeName: 'Records' };
+    const secondOptions = { recordTypeName: 'Records', stage: 'Draft' };
+
+    expect(translationService.t('dashboard-heading', firstOptions)).toEqual('My Draft Records');
+    expect(translationService.t('dashboard-heading', secondOptions)).toEqual('My Draft Records');
+  });
+
   it('should resolve translation keys containing colon characters', async function () {
     const mockConfigData = {
       csrfToken: 'test',

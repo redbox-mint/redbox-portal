@@ -130,7 +130,12 @@ export namespace Services {
       if (validConfigs.length === 0) {
         return this.getDefaultDashboardTableConfig();
       }
-      return _.merge({}, ...validConfigs) as DashboardTableConfig;
+      return _.mergeWith({}, ...validConfigs, (_objValue: unknown, srcValue: unknown) => {
+        if (_.isArray(srcValue)) {
+          return _.cloneDeep(srcValue);
+        }
+        return undefined;
+      }) as DashboardTableConfig;
     }
 
     private async getDashboardTypeDefinitionForBrand(brand: BrandingModel, dashboardType: string): Promise<DashboardTypeDefinition | null> {
