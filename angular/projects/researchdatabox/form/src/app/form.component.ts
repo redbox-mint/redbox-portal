@@ -270,6 +270,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   subMaps: Record<string, Subscription> = {};
 
+  private isDestroyed = false;
+
   /**
    * Debug info structure
    */
@@ -1127,6 +1129,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsSaving = _isNull(this.saveResponse());
     const formIsModified = this.form?.dirty || forceSave;
+    if (this.form?.pending && !forceSave) {
+      await this.waitForPendingValidation();
+      this.broadcastFormStatus();
+    }
     // At this point, only the validators that we want to run will be set on the angular components.
     const formIsValid = this.form?.valid || forceSave;
 
@@ -1211,6 +1217,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       const message = !this.form ? 'Form is not defined.' : 'Form has not been modified.';
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
       this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
+    }
+  }
+
+  private async waitForPendingValidation(): Promise<void> {
+    while (this.form?.pending && !this.isDestroyed) {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
   }
 
@@ -1388,6 +1400,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   override ngOnDestroy(): void {
     super.ngOnDestroy();
+    this.isDestroyed = true;
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.focusRequestCoordinator.destroy();
