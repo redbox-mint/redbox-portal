@@ -141,6 +141,43 @@ describe('TranslationService testing', () => {
     expect(translationService.t('dashboard-heading', secondOptions)).toEqual('My Draft Records');
   });
 
+  it('should clear cached translations when the language changes', async function () {
+    const mockConfigData = {
+      csrfToken: 'test',
+      rootContext: 'base',
+      branding: 'default',
+      portal: 'rdmp',
+      baseUrl: '',
+      i18NextOpts: {
+        lng: 'en',
+        fallbackLng: 'en',
+        supportedLngs: ['en', 'fr'],
+        ns: ['translation'],
+        resources: {
+          en: {
+            translation: {
+              'dashboard-heading': 'My {{stage}} {{recordTypeName}}'
+            }
+          },
+          fr: {
+            translation: {
+              'dashboard-heading': 'Mes {{stage}} {{recordTypeName}}'
+            }
+          }
+        }
+      }
+    };
+    configService.getConfig = function () { return mockConfigData };
+    await translationService.waitForInit();
+
+    const options = { stage: 'Draft', recordTypeName: 'Records' };
+    expect(translationService.t('dashboard-heading', options)).toEqual('My Draft Records');
+
+    await translationService.changeLanguage('fr');
+
+    expect(translationService.t('dashboard-heading', options)).toEqual('Mes Draft Records');
+  });
+
   it('should serialize circular arrays in translation cache keys', function () {
     const circularArray: unknown[] = [];
     circularArray.push(circularArray);

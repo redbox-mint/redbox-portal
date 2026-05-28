@@ -146,7 +146,10 @@ export class TranslationService extends HttpClientService implements Service {
     this.loadPath = `${this.rootContext}/default/rdmp/locales/{{lng}}/{{ns}}.json`;
     this.i18NextService.on('initialized', () => this.translationChanges.next());
     this.i18NextService.on('loaded', () => this.translationChanges.next());
-    this.i18NextService.on('languageChanged', () => this.translationChanges.next());
+    this.i18NextService.on('languageChanged', () => {
+      this.translationKeyValueCache.clear();
+      this.translationChanges.next();
+    });
   }
 
   async initTranslator(): Promise<this> {
