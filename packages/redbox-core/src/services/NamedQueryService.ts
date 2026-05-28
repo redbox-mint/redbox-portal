@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
-import type { NamedQueryDefinition } from '../config/namedQuery.config';
+import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
 import { DateTime } from 'luxon';
 import Handlebars from 'handlebars';
 import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
@@ -126,6 +126,10 @@ export namespace Services {
       "performNamedQuery",
       "performNamedQueryFromConfig",
       "performNamedQueryFromConfigResults",
+      "create",
+      "list",
+      "update",
+      "delete",
     ];
 
     public async bootstrap(defBrand: BrandingModel) {
@@ -148,13 +152,13 @@ export namespace Services {
 
     private async createNamedQueriesForBrand(defBrand: BrandingModel) {
       for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
-        const namedQueryConfig = config as NamedQueryConfig;
-        await firstValueFrom(this.create(defBrand, namedQuery, namedQueryConfig));
+        const namedQueryConfig = config as NamedQueryDefinition;
+        await this.create(defBrand, namedQuery, namedQueryConfig);
       }
     }
 
-    public create(brand: BrandingModel, name: string, config: NamedQueryConfig) {
-      return super.getObservable(NamedQuery.create({
+    public async create(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
+      return firstValueFrom(super.getObservable(NamedQuery.create({
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
@@ -167,7 +171,48 @@ export namespace Services {
         relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
           ? JSON.stringify(config.relatedRecordFilters)
           : "",
-      }));
+      })));
+    }
+
+
+    public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
+      const records = (await NamedQuery.find({
+        branding: brand.id
+      })) as NamedQueryAttributes[];
+      return records.map((r) => ({
+        name: r.name,
+        collectionName: r.collectionName,
+        mongoQuery: parseSerializedValue<Record<string, unknown>>(r.mongoQuery, {}),
+        queryParams: parseSerializedValue<Record<string, NamedQueryParam>>(r.queryParams, {}),
+        resultObjectMapping: parseSerializedValue<Record<string, string>>(r.resultObjectMapping, {}),
+        brandIdFieldPath: r.brandIdFieldPath || undefined,
+        sort: r.sort ? parseSerializedValue<Array<Record<string, 'ASC' | 'DESC'>>>(r.sort, []) as Array<Record<string, 'ASC' | 'DESC'>> : undefined,
+        expandRelations: r.expandRelations || false,
+        relatedRecordFilters: r.relatedRecordFilters ? parseSerializedValue<RelatedRecordFilter[]>(r.relatedRecordFilters, []) : undefined,
+      })) as unknown as NamedQueryDefinition[];
+    }
+
+    public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
+      const key = `${brand.id}_${name}`;
+      return firstValueFrom(super.getObservable(NamedQuery.update({ key }, {
+        name: name,
+        branding: brand.id,
+        mongoQuery: JSON.stringify(config.mongoQuery),
+        queryParams: JSON.stringify(config.queryParams),
+        collectionName: config.collectionName,
+        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
+        brandIdFieldPath: config.brandIdFieldPath,
+        sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
+        expandRelations: config.expandRelations === true,
+        relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
+          ? JSON.stringify(config.relatedRecordFilters)
+          : "",
+      })));
+    }
+
+    public async delete(brand: BrandingModel, name: string) {
+      const key = `${brand.id}_${name}`;
+      return firstValueFrom(super.getObservable(NamedQuery.destroy({ key })));
     }
 
 

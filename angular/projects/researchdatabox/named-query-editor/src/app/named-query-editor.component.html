@@ -1,0 +1,117 @@
+<ng-container *ngIf="isReady">
+  <div class="container-fluid py-3"
+       [attr.aria-hidden]="isEditModalOpen || isDeleteModalOpen ? 'true' : null"
+       [attr.inert]="isEditModalOpen || isDeleteModalOpen ? '' : null">
+    <div class="row align-items-end mb-3">
+      <div class="col-md-8"></div>
+      <div class="col-md-4 mt-3 mt-md-0">
+        <div class="d-flex justify-content-md-end flex-wrap">
+          <span class="badge badge-light mr-2 mb-2 p-2">
+            {{ 'named-query-count-total' | i18next: { count: totalQueries } }}
+          </span>
+          <span class="badge badge-light mb-2 p-2">
+            {{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex flex-wrap mb-2 mb-md-0 nq-action-group"
+             role="group"
+             [attr.aria-label]="'named-query-actions-aria-label' | i18next">
+          <button class="btn btn-primary nq-action-button" type="button" (click)="newQuery()">
+            {{ 'named-query-create-button' | i18next }}
+          </button>
+        </div>
+        <small class="text-muted">{{ 'named-query-row-help' | i18next }}</small>
+      </div>
+    </div>
+
+    <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
+    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <nq-list
+      [queries]="filteredQueries"
+      [selectedName]="selectedQuery?.name || null"
+      [query]="listQuery"
+      (queryChanged)="onListQueryChanged($event)"
+      (selected)="openQuery($event)"
+      (deleted)="requestDelete($event)">
+    </nq-list>
+  </div>
+</ng-container>
+
+<div *ngIf="isDeleteModalOpen"
+     class="modal fade show d-block delete-named-query-modal"
+     tabindex="-1"
+     role="alertdialog"
+     aria-modal="true"
+     aria-labelledby="deleteNamedQueryModalTitle"
+     aria-describedby="deleteNamedQueryModalDescription"
+     (keydown.escape)="cancelDelete()">
+  <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title h4-header" id="deleteNamedQueryModalTitle">
+          {{ 'named-query-confirm-delete-title' | i18next }}
+        </span>
+        <button type="button" class="btn-close"
+                [attr.aria-label]="'named-query-close' | i18next"
+                (click)="cancelDelete()"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2" id="deleteNamedQueryModalDescription">
+          {{ 'named-query-confirm-delete' | i18next }}
+        </p>
+        <p *ngIf="pendingDeleteDisplayName" class="mb-0 text-muted">
+          {{ 'named-query-confirm-delete-detail' | i18next: { name: pendingDeleteDisplayName } }}
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
+          {{ 'named-query-cancel' | i18next }}
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">
+          {{ 'named-query-delete' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="isDeleteModalOpen" class="modal-backdrop fade show delete-named-query-backdrop" aria-hidden="true"></div>
+
+<div *ngIf="isEditModalOpen"
+     class="modal fade show d-block"
+     tabindex="-1"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="namedQueryModalTitle"
+     (keydown.escape)="closeEditModal()">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title h4-header" id="namedQueryModalTitle">
+          {{ isNew ? ('named-query-create-title' | i18next) : ('named-query-edit-title' | i18next: { name: draft.name }) }}
+        </span>
+        <button type="button" class="btn-close"
+                [attr.aria-label]="'named-query-close' | i18next"
+                (click)="closeEditModal()"
+                cdkFocusInitial></button>
+      </div>
+      <div class="modal-body">
+        <nq-detail [draft]="draft" [isNew]="isNew"></nq-detail>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave">
+          {{ 'named-query-save' | i18next }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
+          {{ 'named-query-cancel' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="isEditModalOpen" class="modal-backdrop fade show" aria-hidden="true"></div>

@@ -45,6 +45,8 @@ describe('NamedQueryService', function() {
       find: sinon.stub().returns(createQueryObject([])),
       findOne: sinon.stub().resolves(null),
       create: sinon.stub().returns(createQueryObject({})),
+      update: sinon.stub().returns(createQueryObject([])),
+      destroy: sinon.stub().returns(createQueryObject([])),
       destroyOne: sinon.stub().resolves({})
     };
 
@@ -142,15 +144,122 @@ describe('NamedQueryService', function() {
           foreignField: 'recordId'
         }]
       };
-      
+
       mockNamedQuery.create.returns(createQueryObject({ id: 'new-query' }));
-      
-      const result = await NamedQueryService.create(brand, 'test-query', config).toPromise();
-      
+
+      const result = await NamedQueryService.create(brand, 'test-query', config);
+
       expect(mockNamedQuery.create.called).to.be.true;
       expect(mockNamedQuery.create.firstCall.args[0]).to.include({ expandRelations: true });
       expect(mockNamedQuery.create.firstCall.args[0].relatedRecordFilters).to.equal(JSON.stringify(config.relatedRecordFilters));
       expect(result).to.deep.equal({ id: 'new-query' });
+    });
+  });
+
+  describe('list', function() {
+    it('should return empty array when no named queries exist', async function() {
+      const brand = { id: 'brand-1' };
+      mockNamedQuery.find.returns(createQueryObject([]));
+
+      const result = await NamedQueryService.list(brand);
+
+      expect(mockNamedQuery.find.calledOnce).to.be.true;
+      expect(mockNamedQuery.find.firstCall.args[0]).to.deep.equal({ branding: 'brand-1' });
+      expect(result).to.deep.equal([]);
+    });
+
+    it('should deserialize and return named queries', async function() {
+      const brand = { id: 'brand-1' };
+      const dbRecords = [{
+        name: 'test-query',
+        collectionName: 'record',
+        mongoQuery: '{"type":"test"}',
+        queryParams: '{"status":{"type":"string","path":"status"}}',
+        resultObjectMapping: '{"oid":"{{record.redboxOid}}"}',
+        brandIdFieldPath: 'metaMetadata.brandId',
+        sort: '[{"lastSaveDate":"DESC"}]',
+        expandRelations: true,
+        relatedRecordFilters: '[{"collectionName":"relatedmodel","mongoQuery":{},"localField":"relatedId","foreignField":"recordId"}]'
+      }];
+
+      mockNamedQuery.find.returns(createQueryObject(dbRecords));
+
+      const result = await NamedQueryService.list(brand);
+
+      expect(result).to.have.length(1);
+      expect(result[0].name).to.equal('test-query');
+      expect(result[0].mongoQuery).to.deep.equal({ type: 'test' });
+      expect(result[0].queryParams).to.deep.equal({ status: { type: 'string', path: 'status' } });
+      expect(result[0].resultObjectMapping).to.deep.equal({ oid: '{{record.redboxOid}}' });
+      expect(result[0].brandIdFieldPath).to.equal('metaMetadata.brandId');
+      expect(result[0].sort).to.deep.equal([{ lastSaveDate: 'DESC' }]);
+      expect(result[0].expandRelations).to.be.true;
+      expect(result[0].relatedRecordFilters).to.deep.equal([{ collectionName: 'relatedmodel', mongoQuery: {}, localField: 'relatedId', foreignField: 'recordId' }]);
+    });
+
+    it('should handle undefined optional fields gracefully', async function() {
+      const brand = { id: 'brand-1' };
+      const dbRecords = [{
+        name: 'minimal-query',
+        collectionName: 'user',
+        mongoQuery: '{}',
+        queryParams: '{}',
+        resultObjectMapping: '{}',
+        brandIdFieldPath: null,
+        sort: '',
+        expandRelations: false,
+        relatedRecordFilters: ''
+      }];
+
+      mockNamedQuery.find.returns(createQueryObject(dbRecords));
+
+      const result = await NamedQueryService.list(brand);
+
+      expect(result[0].name).to.equal('minimal-query');
+      expect(result[0].brandIdFieldPath).to.be.undefined;
+      expect(result[0].sort).to.be.undefined;
+      expect(result[0].expandRelations).to.be.false;
+      expect(result[0].relatedRecordFilters).to.be.undefined;
+    });
+  });
+
+  describe('update', function() {
+    it('should update named query by composite key', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: { type: 'updated' },
+        queryParams: {},
+        collectionName: 'record',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'branding',
+        sort: [{ name: 'ASC' }],
+        expandRelations: false,
+        relatedRecordFilters: []
+      };
+
+      mockNamedQuery.update.returns(createQueryObject([{ id: 'updated-query' }]));
+
+      const result = await NamedQueryService.update(brand, 'test-query', config);
+
+      expect(mockNamedQuery.update.calledOnce).to.be.true;
+      expect(mockNamedQuery.update.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
+      expect(mockNamedQuery.update.firstCall.args[0].key).to.equal('brand-1_test-query');
+      expect(mockNamedQuery.update.firstCall.args[1].mongoQuery).to.equal('{"type":"updated"}');
+      expect(result).to.deep.equal([{ id: 'updated-query' }]);
+    });
+  });
+
+  describe('delete', function() {
+    it('should delete named query by composite key', async function() {
+      const brand = { id: 'brand-1' };
+
+      mockNamedQuery.destroy.returns(createQueryObject([{ id: 'deleted-query' }]));
+
+      const result = await NamedQueryService.delete(brand, 'test-query');
+
+      expect(mockNamedQuery.destroy.calledOnce).to.be.true;
+      expect(mockNamedQuery.destroy.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
+      expect(result).to.deep.equal([{ id: 'deleted-query' }]);
     });
   });
 

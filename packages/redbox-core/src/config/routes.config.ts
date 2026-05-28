@@ -327,6 +327,10 @@ export const routes: RoutesConfig = {
         action: 'render',
         locals: { 'view': 'admin/branding' }
     },
+    'get /:branding/:portal/admin/named-query': {
+        controller: 'NamedQueryController',
+        action: 'editor'
+    },
 
     ...buildMergedApiRouteConfig(),
 

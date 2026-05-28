@@ -21,6 +21,7 @@ export interface RelatedRecordFilterDefinition {
 }
 
 export interface NamedQueryDefinition {
+    name?: string;
     collectionName: string;
     brandIdFieldPath?: string;
     resultObjectMapping: Record<string, string>;
