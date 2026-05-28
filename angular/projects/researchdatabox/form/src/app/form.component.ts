@@ -1149,7 +1149,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         return;
       }
       if (!validationSettled) {
-        this.saveResponse.set(undefined);
         const message = 'Form validation timed out. Please try again.';
         this.loggerService.warn(`${this.logName}: ${message}`);
         this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
