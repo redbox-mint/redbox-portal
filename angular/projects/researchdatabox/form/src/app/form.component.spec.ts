@@ -1,5 +1,6 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
+import { FormControl, FormGroup } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -335,6 +336,46 @@ describe('FormComponent', () => {
       targetStep: 'legacy-step',
       enabledValidationGroups:  ['none'],
     });
+  });
+
+  it('waits for pending async validation before saving', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    let resolveValidation: (() => void) | undefined;
+    let validatorRuns = 0;
+    const asyncValidator = () => {
+      validatorRuns += 1;
+      if (validatorRuns === 1) {
+        return new Promise<null>(resolve => {
+          resolveValidation = () => resolve(null);
+        });
+      }
+      return Promise.resolve(null);
+    };
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready', {
+        asyncValidators: [asyncValidator],
+      }),
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    let saveCompleted = false;
+    const savePromise = formComponent.saveForm().then(() => {
+      saveCompleted = true;
+    });
+    await Promise.resolve();
+
+    expect(formComponent.form.pending).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(saveCompleted).toBeFalse();
+
+    resolveValidation?.();
+    await savePromise;
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(saveCompleted).toBeTrue();
   });
 
   it('applies requested validation groups before saving', async () => {
