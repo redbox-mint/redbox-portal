@@ -49,6 +49,8 @@
           <input id="nq-name" type="text" class="form-control"
                  [(ngModel)]="draft.name"
                  [readonly]="!isNew"
+                 pattern="[A-Za-z0-9_-]+"
+                 title="Letters, numbers, underscores, and hyphens only"
                  [attr.placeholder]="'named-query-name-placeholder' | i18next" />
           <small *ngIf="!isNew" class="form-text text-muted">{{ 'named-query-name-readonly-help' | i18next }}</small>
         </div>

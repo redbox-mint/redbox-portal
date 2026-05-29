@@ -74,7 +74,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   get canSave(): boolean {
     if (!this.isEditModalOpen) return false;
-    if (this.isNew && !this.draft.name?.trim()) return false;
+    if (this.isNew) {
+      const trimmed = this.draft.name?.trim();
+      if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
+    }
     return !!this.draft.collectionName?.trim();
   }
 
@@ -144,8 +147,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   async save(): Promise<void> {
     if (!this.canSave) {
-      if (this.isNew && !this.draft.name?.trim()) {
-        this.error = this.t('named-query-error-name-required', 'Named query name is required');
+      if (this.isNew) {
+        const trimmed = this.draft.name?.trim();
+        if (!trimmed) {
+          this.error = this.t('named-query-error-name-required', 'Named query name is required');
+        } else if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
+          this.error = this.t('named-query-error-name-invalid', 'Named query name must be URL safe (letters, numbers, underscores, hyphens only)');
+        }
       } else {
         this.error = this.t('named-query-error-collection-required', 'Collection name is required');
       }

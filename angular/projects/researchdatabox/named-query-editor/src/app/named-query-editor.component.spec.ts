@@ -163,6 +163,21 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.canSave).toBeTrue();
   });
 
+  it('canSave requires URL-safe name for new queries', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+
+    component.isEditModalOpen = true;
+    component.isNew = true;
+    component.draft = { name: 'foo/bar', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    expect(component.canSave).toBeFalse();
+
+    component.draft.name = 'valid_name-123';
+    expect(component.canSave).toBeTrue();
+  });
+
   it('opens existing query', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
@@ -256,6 +271,20 @@ describe('NamedQueryEditorComponent', () => {
     await component.save();
 
     expect(component.error).toContain('name is required');
+  });
+
+  it('shows validation error when saving with invalid name', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+
+    component.isNew = true;
+    component.isEditModalOpen = true;
+    component.draft = { name: 'foo/bar', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    await component.save();
+
+    expect(component.error).toContain('URL safe');
   });
 
   it('shows backend error on save failure', async () => {
