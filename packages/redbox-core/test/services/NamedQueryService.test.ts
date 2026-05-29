@@ -154,6 +154,26 @@ describe('NamedQueryService', function() {
       expect(mockNamedQuery.create.firstCall.args[0].relatedRecordFilters).to.equal(JSON.stringify(config.relatedRecordFilters));
       expect(result).to.deep.equal({ id: 'new-query' });
     });
+
+    it('should throw if named query already exists', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: {},
+        queryParams: {},
+        collectionName: 'record',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'branding'
+      };
+
+      mockNamedQuery.findOne.resolves({ id: 'existing-query', name: 'test-query' });
+
+      try {
+        await NamedQueryService.create(brand, 'test-query', config);
+        expect.fail('Expected error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.equal("Named query 'test-query' already exists");
+      }
+    });
   });
 
   describe('list', function() {

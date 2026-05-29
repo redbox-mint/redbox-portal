@@ -158,6 +158,11 @@ export namespace Services {
     }
 
     public async create(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
+      const key = `${brand.id}_${name}`;
+      const existing = await NamedQuery.findOne({ key });
+      if (existing) {
+        throw new Error(`Named query '${name}' already exists`);
+      }
       return firstValueFrom(super.getObservable(NamedQuery.create({
         name: name,
         branding: brand.id,
