@@ -253,8 +253,11 @@ export namespace Services {
     public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
       const normalized = await this.validateMutableConfig(brand, config, false);
       const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery!.queryName);
+      if (!namedQueryConfig) {
+        throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery!.queryName}' not found`);
+      }
       const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
-      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig!, paramMap, brand, 0, 100);
+      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, 0, 100);
       const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
       response.success = true;
       return response;
