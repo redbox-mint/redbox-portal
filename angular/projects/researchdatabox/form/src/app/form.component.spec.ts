@@ -471,6 +471,83 @@ describe('FormComponent', () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  // Exercises the pending-validation save path under the full production
+  // subscription stack. createFormAndWaitForReady wires up formGroupChangesSub
+  // (form.events -> broadcastFormStatus), which the bare-FormGroup tests above
+  // skip. When the validator resolves, Angular emits a StatusChangeEvent in the
+  // same Angular tick that saveForm() resumes; this test pins down that the
+  // resulting broadcastFormStatus call does not deadlock or torpedo the save.
+  it('completes save when async validation resolves with form.events subscription live', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'async-validation-broadcast-subscription',
+      debugValue: false,
+      defaultComponentConfig: { defaultComponentCssClasses: 'row' },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'async_field',
+          model: { class: 'SimpleInputModel', config: { value: 'ready' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Single barrier shared across every call to the async validator: any
+    // re-trigger (including broadcastFormStatus -> updateValueAndValidity) awaits
+    // the same promise, so the form stays pending until we explicitly release it.
+    let releaseBarrier!: (value: null) => void;
+    const barrier = new Promise<null>(resolve => { releaseBarrier = resolve; });
+    const asyncValidator = () => barrier;
+
+    formComponent.form!.markAsDirty();
+    formComponent.form!.setAsyncValidators([asyncValidator]);
+    formComponent.form!.updateValueAndValidity();
+    await Promise.resolve();
+    expect(formComponent.form!.pending).toBeTrue();
+
+    const broadcastSpy = spyOn(formComponent, 'broadcastFormStatus').and.callThrough();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const failureEvents: any[] = [];
+    const validationBroadcasts: FormValidationBroadcastEvent[] = [];
+    const successSub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(evt => successEvents.push(evt));
+    const failureSub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(evt => failureEvents.push(evt));
+    const broadcastEventSub = bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .subscribe(evt => validationBroadcasts.push(evt));
+
+    try {
+      const savePromise = formComponent.saveForm();
+      await Promise.resolve();
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(formComponent.form!.pending).toBeTrue();
+
+      const broadcastCallsBeforeResolve = broadcastSpy.calls.count();
+      const broadcastEventsBeforeResolve = validationBroadcasts.length;
+
+      releaseBarrier(null);
+      await savePromise;
+
+      // The formGroupChangesSub subscription must have fired broadcastFormStatus
+      // at least once between releasing the barrier and the save completing.
+      // That call publishes a FORM_VALIDATION_BROADCAST and re-runs validators
+      // synchronously; if any of that interfered with the save resumption we
+      // would either see no update call or a FORM_SAVE_FAILURE.
+      expect(broadcastSpy.calls.count()).toBeGreaterThan(broadcastCallsBeforeResolve);
+      expect(validationBroadcasts.length).toBeGreaterThan(broadcastEventsBeforeResolve);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy.calls.mostRecent().args[1]).toEqual({ async_field: 'ready' });
+      expect(successEvents.length).toBe(1);
+      expect(failureEvents.length).toBe(0);
+    } finally {
+      successSub.unsubscribe();
+      failureSub.unsubscribe();
+      broadcastEventSub.unsubscribe();
+    }
+  });
+
   it('applies requested validation groups before saving', async () => {
     const formConfig: FormConfigFrame = {
       name: 'grouped-save-validation',
