@@ -2459,6 +2459,266 @@
     "description": "Heading for filters on the admin report results page",
     "contentFormat": "plain"
   },
+  "report-create": {
+    "category": "reports",
+    "description": "Button or link label to create a new report",
+    "contentFormat": "plain"
+  },
+  "report-manage-named-queries": {
+    "category": "reports",
+    "description": "Link label to manage named database queries",
+    "contentFormat": "plain"
+  },
+  "report-stat-total": {
+    "category": "reports",
+    "description": "Statistic label showing the total number of reports",
+    "contentFormat": "plain"
+  },
+  "report-stat-database": {
+    "category": "reports",
+    "description": "Statistic label showing the number of database reports",
+    "contentFormat": "plain"
+  },
+  "report-stat-solr": {
+    "category": "reports",
+    "description": "Statistic label showing the number of Solr reports",
+    "contentFormat": "plain"
+  },
+  "report-configured-reports": {
+    "category": "reports",
+    "description": "Heading for the list of configured reports",
+    "contentFormat": "plain"
+  },
+  "report-source-all": {
+    "category": "reports",
+    "description": "Filter option label for all report sources",
+    "contentFormat": "plain"
+  },
+  "report-source-database": {
+    "category": "reports",
+    "description": "Filter option label for database report sources",
+    "contentFormat": "plain"
+  },
+  "report-source-solr": {
+    "category": "reports",
+    "description": "Filter option label for Solr report sources",
+    "contentFormat": "plain"
+  },
+  "report-search-placeholder": {
+    "category": "reports",
+    "description": "Placeholder text for the report search input",
+    "contentFormat": "plain"
+  },
+  "report-col-title": {
+    "category": "reports",
+    "description": "Table column heading for report title",
+    "contentFormat": "plain"
+  },
+  "report-col-name": {
+    "category": "reports",
+    "description": "Table column heading for report name",
+    "contentFormat": "plain"
+  },
+  "report-col-source": {
+    "category": "reports",
+    "description": "Table column heading for report source",
+    "contentFormat": "plain"
+  },
+  "report-col-filters": {
+    "category": "reports",
+    "description": "Table column heading for report filters",
+    "contentFormat": "plain"
+  },
+  "report-col-columns": {
+    "category": "reports",
+    "description": "Table column heading for report columns",
+    "contentFormat": "plain"
+  },
+  "report-col-actions": {
+    "category": "reports",
+    "description": "Table column heading for report actions",
+    "contentFormat": "plain"
+  },
+  "report-state-readonly": {
+    "category": "reports",
+    "description": "Badge or label indicating a report is read-only",
+    "contentFormat": "plain"
+  },
+  "report-action-edit": {
+    "category": "reports",
+    "description": "Action label to edit a report",
+    "contentFormat": "plain"
+  },
+  "report-action-view": {
+    "category": "reports",
+    "description": "Action label to view a report",
+    "contentFormat": "plain"
+  },
+  "report-action-delete": {
+    "category": "reports",
+    "description": "Action label to permanently delete a report",
+    "contentFormat": "plain"
+  },
+  "report-action-remove": {
+    "category": "reports",
+    "description": "Action label to remove a report",
+    "contentFormat": "plain"
+  },
+  "report-none-found": {
+    "category": "reports",
+    "description": "Empty-state message when no reports are found",
+    "contentFormat": "plain"
+  },
+  "report-showing": {
+    "category": "reports",
+    "description": "Status text showing how many reports are displayed",
+    "contentFormat": "plain"
+  },
+  "report-edit-title": {
+    "category": "reports",
+    "description": "Page or modal heading when editing a report",
+    "contentFormat": "plain"
+  },
+  "report-create-title": {
+    "category": "reports",
+    "description": "Page or modal heading when creating a report",
+    "contentFormat": "plain"
+  },
+  "report-field-key": {
+    "category": "reports",
+    "description": "Form field label for the report key",
+    "contentFormat": "plain"
+  },
+  "report-field-title": {
+    "category": "reports",
+    "description": "Form field label for the report title",
+    "contentFormat": "plain"
+  },
+  "report-field-source": {
+    "category": "reports",
+    "description": "Form field label for the report source",
+    "contentFormat": "plain"
+  },
+  "report-field-named-query": {
+    "category": "reports",
+    "description": "Form field label for the named query selection",
+    "contentFormat": "plain"
+  },
+  "report-named-query-placeholder": {
+    "category": "reports",
+    "description": "Placeholder text for the named query selector",
+    "contentFormat": "plain"
+  },
+  "report-section-filters": {
+    "category": "reports",
+    "description": "Section heading for report filters",
+    "contentFormat": "plain"
+  },
+  "report-section-columns": {
+    "category": "reports",
+    "description": "Section heading for report columns",
+    "contentFormat": "plain"
+  },
+  "report-filter-type": {
+    "category": "reports",
+    "description": "Form field label for filter type",
+    "contentFormat": "plain"
+  },
+  "report-filter-parameter": {
+    "category": "reports",
+    "description": "Form field label for filter parameter",
+    "contentFormat": "plain"
+  },
+  "report-filter-property": {
+    "category": "reports",
+    "description": "Form field label for filter property",
+    "contentFormat": "plain"
+  },
+  "report-filter-label": {
+    "category": "reports",
+    "description": "Form field label for filter label",
+    "contentFormat": "plain"
+  },
+  "report-filter-type-text": {
+    "category": "reports",
+    "description": "Option label for a text filter type",
+    "contentFormat": "plain"
+  },
+  "report-filter-type-date-range": {
+    "category": "reports",
+    "description": "Option label for a date-range filter type",
+    "contentFormat": "plain"
+  },
+  "report-filter-from-property": {
+    "category": "reports",
+    "description": "Form field label for the from property in a date-range filter",
+    "contentFormat": "plain"
+  },
+  "report-filter-to-property": {
+    "category": "reports",
+    "description": "Form field label for the to property in a date-range filter",
+    "contentFormat": "plain"
+  },
+  "report-no-filters": {
+    "category": "reports",
+    "description": "Message shown when no filters are configured",
+    "contentFormat": "plain"
+  },
+  "report-add-filter": {
+    "category": "reports",
+    "description": "Button label to add a filter",
+    "contentFormat": "plain"
+  },
+  "report-column-label": {
+    "category": "reports",
+    "description": "Form field label for column label",
+    "contentFormat": "plain"
+  },
+  "report-column-property": {
+    "category": "reports",
+    "description": "Form field label for column property / field expression",
+    "contentFormat": "plain"
+  },
+  "report-column-display-template": {
+    "category": "reports",
+    "description": "Form field label for column display template",
+    "contentFormat": "plain"
+  },
+  "report-column-export-template": {
+    "category": "reports",
+    "description": "Form field label for column export template",
+    "contentFormat": "plain"
+  },
+  "report-no-columns": {
+    "category": "reports",
+    "description": "Message shown when no columns are configured",
+    "contentFormat": "plain"
+  },
+  "report-add-column": {
+    "category": "reports",
+    "description": "Button label to add a column",
+    "contentFormat": "plain"
+  },
+  "report-preview-result": {
+    "category": "reports",
+    "description": "Status message showing preview row count",
+    "contentFormat": "plain"
+  },
+  "report-cancel": {
+    "category": "reports",
+    "description": "Button label to cancel report editing",
+    "contentFormat": "plain"
+  },
+  "report-preview": {
+    "category": "reports",
+    "description": "Button label to preview a report",
+    "contentFormat": "plain"
+  },
+  "report-save": {
+    "category": "reports",
+    "description": "Button label to save a report",
+    "contentFormat": "plain"
+  },
   "reports-heading": {
     "category": "reports",
     "description": "Admin reports list page heading",
@@ -2466,7 +2726,17 @@
   },
   "reports-description": {
     "category": "reports",
-    "description": "Supporting text on the admin reports list page",
+    "description": "Supporting text on the legacy reports list page shown to librarian users",
+    "contentFormat": "plain"
+  },
+  "reports-description-admin": {
+    "category": "reports",
+    "description": "Supporting text on the admin reports list page shown to admin users",
+    "contentFormat": "plain"
+  },
+  "reports-description-librarian": {
+    "category": "reports",
+    "description": "Supporting text on the librarian/legacy reports list page shown to librarian users",
     "contentFormat": "plain"
   },
   "orcid-given-names": {

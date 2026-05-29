@@ -33,8 +33,19 @@ export namespace Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {
-        (req.options!.locals as globalThis.Record<string, unknown>)["reports"] = reports;
+        const locals = req.options!.locals as globalThis.Record<string, unknown>;
+        locals["reports"] = reports;
+        locals["isAdmin"] = this.isBrandAdmin(req, brand);
         return this.sendView(req, res, 'admin/reports');
+      });
+    }
+
+    private isBrandAdmin(req: Sails.Req, brand: BrandingModel): boolean {
+      const roles = (req.user?.roles ?? []) as Array<{ name?: string; branding?: string | { id?: string } }>;
+      return roles.some(role => {
+        const roleBranding = role?.branding;
+        const roleBrandId = typeof roleBranding === 'string' ? roleBranding : roleBranding?.id;
+        return role?.name === 'Admin' && roleBrandId === brand.id;
       });
     }
 

@@ -57,6 +57,39 @@ type SolrSearchResponse = {
   };
 };
 
+type ReportConfigFilterDto = {
+  type: string;
+  paramName: string;
+  message: string;
+  messsage?: string;
+  property: string;
+  database?: { fromProperty: string; toProperty: string } | null;
+};
+
+type ReportConfigColumnDto = {
+  label: string;
+  property: string;
+  hide?: boolean;
+  exportTemplate?: string;
+  template?: string;
+  multivalue?: boolean;
+};
+
+export type ReportConfigDto = {
+  name: string;
+  title: string;
+  reportSource: 'database' | 'solr';
+  databaseQuery: { queryName: string } | null;
+  solrQuery: { baseQuery: string; searchCore: string } | null;
+  filter: ReportConfigFilterDto[];
+  columns: ReportConfigColumnDto[];
+  readOnly: boolean;
+  readOnlyReason?: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  canPreview: boolean;
+};
+
 
 export namespace Services {
   /**
@@ -81,6 +114,12 @@ export namespace Services {
       'getResults',
       'getCSVResult',
       'getReportDto',
+      'listConfigs',
+      'getConfig',
+      'createConfig',
+      'updateConfig',
+      'deleteConfig',
+      'previewConfig',
       'extractReportTemplates',
       //exported only for unit testing
       'getDataRows',
@@ -150,6 +189,140 @@ export namespace Services {
         filter: config.filter,
         columns: config.columns
       }));
+    }
+
+    public async listConfigs(brand: BrandingModel): Promise<ReportConfigDto[]> {
+      const reports = await firstValueFrom(this.findAllReportsForBrand(brand));
+      return reports.map(report => this.getReportConfigDto(report as unknown as ReportModel));
+    }
+
+    public async getConfig(brand: BrandingModel, name: string): Promise<ReportConfigDto | null> {
+      const report = await this.get(brand, name);
+      return report ? this.getReportConfigDto(report as unknown as ReportModel) : null;
+    }
+
+    public async createConfig(brand: BrandingModel, config: ReportConfigDto): Promise<ReportConfigDto> {
+      const normalized = await this.validateMutableConfig(brand, config, false);
+      const existing = await this.get(brand, normalized.name);
+      if (existing) {
+        throw new ReportConfigServiceError(409, `Report '${normalized.name}' already exists`);
+      }
+      const created = await firstValueFrom(this.create(brand, normalized.name, normalized as unknown as ReportConfig));
+      return this.getReportConfigDto(created as unknown as ReportModel);
+    }
+
+    public async updateConfig(brand: BrandingModel, name: string, config: ReportConfigDto): Promise<ReportConfigDto> {
+      const existing = await this.get(brand, name);
+      if (!existing) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      const existingDto = this.getReportConfigDto(existing as unknown as ReportModel);
+      if (existingDto.readOnly) {
+        throw new ReportConfigServiceError(403, 'Solr reports cannot be modified');
+      }
+      const normalized = await this.validateMutableConfig(brand, { ...config, name }, true);
+      if (config.name && config.name !== name) {
+        throw new ReportConfigServiceError(400, 'Report name cannot be changed');
+      }
+      const reportModel = this.getReportModel();
+      const updated = await reportModel.updateOne({ key: `${brand.id}_${name}` }).set({
+        title: normalized.title,
+        reportSource: normalized.reportSource,
+        databaseQuery: normalized.databaseQuery as unknown as Record<string, unknown>,
+        solrQuery: normalized.solrQuery as unknown as Record<string, unknown>,
+        filter: normalized.filter as unknown as Record<string, unknown>,
+        columns: normalized.columns
+      });
+      return this.getReportConfigDto(updated as unknown as ReportModel);
+    }
+
+    public async deleteConfig(brand: BrandingModel, name: string): Promise<{ deleted: boolean }> {
+      const existing = await this.get(brand, name);
+      if (!existing) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      if (this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
+        throw new ReportConfigServiceError(403, 'Solr reports cannot be deleted');
+      }
+      await this.getReportModel().destroyOne({ key: `${brand.id}_${name}` });
+      return { deleted: true };
+    }
+
+    public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
+      const normalized = await this.validateMutableConfig(brand, config, false);
+      const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery!.queryName);
+      const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
+      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig!, paramMap, brand, 0, 100);
+      const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
+      response.success = true;
+      return response;
+    }
+
+    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<ReportConfigDto> {
+      const normalized = this.normalizeReportConfigDto(config);
+      if (_.isEmpty(normalized.name) || !/^[A-Za-z0-9_-]+$/.test(normalized.name)) {
+        throw new ReportConfigServiceError(400, 'Report name is required and must be URL safe');
+      }
+      if (_.isEmpty(normalized.title)) {
+        throw new ReportConfigServiceError(400, 'Report title is required');
+      }
+      if (normalized.reportSource !== ReportSource.database) {
+        throw new ReportConfigServiceError(403, 'Only database reports can be changed');
+      }
+      if (!normalized.databaseQuery || _.isEmpty(normalized.databaseQuery.queryName)) {
+        throw new ReportConfigServiceError(400, 'Named query is required');
+      }
+      const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery.queryName);
+      if (!namedQuery) {
+        throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery.queryName}' not found`);
+      }
+      for (const column of normalized.columns) {
+        if (_.isEmpty(column.label) || _.isEmpty(column.property)) {
+          throw new ReportConfigServiceError(400, 'Report columns require label and property');
+        }
+      }
+      for (const filter of normalized.filter) {
+        if (filter.type === ReportFilterType.dateRange && (!filter.database?.fromProperty || !filter.database?.toProperty)) {
+          throw new ReportConfigServiceError(400, 'Database date-range filters require fromProperty and toProperty');
+        }
+      }
+      if (!isUpdate && _.isEmpty(normalized.columns)) {
+        normalized.columns = [];
+      }
+      return normalized;
+    }
+
+    private normalizeReportConfigDto(config: Partial<ReportConfigDto> & { filter?: Array<ReportConfigFilterDto & { messsage?: string }> }): ReportConfigDto {
+      const source = config.reportSource ?? ReportSource.database;
+      const filter = (config.filter ?? []).map((item: ReportConfigFilterDto) => ({
+        paramName: item.paramName ?? '',
+        type: item.type ?? ReportFilterType.text,
+        property: item.property ?? '',
+        message: item.message ?? item.messsage ?? '',
+        database: item.database ?? null
+      }));
+      const columns: ReportConfigColumnDto[] = (config.columns ?? []).map((column: ReportConfigColumnDto) => ({
+        label: column.label ?? '',
+        property: column.property ?? '',
+        hide: column.hide ?? false,
+        exportTemplate: column.exportTemplate ?? '',
+        template: column.template ?? '',
+        multivalue: column.multivalue ?? false
+      }));
+      return {
+        name: config.name ?? '',
+        title: config.title ?? '',
+        reportSource: source as 'database' | 'solr',
+        databaseQuery: config.databaseQuery ?? null,
+        solrQuery: config.solrQuery ?? null,
+        filter,
+        columns,
+        readOnly: source !== ReportSource.database,
+        readOnlyReason: source !== ReportSource.database ? 'Solr reports are read-only in this version' : undefined,
+        canEdit: source === ReportSource.database,
+        canDelete: source === ReportSource.database,
+        canPreview: source === ReportSource.database
+      };
     }
 
     private buildSolrParams(brand: BrandingModel, req: Sails.ReqParamProvider, report: ReportConfig, start: number, rows: number, format = 'json') {
@@ -558,6 +731,29 @@ export namespace Services {
       }, true);
     }
 
+    public getReportConfigDto(reportModel: ReportModel): ReportConfigDto {
+      const converted = this.convertLegacyReport(reportModel);
+      const reportSource = converted.reportSource === ReportSource.database ? ReportSource.database : ReportSource.solr;
+      return this.normalizeReportConfigDto({
+        name: converted.name,
+        title: converted.title,
+        reportSource,
+        databaseQuery: converted.databaseQuery,
+        solrQuery: converted.solrQuery,
+        filter: converted.filter as Array<ReportConfigFilterDto & { messsage?: string }>,
+        columns: converted.columns
+      });
+    }
+
+  }
+
+  export class ReportConfigServiceError extends Error {
+    public status: number;
+
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
   }
 }
 

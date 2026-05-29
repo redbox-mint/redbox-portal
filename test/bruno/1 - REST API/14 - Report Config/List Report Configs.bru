@@ -1,0 +1,31 @@
+meta {
+  name: List Report Configs
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/report-config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Includes created report config", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data).to.be.an("array");
+    var report = jsonData.data.find(item => item.name === "bruno-report-config");
+    expect(report).to.exist;
+    expect(report.title).to.equal("Bruno Report Config");
+  });
+}

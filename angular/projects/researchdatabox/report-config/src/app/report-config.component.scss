@@ -1,0 +1,148 @@
+.report-toolbar {
+  margin-bottom: 16px;
+
+  .btn + .btn,
+  .btn + a.btn {
+    margin-left: 8px;
+  }
+
+  .fa {
+    margin-right: 4px;
+  }
+}
+
+// Summary stat cards
+.report-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.report-stat-card {
+  flex: 1 1 160px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.report-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.report-stat-label {
+  color: #777;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+// Configured reports panel
+.panel-heading .panel-title {
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.report-source-filter .btn {
+  margin-left: -1px;
+}
+
+.report-search-bar {
+  border-bottom: 1px solid #ddd;
+}
+
+.report-search-input {
+  position: relative;
+  max-width: 320px;
+
+  .fa-search {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #999;
+    pointer-events: none;
+  }
+
+  .form-control {
+    padding-left: 30px;
+  }
+}
+
+.report-actions {
+  white-space: nowrap;
+
+  .btn {
+    margin-left: 4px;
+  }
+
+  .fa {
+    margin-right: 3px;
+  }
+}
+
+.report-pagination {
+  color: #777;
+  font-size: 13px;
+}
+
+// Modal / editor
+.report-config-modal {
+  display: block;
+}
+
+.report-config-modal .modal-dialog {
+  max-width: 1000px;
+  width: auto;
+  margin: 30px 20px;
+}
+
+.report-detail-grid {
+  margin-bottom: 8px;
+}
+
+label.required:after {
+  content: " *";
+  color: var(--bs-danger, #b1101a);
+}
+
+fieldset {
+  margin-bottom: 18px;
+}
+
+legend {
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+}
+
+.report-editor-table {
+  margin-bottom: 12px;
+
+  > thead > tr > th {
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+  }
+
+  > tbody > tr > td {
+    vertical-align: middle;
+  }
+
+  .form-control {
+    min-width: 90px;
+  }
+
+  .report-editor-stacked {
+    margin-bottom: 6px;
+  }
+
+  .report-editor-actions-col {
+    width: 70px;
+    text-align: center;
+  }
+}

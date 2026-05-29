@@ -294,6 +294,12 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/admin/getReport': 'ReportController.get',
     'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
     'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
+    'get /:branding/:portal/admin/report-config': 'ReportController.listConfigs',
+    'post /:branding/:portal/admin/report-config/preview': 'ReportController.previewConfig',
+    'get /:branding/:portal/admin/report-config/:name': 'ReportController.getConfig',
+    'post /:branding/:portal/admin/report-config': 'ReportController.createConfig',
+    'put /:branding/:portal/admin/report-config/:name': 'ReportController.updateConfig',
+    'delete /:branding/:portal/admin/report-config/:name': 'ReportController.deleteConfig',
 
     // API docs
     'get /:branding/:portal/api-docs.apib': 'BrandingController.renderApiB',

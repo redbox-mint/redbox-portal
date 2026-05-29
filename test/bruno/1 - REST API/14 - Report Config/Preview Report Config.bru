@@ -1,0 +1,65 @@
+meta {
+  name: Preview Report Config
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config/preview?modified_fromDate=2000-01-01T00%3A00%3A00.000Z&modified_toDate=2999-12-31T23%3A59%3A59.999Z
+  body: json
+  auth: none
+}
+
+query {
+  modified_fromDate: 2000-01-01T00:00:00.000Z
+  modified_toDate: 2999-12-31T23:59:59.999Z
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "bruno-report-config-preview",
+    "title": "Bruno Report Config Preview",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "solrQuery": null,
+    "filter": [
+      {
+        "type": "date-range",
+        "paramName": "modified",
+        "message": "Modified range",
+        "property": "dateModified",
+        "database": {
+          "fromProperty": "dateModifiedAfter",
+          "toProperty": "dateModifiedBefore"
+        }
+      }
+    ],
+    "columns": [
+      {
+        "label": "Title",
+        "property": "title"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns preview result payload", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data).to.have.property("success", true);
+    expect(jsonData.data).to.have.property("total");
+    expect(jsonData.data.records).to.be.an("array");
+  });
+}

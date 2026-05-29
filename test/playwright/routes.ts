@@ -104,10 +104,16 @@ export const smokeRoutes: SmokeRoute[] = [
   {
     path: '/default/rdmp/admin/reports',
     auth: 'admin',
-    type: 'ejs',
-    requiredSelectors: ['.admin-main-content h1', '.admin-main-content ul li a'],
-    fallbackSelectors: [],
-    requiredAssetIncludes: []
+    type: 'angular',
+    rootSelector: 'report-config',
+    selectorState: 'attached',
+    requiredSelectors: ['.admin-main-content h1', 'report-config'],
+    fallbackSelectors: ['report-config img[src$="/images/loading.svg"]'],
+    requiredAssetIncludes: [
+      '/angular/report-config/browser/polyfills',
+      '/angular/report-config/browser/main',
+      '/angular/report-config/browser/styles'
+    ]
   },
   {
     path: '/default/rdmp/admin/users',
