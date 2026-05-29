@@ -21,6 +21,7 @@ export class ReportConfigComponent extends BaseComponent {
   isSaving = false;
   isPreviewing = false;
   isAdmin = false;
+  isNewReport = false;
 
   get totalReports(): number {
     return this.reports.length;
@@ -90,18 +91,21 @@ export class ReportConfigComponent extends BaseComponent {
     this.errorMessage = '';
     this.previewResult = null;
     this.selectedReport = this.newReport();
+    this.isNewReport = true;
   }
 
   editReport(report: ReportConfigDto): void {
     this.errorMessage = '';
     this.previewResult = null;
     this.selectedReport = JSON.parse(JSON.stringify(report)) as ReportConfigDto;
+    this.isNewReport = false;
   }
 
   cancelEdit(): void {
     this.selectedReport = null;
     this.previewResult = null;
     this.errorMessage = '';
+    this.isNewReport = false;
   }
 
   async saveReport(): Promise<void> {
@@ -111,10 +115,10 @@ export class ReportConfigComponent extends BaseComponent {
     this.isSaving = true;
     this.errorMessage = '';
     try {
-      if (this.reports.some(report => report.name === this.selectedReport?.name)) {
-        await this.reportConfigService.update(this.selectedReport);
-      } else {
+      if (this.isNewReport) {
         await this.reportConfigService.create(this.selectedReport);
+      } else {
+        await this.reportConfigService.update(this.selectedReport);
       }
       await this.loadReports();
       this.cancelEdit();

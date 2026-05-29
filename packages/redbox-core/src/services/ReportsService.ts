@@ -61,7 +61,6 @@ type ReportConfigFilterDto = {
   type: string;
   paramName: string;
   message: string;
-  messsage?: string;
   property: string;
   database?: { fromProperty: string; toProperty: string } | null;
 };

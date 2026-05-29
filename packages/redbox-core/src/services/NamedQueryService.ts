@@ -194,6 +194,10 @@ export namespace Services {
 
     public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
+      const existing = await NamedQuery.findOne({ key });
+      if (!existing) {
+        throw new Error(`Named query '${name}' not found`);
+      }
       return firstValueFrom(super.getObservable(NamedQuery.update({ key }, {
         name: name,
         branding: brand.id,
@@ -212,6 +216,10 @@ export namespace Services {
 
     public async delete(brand: BrandingModel, name: string) {
       const key = `${brand.id}_${name}`;
+      const existing = await NamedQuery.findOne({ key });
+      if (!existing) {
+        throw new Error(`Named query '${name}' not found`);
+      }
       return firstValueFrom(super.getObservable(NamedQuery.destroy({ key })));
     }
 
