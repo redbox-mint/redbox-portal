@@ -39,6 +39,7 @@ describe('Webservice NamedQueryController', () => {
         { name: 'query-1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
         { name: 'query-2', collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
       ]),
+      getNamedQueryConfig: sinon.stub().resolves(null),
       create: sinon.stub().returns(of({ id: 'new-query' })),
       update: sinon.stub().returns(of([{ id: 'updated-query' }])),
       delete: sinon.stub().returns(of([{ id: 'deleted-query' }]))
@@ -70,13 +71,16 @@ describe('Webservice NamedQueryController', () => {
   it('gets a named query by name', async () => {
     const param = sinon.stub();
     param.withArgs('name').returns('query-1');
+    (global as any).NamedQueryService.getNamedQueryConfig = sinon.stub().resolves({
+      name: 'query-1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {}
+    });
     const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
     await controller.getQuery(req, res);
 
-    expect((global as any).NamedQueryService.list.calledOnce).to.be.true;
+    expect((global as any).NamedQueryService.getNamedQueryConfig.calledOnce).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('query-1');
   });

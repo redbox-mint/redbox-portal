@@ -257,6 +257,7 @@ describe('NamedQueryService', function() {
         relatedRecordFilters: []
       };
 
+      mockNamedQuery.findOne.resolves({ id: 'existing-query', name: 'test-query' });
       mockNamedQuery.update.returns(createQueryObject([{ id: 'updated-query' }]));
 
       const result = await NamedQueryService.update(brand, 'test-query', config);
@@ -273,6 +274,7 @@ describe('NamedQueryService', function() {
     it('should delete named query by composite key', async function() {
       const brand = { id: 'brand-1' };
 
+      mockNamedQuery.findOne.resolves({ id: 'existing-query', name: 'test-query' });
       mockNamedQuery.destroy.returns(createQueryObject([{ id: 'deleted-query' }]));
 
       const result = await NamedQueryService.delete(brand, 'test-query');
