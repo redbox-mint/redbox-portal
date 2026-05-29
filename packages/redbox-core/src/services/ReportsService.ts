@@ -232,6 +232,9 @@ export namespace Services {
         filter: normalized.filter as unknown as Record<string, unknown>,
         columns: normalized.columns
       });
+      if (!updated) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
       return this.getReportConfigDto(updated as unknown as ReportModel);
     }
 
