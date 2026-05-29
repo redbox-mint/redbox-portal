@@ -40,6 +40,7 @@ describe('Webservice NamedQueryController', () => {
         { name: 'query-2', collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
       ]),
       getNamedQueryConfig: sinon.stub().resolves(null),
+      getSupportedCollections: sinon.stub().returns(['record', 'user']),
       create: sinon.stub().returns(of({ id: 'new-query' })),
       update: sinon.stub().returns(of([{ id: 'updated-query' }])),
       delete: sinon.stub().returns(of([{ id: 'deleted-query' }]))
@@ -66,6 +67,18 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.data).to.have.length(2);
     expect(sendRespStub.firstCall.args[2]?.data[0].name).to.equal('query-1');
+  });
+
+  it('returns the supported collections', async () => {
+    const req = { session: { branding: 'default' } } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getCollections(req, res);
+
+    expect((global as any).NamedQueryService.getSupportedCollections.calledOnce).to.be.true;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal(['record', 'user']);
   });
 
   it('gets a named query by name', async () => {
@@ -160,6 +173,39 @@ describe('Webservice NamedQueryController', () => {
 
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
+  });
+
+  it('maps brand-scope validation errors to 400 on create', async () => {
+    (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
+    const req = {
+      session: { branding: 'default' },
+      body: { name: 'unsafe-query', collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.createQuery(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+  });
+
+  it('maps brand-scope validation errors to 400 on update', async () => {
+    const param = sinon.stub();
+    param.withArgs('name').returns('unsafe-query');
+    (global as any).NamedQueryService.update = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
+    const req = {
+      session: { branding: 'default' },
+      param,
+      body: { collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.updateQuery(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
   });
 
   it('updates a named query', async () => {

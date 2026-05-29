@@ -10,6 +10,7 @@ describe('NamedQueryService', function() {
   let NamedQueryConfig: any;
   let mockNamedQuery: any;
   let mockUser: any;
+  let mockUserLink: any;
   let mockRecord: any;
   let mockRelatedRecordModel: any;
   let mockRecordsService: any;
@@ -19,12 +20,15 @@ describe('NamedQueryService', function() {
       config: {
         appPath: '/app',
         namedQuery: {
-          'test-query': {
-            mongoQuery: { type: 'test' },
-            queryParams: {},
-            collectionName: 'record',
-            resultObjectMapping: {},
-            brandIdFieldPath: 'branding'
+          supportedCollections: ['record', 'user'],
+          queries: {
+            'test-query': {
+              mongoQuery: { type: 'test' },
+              queryParams: {},
+              collectionName: 'record',
+              resultObjectMapping: {},
+              brandIdFieldPath: 'branding'
+            }
           }
         },
         appmode: {
@@ -55,6 +59,10 @@ describe('NamedQueryService', function() {
       find: sinon.stub().returns({ meta: sinon.stub().resolves([]) })
     };
 
+    mockUserLink = {
+      find: sinon.stub().resolves([])
+    };
+
     mockRecord = {
       count: sinon.stub().returns({ meta: sinon.stub().resolves(0) }),
       find: sinon.stub().returns({ meta: sinon.stub().resolves([]) })
@@ -76,6 +84,7 @@ describe('NamedQueryService', function() {
     setupServiceTestGlobals(mockSails);
     (global as any).NamedQuery = mockNamedQuery;
     (global as any).User = mockUser;
+    (global as any).UserLink = mockUserLink;
     (global as any).Record = mockRecord;
 
     mockSails.models = {
@@ -83,8 +92,14 @@ describe('NamedQueryService', function() {
       record: mockRecord,
       relatedmodel: mockRelatedRecordModel,
       custommodel: {
+        attributes: { branding: {} },
         count: sinon.stub().returns({ meta: sinon.stub().resolves(1) }),
         find: sinon.stub().returns({ meta: sinon.stub().resolves([{ id: 'custom-1', name: 'Custom Record' }]) })
+      },
+      unscopedmodel: {
+        attributes: { name: {} },
+        count: sinon.stub().returns({ meta: sinon.stub().resolves(1) }),
+        find: sinon.stub().returns({ meta: sinon.stub().resolves([{ id: 'unscoped-1', name: 'Unscoped Record' }]) })
       }
     };
 
@@ -98,6 +113,7 @@ describe('NamedQueryService', function() {
     cleanupServiceTestGlobals();
     delete (global as any).NamedQuery;
     delete (global as any).User;
+    delete (global as any).UserLink;
     delete (global as any).Record;
     sinon.restore();
   });
@@ -151,8 +167,57 @@ describe('NamedQueryService', function() {
 
       expect(mockNamedQuery.create.called).to.be.true;
       expect(mockNamedQuery.create.firstCall.args[0]).to.include({ expandRelations: true });
+      expect(mockNamedQuery.create.firstCall.args[0].brandIdFieldPath).to.equal('metaMetadata.brandId');
       expect(mockNamedQuery.create.firstCall.args[0].relatedRecordFilters).to.equal(JSON.stringify(config.relatedRecordFilters));
       expect(result).to.deep.equal({ id: 'new-query' });
+    });
+
+    it('should derive branding field from scoped Waterline model definitions', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: {},
+        queryParams: {},
+        collectionName: 'custommodel',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'attackerSuppliedPath'
+      };
+
+      await NamedQueryService.create(brand, 'custom-query', config);
+
+      expect(mockNamedQuery.create.firstCall.args[0].brandIdFieldPath).to.equal('branding');
+    });
+
+    it('should store no direct brand field for user queries', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: {},
+        queryParams: {},
+        collectionName: 'user',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'attackerSuppliedPath'
+      };
+
+      await NamedQueryService.create(brand, 'user-query', config);
+
+      expect(mockNamedQuery.create.firstCall.args[0].brandIdFieldPath).to.equal('');
+    });
+
+    it('should reject models without a brand scope', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: {},
+        queryParams: {},
+        collectionName: 'unscopedmodel',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'attackerSuppliedPath'
+      };
+
+      try {
+        await NamedQueryService.create(brand, 'unsafe-query', config);
+        expect.fail('Expected error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.equal("Invalid collectionName 'unscopedmodel': model does not expose a brand scope");
+      }
     });
 
     it('should throw if named query already exists', async function() {
@@ -266,6 +331,7 @@ describe('NamedQueryService', function() {
       expect(mockNamedQuery.update.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
       expect(mockNamedQuery.update.firstCall.args[0].key).to.equal('brand-1_test-query');
       expect(mockNamedQuery.update.firstCall.args[1].mongoQuery).to.equal('{"type":"updated"}');
+      expect(mockNamedQuery.update.firstCall.args[1].brandIdFieldPath).to.equal('metaMetadata.brandId');
       expect(result).to.deep.equal([{ id: 'updated-query' }]);
     });
   });
@@ -330,6 +396,17 @@ describe('NamedQueryService', function() {
     });
   });
 
+  describe('getSupportedCollections', function() {
+    it('should return the configured supported collections', function() {
+      expect(NamedQueryService.getSupportedCollections()).to.deep.equal(['record', 'user']);
+    });
+
+    it('should return an empty array when none are configured', function() {
+      delete mockSails.config.namedQuery.supportedCollections;
+      expect(NamedQueryService.getSupportedCollections()).to.deep.equal([]);
+    });
+  });
+
   describe('performNamedQuery', function() {
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
@@ -353,6 +430,7 @@ describe('NamedQueryService', function() {
       );
       
       expect(mockRecord.count.called).to.be.true;
+      expect(mockRecord.count.firstCall.args[0].metaMetadata.brandId).to.equal('brand-1');
       expect(mockRecord.find.called).to.be.true;
       expect(result.records).to.have.length(1);
       expect(result.records[0].oid).to.equal('oid-1');
@@ -361,14 +439,36 @@ describe('NamedQueryService', function() {
     it('should perform query on User model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
+      const userQuery = {
+        populate: sinon.stub().returnsThis(),
+        meta: sinon.stub().resolves([
+          {
+            id: 'user-1',
+            type: 'local',
+            name: 'Brand User',
+            email: 'brand@test.com',
+            username: 'brand-user',
+            roles: [{ branding: 'brand-1' }],
+            updatedAt: '',
+            createdAt: ''
+          },
+          {
+            id: 'user-2',
+            type: 'local',
+            name: 'Other User',
+            email: 'other@test.com',
+            username: 'other-user',
+            roles: [{ branding: 'brand-2' }],
+            updatedAt: '',
+            createdAt: ''
+          }
+        ])
+      };
       
-      mockUser.count.returns({ meta: sinon.stub().resolves(1) });
-      mockUser.find.returns({ meta: sinon.stub().resolves([
-        { id: 'user-1', updatedAt: '', createdAt: '' }
-      ]) });
+      mockUser.find.returns(userQuery);
       
       const result = await NamedQueryService.performNamedQuery(
-        'branding', 
+        'ignoredClientPath', 
         {}, 
         'user', 
         mongoQuery, 
@@ -379,9 +479,80 @@ describe('NamedQueryService', function() {
         10
       );
       
-      expect(mockUser.count.called).to.be.true;
       expect(mockUser.find.called).to.be.true;
+      expect(userQuery.populate.calledOnceWithExactly('roles')).to.be.true;
       expect(result.records).to.have.length(1);
+      expect(result.summary.numFound).to.equal(1);
+      expect(result.records[0].metadata).to.deep.include({ username: 'brand-user' });
+    });
+
+    it('should include linked alias users when scoping user queries to a brand', async function() {
+      const brand = { id: 'brand-1' };
+      const userQuery = {
+        populate: sinon.stub().returnsThis(),
+        meta: sinon.stub().resolves([
+          {
+            id: 'alias-1',
+            type: 'local',
+            name: 'Linked Alias',
+            email: 'alias@test.com',
+            username: 'alias-user',
+            roles: [{ branding: 'brand-2' }],
+            updatedAt: '',
+            createdAt: ''
+          }
+        ])
+      };
+      mockUser.find.returns(userQuery);
+      mockUserLink.find.resolves([{ secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' }]);
+
+      const result = await NamedQueryService.performNamedQuery(
+        '',
+        {},
+        'user',
+        {},
+        {},
+        {},
+        brand,
+        0,
+        10
+      );
+
+      expect(mockUserLink.find.calledOnceWithExactly({ brandId: 'brand-1', status: 'active' })).to.be.true;
+      expect(result.records).to.have.length(1);
+      expect(result.records[0].metadata).to.deep.include({ username: 'alias-user' });
+    });
+
+    it('should remove user password and token before applying result mappings', async function() {
+      const brand = { id: 'brand-1' };
+      const userQuery = {
+        populate: sinon.stub().returnsThis(),
+        meta: sinon.stub().resolves([
+          {
+            id: 'user-1',
+            roles: [{ branding: 'brand-1' }],
+            password: 'secret',
+            token: 'token-value',
+            updatedAt: '',
+            createdAt: ''
+          }
+        ])
+      };
+      mockUser.find.returns(userQuery);
+
+      const result = await NamedQueryService.performNamedQuery(
+        '',
+        { password: '{{record.password}}', token: '{{record.token}}' },
+        'user',
+        {},
+        {},
+        {},
+        brand,
+        0,
+        10
+      );
+
+      expect(result.records[0].metadata).to.deep.equal({ password: '', token: '' });
     });
 
     it('should perform query on arbitrary dynamic model', async function() {
@@ -399,9 +570,31 @@ describe('NamedQueryService', function() {
       );
       
       expect(mockSails.models.custommodel.count.called).to.be.true;
+      expect(mockSails.models.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
       expect(mockSails.models.custommodel.find.called).to.be.true;
       expect(result.records).to.have.length(1);
       expect(result.records[0].metadata.customName).to.equal('Custom Record');
+    });
+
+    it('should reject arbitrary dynamic models without brand scoping', async function() {
+      const brand = { id: 'brand-1' };
+
+      try {
+        await NamedQueryService.performNamedQuery(
+          '',
+          {},
+          'unscopedmodel',
+          {},
+          {},
+          {},
+          brand,
+          0,
+          10
+        );
+        expect.fail('Expected error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.equal("Invalid collectionName 'unscopedmodel': model does not expose a brand scope");
+      }
     });
 
     it('should log when expandRelations is configured for a non-record model', async function() {

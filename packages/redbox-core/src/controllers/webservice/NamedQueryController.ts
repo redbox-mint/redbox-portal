@@ -6,6 +6,7 @@ export namespace Controllers {
   export class NamedQuery extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
       'listQueries',
+      'getCollections',
       'getQuery',
       'createQuery',
       'updateQuery',
@@ -43,6 +44,15 @@ export namespace Controllers {
         const brand = this.resolveBrand(req);
         const queries = await NamedQueryService.list(brand);
         return this.sendResp(req, res, { data: queries, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendError(req, res, error);
+      }
+    }
+
+    public async getCollections(req: Sails.Req, res: Sails.Res) {
+      try {
+        const collections = NamedQueryService.getSupportedCollections();
+        return this.sendResp(req, res, { data: collections, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
       }

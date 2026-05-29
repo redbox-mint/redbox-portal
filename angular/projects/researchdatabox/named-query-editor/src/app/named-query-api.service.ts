@@ -77,6 +77,12 @@ export class NamedQueryApiService extends HttpClientService {
     return this.unwrap(response);
   }
 
+  async getCollections(): Promise<string[]> {
+    const response = await firstValueFrom(this.http.get<ApiResponse<string[]>>(this.apiUrl('/collections'), this.getJsonRequestOptions()));
+    const collections = this.unwrap(response);
+    return Array.isArray(collections) ? collections : [];
+  }
+
   async get(name: string): Promise<NamedQueryDefinition> {
     const response = await firstValueFrom(this.http.get<ApiResponse<NamedQueryDefinition>>(this.apiUrl(`/${encodeURIComponent(name)}`), this.getJsonRequestOptions()));
     return this.unwrap(response);

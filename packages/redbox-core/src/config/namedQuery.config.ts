@@ -32,11 +32,21 @@ export interface NamedQueryDefinition {
     queryParams: Record<string, NamedQueryParam>;
 }
 
-export interface NamedQueryConfig {
+export interface NamedQueryDefinitions {
     [queryName: string]: NamedQueryDefinition;
 }
 
-export const namedQuery: NamedQueryConfig = {
+export interface NamedQueryConfig {
+    /**
+     * Collections that may be selected when defining a named query. Surfaced to the
+     * named-query editor so the Collection field can be a strict dropdown of valid,
+     * brand-scoped values.
+     */
+    supportedCollections: string[];
+    queries: NamedQueryDefinitions;
+}
+
+const namedQueryDefinitions: NamedQueryDefinitions = {
     'listRDMPRecords': {
         collectionName: 'record',
         brandIdFieldPath: 'metaMetadata.brandId',
@@ -385,4 +395,9 @@ export const namedQuery: NamedQueryConfig = {
             }
         }
     }
+};
+
+export const namedQuery: NamedQueryConfig = {
+    supportedCollections: ['record', 'user'],
+    queries: namedQueryDefinitions
 };

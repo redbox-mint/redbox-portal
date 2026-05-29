@@ -28,6 +28,19 @@ export const listNamedQueriesRoute = apiRoute(
   }
 );
 
+export const getNamedQueryCollectionsRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/named-query/collections',
+  'webservice/NamedQueryController',
+  'getCollections',
+  {},
+  {
+    tags: ['NamedQuery'],
+    summary: 'List the collections that may be used when defining a named query',
+    responses: { 200: namedQueryResponse },
+  }
+);
+
 export const getNamedQueryRoute = apiRoute(
   'get',
   '/:branding/:portal/api/named-query/:name',
@@ -87,6 +100,7 @@ export const deleteNamedQueryRoute = apiRoute(
 
 export const namedQueryApiRoutes = [
   listNamedQueriesRoute,
+  getNamedQueryCollectionsRoute,
   getNamedQueryRoute,
   createNamedQueryRoute,
   updateNamedQueryRoute,

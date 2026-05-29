@@ -54,9 +54,10 @@
         </div>
         <div class="form-group col-md-6">
           <label for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
-          <input id="nq-collection" type="text" class="form-control"
-                 [(ngModel)]="draft.collectionName"
-                 [attr.placeholder]="'named-query-collection-placeholder' | i18next" />
+          <select id="nq-collection" class="form-control" [(ngModel)]="draft.collectionName">
+            <option value="" disabled>{{ 'named-query-collection-select' | i18next }}</option>
+            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ collection }}</option>
+          </select>
         </div>
       </div>
       <div class="form-check">

@@ -34,6 +34,9 @@ import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
 type AnyRecord = Record<string, unknown>;
+type BrandScope =
+  | { type: 'field'; fieldPath: string }
+  | { type: 'userRoles'; fieldPath: '' };
 
 const isRecordValue = (value: unknown): value is AnyRecord => typeof value === 'object' && value !== null;
 
@@ -123,6 +126,7 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       "bootstrap",
       "getNamedQueryConfig",
+      "getSupportedCollections",
       "performNamedQuery",
       "performNamedQueryFromConfig",
       "performNamedQueryFromConfigResults",
@@ -151,10 +155,66 @@ export namespace Services {
     }
 
     private async createNamedQueriesForBrand(defBrand: BrandingModel) {
-      for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
+      for (const [namedQuery, config] of Object.entries(sails.config.namedQuery.queries ?? {})) {
         const namedQueryConfig = config as NamedQueryDefinition;
         await this.create(defBrand, namedQuery, namedQueryConfig);
       }
+    }
+
+    private getModel(collectionName: string): AnyRecord | undefined {
+      return sails.models?.[collectionName] as AnyRecord | undefined;
+    }
+
+    private resolveBrandScope(collectionName: string): BrandScope {
+      if (_.isEmpty(collectionName)) {
+        throw new Error('collectionName is required');
+      }
+
+      if (collectionName === 'record') {
+        return { type: 'field', fieldPath: 'metaMetadata.brandId' };
+      }
+
+      if (collectionName === 'user') {
+        return { type: 'userRoles', fieldPath: '' };
+      }
+
+      const model = this.getModel(collectionName);
+      if (!model) {
+        throw new Error(`Invalid collectionName '${collectionName}': model not found`);
+      }
+
+      const attributes = model.attributes as Record<string, unknown> | undefined;
+      if (attributes && Object.prototype.hasOwnProperty.call(attributes, 'branding')) {
+        return { type: 'field', fieldPath: 'branding' };
+      }
+
+      throw new Error(`Invalid collectionName '${collectionName}': model does not expose a brand scope`);
+    }
+
+    private hasRoleInBrand(user: UserLike, brandId: string): boolean {
+      return _.some(user.roles as unknown[] ?? [], (role: unknown) => {
+        const roleObj = role as AnyRecord;
+        const branding = roleObj?.branding;
+        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      });
+    }
+
+    private async getLinkedSecondaryUserIds(brandId: string): Promise<Set<string>> {
+      if (typeof UserLink === 'undefined') {
+        return new Set<string>();
+      }
+      const activeLinks = await UserLink.find({ brandId, status: 'active' }) as unknown as AnyRecord[];
+      return new Set(
+        _.map(activeLinks, (link: AnyRecord) => String(link.secondaryUserId ?? '')).filter((id: string) => id !== '')
+      );
+    }
+
+    private sanitizeUserForNamedQuery(user: UserLike): UserLike {
+      const sanitized = { ...user };
+      delete sanitized.password;
+      delete sanitized.token;
+      return sanitized;
     }
 
     public async create(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
@@ -163,6 +223,7 @@ export namespace Services {
       if (existing) {
         throw new Error(`Named query '${name}' already exists`);
       }
+      const brandScope = this.resolveBrandScope(config.collectionName);
       return firstValueFrom(super.getObservable(NamedQuery.create({
         name: name,
         branding: brand.id,
@@ -170,7 +231,7 @@ export namespace Services {
         queryParams: JSON.stringify(config.queryParams),
         collectionName: config.collectionName,
         resultObjectMapping: JSON.stringify(config.resultObjectMapping),
-        brandIdFieldPath: config.brandIdFieldPath,
+        brandIdFieldPath: brandScope.fieldPath,
         sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
         expandRelations: config.expandRelations === true,
         relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
@@ -203,6 +264,7 @@ export namespace Services {
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
+      const brandScope = this.resolveBrandScope(config.collectionName);
       return firstValueFrom(super.getObservable(NamedQuery.update({ key }, {
         name: name,
         branding: brand.id,
@@ -210,7 +272,7 @@ export namespace Services {
         queryParams: JSON.stringify(config.queryParams),
         collectionName: config.collectionName,
         resultObjectMapping: JSON.stringify(config.resultObjectMapping),
-        brandIdFieldPath: config.brandIdFieldPath,
+        brandIdFieldPath: brandScope.fieldPath,
         sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
         expandRelations: config.expandRelations === true,
         relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
@@ -237,7 +299,7 @@ export namespace Services {
         return new NamedQueryConfig(nQDBEntry)
       }
 
-      const configuredNamedQuery = _.get(sails.config, ['namedQuery', namedQuery]) as NamedQueryDefinition | undefined;
+      const configuredNamedQuery = _.get(sails.config, ['namedQuery', 'queries', namedQuery]) as NamedQueryDefinition | undefined;
       if (!configuredNamedQuery || typeof configuredNamedQuery !== 'object') {
         return null;
       }
@@ -258,8 +320,13 @@ export namespace Services {
       })
     }
 
+    getSupportedCollections(): string[] {
+      const collections = _.get(sails.config, ['namedQuery', 'supportedCollections'], []) as unknown;
+      return Array.isArray(collections) ? collections.filter((c): c is string => typeof c === 'string') : [];
+    }
+
     async performNamedQuery(
-      brandIdFieldPath: string,
+      _brandIdFieldPath: string,
       resultObjectMapping: Record<string, unknown>,
       collectionName: string,
       mongoQuery: Record<string, unknown>,
@@ -300,12 +367,13 @@ export namespace Services {
         }
       }
 
+      const brandScope = this.resolveBrandScope(collectionName);
       const that = this;
-
-      // Add branding
-      if (brandIdFieldPath != '') {
-        mongoQuery[brandIdFieldPath] = brand.id;
+      if (brandScope.type === 'userRoles') {
+        return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort);
       }
+
+      _.set(mongoQuery, brandScope.fieldPath, brand.id);
       sails.log.debug("Mongo query to be executed", mongoQuery);
 
       // Get the total count of matching records
@@ -343,77 +411,43 @@ export namespace Services {
         sails.log.debug(`expandRelations is only supported for the 'record' collection; ignoring for '${collectionName}'`);
       }
 
+      // 'user' collections are scoped and rendered separately via performUserNamedQuery,
+      // so anything reaching this loop is a record-like (record or scoped dynamic) model.
       for (const record of results) {
+        const recordItem = record as RecordLike;
 
-        if (collectionName == 'user') {
-          const userRecord = record as UserLike;
-
-          let defaultMetadata: NamedQueryResponseMetadata = {};
-          const variables: Record<string, unknown> = { record: userRecord };
-
-          if (!_.isEmpty(resultObjectMapping)) {
-            const resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
-              _.set(resultMetadata, key, that.runTemplate(value as string, variables));
-            });
-            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
-
-          } else {
-            defaultMetadata = {
-              type: that.runTemplate('record.type', variables),
-              name: that.runTemplate('record.name', variables),
-              email: that.runTemplate('record.email', variables),
-              username: that.runTemplate('record.username', variables),
-              lastLogin: that.runTemplate('record.lastLogin', variables)
-            };
+        if (expandRelationsActual && recordsService && recordItem.redboxOid) {
+          try {
+            const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+            recordItem.relationships = relationships;
+          } catch (err) {
+            sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
           }
+        }
 
-          const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: '',
-            title: '',
-            metadata: defaultMetadata,
-            lastSaveDate: userRecord.updatedAt ?? null,
-            dateCreated: userRecord.createdAt ?? null
+        let defaultMetadata: NamedQueryResponseMetadata = {};
+        const variables: Record<string, unknown> = { record: recordItem };
+        if (!_.isEmpty(resultObjectMapping)) {
+          const resultMetadata = _.cloneDeep(resultObjectMapping);
+          _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
+            _.set(resultMetadata, key, that.runTemplate(value as string, variables));
           });
-          responseRecords.push(responseRecord);
+          defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
 
         } else {
-          const recordItem = record as RecordLike;
-
-          if (expandRelationsActual && recordsService && recordItem.redboxOid) {
-            try {
-              const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
-              recordItem.relationships = relationships;
-            } catch (err) {
-              sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
-            }
-          }
-
-          let defaultMetadata: NamedQueryResponseMetadata = {};
-          const variables: Record<string, unknown> = { record: recordItem };
-          if (!_.isEmpty(resultObjectMapping)) {
-            const resultMetadata = _.cloneDeep(resultObjectMapping);
-            _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
-              _.set(resultMetadata, key, that.runTemplate(value as string, variables));
-            });
-            defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
-
-          } else {
-            defaultMetadata = collectionName === 'record'
-              ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
-              : recordItem as unknown as NamedQueryResponseMetadata;
-          }
-
-          const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
-            title: getStringProperty(recordItem.metadata, 'title') ?? getStringProperty(recordItem, 'name') ?? getStringProperty(recordItem, 'title') ?? '',
-            metadata: defaultMetadata,
-            lastSaveDate: recordItem.lastSaveDate ?? null,
-            dateCreated: recordItem.dateCreated ?? null
-          });
-          responseRecords.push(responseRecord);
-
+          defaultMetadata = collectionName === 'record'
+            ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
+            : recordItem as unknown as NamedQueryResponseMetadata;
         }
+
+        const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
+          oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
+          title: getStringProperty(recordItem.metadata, 'title') ?? getStringProperty(recordItem, 'name') ?? getStringProperty(recordItem, 'title') ?? '',
+          metadata: defaultMetadata,
+          lastSaveDate: recordItem.lastSaveDate ?? null,
+          dateCreated: recordItem.dateCreated ?? null
+        });
+        responseRecords.push(responseRecord);
       }
       const response = new ListAPIResponse<NamedQueryResponseRecord>();
 
@@ -427,6 +461,78 @@ export namespace Services {
       response.summary.page = pageNumber
       response.summary.numFound = totalItems;
 
+      return response;
+    }
+
+    private async performUserNamedQuery(
+      resultObjectMapping: Record<string, unknown>,
+      mongoQuery: Record<string, unknown>,
+      brand: BrandingModel,
+      start: number,
+      rows: number,
+      sort: NamedQuerySortConfig | undefined = undefined
+    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+      const criteriaMeta = { enableExperimentalDeepTargets: true };
+      const model = this.getModel('user');
+      if (!model) {
+        throw new Error(`Invalid collectionName 'user': model not found`);
+      }
+      const userModel = model as { find: (criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig }) => unknown };
+
+      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig } = { where: mongoQuery };
+      if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
+        criteria.sort = sort;
+      }
+
+      let query = userModel.find(criteria) as AnyRecord;
+      if (query && typeof query.populate === 'function') {
+        query = query.populate('roles');
+      }
+      const allUsers = query && typeof query.meta === 'function'
+        ? (await query.meta(criteriaMeta) as unknown as UserLike[])
+        : (await query as unknown as UserLike[]);
+
+      const brandId = String(brand.id);
+      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId);
+      const scopedUsers = allUsers
+        .filter((user) => this.hasRoleInBrand(user, brandId) || linkedSecondaryUserIds.has(String(user.id ?? '')))
+        .map((user) => this.sanitizeUserForNamedQuery(user));
+      const pagedUsers = scopedUsers.slice(start, start + rows);
+      const responseRecords: NamedQueryResponseRecord[] = [];
+
+      for (const userRecord of pagedUsers) {
+        let defaultMetadata: NamedQueryResponseMetadata = {};
+        const variables: Record<string, unknown> = { record: userRecord };
+        if (!_.isEmpty(resultObjectMapping)) {
+          const resultMetadata = _.cloneDeep(resultObjectMapping);
+          _.forOwn(resultObjectMapping, (value: unknown, key: string) => {
+            _.set(resultMetadata, key, this.runTemplate(value as string, variables));
+          });
+          defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
+        } else {
+          defaultMetadata = {
+            type: this.runTemplate('record.type', variables),
+            name: this.runTemplate('record.name', variables),
+            email: this.runTemplate('record.email', variables),
+            username: this.runTemplate('record.username', variables),
+            lastLogin: this.runTemplate('record.lastLogin', variables)
+          };
+        }
+
+        responseRecords.push(new NamedQueryResponseRecord({
+          oid: '',
+          title: '',
+          metadata: defaultMetadata,
+          lastSaveDate: userRecord.updatedAt ?? null,
+          dateCreated: userRecord.createdAt ?? null
+        }));
+      }
+
+      const response = new ListAPIResponse<NamedQueryResponseRecord>();
+      response.records = responseRecords;
+      response.summary.start = start;
+      response.summary.page = Math.floor((start / rows) + 1);
+      response.summary.numFound = scopedUsers.length;
       return response;
     }
 
@@ -570,13 +676,12 @@ export namespace Services {
       });
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
-      const brandIdFieldPath = _.get(config, 'brandIdFieldPath', '') ?? '';
       const mongoQuery = _.cloneDeep(_.get(config, 'mongoQuery', {}) ?? {});
       const queryParams = (_.get(config, 'queryParams', {}) ?? {}) as Record<string, QueryParameterDefinition>;
       const sort = _.cloneDeep(_.get(config, 'sort', []) ?? []);
       const expandRelations = _.get(config, 'expandRelations', false) as boolean;
       const relatedRecordFilters = _.cloneDeep(_.get(config, 'relatedRecordFilters', []) ?? []) as RelatedRecordFilter[];
-      return await this.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters);
+      return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters);
     }
 
     public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {

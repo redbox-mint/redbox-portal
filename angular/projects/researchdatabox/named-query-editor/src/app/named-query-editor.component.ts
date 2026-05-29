@@ -12,6 +12,7 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {
   queries: NamedQueryDefinition[] = [];
   filteredQueries: NamedQueryDefinition[] = [];
+  collections: string[] = [];
   listQuery: NamedQueryListQueryState = { searchTerm: '' };
 
   selectedQuery: NamedQueryDefinition | null = null;
@@ -39,7 +40,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   protected override async initComponent(): Promise<void> {
-    await this.loadQueries();
+    await Promise.all([this.loadQueries(), this.loadCollections()]);
+  }
+
+  async loadCollections(): Promise<void> {
+    try {
+      this.collections = await this.api.getCollections();
+    } catch (err) {
+      this.collections = [];
+      this.logger.error(this.t('named-query-error-load-collections', 'Failed to load collections: {{error}}', { error: this.asErrorMessage(err) }));
+    }
   }
 
   override ngOnDestroy(): void {
@@ -235,7 +245,6 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return {
       name: q.name?.trim() || undefined,
       collectionName: q.collectionName?.trim() || '',
-      brandIdFieldPath: 'metaMetadata.brandId',
       mongoQuery: q.mongoQuery || {},
       queryParams: q.queryParams || {},
       resultObjectMapping: q.resultObjectMapping || {},

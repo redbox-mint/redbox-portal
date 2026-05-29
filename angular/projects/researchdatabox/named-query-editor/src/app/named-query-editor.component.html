@@ -101,7 +101,7 @@
                 cdkFocusInitial></button>
       </div>
       <div class="modal-body">
-        <nq-detail [draft]="draft" [isNew]="isNew"></nq-detail>
+        <nq-detail [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave">

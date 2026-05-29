@@ -1006,6 +1006,7 @@
   "named-query-search-placeholder": "Find by name or collection",
   "named-query-name": "Name",
   "named-query-collection": "Collection",
+  "named-query-collection-select": "Select a collection…",
   "named-query-params": "Params",
   "named-query-mappings": "Mappings",
   "named-query-related-filters": "Filters",

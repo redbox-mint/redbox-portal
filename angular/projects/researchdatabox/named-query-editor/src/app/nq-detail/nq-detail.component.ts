@@ -12,8 +12,22 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
 export class NqDetailComponent {
   @Input() draft!: NamedQueryDefinition;
   @Input() isNew = false;
+  @Input() collections: string[] = [];
 
   activeTab: NqDetailTab = 'basics';
+
+  /**
+   * Configured collections, plus the draft's current collection if it isn't in the
+   * configured list (so legacy queries with an unlisted collection remain editable).
+   */
+  get collectionOptions(): string[] {
+    const options = [...this.collections];
+    const current = this.draft?.collectionName;
+    if (current && !options.includes(current)) {
+      options.unshift(current);
+    }
+    return options;
+  }
 
   setTab(tab: NqDetailTab): void {
     this.activeTab = tab;

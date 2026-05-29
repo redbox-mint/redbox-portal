@@ -24,6 +24,7 @@ class I18NextPipeStub implements PipeTransform {
 class NamedQueryApiServiceStub {
   async waitForInit(): Promise<this> { return this; }
   async list(): Promise<NamedQueryDefinition[]> { return []; }
+  async getCollections(): Promise<string[]> { return ['record', 'user']; }
   async get(_name: string): Promise<NamedQueryDefinition> {
     return { name: _name, collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
   }
@@ -76,6 +77,21 @@ describe('NamedQueryEditorComponent', () => {
     await component.waitForInit();
     expect(component).toBeTruthy();
     expect(component.queries).toEqual([]);
+  });
+
+  it('loads supported collections on init', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    expect(component.collections).toEqual(['record', 'user']);
+  });
+
+  it('keeps a legacy collection value selectable in the detail dropdown', () => {
+    const detail = new NqDetailComponent();
+    detail.collections = ['record', 'user'];
+    detail.draft = { name: 'q', collectionName: 'legacyCollection', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    expect(detail.collectionOptions).toEqual(['legacyCollection', 'record', 'user']);
   });
 
   it('computes totalQueries and uniqueCollections', async () => {
@@ -539,7 +555,7 @@ describe('NamedQueryEditorComponent', () => {
     });
     expect(result.name).toBeUndefined();
     expect(result.collectionName).toBe('');
-    expect(result.brandIdFieldPath).toBe('metaMetadata.brandId');
+    expect(result.brandIdFieldPath).toBeUndefined();
     expect(result.mongoQuery).toEqual({});
     expect(result.queryParams).toEqual({});
     expect(result.resultObjectMapping).toEqual({});
