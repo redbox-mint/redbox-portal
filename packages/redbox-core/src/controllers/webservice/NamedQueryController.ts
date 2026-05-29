@@ -83,6 +83,9 @@ export namespace Controllers {
         if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required and must be URL safe', status: '400' }], headers: this.getNoCacheHeaders() });
         }
+        if (name === 'collections') {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "'collections' is a reserved name and cannot be used", status: '400' }], headers: this.getNoCacheHeaders() });
+        }
         await NamedQueryService.create(brand, name, body as unknown as NamedQueryDefinition);
         return this.sendResp(req, res, { status: 201, data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {

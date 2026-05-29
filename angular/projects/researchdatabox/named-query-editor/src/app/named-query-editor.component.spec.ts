@@ -273,6 +273,20 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.error).toContain('name is required');
   });
 
+  it('shows validation error when saving with reserved name', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+
+    component.isNew = true;
+    component.isEditModalOpen = true;
+    component.draft = { name: 'collections', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    await component.save();
+
+    expect(component.error).toContain('reserved');
+  });
+
   it('shows validation error when saving with invalid name', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;

@@ -144,6 +144,22 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('new-query');
   });
 
+  it('returns 400 when name is reserved in create body', async () => {
+    const req = {
+      session: { branding: 'default' },
+      body: { name: 'collections', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.createQuery(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
+    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.detail).to.include('reserved');
+  });
+
   it('returns 400 when name is missing in create body', async () => {
     const req = {
       session: { branding: 'default' },

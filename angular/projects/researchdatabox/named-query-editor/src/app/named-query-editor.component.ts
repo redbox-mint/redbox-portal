@@ -77,6 +77,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     if (this.isNew) {
       const trimmed = this.draft.name?.trim();
       if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
+      if (trimmed === 'collections') return false;
     }
     return !!this.draft.collectionName?.trim();
   }
@@ -153,6 +154,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
           this.error = this.t('named-query-error-name-required', 'Named query name is required');
         } else if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
           this.error = this.t('named-query-error-name-invalid', 'Named query name must be URL safe (letters, numbers, underscores, hyphens only)');
+        } else if (trimmed === 'collections') {
+          this.error = this.t('named-query-error-name-reserved', "'collections' is a reserved name and cannot be used");
         }
       } else {
         this.error = this.t('named-query-error-collection-required', 'Collection name is required');
