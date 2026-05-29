@@ -487,4 +487,48 @@ describe('The FormService', () => {
     expect(createSpy).toHaveBeenCalled();
     expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
   });
+
+  it("should find nested component", async function () {
+    const entryTwo: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "two"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one", "two"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: []},
+    };
+    const entryOne: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "one"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: [entryTwo]},
+    };
+    const entries: FormFieldCompMapEntry[] = [entryOne];
+    const actual = service.getFormFieldCompMapEntry({dataModel: ["one", "two"]}, entries);
+    expect(actual).toEqual(entryTwo);
+  });
+
+  it("should not find nested component with incorrect query", async function () {
+    const entryTwo: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "two"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one", "two"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: []},
+    };
+    const entryOne: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "one"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: [entryTwo]},
+    };
+    const entries: FormFieldCompMapEntry[] = [entryOne];
+    const actual = service.getFormFieldCompMapEntry({dataModel: ["two"]}, entries);
+    expect(actual).toEqual(undefined);
+  });
 });

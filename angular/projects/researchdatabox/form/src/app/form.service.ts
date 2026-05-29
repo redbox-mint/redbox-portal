@@ -1178,12 +1178,12 @@ export class FormService extends HttpClientService {
 
   /**
    * Find the first matching form field component map entry by name or lineage path.
-   * @param name The form config name or lineage path to look for.
+   * @param target The form config name or lineage path to look for.
    * @param formFieldCompMapEntries The entries to search in, recursing into any children.
    * @return The first matching entry, or undefined if none match.
    */
   public getFormFieldCompMapEntry(
-    name: string | LineagePathsOptional,
+    target: string | LineagePathsOptional,
     formFieldCompMapEntries: FormFieldCompMapEntry[],
   ): FormFieldCompMapEntry | undefined {
     const collection: FormFieldCompMapEntry[] = [...formFieldCompMapEntries];
@@ -1195,28 +1195,33 @@ export class FormService extends HttpClientService {
         return undefined;
       }
 
-      if (typeof name === "string") {
+      if (typeof target === "string") {
         // Find component by name only.
-        if (mapEntry.compConfigJson?.name === name) {
+        if (mapEntry.compConfigJson?.name === target) {
           return mapEntry;
         }
 
         // If not found, add the component's children to search.
         collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
 
-      } else if (!!name && mapEntry.lineagePaths) {
-        // Find component by checking if any mapEntry lineage path starts with the name.
-        const base = name;
-        const check = mapEntry.lineagePaths;
+      } else if (!!target && mapEntry.lineagePaths) {
+        // Find component by checking name against the mapEntry lineage path.
+        const entryLineagePaths = mapEntry.lineagePaths;
 
-        if (isMatchingLineagePaths(base, check)) {
+        if (isMatchingLineagePaths(target, entryLineagePaths)) {
+          // The linage paths match, found!
           return mapEntry;
         }
 
-        if (isPrefixLineagePaths(base, check)) {
-          // Add the mapEntry's children
+        if (isPrefixLineagePaths(entryLineagePaths, target)) {
+          // If the map entry's lineage paths are a prefix to the target, add the mapEntry's children.
           collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
         }
+      } else {
+        this.loggerService.warn(`${this.logName}: Skipping due to empty name or map entry lineage paths ${JSON.stringify({
+          name: target,
+          entryLineagePaths: mapEntry.lineagePaths,
+        })}`);
       }
     }
     return undefined;
