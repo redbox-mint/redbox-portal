@@ -246,7 +246,7 @@ export class FormService extends HttpClientService {
    * Create form components from the form component definition configuration.
    *
    * @param formConfig The form configuration.
-   * @param parentLineagePaths The linage paths of the parent item.
+   * @param parentLineagePaths The lineage paths of the parent item.
    * @param meta The metadata from the API request to get the form config.
    * @param formMode The form mode to use.
    * @returns The config and the components built from the config.
@@ -287,7 +287,7 @@ export class FormService extends HttpClientService {
   /**
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
-   * @param parentLineagePaths The linage paths of the parent item.
+   * @param parentLineagePaths The lineage paths of the parent item.
    */
   public async resolveFormComponentClasses(componentDefinitions: FormComponentDefinitionFrame[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
     const fieldArr: FormFieldCompMapEntry[] = [];
@@ -1209,7 +1209,7 @@ export class FormService extends HttpClientService {
         const entryLineagePaths = mapEntry.lineagePaths;
 
         if (isMatchingLineagePaths(target, entryLineagePaths)) {
-          // The linage paths match, found!
+          // The lineage paths match, found!
           return mapEntry;
         }
 
