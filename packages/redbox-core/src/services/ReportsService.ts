@@ -297,7 +297,7 @@ export namespace Services {
         paramName: item.paramName ?? '',
         type: item.type ?? ReportFilterType.text,
         property: item.property ?? '',
-        message: item.message ?? item.messsage ?? '',
+        message: item.message ?? '',
         database: item.database ?? null
       }));
       const columns: ReportConfigColumnDto[] = (config.columns ?? []).map((column: ReportConfigColumnDto) => ({
