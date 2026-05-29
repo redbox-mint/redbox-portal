@@ -1,12 +1,25 @@
 import { apiRoute } from '../route-factory';
-import { anyField, objectField, responseField, stringField } from '../schemas/common';
+import { anyField, arrayField, numberField, objectField, responseField, stringField } from '../schemas/common';
 
 const namedQueryResponse = responseField(
   objectField({ data: anyField('Named query data') }, ['data'], 'Named query response', true),
   'Named query response'
 );
 
-const namedQueryBody = objectField({}, [], 'Named query payload', true);
+const namedQueryBody = objectField(
+  {
+    collectionName: stringField('Collection name'),
+    mongoQuery: objectField({}, [], 'Mongo query', true),
+    name: stringField('Named query name'),
+    description: stringField('Description'),
+    queryParams: anyField('Query parameters'),
+    sort: arrayField(objectField({}, [], 'Sort entry', true), 'Sort configuration'),
+    limit: numberField('Result limit'),
+  },
+  ['collectionName', 'mongoQuery', 'name'],
+  'Named query payload',
+  true
+);
 
 const nameParam = objectField(
   {

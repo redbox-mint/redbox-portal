@@ -1017,6 +1017,7 @@
   "named-query-param-template": "Template",
   "named-query-param-template-placeholder": "Handlebars template",
   "named-query-param-empty": "No parameters defined.",
+  "named-query-param-query-type-none": "(none)",
   "named-query-mappings-heading": "Result object mapping",
   "named-query-mappings-help": "Map output fields to Handlebars templates over the matched record.",
   "named-query-mapping-field": "Field name",

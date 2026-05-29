@@ -30,7 +30,7 @@ describe('NqDetailComponent', () => {
       mongoQuery: { a: 1 },
       queryParams: { p: { type: 'string', path: 'path', whenUndefined: 'ignore' } },
       resultObjectMapping: { r: 'v' },
-      sort: [{ field: 'ASC' }],
+      sort: [{ createdAt: 'ASC' }],
       relatedRecordFilters: [{ collectionName: 'c', mongoQuery: {}, localField: 'l', foreignField: 'f' }]
     } as NamedQueryDefinition;
   });

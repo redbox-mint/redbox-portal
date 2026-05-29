@@ -34,7 +34,7 @@
         <div class="form-group col-md-4">
           <label>{{ 'named-query-param-query-type' | i18next }}</label>
           <select class="form-control form-control-sm" [(ngModel)]="newParam.queryType">
-            <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
+            <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || ('named-query-param-query-type-none' | i18next) }}</option>
           </select>
         </div>
         <div class="form-group col-md-4" *ngIf="newParam.type === 'date'">
@@ -116,7 +116,7 @@
           <label>{{ 'named-query-param-query-type' | i18next }}</label>
           <select class="form-control form-control-sm" [ngModel]="param.queryType"
                   (ngModelChange)="onFieldChange(param, 'queryType', $event)">
-            <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
+            <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || ('named-query-param-query-type-none' | i18next) }}</option>
           </select>
         </div>
         <div class="form-group col-md-4" *ngIf="param.type === 'date'">

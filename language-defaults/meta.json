@@ -5438,5 +5438,10 @@
     "category": "users",
     "description": "User audit history label for generic account linking events",
     "contentFormat": "plain"
+  },
+  "named-query-param-query-type-none": {
+    "category": "named-query",
+    "description": "Fallback label for the empty query type option in named query parameter editor",
+    "contentFormat": "plain"
   }
 }

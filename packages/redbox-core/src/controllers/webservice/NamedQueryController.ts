@@ -1,6 +1,9 @@
 import { Controllers as controllers } from '../../CoreController';
 import type { NamedQueryDefinition } from '../../config/namedQuery.config';
 import { BrandingModel } from '../../model/storage/BrandingModel';
+import * as BrandingServiceModule from '../../services/BrandingService';
+
+declare const BrandingService: BrandingServiceModule.Services.Branding;
 
 export namespace Controllers {
   export class NamedQuery extends controllers.Core.Controller {
@@ -55,8 +58,7 @@ export namespace Controllers {
         if (!name) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required', status: '400' }], headers: this.getNoCacheHeaders() });
         }
-        const queries = await NamedQueryService.list(brand);
-        const query = queries.find((q) => q.name === name);
+        const query = await NamedQueryService.getNamedQueryConfig(brand, name);
         if (!query) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: `Named query '${name}' not found`, status: '404' }], headers: this.getNoCacheHeaders() });
         }

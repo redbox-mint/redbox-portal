@@ -55,7 +55,7 @@ export class MongoQueryEditorComponent implements OnChanges {
   applyRawJson(): void {
     try {
       const parsed = JSON.parse(this.rawJsonText);
-      if (typeof parsed !== 'object' || parsed === null) {
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         this.jsonError = 'Must be a valid JSON object';
         return;
       }

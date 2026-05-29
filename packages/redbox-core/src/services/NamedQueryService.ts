@@ -176,9 +176,9 @@ export namespace Services {
 
 
     public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
-      const records = (await NamedQuery.find({
+      const records = await firstValueFrom(super.getObservable<NamedQueryAttributes[]>(NamedQuery.find({
         branding: brand.id
-      })) as NamedQueryAttributes[];
+      })));
       return records.map((r) => ({
         name: r.name,
         collectionName: r.collectionName,
@@ -194,7 +194,7 @@ export namespace Services {
 
     public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
-      return firstValueFrom(super.getObservable(NamedQuery.update({ key }, {
+      const result = await firstValueFrom(super.getObservable<NamedQueryAttributes[]>(NamedQuery.update({ key }, {
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
@@ -208,11 +208,13 @@ export namespace Services {
           ? JSON.stringify(config.relatedRecordFilters)
           : "",
       })));
+      return result?.[0];
     }
 
     public async delete(brand: BrandingModel, name: string) {
       const key = `${brand.id}_${name}`;
-      return firstValueFrom(super.getObservable(NamedQuery.destroy({ key })));
+      const result = await firstValueFrom(super.getObservable<NamedQueryAttributes[]>(NamedQuery.destroy({ key })));
+      return result?.[0];
     }
 
 
