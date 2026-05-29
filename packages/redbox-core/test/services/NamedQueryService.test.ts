@@ -753,6 +753,43 @@ describe('NamedQueryService', function() {
     });
   });
 
+  describe('performNamedQueryFromConfigResults', function() {
+    it('should break the loop when maxRecords is exceeded', async function() {
+      const brand = { id: 'brand-1' };
+      const config = {
+        mongoQuery: {},
+        queryParams: {},
+        collectionName: 'record',
+        resultObjectMapping: {},
+        brandIdFieldPath: 'branding',
+        sort: [],
+        expandRelations: false,
+        relatedRecordFilters: []
+      };
+
+      const stub = sinon.stub(NamedQueryService, 'performNamedQueryFromConfig');
+      stub.onCall(0).resolves({
+        records: [{ id: '1' }, { id: '2' }],
+        summary: { numFound: 10 }
+      });
+      stub.onCall(1).resolves({
+        records: [{ id: '3' }, { id: '4' }],
+        summary: { numFound: 10 }
+      });
+      stub.onCall(2).resolves({
+        records: [{ id: '5' }, { id: '6' }],
+        summary: { numFound: 10 }
+      });
+
+      const result = await NamedQueryService.performNamedQueryFromConfigResults(
+        config, {}, brand, 'test-query', 0, 2, 3
+      );
+
+      expect(stub.callCount).to.equal(2);
+      expect(result).to.have.length(4);
+    });
+  });
+
   describe('runTemplate', function() {
     it('should not execute legacy lodash templates', function() {
       const template = 'Hello <%= name %>';

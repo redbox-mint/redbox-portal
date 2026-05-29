@@ -717,9 +717,10 @@ export namespace Services {
         // update the start point
         start = currentRetrievedCount;
 
-        // Check the number of records and fail if it is more than maxRecords.
+        // Check the number of records and stop if it exceeds maxRecords.
         if (records.length > maxRecords) {
           sails.log.warn(`All named query results: returning early before finished with ${records.length} results for '${queryName}' from ${requestCount} requests because the number of records is more than max records ${maxRecords}`);
+          break;
         }
 
         // continue the while loop
