@@ -36,7 +36,7 @@ export namespace Controllers {
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
-      return BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+      return BrandingService.getBrand(req.session.branding as string);
     }
 
     public async listQueries(req: Sails.Req, res: Sails.Res) {
