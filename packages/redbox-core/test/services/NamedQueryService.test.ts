@@ -51,6 +51,7 @@ describe('NamedQueryService', function() {
       findOne: sinon.stub().resolves(null),
       create: sinon.stub().returns(createQueryObject({})),
       update: sinon.stub().returns(createQueryObject([])),
+      updateOne: sinon.stub().returns(createQueryObject({})),
       destroy: sinon.stub().returns(createQueryObject([])),
       destroyOne: sinon.stub().resolves({})
     };
@@ -337,16 +338,18 @@ describe('NamedQueryService', function() {
       };
 
       mockNamedQuery.findOne.resolves({ id: 'existing-query', name: 'test-query' });
-      mockNamedQuery.update.returns(createQueryObject([{ id: 'updated-query' }]));
+      mockNamedQuery.updateOne.returns(createQueryObject({ id: 'updated-query' }));
 
       const result = await NamedQueryService.update(brand, 'test-query', config);
 
-      expect(mockNamedQuery.update.calledOnce).to.be.true;
-      expect(mockNamedQuery.update.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
-      expect(mockNamedQuery.update.firstCall.args[0].key).to.equal('brand-1_test-query');
-      expect(mockNamedQuery.update.firstCall.args[1].mongoQuery).to.equal('{"type":"updated"}');
-      expect(mockNamedQuery.update.firstCall.args[1].brandIdFieldPath).to.equal('metaMetadata.brandId');
-      expect(result).to.deep.equal([{ id: 'updated-query' }]);
+      expect(mockNamedQuery.updateOne.calledOnce).to.be.true;
+      expect(mockNamedQuery.updateOne.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
+      expect(mockNamedQuery.updateOne.firstCall.args[0].key).to.equal('brand-1_test-query');
+      const queryObj = mockNamedQuery.updateOne.firstCall.returnValue;
+      expect(queryObj.set.calledOnce).to.be.true;
+      expect(queryObj.set.firstCall.args[0].mongoQuery).to.equal('{"type":"updated"}');
+      expect(queryObj.set.firstCall.args[0].brandIdFieldPath).to.equal('metaMetadata.brandId');
+      expect(result).to.deep.equal({ id: 'updated-query' });
     });
   });
 

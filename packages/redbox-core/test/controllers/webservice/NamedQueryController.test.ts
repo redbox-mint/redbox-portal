@@ -32,7 +32,8 @@ describe('Webservice NamedQueryController', () => {
     };
     (global as any).BrandingService = {
       getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).NamedQueryService = {
       list: sinon.stub().resolves([
