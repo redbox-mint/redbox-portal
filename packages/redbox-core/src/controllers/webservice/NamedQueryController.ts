@@ -19,7 +19,7 @@ export namespace Controllers {
 
     private statusForError(error: unknown): number {
       const message = this.asError(error).message;
-      if (/not found|was not found/i.test(message)) {
+      if (/Named query .*not found/i.test(message)) {
         return 404;
       }
       if (/already exists/i.test(message)) {

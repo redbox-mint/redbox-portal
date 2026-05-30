@@ -207,6 +207,21 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
   });
 
+  it('maps model-not-found validation errors to 400 on create (not 404)', async () => {
+    (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'badmodel': model not found"));
+    const req = {
+      session: { branding: 'default' },
+      body: { name: 'bad-query', collectionName: 'badmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.createQuery(req, res);
+
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+  });
+
   it('maps brand-scope validation errors to 400 on update', async () => {
     const param = sinon.stub();
     param.withArgs('name').returns('unsafe-query');
