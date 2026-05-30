@@ -22,7 +22,7 @@ import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
 import type { ReportDefinition } from '../config/report.config';
-import type { NamedQueryDefinition } from '../config/namedQuery.config';
+import { NamedQueryConfig } from '../services/NamedQueryService';
 import { ReportModel } from '../model/storage/ReportModel';
 import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
@@ -256,7 +256,7 @@ export namespace Services {
       return response;
     }
 
-    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryDefinition }> {
+    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryConfig }> {
       const normalized = this.normalizeReportConfigDto(config);
       if (_.isEmpty(normalized.name) || !/^[A-Za-z0-9_-]+$/.test(normalized.name)) {
         throw new ReportConfigServiceError(400, 'Report name is required and must be URL safe');
@@ -393,14 +393,14 @@ export namespace Services {
       const totalItems = dbResult.summary.numFound;
       const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
+      const docs = dbResult.records;
 
       const response: ReportResult = new ReportResult();
       response.total = totalItems;
       response.pageNum = pageNumber;
-      response.recordPerPage = startIndex;
+      response.recordsPerPage = docs.length;
 
       const items: Array<Record<string, unknown>> = [];
-      const docs = dbResult.records;
 
       for (let i = 0; i < docs.length; i++) {
         const doc = docs[i];
@@ -446,7 +446,7 @@ export namespace Services {
       const response: ReportResult = new ReportResult();
       response.total = totalItems;
       response.pageNum = pageNumber;
-      response.recordPerPage = _.toNumber(noItems);
+      response.recordsPerPage = _.toNumber(noItems);
 
       const items: Array<Record<string, unknown>> = [];
       const docs = results.response.docs;

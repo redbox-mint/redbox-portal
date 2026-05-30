@@ -12,6 +12,7 @@ describe('NamedQueryService', function() {
   let mockUser: any;
   let mockUserLink: any;
   let mockRecord: any;
+  let mockRecordNativeCollection: any;
   let mockRelatedRecordModel: any;
   let mockRecordsService: any;
 
@@ -63,9 +64,22 @@ describe('NamedQueryService', function() {
       find: sinon.stub().resolves([])
     };
 
+    const nativeCursor = {
+      sort: sinon.stub().returnsThis(),
+      skip: sinon.stub().returnsThis(),
+      limit: sinon.stub().returnsThis(),
+      toArray: sinon.stub().resolves([])
+    };
+    mockRecordNativeCollection = {
+      countDocuments: sinon.stub().resolves(0),
+      find: sinon.stub().returns(nativeCursor),
+      cursor: nativeCursor
+    };
+
     mockRecord = {
       count: sinon.stub().returns({ meta: sinon.stub().resolves(0) }),
-      find: sinon.stub().returns({ meta: sinon.stub().resolves([]) })
+      find: sinon.stub().returns({ meta: sinon.stub().resolves([]) }),
+      native: sinon.stub().callsFake((callback: any) => callback(null, mockRecordNativeCollection))
     };
 
     mockRelatedRecordModel = {
@@ -412,10 +426,10 @@ describe('NamedQueryService', function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
       
-      mockRecord.count.returns({ meta: sinon.stub().resolves(1) });
-      mockRecord.find.returns({ meta: sinon.stub().resolves([
+      mockRecordNativeCollection.countDocuments.resolves(1);
+      mockRecordNativeCollection.cursor.toArray.resolves([
         { redboxOid: 'oid-1', metadata: { title: 'Test Record' }, lastSaveDate: '', dateCreated: '' }
-      ]) });
+      ]);
       
       const result = await NamedQueryService.performNamedQuery(
         'branding', 
@@ -429,9 +443,9 @@ describe('NamedQueryService', function() {
         10
       );
       
-      expect(mockRecord.count.called).to.be.true;
-      expect(mockRecord.count.firstCall.args[0].metaMetadata.brandId).to.equal('brand-1');
-      expect(mockRecord.find.called).to.be.true;
+      expect(mockRecordNativeCollection.countDocuments.called).to.be.true;
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0]['metaMetadata.brandId']).to.equal('brand-1');
+      expect(mockRecordNativeCollection.find.called).to.be.true;
       expect(result.records).to.have.length(1);
       expect(result.records[0].oid).to.equal('oid-1');
     });
@@ -621,10 +635,10 @@ describe('NamedQueryService', function() {
     it('should expand record relationships when configured', async function() {
       const brand = { id: 'brand-1' };
 
-      mockRecord.count.returns({ meta: sinon.stub().resolves(1) });
-      mockRecord.find.returns({ meta: sinon.stub().resolves([
+      mockRecordNativeCollection.countDocuments.resolves(1);
+      mockRecordNativeCollection.cursor.toArray.resolves([
         { redboxOid: 'oid-1', metadata: { title: 'Test Record' }, lastSaveDate: '', dateCreated: '' }
-      ]) });
+      ]);
 
       const result = await NamedQueryService.performNamedQuery(
         'branding',
@@ -650,7 +664,7 @@ describe('NamedQueryService', function() {
       const countMeta = sinon.stub().resolves(0);
 
       mockRelatedRecordModel.find.returns({ meta: sinon.stub().resolves([{ recordId: 'rel-1' }, { recordId: 'rel-2' }, { recordId: 'rel-1' }]) });
-      mockRecord.count.returns({ meta: countMeta });
+      mockRecordNativeCollection.countDocuments = countMeta;
 
       await NamedQueryService.performNamedQuery(
         'branding',
@@ -676,8 +690,8 @@ describe('NamedQueryService', function() {
       );
 
       expect(mockRelatedRecordModel.find.calledOnce).to.be.true;
-      expect(mockRecord.count.calledOnce).to.be.true;
-      expect(mockRecord.count.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-1', 'rel-2'] });
+      expect(mockRecordNativeCollection.countDocuments.calledOnce).to.be.true;
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-1', 'rel-2'] });
     });
 
     it('should intersect related record filters targeting the same local field', async function() {
@@ -686,7 +700,7 @@ describe('NamedQueryService', function() {
 
       mockRelatedRecordModel.find.onFirstCall().returns({ meta: sinon.stub().resolves([{ recordId: 'rel-1' }, { recordId: 'rel-2' }]) });
       mockRelatedRecordModel.find.onSecondCall().returns({ meta: sinon.stub().resolves([{ recordId: 'rel-2' }, { recordId: 'rel-3' }]) });
-      mockRecord.count.returns({ meta: countMeta });
+      mockRecordNativeCollection.countDocuments = countMeta;
 
       await NamedQueryService.performNamedQuery(
         'branding',
@@ -715,14 +729,14 @@ describe('NamedQueryService', function() {
       );
 
       expect(mockRelatedRecordModel.find.calledTwice).to.be.true;
-      expect(mockRecord.count.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-2'] });
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-2'] });
     });
 
     it('should only apply query params to related filters when the filter query declares that path', async function() {
       const brand = { id: 'brand-1' };
 
       mockRelatedRecordModel.find.returns({ meta: sinon.stub().resolves([]) });
-      mockRecord.count.returns({ meta: sinon.stub().resolves(0) });
+      mockRecordNativeCollection.countDocuments.resolves(0);
 
       await NamedQueryService.performNamedQuery(
         'branding',
@@ -862,7 +876,7 @@ describe('NamedQueryService', function() {
 
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { search: 'Ada Lovelace' });
 
-      expect(mongoQuery.metadata.l_fullName).to.deep.equal({ contains: 'ada lovelace' });
+      expect(mongoQuery['metadata.l_fullName']).to.deep.equal({ contains: 'ada lovelace' });
     });
 
     it('should throw if required param missing', function() {
