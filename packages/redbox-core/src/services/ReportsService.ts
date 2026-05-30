@@ -22,6 +22,7 @@ import { mergeMap as flatMap, last } from 'rxjs/operators';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
 import type { ReportDefinition } from '../config/report.config';
+import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { ReportModel } from '../model/storage/ReportModel';
 import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
@@ -201,7 +202,7 @@ export namespace Services {
     }
 
     public async createConfig(brand: BrandingModel, config: ReportConfigDto): Promise<ReportConfigDto> {
-      const normalized = await this.validateMutableConfig(brand, config, false);
+      const { dto: normalized } = await this.validateMutableConfig(brand, config, false);
       const existing = await this.get(brand, normalized.name);
       if (existing) {
         throw new ReportConfigServiceError(409, `Report '${normalized.name}' already exists`);
@@ -212,14 +213,10 @@ export namespace Services {
 
     public async updateConfig(brand: BrandingModel, name: string, config: ReportConfigDto): Promise<ReportConfigDto> {
       const existing = await this.get(brand, name);
-      if (!existing) {
-        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
-      }
-      const existingDto = this.getReportConfigDto(existing as unknown as ReportModel);
-      if (existingDto.readOnly) {
+      if (existing && this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
         throw new ReportConfigServiceError(403, 'Solr reports cannot be modified');
       }
-      const normalized = await this.validateMutableConfig(brand, { ...config, name }, true);
+      const { dto: normalized } = await this.validateMutableConfig(brand, { ...config, name }, true);
       if (config.name && config.name !== name) {
         throw new ReportConfigServiceError(400, 'Report name cannot be changed');
       }
@@ -251,19 +248,15 @@ export namespace Services {
     }
 
     public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
-      const normalized = await this.validateMutableConfig(brand, config, false);
-      const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery!.queryName);
-      if (!namedQueryConfig) {
-        throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery!.queryName}' not found`);
-      }
+      const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
       const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
-      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, 0, 100);
+      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, 0, 100);
       const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
       response.success = true;
       return response;
     }
 
-    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<ReportConfigDto> {
+    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryDefinition }> {
       const normalized = this.normalizeReportConfigDto(config);
       if (_.isEmpty(normalized.name) || !/^[A-Za-z0-9_-]+$/.test(normalized.name)) {
         throw new ReportConfigServiceError(400, 'Report name is required and must be URL safe');
@@ -294,7 +287,7 @@ export namespace Services {
       if (!isUpdate && _.isEmpty(normalized.columns)) {
         normalized.columns = [];
       }
-      return normalized;
+      return { dto: normalized, namedQuery };
     }
 
     private normalizeReportConfigDto(config: Partial<ReportConfigDto> & { filter?: Array<ReportConfigFilterDto & { messsage?: string }> }): ReportConfigDto {
