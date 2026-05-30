@@ -260,6 +260,24 @@ describe('ReportsService', function() {
       expect(result).to.include({ name: 'database-report', title: 'Updated Database Report', readOnly: false });
     });
 
+    it('should return not found before validating a missing report update body', async function() {
+      (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
+
+      try {
+        await ReportsService.updateConfig(brand, 'missing-report', {
+          ...databaseConfig,
+          databaseQuery: { queryName: 'missingQuery' }
+        });
+        expect.fail('Expected missing report to throw');
+      } catch (error: any) {
+        expect(error.status).to.equal(404);
+        expect(error.message).to.equal("Report 'missing-report' not found");
+      }
+
+      expect((global as any).NamedQueryService.getNamedQueryConfig.called).to.be.false;
+      expect(mockReport.updateOne.called).to.be.false;
+    });
+
     it('should reject attempts to rename an existing report', async function() {
       mockReport.findOne.returns(createQueryObject({
         id: 'report-1',

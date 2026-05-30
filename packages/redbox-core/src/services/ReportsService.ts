@@ -213,7 +213,10 @@ export namespace Services {
 
     public async updateConfig(brand: BrandingModel, name: string, config: ReportConfigDto): Promise<ReportConfigDto> {
       const existing = await this.get(brand, name);
-      if (existing && this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
+      if (!existing) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      if (this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
         throw new ReportConfigServiceError(403, 'Solr reports cannot be modified');
       }
       const { dto: normalized } = await this.validateMutableConfig(brand, { ...config, name }, true);
