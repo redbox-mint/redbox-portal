@@ -2,7 +2,6 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
-import { of } from 'rxjs';
 
 describe('NamedQueryService', function() {
   let mockSails: any;
@@ -21,16 +20,7 @@ describe('NamedQueryService', function() {
       config: {
         appPath: '/app',
         namedQuery: {
-          supportedCollections: ['record', 'user'],
-          queries: {
-            'test-query': {
-              mongoQuery: { type: 'test' },
-              queryParams: {},
-              collectionName: 'record',
-              resultObjectMapping: {},
-              brandIdFieldPath: 'branding'
-            }
-          }
+          supportedCollections: ['record', 'user']
         },
         appmode: {
           bootstrapAlways: false
@@ -133,27 +123,61 @@ describe('NamedQueryService', function() {
     sinon.restore();
   });
 
-  describe('bootstrap', function() {
-    it('should create named queries for brand if none exist', async function() {
+  describe('bootstrapData', function() {
+    const stubFileOps = (fileOps: any) => sinon.stub(NamedQueryService, 'getBootstrapFileOps').returns(fileOps);
+
+    it('should create a named query from a file when it is absent from the DB', async function() {
       const defBrand = { id: 'brand-1' };
-      mockNamedQuery.find.returns(createQueryObject([]));
-      
-      sinon.stub(NamedQueryService, 'create').returns(of({}));
-      
-      await NamedQueryService.bootstrap(defBrand);
-      
-      expect(NamedQueryService.create.called).to.be.true;
+      stubFileOps({
+        readdir: sinon.stub().resolves([{ name: 'listParties.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify({
+          collectionName: 'record',
+          mongoQuery: {},
+          queryParams: {},
+          resultObjectMapping: {}
+        }))
+      });
+      mockNamedQuery.findOne.resolves(null);
+      const createStub = sinon.stub(NamedQueryService, 'create').resolves({});
+
+      await NamedQueryService.bootstrapData(defBrand);
+
+      expect(createStub.calledOnce).to.be.true;
+      expect(createStub.firstCall.args[0]).to.equal(defBrand);
+      expect(createStub.firstCall.args[1]).to.equal('listParties');
     });
 
-    it('should skip creation if queries exist', async function() {
+    it('should skip a named query that already exists in the DB', async function() {
       const defBrand = { id: 'brand-1' };
-      mockNamedQuery.find.returns(createQueryObject([{ id: 'existing' }]));
-      
-      sinon.stub(NamedQueryService, 'create').returns(of({}));
-      
-      await NamedQueryService.bootstrap(defBrand);
-      
-      expect(NamedQueryService.create.called).to.be.false;
+      stubFileOps({
+        readdir: sinon.stub().resolves([{ name: 'listParties.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify({
+          collectionName: 'record',
+          mongoQuery: {},
+          queryParams: {},
+          resultObjectMapping: {}
+        }))
+      });
+      mockNamedQuery.findOne.resolves({ id: 'existing', key: 'brand-1_listParties' });
+      const createStub = sinon.stub(NamedQueryService, 'create').resolves({});
+
+      await NamedQueryService.bootstrapData(defBrand);
+
+      expect(createStub.called).to.be.false;
+    });
+
+    it('should be a no-op when the bootstrap data directory is missing', async function() {
+      const defBrand = { id: 'brand-1' };
+      const enoent = Object.assign(new Error('not found'), { code: 'ENOENT' });
+      stubFileOps({
+        readdir: sinon.stub().rejects(enoent),
+        readFile: sinon.stub()
+      });
+      const createStub = sinon.stub(NamedQueryService, 'create').resolves({});
+
+      await NamedQueryService.bootstrapData(defBrand);
+
+      expect(createStub.called).to.be.false;
     });
   });
 
@@ -388,18 +412,6 @@ describe('NamedQueryService', function() {
       
       expect(config).to.be.instanceOf(NamedQueryConfig);
       expect(config.collectionName).to.equal('record');
-    });
-
-    it('should fall back to sails config when db entry is missing', async function() {
-      const brand = { id: 'brand-1' };
-
-      mockNamedQuery.findOne.resolves(null);
-
-      const config = await NamedQueryService.getNamedQueryConfig(brand, 'test-query');
-
-      expect(config).to.be.instanceOf(NamedQueryConfig);
-      expect(config?.collectionName).to.equal('record');
-      expect(config?.brandIdFieldPath).to.equal('branding');
     });
 
     it('should return null when named query cannot be found', async function() {

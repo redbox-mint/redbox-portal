@@ -1,0 +1,46 @@
+{
+  "collectionName": "user",
+  "resultObjectMapping": {
+    "type": "{{record.type}}",
+    "name": "{{record.name}}",
+    "email": "{{record.email}}",
+    "username": "{{record.username}}",
+    "lastLogin": "{{record.lastLogin}}"
+  },
+  "mongoQuery": {},
+  "queryParams": {
+    "dateCreatedBefore": {
+      "type": "string",
+      "path": "createdAt",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateCreatedAfter": {
+      "type": "string",
+      "path": "createdAt",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    },
+    "lastLoginBefore": {
+      "type": "string",
+      "path": "lastLogin",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "lastLoginAfter": {
+      "type": "string",
+      "path": "lastLogin",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    },
+    "userType": {
+      "type": "string",
+      "path": "type",
+      "whenUndefined": "ignore"
+    }
+  }
+}

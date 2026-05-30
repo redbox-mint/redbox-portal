@@ -45,7 +45,7 @@ export async function coreBootstrap(): Promise<void> {
     const _reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>);
     sails.log.verbose("Reports service, bootstrapped.");
 
-    const _namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
+    await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
     sails.log.verbose("Named Query service, bootstrapped.");
 
     // sails doesn't support 'populating' of nested associations

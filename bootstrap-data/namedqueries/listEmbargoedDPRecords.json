@@ -1,0 +1,63 @@
+{
+  "collectionName": "record",
+  "brandIdFieldPath": "metaMetadata.brandId",
+  "resultObjectMapping": {},
+  "mongoQuery": {
+    "metaMetadata.type": "dataPublication",
+    "workflow.stage": "embargoed",
+    "metadata.title": null,
+    "metadata.embargoUntil": null,
+    "dateCreated": null
+  },
+  "queryParams": {
+    "title": {
+      "type": "string",
+      "path": "metadata.title",
+      "queryType": "contains",
+      "whenUndefined": "defaultValue",
+      "defaultValue": ""
+    },
+    "dateCreatedBefore": {
+      "type": "string",
+      "path": "dateCreated",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateCreatedAfter": {
+      "type": "string",
+      "path": "dateCreated",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    },
+    "dateModifiedBefore": {
+      "type": "string",
+      "path": "lastSaveDate",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateModifiedAfter": {
+      "type": "string",
+      "path": "lastSaveDate",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    },
+    "dateEmbargoedBefore": {
+      "type": "string",
+      "path": "metadata.embargoUntil",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateEmbargoedAfter": {
+      "type": "string",
+      "path": "metadata.embargoUntil",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    }
+  }
+}

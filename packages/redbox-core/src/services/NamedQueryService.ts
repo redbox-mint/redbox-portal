@@ -19,6 +19,8 @@
 
 import { Services as services } from '../CoreService';
 import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { DateTime } from 'luxon';
 import Handlebars from 'handlebars';
 import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
@@ -115,6 +117,8 @@ const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<st
   throw Error(`${queryParamKey} must be a valid JSON object`);
 };
 
+const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
+
 let namedQueryHandlebarsHelpersRegistered = false;
 
 const ensureNamedQueryHandlebarsHelpers = () => {
@@ -139,7 +143,7 @@ export namespace Services {
 
 
     protected override _exportedMethods: string[] = [
-      "bootstrap",
+      "bootstrapData",
       "getNamedQueryConfig",
       "getSupportedCollections",
       "performNamedQuery",
@@ -151,22 +155,71 @@ export namespace Services {
       "delete",
     ];
 
-    public async bootstrap(defBrand: BrandingModel) {
-      const namedQueries = await firstValueFrom(super.getObservable<Array<{ id?: string | number }>>(NamedQuery.find({
-        branding: defBrand.id
-      })));
+    public async bootstrapData(defBrand: BrandingModel) {
+      const bootstrapPath = this.getBootstrapDataPath();
+      let fileNames: string[] = [];
+      const fileOps = this.getBootstrapFileOps();
 
-      if (!_.isEmpty(namedQueries)) {
+      try {
+        const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
+        fileNames = fileEntries
+          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+          .map((entry) => entry.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError.code === 'ENOENT') {
+          sails.log.verbose(`Named query bootstrap data path not found: ${bootstrapPath}`);
+          return;
+        }
+        sails.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
         return;
       }
-      sails.log.verbose("Bootstrapping named query definitions... ");
-      await this.createNamedQueriesForBrand(defBrand);
+
+      for (const fileName of fileNames) {
+        try {
+          const filePath = path.join(bootstrapPath, fileName);
+          const definition = await this.readJsonFile<NamedQueryDefinition>(filePath);
+          if (!definition) {
+            continue;
+          }
+
+          const name = fileName.replace(/\.json$/, '');
+          if (!name || typeof definition.collectionName !== 'string' || definition.collectionName.length === 0) {
+            sails.log.error(`Skipping named query bootstrap file with missing name or collectionName: ${fileName}`);
+            continue;
+          }
+
+          const existing = await NamedQuery.findOne({ key: `${defBrand.id}_${name}` });
+          if (existing) {
+            sails.log.verbose(`Skipping existing named query bootstrap data: ${name}`);
+            continue;
+          }
+
+          await this.create(defBrand, name, definition);
+          sails.log.verbose(`Bootstrapped named query: ${name}`);
+        } catch (error) {
+          sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
+        }
+      }
     }
 
-    private async createNamedQueriesForBrand(defBrand: BrandingModel) {
-      for (const [namedQuery, config] of Object.entries(sails.config.namedQuery.queries ?? {})) {
-        const namedQueryConfig = config as NamedQueryDefinition;
-        await this.create(defBrand, namedQuery, namedQueryConfig);
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'namedqueries');
+    }
+
+    protected getBootstrapFileOps(): Pick<typeof fs, 'readdir' | 'readFile'> {
+      return fs;
+    }
+
+    private async readJsonFile<T>(filePath: string): Promise<T | null> {
+      try {
+        const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
+        return JSON.parse(content) as T;
+      } catch (error) {
+        sails.log.error(`Failed to read named query bootstrap file: ${path.basename(filePath)}`, error);
+        return null;
       }
     }
 
@@ -426,25 +479,7 @@ export namespace Services {
         return new NamedQueryConfig(nQDBEntry)
       }
 
-      const configuredNamedQuery = _.get(sails.config, ['namedQuery', 'queries', namedQuery]) as NamedQueryDefinition | undefined;
-      if (!configuredNamedQuery || typeof configuredNamedQuery !== 'object') {
-        return null;
-      }
-
-      const configFromSource: NamedQueryDefinition = configuredNamedQuery;
-
-      return new NamedQueryConfig({
-        name: namedQuery,
-        branding: String(brand.id),
-        collectionName: configFromSource.collectionName,
-        brandIdFieldPath: configFromSource.brandIdFieldPath,
-        mongoQuery: _.cloneDeep(configFromSource.mongoQuery),
-        queryParams: _.cloneDeep(configFromSource.queryParams),
-        resultObjectMapping: _.cloneDeep(configFromSource.resultObjectMapping),
-        sort: _.cloneDeep(configFromSource.sort),
-        expandRelations: configFromSource.expandRelations,
-        relatedRecordFilters: _.cloneDeep(configFromSource.relatedRecordFilters),
-      })
+      return null;
     }
 
     getSupportedCollections(): string[] {
