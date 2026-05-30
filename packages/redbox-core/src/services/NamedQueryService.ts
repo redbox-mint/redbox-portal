@@ -394,7 +394,7 @@ export namespace Services {
         throw new Error(`Named query '${name}' not found`);
       }
       const brandScope = this.resolveBrandScope(config.collectionName);
-      return firstValueFrom(super.getObservable(NamedQuery.update({ key }, {
+      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
@@ -408,6 +408,10 @@ export namespace Services {
           ? JSON.stringify(config.relatedRecordFilters)
           : "",
       })));
+      if (!updated) {
+        throw new Error(`Named query '${name}' not found`);
+      }
+      return updated;
     }
 
     public async delete(brand: BrandingModel, name: string) {
