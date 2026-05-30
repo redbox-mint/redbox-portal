@@ -394,7 +394,6 @@ export namespace Services {
 
     getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, _report: ReportConfig) {
       const totalItems = dbResult.summary.numFound;
-      const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
       const docs = dbResult.records;
 
