@@ -31,6 +31,10 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
 import Handlebars from "handlebars";
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 
 type ReportColumnLike = {
@@ -107,7 +111,7 @@ export namespace Services {
     private helpersRegistered: boolean = false;
 
     protected override _exportedMethods: string[] = [
-      'bootstrap',
+      'bootstrapData',
       'create',
       'findAllReportsForBrand',
       'get',
@@ -130,37 +134,72 @@ export namespace Services {
       return RBReport;
     }
 
-    public bootstrap = (defBrand: BrandingModel) => {
-      let reportModel: ReportWaterlineModel;
+    public async bootstrapData(defBrand: BrandingModel) {
+      const bootstrapPath = this.getBootstrapDataPath();
+      let fileNames: string[] = [];
+      const fileOps = this.getBootstrapFileOps();
+
       try {
-        reportModel = this.getReportModel();
-      } catch (_error) {
-        sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
-        return of({} as ReportModel);
-      }
-      return super.getObservable<ReportModel[]>(reportModel.find({
-        branding: defBrand.id
-      })).pipe(flatMap(reports => {
-        if (_.isEmpty(reports)) {
-          const rTypes: Observable<ReportModel>[] = [];
-          sails.log.verbose("Bootstrapping report definitions... ");
-          _.forOwn(sails.config.reports, (config: ReportDefinition, report: string) => {
-            const obs = this.create(defBrand, report, config as unknown as ReportConfig);
-            obs.subscribe(() => { });
-            rTypes.push(obs);
-          });
-          return from(rTypes);
-
-        } else {
-
-          const rTypes: Observable<ReportModel>[] = [];
-          _.each(reports, function (report: ReportModel) {
-            rTypes.push(of(report));
-          });
-          sails.log.verbose("Default reports definition(s) exist.");
-          return from(rTypes);
+        const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
+        fileNames = fileEntries
+          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+          .map((entry) => entry.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError.code === 'ENOENT') {
+          sails.log.verbose(`Report bootstrap data path not found: ${bootstrapPath}`);
+          return;
         }
-      }), last());
+        sails.log.error(`Failed to read report bootstrap data path: ${bootstrapPath}`, error);
+        return;
+      }
+
+      for (const fileName of fileNames) {
+        try {
+          const filePath = path.join(bootstrapPath, fileName);
+          const definition = await this.readJsonFile<ReportDefinition>(filePath);
+          if (!definition) {
+            continue;
+          }
+
+          const name = fileName.replace(/\.json$/, '');
+          if (!name || typeof definition.title !== 'string' || definition.title.length === 0) {
+            sails.log.error(`Skipping report bootstrap file with missing name or title: ${fileName}`);
+            continue;
+          }
+
+          const existing = await this.getReportModel().findOne({ key: `${defBrand.id}_${name}` });
+          if (existing) {
+            sails.log.verbose(`Skipping existing report bootstrap data: ${name}`);
+            continue;
+          }
+
+          await firstValueFrom(this.create(defBrand, name, definition as unknown as ReportConfig));
+          sails.log.verbose(`Bootstrapped report: ${name}`);
+        } catch (error) {
+          sails.log.error(`Failed to bootstrap report from file: ${fileName}`, error);
+        }
+      }
+    }
+
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'reports');
+    }
+
+    protected getBootstrapFileOps(): Pick<typeof fs, 'readdir' | 'readFile'> {
+      return fs;
+    }
+
+    private async readJsonFile<T>(filePath: string): Promise<T | null> {
+      try {
+        const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
+        return JSON.parse(content) as T;
+      } catch (error) {
+        sails.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`, error);
+        return null;
+      }
     }
 
     public findAllReportsForBrand(brand: BrandingModel) {

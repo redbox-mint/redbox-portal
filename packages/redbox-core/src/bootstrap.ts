@@ -42,7 +42,7 @@ export async function coreBootstrap(): Promise<void> {
     const _rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>);
     sails.log.verbose("Roles service, bootstrapped.");
 
-    const _reportsBootstrapResult = await lastValueFrom(sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>);
+    await sails.services.reportsservice.bootstrapData(sails.services.brandingservice.getDefault());
     sails.log.verbose("Reports service, bootstrapped.");
 
     await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());

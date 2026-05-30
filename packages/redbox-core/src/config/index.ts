@@ -134,7 +134,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { BrandingConfig, branding } from './branding.config';
 import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
-import { ReportsConfig, reports } from './report.config';
+
 import { RecordTypeConfig, recordtype } from './recordtype.config';
 import { WorkflowConfig, workflow } from './workflow.config';
 import { DashboardViewConfig, dashboardview } from './dashboardview.config';
@@ -239,7 +239,6 @@ export interface SailsConfig {
     branding: BrandingConfig;
     brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
     raid: RaidConfig;
-    reports: ReportsConfig;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
     dashboardview: DashboardViewConfig;
@@ -342,7 +341,6 @@ export const Config = {
     redboxSession,
     companion,
     brandingConfigurationDefaults,
-    reports,
     branding,
     raid,
     recordtype,

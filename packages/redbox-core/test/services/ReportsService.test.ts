@@ -14,19 +14,6 @@ describe('ReportsService', function() {
     mockSails = createMockSails({
       config: {
         appPath: '/app',
-        reports: {
-          'test-report': {
-            title: 'Test Report',
-            reportSource: 'database',
-            databaseQuery: { queryName: 'testQuery' },
-            solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
-            columns: [
-              { label: 'Title', property: 'title' },
-              { label: 'ID', property: 'id' }
-            ],
-            filter: []
-          }
-        },
         search: {
           serviceName: 'solrsearchservice'
         }
@@ -90,36 +77,69 @@ describe('ReportsService', function() {
     sinon.restore();
   });
 
-  describe('bootstrap', function() {
-    it('should create reports if not exist', function(done) {
-      mockReport.find.returns(createQueryObject([])); // no existing reports
-      
-      const createSpy = sinon.spy(ReportsService, 'create');
+  describe('bootstrapData', function() {
+    const stubFileOps = (fileOps: any) => sinon.stub(ReportsService, 'getBootstrapFileOps').returns(fileOps);
+
+    it('should create a report from a file when it is absent from the DB', async function() {
       const defBrand = { id: 'brand-1' };
-      
-      ReportsService.bootstrap(defBrand).subscribe({
-        next: (res: any) => {},
-        complete: () => {
-          expect(createSpy.called).to.be.true;
-          expect(createSpy.calledWith(defBrand, 'test-report')).to.be.true;
-          done();
-        }
+      stubFileOps({
+        readdir: sinon.stub().resolves([{ name: 'test-report.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify({
+          title: 'Test Report',
+          reportSource: 'database',
+          databaseQuery: { queryName: 'testQuery' },
+          filter: [],
+          columns: [
+            { label: 'Title', property: 'title' },
+            { label: 'ID', property: 'id' }
+          ]
+        }))
       });
+      mockReport.findOne.resolves(null);
+      const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
+
+      await ReportsService.bootstrapData(defBrand);
+
+      expect(createStub.calledOnce).to.be.true;
+      expect(createStub.firstCall.args[0]).to.equal(defBrand);
+      expect(createStub.firstCall.args[1]).to.equal('test-report');
     });
 
-    it('should skip creation if reports exist', function(done) {
-      mockReport.find.returns(createQueryObject([{ id: 'existing-report' }]));
-      
-      const createSpy = sinon.spy(ReportsService, 'create');
+    it('should skip a report that already exists in the DB', async function() {
       const defBrand = { id: 'brand-1' };
-      
-      ReportsService.bootstrap(defBrand).subscribe({
-        next: (res: any) => {},
-        complete: () => {
-          expect(createSpy.called).to.be.false;
-          done();
-        }
+      stubFileOps({
+        readdir: sinon.stub().resolves([{ name: 'test-report.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify({
+          title: 'Test Report',
+          reportSource: 'database',
+          databaseQuery: { queryName: 'testQuery' },
+          filter: [],
+          columns: [
+            { label: 'Title', property: 'title' },
+            { label: 'ID', property: 'id' }
+          ]
+        }))
       });
+      mockReport.findOne.resolves({ id: 'existing', key: 'brand-1_test-report' });
+      const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
+
+      await ReportsService.bootstrapData(defBrand);
+
+      expect(createStub.called).to.be.false;
+    });
+
+    it('should be a no-op when the bootstrap data directory is missing', async function() {
+      const defBrand = { id: 'brand-1' };
+      const enoent = Object.assign(new Error('not found'), { code: 'ENOENT' });
+      stubFileOps({
+        readdir: sinon.stub().rejects(enoent),
+        readFile: sinon.stub()
+      });
+      const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
+
+      await ReportsService.bootstrapData(defBrand);
+
+      expect(createStub.called).to.be.false;
     });
   });
 
@@ -532,7 +552,7 @@ describe('ReportsService', function() {
     it('should export all public methods', function() {
       const exported = ReportsService.exports();
       
-      expect(exported).to.have.property('bootstrap');
+      expect(exported).to.have.property('bootstrapData');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('findAllReportsForBrand');
       expect(exported).to.have.property('get');
