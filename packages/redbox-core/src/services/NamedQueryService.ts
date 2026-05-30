@@ -157,13 +157,7 @@ export namespace Services {
       })));
 
       if (!_.isEmpty(namedQueries)) {
-        if (sails.config.appmode.bootstrapAlways) {
-          for (const namedQuery of namedQueries) {
-            await NamedQuery.destroyOne({ id: namedQuery.id });
-          }
-        } else {
-          return;
-        }
+        return;
       }
       sails.log.verbose("Bootstrapping named query definitions... ");
       await this.createNamedQueriesForBrand(defBrand);
