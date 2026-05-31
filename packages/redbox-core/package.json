@@ -41,7 +41,7 @@
     "@types/uuid": "11.0.0",
     "agenda": "6.2.5",
     "async": "3.2.6",
-    "axios": "1.15.2",
+    "axios": "1.16.1",
     "bcryptjs": "3.0.3",
     "check-disk-space": "3.4.0",
     "clean-css": "5.3.3",
@@ -107,7 +107,7 @@
     "zod-to-openapi": "0.2.1"
   },
   "overrides": {
-    "axios": "1.15.2",
+    "axios": "1.16.1",
     "fast-xml-parser": "5.7.0",
     "immutable": "5.1.5",
     "sails-mongo": {
