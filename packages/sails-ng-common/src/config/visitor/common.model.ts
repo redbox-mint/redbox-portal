@@ -364,8 +364,6 @@ export class FormPathHelper {
     try {
       this._formPath = buildLineagePaths(original, more);
       await item.accept(this.visitor);
-    } catch (error) {
-      throw error;
     } finally {
       this._formPath = original;
     }
