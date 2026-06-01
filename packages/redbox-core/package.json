@@ -103,8 +103,8 @@
     "webpack": "5.107.0",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.0",
-    "zod": "3.5.1",
-    "zod-to-openapi": "0.2.1"
+    "zod": "3.25.76",
+    "@asteasolutions/zod-to-openapi": "7.3.4"
   },
   "overrides": {
     "axios": "1.16.1",

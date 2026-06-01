@@ -1,6 +1,4 @@
-import 'zod-to-openapi';
-
-import { OpenAPIGenerator } from 'zod-to-openapi';
+import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
 import { ZodTypeAny } from 'zod';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
@@ -152,19 +150,21 @@ function sanitizeOpenApiValue<T>(value: T): T {
 }
 
 function createSchemaConverter() {
-  const generator = new OpenAPIGenerator([]);
-  // zod-to-openapi 0.2.1 exposes these only as runtime properties; revisit this when upgrading the package.
+  const generator = new OpenApiGeneratorV3([]);
+  const internal = (generator as unknown as {
+    generator: {
+      generateSchemaWithRef: (schema: ZodTypeAny) => Record<string, unknown>;
+    };
+  }).generator;
+
   return {
     toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
-      return sanitizeOpenApiValue(
-        (
-          generator as unknown as { generateSingle: (schema: ZodTypeAny) => Record<string, unknown> }
-        ).generateSingle(schema)
-      );
+      return sanitizeOpenApiValue(internal.generateSchemaWithRef(schema));
     },
     getComponentSchemas(): Record<string, unknown> | undefined {
-      const refs = (generator as unknown as { refs?: Record<string, unknown> }).refs ?? {};
-      return Object.keys(refs).length ? sanitizeOpenApiValue(refs) : undefined;
+      const components = generator.generateComponents();
+      const schemas = components.components?.schemas;
+      return schemas && Object.keys(schemas).length ? sanitizeOpenApiValue(schemas) : undefined;
     },
   };
 }
