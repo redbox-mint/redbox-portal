@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
@@ -10,9 +9,15 @@ import {
   shouldSkipBodyParser,
   sanitizeStaticResourcePath,
   sanitizeStaticSegment
-} from '../../src/config/http.config.ts';
+} from '../../src/config/http.config';
+
+let expect!: Chai.ExpectStatic;
 
 describe('HTTP config security helpers', function () {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   describe('Companion send-token response', function () {
     it('should escape malicious provider values out of inert HTML text content', function () {
       const appUrl = 'https://portal.example.edu/default/rdmp';
@@ -202,7 +207,7 @@ describe('HTTP config security helpers', function () {
 
     it('should delegate non-matching requests to skipper instead of calling next directly', function () {
       const originalCustomConfig = (global as any).sails.config.custom;
-      const httpConfigModulePath = require.resolve('../../src/config/http.config.ts');
+      const httpConfigModulePath = require.resolve('../../src/config/http.config');
       const skipperModulePath = require.resolve('skipper');
       const originalHttpModule = require.cache[httpConfigModulePath];
       const originalSkipperModule = require.cache[skipperModulePath];
@@ -232,7 +237,7 @@ describe('HTTP config security helpers', function () {
         }
 
         delete require.cache[httpConfigModulePath];
-        const reloadedHttp = require('../../src/config/http.config.ts').http;
+        const reloadedHttp = require('../../src/config/http.config').http;
 
         reloadedHttp.middleware.myBodyParser?.(
           { originalUrl: '/default/rdmp/hook/other', url: '/default/rdmp/hook/other' } as any,

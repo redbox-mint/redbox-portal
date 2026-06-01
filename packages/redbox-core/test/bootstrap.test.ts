@@ -2,12 +2,12 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 
-import { preLiftSetup } from '../src/bootstrap.ts';
+import { preLiftSetup } from '../src/bootstrap';
 import {
     ApiRouteDefinition,
     resetResolvedApiRouteCache,
     resolveApiRouteForRequest,
-} from '../src/api-routes/index.ts';
+} from '../src/api-routes';
 
 function createReq(overrides: Partial<Sails.Req> = {}): Sails.Req {
     return {
