@@ -300,7 +300,7 @@ describe('HarvestRunService', function () {
     expect(response.records).to.equal(undefined);
   });
 
-  it('derives run aggregate counts from chunk rows', async function () {
+  it('returns run counters as aggregate counts to avoid stale-read races', async function () {
     (global as any).HarvestRun.findOne.resolves({
       id: 'run-1',
       brandId: 'brand-1',
@@ -309,14 +309,14 @@ describe('HarvestRunService', function () {
       sourceRunId: 'source-run-1',
       status: 'completed',
       startedAt: '2026-05-25T00:00:00.000Z',
-      totalProcessed: 99,
-      created: 99,
-      updated: 99,
-      deleted: 99,
-      unchanged: 99,
-      failed: 99,
-      chunksProcessed: 99,
-      duplicateChunks: 99,
+      totalProcessed: 5,
+      created: 1,
+      updated: 2,
+      deleted: 1,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 2,
+      duplicateChunks: 1,
     });
     (global as any).HarvestRunChunk.find.returns(createChainableQuery([
       {
@@ -977,14 +977,7 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       },
     });
-    const collection = {
-      findOneAndUpdate,
-      s: {
-        pkFactory: {
-          createPk: () => new ObjectId(),
-        },
-      },
-    };
+    const collection = { findOneAndUpdate };
     (global as any).HarvestRun.getDatastore.returns({
       manager: {
         collection: sinon.stub().withArgs('harvestrun').returns(collection),
@@ -1068,14 +1061,7 @@ describe('HarvestRunService', function () {
     });
     (global as any).HarvestRun.getDatastore.returns({
       manager: {
-        collection: sinon.stub().withArgs('harvestrun').returns({
-          findOneAndUpdate,
-          s: {
-            pkFactory: {
-              createPk: () => new ObjectId(),
-            },
-          },
-        }),
+        collection: sinon.stub().withArgs('harvestrun').returns({ findOneAndUpdate }),
       },
     });
 

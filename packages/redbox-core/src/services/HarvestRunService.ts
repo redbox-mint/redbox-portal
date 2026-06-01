@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
+import { ObjectId } from 'mongodb';
 import { firstValueFrom, Observable } from 'rxjs';
 
 import { Services as services } from '../CoreService';
@@ -43,22 +44,12 @@ type HarvestRunRow = HarvestRunAttributes & { id?: string };
 type HarvestRunChunkRow = HarvestRunChunkAttributes & { id?: string };
 type HarvestRecordEventRow = HarvestRecordEventAttributes & { id?: string };
 type HarvestRecordEventCreateInput = Omit<HarvestRecordEventAttributes, 'id'>;
-type HarvestRunNativeObjectId = { toHexString: () => string };
-type HarvestRunObjectIdConstructor = {
-  new(input: string): HarvestRunNativeObjectId;
-  isValid?: (input: string) => boolean;
-};
 type HarvestRunCollection = {
   findOneAndUpdate: (
     filter: Record<string, unknown>,
     update: unknown,
     options?: Record<string, unknown>
   ) => Promise<HarvestRunRow | { value?: HarvestRunRow | null } | null>;
-  s?: {
-    pkFactory?: {
-      createPk?: () => unknown;
-    };
-  };
 };
 type TrackedOperation = HarvestOperation | 'invalid';
 type TrackedUpdateStrategy = 'replace' | 'merge' | 'ignoreIfExists';
@@ -251,38 +242,12 @@ export namespace Services {
       return datastore.manager.collection('harvestrun');
     }
 
-    private resolveNativeRunIdConstructor(collection: HarvestRunCollection | null): HarvestRunObjectIdConstructor | null {
-      const createPk = collection?.s?.pkFactory?.createPk;
-      if (typeof createPk !== 'function') {
+    private toNativeRunId(runId: string | undefined): ObjectId | null {
+      if (!runId || !ObjectId.isValid(runId)) {
         return null;
       }
-
-      const sampleId = createPk();
-      if (!sampleId || typeof sampleId !== 'object') {
-        return null;
-      }
-
-      const constructor = (sampleId as { constructor?: unknown }).constructor;
-      return typeof constructor === 'function' ? constructor as HarvestRunObjectIdConstructor : null;
-    }
-
-    private toNativeRunId(runId: string | undefined, collection: HarvestRunCollection | null): HarvestRunNativeObjectId | null {
-      if (!runId) {
-        return null;
-      }
-
-      const ObjectIdConstructor = this.resolveNativeRunIdConstructor(collection);
-      if (!ObjectIdConstructor) {
-        return null;
-      }
-
-      if (typeof ObjectIdConstructor.isValid === 'function' && !ObjectIdConstructor.isValid(runId)) {
-        return null;
-      }
-
       try {
-        const nativeRunId = new ObjectIdConstructor(runId);
-        return typeof nativeRunId.toHexString === 'function' ? nativeRunId : null;
+        return new ObjectId(runId);
       } catch {
         return null;
       }
@@ -405,31 +370,6 @@ export namespace Services {
         errorMessage: row.errorMessage ? String(row.errorMessage) : undefined,
         responseSummary: (row.responseSummary as Record<string, unknown> | undefined) ?? undefined,
       });
-    }
-
-    private toAggregateCounts(chunks: HarvestRunChunkRow[]): HarvestRunDetailResult['aggregateCounts'] {
-      return chunks.reduce(
-        (counts, chunk) => ({
-          totalProcessed: counts.totalProcessed + Number(chunk.totalProcessed ?? 0),
-          created: counts.created + Number(chunk.created ?? 0),
-          updated: counts.updated + Number(chunk.updated ?? 0),
-          deleted: counts.deleted + Number(chunk.deleted ?? 0),
-          unchanged: counts.unchanged + Number(chunk.unchanged ?? 0),
-          failed: counts.failed + Number(chunk.failed ?? 0),
-          chunksProcessed: counts.chunksProcessed + 1,
-          duplicateChunks: counts.duplicateChunks + (chunk.duplicate ? 1 : 0),
-        }),
-        {
-          totalProcessed: 0,
-          created: 0,
-          updated: 0,
-          deleted: 0,
-          unchanged: 0,
-          failed: 0,
-          chunksProcessed: 0,
-          duplicateChunks: 0,
-        }
-      );
     }
 
     private toEventModel(row: HarvestRecordEventRow): HarvestRecordEventModel {
@@ -999,7 +939,7 @@ export namespace Services {
       completedAt: string
     ): Promise<HarvestRunRow> {
       const collection = this.getHarvestRunCollection();
-      const nativeRunId = this.toNativeRunId(run.id, collection);
+      const nativeRunId = this.toNativeRunId(run.id);
       if (collection && nativeRunId) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
           { _id: nativeRunId },
@@ -1039,7 +979,7 @@ export namespace Services {
 
     private async bumpDuplicateChunkCount(run: HarvestRunRow): Promise<HarvestRunRow> {
       const collection = this.getHarvestRunCollection();
-      const nativeRunId = this.toNativeRunId(run.id, collection);
+      const nativeRunId = this.toNativeRunId(run.id);
       if (collection && nativeRunId) {
         const updated = this.extractUpdatedRun(await collection.findOneAndUpdate(
           { _id: nativeRunId },
@@ -1668,7 +1608,16 @@ export namespace Services {
         run: this.toRunModel(run),
         chunks: chunks.map(row => this.toChunkModel(row)),
         events: events.map(row => this.toEventModel(row)),
-        aggregateCounts: this.toAggregateCounts(allChunks),
+        aggregateCounts: {
+          totalProcessed: Number(run.totalProcessed ?? 0),
+          created: Number(run.created ?? 0),
+          updated: Number(run.updated ?? 0),
+          deleted: Number(run.deleted ?? 0),
+          unchanged: Number(run.unchanged ?? 0),
+          failed: Number(run.failed ?? 0),
+          chunksProcessed: Number(run.chunksProcessed ?? 0),
+          duplicateChunks: Number(run.duplicateChunks ?? 0),
+        },
       };
     }
 
