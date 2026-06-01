@@ -1,5 +1,5 @@
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
-import {ComponentFixture, TestBed} from "@angular/core/testing";
+import {ComponentFixture, fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {RadioInputComponent} from "./radio-input.component";
 import {QuestionTreeComponent} from "./question-tree.component";
 import {CheckboxInputComponent} from "./checkbox-input.component";
@@ -16,434 +16,533 @@ import {filter} from "rxjs";
 
 describe('QuestionTreeComponent', async () => {
 
-  describe("basic functionality", async () => {
-    beforeEach(async () => {
-      await createTestbedModule({
-        declarations: {
-          "QuestionTreeComponent": QuestionTreeComponent,
-        }
-      });
-    });
+  // Form config, expression data, helper functions.
 
-    it('should create component', () => {
-      let fixture = TestBed.createComponent(QuestionTreeComponent);
-      let component = fixture.componentInstance;
-      expect(component).toBeDefined();
-    });
-  });
-
-
-  describe("complex functionality", async () => {
-    // question tree component with 3 questions
-    // question_1 is the start,
-    // question_2 shows only when question_1 is "no", and has an outcome & meta
-    // question_3 shows only when question_2 is "yes
-    const clientFormConfig: FormConfigFrame = {
-      name: 'testing',
-      debugValue: false,
-      domElementType: 'form',
-      defaultComponentConfig: {
-        defaultComponentCssClasses: 'row',
-      },
-      editCssClasses: "redbox-form form",
-      componentDefinitions: [
-        {
-          "name": "questiontree_1",
-          "component": {
-            "class": "QuestionTreeComponent",
-            "config": {
-              "readonly": false,
-              "visible": true,
-              "editMode": true,
-              "disabled": false,
-              "autofocus": false,
-              "availableOutcomes": [
-                {
-                  "value": "outcome1",
-                  "label": "@outcomes-value1"
-                },
-                {
-                  "value": "outcome2",
-                  "label": "@outcomes-value2"
-                }
-              ],
-              "availableMeta": {
-                "prop2": {
-                  "prop2Value1": "@outcomes-prop2-value1",
-                  "prop2Value2": "@outcomes-prop2-value2"
+  /*
+   * question tree component with 3 questions
+   * question_1 is the start,
+   * question_2 shows only when question_1 is "no", and has an outcome & meta
+   * question_3 shows only when question_2 is "yes
+   */
+  const clientFormConfig: FormConfigFrame = {
+    name: 'testing',
+    debugValue: false,
+    domElementType: 'form',
+    defaultComponentConfig: {
+      defaultComponentCssClasses: 'row',
+    },
+    editCssClasses: "redbox-form form",
+    componentDefinitions: [
+      {
+        "name": "questiontree_1",
+        "component": {
+          "class": "QuestionTreeComponent",
+          "config": {
+            "readonly": false,
+            "visible": true,
+            "editMode": true,
+            "disabled": false,
+            "autofocus": false,
+            "availableOutcomes": [
+              {
+                "value": "outcome1",
+                "label": "@outcomes-value1"
+              },
+              {
+                "value": "outcome2",
+                "label": "@outcomes-value2"
+              }
+            ],
+            "availableMeta": {
+              "prop2": {
+                "prop2Value1": "@outcomes-prop2-value1",
+                "prop2Value2": "@outcomes-prop2-value2"
+              }
+            },
+            "questions": [
+              {
+                "id": "question_1",
+                "answersMin": 1,
+                "answersMax": 1,
+                "answers": [
+                  {
+                    "value": "yes"
+                  },
+                  {
+                    "value": "no"
+                  }
+                ],
+                "rules": {
+                  "op": "true"
                 }
               },
-              "questions": [
-                {
-                  "id": "question_1",
-                  "answersMin": 1,
-                  "answersMax": 1,
-                  "answers": [
-                    {
-                      "value": "yes"
+              {
+                "id": "question_2",
+                "answersMin": 1,
+                "answersMax": 2,
+                "answers": [
+                  {
+                    "value": "yes"
+                  },
+                  {
+                    "value": "no",
+                    "meta": {
+                      "prop2": "prop2Value1"
                     },
-                    {
-                      "value": "no"
-                    }
-                  ],
-                  "rules": {
-                    "op": "true"
+                    "outcome": "outcome1"
                   }
-                },
-                {
-                  "id": "question_2",
-                  "answersMin": 1,
-                  "answersMax": 2,
-                  "answers": [
-                    {
-                      "value": "yes"
-                    },
-                    {
-                      "value": "no",
-                      "meta": {
-                        "prop2": "prop2Value1"
+                ],
+                "rules": {
+                  "op": "in",
+                  "q": "question_1",
+                  "a": [
+                    "no"
+                  ]
+                }
+              },
+              {
+                "id": "question_3",
+                "answersMin": 1,
+                "answersMax": 1,
+                "answers": [
+                  {
+                    "value": "yes"
+                  },
+                  {
+                    "value": "no"
+                  }
+                ],
+                "rules": {
+                  "op": "in",
+                  "q": "question_2",
+                  "a": [
+                    "yes"
+                  ]
+                }
+              }
+            ],
+            "componentDefinitions": [
+              {
+                "name": "question_1",
+                "component": {
+                  "class": "RadioInputComponent",
+                  "config": {
+                    "readonly": false,
+                    "visible": true,
+                    "editMode": true,
+                    "disabled": false,
+                    "autofocus": false,
+                    "options": [
+                      {
+                        "value": "yes",
+                        "label": "@questiontree_1-question_1-yes"
                       },
-                      "outcome": "outcome1"
-                    }
-                  ],
-                  "rules": {
-                    "op": "in",
-                    "q": "question_1",
-                    "a": [
-                      "no"
+                      {
+                        "value": "no",
+                        "label": "@questiontree_1-question_1-no"
+                      }
                     ]
                   }
                 },
-                {
-                  "id": "question_3",
-                  "answersMin": 1,
-                  "answersMax": 1,
-                  "answers": [
-                    {
-                      "value": "yes"
-                    },
-                    {
-                      "value": "no"
+                "model": {
+                  "class": "RadioInputModel",
+                  "config": {}
+                },
+                "layout": {
+                  "class": "DefaultLayout",
+                  "config": {
+                    "readonly": false,
+                    "visible": true,
+                    "editMode": true,
+                    "label": "question_1",
+                    "disabled": false,
+                    "autofocus": false,
+                    "labelRequiredStr": "*",
+                    "cssClassesMap": {},
+                    "helpTextVisibleOnInit": false,
+                    "helpTextVisible": false
+                  }
+                }
+              },
+              {
+                "name": "question_2",
+                "expressions": [
+                  {
+                    "name": "questiontree_1-question_2-layoutvis-qt",
+                    "config": {
+                      "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "layout.visible",
+                      "hasTemplate": true
                     }
-                  ],
-                  "rules": {
-                    "op": "in",
-                    "q": "question_2",
-                    "a": [
-                      "yes"
+                  },
+                  {
+                    "name": "questiontree_1-question_2-compvis-qt",
+                    "config": {
+                      "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "component.visible",
+                      "hasTemplate": true
+                    }
+                  },
+                  {
+                    "name": "questiontree_1-question_2-modval-qt",
+                    "config": {
+                      "template": "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "model.value",
+                      "hasTemplate": true
+                    }
+                  }
+                ],
+                "component": {
+                  "class": "CheckboxInputComponent",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "disabled": false,
+                    "autofocus": false,
+                    "options": [
+                      {
+                        "value": "yes",
+                        "label": "@questiontree_1-question_2-yes"
+                      },
+                      {
+                        "value": "no",
+                        "label": "@questiontree_1-question_2-no"
+                      }
                     ]
                   }
-                }
-              ],
-              "componentDefinitions": [
-                {
-                  "name": "question_1",
-                  "component": {
-                    "class": "RadioInputComponent",
-                    "config": {
-                      "readonly": false,
-                      "visible": true,
-                      "editMode": true,
-                      "disabled": false,
-                      "autofocus": false,
-                      "options": [
-                        {
-                          "value": "yes",
-                          "label": "@questiontree_1-question_1-yes"
-                        },
-                        {
-                          "value": "no",
-                          "label": "@questiontree_1-question_1-no"
-                        }
-                      ]
-                    }
-                  },
-                  "model": {
-                    "class": "RadioInputModel",
-                    "config": {}
-                  },
-                  "layout": {
-                    "class": "DefaultLayout",
-                    "config": {
-                      "readonly": false,
-                      "visible": true,
-                      "editMode": true,
-                      "label": "question_1",
-                      "disabled": false,
-                      "autofocus": false,
-                      "labelRequiredStr": "*",
-                      "cssClassesMap": {},
-                      "helpTextVisibleOnInit": false,
-                      "helpTextVisible": false
-                    }
-                  }
                 },
-                {
-                  "name": "question_2",
-                  "expressions": [
-                    {
-                      "name": "questiontree_1-question_2-layoutvis-qt",
-                      "config": {
-                        "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "layout.visible",
-                        "hasTemplate": true
-                      }
-                    },
-                    {
-                      "name": "questiontree_1-question_2-compvis-qt",
-                      "config": {
-                        "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "component.visible",
-                        "hasTemplate": true
-                      }
-                    },
-                    {
-                      "name": "questiontree_1-question_2-modval-qt",
-                      "config": {
-                        "template": "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "model.value",
-                        "hasTemplate": true
-                      }
-                    }
-                  ],
-                  "component": {
-                    "class": "CheckboxInputComponent",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "disabled": false,
-                      "autofocus": false,
-                      "options": [
-                        {
-                          "value": "yes",
-                          "label": "@questiontree_1-question_2-yes"
-                        },
-                        {
-                          "value": "no",
-                          "label": "@questiontree_1-question_2-no"
-                        }
-                      ]
-                    }
-                  },
-                  "model": {
-                    "class": "CheckboxInputModel",
-                    "config": {}
-                  },
-                  "layout": {
-                    "class": "DefaultLayout",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "label": "question_2",
-                      "disabled": false,
-                      "autofocus": false,
-                      "labelRequiredStr": "*",
-                      "cssClassesMap": {},
-                      "helpTextVisibleOnInit": false,
-                      "helpTextVisible": false
-                    }
-                  }
+                "model": {
+                  "class": "CheckboxInputModel",
+                  "config": {}
                 },
-                {
-                  "name": "question_3",
-                  "expressions": [
-                    {
-                      "name": "questiontree_1-question_3-layoutvis-qt",
-                      "config": {
-                        "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "layout.visible",
-                        "hasTemplate": true
-                      }
-                    },
-                    {
-                      "name": "questiontree_1-question_3-compvis-qt",
-                      "config": {
-                        "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "component.visible",
-                        "hasTemplate": true
-                      }
-                    },
-                    {
-                      "name": "questiontree_1-question_3-modval-qt",
-                      "config": {
-                        "template": "($count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0 ? formData.`questiontree_1`.`question_3` : null)",
-                        "condition": "/questiontree_1::field.value.changed",
-                        "conditionKind": "jsonpointer",
-                        "target": "model.value",
-                        "hasTemplate": true
-                      }
-                    }
-                  ],
-                  "component": {
-                    "class": "RadioInputComponent",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "disabled": false,
-                      "autofocus": false,
-                      "options": [
-                        {
-                          "value": "yes",
-                          "label": "@questiontree_1-question_3-yes"
-                        },
-                        {
-                          "value": "no",
-                          "label": "@questiontree_1-question_3-no"
-                        }
-                      ]
-                    }
-                  },
-                  "model": {
-                    "class": "RadioInputModel",
-                    "config": {}
-                  },
-                  "layout": {
-                    "class": "DefaultLayout",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "label": "question_3",
-                      "disabled": false,
-                      "autofocus": false,
-                      "labelRequiredStr": "*",
-                      "cssClassesMap": {},
-                      "helpTextVisibleOnInit": false,
-                      "helpTextVisible": false
-                    }
-                  }
-                },
-                {
-                  "name": "questiontree-outcome-info",
-                  "component": {
-                    "class": "SimpleInputComponent",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "disabled": false,
-                      "autofocus": false,
-                      "type": "hidden"
-                    }
-                  },
-                  "model": {
-                    "class": "SimpleInputModel",
-                    "config": {}
-                  },
-                  "layout": {
-                    "class": "DefaultLayout",
-                    "config": {
-                      "readonly": false,
-                      "visible": false,
-                      "editMode": true,
-                      "disabled": false,
-                      "autofocus": false,
-                      "labelRequiredStr": "*",
-                      "cssClassesMap": {},
-                      "helpTextVisibleOnInit": false,
-                      "helpTextVisible": false
-                    }
+                "layout": {
+                  "class": "DefaultLayout",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "label": "question_2",
+                    "disabled": false,
+                    "autofocus": false,
+                    "labelRequiredStr": "*",
+                    "cssClassesMap": {},
+                    "helpTextVisibleOnInit": false,
+                    "helpTextVisible": false
                   }
                 }
-              ]
-            }
-          },
-          "model": {
-            "class": "QuestionTreeModel",
-            "config": {}
+              },
+              {
+                "name": "question_3",
+                "expressions": [
+                  {
+                    "name": "questiontree_1-question_3-layoutvis-qt",
+                    "config": {
+                      "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "layout.visible",
+                      "hasTemplate": true
+                    }
+                  },
+                  {
+                    "name": "questiontree_1-question_3-compvis-qt",
+                    "config": {
+                      "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "component.visible",
+                      "hasTemplate": true
+                    }
+                  },
+                  {
+                    "name": "questiontree_1-question_3-modval-qt",
+                    "config": {
+                      "template": "($count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0 ? formData.`questiontree_1`.`question_3` : null)",
+                      "condition": "/questiontree_1::field.value.changed",
+                      "conditionKind": "jsonpointer",
+                      "target": "model.value",
+                      "hasTemplate": true
+                    }
+                  }
+                ],
+                "component": {
+                  "class": "RadioInputComponent",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "disabled": false,
+                    "autofocus": false,
+                    "options": [
+                      {
+                        "value": "yes",
+                        "label": "@questiontree_1-question_3-yes"
+                      },
+                      {
+                        "value": "no",
+                        "label": "@questiontree_1-question_3-no"
+                      }
+                    ]
+                  }
+                },
+                "model": {
+                  "class": "RadioInputModel",
+                  "config": {}
+                },
+                "layout": {
+                  "class": "DefaultLayout",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "label": "question_3",
+                    "disabled": false,
+                    "autofocus": false,
+                    "labelRequiredStr": "*",
+                    "cssClassesMap": {},
+                    "helpTextVisibleOnInit": false,
+                    "helpTextVisible": false
+                  }
+                }
+              },
+              {
+                "name": "questiontree-outcome-info",
+                "component": {
+                  "class": "SimpleInputComponent",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "disabled": false,
+                    "autofocus": false,
+                    "type": "hidden"
+                  }
+                },
+                "model": {
+                  "class": "SimpleInputModel",
+                  "config": {}
+                },
+                "layout": {
+                  "class": "DefaultLayout",
+                  "config": {
+                    "readonly": false,
+                    "visible": false,
+                    "editMode": true,
+                    "disabled": false,
+                    "autofocus": false,
+                    "labelRequiredStr": "*",
+                    "cssClassesMap": {},
+                    "helpTextVisibleOnInit": false,
+                    "helpTextVisible": false
+                  }
+                }
+              }
+            ]
           }
         },
-        {
-          "name": "data-classification-item-outcome",
-          "expressions": [
-            {
-              "name": "data-classification-item-outcome-expr",
-              "config": {
-                "template": "formData.questiontree_1.questiontree-outcome-info.outcome.($.label ? $.label : $.value)",
-                "condition": "/questiontree_1::field.value.changed",
-                "conditionKind": "jsonpointer",
-                "target": "model.value",
-                "hasTemplate": true
-              }
-            }
-          ],
-          "component": {
-            "class": "SimpleInputComponent",
+        "model": {
+          "class": "QuestionTreeModel",
+          "config": {}
+        }
+      },
+      {
+        "name": "data-classification-item-outcome",
+        "expressions": [
+          {
+            "name": "data-classification-item-outcome-expr",
             "config": {
-              "readonly": false,
-              "visible": true,
-              "editMode": true,
-              "disabled": false,
-              "autofocus": false,
-              "type": "text"
-            }
-          },
-          "model": {
-            "class": "SimpleInputModel",
-            "config": {
-              "validators": [
-                {
-                  "class": "required"
-                }
-              ]
+              "template": "formData.questiontree_1.questiontree-outcome-info.outcome.($.label ? $.label : $.value)",
+              "condition": "/questiontree_1::field.value.changed",
+              "conditionKind": "jsonpointer",
+              "target": "model.value",
+              "hasTemplate": true
             }
           }
+        ],
+        "component": {
+          "class": "SimpleInputComponent",
+          "config": {
+            "readonly": false,
+            "visible": true,
+            "editMode": true,
+            "disabled": false,
+            "autofocus": false,
+            "type": "text"
+          }
         },
-        {
-          "name": "data-classification-item-outcome-details",
-          "expressions": [
-            {
-              "name": "data-classification-item-outcome-details-expr",
-              "config": {
-                "template": "$map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {\n                    $v.$merge($keys().($entry := $lookup($v, $);{\n                    $: $entry.label ? $entry.label : $entry.value'\n                }))\n                })",
-                "condition": "/questiontree_1::field.value.changed",
-                "conditionKind": "jsonpointer",
-                "target": "model.value",
-                "hasTemplate": true
+        "model": {
+          "class": "SimpleInputModel",
+          "config": {
+            "validators": [
+              {
+                "class": "required"
               }
-            }
-          ],
-          "component": {
-            "class": "SimpleInputComponent",
-            "config": {
-              "readonly": false,
-              "visible": true,
-              "editMode": true,
-              "disabled": false,
-              "autofocus": false,
-              "type": "hidden"
-            }
-          },
-          "model": {
-            "class": "SimpleInputModel",
-            "config": {}
+            ]
           }
         }
-      ],
-    };
-    type ClientFormValue = {
-      questiontree_1: {
-        question_1: null | "yes" | "no" | ["yes"] | ["no"],
-        question_2: null | "yes" | "no" | ["yes"] | ["no"] | ["yes", "no"] | ["no" | "yes"],
-        question_3: null | "yes" | "no" | ["yes"] | ["no"],
-        [QuestionTreeOutcomeInfoKey]: QuestionTreeOutcomeInfo | null,
       },
-      "data-classification-item-outcome": string | null,
-      "data-classification-item-outcome-details": Record<string, string>[] | null,
-    };
+      {
+        "name": "data-classification-item-outcome-details",
+        "expressions": [
+          {
+            "name": "data-classification-item-outcome-details-expr",
+            "config": {
+              "template": "$map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {\n                    $v.$merge($keys().($entry := $lookup($v, $);{\n                    $: $entry.label ? $entry.label : $entry.value'\n                }))\n                })",
+              "condition": "/questiontree_1::field.value.changed",
+              "conditionKind": "jsonpointer",
+              "target": "model.value",
+              "hasTemplate": true
+            }
+          }
+        ],
+        "component": {
+          "class": "SimpleInputComponent",
+          "config": {
+            "readonly": false,
+            "visible": true,
+            "editMode": true,
+            "disabled": false,
+            "autofocus": false,
+            "type": "hidden"
+          }
+        },
+        "model": {
+          "class": "SimpleInputModel",
+          "config": {}
+        }
+      }
+    ],
+  };
+  const isNo = ((i: string[]): i is ["no"] => i.length === 1 && i[0] === "no");
+  const isYes = ((i: string[]): i is ["yes"] => i.length === 1 && i[0] === "yes");
+  type ClientFormValue = {
+    questiontree_1: {
+      question_1: null | "yes" | "no" | ["yes"] | ["no"],
+      question_2: null | "yes" | "no" | ["yes"] | ["no"] | ["yes", "no"] | ["no" | "yes"],
+      question_3: null | "yes" | "no" | ["yes"] | ["no"],
+      [QuestionTreeOutcomeInfoKey]: QuestionTreeOutcomeInfo | null,
+    },
+    "data-classification-item-outcome": string | null,
+    "data-classification-item-outcome-details": Record<string, string>[] | null,
+  };
+  const expressionsResults: Record<string, (keyStr: string, key: (string | number)[], context: any, extra?: any) => void> = {
+    // question_2:
+    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__0__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_1;
+        const testing: ["yes"] | ["no"] = ["no"];
+        testing?.includes('no')
+        return Array.isArray(val) ? isNo(val) : val === "no";
+      },
+    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__1__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_1;
+        return Array.isArray(val) ? isNo(val) : val === "no";
+      },
+    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__2__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // ($count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0 ? formData.`questiontree_1.`question_2` : null)
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_1;
+        const matches = Array.isArray(val) ? isNo(val) : val === "no";
+        return matches ? context?.formData?.questiontree_1?.question_2 : null;
+      },
+    // question_3:
+    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__0__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_2;
+        return Array.isArray(val) ? isYes(val) : val === "yes";
+      },
+    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__1__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_2;
+        return Array.isArray(val) ? isYes(val) : val === "yes";
+      },
+    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__2__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // ($count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0 ? formData.`questiontree_1.`question_3` : null)
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.question_2;
+        const matches = Array.isArray(val) ? isYes(val) : val === "yes";
+        return matches ? context?.formData?.questiontree_1?.question_3 : null;
+      },
+    // data-classification-item-outcome
+    "componentDefinitions__1__expressions__0__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // formData.questiontree_1.questiontree-outcome-info.outcome.($.label ? $.label : $.value)
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.['questiontree-outcome-info']?.outcome;
+        return val?.label ?? val?.value ?? null;
+      },
+    // data-classification-item-outcome-details
+    "componentDefinitions__2__expressions__0__config__template":
+      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
+        // $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {
+        //                     $v.$merge($keys().($entry := $lookup($v, $);{
+        //                     $: $entry.label ? $entry.label : $entry.value'
+        //                 }))
+        //                 })
+        // from:
+        // meta: [{
+        //  outcome: {value: "outcome1", label: "@outcomes-value1"},
+        //  prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}
+        // }]
+        // to:
+        // "rdmp-data-classification-item-outcome": "@outcomes-value1",
+        // "rdmp-data-classification-item-outcome-details": [
+        //  {"outcome": "@outcomes-value1", "prop2": "@outcomes-prop2-value2"},
+        // ]
+        const qtVal: ClientFormValue = context?.formData;
+        const val = qtVal?.questiontree_1?.['questiontree-outcome-info']?.meta;
+        return val?.map(i =>
+          Object.fromEntries(Object.keys(i).map(k => [k, i[k]?.label ?? i[k]?.value]))
+        ) ?? null;
+      },
+  };
+  const toggleRadioButton = function (el: HTMLInputElement) {
+    el.checked = true;
+    el.dispatchEvent(new Event("change"));
+    expect(el.checked).toBe(true);
+  }
+  const stabilizeFixture = async (fixture: ComponentFixture<unknown>) => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await fixture.whenRenderingDone();
+  };
+
+  beforeEach(async () => {
+    await createTestbedModule({
+      declarations: {
+        "RadioInputComponent": RadioInputComponent,
+        "CheckboxInputComponent": CheckboxInputComponent,
+        "SimpleInputComponent": SimpleInputComponent,
+        "QuestionTreeComponent": QuestionTreeComponent,
+      }
+    });
+
+  });
+  it('should create component', () => {
+    let fixture = TestBed.createComponent(QuestionTreeComponent);
+    let component = fixture.componentInstance;
+    expect(component).toBeDefined();
+  });
+
+  describe("complex functionality", async () => {
     const expressionsResultsDefaultFunc = (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
       // keyStr "componentDefinitions__0__component__config__componentDefinitions__2__expressions__2__config__template"
       // key ["componentDefinitions",0,"component","config","componentDefinitions",2,"expressions",2,"config","template"]
@@ -458,113 +557,6 @@ describe('QuestionTreeComponent', async () => {
       // extra {"libraries":{}}
       throw new Error(`keyStr ${JSON.stringify(keyStr)} key ${JSON.stringify(key)} context ${JSON.stringify(context)} extra ${JSON.stringify(extra)}`);
     }
-    const isNo = ((i: string[]): i is ["no"] => i.length === 1 && i[0] === "no");
-    const isYes = ((i: string[]): i is ["yes"] => i.length === 1 && i[0] === "yes");
-    const expressionsResults: Record<string, (keyStr: string, key: (string | number)[], context: any, extra?: any) => void> = {
-      // question_2:
-      "componentDefinitions__0__component__config__componentDefinitions__1__expressions__0__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_1;
-          const testing: ["yes"] | ["no"] = ["no"];
-          testing?.includes('no')
-          return Array.isArray(val) ? isNo(val) : val === "no";
-        },
-      "componentDefinitions__0__component__config__componentDefinitions__1__expressions__1__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_1;
-          return Array.isArray(val) ? isNo(val) : val === "no";
-        },
-      "componentDefinitions__0__component__config__componentDefinitions__1__expressions__2__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // ($count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0 ? formData.`questiontree_1.`question_2` : null)
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_1;
-          const matches = Array.isArray(val) ? isNo(val) : val === "no";
-          return matches ? context?.formData?.questiontree_1?.question_2 : null;
-        },
-      // question_3:
-      "componentDefinitions__0__component__config__componentDefinitions__2__expressions__0__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_2;
-          return Array.isArray(val) ? isYes(val) : val === "yes";
-        },
-      "componentDefinitions__0__component__config__componentDefinitions__2__expressions__1__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_2;
-          return Array.isArray(val) ? isYes(val) : val === "yes";
-        },
-      "componentDefinitions__0__component__config__componentDefinitions__2__expressions__2__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // ($count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0 ? formData.`questiontree_1.`question_3` : null)
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.question_2;
-          const matches = Array.isArray(val) ? isYes(val) : val === "yes";
-          return matches ? context?.formData?.questiontree_1?.question_3 : null;
-        },
-      // data-classification-item-outcome
-      "componentDefinitions__1__expressions__0__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // formData.questiontree_1.questiontree-outcome-info.outcome.($.label ? $.label : $.value)
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.['questiontree-outcome-info']?.outcome;
-          return val?.label ?? val?.value ?? null;
-        },
-      // data-classification-item-outcome-details
-      "componentDefinitions__2__expressions__0__config__template":
-        (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-          // $map(formData.questiontree_1.`questiontree-outcome-info`.meta[], function ($v, $i, $a) {
-          //                     $v.$merge($keys().($entry := $lookup($v, $);{
-          //                     $: $entry.label ? $entry.label : $entry.value'
-          //                 }))
-          //                 })
-          // from:
-          // meta: [{
-          //  outcome: {value: "outcome1", label: "@outcomes-value1"},
-          //  prop2: {value: "prop2Value2", label: "@outcomes-prop2-value2"}
-          // }]
-          // to:
-          // "rdmp-data-classification-item-outcome": "@outcomes-value1",
-          // "rdmp-data-classification-item-outcome-details": [
-          //  {"outcome": "@outcomes-value1", "prop2": "@outcomes-prop2-value2"},
-          // ]
-          const qtVal: ClientFormValue = context?.formData;
-          const val = qtVal?.questiontree_1?.['questiontree-outcome-info']?.meta;
-          return val?.map(i =>
-            Object.fromEntries(Object.keys(i).map(k => [k, i[k]?.label ?? i[k]?.value]))
-          ) ?? null;
-        },
-    };
-    beforeEach(async () => {
-      await createTestbedModule({
-        declarations: {
-          "RadioInputComponent": RadioInputComponent,
-          "CheckboxInputComponent": CheckboxInputComponent,
-          "SimpleInputComponent": SimpleInputComponent,
-          "QuestionTreeComponent": QuestionTreeComponent,
-        }
-      });
-
-    });
-
-    const toggleRadioButton = function (el: HTMLInputElement) {
-      el.checked = true;
-      el.dispatchEvent(new Event("change"));
-      expect(el.checked).toBe(true);
-    }
-
-    const stabilizeFixture = async (fixture: ComponentFixture<unknown>) => {
-      fixture.detectChanges();
-      await fixture.whenStable();
-      await fixture.whenRenderingDone();
-    };
 
     const waitForCondition = async (
       fixture: ComponentFixture<unknown>,
@@ -760,7 +752,7 @@ describe('QuestionTreeComponent', async () => {
 
       // Reapply the loaded question tree value after the nested controls are created so
       // the current component lifecycle rehydrates child controls and re-runs expressions.
-      questionTree.model?.setValue(loadedQuestionTreeValue);
+      // questionTree.model?.setValue(loadedQuestionTreeValue);
 
       const qtElements = element.querySelectorAll('redbox-questiontreefield');
       expect(qtElements).toHaveSize(1);
@@ -1005,5 +997,187 @@ describe('QuestionTreeComponent', async () => {
       });
     }
   });
+
+  it("should show only first question on new form load", fakeAsync(() => {
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          if (keyStr in expressionsResults) {
+            return expressionsResults[keyStr](keyStr, key, context, extra);
+          }
+          throw new Error(`Unknown key: ${keyStr}`);
+        }
+      }]
+    };
+
+    let fixture: any;
+    createFormAndWaitForReady(clientFormConfig, undefined, undefined, dynamicAssetOptions)
+      .then(result => {
+        fixture = result.fixture;
+      });
+    flushMicrotasks();
+    tick();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    // check there is 1 question tree field
+    const qtElements = element.querySelectorAll('redbox-questiontreefield');
+    expect(qtElements).toHaveSize(1);
+
+    // the initial state is two radio buttons as answers to the 1 question
+    const qtElement = qtElements[0];
+    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+    const inputElementsInitial = qtElement.querySelectorAll('input');
+    expect(inputElementsInitial.length).toEqual(2);
+
+    // Check the question_1 options
+    const q1RadioElem1 = inputElementsInitial[0];
+    const q1RadioElem2 = inputElementsInitial[1];
+    expect(q1RadioElem1.value).toBe("yes");
+    expect(q1RadioElem1.name).toBe("question_1");
+    expect(q1RadioElem2.value).toBe("no");
+    expect(q1RadioElem2.name).toBe("question_1");
+
+    // Check the question tree model
+    const modelInitial = questionTree.model?.getValue();
+    const modelInitialExpected: QuestionTreeModelValueType = {
+      question_1: null,
+      question_2: null,
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: null,
+    };
+    expect(modelInitial).toEqual(modelInitialExpected);
+  }));
+
+  it("should show existing answers on existing record load", fakeAsync(() => {
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+        callable: function (keyStr: string, key: (string | number)[], context: any, extra?: any) {
+          if (keyStr in expressionsResults) {
+            return expressionsResults[keyStr](keyStr, key, context, extra);
+          }
+          throw new Error(`Unknown key: ${keyStr}`);
+        }
+      }]
+    };
+    const formConfigWithModelValue: FormConfigFrame = structuredClone(clientFormConfig);
+    formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
+      question_1: "no",
+      question_2: "no",
+      question_3: null,
+      [QuestionTreeOutcomeInfoKey]: {
+        outcome: {value: "outcome1", label: "@outcomes-value1"},
+        meta: [{
+          outcome: {value: "outcome1", label: "@outcomes-value1"},
+          prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
+        }],
+      },
+    };
+    formConfigWithModelValue.componentDefinitions[1].model!.config!.value = "@outcomes-value1";
+    formConfigWithModelValue.componentDefinitions[2].model!.config!.value = [{
+      outcome: "@outcomes-value1",
+      prop2: "@outcomes-prop2-value1"
+    }];
+
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.selectAll$()
+      .subscribe(e => events.push(e));
+
+    try {
+      let fixture: any;
+      let formComponent: any;
+      createFormAndWaitForReady(formConfigWithModelValue, undefined, undefined, dynamicAssetOptions)
+        .then(result => {
+          fixture = result.fixture;
+          formComponent = result.formComponent;
+        });
+      flushMicrotasks();
+      tick();
+
+      const element = fixture.nativeElement as HTMLElement;
+
+      // check there is 1 question tree field
+      const qtElements = element.querySelectorAll('redbox-questiontreefield');
+      expect(qtElements).toHaveSize(1);
+
+      // the initial state is two radio buttons as answers to the 1 question
+      const qtElement = qtElements[0];
+      const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
+      const inputElementsInitial = qtElement.querySelectorAll('input');
+      expect(inputElementsInitial.length).toEqual(4);
+
+      // Check the question_1 options
+      const q1RadioElem1 = inputElementsInitial[0];
+      const q1RadioElem2 = inputElementsInitial[1];
+      expect(q1RadioElem1.value).toBe("yes");
+      expect(q1RadioElem1.name).toBe("question_1");
+      expect(q1RadioElem2.value).toBe("no");
+      expect(q1RadioElem2.name).toBe("question_1");
+
+      // Check the question_2 options
+      const q2RadioElem1 = inputElementsInitial[2];
+      const q2RadioElem2 = inputElementsInitial[3];
+      expect(q2RadioElem1.value).toBe("yes");
+      expect(q2RadioElem1.name).toBe("question_2");
+      expect(q2RadioElem2.value).toBe("no");
+      expect(q2RadioElem2.name).toBe("question_2");
+
+      // events
+      expect(events.map(e => {return {type: e.type, fieldId: e.fieldId, sourceId: e.sourceId}})).toEqual([
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/question_1', sourceId: '*'},
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/question_1', sourceId: '/questiontree_1/question_1'},
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/question_2', sourceId: '*'},
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/question_2', sourceId: '/questiontree_1/question_2'},
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/questiontree-outcome-info', sourceId: '*'},
+        // {type: 'field.value.changed', fieldId: '/questiontree_1/questiontree-outcome-info', sourceId: '/questiontree_1/questiontree-outcome-info'},
+        {type: 'form.definition.ready', fieldId: undefined, sourceId: undefined},
+        {type: 'field.value.changed', fieldId: '/questiontree_1/question_1', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/questiontree_1/question_2', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/questiontree_1/question_3', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/questiontree_1/questiontree-outcome-info', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/questiontree_1', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/data-classification-item-outcome', sourceId: 'form.definition.ready'},
+        {type: 'field.value.changed', fieldId: '/data-classification-item-outcome-details', sourceId: 'form.definition.ready'},
+        // {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1-layout/question_2-layout', sourceId: '*'},
+        // {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1-layout/question_2-layout', sourceId: '/questiontree_1-layout/question_2-layout'},
+        {type: 'form.validation.broadcast', fieldId: undefined, sourceId: undefined},
+        {type: 'form.validation.broadcast', fieldId: undefined, sourceId: undefined},
+        {type: 'form.validation.broadcast', fieldId: undefined, sourceId: undefined},
+        {type: 'form.validation.broadcast', fieldId: undefined, sourceId: undefined},
+        {type: 'form.validation.broadcast', fieldId: undefined, sourceId: undefined},
+        {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1/question_2', sourceId: '*'},
+        {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1/question_2', sourceId: '/questiontree_1/question_2'},
+        {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1-layout/question_2-layout', sourceId: '*'},
+        {type: 'field.ui-attribute.changed', fieldId: '/questiontree_1-layout/question_2-layout', sourceId: '/questiontree_1-layout/question_2-layout'},
+      ]);
+
+
+
+      // Check the form model
+      const modelInitial = formComponent.form?.value;
+      const modelInitialExpected: ClientFormValue = {
+        questiontree_1: {
+          question_1: "no",
+          question_2: "no",
+          question_3: null,
+          [QuestionTreeOutcomeInfoKey]: {
+            outcome: {value: "outcome1", label: "@outcomes-value1"},
+            meta: [{
+              outcome: {value: "outcome1", label: "@outcomes-value1"},
+              prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
+            }],
+          },
+        },
+        "data-classification-item-outcome": "@outcomes-value1",
+        "data-classification-item-outcome-details": [{outcome: "@outcomes-value1", prop2: "@outcomes-prop2-value1"}],
+      };
+      expect(modelInitial).toEqual(modelInitialExpected);
+    } finally {
+      sub.unsubscribe();
+    }
+  }));
 
 });

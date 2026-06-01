@@ -153,7 +153,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       if (hasModel) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
-          compInstance.model.setValue(elemVal);
+          compInstance.model.setValue(elemVal, {onlySelf: true, emitEvent: false});
         }
         this.model.addItem(key, compInstance.model);
       } else {
