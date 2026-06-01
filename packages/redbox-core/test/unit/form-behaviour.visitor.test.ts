@@ -1,9 +1,10 @@
-import { expect } from 'chai';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { TemplateFormConfigVisitor } from '../../src/visitor/template.visitor';
 import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
 import { logger } from './helpers';
+
+let expect!: Chai.ExpectStatic;
 
 /**
  * Visitor-level regression coverage for the form behaviours v1 config pipeline.
@@ -14,6 +15,10 @@ import { logger } from './helpers';
  * - client stripping removes raw JSONata source and leaves marker flags behind
  */
 describe('Form behaviour visitors', () => {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   const formConfig = {
     name: 'behaviour-form',
     behaviours: [

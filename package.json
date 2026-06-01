@@ -15,9 +15,9 @@
     "bootstrap": "5.3.8",
     "compression": "1.8.1",
     "connect-mongo": "6.0.0",
-    "ejs": "5.0.1",
+    "ejs": "5.0.2",
     "express-session": "1.19.0",
-    "fs-extra": "11.3.4",
+    "fs-extra": "11.3.5",
     "handlebars": "4.7.9",
     "include-all": "4.0.3",
     "jquery": "4.0.0",
@@ -26,7 +26,7 @@
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
     "moment": "2.30.1",
-    "mongodb": "7.1.1",
+    "mongodb": "7.2.0",
     "numeral": "2.0.6",
     "pino": "10.3.1",
     "rc": "1.2.8",
@@ -109,26 +109,26 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "axios": "1.15.2",
+    "axios": "1.16.1",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
         "@aws-sdk/xml-builder": {
-          "fast-xml-parser": "5.5.8"
+          "fast-xml-parser": "5.8.0"
         }
       },
       "@aws-sdk/signature-v4-multi-region": {
         "@aws-sdk/middleware-sdk-s3": {
           "@aws-sdk/core": {
             "@aws-sdk/xml-builder": {
-              "fast-xml-parser": "5.5.8"
+              "fast-xml-parser": "5.8.0"
             }
           }
         }
       }
     },
     "@sailshq/router": {
-      "path-to-regexp": "0.1.13"
+      "path-to-regexp": "0.2.5"
     },
     "@researchdatabox/redbox-core": {
       "@tus/server": {
@@ -141,7 +141,7 @@
         "uuid": "14.0.0"
       },
       "mocha": {
-        "minimatch": "5.1.8"
+        "minimatch": "10.2.5"
       }
     },
     "@researchdatabox/sails-hook-redbox-storage-mongo": {
@@ -152,9 +152,9 @@
     "on-headers": "1.1.0",
     "serialize-javascript": "7.0.5",
     "@uppy/companion": {
-      "express": "4.22.1",
+      "express": "4.22.2",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.5.8",
+      "fast-xml-parser": "5.8.0",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
     },
@@ -176,7 +176,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.5.8",
+    "fast-xml-parser": "5.8.0",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -186,22 +186,22 @@
       }
     },
     "mocha": {
-      "minimatch": "5.1.8",
+      "minimatch": "10.2.5",
       "serialize-javascript": "7.0.5"
     },
     "morgan": {
       "on-headers": "1.1.0"
     },
     "sails-mongo": {
-      "qs": "6.14.2"
+      "qs": "6.15.2"
     },
-    "postcss": "8.5.10",
+    "postcss": "8.5.15",
     "srvx": "0.11.13",
     "socket.io-parser": "4.2.6",
     "svgo": "4.0.1",
     "uuid": "14.0.0",
     "webdav": {
-      "minimatch": "9.0.9"
+      "minimatch": "10.2.5"
     },
     "oni-ocfl": "git+https://github.com/Language-Research-Technology/oni-ocfl.git#add9d36bd8a33b051e1a67f46a523ad88986a0e3",
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
@@ -212,16 +212,17 @@
     "@types/jquery": "4.0.0",
     "@types/lodash-es": "4.17.12",
     "@types/mocha": "10.0.10",
-    "@types/node": "24.12.0",
+    "@types/node": "24.12.4",
     "chai": "6.2.2",
     "css-loader": "7.1.4",
     "mini-css-extract-plugin": "2.10.2",
-    "mocha": "11.7.5",
+    "mocha": "11.7.6",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
     "pino-test": "2.0.0",
-    "prettier": "3.8.1",
+    "prettier": "3.8.3",
     "redoc": "2.5.2",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",

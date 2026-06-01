@@ -1,8 +1,13 @@
-import { expect } from 'chai';
 import { buildDoiPayload } from '../../../src/services/doi-v2/payload';
 import { createDefaultBinding, type DoiProfile } from '../../../src/configmodels/DoiPublishing';
 
+let expect!: Chai.ExpectStatic;
+
 describe('doi-v2 payload', function () {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   const profile: DoiProfile = {
     enabled: true,
     label: 'Test DOI profile',
