@@ -1,0 +1,19 @@
+{
+  "collectionName": "record",
+  "brandIdFieldPath": "metaMetadata.brandId",
+  "resultObjectMapping": {},
+  "mongoQuery": {
+    "metaMetadata.type": "rdmp",
+    "workflow.stage": "draft"
+  },
+  "queryParams": {
+    "lastSaveDateToCheck": {
+      "type": "date",
+      "path": "lastSaveDate",
+      "queryType": "<=",
+      "format": "days",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "-365"
+    }
+  }
+}

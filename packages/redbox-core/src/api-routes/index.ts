@@ -24,3 +24,4 @@ export * from './groups/translation';
 export * from './groups/reports';
 export * from './groups/export';
 export * from './groups/notifications';
+export * from './groups/named-query';

@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, from, of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap, last } from 'rxjs/operators';
+import { Observable, firstValueFrom } from 'rxjs';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
 import type { ReportDefinition } from '../config/report.config';
+import { NamedQueryConfig } from '../services/NamedQueryService';
 import { ReportModel } from '../model/storage/ReportModel';
 import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
@@ -30,6 +30,10 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
 import Handlebars from "handlebars";
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 
 type ReportColumnLike = {
@@ -57,6 +61,38 @@ type SolrSearchResponse = {
   };
 };
 
+type ReportConfigFilterDto = {
+  type: string;
+  paramName: string;
+  message: string;
+  property: string;
+  database?: { fromProperty: string; toProperty: string } | null;
+};
+
+type ReportConfigColumnDto = {
+  label: string;
+  property: string;
+  hide?: boolean;
+  exportTemplate?: string;
+  template?: string;
+  multivalue?: boolean;
+};
+
+export type ReportConfigDto = {
+  name: string;
+  title: string;
+  reportSource: 'database' | 'solr';
+  databaseQuery: { queryName: string } | null;
+  solrQuery: { baseQuery: string; searchCore: string } | null;
+  filter: ReportConfigFilterDto[];
+  columns: ReportConfigColumnDto[];
+  readOnly: boolean;
+  readOnlyReason?: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  canPreview: boolean;
+};
+
 
 export namespace Services {
   /**
@@ -74,13 +110,19 @@ export namespace Services {
     private helpersRegistered: boolean = false;
 
     protected override _exportedMethods: string[] = [
-      'bootstrap',
+      'bootstrapData',
       'create',
       'findAllReportsForBrand',
       'get',
       'getResults',
       'getCSVResult',
       'getReportDto',
+      'listConfigs',
+      'getConfig',
+      'createConfig',
+      'updateConfig',
+      'deleteConfig',
+      'previewConfig',
       'extractReportTemplates',
       //exported only for unit testing
       'getDataRows',
@@ -91,37 +133,72 @@ export namespace Services {
       return RBReport;
     }
 
-    public bootstrap = (defBrand: BrandingModel) => {
-      let reportModel: ReportWaterlineModel;
+    public async bootstrapData(defBrand: BrandingModel) {
+      const bootstrapPath = this.getBootstrapDataPath();
+      let fileNames: string[] = [];
+      const fileOps = this.getBootstrapFileOps();
+
       try {
-        reportModel = this.getReportModel();
-      } catch (_error) {
-        sails.log.warn(`${this.logHeader} bootstrap() -> Report model unavailable, skipping report bootstrap.`);
-        return of({} as ReportModel);
-      }
-      return super.getObservable<ReportModel[]>(reportModel.find({
-        branding: defBrand.id
-      })).pipe(flatMap(reports => {
-        if (_.isEmpty(reports)) {
-          const rTypes: Observable<ReportModel>[] = [];
-          sails.log.verbose("Bootstrapping report definitions... ");
-          _.forOwn(sails.config.reports, (config: ReportDefinition, report: string) => {
-            const obs = this.create(defBrand, report, config as unknown as ReportConfig);
-            obs.subscribe(() => { });
-            rTypes.push(obs);
-          });
-          return from(rTypes);
-
-        } else {
-
-          const rTypes: Observable<ReportModel>[] = [];
-          _.each(reports, function (report: ReportModel) {
-            rTypes.push(of(report));
-          });
-          sails.log.verbose("Default reports definition(s) exist.");
-          return from(rTypes);
+        const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
+        fileNames = fileEntries
+          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+          .map((entry) => entry.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError.code === 'ENOENT') {
+          sails.log.verbose(`Report bootstrap data path not found: ${bootstrapPath}`);
+          return;
         }
-      }), last());
+        sails.log.error(`Failed to read report bootstrap data path: ${bootstrapPath}`, error);
+        return;
+      }
+
+      for (const fileName of fileNames) {
+        try {
+          const filePath = path.join(bootstrapPath, fileName);
+          const definition = await this.readJsonFile<ReportDefinition>(filePath);
+          if (!definition) {
+            continue;
+          }
+
+          const name = fileName.replace(/\.json$/, '');
+          if (!name || typeof definition.title !== 'string' || definition.title.length === 0) {
+            sails.log.error(`Skipping report bootstrap file with missing name or title: ${fileName}`);
+            continue;
+          }
+
+          const existing = await this.getReportModel().findOne({ key: `${defBrand.id}_${name}` });
+          if (existing) {
+            sails.log.verbose(`Skipping existing report bootstrap data: ${name}`);
+            continue;
+          }
+
+          await firstValueFrom(this.create(defBrand, name, definition as unknown as ReportConfig));
+          sails.log.verbose(`Bootstrapped report: ${name}`);
+        } catch (error) {
+          sails.log.error(`Failed to bootstrap report from file: ${fileName}`, error);
+        }
+      }
+    }
+
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'reports');
+    }
+
+    protected getBootstrapFileOps(): Pick<typeof fs, 'readdir' | 'readFile'> {
+      return fs;
+    }
+
+    private async readJsonFile<T>(filePath: string): Promise<T | null> {
+      try {
+        const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
+        return JSON.parse(content) as T;
+      } catch (error) {
+        sails.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`, error);
+        return null;
+      }
     }
 
     public findAllReportsForBrand(brand: BrandingModel) {
@@ -150,6 +227,141 @@ export namespace Services {
         filter: config.filter,
         columns: config.columns
       }));
+    }
+
+    public async listConfigs(brand: BrandingModel): Promise<ReportConfigDto[]> {
+      const reports = await firstValueFrom(this.findAllReportsForBrand(brand));
+      return reports.map(report => this.getReportConfigDto(report as unknown as ReportModel));
+    }
+
+    public async getConfig(brand: BrandingModel, name: string): Promise<ReportConfigDto | null> {
+      const report = await this.get(brand, name);
+      return report ? this.getReportConfigDto(report as unknown as ReportModel) : null;
+    }
+
+    public async createConfig(brand: BrandingModel, config: ReportConfigDto): Promise<ReportConfigDto> {
+      const { dto: normalized } = await this.validateMutableConfig(brand, config, false);
+      const existing = await this.get(brand, normalized.name);
+      if (existing) {
+        throw new ReportConfigServiceError(409, `Report '${normalized.name}' already exists`);
+      }
+      const created = await firstValueFrom(this.create(brand, normalized.name, normalized as unknown as ReportConfig));
+      return this.getReportConfigDto(created as unknown as ReportModel);
+    }
+
+    public async updateConfig(brand: BrandingModel, name: string, config: ReportConfigDto): Promise<ReportConfigDto> {
+      const existing = await this.get(brand, name);
+      if (!existing) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      if (this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
+        throw new ReportConfigServiceError(403, 'Solr reports cannot be modified');
+      }
+      const { dto: normalized } = await this.validateMutableConfig(brand, { ...config, name }, true);
+      if (config.name && config.name !== name) {
+        throw new ReportConfigServiceError(400, 'Report name cannot be changed');
+      }
+      const reportModel = this.getReportModel();
+      const updated = await reportModel.updateOne({ key: `${brand.id}_${name}` }).set({
+        title: normalized.title,
+        reportSource: normalized.reportSource,
+        databaseQuery: normalized.databaseQuery as unknown as Record<string, unknown>,
+        solrQuery: normalized.solrQuery as unknown as Record<string, unknown>,
+        filter: normalized.filter as unknown as Record<string, unknown>,
+        columns: normalized.columns
+      });
+      if (!updated) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      return this.getReportConfigDto(updated as unknown as ReportModel);
+    }
+
+    public async deleteConfig(brand: BrandingModel, name: string): Promise<{ deleted: boolean }> {
+      const existing = await this.get(brand, name);
+      if (!existing) {
+        throw new ReportConfigServiceError(404, `Report '${name}' not found`);
+      }
+      if (this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
+        throw new ReportConfigServiceError(403, 'Solr reports cannot be deleted');
+      }
+      await this.getReportModel().destroyOne({ key: `${brand.id}_${name}` });
+      return { deleted: true };
+    }
+
+    public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
+      const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
+      const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
+      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, 0, 100);
+      const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
+      response.success = true;
+      return response;
+    }
+
+    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryConfig }> {
+      const normalized = this.normalizeReportConfigDto(config);
+      if (_.isEmpty(normalized.name) || !/^[A-Za-z0-9_-]+$/.test(normalized.name)) {
+        throw new ReportConfigServiceError(400, 'Report name is required and must be URL safe');
+      }
+      if (_.isEmpty(normalized.title)) {
+        throw new ReportConfigServiceError(400, 'Report title is required');
+      }
+      if (normalized.reportSource !== ReportSource.database) {
+        throw new ReportConfigServiceError(403, 'Only database reports can be changed');
+      }
+      if (!normalized.databaseQuery || _.isEmpty(normalized.databaseQuery.queryName)) {
+        throw new ReportConfigServiceError(400, 'Named query is required');
+      }
+      const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery.queryName);
+      if (!namedQuery) {
+        throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery.queryName}' not found`);
+      }
+      for (const column of normalized.columns) {
+        if (_.isEmpty(column.label) || _.isEmpty(column.property)) {
+          throw new ReportConfigServiceError(400, 'Report columns require label and property');
+        }
+      }
+      for (const filter of normalized.filter) {
+        if (filter.type === ReportFilterType.dateRange && (!filter.database?.fromProperty || !filter.database?.toProperty)) {
+          throw new ReportConfigServiceError(400, 'Database date-range filters require fromProperty and toProperty');
+        }
+      }
+      if (!isUpdate && _.isEmpty(normalized.columns)) {
+        normalized.columns = [];
+      }
+      return { dto: normalized, namedQuery };
+    }
+
+    private normalizeReportConfigDto(config: Partial<ReportConfigDto> & { filter?: Array<ReportConfigFilterDto & { messsage?: string }> }): ReportConfigDto {
+      const source = config.reportSource ?? ReportSource.database;
+      const filter = (config.filter ?? []).map((item: ReportConfigFilterDto) => ({
+        paramName: item.paramName ?? '',
+        type: item.type ?? ReportFilterType.text,
+        property: item.property ?? '',
+        message: item.message ?? (item as unknown as { messsage?: string }).messsage ?? '',
+        database: item.database ?? null
+      }));
+      const columns: ReportConfigColumnDto[] = (config.columns ?? []).map((column: ReportConfigColumnDto) => ({
+        label: column.label ?? '',
+        property: column.property ?? '',
+        hide: column.hide ?? false,
+        exportTemplate: column.exportTemplate ?? '',
+        template: column.template ?? '',
+        multivalue: column.multivalue ?? false
+      }));
+      return {
+        name: config.name ?? '',
+        title: config.title ?? '',
+        reportSource: source as 'database' | 'solr',
+        databaseQuery: config.databaseQuery ?? null,
+        solrQuery: config.solrQuery ?? null,
+        filter,
+        columns,
+        readOnly: source !== ReportSource.database,
+        readOnlyReason: source !== ReportSource.database ? 'Solr reports are read-only in this version' : undefined,
+        canEdit: source === ReportSource.database,
+        canDelete: source === ReportSource.database,
+        canPreview: source === ReportSource.database
+      };
     }
 
     private buildSolrParams(brand: BrandingModel, req: Sails.ReqParamProvider, report: ReportConfig, start: number, rows: number, format = 'json') {
@@ -220,16 +432,15 @@ export namespace Services {
 
     getTranslateDatabaseResultToReportResult(dbResult: ListAPIResponse<Record<string, unknown>>, _report: ReportConfig) {
       const totalItems = dbResult.summary.numFound;
-      const startIndex = dbResult.summary.start;
       const pageNumber = dbResult.summary.page;
+      const docs = dbResult.records;
 
       const response: ReportResult = new ReportResult();
       response.total = totalItems;
       response.pageNum = pageNumber;
-      response.recordPerPage = startIndex;
+      response.recordsPerPage = docs.length;
 
       const items: Array<Record<string, unknown>> = [];
-      const docs = dbResult.records;
 
       for (let i = 0; i < docs.length; i++) {
         const doc = docs[i];
@@ -275,7 +486,7 @@ export namespace Services {
       const response: ReportResult = new ReportResult();
       response.total = totalItems;
       response.pageNum = pageNumber;
-      response.recordPerPage = _.toNumber(noItems);
+      response.recordsPerPage = _.toNumber(noItems);
 
       const items: Array<Record<string, unknown>> = [];
       const docs = results.response.docs;
@@ -558,6 +769,29 @@ export namespace Services {
       }, true);
     }
 
+    public getReportConfigDto(reportModel: ReportModel): ReportConfigDto {
+      const converted = this.convertLegacyReport(reportModel);
+      const reportSource = converted.reportSource === ReportSource.database ? ReportSource.database : ReportSource.solr;
+      return this.normalizeReportConfigDto({
+        name: converted.name,
+        title: converted.title,
+        reportSource,
+        databaseQuery: converted.databaseQuery,
+        solrQuery: converted.solrQuery,
+        filter: converted.filter as Array<ReportConfigFilterDto & { messsage?: string }>,
+        columns: converted.columns
+      });
+    }
+
+  }
+
+  export class ReportConfigServiceError extends Error {
+    public status: number;
+
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
   }
 }
 

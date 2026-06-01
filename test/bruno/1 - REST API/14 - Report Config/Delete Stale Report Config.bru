@@ -1,0 +1,22 @@
+meta {
+  name: Delete Stale Report Config
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/report-config/bruno-report-config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200 or 404", function () {
+    expect([200, 404]).to.include(res.getStatus());
+  });
+}

@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.nq-tabs {
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #d6dbe1;
+}
+
+.nq-tabs .nav-link {
+  cursor: pointer;
+  color: #59626b;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.45rem 0.85rem;
+  margin-bottom: -1px;
+}
+
+.nq-tabs .nav-link:hover {
+  color: #2f353a;
+  border-color: transparent;
+  background-color: #f3f4f6;
+}
+
+.nq-tabs .nav-link.active {
+  color: #b1101a;
+  font-weight: 600;
+  background-color: #fff;
+  border-color: #d6dbe1 #d6dbe1 #fff;
+}
+
+.nq-tabs .badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.nq-tab-pane {
+  min-height: 320px;
+}

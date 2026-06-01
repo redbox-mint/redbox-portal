@@ -1,9 +1,14 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
+let expect!: Chai.ExpectStatic;
+
 describe('FormPayloadPrehydrateService', function () {
   let service: any;
+
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
 
   beforeEach(function () {
     const mockSails = createMockSails({

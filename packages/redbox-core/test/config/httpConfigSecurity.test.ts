@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 import {
@@ -12,7 +11,13 @@ import {
   sanitizeStaticSegment
 } from '../../src/config/http.config';
 
+let expect!: Chai.ExpectStatic;
+
 describe('HTTP config security helpers', function () {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
   describe('Companion send-token response', function () {
     it('should escape malicious provider values out of inert HTML text content', function () {
       const appUrl = 'https://portal.example.edu/default/rdmp';

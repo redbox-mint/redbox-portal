@@ -1,0 +1,61 @@
+meta {
+  name: Update Report Config
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{host}}/default/rdmp/api/report-config/bruno-report-config
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "bruno-report-config",
+    "title": "Updated Bruno Report Config",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "solrQuery": null,
+    "filter": [],
+    "columns": [
+      {
+        "label": "Record OID",
+        "property": "oid"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns updated report config", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data).to.include({
+      name: "bruno-report-config",
+      title: "Updated Bruno Report Config",
+      readOnly: false
+    });
+    expect(jsonData.data.columns).to.deep.equal([
+      {
+        label: "Record OID",
+        property: "oid",
+        hide: false,
+        exportTemplate: "",
+        template: "",
+        multivalue: false
+      }
+    ]);
+  });
+}

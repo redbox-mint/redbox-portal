@@ -63,7 +63,7 @@ export namespace Controllers {
         response.summary.page = page;
         response.summary.start = (page - 1) * pageSize;
         response.records = result.rows;
-        return this.apiRespond(req, res, response, 200);
+        return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const errorResponse = error instanceof APIErrorResponse ? error : new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
@@ -95,7 +95,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        return this.apiRespond(req, res, result, 200);
+        return this.sendResp(req, res, { data: result, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
@@ -147,7 +147,7 @@ export namespace Controllers {
         response.summary.page = page;
         response.summary.start = (page - 1) * pageSize;
         response.records = result.rows;
-        return this.apiRespond(req, res, response, 200);
+        return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const errorResponse = error instanceof APIErrorResponse ? error : new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
