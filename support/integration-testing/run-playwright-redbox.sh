@@ -23,6 +23,7 @@ required_playwright_apps=(
   "branding"
   "translation"
   "deleted-records"
+  "harvest-runs"
 )
 
 needs_angular_build="false"

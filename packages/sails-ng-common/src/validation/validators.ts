@@ -11,6 +11,45 @@ import {
 } from "./helpers";
 import { JSONataEvaluate } from "../jsonata-helpers";
 
+function hasMeaningfulValue(value: unknown): boolean {
+  if (value == null) {
+    return false;
+  }
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+  const lengthOrSize = formValidatorLengthOrSize(value);
+  if (lengthOrSize !== null) {
+    return lengthOrSize > 0;
+  }
+  return true;
+}
+
+function hasLegacyRequiredValue(value: unknown): boolean {
+  if (value == null) {
+    return false;
+  }
+  const lengthOrSize = formValidatorLengthOrSize(value);
+  if (lengthOrSize !== null) {
+    return lengthOrSize > 0;
+  }
+  return true;
+}
+
+function hasRequiredFieldValue(value: unknown, fieldNames: string[]): boolean {
+  if (fieldNames.length === 0) {
+    return hasLegacyRequiredValue(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some(item => hasRequiredFieldValue(item, fieldNames));
+  }
+  if (value == null || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return fieldNames.some(fieldName => hasMeaningfulValue(candidate[fieldName]));
+}
+
 
 /**
  * A regular expression for validating an email address.
@@ -140,8 +179,17 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     create: (config) => {
       const optionRequiredKey = "required";
       const optionRequiredValue = formValidatorGetDefinitionBoolean(config, optionRequiredKey, true);
+      const optionAnyOfFields = Array.isArray(config?.['anyOfFields'])
+        ? config['anyOfFields'].map(item => item?.toString() ?? "").filter(item => item.length > 0)
+        : [];
       return (control) => {
-        if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
+        if (!optionRequiredValue) {
+          return null;
+        }
+        const isValid = optionAnyOfFields.length > 0
+          ? hasRequiredFieldValue(control.value, optionAnyOfFields)
+          : control.value != null && formValidatorLengthOrSize(control.value) !== 0;
+        if (!isValid) {
           return formValidatorBuildError(config, {
             required: optionRequiredValue,
             actual: control.value,
@@ -297,7 +345,7 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           } catch (err) {
             success = false;
             console.error(`Validator 'jsonata-expression' with description '${optionDescriptionValue}' could not run due to error: ${err}`);
-        }
+          }
         }
 
         return success

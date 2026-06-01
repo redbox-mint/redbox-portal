@@ -1,0 +1,102 @@
+// Shared styles for the named-query-editor sub-editor components.
+// Top-level layout, theming and modal styling come from the global ReDBox theme
+// (Bootstrap 5 + the brand variables in assets/styles/default-variables.scss),
+// loaded via the host EJS shell.
+
+.nq-subeditor {
+  font-size: 0.9rem;
+}
+
+.nq-subeditor .table thead.thead-light th {
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #d6dbe1;
+  color: #2f353a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.nq-subeditor .table.table-bordered {
+  border-color: #d6dbe1;
+}
+
+.nq-subeditor .table.table-bordered th,
+.nq-subeditor .table.table-bordered td {
+  border-color: #e5e8eb;
+  vertical-align: middle;
+  padding: 0.35rem 0.5rem;
+}
+
+.nq-subeditor select.form-control-sm {
+  height: auto;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.nq-add-row {
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.nq-add-row .nq-add-grow {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.nq-add-row .nq-add-grow-wide {
+  flex: 2 1 240px;
+  min-width: 0;
+}
+
+.nq-add-row .nq-add-fixed {
+  flex: 0 0 130px;
+}
+
+.nq-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.nq-section-header h6 {
+  margin-bottom: 0;
+}
+
+.nq-param-summary {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+
+.nq-param-meta {
+  font-size: 0.85rem;
+}
+
+.nq-inline-card {
+  border-color: #d6dbe1;
+}
+
+.nq-inline-card .card-header {
+  background-color: #f8f9fa;
+}
+
+.nq-card-header-clickable {
+  cursor: pointer;
+}
+
+.nq-card-header-clickable:hover {
+  background-color: #f3f4f6;
+}
+
+.nq-code-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  resize: vertical;
+}

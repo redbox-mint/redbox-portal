@@ -75,6 +75,7 @@ export * from './redboxToCkan.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
+export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
 
@@ -134,7 +135,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { BrandingConfig, branding } from './branding.config';
 import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
-import { ReportsConfig, reports } from './report.config';
+
 import { RecordTypeConfig, recordtype } from './recordtype.config';
 import { WorkflowConfig, workflow } from './workflow.config';
 import { DashboardViewConfig, dashboardview } from './dashboardview.config';
@@ -150,6 +151,7 @@ import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
+import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 
 /**
@@ -239,7 +241,6 @@ export interface SailsConfig {
     branding: BrandingConfig;
     brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
     raid: RaidConfig;
-    reports: ReportsConfig;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
     dashboardview: DashboardViewConfig;
@@ -256,6 +257,7 @@ export interface SailsConfig {
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
+    harvestRuns: HarvestRunsConfig;
 
     // Auth-related configs
     auth: AuthConfig;
@@ -342,13 +344,13 @@ export const Config = {
     redboxSession,
     companion,
     brandingConfigurationDefaults,
-    reports,
     branding,
     raid,
     recordtype,
     workflow,
     dashboardview,
     validators,
+    harvestRuns,
 } as const;
 
 // Type for the Config object

@@ -1,0 +1,60 @@
+<div class="nq-subeditor">
+  <div class="nq-section-header">
+    <h6>{{ 'named-query-related-filters-heading' | i18next }}</h6>
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="addFilter()">
+      {{ 'named-query-related-filter-add' | i18next }}
+    </button>
+  </div>
+  <p class="text-muted small mb-2">{{ 'named-query-related-filters-help' | i18next }}</p>
+
+  <p *ngIf="filters.length === 0" class="text-muted mb-0">
+    {{ 'named-query-related-filter-empty' | i18next }}
+  </p>
+
+  <div *ngFor="let filter of filters; trackBy: trackById" class="card mb-2 nq-inline-card">
+    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable"
+         (click)="toggleExpand(filter)">
+      <div>
+        <strong>{{ filter.collectionName || ('named-query-related-filter-unnamed' | i18next) }}</strong>
+        <span class="badge badge-light ml-2" *ngIf="filter.localField || filter.foreignField">
+          {{ filter.localField || '—' }} → {{ filter.foreignField || '—' }}
+        </span>
+      </div>
+      <button class="btn btn-sm btn-outline-danger" type="button"
+              (click)="removeFilter(filter); $event.stopPropagation()">
+        {{ 'named-query-remove' | i18next }}
+      </button>
+    </div>
+    <div class="card-body" *ngIf="expandedId === filter.id">
+      <div class="row g-2">
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-collection' | i18next }}</label>
+          <input type="text" class="form-control form-control-sm"
+                 [ngModel]="filter.collectionName"
+                 (ngModelChange)="onFieldChange(filter, 'collectionName', $event)">
+        </div>
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-local' | i18next }}</label>
+          <input type="text" class="form-control form-control-sm"
+                 [ngModel]="filter.localField"
+                 (ngModelChange)="onFieldChange(filter, 'localField', $event)">
+        </div>
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-foreign' | i18next }}</label>
+          <input type="text" class="form-control form-control-sm"
+                 [ngModel]="filter.foreignField"
+                 (ngModelChange)="onFieldChange(filter, 'foreignField', $event)">
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="form-group col-12 mb-0">
+          <label>{{ 'named-query-related-filter-mongo' | i18next }}</label>
+          <textarea class="form-control form-control-sm nq-code-editor" rows="6"
+                    [ngModel]="filter.mongoQueryJson"
+                    (ngModelChange)="onMongoQueryJsonChange(filter, $event)"
+                    spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

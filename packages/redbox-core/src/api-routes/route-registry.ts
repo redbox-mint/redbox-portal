@@ -8,6 +8,7 @@ import { brandingApiRoutes } from './groups/branding';
 import { dashboardConfigApiRoutes } from './groups/dashboard-config';
 import { exportApiRoutes } from './groups/export';
 import { formApiRoutes } from './groups/forms';
+import { harvestRunApiRoutes } from './groups/harvest-runs';
 import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
 import { recordApiRoutes } from './groups/records';
@@ -17,6 +18,7 @@ import { searchApiRoutes } from './groups/search';
 import { translationApiRoutes } from './groups/translation';
 import { userApiRoutes } from './groups/users';
 import { vocabularyApiRoutes } from './groups/vocabulary';
+import { namedQueryApiRoutes } from './groups/named-query';
 
 const apiDocumentInfo = {
   title: 'ReDBox Portal API',
@@ -29,6 +31,7 @@ const coreApiRouteGroups = [
   userApiRoutes,
   searchApiRoutes,
   formApiRoutes,
+  harvestRunApiRoutes,
   vocabularyApiRoutes,
   recordTypeApiRoutes,
   adminApiRoutes,
@@ -40,6 +43,7 @@ const coreApiRouteGroups = [
   integrationAuditApiRoutes,
   exportApiRoutes,
   notificationApiRoutes,
+  namedQueryApiRoutes,
 ] as const;
 
 export function registerCoreApiRoutes(): ApiRouteDefinition[] {

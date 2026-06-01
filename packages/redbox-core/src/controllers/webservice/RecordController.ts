@@ -26,6 +26,7 @@ import {
   Datastream,
   DatastreamService,
   DatastreamServiceResponse,
+  HarvestRunService as HarvestRunServiceContract,
   ListAPIResponse,
   RecordModel,
   RecordsService,
@@ -64,6 +65,8 @@ import {
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 
 import { v4 as UUIDGenerator } from 'uuid';
+
+declare const HarvestRunService: HarvestRunServiceContract;
 
 export namespace Controllers {
   /**
@@ -1385,73 +1388,34 @@ export namespace Controllers {
       const user = (req.user ?? {}) as UserModel;
       const body = validated.body as globalThis.Record<string, unknown> | undefined;
       if (body != null) {
-        if (_.isEmpty(body['records'])) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request body' }] });
-        }
-        const recordResponses = [];
-        const records = body['records'] as globalThis.Record<string, unknown>[];
-        for (const record of records) {
-          const harvestId = record['harvestId'] as string;
-          if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
-          } else {
-            const recordRequest = record['recordRequest'] as globalThis.Record<string, unknown> | undefined;
-            const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
-            if (existingRecord.length == 0 || updateMode == 'create') {
-              recordResponses.push(
-                await this.createHarvestRecord(
-                  brand,
-                  recordTypeModel,
-                  recordRequest as globalThis.Record<string, unknown>,
-                  harvestId,
-                  updateMode,
-                  user
-                )
-              );
-            } else {
-              const oid = existingRecord[0].redboxOid as string;
-              if (updateMode != 'ignore') {
-                const newMetadata = (recordRequest?.metadata ?? recordRequest) as globalThis.Record<
-                  string,
-                  unknown
-                >;
-                const existingMetadata = (existingRecord[0]?.metadata ?? {}) as globalThis.Record<string, unknown>;
-                if (this.isMetadataEqual(newMetadata, existingMetadata)) {
-                  recordResponses.push(
-                    new APIHarvestResponse(
-                      harvestId,
-                      oid,
-                      true,
-                      `Record ignored as the record already exists. oid: ${oid}`
-                    )
-                  );
-                } else {
-                  recordResponses.push(
-                    await this.updateHarvestRecord(
-                      brand,
-                      recordTypeModel,
-                      updateMode,
-                      recordRequest?.metadata as globalThis.Record<string, unknown>,
-                      oid,
-                      harvestId,
-                      user
-                    )
-                  );
-                }
-              } else {
-                recordResponses.push(
-                  new APIHarvestResponse(
-                    harvestId,
-                    oid,
-                    true,
-                    `Record ignored as the record already exists. oid: ${oid}`
-                  )
-                );
-              }
+        try {
+          if (!_.isEmpty(body['sourceRunId'])) {
+            if (!_.isEmpty(validated.query.updateMode)) {
+              return this.sendResp(req, res, {
+                status: 400,
+                displayErrors: [{ detail: 'updateMode is not supported for tracked harvest requests.' }],
+              });
             }
+            const trackedResponse = await HarvestRunService.submitChunk(brand, recordTypeModel, body, user);
+            return this.sendResp(req, res, { data: trackedResponse });
           }
+
+          const recordResponses = await HarvestRunService.submitCompatibilityRecords(
+            brand,
+            recordTypeModel,
+            body,
+            updateMode,
+            user
+          );
+          return this.sendResp(req, res, { data: recordResponses });
+        } catch (error) {
+          const err = error as { statusCode?: number; message?: string };
+          return this.sendResp(req, res, {
+            status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
+            errors: [this.asError(error)],
+            displayErrors: [{ detail: err?.message ?? 'Failed to process harvest request.' }],
+          });
         }
-        return this.sendResp(req, res, { data: recordResponses });
       }
       return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
     }
@@ -1472,65 +1436,23 @@ export namespace Controllers {
       const user = (req.user ?? {}) as UserModel;
       const body = validated.body as globalThis.Record<string, unknown> | undefined;
       if (body != null) {
-        if (_.isEmpty(body['records'])) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request body' }] });
+        try {
+          const recordResponses = await HarvestRunService.submitLegacyRecords(
+            brand,
+            recordTypeModel,
+            body,
+            validated.query.merge === true,
+            user
+          );
+          return this.sendResp(req, res, { data: recordResponses });
+        } catch (error) {
+          const err = error as { statusCode?: number; message?: string };
+          return this.sendResp(req, res, {
+            status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
+            errors: [this.asError(error)],
+            displayErrors: [{ detail: err?.message ?? 'Failed to process legacy harvest request.' }],
+          });
         }
-        const recordResponses = [];
-        const records = body['records'] as globalThis.Record<string, unknown>[];
-
-        for (const record of records) {
-          const harvestId = record['harvest_id'] as string;
-          if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
-          } else {
-            const metadata = record['metadata'] as globalThis.Record<string, unknown> | undefined;
-            const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
-            if (existingRecord.length == 0) {
-              recordResponses.push(
-                await this.createHarvestRecord(
-                  brand,
-                  recordTypeModel,
-                  metadata?.data as globalThis.Record<string, unknown>,
-                  harvestId,
-                  'update',
-                  user
-                )
-              );
-            } else {
-              const merge = validated.query.merge === true;
-              let updateMode = 'update';
-              if (merge) {
-                updateMode = 'merge';
-              }
-              const oid = existingRecord[0].redboxOid as string;
-              const oldMetadata = (existingRecord[0].metadata ?? {}) as globalThis.Record<string, unknown>;
-              const newMetadata = metadata?.data as globalThis.Record<string, unknown>;
-
-              if (this.isMetadataEqual(newMetadata, oldMetadata)) {
-                const response = {
-                  details: '',
-                  message: `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`,
-                  harvestId: harvestId,
-                  oid: oid,
-                  status: true,
-                };
-                recordResponses.push(response);
-              } else {
-                const response = await this.updateHarvestRecord(
-                  brand,
-                  recordTypeModel,
-                  updateMode,
-                  newMetadata,
-                  oid as string,
-                  harvestId,
-                  user
-                );
-                recordResponses.push(response);
-              }
-            }
-          }
-        }
-        return this.sendResp(req, res, { data: recordResponses });
       }
       return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
     }

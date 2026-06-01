@@ -25,6 +25,14 @@ function matchRoutePath(routePath: string, requestPath: string): boolean {
   return new UrlPattern(routePath).match(requestPath) != null;
 }
 
+function getContractAliasPath(routePath: string): string | undefined {
+  const reportConfigAdminPath = '/:branding/:portal/admin/report-config';
+  if (routePath === reportConfigAdminPath || routePath.startsWith(`${reportConfigAdminPath}/`)) {
+    return routePath.replace('/admin/report-config', '/api/report-config');
+  }
+  return undefined;
+}
+
 export function resetResolvedApiRouteCache(): void {
   cachedRouteMap = null;
   cachedRoutes = null;
@@ -38,6 +46,13 @@ export function resolveApiRouteForRequest(req: Sails.Req): ApiRouteDefinition | 
     const matchedRoute = getCachedRouteMap().get(routeKey(method, matchedRoutePath));
     if (matchedRoute) {
       return matchedRoute;
+    }
+    const aliasPath = getContractAliasPath(matchedRoutePath);
+    if (aliasPath) {
+      const aliasedRoute = getCachedRouteMap().get(routeKey(method, aliasPath));
+      if (aliasedRoute) {
+        return aliasedRoute;
+      }
     }
   }
 

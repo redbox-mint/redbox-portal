@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareService';
 import { ServiceExports } from '../../src/services';
@@ -7,6 +6,12 @@ import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/config
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
 import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
+
+let expect!: Chai.ExpectStatic;
+
+before(async function () {
+  ({ expect } = await import('chai'));
+});
 
 function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) {
   const config = new FigsharePublishing() as unknown as Record<string, unknown>;

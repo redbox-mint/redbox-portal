@@ -1,0 +1,38 @@
+meta {
+  name: List harvest runs
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/harvest-runs?sourceName={{trackedHarvestSourceName}}&page=1&pageSize=20
+  body: none
+  auth: none
+}
+
+query {
+  sourceName: {{trackedHarvestSourceName}}
+  page: 1
+  pageSize: 20
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Harvest run list contains the tracked run", function () {
+    var body = res.getBody();
+    expect(body).to.have.property('records');
+    expect(body.records.length).to.be.greaterThan(0);
+    var run = body.records.find(function (item) {
+      return item.sourceRunId === bru.getEnvVar('trackedHarvestSourceRunId');
+    });
+    expect(run, 'tracked run not found in list response').to.not.equal(undefined);
+    bru.setEnvVar('trackedHarvestRunId', run.id);
+  });
+}

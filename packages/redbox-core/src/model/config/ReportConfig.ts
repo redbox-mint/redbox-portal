@@ -52,7 +52,7 @@ export class ReportConfig {
   export class ReportResult {
     total: number = 0;
     pageNum: number = 0;
-    recordPerPage: number = 0;
+    recordsPerPage: number = 0;
     records: Record<string, unknown>[] = [];
     success: boolean = false;
   

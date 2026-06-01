@@ -1,6 +1,7 @@
 import { apiRoute } from '../route-factory';
 import {
   arrayField,
+  apiErrorResponseSchema,
   apiHarvestResponseSchema,
   binaryField,
   datastreamSummarySchema,
@@ -15,6 +16,7 @@ import {
   recordAuditQuery,
   recordDownloadQuery,
   recordHarvestQuery,
+  harvestRouteResponseSchema,
   recordListQuery,
   recordListItemSchema,
   recordMetadataSchema,
@@ -121,7 +123,11 @@ export const harvestRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Harvest record metadata',
-    responses: { 200: responseField(arrayField(apiHarvestResponseSchema), 'Harvest results') },
+    responses: {
+      200: responseField(harvestRouteResponseSchema, 'Harvest results'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
