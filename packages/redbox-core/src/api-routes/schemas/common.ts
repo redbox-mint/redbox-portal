@@ -1,6 +1,5 @@
-import 'zod-to-openapi';
-
-import { z, type ZodRawShape, type ZodTypeAny } from 'zod';
+import { z } from '../zod-openapi';
+import type { ZodRawShape, ZodTypeAny } from 'zod';
 
 import { ApiSchemaField } from '../types';
 
