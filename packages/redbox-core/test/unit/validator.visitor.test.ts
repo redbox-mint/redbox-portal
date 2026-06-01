@@ -787,4 +787,88 @@ describe("Validator Visitor", async () => {
       });
       expect(actual).to.eql(expected);
     });
+
+    it("should include results from multiple validators of the same class on one control", async function () {
+      const formConfig: FormConfigFrame = {
+        name: "default-1.0-draft",
+        componentDefinitions: [
+          {
+            name: 'text_7',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              }
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+                validators: [
+                  {
+                    class: 'pattern',
+                    message: "@must-start-with-prefix",
+                    config: { pattern: "^prefix.*$", description: "must start with prefix" },
+                  },
+                  {
+                    class: 'pattern',
+                    message: "@must-end-with-suffix",
+                    config: { pattern: ".*suffix$", description: "must end with suffix" },
+                  },
+                ]
+              }
+            },
+            component: {
+              class: 'SimpleInputComponent'
+            }
+          },
+        ]
+      };
+      const expected: FormValidatorSummaryErrors[] = [
+        {
+          errors: [
+            {
+              message: "@must-start-with-prefix",
+              class: "pattern",
+              params: {
+                actual: "hello world 2!",
+                description: "must start with prefix",
+                requiredPattern: "^prefix.*$",
+              },
+            },
+            {
+              message: "@must-end-with-suffix",
+              class: "pattern",
+              params: {
+                actual: "hello world 2!",
+                description: "must end with suffix",
+                requiredPattern: "^.*suffix$",
+              },
+            },
+          ],
+          id: "text_7",
+          message: "TextField with default wrapper defined",
+          lineagePaths: {
+            formConfig: ["componentDefinitions", "0"],
+            dataModel: ["text_7"],
+            angularComponents: ["text_7"],
+            angularComponentsJsonPointer: "/text_7",
+            layout: ["text_7-layout"],
+            layoutJsonPointer: "/text_7-layout",
+          },
+        }
+      ];
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
+
+      const visitor = new ValidatorFormConfigVisitor(logger);
+      const actual = await visitor.start({
+        form: constructed,
+        enabledValidationGroups: ["all"],
+        validatorDefinitions: formValidatorsSharedDefinitions
+      });
+      expect(actual).to.eql(expected);
+    });
 });
