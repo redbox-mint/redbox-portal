@@ -73,7 +73,7 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
           closeOnSave: this.componentDefinition?.config?.closeOnSave,
           redirectLocation: this.componentDefinition?.config?.redirectLocation,
           redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
-          enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+          enabledValidationGroups: this.componentDefinition?.config?.enabledValidationGroups ?? this.getFormComponent.enabledValidationGroups,
           sourceId: this.name ?? undefined
         })
       );

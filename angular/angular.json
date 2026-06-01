@@ -1288,6 +1288,98 @@
         }
       }
     },
+    "@researchdatabox/harvest-runs": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/harvest-runs",
+      "sourceRoot": "projects/researchdatabox/harvest-runs/src",
+      "prefix": "harvest-runs",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/harvest-runs"
+            },
+            "index": "projects/researchdatabox/harvest-runs/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/harvest-runs/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/harvest-runs/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/harvest-runs/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "optimization": {
+                "scripts": false,
+                "styles": true,
+                "fonts": true
+              },
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "6mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kb",
+                  "maximumError": "20kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/harvest-runs:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/harvest-runs:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/harvest-runs:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/harvest-runs/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/harvest-runs/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/harvest-runs/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/branding": {
       "projectType": "application",
       "schematics": {

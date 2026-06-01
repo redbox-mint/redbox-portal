@@ -100,6 +100,134 @@ export const apiHarvestResponseSchema = withOpenApi(
     { description: 'Legacy harvest response envelope' }
 );
 
+export const harvestRunSummarySchema = withOpenApi(
+    z.object({
+        id: z.string().optional(),
+        sourceRunId: z.string(),
+        brandId: z.string().optional(),
+        recordType: z.string(),
+        sourceName: z.string(),
+        sourceUri: z.string().optional(),
+        status: z.string(),
+        startedAt: z.string().optional(),
+        completedAt: z.string().optional(),
+        startedBy: z.string().optional(),
+        lastChunkAt: z.string().optional(),
+        totalProcessed: z.number().int(),
+        created: z.number().int(),
+        updated: z.number().int(),
+        deleted: z.number().int(),
+        unchanged: z.number().int(),
+        failed: z.number().int(),
+        chunksProcessed: z.number().int(),
+        duplicateChunks: z.number().int(),
+    }),
+    { description: 'Harvest run summary' }
+);
+
+export const harvestRunChunkSummarySchema = withOpenApi(
+    z.object({
+        id: z.string().optional(),
+        runId: z.string().optional(),
+        brandId: z.string().optional(),
+        recordType: z.string().optional(),
+        sourceRunId: z.string().optional(),
+        contentHash: z.string(),
+        attempt: z.number().int().optional(),
+        chunkIndex: z.number().int().optional(),
+        chunkLabel: z.string().optional(),
+        totalExpected: z.number().int().optional(),
+        status: z.string(),
+        recordCount: z.number().int(),
+        totalProcessed: z.number().int(),
+        created: z.number().int(),
+        updated: z.number().int(),
+        deleted: z.number().int(),
+        unchanged: z.number().int(),
+        failed: z.number().int(),
+        duplicate: z.boolean(),
+        submittedAt: z.string().optional(),
+        completedAt: z.string().optional(),
+        errorMessage: z.string().optional(),
+    }),
+    { description: 'Harvest run chunk summary' }
+);
+
+export const harvestRunEventSchema = withOpenApi(
+    z.object({
+        id: z.string().optional(),
+        runId: z.string().optional(),
+        chunkId: z.string().optional(),
+        brandId: z.string().optional(),
+        recordType: z.string().optional(),
+        sourceRunId: z.string().optional(),
+        harvestId: z.string(),
+        oid: z.string().optional(),
+        operation: z.string(),
+        outcome: z.string(),
+        status: z.boolean(),
+        message: z.string().optional(),
+        details: z.string().optional(),
+        errorCode: z.string().optional(),
+        createdAt: z.string(),
+    }),
+    { description: 'Harvest run event row' }
+);
+
+export const harvestRunAggregateCountsSchema = withOpenApi(
+    z.object({
+        totalProcessed: z.number().int(),
+        created: z.number().int(),
+        updated: z.number().int(),
+        deleted: z.number().int(),
+        unchanged: z.number().int(),
+        failed: z.number().int(),
+        chunksProcessed: z.number().int(),
+        duplicateChunks: z.number().int(),
+    }),
+    { description: 'Harvest run aggregate counters' }
+);
+
+export const harvestChunkRecordResponseSchema = withOpenApi(
+    z.object({
+        harvestId: z.string(),
+        oid: z.string(),
+        operation: z.string(),
+        outcome: z.string(),
+        status: z.boolean(),
+        message: z.string(),
+        details: z.string(),
+    }),
+    { description: 'Tracked harvest record response row' }
+);
+
+export const enhancedHarvestChunkResponseSchema = withOpenApi(
+    z.object({
+        run: harvestRunSummarySchema,
+        chunk: harvestRunChunkSummarySchema,
+        records: z.array(harvestChunkRecordResponseSchema).optional(),
+    }),
+    { description: 'Tracked harvest chunk response envelope' }
+);
+
+export const harvestRunDetailResponseSchema = withOpenApi(
+    z.object({
+        run: harvestRunSummarySchema,
+        chunks: z.array(harvestRunChunkSummarySchema),
+        events: z.array(harvestRunEventSchema),
+        aggregateCounts: harvestRunAggregateCountsSchema,
+    }),
+    { description: 'Harvest run detail response' }
+);
+
+export const harvestRouteResponseSchema = withOpenApi(
+    z.union([
+        z.array(apiHarvestResponseSchema),
+        enhancedHarvestChunkResponseSchema,
+    ]),
+    { description: 'Harvest response for legacy and tracked payloads' }
+);
+
 export const listApiSummarySchema = withOpenApi(
     z.object({
         numFound: z.number().int(),

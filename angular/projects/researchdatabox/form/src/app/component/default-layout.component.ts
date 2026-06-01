@@ -7,7 +7,7 @@ import {
   FormFieldComponentStatus,
   DefaultLayoutName
 } from "@researchdatabox/sails-ng-common";
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, TranslationService } from "@researchdatabox/portal-ng-common";
 import { FormService } from "../form.service";
 
 /**
@@ -36,7 +36,7 @@ import { FormService } from "../form.service";
   template: `
   @if (componentDefinition) {
     <div class="rb-form-field-layout">
-      @if ((getStringProperty('label') || getStringProperty('helpText')) && isVisible) {
+      @if ((getStringProperty('label') || hasHelpText) && isVisible) {
         <label class="form-label rb-form-field-label">
           @if (getStringProperty('label')) {
             <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next" [ngClass]="labelCssClasses"></span>
@@ -46,7 +46,7 @@ import { FormService } from "../form.service";
               class="form-field-required-indicator"
             [innerHTML]="getStringProperty('labelRequiredStr')"></span>
           }
-          @if (getStringProperty('helpText')) {
+          @if (hasHelpText) {
             <button type="button" class="btn btn-default" (click)="toggleHelpTextVisibility()" [attr.aria-label]="'help' | i18next ">
               <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
@@ -89,6 +89,7 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
   afterComponentTemplate!: TemplateRef<any>;
 
   protected formService = inject(FormService);
+  protected translationService = inject(TranslationService);
 
   // wrapperComponentRef!: ComponentRef<FormFieldBaseComponent<unknown>>;
   wrapperComponentRef!: ComponentRef<FormBaseWrapperComponent<ValueType>>;
@@ -155,6 +156,15 @@ export class DefaultLayoutComponent<ValueType> extends FormFieldBaseComponent<Va
 
   public toggleHelpTextVisibility() {
     this.helpTextVisible = !this.helpTextVisible;
+  }
+
+  public get hasHelpText(): boolean {
+    const key = this.getStringProperty('helpText');
+    if (!key) {
+      return false;
+    }
+    const translated = this.translationService.t(key);
+    return typeof translated === 'string' && translated.length > 0;
   }
 
   private setHelpTextVisibleOnInit() {

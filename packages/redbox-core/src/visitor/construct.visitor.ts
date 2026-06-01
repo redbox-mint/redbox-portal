@@ -1139,6 +1139,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
+    this.sharedProps.setPropOverride('closeOnSave', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {

@@ -37,6 +37,10 @@ export {
     RecordsService
 }
     from "./RecordsService";
+export {
+    HarvestRunService
+}
+    from "./HarvestRunService";
 export type {
     RecordRelationshipExpandOptions,
     RecordRelationshipGraph,
@@ -62,6 +66,7 @@ export {
     IntegrationAuditParams
 }
     from "./IntegrationAuditParams";
+export * from './model/storage/HarvestRunModel';
 export {
     ILogger
 }

@@ -98,6 +98,16 @@ describe('AdminController', () => {
         expect(payload.data[1].effectivePrimaryUsername).to.equal('primary-user');
     });
 
+    it('should render the harvest runs admin page', () => {
+        const req = {} as Sails.Req;
+        const res = {} as Sails.Res;
+        const sendViewStub = sinon.stub(controller as any, 'sendView');
+
+        controller.harvestRunsIndex(req, res);
+
+        expect(sendViewStub.calledOnceWithExactly(req, res, 'admin/harvest-runs')).to.be.true;
+    });
+
     it('should skip primary user lookup when the User model is unavailable', async () => {
         const req = { session: { branding: 'default' }, query: {} } as unknown as Sails.Req;
         const res = {} as unknown as Sails.Res;

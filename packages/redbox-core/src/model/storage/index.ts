@@ -1,4 +1,18 @@
 export { RecordAuditModel, RecordAuditActionType } from "./RecordAuditModel";
+export {
+  HarvestChunkStatus,
+  HarvestOperation,
+  HarvestOutcome,
+  HarvestRecordEventModel,
+  HarvestRunChunkModel,
+  HarvestRunDetailResult,
+  HarvestRunEventsQuery,
+  HarvestRunEventsResult,
+  HarvestRunListQuery,
+  HarvestRunListResult,
+  HarvestRunModel,
+  HarvestRunStatus,
+} from './HarvestRunModel';
 export { IntegrationAuditModel, IntegrationAuditAction, IntegrationAuditName, IntegrationAuditStatus } from './IntegrationAuditModel';
 export { UserModel } from "./UserModel";
 export { UserLinkModel } from "./UserLinkModel";

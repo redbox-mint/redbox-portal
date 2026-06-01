@@ -102,6 +102,8 @@ describe('NavigationService', function () {
 
       expect(config).to.have.property('sections');
       expect(config.sections).to.be.an('array');
+      const analyzeSection = config.sections.find((section: any) => section.id === 'analyze');
+      expect(analyzeSection?.items).to.deep.include({ id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' });
     });
   });
 

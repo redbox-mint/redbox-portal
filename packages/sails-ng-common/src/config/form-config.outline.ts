@@ -1,4 +1,4 @@
-import { FormValidatorConfig, FormValidationGroups } from '../validation/form.model';
+import {FormValidatorConfig, FormValidationGroups, FormValidatorTargetFieldConfig} from '../validation/form.model';
 import { AvailableFormComponentDefinitionFrames, AvailableFormComponentDefinitionOutlines } from './dictionary.outline';
 import { CanVisit } from './visitor/base.outline';
 import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
@@ -72,8 +72,7 @@ export interface FormConfigFrame {
   /**
    * The validators that are configured at the form level, usually because they involve two or more fields.
    */
-  validators?: FormValidatorConfig[];
-
+  validators?: FormValidatorTargetFieldConfig[];
   /**
    * The validation groups available in this form.
    * These are the only validation group names that can be used in the validator config.
@@ -116,6 +115,4 @@ export interface FormConfigFrame {
 
 export interface FormConfigOutline extends FormConfigFrame, CanVisit {
   componentDefinitions: AvailableFormComponentDefinitionOutlines[];
-  expressions?: FormExpressionsConfigOutline[];
-  behaviours?: FormBehaviourConfigFrame[];
 }

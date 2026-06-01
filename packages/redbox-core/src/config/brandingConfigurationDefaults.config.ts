@@ -369,6 +369,7 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             defaultExpanded: true,
             items: [
                 { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
+                { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
                 { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
                 { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
             ]

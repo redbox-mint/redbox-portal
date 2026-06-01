@@ -21,6 +21,7 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     forceSave?: boolean;
     labelSaving?: string;
     buttonCssClasses?: string;
+    enabledValidationGroups?: string[];
     closeOnSave?: boolean;
     redirectLocation?: string;
     redirectDelaySeconds?: number;

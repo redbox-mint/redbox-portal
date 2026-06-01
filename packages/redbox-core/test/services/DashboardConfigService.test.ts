@@ -147,6 +147,40 @@ describe('DashboardConfigService', function () {
     expect(result!.mergedConfig.rowConfig?.[0].title).to.equal('Override');
   });
 
+  it('replaces rowConfig arrays instead of merging inherited columns by index', async function () {
+    (global as any).DashboardTypesService.getDashboardTypeDefinition = sinon.stub().resolves({
+      name: 'standard',
+      formatRules: { filterBy: {} },
+      tableConfig: {
+        rowConfig: [
+          { title: 'Type Title', variable: 'metadata.title', template: '{{metadata.title}}', initialSort: 'desc' },
+          { title: 'Type Modified', variable: 'metaMetadata.lastSaveDate', template: '{{dateModified}}', defaultSort: true }
+        ]
+      }
+    });
+    (global as any).WorkflowStepsService.get = sinon.stub().returns(of({
+      name: 'finalised',
+      config: {
+        dashboard: {
+          table: {
+            rowConfig: [
+              { title: 'Workflow Title', variable: 'metadata.title', template: '{{metadata.title}}' },
+              { title: 'Workflow State', variable: 'workflow.stageLabel', template: '{{get workflow "stageLabel"}}' }
+            ]
+          }
+        }
+      }
+    }));
+
+    const result = await service.getMergedDashboardTableConfig({ id: 'brand1' } as any, 'rdmp', 'finalised');
+
+    expect(result).to.not.be.null;
+    expect(result!.mergedConfig.rowConfig).to.deep.equal([
+      { title: 'Workflow Title', variable: 'metadata.title', template: '{{metadata.title}}' },
+      { title: 'Workflow State', variable: 'workflow.stageLabel', template: '{{get workflow "stageLabel"}}' }
+    ]);
+  });
+
   it('merges dashboard view type and override config', async function () {
     (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
       recordTypes: {},

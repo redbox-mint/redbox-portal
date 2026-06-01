@@ -75,6 +75,7 @@ export * from './redboxToCkan.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
+export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
 
@@ -150,6 +151,7 @@ import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
+import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 
 /**
@@ -255,6 +257,7 @@ export interface SailsConfig {
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
+    harvestRuns: HarvestRunsConfig;
 
     // Auth-related configs
     auth: AuthConfig;
@@ -347,6 +350,7 @@ export const Config = {
     workflow,
     dashboardview,
     validators,
+    harvestRuns,
 } as const;
 
 // Type for the Config object

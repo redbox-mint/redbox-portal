@@ -1,5 +1,6 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
+import { FormControl, FormGroup } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -335,6 +336,315 @@ describe('FormComponent', () => {
       targetStep: 'legacy-step',
       enabledValidationGroups:  ['none'],
     });
+  });
+
+  it('waits for pending async validation before saving', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    let resolveValidation: (() => void) | undefined;
+    let validatorRuns = 0;
+    const asyncValidator = () => {
+      validatorRuns += 1;
+      if (validatorRuns === 1) {
+        return new Promise<null>(resolve => {
+          resolveValidation = () => resolve(null);
+        });
+      }
+      return new Promise<null>(() => undefined);
+    };
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [asyncValidator],
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    let saveCompleted = false;
+    const savePromise = formComponent.saveForm().then(() => {
+      saveCompleted = true;
+    });
+    await Promise.resolve();
+
+    expect(formComponent.form.pending).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(saveCompleted).toBeFalse();
+
+    resolveValidation?.();
+    await savePromise;
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(saveCompleted).toBeTrue();
+    expect(validatorRuns).toBe(1);
+  });
+
+  it('waits for pending async validation started without emitting form events', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    let resolveValidation: (() => void) | undefined;
+    const asyncValidator = () => new Promise<null>(resolve => {
+      resolveValidation = () => resolve(null);
+    });
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    });
+    formComponent.form.setAsyncValidators([asyncValidator]);
+    formComponent.form.updateValueAndValidity({ emitEvent: false });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const savePromise = formComponent.saveForm();
+    await Promise.resolve();
+
+    expect(formComponent.form.pending).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    resolveValidation?.();
+    await savePromise;
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+  });
+
+  it('saves without delay when validation is already settled', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({
+      settled_field: new FormControl('ready'),
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '');
+  });
+
+  it('fails save when pending async validation times out', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    (formComponent as any).pendingValidationTimeoutMs = 1;
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [() => new Promise<null>(() => undefined)],
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(failureEvents.length).toBe(1);
+      expect(failureEvents[0].error).toBe('Form validation timed out. Please try again.');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('does not save when destroyed while async validation is pending', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({
+      async_field: new FormControl('ready'),
+    }, {
+      asyncValidators: [() => new Promise<null>(() => undefined)],
+    });
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const savePromise = formComponent.saveForm();
+    await Promise.resolve();
+    expect(formComponent.form.pending).toBeTrue();
+
+    formComponent.ngOnDestroy();
+    await savePromise;
+
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  // Exercises the pending-validation save path under the full production
+  // subscription stack. createFormAndWaitForReady wires up formGroupChangesSub
+  // (form.events -> broadcastFormStatus), which the bare-FormGroup tests above
+  // skip. When the validator resolves, Angular emits a StatusChangeEvent in the
+  // same Angular tick that saveForm() resumes; this test pins down that the
+  // resulting broadcastFormStatus call does not deadlock or torpedo the save.
+  it('completes save when async validation resolves with form.events subscription live', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'async-validation-broadcast-subscription',
+      debugValue: false,
+      defaultComponentConfig: { defaultComponentCssClasses: 'row' },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'async_field',
+          model: { class: 'SimpleInputModel', config: { value: 'ready' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Single barrier shared across every call to the async validator: any
+    // re-trigger (including broadcastFormStatus -> updateValueAndValidity) awaits
+    // the same promise, so the form stays pending until we explicitly release it.
+    let releaseBarrier!: (value: null) => void;
+    const barrier = new Promise<null>(resolve => { releaseBarrier = resolve; });
+    const asyncValidator = () => barrier;
+
+    formComponent.form!.markAsDirty();
+    formComponent.form!.setAsyncValidators([asyncValidator]);
+    formComponent.form!.updateValueAndValidity();
+    await Promise.resolve();
+    expect(formComponent.form!.pending).toBeTrue();
+
+    const broadcastSpy = spyOn(formComponent, 'broadcastFormStatus').and.callThrough();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const failureEvents: any[] = [];
+    const validationBroadcasts: FormValidationBroadcastEvent[] = [];
+    const successSub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(evt => successEvents.push(evt));
+    const failureSub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(evt => failureEvents.push(evt));
+    const broadcastEventSub = bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .subscribe(evt => validationBroadcasts.push(evt));
+
+    try {
+      const savePromise = formComponent.saveForm();
+      await Promise.resolve();
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(formComponent.form!.pending).toBeTrue();
+
+      const broadcastCallsBeforeResolve = broadcastSpy.calls.count();
+      const broadcastEventsBeforeResolve = validationBroadcasts.length;
+
+      releaseBarrier(null);
+      await savePromise;
+
+      // The formGroupChangesSub subscription must have fired broadcastFormStatus
+      // at least once between releasing the barrier and the save completing.
+      // That call publishes a FORM_VALIDATION_BROADCAST and re-runs validators
+      // synchronously; if any of that interfered with the save resumption we
+      // would either see no update call or a FORM_SAVE_FAILURE.
+      expect(broadcastSpy.calls.count()).toBeGreaterThan(broadcastCallsBeforeResolve);
+      expect(validationBroadcasts.length).toBeGreaterThan(broadcastEventsBeforeResolve);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy.calls.mostRecent().args[1]).toEqual({ async_field: 'ready' });
+      expect(successEvents.length).toBe(1);
+      expect(failureEvents.length).toBe(0);
+    } finally {
+      successSub.unsubscribe();
+      failureSub.unsubscribe();
+      broadcastEventSub.unsubscribe();
+    }
+  });
+
+  it('applies requested validation groups before saving', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'grouped-save-validation',
+      debugValue: false,
+      enabledValidationGroups: ['all', 'value-driven'],
+      validationGroups: {
+        all: {
+          description: 'Default validation group.',
+          initialMembership: 'all',
+        },
+        'value-driven': {
+          description: 'A group enabled by form values before review submit.',
+          initialMembership: 'none',
+        },
+        'submit-for-review': {
+          description: 'Review submission validation group.',
+          initialMembership: 'none',
+        },
+      },
+      componentDefinitions: [
+        {
+          name: 'dirty_field',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: 'dirty value',
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+        {
+          name: 'review_required',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                {
+                  class: 'required',
+                  groups: {
+                    include: ['submit-for-review'],
+                    exclude: ['all'],
+                  },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    formComponent.form?.markAsDirty();
+
+    expect(formComponent.form?.valid).toBeTrue();
+
+    await formComponent.saveForm({
+      targetStep: 'queued',
+      enabledValidationGroups: ['all', 'value-driven', 'submit-for-review'],
+    });
+
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
+    expect(formComponent.form?.valid).toBeFalse();
+    expect(formComponent.form?.get('review_required')?.hasError('required')).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    await formComponent.saveForm({
+      targetStep: 'queued',
+      enabledValidationGroups: ['all', 'value-driven', 'submit-for-review'],
+    });
+
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
+    expect(formComponent.form?.valid).toBeFalse();
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    formComponent.form?.get('dirty_field')?.setValue('changed again');
+    await fixture.whenStable();
+
+    expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven']);
+    expect(formComponent.form?.get('review_required')?.hasError('required')).toBeFalse();
+    expect(formComponent.form?.valid).toBeTrue();
+  });
+
+  it('compares validation groups independent of order', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance as unknown as {
+      validationGroupNamesEqual: (first: string[], second: string[]) => boolean;
+    };
+
+    expect(formComponent.validationGroupNamesEqual(['all', 'value-driven'], ['value-driven', 'all'])).toBeTrue();
+    expect(formComponent.validationGroupNamesEqual(['all', 'value-driven'], ['all', 'submit-for-review'])).toBeFalse();
   });
 
   it('omits disabled controls from Form Values Debug data', async () => {

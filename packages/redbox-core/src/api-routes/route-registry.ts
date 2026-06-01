@@ -8,6 +8,7 @@ import { brandingApiRoutes } from './groups/branding';
 import { dashboardConfigApiRoutes } from './groups/dashboard-config';
 import { exportApiRoutes } from './groups/export';
 import { formApiRoutes } from './groups/forms';
+import { harvestRunApiRoutes } from './groups/harvest-runs';
 import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
 import { recordApiRoutes } from './groups/records';
@@ -30,6 +31,7 @@ const coreApiRouteGroups = [
   userApiRoutes,
   searchApiRoutes,
   formApiRoutes,
+  harvestRunApiRoutes,
   vocabularyApiRoutes,
   recordTypeApiRoutes,
   adminApiRoutes,
