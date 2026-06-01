@@ -1,4 +1,4 @@
-import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
+import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { ZodTypeAny } from 'zod';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
@@ -150,27 +150,36 @@ function sanitizeOpenApiValue<T>(value: T): T {
 }
 
 function createSchemaConverter() {
-  const generator = new OpenApiGeneratorV3([]);
-  // @asteasolutions/zod-to-openapi exposes this only as a private runtime property;
-  // revisit this adapter when upgrading the package.
-  const internal = (generator as unknown as {
-    generator?: {
-      generateSchemaWithRef?: (schema: ZodTypeAny) => Record<string, unknown>;
-    };
-  }).generator;
-  if (typeof internal?.generateSchemaWithRef !== 'function') {
-    throw new Error('@asteasolutions/zod-to-openapi no longer exposes the schema generator expected by the OpenAPI adapter');
-  }
-  const generateSchemaWithRef = internal.generateSchemaWithRef.bind(internal);
+  let componentSchemas: Record<string, unknown> = {};
+  let schemaIndex = 0;
 
   return {
     toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
-      return sanitizeOpenApiValue(generateSchemaWithRef(schema));
+      const registry = new OpenAPIRegistry();
+      const path = `/__redbox_schema_conversion/${schemaIndex++}`;
+      registry.registerPath({
+        method: 'get',
+        path,
+        responses: {
+          200: {
+            description: 'Schema conversion',
+            content: { 'application/json': { schema } },
+          },
+        },
+      });
+      const document = new OpenApiGeneratorV3(registry.definitions).generateDocument({
+        openapi: '3.0.3',
+        info: { title: 'ReDBox schema conversion', version: '1.0.0' },
+      });
+      const convertedSchema = document.paths[path]?.get?.responses?.[200]?.content?.['application/json']?.schema;
+      if (!convertedSchema) {
+        throw new Error('@asteasolutions/zod-to-openapi did not generate the schema registered by the OpenAPI adapter');
+      }
+      componentSchemas = { ...componentSchemas, ...document.components?.schemas };
+      return sanitizeOpenApiValue(convertedSchema);
     },
     getComponentSchemas(): Record<string, unknown> | undefined {
-      const components = generator.generateComponents();
-      const schemas = components.components?.schemas;
-      return schemas && Object.keys(schemas).length ? sanitizeOpenApiValue(schemas) : undefined;
+      return Object.keys(componentSchemas).length ? sanitizeOpenApiValue(componentSchemas) : undefined;
     },
   };
 }
