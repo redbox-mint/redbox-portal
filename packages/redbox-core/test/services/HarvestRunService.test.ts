@@ -373,6 +373,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
+    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(100)).to.equal(true);
   });
 
   it('rejects tracked chunks over the configured record limit before processing', async function () {

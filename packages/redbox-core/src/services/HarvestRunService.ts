@@ -1631,8 +1631,7 @@ export namespace Services {
         return null;
       }
 
-      const allChunks = await HarvestRunChunk.find({ runId, brandId }).sort('submittedAt ASC') as HarvestRunChunkRow[];
-      const chunks = allChunks.slice(0, 100);
+      const chunks = await HarvestRunChunk.find({ runId, brandId }).sort('submittedAt ASC').limit(100) as HarvestRunChunkRow[];
       const events = await HarvestRecordEvent.find({ runId, brandId }).sort('createdAt DESC').limit(20) as HarvestRecordEventRow[];
       return {
         run: this.toRunModel(run),
