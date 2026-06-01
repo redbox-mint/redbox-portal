@@ -53,6 +53,11 @@ export type FormValidatorCreateConfig = {
    *
    * Defaults to the class. Set to a unique value when the same class is used more than
    * once on a control, so Angular's error merging does not overwrite earlier instances.
+   *
+   * @internal - This field is managed automatically by the framework. Do not set it
+   * manually in form configuration; doing so will produce an error key that does not
+   * match the validator class, breaking the display recovery in
+   * `getFormValidatorComponentErrors`.
    */
   errorKey?: string;
   [key: string]: unknown;
