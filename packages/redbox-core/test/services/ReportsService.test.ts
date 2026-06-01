@@ -219,6 +219,23 @@ describe('ReportsService', function() {
       expect(result[1].readOnlyReason).to.equal('Solr reports are read-only in this version');
     });
 
+    it('should normalize the legacy filter message typo', async function() {
+      mockReport.find.returns(createQueryObject([
+        {
+          name: 'database-report',
+          title: 'Database Report',
+          reportSource: 'database',
+          databaseQuery: { queryName: 'testQuery' },
+          filter: [{ type: 'text', paramName: 'title', property: 'title', messsage: 'Legacy title' }],
+          columns: []
+        }
+      ]));
+
+      const result = await ReportsService.listConfigs(brand);
+
+      expect(result[0].filter[0].message).to.equal('Legacy title');
+    });
+
     it('should create a database report configuration after validating the named query', async function() {
       mockReport.findOne.returns(createQueryObject(null));
       mockReport.create.returns(createQueryObject({

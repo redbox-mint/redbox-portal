@@ -14,6 +14,7 @@ export class ReportConfigComponent extends BaseComponent {
   filteredReports: ReportConfigDto[] = [];
   selectedReport: ReportConfigDto | null = null;
   previewResult: ReportConfigPreviewDto | null = null;
+  previewFilterValues: Record<string, string> = {};
   namedQueries: { name: string }[] = [];
   searchText = '';
   sourceFilter: 'all' | 'database' | 'solr' = 'all';
@@ -90,6 +91,7 @@ export class ReportConfigComponent extends BaseComponent {
   createReport(): void {
     this.errorMessage = '';
     this.previewResult = null;
+    this.previewFilterValues = {};
     this.selectedReport = this.newReport();
     this.isNewReport = true;
   }
@@ -97,6 +99,7 @@ export class ReportConfigComponent extends BaseComponent {
   editReport(report: ReportConfigDto): void {
     this.errorMessage = '';
     this.previewResult = null;
+    this.previewFilterValues = {};
     this.selectedReport = JSON.parse(JSON.stringify(report)) as ReportConfigDto;
     this.isNewReport = false;
   }
@@ -104,6 +107,7 @@ export class ReportConfigComponent extends BaseComponent {
   cancelEdit(): void {
     this.selectedReport = null;
     this.previewResult = null;
+    this.previewFilterValues = {};
     this.errorMessage = '';
     this.isNewReport = false;
   }
@@ -151,7 +155,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.errorMessage = '';
     this.previewResult = null;
     try {
-      this.previewResult = await this.reportConfigService.preview(this.selectedReport);
+      this.previewResult = await this.reportConfigService.preview(this.selectedReport, this.previewFilterValues);
     } catch (error: unknown) {
       this.errorMessage = this.getErrorMessage(error);
     } finally {

@@ -337,7 +337,7 @@ export namespace Services {
         paramName: item.paramName ?? '',
         type: item.type ?? ReportFilterType.text,
         property: item.property ?? '',
-        message: item.message ?? '',
+        message: item.message ?? (item as unknown as { messsage?: string }).messsage ?? '',
         database: item.database ?? null
       }));
       const columns: ReportConfigColumnDto[] = (config.columns ?? []).map((column: ReportConfigColumnDto) => ({

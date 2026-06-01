@@ -1,5 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { ReportConfigDto, ReportConfigPreviewDto } from '@researchdatabox/sails-ng-common';
@@ -44,8 +44,16 @@ export class ReportConfigService extends HttpClientService {
     return this.unwrapResponse<{ deleted: boolean }>(this.http.delete(`${this.brandingAndPortalUrl}/admin/report-config/${encodeURIComponent(name)}`, this.reqOptsJsonBodyOnly));
   }
 
-  public preview(report: ReportConfigDto): Promise<ReportConfigPreviewDto> {
-    return this.unwrapResponse<ReportConfigPreviewDto>(this.http.post(`${this.brandingAndPortalUrl}/admin/report-config/preview`, report, this.reqOptsJsonBodyOnly));
+  public preview(report: ReportConfigDto, filterValues: Record<string, string> = {}): Promise<ReportConfigPreviewDto> {
+    let params = new HttpParams();
+    Object.entries(filterValues).forEach(([key, value]) => {
+      params = params.set(key, value);
+    });
+    return this.unwrapResponse<ReportConfigPreviewDto>(this.http.post(
+      `${this.brandingAndPortalUrl}/admin/report-config/preview`,
+      report,
+      { ...this.reqOptsJsonBodyOnly, params }
+    ));
   }
 
   public async listNamedQueries(): Promise<{ name: string }[]> {

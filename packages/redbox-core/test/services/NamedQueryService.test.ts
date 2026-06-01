@@ -382,13 +382,13 @@ describe('NamedQueryService', function() {
       const brand = { id: 'brand-1' };
 
       mockNamedQuery.findOne.resolves({ id: 'existing-query', name: 'test-query' });
-      mockNamedQuery.destroy.returns(createQueryObject([{ id: 'deleted-query' }]));
+      mockNamedQuery.destroyOne.returns(createQueryObject({ id: 'deleted-query' }));
 
       const result = await NamedQueryService.delete(brand, 'test-query');
 
-      expect(mockNamedQuery.destroy.calledOnce).to.be.true;
-      expect(mockNamedQuery.destroy.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
-      expect(result).to.deep.equal([{ id: 'deleted-query' }]);
+      expect(mockNamedQuery.destroyOne.calledOnce).to.be.true;
+      expect(mockNamedQuery.destroyOne.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
+      expect(result).to.deep.equal({ id: 'deleted-query' });
     });
   });
 

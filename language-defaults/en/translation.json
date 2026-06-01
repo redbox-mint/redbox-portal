@@ -546,6 +546,7 @@
   "report-no-columns": "No columns configured.",
   "report-add-column": "Add column",
   "report-preview-result": "{{total}} rows matched. Showing up to 100 rows.",
+  "report-preview-filters": "Preview filters",
   "report-cancel": "Cancel",
   "report-preview": "Preview",
   "report-save": "Save report",

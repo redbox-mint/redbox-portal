@@ -32,7 +32,8 @@ describe('ReportConfigComponent', () => {
               { name: 'db2', title: 'Database 2', reportSource: 'database', readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true },
               { name: 'solr', title: 'Solr', reportSource: 'solr', readOnly: true, columns: [], filter: [], canEdit: false, canDelete: false, canPreview: false }
             ]),
-            listNamedQueries: () => Promise.resolve([{ name: 'listRDMPRecords' }])
+            listNamedQueries: () => Promise.resolve([{ name: 'listRDMPRecords' }]),
+            preview: () => Promise.resolve({ total: 0 })
           }
         }
       ]
@@ -77,5 +78,17 @@ describe('ReportConfigComponent', () => {
     await component.loadNamedQueries();
     expect(component.namedQueries.length).toBe(1);
     expect(component.namedQueries[0].name).toBe('listRDMPRecords');
+  });
+
+  it('passes filter values when previewing a report', async () => {
+    const report = { name: 'db', title: 'Database', reportSource: 'database', readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true } as any;
+    const service = TestBed.inject(ReportConfigService);
+    spyOn(service, 'preview').and.resolveTo({ total: 0 } as any);
+    component.selectedReport = report;
+    component.previewFilterValues = { title: 'draft', dateRange_fromDate: '2026-01-01' };
+
+    await component.previewReport();
+
+    expect(service.preview).toHaveBeenCalledWith(report, component.previewFilterValues);
   });
 });

@@ -467,7 +467,7 @@ export namespace Services {
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
-      return firstValueFrom(super.getObservable(NamedQuery.destroy({ key })));
+      return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
     }
 
 

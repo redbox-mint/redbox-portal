@@ -206,6 +206,31 @@
                 <button class="btn btn-default btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus"></i> {{ 'report-add-column' | i18next }}</button>
               </fieldset>
 
+              @if (selectedReport.filter.length > 0) {
+                <fieldset>
+                  <legend>{{ 'report-preview-filters' | i18next }}</legend>
+                  <div class="row">
+                    @for (filter of selectedReport.filter; track trackByIndex($index)) {
+                      @if (filter.type === 'date-range') {
+                        <div class="form-group col-sm-6">
+                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label>
+                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']">
+                        </div>
+                        <div class="form-group col-sm-6">
+                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label>
+                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']">
+                        </div>
+                      } @else {
+                        <div class="form-group col-sm-6">
+                          <label>{{ filter.message || filter.paramName }}</label>
+                          <input class="form-control" type="text" [(ngModel)]="previewFilterValues[filter.paramName]">
+                        </div>
+                      }
+                    }
+                  </div>
+                </fieldset>
+              }
+
               @if (previewResult) {
                 <div class="alert alert-info">{{ 'report-preview-result' | i18next: { total: previewResult.total } }}</div>
               }
