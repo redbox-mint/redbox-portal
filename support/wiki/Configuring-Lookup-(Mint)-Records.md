@@ -220,3 +220,4 @@
 }
 </code></pre>
 <p>This endpoint transforms the payload internally and creates records using standard ReDBox logic.</p>
+<p>To migrate existing harvest clients onto the new compatibility and tracked harvest endpoints, see <strong><a href="https://github.com/redbox-mint/redbox-portal/wiki/Migrating-from-the-Legacy-Mint-Harvest-Endpoint">Migrating from the Legacy Mint Harvest Endpoint</a></strong>.</p>

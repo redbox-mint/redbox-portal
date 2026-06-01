@@ -1,0 +1,32 @@
+meta {
+  name: Get harvest run detail
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/api/harvest-runs/{{trackedHarvestRunId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Harvest run detail returns the expected run and chunk data", function () {
+    var body = res.getBody();
+    expect(body).to.have.property('run');
+    expect(body.run).to.have.property('id', bru.getEnvVar('trackedHarvestRunId'));
+    expect(body.run).to.have.property('sourceRunId', bru.getEnvVar('trackedHarvestSourceRunId'));
+    expect(body).to.have.property('chunks');
+    expect(body.chunks.length).to.be.greaterThan(0);
+    expect(body).to.have.property('events');
+    expect(body.events.length).to.be.greaterThan(0);
+  });
+}

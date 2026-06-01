@@ -3,6 +3,7 @@ export const storage = {
   mongodb: {
     indices: [
       { key: { harvestId: 1 } },
+      { key: { harvestId: 1, 'metaMetadata.brandId': 1, 'metaMetadata.type': 1 } },
       { key: { dateCreated: 1 } },
       { key: { dateCreated: -1 } },
       { key: { lastSaveDate: 1 } },

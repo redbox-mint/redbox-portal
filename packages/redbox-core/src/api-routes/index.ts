@@ -13,6 +13,7 @@ export * from './groups/records';
 export * from './groups/users';
 export * from './groups/search';
 export * from './groups/forms';
+export * from './groups/harvest-runs';
 export * from './groups/vocabulary';
 export * from './groups/recordtypes';
 export * from './groups/admin';

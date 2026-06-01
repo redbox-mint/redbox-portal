@@ -904,6 +904,11 @@
     "description": "Global navigation link label for the export page",
     "contentFormat": "plain"
   },
+  "menu-harvest-runs": {
+    "category": "menu",
+    "description": "Global navigation link label for the harvest runs admin page",
+    "contentFormat": "plain"
+  },
   "menu-home": {
     "category": "menu",
     "description": "Global navigation link label for the homepage",
@@ -2467,6 +2472,246 @@
   "reports-description": {
     "category": "reports",
     "description": "Supporting text on the admin reports list page",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-heading": {
+    "category": "harvest-runs",
+    "description": "Harvest runs admin page heading",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-empty": {
+    "category": "harvest-runs",
+    "description": "Empty state shown when no harvest runs match the current filters",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-loading": {
+    "category": "harvest-runs",
+    "description": "Loading message shown while the harvest runs admin page is fetching data",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-error": {
+    "category": "harvest-runs",
+    "description": "Error message shown when the harvest runs admin page cannot load data",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-status": {
+    "category": "harvest-runs",
+    "description": "Filter label for harvest run status",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-record-type": {
+    "category": "harvest-runs",
+    "description": "Filter label for harvest run record type",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-source": {
+    "category": "harvest-runs",
+    "description": "Filter label for harvest run source name",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-date-from": {
+    "category": "harvest-runs",
+    "description": "Filter label for the harvest run start date lower bound",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-date-to": {
+    "category": "harvest-runs",
+    "description": "Filter label for the harvest run start date upper bound",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-apply": {
+    "category": "harvest-runs",
+    "description": "Button label to apply harvest run filters",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-filter-clear": {
+    "category": "harvest-runs",
+    "description": "Button label to clear harvest run filters",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-select-run": {
+    "category": "harvest-runs",
+    "description": "Placeholder text shown before a harvest run is selected",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-detail-summary": {
+    "category": "harvest-runs",
+    "description": "Heading for the harvest run summary section",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-detail-chunks": {
+    "category": "harvest-runs",
+    "description": "Heading for the harvest run chunks section",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-detail-events": {
+    "category": "harvest-runs",
+    "description": "Heading for the harvest run events section",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-no-chunks": {
+    "category": "harvest-runs",
+    "description": "Empty state shown when a harvest run has no chunks",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-no-events": {
+    "category": "harvest-runs",
+    "description": "Empty state shown when a harvest run has no events",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-verified-count-warning": {
+    "category": "harvest-runs",
+    "description": "Warning shown when harvest run counters differ between summary and detail",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-started": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest run started time",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-completed": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest run completed time",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-status": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest run status",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-source": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest run source name",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-record-type": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest run record type",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-processed": {
+    "category": "harvest-runs",
+    "description": "Table column heading for total processed harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-created": {
+    "category": "harvest-runs",
+    "description": "Table column heading for created harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-updated": {
+    "category": "harvest-runs",
+    "description": "Table column heading for updated harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-deleted": {
+    "category": "harvest-runs",
+    "description": "Table column heading for deleted harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-failed": {
+    "category": "harvest-runs",
+    "description": "Table column heading for failed harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-unchanged": {
+    "category": "harvest-runs",
+    "description": "Summary label for unchanged harvest records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-chunks-processed": {
+    "category": "harvest-runs",
+    "description": "Summary label for processed harvest chunks",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-duplicate-chunks": {
+    "category": "harvest-runs",
+    "description": "Summary label for duplicate harvest chunks",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-chunk-index": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest chunk index",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-chunk-label": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest chunk label",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-submitted": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest chunk submission time",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-record-count": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest chunk record count",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-duplicate": {
+    "category": "harvest-runs",
+    "description": "Table column heading showing whether a harvest chunk was a duplicate replay",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-harvest-id": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event harvest identifier",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-oid": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event record oid",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-operation": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event operation",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-outcome": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event outcome",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-message": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event message details",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-created-at": {
+    "category": "harvest-runs",
+    "description": "Table column heading for harvest event creation time",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-running": {
+    "category": "harvest-runs",
+    "description": "Display label for a running harvest run",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-completed": {
+    "category": "harvest-runs",
+    "description": "Display label for a completed harvest run",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-completed-with-errors": {
+    "category": "harvest-runs",
+    "description": "Display label for a harvest run that completed with errors",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-failed": {
+    "category": "harvest-runs",
+    "description": "Display label for a failed harvest run",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-aborted": {
+    "category": "harvest-runs",
+    "description": "Display label for an aborted harvest run",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-timed-out": {
+    "category": "harvest-runs",
+    "description": "Display label for a timed out harvest run",
     "contentFormat": "plain"
   },
   "orcid-given-names": {

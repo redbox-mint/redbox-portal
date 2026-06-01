@@ -8,6 +8,9 @@ export * from './CacheEntry';
 export * from './Counter';
 export * from './DashboardType';
 export * from './Form';
+export * from './HarvestRecordEvent';
+export * from './HarvestRun';
+export * from './HarvestRunChunk';
 export * from './I18nBundle';
 export * from './I18nTranslation';
 export * from './NamedQuery';
@@ -37,6 +40,9 @@ import { CacheEntryWLDef } from './CacheEntry';
 import { CounterWLDef } from './Counter';
 import { DashboardTypeWLDef } from './DashboardType';
 import { FormWLDef } from './Form';
+import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
+import { HarvestRunWLDef } from './HarvestRun';
+import { HarvestRunChunkWLDef } from './HarvestRunChunk';
 import { I18nBundleWLDef } from './I18nBundle';
 import { I18nTranslationWLDef } from './I18nTranslation';
 import { NamedQueryWLDef } from './NamedQuery';
@@ -69,6 +75,9 @@ export const WaterlineModels = {
   Counter: CounterWLDef,
   DashboardType: DashboardTypeWLDef,
   Form: FormWLDef,
+  HarvestRecordEvent: HarvestRecordEventWLDef,
+  HarvestRun: HarvestRunWLDef,
+  HarvestRunChunk: HarvestRunChunkWLDef,
   I18nBundle: I18nBundleWLDef,
   I18nTranslation: I18nTranslationWLDef,
   NamedQuery: NamedQueryWLDef,
