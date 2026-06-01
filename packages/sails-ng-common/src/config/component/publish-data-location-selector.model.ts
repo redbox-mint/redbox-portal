@@ -24,8 +24,7 @@ import { DataLocationOption } from "./data-location.outline";
 
 export class PublishDataLocationSelectorFieldComponentConfig
   extends FieldComponentConfig
-  implements PublishDataLocationSelectorFieldComponentConfigOutline
-{
+  implements PublishDataLocationSelectorFieldComponentConfigOutline {
   columns: string[] | Record<string, unknown>[] = [];
   editNotesButtonText = "Edit";
   editNotesTitle = "Edit Notes";
@@ -38,8 +37,12 @@ export class PublishDataLocationSelectorFieldComponentConfig
   iscHeader = "Information Security Classification";
   iscEnabled = false;
   notesEnabled = true;
-  noLocationSelectedText = "Publish Metadata Only";
-  noLocationSelectedHelp = "Publicise only metadata (or description)";
+  metadataOnlyTitle = "No data locations selected";
+  metadataOnlyBody = "Publicise only metadata (or description)";
+  noLocationsAvailableTitle = "No data locations available";
+  noLocationsAvailableBody = "";
+  selectionSummaryTemplate = "{{selected}} of {{total}} locations selected for publication";
+  headerActions = [];
   publicCheck = "public";
   selectionCriteria: Record<string, string>[] = [{ isc: "public", type: "attachment" }];
   dataTypes: DataLocationOption[] = [
@@ -58,8 +61,7 @@ export class PublishDataLocationSelectorFieldComponentConfig
 
 export class PublishDataLocationSelectorFieldComponentDefinition
   extends FieldComponentDefinition
-  implements PublishDataLocationSelectorFieldComponentDefinitionOutline
-{
+  implements PublishDataLocationSelectorFieldComponentDefinitionOutline {
   class = PublishDataLocationSelectorComponentName;
   config?: PublishDataLocationSelectorFieldComponentConfigOutline;
 
@@ -70,8 +72,7 @@ export class PublishDataLocationSelectorFieldComponentDefinition
 
 export class PublishDataLocationSelectorFieldModelConfig
   extends FieldModelConfig<PublishDataLocationModelValueType>
-  implements PublishDataLocationSelectorFieldModelConfigOutline
-{
+  implements PublishDataLocationSelectorFieldModelConfigOutline {
   defaultValue: PublishDataLocationModelValueType;
 
   constructor() {
@@ -82,8 +83,7 @@ export class PublishDataLocationSelectorFieldModelConfig
 
 export class PublishDataLocationSelectorFieldModelDefinition
   extends FieldModelDefinition<PublishDataLocationModelValueType>
-  implements PublishDataLocationSelectorFieldModelDefinitionOutline
-{
+  implements PublishDataLocationSelectorFieldModelDefinitionOutline {
   class = PublishDataLocationSelectorModelName;
   config?: PublishDataLocationSelectorFieldModelConfigOutline;
 
@@ -94,8 +94,7 @@ export class PublishDataLocationSelectorFieldModelDefinition
 
 export class PublishDataLocationSelectorFormComponentDefinition
   extends FormComponentDefinition
-  implements PublishDataLocationSelectorFormComponentDefinitionOutline
-{
+  implements PublishDataLocationSelectorFormComponentDefinitionOutline {
   public component!: PublishDataLocationSelectorFieldComponentDefinitionOutline;
   public model?: PublishDataLocationSelectorFieldModelDefinitionOutline;
   public layout?: AvailableFieldLayoutDefinitionOutlines;

@@ -1,5 +1,5 @@
 import { get as _get } from 'lodash';
-import {LineagePath, LineagePaths} from "../config/names/naming-helpers";
+import {LineagePath, LineagePaths, LineagePathsPartial} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
@@ -29,7 +29,7 @@ export type FormValidatorErrors = {
   [key: string]: {
     message: string;
     params: FormValidatorErrorParams;
-  };
+  } & FormValidatorTargetField;
 };
 
 /**
@@ -37,8 +37,10 @@ export type FormValidatorErrors = {
  * The config is different for each validator.
  */
 export type FormValidatorCreateConfig = {
+  class?: string;
+  message?: string;
   [key: string]: unknown;
-};
+} & FormValidatorTargetField;
 
 /**
  * The interface that a form control must implement to be validated by a validator function.
@@ -197,9 +199,25 @@ export interface FormValidatorConfig {
 }
 
 /**
+ * Allows specifying a field to 'own' any validation failures.
+ */
+export interface FormValidatorTargetField {
+  /**
+   * Lineage paths to a target field that will 'own' any validation failures.
+   */
+  targetField?: LineagePathsPartial;
+}
+
+/**
+ * Form-level validator config that allows specifying a field to 'own' any validation failures.
+ */
+export interface FormValidatorTargetFieldConfig extends FormValidatorConfig, FormValidatorTargetField {
+}
+
+/**
  * One validator error.
  */
-export interface FormValidatorComponentErrors {
+export interface FormValidatorComponentErrors extends FormValidatorTargetField {
   /**
    * The message id for the validator.
    */

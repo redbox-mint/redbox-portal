@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormService } from '../form.service';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { SimpleInputComponent } from './simple-input.component';
@@ -206,6 +206,12 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
         config: {controlNames: ['recommended_field', 'recommended_field']},
         groups: {include: ['recommended'], exclude: ['all']}
       },
+      {
+        class: 'different-values',
+        config: {controlNames: ['recommended_field', 'recommended_field']},
+        groups: {include: ['recommended'], exclude: ['all']},
+        targetField: {angularComponents: ['recommended_field']},
+      },
     ];
 
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
@@ -225,15 +231,15 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
 
     expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
       {
-        id: 'default-1.0-draft',
-        message: 'form-suggested-labelMessage',
-        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
-            controlNames: [ 'recommended_field', 'recommended_field' ],
-            controlCount: 2,
-            valueCount: 1,
-            values: [ '' ],
-          },
-        }],
+        id: null,
+        message: '@validator-error-form-level',
+        errors: [
+          {
+            class: 'different-values', message: '@validator-error-different-values', params: {
+              controlNames: ['recommended_field', 'recommended_field'], controlCount: 2, valueCount: 1, values: [''],
+            },
+          }
+        ],
         lineagePaths: {
           formConfig: [],
           dataModel: [],
@@ -246,7 +252,15 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
       {
         id: 'form-item-id-recommended-field',
         message: '@recommended-field-label',
-        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
+        errors: [
+          {class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}},
+          {
+            class: 'different-values', message: '@validator-error-different-values', params: {
+              controlNames: ['recommended_field', 'recommended_field'], controlCount: 2, valueCount: 1, values: [''],
+            },
+            targetField: {angularComponents: ['recommended_field']},
+          },
+        ],
         lineagePaths: {
           formConfig: ['componentDefinitions', 0],
           dataModel: ['recommended_field'],

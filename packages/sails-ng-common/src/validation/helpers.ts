@@ -1,6 +1,6 @@
 import {get as _get} from "lodash";
-import {FormValidatorCreateConfig} from "./form.model";
-import {toBoolean} from "../config/helpers";
+import {FormValidatorCreateConfig, FormValidatorErrorParams, FormValidatorErrors} from "./form.model";
+import {guessType, toBoolean} from "../config/helpers";
 
 
 /**
@@ -50,7 +50,7 @@ export function formValidatorGetDefinitionNumber(
   const value = formValidatorGetDefinitionItem(config, key, defaultValue);
   const valueString = value?.toString() ?? "";
   const valueNumber = parseFloat(valueString);
-  if (isNaN(valueNumber)) {
+  if (!Number.isFinite(valueNumber)) {
     throw new Error(`Invalid numeric value '${value}' for key '${key}' in validator config.`);
   }
   return valueNumber;
@@ -87,4 +87,38 @@ export function formValidatorGetDefinitionArray(
     return value;
   }
   throw new Error(`Invalid array value '${value}' for key '${key}' in validator config.`);
+}
+
+export function formValidatorGetDefinitionObject(
+  config: FormValidatorCreateConfig | null | undefined,
+  key: string,
+  defaultValue: Record<string, unknown> | undefined = undefined,
+): Record<string, unknown> {
+  const value = formValidatorGetDefinitionItem(config, key, defaultValue);
+  if (guessType(value) === "object") {
+    return value as Record<string, unknown>;
+  }
+  throw new Error(`Invalid object value '${value}' for key '${key}' in validator config.`);
+}
+
+export function formValidatorBuildError(
+  config: FormValidatorCreateConfig | null | undefined,
+  params?: FormValidatorErrorParams
+): FormValidatorErrors {
+  const optionNameKey = "class";
+  const optionNameValue = formValidatorGetDefinitionString(config, optionNameKey);
+  const optionMessageKey = "message";
+  const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey);
+  const optionTargetFieldKey = "targetField";
+  const optionTargetFieldValue = formValidatorGetDefinitionObject(config, optionTargetFieldKey, {});
+  const result: FormValidatorErrors = {
+    [optionNameValue]: {
+      [optionMessageKey]: optionMessageValue,
+      params: {...params},
+    }
+  };
+  if (Object.keys(optionTargetFieldValue).length > 0) {
+    result[optionNameValue][optionTargetFieldKey] = optionTargetFieldValue
+  }
+  return result;
 }

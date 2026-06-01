@@ -86,6 +86,49 @@ export class TranslationService extends HttpClientService implements Service {
 
   private readonly translationKeyValueCache: Map<string, TranslationResult> = new Map();
 
+  private buildTranslationCacheKey(...parts: unknown[]): string {
+    return JSON.stringify(parts.map((part) => this.serializeTranslationCacheKeyPart(part)));
+  }
+
+  private serializeTranslationCacheKeyPart(value: unknown, seen: WeakSet<object> = new WeakSet<object>()): string {
+    if (value === null) {
+      return 'null';
+    }
+
+    if (value === undefined) {
+      return 'undefined';
+    }
+
+    if (Array.isArray(value)) {
+      if (seen.has(value)) {
+        return 'array:[circular]';
+      }
+
+      seen.add(value);
+      const items = value.map((item) => this.serializeTranslationCacheKeyPart(item, seen));
+      seen.delete(value);
+
+      return `array:[${items.join(',')}]`;
+    }
+
+    if (typeof value === 'object') {
+      const objectValue = value as Record<string, unknown>;
+      if (seen.has(objectValue)) {
+        return 'object:[circular]';
+      }
+
+      seen.add(objectValue);
+      const entries = Object.keys(objectValue)
+        .sort()
+        .map((key) => `${key}:${this.serializeTranslationCacheKeyPart(objectValue[key], seen)}`);
+      seen.delete(objectValue);
+
+      return `object:{${entries.join(',')}}`;
+    }
+
+    return `${typeof value}:${String(value)}`;
+  }
+
   constructor(
     @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -103,7 +146,10 @@ export class TranslationService extends HttpClientService implements Service {
     this.loadPath = `${this.rootContext}/default/rdmp/locales/{{lng}}/{{ns}}.json`;
     this.i18NextService.on('initialized', () => this.translationChanges.next());
     this.i18NextService.on('loaded', () => this.translationChanges.next());
-    this.i18NextService.on('languageChanged', () => this.translationChanges.next());
+    this.i18NextService.on('languageChanged', () => {
+      this.translationKeyValueCache.clear();
+      this.translationChanges.next();
+    });
   }
 
   async initTranslator(): Promise<this> {
@@ -186,7 +232,7 @@ export class TranslationService extends HttpClientService implements Service {
       return '';
     }
 
-    const cacheKey = Array.isArray(key) ? key.join('][') : String(key);
+    const cacheKey = this.buildTranslationCacheKey(key, defaultValueOrOptions, options);
 
     if (this.translationKeyValueCache.has(cacheKey)) {
       return this.translationKeyValueCache.get(cacheKey);

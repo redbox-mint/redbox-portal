@@ -1369,6 +1369,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
+
+    this.sharedProps.setPropOverride('closeOnSave', item.config, {
+      closeOnSave: field?.definition?.closeOnSave,
+    });
+    this.sharedProps.setPropOverride('redirectLocation', item.config, field?.definition);
+    if (typeof item.config.redirectLocation === 'string' && item.config.redirectLocation.trim()) {
+      item.config.redirectLocation = this.buildLegacyUrlTemplate(item.config.redirectLocation);
+    }
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, field?.definition);
     this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
     this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
@@ -1708,8 +1717,6 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'iscHeader',
       'iscEnabled',
       'notesEnabled',
-      'noLocationSelectedText',
-      'noLocationSelectedHelp',
       'publicCheck',
       'selectionCriteria',
       'dataTypes',

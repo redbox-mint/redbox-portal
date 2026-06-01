@@ -1,13 +1,13 @@
-import {Component, inject, effect, signal, Injector} from '@angular/core';
+import { Component, inject, effect, signal, Injector } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { FormComponent } from '../form.component';
-import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import { SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent, FormStateFacade } from '../form-state';
-import {FormService} from "../form.service";
+import { FormService } from "../form.service";
 
 @Component({
   selector: 'redbox-form-save-button',
-  template:`
+  template: `
   @if (isVisible) {
     <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
     <div class="rb-form-save-button">
@@ -70,7 +70,10 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave,
           targetStep: this.componentDefinition?.config?.targetStep,
-          enabledValidationGroups: this.getFormComponent.enabledValidationGroups,
+          closeOnSave: this.componentDefinition?.config?.closeOnSave,
+          redirectLocation: this.componentDefinition?.config?.redirectLocation,
+          redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
+          enabledValidationGroups: this.componentDefinition?.config?.enabledValidationGroups ?? this.getFormComponent.enabledValidationGroups,
           sourceId: this.name ?? undefined
         })
       );

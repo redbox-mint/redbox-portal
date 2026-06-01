@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
@@ -34,6 +34,19 @@ describe('ValidationSummaryFieldComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  it('should cancel a deferred validation refresh when destroyed', fakeAsync(() => {
+    const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+    const component = fixture.componentInstance as any;
+    const queueRefreshSpy = spyOn(component, 'queueValidationErrorsRefresh');
+
+    component.deferValidationErrorsRefresh();
+    fixture.destroy();
+    tick(0);
+
+    expect(queueRefreshSpy).not.toHaveBeenCalled();
+  }));
+
   it('should hide the valid banner by default when the form has no errors', async () => {
     // arrange
     const formConfig: FormConfigFrame = {
@@ -150,6 +163,105 @@ describe('ValidationSummaryFieldComponent', () => {
         }
       }
     ]);
+  });
+
+  it('should translate validation summary ids when a language entry exists', async () => {
+    translationService.translationMap['form-item-id-text-1-event'] = 'Translated Text Field';
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              value: '',
+              validators: [
+                { class: 'required' },
+              ]
+            }
+          },
+          component: {
+            class: 'SimpleInputComponent'
+          }
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
+    expect(link?.textContent).toContain('Translated Text Field');
+  });
+
+  it('should not keep a stale required error for a hydrated repeatable field', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'validation_summary_1',
+          component: { class: "ValidationSummaryComponent" }
+        },
+        {
+          name: 'contributor_dmp_permissions',
+          model: {
+            class: 'RepeatableModel',
+            config: {
+              value: [
+                { name: 'Existing User', email: 'existing@example.edu', role: 'View&Edit' }
+              ],
+              validators: [{ class: 'required' }]
+            }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {}
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              }
+            }
+          },
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: '@dmpt-user-permissions-tab-dmp-permissions'
+            }
+          }
+        },
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const validationSummary = fixture.componentInstance.componentDefArr[0].component as ValidationSummaryFieldComponent;
+    const summaryErrors = await validationSummary.allValidationErrorsDisplay();
+    expect(summaryErrors.map((summary) => summary.id)).not.toContain('form-item-id-contributor-dmp-permissions');
+    expect(fixture.nativeElement.querySelector('[data-validation-summary-id="form-item-id-contributor-dmp-permissions"]')).toBeNull();
   });
 
   it('should remove a validation summary item when the field becomes valid while the form remains invalid', async () => {
@@ -843,8 +955,13 @@ describe('ValidationSummaryFieldComponent', () => {
       editCssClasses: "redbox-form form",
       validators : [
         {
+          class: 'pattern',
+          config: {pattern: '[0-9]+', description: "must be a number"},
+        },
+        {
           class: 'different-values',
           config: {controlNames: ['text_1_event', 'text_2_event']},
+          targetField: {formConfig: ['componentDefinitions', 0]},
         },
       ],
       componentDefinitions: [
@@ -852,31 +969,17 @@ describe('ValidationSummaryFieldComponent', () => {
           name: 'text_1_event',
           model: {
             class: 'SimpleInputModel',
-            config: {
-              value: '',
-              validators: [
-                { class: 'required' },
-              ]
-            }
+            config: {value: ''},
           },
-          component: {
-            class: 'SimpleInputComponent'
-          }
+          component: {class: 'SimpleInputComponent'}
         },
         {
           name: 'text_2_event',
           model: {
             class: 'SimpleInputModel',
-            config: {
-              value: '',
-              validators: [
-                { class: 'required' },
-              ]
-            }
+            config: {value: '', validators: [{class: 'required'}]},
           },
-          component: {
-            class: 'SimpleInputComponent'
-          }
+          component: {class: 'SimpleInputComponent'}
         },
         {
           name: 'validation_summary_1',
@@ -898,15 +1001,17 @@ describe('ValidationSummaryFieldComponent', () => {
 
     expect(await summaryComponent.allValidationErrorsDisplay()).toEqual([
       {
-        id: 'default-1.0-draft',
-        message: 'form-labelMessage',
-        errors: [{class: 'different-values', message: '@validator-error-different-values', params: {
-            controlNames: [ 'text_1_event', 'text_2_event' ],
-            controlCount: 2,
-            valueCount: 1,
-            values: [ '' ],
-          },
-        }],
+        id: null,
+        message:  '@validator-error-form-level',
+        errors: [
+          {
+            class: 'pattern', message: '@validator-error-pattern', params: {
+              requiredPattern: '^[0-9]+$',
+              description: 'must be a number',
+              actual: '[object Object]',
+            },
+          }
+        ],
         lineagePaths: {
           formConfig: [],
           dataModel: [],
@@ -914,19 +1019,6 @@ describe('ValidationSummaryFieldComponent', () => {
           layout: [],
           angularComponentsJsonPointer: '',
           layoutJsonPointer: ''
-        }
-      },
-      {
-        id: 'form-item-id-text-1-event',
-        message: null,
-        errors: [{class: 'required', message: '@validator-error-required', params: {required: true, actual: ''}}],
-        lineagePaths: {
-          formConfig: ['componentDefinitions', 0],
-          dataModel: ['text_1_event'],
-          angularComponents: ['text_1_event'],
-          layout: ['text_1_event-layout'],
-          angularComponentsJsonPointer: '/text_1_event',
-          layoutJsonPointer: '/text_1_event-layout'
         }
       },
       {
@@ -942,11 +1034,35 @@ describe('ValidationSummaryFieldComponent', () => {
           layoutJsonPointer: '/text_2_event-layout'
         }
       },
+      {
+        id: 'form-item-id-text-1-event',
+        message: null,
+        errors: [
+          {
+            class: 'different-values', message: '@validator-error-different-values', params: {
+              controlNames: ['text_1_event', 'text_2_event'], controlCount: 2, valueCount: 1, values: ['']
+            },
+            targetField: {formConfig: ['componentDefinitions', 0]},
+          }
+        ],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['text_1_event'],
+          angularComponents: ['text_1_event'],
+          layout: ['text_1_event-layout'],
+          angularComponentsJsonPointer: '/text_1_event',
+          layoutJsonPointer: '/text_1_event-layout'
+        }
+      },
     ]);
 
     const nativeEl: HTMLElement = fixture.nativeElement;
-    const link = nativeEl.querySelector('.validation-summary-item a');
-    expect(link).toBeTruthy();
-    expect(link?.textContent?.trim()).toBe('form-labelMessage');
+    const summaryItems = nativeEl.querySelectorAll('.validation-summary-item');
+    expect(summaryItems.length).toEqual(3);
+    expect(Array.from(summaryItems).map(l => l.textContent?.trim())).toEqual([
+      '@validator-error-form-level@validator-error-pattern',
+      'form-item-id-text-2-event@validator-error-required',
+      'form-item-id-text-1-event@validator-error-different-values',
+    ]);
   });
 });

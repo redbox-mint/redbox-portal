@@ -47,7 +47,6 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
-  arrayStartsWithArray,
   buildLineagePaths as buildLineagePathsHelper,
   DynamicScriptResponse,
   FieldModelDefinitionKind,
@@ -73,10 +72,12 @@ import {
   JSONataQuerySourceProperty,
   KindNameDefaultsMap,
   KindNameDefaultsMapType,
-  LineagePath,
   LineagePaths,
   queryJSONata,
   ValidatorsSupport,
+  LineagePathsOptional,
+  isPrefixLineagePaths,
+  isMatchingLineagePaths,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -245,7 +246,7 @@ export class FormService extends HttpClientService {
    * Create form components from the form component definition configuration.
    *
    * @param formConfig The form configuration.
-   * @param parentLineagePaths The linage paths of the parent item.
+   * @param parentLineagePaths The lineage paths of the parent item.
    * @param meta The metadata from the API request to get the form config.
    * @param formMode The form mode to use.
    * @returns The config and the components built from the config.
@@ -286,7 +287,7 @@ export class FormService extends HttpClientService {
   /**
    * Builds an array of form component details by using the config to find the component details.
    * @param componentDefinitions The config for the components.
-   * @param parentLineagePaths The linage paths of the parent item.
+   * @param parentLineagePaths The lineage paths of the parent item.
    */
   public async resolveFormComponentClasses(componentDefinitions: FormComponentDefinitionFrame[], parentLineagePaths: LineagePaths): Promise<FormFieldCompMapEntry[]> {
     const fieldArr: FormFieldCompMapEntry[] = [];
@@ -793,7 +794,7 @@ export class FormService extends HttpClientService {
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: setting validators to formControl`,
-    //   {definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns});
+    //   JSON.stringify({definedValidators: validators, enabledValidators, formControlValue: formControl.value, validatorFns}));
 
     // Set validators to the form control.
     // This may setValidators with an empty array - that is ok, and is necessary to remove existing validators.
@@ -1177,12 +1178,12 @@ export class FormService extends HttpClientService {
 
   /**
    * Find the first matching form field component map entry by name or lineage path.
-   * @param name The form config name or lineage path to look for.
+   * @param target The form config name or lineage path to look for.
    * @param formFieldCompMapEntries The entries to search in, recursing into any children.
    * @return The first matching entry, or undefined if none match.
    */
   public getFormFieldCompMapEntry(
-    name: string | Partial<LineagePaths>,
+    target: string | LineagePathsOptional,
     formFieldCompMapEntries: FormFieldCompMapEntry[],
   ): FormFieldCompMapEntry | undefined {
     const collection: FormFieldCompMapEntry[] = [...formFieldCompMapEntries];
@@ -1194,34 +1195,33 @@ export class FormService extends HttpClientService {
         return undefined;
       }
 
-      if (typeof name === "string") {
+      if (typeof target === "string") {
         // Find component by name only.
-        if (mapEntry.compConfigJson?.name === name) {
+        if (mapEntry.compConfigJson?.name === target) {
           return mapEntry;
         }
 
         // If not found, add the component's children to search.
         collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
 
-      } else if (name && mapEntry.lineagePaths) {
-        // Find component by any matching lineage path.
-        const targets = name as Record<string, LineagePath | string | undefined>;
-        const available = mapEntry.lineagePaths;
+      } else if (!!target && mapEntry.lineagePaths) {
+        // Find component by checking name against the mapEntry lineage path.
+        const entryLineagePaths = mapEntry.lineagePaths;
 
-        for (const [key, value] of Object.entries(available)) {
-          const target = targets?.[key];
-          if (!!value && target === value) {
-            return mapEntry;
-          }
-          // Add the mapEntry's children if any of the mapEntry's lineagePaths start with the target.
-          if (typeof target === 'string' && !!target && typeof value === 'string' && value.startsWith(target)) {
-            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
-            break;
-          } else if (Array.isArray(value) && Array.isArray(target) && arrayStartsWithArray(value, target)) {
-            collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
-            break;
-          }
+        if (isMatchingLineagePaths(target, entryLineagePaths)) {
+          // The lineage paths match, found!
+          return mapEntry;
         }
+
+        if (isPrefixLineagePaths(entryLineagePaths, target)) {
+          // If the map entry's lineage paths are a prefix to the target, add the mapEntry's children.
+          collection.push(...mapEntry.component?.formFieldCompMapEntries ?? []);
+        }
+      } else {
+        this.loggerService.warn(`${this.logName}: Skipping due to empty name or map entry lineage paths ${JSON.stringify({
+          name: target,
+          entryLineagePaths: mapEntry.lineagePaths,
+        })}`);
       }
     }
     return undefined;

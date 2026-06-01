@@ -35,6 +35,23 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
      * Example: 'btn-success' or 'btn btn-success'.
      */
     buttonCssClasses?: string;
+  /**
+   * Validation groups to enable for this save request.
+   * Defaults to the form's current enabled validation groups.
+   */
+  enabledValidationGroups?: string[];
+  /**
+   * Whether to 'close' the form by redirecting on a successful save. Default false.
+   */
+  closeOnSave?: boolean;
+  /**
+   * The relative url to redirect to on a successful save if closeOnSave is true.
+   */
+    redirectLocation?: string;
+  /**
+   * The delay before redirecting on a successful save if closeOnSave is true.
+   */
+  redirectDelaySeconds?: number;
 }
 
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {

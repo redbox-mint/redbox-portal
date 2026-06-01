@@ -2,7 +2,7 @@ import {
   FormValidationGroups, FormValidatorComponentErrors,
   FormValidatorConfig, FormValidatorCreateConfig,
   FormValidatorDefinition, FormValidatorErrors,
-  FormValidatorFns
+  FormValidatorFns, FormValidatorTargetFieldConfig
 } from "./form.model";
 import { isTypeFormValidatorDefinition } from "../config/form-types.model";
 
@@ -39,7 +39,7 @@ export class ValidatorsSupport {
    */
   public createFormValidatorInstancesFromMapping(
     defMap: Map<string, FormValidatorDefinition>,
-    config: FormValidatorConfig[] | null | undefined,
+    config: (FormValidatorConfig | FormValidatorTargetFieldConfig)[] | null | undefined,
   ): FormValidatorFns {
     const result: FormValidatorFns = { syncDefs: [], asyncDefs: [] };
     for (const validatorConfigItem of (config ?? [])) {
@@ -55,6 +55,10 @@ export class ValidatorsSupport {
         class: validatorClass,
         message: message,
       };
+
+      if ('targetField' in validatorConfigItem && validatorConfigItem.targetField !== undefined) {
+        createConfig.targetField = validatorConfigItem.targetField;
+      }
 
       if ('create' in def) {
         result.syncDefs.push(def.create(createConfig));
@@ -72,11 +76,19 @@ export class ValidatorsSupport {
    * @param errors The control's errors.
    */
   public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
-    return Object.entries(errors ?? {}).map(([key, item]) => ({
-      class: key,
-      message: item.message ?? null,
-      params: { ...item.params },
-    })) ?? [];
+    const result: FormValidatorComponentErrors[] = [];
+    for (const [key, value] of Object.entries(errors ?? {})) {
+      const item: FormValidatorComponentErrors = {
+        class: key,
+        message: value.message ?? null,
+        params: {...value.params},
+      };
+      if (value.targetField !== undefined) {
+        item.targetField = value.targetField;
+      }
+      result.push(item);
+    }
+    return result;
   }
 
   public checkValidationGroups(availableGroups: FormValidationGroups, enabledGroupNames: string[]) {
