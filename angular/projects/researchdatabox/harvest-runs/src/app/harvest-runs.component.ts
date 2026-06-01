@@ -134,20 +134,6 @@ export class HarvestRunsComponent extends BaseComponent {
     return translationKey ? this.translationService.t(translationKey) : String(status ?? '');
   }
 
-  public getStatusBadgeClass(status?: string): string {
-    switch (String(status ?? '').trim()) {
-      case 'completed':
-        return 'text-bg-success';
-      case 'completed_with_errors':
-        return 'text-bg-warning';
-      case 'failed':
-        return 'text-bg-danger';
-      case 'running':
-      default:
-        return 'text-bg-secondary';
-    }
-  }
-
   public getStatusVariant(status?: string): string {
     switch (String(status ?? '').trim()) {
       case 'completed':
@@ -165,10 +151,6 @@ export class HarvestRunsComponent extends BaseComponent {
       default:
         return 'neutral';
     }
-  }
-
-  public getChunkBadgeClass(status?: string): string {
-    return String(status ?? '').trim() === 'processed' ? 'text-bg-success' : 'text-bg-danger';
   }
 
   public getChunkVariant(status?: string): string {

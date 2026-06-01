@@ -1131,7 +1131,7 @@ export namespace Services {
               operation,
               outcome: HarvestOutcome.unchanged,
               status: true,
-              message: `Record ignored as the record already exists. oid: ${oid}`,
+              message: `Record metadata is unchanged, skipping update. oid: ${oid}`,
               details: '',
             };
             this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response);
@@ -1235,7 +1235,7 @@ export namespace Services {
               operation,
               outcome: HarvestOutcome.unchanged,
               status: true,
-              message: `Record ignored as the record already exists. oid: ${oid}`,
+              message: `Record metadata is unchanged, skipping update. oid: ${oid}`,
               details: '',
             };
             this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response);
@@ -1321,7 +1321,7 @@ export namespace Services {
               harvestId,
               oid,
               true,
-              `Record ignored as the record already exists. oid: ${oid}`
+              `Record metadata is unchanged, skipping update. oid: ${oid}`
             )
           );
           continue;
