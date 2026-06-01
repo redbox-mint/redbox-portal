@@ -151,15 +151,21 @@ function sanitizeOpenApiValue<T>(value: T): T {
 
 function createSchemaConverter() {
   const generator = new OpenApiGeneratorV3([]);
+  // @asteasolutions/zod-to-openapi exposes this only as a private runtime property;
+  // revisit this adapter when upgrading the package.
   const internal = (generator as unknown as {
-    generator: {
-      generateSchemaWithRef: (schema: ZodTypeAny) => Record<string, unknown>;
+    generator?: {
+      generateSchemaWithRef?: (schema: ZodTypeAny) => Record<string, unknown>;
     };
   }).generator;
+  if (typeof internal?.generateSchemaWithRef !== 'function') {
+    throw new Error('@asteasolutions/zod-to-openapi no longer exposes the schema generator expected by the OpenAPI adapter');
+  }
+  const generateSchemaWithRef = internal.generateSchemaWithRef.bind(internal);
 
   return {
     toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
-      return sanitizeOpenApiValue(internal.generateSchemaWithRef(schema));
+      return sanitizeOpenApiValue(generateSchemaWithRef(schema));
     },
     getComponentSchemas(): Record<string, unknown> | undefined {
       const components = generator.generateComponents();
