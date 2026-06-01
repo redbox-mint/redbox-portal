@@ -11,6 +11,8 @@ import {
   buildSailsRouteConfig,
   extractApiRequest,
   getMergedApiRoutes,
+  resetResolvedApiRouteCache,
+  resolveApiRouteForRequest,
   searchRecordsRoute,
   toRouteMap,
   validateApiRequest,
@@ -324,6 +326,19 @@ describe('API routes contract layer', async () => {
       action: 'list',
       csrf: false,
     });
+  });
+
+  it('should resolve admin report config routes against the API contract', function () {
+    resetResolvedApiRouteCache();
+    const route = resolveApiRouteForRequest({
+      method: 'post',
+      route: 'post /:branding/:portal/admin/report-config/preview',
+      path: '/default/rdmp/admin/report-config/preview',
+    } as unknown as Sails.Req);
+
+    expect(route?.path).to.equal('/:branding/:portal/api/report-config/preview');
+    expect(route?.action).to.equal('previewConfig');
+    resetResolvedApiRouteCache();
   });
 
   it('should include the legacy integration audit endpoint in generated routes', function () {

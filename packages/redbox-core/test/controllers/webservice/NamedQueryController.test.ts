@@ -273,6 +273,25 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
   });
 
+  it('returns 400 when update attempts to change the name', async () => {
+    const param = sinon.stub();
+    param.withArgs('name').returns('query-1');
+    const req = {
+      session: { branding: 'default' },
+      param,
+      body: { name: 'query-2', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.updateQuery(req, res);
+
+    expect((global as any).NamedQueryService.update.called).to.be.false;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.detail).to.equal('Named query name cannot be changed');
+  });
+
   it('maps not found errors to 404 on update', async () => {
     const param = sinon.stub();
     param.withArgs('name').returns('missing-query');
