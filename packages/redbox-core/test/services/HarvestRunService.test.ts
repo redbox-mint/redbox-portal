@@ -977,7 +977,14 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       },
     });
-    const collection = { findOneAndUpdate };
+    const collection = {
+      findOneAndUpdate,
+      s: {
+        pkFactory: {
+          createPk: () => new ObjectId(),
+        },
+      },
+    };
     (global as any).HarvestRun.getDatastore.returns({
       manager: {
         collection: sinon.stub().withArgs('harvestrun').returns(collection),
@@ -1061,7 +1068,14 @@ describe('HarvestRunService', function () {
     });
     (global as any).HarvestRun.getDatastore.returns({
       manager: {
-        collection: sinon.stub().withArgs('harvestrun').returns({ findOneAndUpdate }),
+        collection: sinon.stub().withArgs('harvestrun').returns({
+          findOneAndUpdate,
+          s: {
+            pkFactory: {
+              createPk: () => new ObjectId(),
+            },
+          },
+        }),
       },
     });
 
