@@ -26,7 +26,7 @@
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
     "moment": "2.30.1",
-    "mongodb": "7.1.1",
+    "mongodb": "7.2.0",
     "numeral": "2.0.6",
     "pino": "10.3.1",
     "rc": "1.2.8",
@@ -114,21 +114,21 @@
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
         "@aws-sdk/xml-builder": {
-          "fast-xml-parser": "5.7.0"
+          "fast-xml-parser": "5.8.0"
         }
       },
       "@aws-sdk/signature-v4-multi-region": {
         "@aws-sdk/middleware-sdk-s3": {
           "@aws-sdk/core": {
             "@aws-sdk/xml-builder": {
-              "fast-xml-parser": "5.7.0"
+              "fast-xml-parser": "5.8.0"
             }
           }
         }
       }
     },
     "@sailshq/router": {
-      "path-to-regexp": "0.1.13"
+      "path-to-regexp": "0.2.5"
     },
     "@researchdatabox/redbox-core": {
       "@tus/server": {
@@ -154,7 +154,7 @@
     "@uppy/companion": {
       "express": "4.22.2",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.7.0",
+      "fast-xml-parser": "5.8.0",
       "morgan": "1.10.1",
       "serialize-javascript": "7.0.5"
     },
@@ -176,7 +176,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.8.0",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -222,7 +222,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "pino-test": "2.0.0",
-    "prettier": "3.8.1",
+    "prettier": "3.8.3",
     "redoc": "2.5.2",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",

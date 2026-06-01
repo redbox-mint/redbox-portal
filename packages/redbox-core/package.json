@@ -108,7 +108,7 @@
   },
   "overrides": {
     "axios": "1.16.1",
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.8.0",
     "immutable": "5.1.5",
     "sails-mongo": {
       "qs": "6.15.2"
@@ -129,7 +129,7 @@
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
-    "@jsonjoy.com/json-pointer": "18.15.0",
+    "@jsonjoy.com/json-pointer": "18.24.0",
     "@tsconfig/node24": "24.0.4",
     "@types/bcryptjs": "3.0.0",
     "@types/chai": "5.2.3",
