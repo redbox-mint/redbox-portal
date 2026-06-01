@@ -10,7 +10,7 @@ import {
   shouldSkipBodyParser,
   sanitizeStaticResourcePath,
   sanitizeStaticSegment
-} from '../../src/config/http.config';
+} from '../../src/config/http.config.ts';
 
 describe('HTTP config security helpers', function () {
   describe('Companion send-token response', function () {
@@ -202,7 +202,7 @@ describe('HTTP config security helpers', function () {
 
     it('should delegate non-matching requests to skipper instead of calling next directly', function () {
       const originalCustomConfig = (global as any).sails.config.custom;
-      const httpConfigModulePath = require.resolve('../../src/config/http.config');
+      const httpConfigModulePath = require.resolve('../../src/config/http.config.ts');
       const skipperModulePath = require.resolve('skipper');
       const originalHttpModule = require.cache[httpConfigModulePath];
       const originalSkipperModule = require.cache[skipperModulePath];
@@ -232,7 +232,7 @@ describe('HTTP config security helpers', function () {
         }
 
         delete require.cache[httpConfigModulePath];
-        const reloadedHttp = require('../../src/config/http.config').http;
+        const reloadedHttp = require('../../src/config/http.config.ts').http;
 
         reloadedHttp.middleware.myBodyParser?.(
           { originalUrl: '/default/rdmp/hook/other', url: '/default/rdmp/hook/other' } as any,

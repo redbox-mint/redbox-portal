@@ -1,4 +1,4 @@
-import { ConfigModels } from '../src/configmodels/ConfigModels';
+import { ConfigModels } from '../src/configmodels/ConfigModels.ts';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
