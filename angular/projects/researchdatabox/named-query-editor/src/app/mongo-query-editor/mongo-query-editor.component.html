@@ -1,0 +1,88 @@
+<div class="nq-subeditor">
+  <div class="nq-section-header">
+    <h6>{{ 'named-query-mongo-heading' | i18next }}</h6>
+    <div class="form-check">
+      <input id="mongo-query-raw-json" type="checkbox" class="form-check-input"
+             [checked]="useRawJson" (change)="toggleRawJson()" />
+      <label for="mongo-query-raw-json" class="form-check-label small">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+    </div>
+  </div>
+  <p class="text-muted small mb-2">{{ 'named-query-mongo-help' | i18next }}</p>
+
+  <div *ngIf="useRawJson">
+    <div *ngIf="jsonError" class="alert alert-danger py-2 px-3 mb-2" role="alert">{{ jsonError }}</div>
+    <textarea class="form-control nq-code-editor"
+              rows="10"
+              [(ngModel)]="rawJsonText"
+              spellcheck="false"></textarea>
+    <div class="mt-2">
+      <button class="btn btn-sm btn-outline-primary" type="button" (click)="applyRawJson()">
+        {{ 'named-query-mongo-apply-json' | i18next }}
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!useRawJson">
+    <div *ngIf="entries.length > 0" class="table-responsive">
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th>{{ 'named-query-mongo-path' | i18next }}</th>
+            <th style="width: 130px">{{ 'named-query-mongo-type' | i18next }}</th>
+            <th>{{ 'named-query-mongo-value' | i18next }}</th>
+            <th style="width: 70px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of entries; trackBy: trackById">
+            <td>
+              <input type="text" class="form-control form-control-sm"
+                     [ngModel]="entry.path"
+                     (ngModelChange)="onPathChange(entry, $event)">
+            </td>
+            <td>
+              <select class="form-control form-control-sm"
+                      [ngModel]="entry.type"
+                      (ngModelChange)="onTypeChange(entry, $event)">
+                <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
+              </select>
+            </td>
+            <td>
+              <input *ngIf="entry.type !== 'object' && entry.type !== 'array'"
+                     type="text" class="form-control form-control-sm"
+                     [ngModel]="entry.value"
+                     (ngModelChange)="onValueChange(entry, $event)">
+              <textarea *ngIf="entry.type === 'object' || entry.type === 'array'"
+                        class="form-control form-control-sm font-monospace" rows="2"
+                        [ngModel]="entry.value"
+                        (ngModelChange)="onValueChange(entry, $event)"
+                        spellcheck="false"></textarea>
+            </td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-danger" type="button"
+                      (click)="removeEntry(entry)">
+                {{ 'named-query-remove' | i18next }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mongo-empty' | i18next }}</p>
+
+    <div class="d-flex flex-wrap nq-add-row mt-2">
+      <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newPath"
+             [attr.placeholder]="'named-query-mongo-path-placeholder' | i18next">
+      <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newType">
+        <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
+      </select>
+      <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newValue"
+             [attr.placeholder]="'named-query-mongo-value-placeholder' | i18next">
+      <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
+        {{ 'named-query-add' | i18next }}
+      </button>
+    </div>
+  </ng-container>
+</div>

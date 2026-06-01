@@ -1,0 +1,77 @@
+meta {
+  name: Create Report Config
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "bruno-report-config",
+    "title": "Bruno Report Config",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "solrQuery": null,
+    "filter": [
+      {
+        "type": "date-range",
+        "paramName": "modified",
+        "message": "Modified range",
+        "property": "dateModified",
+        "database": {
+          "fromProperty": "dateModifiedAfter",
+          "toProperty": "dateModifiedBefore"
+        }
+      },
+      {
+        "type": "text",
+        "paramName": "title",
+        "message": "Title",
+        "property": "title"
+      }
+    ],
+    "columns": [
+      {
+        "label": "Title",
+        "property": "title"
+      },
+      {
+        "label": "Date Modified",
+        "property": "dateModified"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Returns mutable report config data", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data).to.include({
+      name: "bruno-report-config",
+      title: "Bruno Report Config",
+      reportSource: "database",
+      readOnly: false,
+      canEdit: true,
+      canDelete: true,
+      canPreview: true
+    });
+    expect(jsonData.data.databaseQuery).to.deep.equal({ queryName: "listRDMPRecords" });
+  });
+}

@@ -1,0 +1,58 @@
+meta {
+  name: Create Named Query
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "bruno-test-query",
+    "collectionName": "record",
+    "mongoQuery": {
+      "metaMetadata.type": "rdmp"
+    },
+    "queryParams": {
+      "status": {
+        "type": "string",
+        "path": "metaMetadata.status",
+        "queryType": "contains",
+        "whenUndefined": "ignore"
+      }
+    },
+    "resultObjectMapping": {
+      "oid": "{{record.redboxOid}}",
+      "title": "{{record.metadata.title}}"
+    },
+    "brandIdFieldPath": "metaMetadata.brandId",
+    "sort": [
+      {
+        "lastSaveDate": "DESC"
+      }
+    ],
+    "expandRelations": false,
+    "relatedRecordFilters": []
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Has data property with name", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data.name).to.eql("bruno-test-query");
+  });
+}

@@ -49,6 +49,7 @@ declare const FormVocabularyService: any;
 declare const WorkflowStepsService: any;
 
 declare const RecordType: any;
+declare const RBReport: any;
 declare const User: any;
 
 declare const DateTime: any;

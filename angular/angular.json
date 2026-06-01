@@ -407,6 +407,89 @@
         }
       }
     },
+    "@researchdatabox/report-config": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/report-config",
+      "sourceRoot": "projects/researchdatabox/report-config/src",
+      "prefix": "report-config",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/report-config"
+            },
+            "index": "projects/researchdatabox/report-config/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/report-config/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": ["projects/researchdatabox/report-config/src/assets"],
+            "styles": ["projects/researchdatabox/report-config/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/report-config/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kb",
+                  "maximumError": "8kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/report-config:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/report-config:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/report-config:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/report-config/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/report-config/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": ["projects/researchdatabox/report-config/src/assets"],
+            "styles": ["projects/researchdatabox/report-config/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/manage-users": {
       "projectType": "application",
       "schematics": {
@@ -738,6 +821,87 @@
             "tsConfig": "projects/researchdatabox/dashboard-config-editor/tsconfig.spec.json",
             "assets": ["projects/researchdatabox/dashboard-config-editor/src/favicon.ico"],
             "styles": ["projects/researchdatabox/dashboard-config-editor/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/named-query-editor": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/named-query-editor",
+      "sourceRoot": "projects/researchdatabox/named-query-editor/src",
+      "prefix": "named-query-editor",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/named-query-editor"
+            },
+            "index": "projects/researchdatabox/named-query-editor/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/named-query-editor/tsconfig.app.json",
+            "assets": ["projects/researchdatabox/named-query-editor/src/favicon.ico"],
+            "styles": ["projects/researchdatabox/named-query-editor/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/named-query-editor/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/named-query-editor:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/named-query-editor:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/named-query-editor:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/named-query-editor/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/named-query-editor/tsconfig.spec.json",
+            "assets": ["projects/researchdatabox/named-query-editor/src/favicon.ico"],
+            "styles": ["projects/researchdatabox/named-query-editor/src/styles.scss"],
             "scripts": []
           }
         }

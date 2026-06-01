@@ -1,0 +1,70 @@
+<div class="panel panel-default nq-panel-card">
+  <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap">
+    <strong>{{ 'named-query-list-title' | i18next }}</strong>
+    <small class="text-muted">{{ 'named-query-list-shown' | i18next: { count: queries.length } }}</small>
+  </div>
+  <div class="panel-body">
+    <div class="row no-gutters align-items-start nq-filters">
+      <div class="col-md-6 pr-md-3 mb-2 mb-md-0">
+        <label for="named-query-search" class="small text-uppercase text-muted mb-1">{{ 'named-query-search' | i18next }}</label>
+        <input
+          id="named-query-search"
+          class="form-control form-control-sm"
+          type="search"
+          [attr.placeholder]="'named-query-search-placeholder' | i18next"
+          [ngModel]="searchTerm"
+          (ngModelChange)="onSearchTermChanged($event)"
+        />
+      </div>
+    </div>
+
+    <div class="nq-table-wrap">
+      <table class="nq-data-table" [attr.aria-label]="'named-query-list-aria-label' | i18next">
+        <colgroup>
+          <col class="nq-col-name" />
+          <col class="nq-col-collection" />
+          <col class="nq-col-count" />
+          <col class="nq-col-count" />
+          <col class="nq-col-count" />
+          <col class="nq-col-actions" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>{{ 'named-query-name' | i18next }}</th>
+            <th>{{ 'named-query-collection' | i18next }}</th>
+            <th class="text-center">{{ 'named-query-params' | i18next }}</th>
+            <th class="text-center">{{ 'named-query-mappings' | i18next }}</th>
+            <th class="text-center">{{ 'named-query-related-filters' | i18next }}</th>
+            <th class="text-right">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name"
+            tabindex="0" (keydown.enter)="open(q.name)">
+            <td><a href="#" (click)="$event.preventDefault(); open(q.name)">{{ q.name }}</a></td>
+            <td><code>{{ q.collectionName || '-' }}</code></td>
+            <td class="text-center">
+              <span *ngIf="paramCount(q) > 0" class="badge badge-info text-white">{{ paramCount(q) }}</span>
+              <span *ngIf="paramCount(q) === 0" class="text-muted">—</span>
+            </td>
+            <td class="text-center">
+              <span *ngIf="mappingCount(q) > 0" class="badge badge-info text-white">{{ mappingCount(q) }}</span>
+              <span *ngIf="mappingCount(q) === 0" class="text-muted">—</span>
+            </td>
+            <td class="text-center">
+              <span *ngIf="filterCount(q) > 0" class="badge badge-warning text-white">{{ filterCount(q) }}</span>
+              <span *ngIf="filterCount(q) === 0" class="text-muted">—</span>
+            </td>
+            <td class="text-right text-nowrap">
+              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
+              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(q.name)">{{ 'named-query-delete' | i18next }}</button>
+            </td>
+          </tr>
+          <tr *ngIf="queries.length === 0">
+            <td colspan="6" class="text-muted text-center">{{ 'named-query-empty-filtered' | i18next }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
