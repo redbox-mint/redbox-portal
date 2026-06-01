@@ -183,7 +183,13 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
         ? config['anyOfFields'].map(item => item?.toString() ?? "").filter(item => item.length > 0)
         : [];
       return (control) => {
-        if (optionRequiredValue && (control.value == null || formValidatorLengthOrSize(control.value) === 0)) {
+        if (!optionRequiredValue) {
+          return null;
+        }
+        const isValid = optionAnyOfFields.length > 0
+          ? hasRequiredFieldValue(control.value, optionAnyOfFields)
+          : control.value != null && formValidatorLengthOrSize(control.value) !== 0;
+        if (!isValid) {
           return formValidatorBuildError(config, {
             required: optionRequiredValue,
             actual: control.value,
