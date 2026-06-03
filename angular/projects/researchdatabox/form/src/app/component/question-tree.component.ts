@@ -1,4 +1,9 @@
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  ModifyOptions
+} from "@researchdatabox/portal-ng-common";
 import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
@@ -11,15 +16,17 @@ import {
   QuestionTreeOutcomeInfoKey,
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
+  isQuestionTreeQuestionActivated,
 } from "@researchdatabox/sails-ng-common";
 import { Component, inject, ViewChild, ViewContainerRef } from "@angular/core";
 import { AbstractControl, FormGroup } from "@angular/forms";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
-import { isEmpty as _isEmpty, isUndefined as _isUndefined } from "lodash-es";
+import { isEmpty as _isEmpty, isUndefined as _isUndefined, isEqual as _isEqual } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { FormComponentEventBus, FormComponentEventType } from "../form-state";
-import { debounceTime, filter } from "rxjs";
+import { distinctUntilChanged, filter } from "rxjs";
+import {setControlValue} from "../form-state/custom-set-value.control";
 
 export type QuestionTreeFormControlValueType = { [key: string]: AbstractControl<unknown> };
 export type QuestionTreeFormControlType = FormGroup<QuestionTreeFormControlValueType>;
@@ -153,6 +160,8 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       if (hasModel) {
         const elemVal = elemVals?.[key];
         if (compInstance?.model && !_isUndefined(elemVal)) {
+          // Don't emit the value from setting the model value on form load.
+          // The visible state and model value are set from the form config.
           compInstance.model.setValue(elemVal, {onlySelf: true, emitEvent: false});
         }
         this.model.addItem(key, compInstance.model);
@@ -178,24 +187,70 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
             event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
           && event.sourceId !== '*'
         ),
-        debounceTime(100)
+        distinctUntilChanged((previous, current) =>
+          _isEqual(previous.value, current.value) && previous.sourceId === current.sourceId && previous.fieldId === current.fieldId
+        ),
       )
-      .subscribe(event => {
+      .subscribe(_event => {
         // When a value in the question tree changes,
         // calculate the outcome and set the data model properties.
         const newValue = this.getOutcomeInfo();
         const modelValue: QuestionTreeModelValueType = this.model?.getValue() ?? QuestionTreeModel.getEmptyModel();
         const currentValue = modelValue?.[QuestionTreeOutcomeInfoKey];
         const hasChanged = JSON.stringify(newValue) !== JSON.stringify(currentValue);
-        if (hasChanged && modelValue) {
-          // The model value is only updated if the outcome property changed.
-          // This change will trigger another `field.value.changed' event, which is what we want,
-          // because then other components can use the updated outcome value in that subsequent event.
-          this.model?.setValue({ ...modelValue, [QuestionTreeOutcomeInfoKey]: newValue });
+        if (modelValue) {
+
+          // Update child components based on the change.
+          let isNestedComponentFormModelUpdated = false;
+          for (const formFieldCompMapEntry of this.formFieldCompMapEntries) {
+            const isCurrentlyVisible = formFieldCompMapEntry?.layout?.isVisible || formFieldCompMapEntry?.component?.isVisible;
+            const questionId = formFieldCompMapEntry?.compConfigJson?.name;
+            const questions = this.getFieldComponentFrame().config?.questions ?? [];
+            const data = this.model?.getValue() ?? {};
+            const shouldBeVisible = isQuestionTreeQuestionActivated(questionId, questions, data);
+            if (isCurrentlyVisible !== shouldBeVisible) {
+              // update visibility
+              if (formFieldCompMapEntry?.layout && formFieldCompMapEntry.layout.isVisible !== shouldBeVisible) {
+                formFieldCompMapEntry.layout.setProperty('visible', shouldBeVisible);
+              }
+              if (formFieldCompMapEntry?.component && formFieldCompMapEntry.component.isVisible !== shouldBeVisible) {
+                formFieldCompMapEntry.component.setProperty('visible', shouldBeVisible);
+              }
+
+              if (isCurrentlyVisible && !shouldBeVisible && this.model) {
+                // Set the component value to null if it was visible and is now hidden.
+                // Emit the event so this question tree component can react again.
+                // TODO: async?
+                setControlValue(this.model.formControl, null, {emitEvent: true, onlySelf: false});
+                // A component's form model was updated.
+                isNestedComponentFormModelUpdated = true;
+              }
+              // Only change one component at a time, to allow the events to propagate.
+              break;
+            }
+          }
+
+          if (hasChanged) {
+            // If the form model data was changed, don't emit an event for the question tree.
+            // Wait until the question tree form model data does not change to emit the event.
+            const setValueOpts: ModifyOptions = isNestedComponentFormModelUpdated
+              ? {emitEvent: false, onlySelf: true}
+              : {};
+
+            // The model value is only updated if the outcome property changed.
+            // This change will trigger a `field.value.changed' event, which is what we want,
+            // because then other components outside the question tree
+            // can use the updated outcome value in that subsequent event.
+            this.model?.setValue({...modelValue, [QuestionTreeOutcomeInfoKey]: newValue}, setValueOpts);
+          }
         }
         // for debugging:
         // this.loggerService.debug(`Question Tree -> eventbus -> field value ${hasChanged ? 'has changed' : ' is the same'}:`,
-        //   JSON.parse(JSON.stringify({ event, value: this.model?.getValue() })));
+        //   JSON.parse(JSON.stringify({
+        //     event,
+        //     value: this.model?.getValue(),
+        //     config: this.getFieldComponentFrame().config,
+        //   })));
       });
   }
 
@@ -240,9 +295,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const collectedOutcomes = new Set<string>();
     const collectedMeta: ({ outcome: QuestionTreeOutcome, [key: string]: QuestionTreeOutcome })[] = [];
 
-    const outcomeKeys: string[] = [
-      QuestionTreeOutcomeInfoKey,
-    ];
+    const outcomeKeys: string[] = [QuestionTreeOutcomeInfoKey];
 
     // Collect the outcomes and meta.
     for (const [key, value] of Object.entries(data ?? {})) {
