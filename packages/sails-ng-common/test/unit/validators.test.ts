@@ -712,4 +712,69 @@ describe("Validator", async () => {
       new ValidatorsSupport().checkValidationGroups({ "a-group": { description: "", initialMembership: "all" } }, ["a-group"]);
     });
   });
+
+  describe("duplicate validator classes on one control", async () => {
+    // Mimic how Angular's Validators.compose merges validator results: a shallow spread
+    // keyed by the returned object's keys. Distinct keys must survive the merge.
+    function mergeAngularStyle(results: (FormValidatorErrors | null)[]): FormValidatorErrors {
+      return results.reduce<FormValidatorErrors>((acc, res) => ({ ...acc, ...(res ?? {}) }), {});
+    }
+
+    it(`keeps a single validator's error key equal to its class (unchanged shape)`, async function () {
+      const fns = vs.createFormValidatorInstancesFromMapping(
+        vs.createValidatorDefinitionMapping(formValidatorsSharedDefinitions),
+        [{ class: "pattern", config: { pattern: "^prefix.*$", description: "must start with prefix" } }],
+      );
+      const result = fns.syncDefs[0](new SimpleServerFormValidatorControl("nope"));
+      // Keyed by class, with no extra 'class' field on the value.
+      expect(result).to.eql({
+        pattern: {
+          message: "@validator-error-pattern",
+          params: { actual: "nope", description: "must start with prefix", requiredPattern: "^prefix.*$" },
+        },
+      });
+    });
+
+    it(`gives two sync validators of the same class distinct error keys that both survive merging`, async function () {
+      const fns = vs.createFormValidatorInstancesFromMapping(
+        vs.createValidatorDefinitionMapping(formValidatorsSharedDefinitions),
+        [
+          { class: "pattern", message: "@must-start-with-prefix", config: { pattern: "^prefix.*$", description: "must start with prefix" } },
+          { class: "pattern", message: "@must-end-with-suffix", config: { pattern: ".*suffix$", description: "must end with suffix" } },
+        ],
+      );
+      const control = new SimpleServerFormValidatorControl("nope");
+      const merged = mergeAngularStyle(fns.syncDefs.map(fn => fn(control)));
+
+      // Both validators kept their own entry (no collision).
+      expect(Object.keys(merged).sort()).to.eql(["pattern#0", "pattern#1"]);
+
+      // The real class is recovered for both when flattened for display.
+      const componentErrors = vs.getFormValidatorComponentErrors(merged);
+      expect(componentErrors.map(e => e.class)).to.eql(["pattern", "pattern"]);
+      expect(componentErrors.map(e => e.message).sort()).to.eql(["@must-end-with-suffix", "@must-start-with-prefix"]);
+    });
+
+    it(`gives two async validators of the same class distinct error keys that both survive merging`, async function () {
+      const expression = "$ = 45";
+      async function evaluator(value: unknown) {
+        return await jsonataEvaluate(jsonataCompile(expression), value);
+      }
+      const fns = vs.createFormValidatorInstancesFromMapping(
+        vs.createValidatorDefinitionMapping(formValidatorsSharedDefinitions),
+        [
+          { class: "jsonata-expression", message: "@first", config: { description: "first", expression, evaluator } },
+          { class: "jsonata-expression", message: "@second", config: { description: "second", expression, evaluator } },
+        ],
+      );
+      const control = new SimpleServerFormValidatorControl(46); // fails both
+      const merged = mergeAngularStyle(await Promise.all(fns.asyncDefs.map(fn => fn(control))));
+
+      expect(Object.keys(merged).sort()).to.eql(["jsonata-expression#0", "jsonata-expression#1"]);
+
+      const componentErrors = vs.getFormValidatorComponentErrors(merged);
+      expect(componentErrors.map(e => e.class)).to.eql(["jsonata-expression", "jsonata-expression"]);
+      expect(componentErrors.map(e => e.message).sort()).to.eql(["@first", "@second"]);
+    });
+  });
 });
