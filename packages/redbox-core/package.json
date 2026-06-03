@@ -90,7 +90,7 @@
     "resolve-url-loader": "5.0.0",
     "ro-crate": "3.7.2",
     "rxjs": "7.8.2",
-    "sails": "1.5.17",
+    "sails": "1.5.18",
     "sails-mongo": "2.1.2",
     "sass": "1.100.0",
     "sass-loader": "17.0.0",
