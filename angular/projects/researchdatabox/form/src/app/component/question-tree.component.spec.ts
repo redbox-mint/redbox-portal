@@ -12,9 +12,9 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import {SimpleInputComponent} from "./simple-input.component";
 import * as sinon from "sinon";
+import { merge as _merge } from 'lodash-es';
 
 describe('QuestionTreeComponent', async () => {
-
   // Form config, expression data, helper functions.
 
   /*
@@ -355,8 +355,6 @@ describe('QuestionTreeComponent', async () => {
       }
     ],
   };
-  const isNo = ((i: string[]): i is ["no"] => i.length === 1 && i[0] === "no");
-  const isYes = ((i: string[]): i is ["yes"] => i.length === 1 && i[0] === "yes");
   type ClientFormValue = {
     questiontree_1: {
       question_1: null | "yes" | "no" | ["yes"] | ["no"],
@@ -368,40 +366,6 @@ describe('QuestionTreeComponent', async () => {
     "data-classification-item-outcome-details": Record<string, string>[] | null,
   };
   const expressionsResults: Record<string, (keyStr: string, key: (string | number)[], context: any, extra?: any) => void> = {
-    // question_2:
-    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__0__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_1;
-        const testing: ["yes"] | ["no"] = ["no"];
-        testing?.includes('no')
-        return Array.isArray(val) ? isNo(val) : val === "no";
-      },
-    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__1__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // ($count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0 ? formData.`questiontree_1.`question_2` : null)
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_1;
-        const matches = Array.isArray(val) ? isNo(val) : val === "no";
-        return matches ? context?.formData?.questiontree_1?.question_2 : null;
-      },
-    // question_3:
-    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__0__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_2;
-        return Array.isArray(val) ? isYes(val) : val === "yes";
-      },
-    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__1__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // ($count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0 ? formData.`questiontree_1.`question_3` : null)
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_2;
-        const matches = Array.isArray(val) ? isYes(val) : val === "yes";
-        return matches ? context?.formData?.questiontree_1?.question_3 : null;
-      },
     // data-classification-item-outcome
     "componentDefinitions__1__expressions__0__config__template":
       (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
@@ -440,7 +404,6 @@ describe('QuestionTreeComponent', async () => {
     el.dispatchEvent(new Event("change"));
     expect(el.checked).toBe(true);
   }
-
   const advanceTime = async function (fixture: any, ms?: number) {
     if (ms === undefined) {
       await clock.runAllAsync();
@@ -449,6 +412,9 @@ describe('QuestionTreeComponent', async () => {
     }
     fixture.detectChanges();
     fixture.whenStable();
+  }
+  const setInitialFormConfig = async function (formConfig: FormConfigFrame, overrides: Record<string, unknown>) {
+    _merge(formConfig, overrides);
   }
 
   let clock: sinon.SinonFakeTimers;
@@ -606,24 +572,50 @@ describe('QuestionTreeComponent', async () => {
   });
 
   it('should load a record and update fields outside the question tree via expressions', async () => {
-    const formConfigWithModelValue: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
-    formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
-      question_1: "no",
-      question_2: "no",
-      question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {
-        outcome: {value: "outcome1", label: "@outcomes-value1"},
-        meta: [{
-          outcome: {value: "outcome1", label: "@outcomes-value1"},
-          prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
-        }],
-      },
-    };
-    formConfigWithModelValue.componentDefinitions[1].model!.config!.value = "@outcomes-value1";
-    formConfigWithModelValue.componentDefinitions[2].model!.config!.value = [{
-      outcome: "@outcomes-value1",
-      prop2: "@outcomes-prop2-value1"
-    }];
+    const formConfigWithModelValue: FormConfigFrame = structuredClone(clientFormConfig);
+    await setInitialFormConfig(formConfigWithModelValue, {
+      componentDefinitions: [
+        {
+          model: {
+            config: {
+              value: {
+                question_1: "no",
+                question_2: "no",
+                question_3: null,
+                [QuestionTreeOutcomeInfoKey]: {
+                  outcome: {value: "outcome1", label: "@outcomes-value1"},
+                  meta: [{
+                    outcome: {value: "outcome1", label: "@outcomes-value1"},
+                    prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
+                  }],
+                },
+              }
+            },
+          },
+          component: {
+            config: {
+              componentDefinitions: [
+                undefined,
+                {component: {config: {visible: true}}, layout: {config: {visible: true}}},
+              ]
+            }
+          }
+        },
+        {
+          model: {config: {value: "@outcomes-value1"}},
+        },
+        {
+          model: {
+            config: {
+              value: [{
+                outcome: "@outcomes-value1",
+                prop2: "@outcomes-prop2-value1"
+              }]
+            }
+          },
+        },
+      ]
+    });
     const dynamicAssetOptions: DynamicAssetOptions = {
       entries: [{
         urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
@@ -710,14 +702,16 @@ describe('QuestionTreeComponent', async () => {
       }]
     };
 
-    const formConfigWithDirectQuestionLabel: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
-    const questionDefs = ((formConfigWithDirectQuestionLabel.componentDefinitions?.[0]?.component?.config as QuestionTreeFieldComponentConfigFrame)?.componentDefinitions ?? []);
+    const formConfigWithDirectQuestionLabel: FormConfigFrame = structuredClone(clientFormConfig);
+    const expectedValue = "Direct Question Label";
+    await setInitialFormConfig(formConfigWithDirectQuestionLabel, {
+      componentDefinitions: [{component: {config: {componentDefinitions: [{layout: {config: {label: expectedValue}}}]}}}]
+    });
+    const qtComponentConfig = formConfigWithDirectQuestionLabel.componentDefinitions?.[0]?.component?.config as QuestionTreeFieldComponentConfigFrame;
+    const questionDefs = qtComponentConfig?.componentDefinitions ?? [];
     if (!questionDefs[0]?.layout?.config) {
       fail('Question tree test config missing expected first question layout config');
     }
-
-    const expectedValue = "Direct Question Label";
-    questionDefs[0]!.layout!.config!.label = expectedValue;
 
     // ensure the angular form has the expected label
     expect(questionDefs[0]?.layout?.config?.label).toBe(expectedValue);
@@ -903,23 +897,49 @@ describe('QuestionTreeComponent', async () => {
       }]
     };
     const formConfigWithModelValue: FormConfigFrame = structuredClone(clientFormConfig);
-    formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
-      question_1: "no",
-      question_2: "no",
-      question_3: null,
-      [QuestionTreeOutcomeInfoKey]: {
-        outcome: {value: "outcome1", label: "@outcomes-value1"},
-        meta: [{
-          outcome: {value: "outcome1", label: "@outcomes-value1"},
-          prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
-        }],
-      },
-    };
-    formConfigWithModelValue.componentDefinitions[1].model!.config!.value = "@outcomes-value1";
-    formConfigWithModelValue.componentDefinitions[2].model!.config!.value = [{
-      outcome: "@outcomes-value1",
-      prop2: "@outcomes-prop2-value1"
-    }];
+    await setInitialFormConfig(formConfigWithModelValue, {
+      componentDefinitions: [
+        {
+          model: {
+            config: {
+              value: {
+                question_1: "no",
+                question_2: "no",
+                question_3: null,
+                [QuestionTreeOutcomeInfoKey]: {
+                  outcome: {value: "outcome1", label: "@outcomes-value1"},
+                  meta: [{
+                    outcome: {value: "outcome1", label: "@outcomes-value1"},
+                    prop2: {value: "prop2Value1", label: "@outcomes-prop2-value1"}
+                  }],
+                },
+              }
+            },
+          },
+          component: {
+            config: {
+              componentDefinitions: [
+                undefined,
+                {component: {config: {visible: true}}, layout: {config: {visible: true}}},
+              ]
+            }
+          }
+        },
+        {
+          model: {config: {value: "@outcomes-value1"}},
+        },
+        {
+          model: {
+            config: {
+              value: [{
+                outcome: "@outcomes-value1",
+                prop2: "@outcomes-prop2-value1"
+              }]
+            }
+          },
+        },
+      ]
+    });
 
     const {
       fixture,
@@ -936,7 +956,6 @@ describe('QuestionTreeComponent', async () => {
 
     // the initial state is two radio buttons as answers to the 1 question
     const qtElement = qtElements[0];
-    const questionTree = fixture.componentInstance.componentDefArr[0].component as QuestionTreeComponent;
     const inputElementsInitial = qtElement.querySelectorAll('input');
     expect(inputElementsInitial.length).toEqual(4);
 
@@ -978,13 +997,32 @@ describe('QuestionTreeComponent', async () => {
   });
 
   it("should hide and reset all questions below a question that has been changed", async () => {
-    const formConfigWithModelValue: FormConfigFrame = JSON.parse(JSON.stringify(clientFormConfig));
-    formConfigWithModelValue.componentDefinitions[0].model!.config!.value = {
-      question_1: "no",
-      question_2: "yes",
-      question_3: "no",
-      [QuestionTreeOutcomeInfoKey]: null,
-    };
+    const formConfigWithModelValue: FormConfigFrame = structuredClone(clientFormConfig);
+    await setInitialFormConfig(formConfigWithModelValue, {
+      componentDefinitions: [
+        {
+          model: {
+            config: {
+              value: {
+                question_1: "no",
+                question_2: "yes",
+                question_3: "no",
+                [QuestionTreeOutcomeInfoKey]: null
+              }
+            },
+          },
+          component: {
+            config: {
+              componentDefinitions: [
+                undefined,
+                {component: {config: {visible: true}}, layout: {config: {visible: true}}},
+                {component: {config: {visible: true}}, layout: {config: {visible: true}}},
+              ]
+            }
+          }
+        },
+      ]
+    });
     const dynamicAssetOptions: DynamicAssetOptions = {
       entries: [{
         urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
@@ -1002,7 +1040,7 @@ describe('QuestionTreeComponent', async () => {
       formComponent
     } = await createFormAndWaitForReady(formConfigWithModelValue, undefined, undefined, dynamicAssetOptions);
 
-    await advanceTime(fixture);
+    await advanceTime(fixture, 1000);
 
     const element = fixture.nativeElement as HTMLElement;
 
@@ -1031,12 +1069,10 @@ describe('QuestionTreeComponent', async () => {
     const q1RadioElem1 = inputElementsInitial[0];
     toggleRadioButton(q1RadioElem1);
 
-    await advanceTime(fixture);
+    await advanceTime(fixture, 1000);
 
     const inputElementsStep1 = qtElement.querySelectorAll('input');
     expect(inputElementsStep1.length).toEqual(2);
-
-    await advanceTime(fixture);
 
     const modelStep1 = formComponent.form?.value;
     const modelStep1Expected: ClientFormValue = {
