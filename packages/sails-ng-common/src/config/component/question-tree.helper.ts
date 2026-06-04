@@ -8,7 +8,6 @@ import {AvailableFormComponentDefinitionFrames} from "../dictionary.outline";
 import {ReusableFormComponentDefinitionFrame} from "./reusable.outline";
 import {LineagePaths} from "../names/naming-helpers";
 import {ILogger} from "../../logger.interface";
-import {isLikelyNaturalLanguage} from "../../translation-helpers";
 import {guessType} from "../helpers";
 
 export class QuestionTreeHelper {
@@ -237,7 +236,7 @@ export class QuestionTreeHelper {
   }
 
   private questionLabelKey(componentName: string, questionId: string, questionLabel: string | undefined): string {
-    if (questionLabel && isLikelyNaturalLanguage(questionLabel)) {
+    if (!!questionLabel?.trim()) {
       return questionLabel;
     }
 
@@ -251,7 +250,7 @@ export class QuestionTreeHelper {
   }
 
   private questionAnswerLabelKey(componentName: string, questionId: string, answerValue: string, answerLabel: string | null | undefined) {
-    if (answerLabel && isLikelyNaturalLanguage(answerLabel)) {
+    if (!!answerLabel?.trim()) {
       return answerLabel;
     }
 

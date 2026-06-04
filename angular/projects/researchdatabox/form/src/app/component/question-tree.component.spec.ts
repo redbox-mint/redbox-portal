@@ -165,38 +165,6 @@ describe('QuestionTreeComponent', async () => {
               },
               {
                 "name": "question_2",
-                "expressions": [
-                  {
-                    "name": "questiontree_1-question_2-layoutvis-qt",
-                    "config": {
-                      "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "layout.visible",
-                      "hasTemplate": true
-                    }
-                  },
-                  {
-                    "name": "questiontree_1-question_2-compvis-qt",
-                    "config": {
-                      "template": "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "component.visible",
-                      "hasTemplate": true
-                    }
-                  },
-                  {
-                    "name": "questiontree_1-question_2-modval-qt",
-                    "config": {
-                      "template": "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "model.value",
-                      "hasTemplate": true
-                    }
-                  }
-                ],
                 "component": {
                   "class": "CheckboxInputComponent",
                   "config": {
@@ -239,38 +207,6 @@ describe('QuestionTreeComponent', async () => {
               },
               {
                 "name": "question_3",
-                "expressions": [
-                  {
-                    "name": "questiontree_1-question_3-layoutvis-qt",
-                    "config": {
-                      "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "layout.visible",
-                      "hasTemplate": true
-                    }
-                  },
-                  {
-                    "name": "questiontree_1-question_3-compvis-qt",
-                    "config": {
-                      "template": "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "component.visible",
-                      "hasTemplate": true
-                    }
-                  },
-                  {
-                    "name": "questiontree_1-question_3-modval-qt",
-                    "config": {
-                      "template": "($count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0 ? formData.`questiontree_1`.`question_3` : null)",
-                      "condition": "/questiontree_1::field.value.changed",
-                      "conditionKind": "jsonpointer",
-                      "target": "model.value",
-                      "hasTemplate": true
-                    }
-                  }
-                ],
                 "component": {
                   "class": "RadioInputComponent",
                   "config": {
@@ -444,13 +380,6 @@ describe('QuestionTreeComponent', async () => {
       },
     "componentDefinitions__0__component__config__componentDefinitions__1__expressions__1__config__template":
       (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // $count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_1;
-        return Array.isArray(val) ? isNo(val) : val === "no";
-      },
-    "componentDefinitions__0__component__config__componentDefinitions__1__expressions__2__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
         // ($count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0 ? formData.`questiontree_1.`question_2` : null)
         const qtVal: ClientFormValue = context?.formData;
         const val = qtVal?.questiontree_1?.question_1;
@@ -466,13 +395,6 @@ describe('QuestionTreeComponent', async () => {
         return Array.isArray(val) ? isYes(val) : val === "yes";
       },
     "componentDefinitions__0__component__config__componentDefinitions__2__expressions__1__config__template":
-      (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
-        // $count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0
-        const qtVal: ClientFormValue = context?.formData;
-        const val = qtVal?.questiontree_1?.question_2;
-        return Array.isArray(val) ? isYes(val) : val === "yes";
-      },
-    "componentDefinitions__0__component__config__componentDefinitions__2__expressions__2__config__template":
       (keyStr: string, key: (string | number)[], context: any, extra?: any) => {
         // ($count(formData.`questiontree_1`.`question_2`[][$ in ["yes"]]) > 0 ? formData.`questiontree_1.`question_3` : null)
         const qtVal: ClientFormValue = context?.formData;
