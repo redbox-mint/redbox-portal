@@ -299,7 +299,7 @@ export function isQuestionTreeQuestionActivated(questionId: string, questions: Q
         case "notin":
         case "only":
           if (currentRule.q) {
-            questionIdsToCheck.push(...currentRule.q);
+            questionIdsToCheck.push(currentRule.q);
           }
           continue;
         default:
@@ -345,6 +345,7 @@ export function isQuestionTreeQuestionRuleTrue(rule: QuestionTreeQuestionRules, 
       return actualOnly.length === expectedOnly.length &&
         expectedOnly.every(e => actualOnly.filter(a => !!a).includes(e)) &&
         actualOnly.every(a => expectedOnly.filter(e => !!e).includes(a));
+
     default:
       throw new Error(`Unknown question tree question rule ${JSON.stringify(rule)}.`);
   }
