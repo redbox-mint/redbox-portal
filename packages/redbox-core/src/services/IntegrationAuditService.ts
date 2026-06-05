@@ -15,7 +15,6 @@ import { StorageService } from '../StorageService';
 
 type AnyRecord = Record<string, unknown>;
 
-
 export type IntegrationAuditContext = {
   redboxOid: string;
   brandId?: string;
@@ -250,7 +249,12 @@ export namespace Services {
           if (!_.isNil(response.details)) {
             sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
           }
+          return;
         }
+        void SecurityEventService.emitFromIntegrationAudit(entry as unknown as Record<string, unknown>).catch((error) => {
+          sails.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
+          sails.log.error(error);
+        });
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
         sails.log.error(error);

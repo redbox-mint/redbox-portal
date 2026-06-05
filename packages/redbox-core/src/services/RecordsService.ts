@@ -1661,7 +1661,12 @@ export namespace Services {
 
     async createRecordAudit(record: AnyRecord): Promise<unknown> {
       const storageServiceAny = this.storageService as unknown as AnyRecord;
-      return await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
+      const response = await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
+      void SecurityEventService.emitFromRecordAudit(record).catch((error) => {
+        sails.log.error('Failed to emit record audit security event');
+        sails.log.error(error);
+      });
+      return response;
     }
 
     public async transitionWorkflowStep(

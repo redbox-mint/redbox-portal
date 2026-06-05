@@ -1,0 +1,30 @@
+meta {
+  name: List SIEM Events
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/api/siem/events?limit=10&offset=0
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns list response", function () {
+    var jsonData = res.getBody();
+    var payload = jsonData.data || jsonData;
+    expect(payload).to.have.property("rows");
+    expect(payload).to.have.property("total");
+    expect(payload.rows).to.be.an("array");
+  });
+}
