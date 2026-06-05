@@ -130,6 +130,32 @@ export namespace Services {
       return arrayValue.map((_item, index) => `${prefix}[${index}]${suffix}`);
     }
 
+    private getIdMatchedPath(incomingConfig: unknown, existingConfig: unknown, resolvedPath: string, fieldPath: string): string | undefined {
+      if (!fieldPath.includes('[]')) {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const [prefix, suffix = ''] = fieldPath.split('[]');
+      const match = resolvedPath.match(/\[(\d+)\]/);
+      if (match == null) {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const incomingItemPath = `${prefix}[${match[1]}]`;
+      const incomingId: unknown = _.get(incomingConfig, `${incomingItemPath}.id`);
+      if (typeof incomingId !== 'string' || incomingId.trim() === '') {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const existingArray = _.get(existingConfig, prefix);
+      if (!Array.isArray(existingArray)) {
+        return undefined;
+      }
+      const existingIndex = existingArray.findIndex((item) => _.get(item, 'id') === incomingId);
+      if (existingIndex < 0) {
+        return undefined;
+      }
+      const idMatchedPath = `${prefix}[${existingIndex}]${suffix}`;
+      return _.has(existingConfig, idMatchedPath) ? idMatchedPath : undefined;
+    }
+
     private maskSecretFields<T>(configKey: string, configData: T): T {
       const secretFields = this.getSecretFields(configKey);
       if (secretFields.length === 0 || configData == null) {
@@ -159,8 +185,9 @@ export namespace Services {
         this.expandArrayWildcardPaths(merged, fieldPath).forEach((resolvedPath) => {
           const incomingValue = _.get(merged, resolvedPath);
           if (this.isMaskedSecretPlaceholder(incomingValue)) {
-            if (existingConfig != null && _.has(existingConfig, resolvedPath)) {
-              _.set(merged, resolvedPath, _.get(existingConfig, resolvedPath));
+            const existingPath = existingConfig == null ? undefined : this.getIdMatchedPath(merged, existingConfig, resolvedPath, fieldPath);
+            if (existingPath != null) {
+              _.set(merged, resolvedPath, _.get(existingConfig, existingPath));
             } else {
               _.unset(merged, resolvedPath);
             }

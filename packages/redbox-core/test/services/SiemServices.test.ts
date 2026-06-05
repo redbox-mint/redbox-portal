@@ -46,17 +46,32 @@ describe('SIEM services and helpers', function () {
     const redacted: any = redactForSiem({
       actor: { email: 'hidden@example.edu', name: 'Visible Name' },
       requestContext: { ipAddress: '127.0.0.1', headers: { Authorization: 'Bearer secret' } },
-      payload: { token: 'secret-token', safe: 'visible' },
+      payload: { token: 'secret-token', tokenCount: 2, safe: 'visible' },
     }, DEFAULT_SIEM_REDACTION);
 
     expect(redacted.actor.email).to.equal('hidden@example.edu');
     expect(redacted.payload.token).to.equal('[REDACTED]');
+    expect(redacted.payload.tokenCount).to.equal(2);
     expect(redacted.requestContext.headers.Authorization).to.equal('[REDACTED]');
     expect(redacted.payload.safe).to.equal('visible');
 
     const limited: any = limitPayloadSize({ value: 'x'.repeat(200) }, 64);
     expect(limited.truncated).to.equal(true);
     expect(limited.originalBytes).to.be.greaterThan(64);
+  });
+
+  it('does not redact fields merely because their key contains a denylisted word', function () {
+    const redacted: any = redactForSiem({
+      payload: {
+        token: 'secret-token',
+        tokenCount: 2,
+        authenticationTokenExpiry: '2026-01-01T00:00:00.000Z',
+      },
+    }, DEFAULT_SIEM_REDACTION);
+
+    expect(redacted.payload.token).to.equal('[REDACTED]');
+    expect(redacted.payload.tokenCount).to.equal(2);
+    expect(redacted.payload.authenticationTokenExpiry).to.equal('2026-01-01T00:00:00.000Z');
   });
 
   it('formats Splunk and OpenTelemetry payloads with destination headers', async function () {

@@ -241,7 +241,8 @@ export namespace Services {
           return;
         }
         const response = await this.storageService.createIntegrationAudit(entry) as StorageServiceResponse;
-        if (response?.isSuccessful != null && typeof response.isSuccessful === 'function' && !response.isSuccessful()) {
+        const persisted = response?.isSuccessful == null || typeof response.isSuccessful !== 'function' || response.isSuccessful();
+        if (!persisted) {
           sails.log.error(`${this.logHeader} Failed to persist integration audit.`);
           if (!_.isEmpty(response.message)) {
             sails.log.error(`${this.logHeader} Storage response message: ${response.message}`);

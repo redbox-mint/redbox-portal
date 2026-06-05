@@ -233,6 +233,50 @@ describe('AppConfigService', function () {
       expect(result.destinations[0].token).to.equal(APP_CONFIG_SECRET_MASK);
     });
 
+    it('should preserve SIEM destination secrets by id when destinations are reordered', async function () {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SiemConfiguration',
+        class: class SiemConfigurationMock { },
+        secretFields: ['destinations[].token']
+      });
+
+      const existingRecord = {
+        configData: {
+          destinations: [
+            { id: 'splunk', token: 'splunk-token' },
+            { id: 'otel', token: 'otel-token' }
+          ]
+        }
+      };
+      const updateSet = sinon.stub().callsFake((data: Record<string, unknown>) => {
+        const updatedRecord = { configData: data.configData };
+        const p: any = Promise.resolve(updatedRecord);
+        p.exec = sinon.stub().yields(null, updatedRecord);
+        return p;
+      });
+
+      (global as any).AppConfig.find = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve([existingRecord]);
+        p.exec = sinon.stub().yields(null, [existingRecord]);
+        return p;
+      });
+      (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
+
+      await service.createOrUpdateConfig(
+        { id: 'brand1', name: 'default' } as any,
+        'siem',
+        {
+          destinations: [
+            { id: 'otel', token: APP_CONFIG_SECRET_MASK },
+            { id: 'splunk', token: APP_CONFIG_SECRET_MASK }
+          ]
+        }
+      );
+
+      expect(updateSet.firstCall.args[0].configData.destinations[0].token).to.equal('otel-token');
+      expect(updateSet.firstCall.args[0].configData.destinations[1].token).to.equal('splunk-token');
+    });
+
     it('should prefer the most recently updated duplicate config record when loading app config', async function () {
       (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
       (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {

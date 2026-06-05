@@ -111,35 +111,58 @@ export namespace Services {
       });
     }
 
-    public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {
-      const brandId = (job.attrs?.data as { brandId?: string } | undefined)?.brandId;
-      const where: Record<string, unknown> = { deliveryState: ['pending', 'failed', 'partial'] };
-      if (brandId) {
-        where.brandId = brandId;
+    private getKnownBrandIds(): string[] {
+      const names = typeof BrandingService.getAvailable === 'function' ? BrandingService.getAvailable() : [];
+      return names
+        .map((name: string) => BrandingService.getBrand(name)?.id)
+        .filter((id: unknown): id is string => typeof id === 'string' && id.trim() !== '');
+    }
+
+    private async findEventsForBrand(brandId: string): Promise<SecurityEventAttributes[]> {
+      const config = this.getConfig(brandId);
+      const delivery = this.deliveryConfig(config);
+      return SecurityEvent.find({
+        brandId,
+        deliveryState: ['pending', 'failed', 'partial'],
+      }).sort('occurredAt ASC').limit(delivery.batchSize) as unknown as Promise<SecurityEventAttributes[]>;
+    }
+
+    private async processEvent(event: SecurityEventAttributes): Promise<void> {
+      const config = this.getConfig(event.brandId);
+      if (config.enabled !== true) {
+        await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored' });
+        return;
       }
-      const firstConfig = this.getConfig(brandId ?? 'default');
-      const delivery = this.deliveryConfig(firstConfig);
-      const events = await SecurityEvent.find(where).sort('occurredAt ASC').limit(delivery.batchSize) as unknown as SecurityEventAttributes[];
-      for (const event of events) {
-        const config = this.getConfig(event.brandId);
-        if (config.enabled !== true) {
-          await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored' });
+      const destinations = this.enabledDestinations(config);
+      const destinationResults: Record<string, string> = {};
+      for (const destination of destinations) {
+        const attemptNumber = await this.nextAttemptNumber(event.eventId, destination.id);
+        if (attemptNumber > this.deliveryConfig(config).maxAttempts) {
+          destinationResults[destination.id] = 'deadLetter';
           continue;
         }
-        const destinations = this.enabledDestinations(config);
-        const destinationResults: Record<string, string> = {};
-        for (const destination of destinations) {
-          const attemptNumber = await this.nextAttemptNumber(event.eventId, destination.id);
-          if (attemptNumber > this.deliveryConfig(config).maxAttempts) {
-            destinationResults[destination.id] = 'deadLetter';
-            continue;
-          }
-          const startedAt = new Date().toISOString();
-          const result = await this.deliverEvent(event, destination, this.redactionConfig(config));
-          destinationResults[destination.id] = result.status;
-          await this.recordAttempt(event, destination, startedAt, result, attemptNumber);
+        const startedAt = new Date().toISOString();
+        const result = await this.deliverEvent(event, destination, this.redactionConfig(config));
+        destinationResults[destination.id] = result.status;
+        await this.recordAttempt(event, destination, startedAt, result, attemptNumber);
+      }
+      await this.updateEventState(event, destinationResults, this.deliveryConfig(config));
+    }
+
+    public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {
+      const brandId = (job.attrs?.data as { brandId?: string } | undefined)?.brandId;
+      if (brandId) {
+        const events = await this.findEventsForBrand(brandId);
+        for (const event of events) {
+          await this.processEvent(event);
         }
-        await this.updateEventState(event, destinationResults, this.deliveryConfig(config));
+        return;
+      }
+      for (const knownBrandId of this.getKnownBrandIds()) {
+        const events = await this.findEventsForBrand(knownBrandId);
+        for (const event of events) {
+          await this.processEvent(event);
+        }
       }
     }
 
