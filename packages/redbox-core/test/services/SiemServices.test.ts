@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { Effect } = require('effect');
 const sinon = require('sinon');
 const {
@@ -9,10 +10,10 @@ const {
 const { buildSiemPayload, SiemAdapterError } = require('../../src/services/siem/SiemAdapters');
 const { limitPayloadSize, redactForSiem } = require('../../src/services/siem/SiemPayloadRedactor');
 const { Services: SecurityEventServices } = require('../../src/services/SecurityEventService');
+const { Services: SiemForwardingServices } = require('../../src/services/SiemForwardingService');
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = require('./testHelper');
 
-let expect: Chai.ExpectStatic;
-import('chai').then((mod) => expect = mod.expect);
+const expect: Chai.ExpectStatic = require('chai').expect;
 
 describe('SIEM services and helpers', function () {
   const enabledSiemConfig = {
@@ -25,10 +26,11 @@ describe('SIEM services and helpers', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).AgendaQueueService;
-    delete (global as any).AppConfigService;
-    delete (global as any).BrandingService;
-    delete (global as any).SecurityEvent;
+    delete global['AgendaQueueService'];
+    delete global['AppConfigService'];
+    delete global['BrandingService'];
+    delete global['SecurityEvent'];
+    delete global['SiemDeliveryAttempt'];
     sinon.restore();
   });
 
@@ -167,12 +169,12 @@ describe('SIEM services and helpers', function () {
   it('queues enabled security events after applying severity mapping and redaction', async function () {
     const queue = { now: sinon.stub().resolves(undefined) };
     setupServiceTestGlobals(createMockSails());
-    (global as any).AgendaQueueService = queue;
-    (global as any).BrandingService = {
+    global['AgendaQueueService'] = queue;
+    global['BrandingService'] = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    (global as any).AppConfigService = {
+    global['AppConfigService'] = {
       getAppConfigurationForBrand: sinon.stub().returns({
         siem: {
           ...enabledSiemConfig,
@@ -204,12 +206,12 @@ describe('SIEM services and helpers', function () {
   it('does not queue events when SIEM is disabled or the category is excluded', async function () {
     const queue = { now: sinon.stub().resolves(undefined) };
     setupServiceTestGlobals(createMockSails());
-    (global as any).AgendaQueueService = queue;
-    (global as any).BrandingService = {
+    global['AgendaQueueService'] = queue;
+    global['BrandingService'] = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    (global as any).AppConfigService = {
+    global['AppConfigService'] = {
       getAppConfigurationForBrand: sinon.stub().returns({
         siem: {
           ...enabledSiemConfig,
@@ -230,5 +232,68 @@ describe('SIEM services and helpers', function () {
     });
 
     expect(queue.now.called).to.equal(false);
+  });
+
+  it('does not dead-letter multi-destination events until one destination exhausts its own failed attempts', async function () {
+    setupServiceTestGlobals(createMockSails());
+    const securityEventUpdateSet = sinon.stub().resolves(undefined);
+    global['SecurityEvent'] = {
+      update: sinon.stub().returns({ set: securityEventUpdateSet }),
+    };
+    global['SiemDeliveryAttempt'] = {
+      count: sinon.stub().callsFake((criteria: any) => {
+        if (criteria.destinationId === 'splunk' || criteria.destinationId === 'otlp') {
+          return Promise.resolve(2);
+        }
+        return Promise.resolve(0);
+      }),
+    };
+
+    const service = new SiemForwardingServices.SiemForwardingService();
+    await (service as any).updateEventState(
+      { eventId: 'event-1' },
+      [
+        { id: 'splunk', enabled: true, adapterType: 'splunk-hec-json' },
+        { id: 'otlp', enabled: true, adapterType: 'otel-otlp-logs' },
+      ],
+      { splunk: 'failed', otlp: 'failed' },
+      { ...DEFAULT_SIEM_DELIVERY, maxAttempts: 3 }
+    );
+
+    expect(securityEventUpdateSet.calledOnce).to.equal(true);
+    expect(securityEventUpdateSet.firstCall.args[0].deliveryState).to.equal('failed');
+  });
+
+  it('dead-letters multi-destination events when a destination exhausts its own failed attempts', async function () {
+    setupServiceTestGlobals(createMockSails());
+    const securityEventUpdateSet = sinon.stub().resolves(undefined);
+    global['SecurityEvent'] = {
+      update: sinon.stub().returns({ set: securityEventUpdateSet }),
+    };
+    global['SiemDeliveryAttempt'] = {
+      count: sinon.stub().callsFake((criteria: any) => {
+        if (criteria.destinationId === 'splunk') {
+          return Promise.resolve(3);
+        }
+        if (criteria.destinationId === 'otlp') {
+          return Promise.resolve(2);
+        }
+        return Promise.resolve(0);
+      }),
+    };
+
+    const service = new SiemForwardingServices.SiemForwardingService();
+    await (service as any).updateEventState(
+      { eventId: 'event-1' },
+      [
+        { id: 'splunk', enabled: true, adapterType: 'splunk-hec-json' },
+        { id: 'otlp', enabled: true, adapterType: 'otel-otlp-logs' },
+      ],
+      { splunk: 'failed', otlp: 'failed' },
+      { ...DEFAULT_SIEM_DELIVERY, maxAttempts: 3 }
+    );
+
+    expect(securityEventUpdateSet.calledOnce).to.equal(true);
+    expect(securityEventUpdateSet.firstCall.args[0].deliveryState).to.equal('deadLetter');
   });
 });
