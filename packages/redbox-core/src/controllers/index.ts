@@ -46,6 +46,7 @@ import * as WSUserManagementControllerModule from './webservice/UserManagementCo
 import * as WSVocabularyControllerModule from './webservice/VocabularyController';
 import * as WSDashboardConfigControllerModule from './webservice/DashboardConfigController';
 import * as WSNamedQueryControllerModule from './webservice/NamedQueryController';
+import * as WSSiemControllerModule from './webservice/SiemController';
 
 // Lazy instantiation cache
 const controllerCache: Record<string, unknown> = {};
@@ -101,6 +102,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
     get DashboardConfigController() { return getOrCreate('WS_DashboardConfigController', () => new WSDashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
     get NamedQueryController() { return getOrCreate('WS_NamedQueryController', () => new WSNamedQueryControllerModule.Controllers.NamedQuery().exports()); },
+    get SiemController() { return getOrCreate('WS_SiemController', () => new WSSiemControllerModule.Controllers.Siem().exports()); },
 };
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
@@ -149,4 +151,5 @@ export const WebserviceControllerNames = [
     'UserManagementController',
     'VocabularyController',
     'NamedQueryController',
+    'SiemController',
 ];

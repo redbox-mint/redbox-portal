@@ -1711,6 +1711,107 @@
           }
         }
       }
+    },
+    "@researchdatabox/siem-admin": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/siem-admin",
+      "sourceRoot": "projects/researchdatabox/siem-admin/src",
+      "prefix": "siem-admin",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/siem-admin"
+            },
+            "index": "projects/researchdatabox/siem-admin/src/index.html",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/siem-admin/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/siem-admin/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/siem-admin/src/styles.scss"
+            ],
+            "scripts": [],
+            "browser": "projects/researchdatabox/siem-admin/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "optimization": {
+                "scripts": false,
+                "styles": true,
+                "fonts": true
+              },
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "6mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kb",
+                  "maximumError": "20kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/siem-admin:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/siem-admin:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/siem-admin:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/siem-admin/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/siem-admin/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/siem-admin/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/siem-admin/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
     }
   },
   "cli": {

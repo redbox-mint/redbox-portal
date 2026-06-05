@@ -26,6 +26,8 @@ export * from './PathRule';
 export * from './RecordType';
 export * from './RBReport';
 export * from './Role';
+export * from './SecurityEvent';
+export * from './SiemDeliveryAttempt';
 export * from './ThemeConfig';
 export * from './User';
 export * from './UserLink';
@@ -66,6 +68,8 @@ import { PathRuleWLDef } from './PathRule';
 import { RecordTypeWLDef } from './RecordType';
 import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
+import { SecurityEventWLDef } from './SecurityEvent';
+import { SiemDeliveryAttemptWLDef } from './SiemDeliveryAttempt';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
 import { UserLinkWLDef } from './UserLink';
@@ -109,6 +113,8 @@ export const WaterlineModels = {
   RecordType: RecordTypeWLDef,
   RBReport: ReportWLDef,
   Role: RoleWLDef,
+  SecurityEvent: SecurityEventWLDef,
+  SiemDeliveryAttempt: SiemDeliveryAttemptWLDef,
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
   UserLink: UserLinkWLDef,

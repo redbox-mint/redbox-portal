@@ -14,6 +14,7 @@ import {
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
 import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
+import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration } from './SiemConfiguration';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -42,7 +43,8 @@ export type ConfigModelKey =
     | 'doiPublishing'
     | 'integrationNotification'
     | 'raidPublishing'
-    | 'webAnalytics';
+    | 'webAnalytics'
+    | 'siem';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -129,6 +131,19 @@ export class ConfigModels {
             class: WebAnalytics,
             schema: WEB_ANALYTICS_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')
+        }],
+        ['siem', {
+            modelName: 'SiemConfiguration',
+            title: 'SIEM Configuration',
+            class: SiemConfiguration,
+            schema: SIEM_CONFIGURATION_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
+            secretFields: [
+                'destinations[].token',
+                'destinations[].password',
+                'destinations[].headers.Authorization',
+                'destinations[].headers.X-Splunk-Token'
+            ]
         }],
     ]);
 
