@@ -36,6 +36,19 @@ function flattenEvent(event: SecurityEventAttributes): Record<string, unknown> {
   };
 }
 
+function escapeCefHeaderField(value: unknown): string {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
+function escapeLeefHeaderField(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\t/g, '\\t')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n');
+}
+
 function buildBody(events: SecurityEventAttributes[], destination: SiemDestinationConfig): unknown {
   switch (destination.adapterType) {
     case 'splunk-hec-json':
@@ -60,9 +73,9 @@ function buildBody(events: SecurityEventAttributes[], destination: SiemDestinati
     case 'syslog-rfc5424-json':
       return events.map((event) => `<14>1 ${event.occurredAt} redbox redbox-portal - ${event.eventId} - ${JSON.stringify(flattenEvent(event))}`).join('\n');
     case 'cef':
-      return events.map((event) => `CEF:0|ReDBox|Portal|1|${event.eventType}|${event.category}|${event.severity}|eventId=${event.eventId} msg=${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `CEF:0|ReDBox|Portal|1|${escapeCefHeaderField(event.eventType)}|${escapeCefHeaderField(event.category)}|${event.severity}|eventId=${event.eventId} msg=${JSON.stringify(flattenEvent(event))}`).join('\n');
     case 'leef':
-      return events.map((event) => `LEEF:2.0|ReDBox|Portal|1|${event.eventType}|\teventId=${event.eventId}\tseverity=${event.severity}\tmsg=${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `LEEF:2.0|ReDBox|Portal|1|${escapeLeefHeaderField(event.eventType)}|\teventId=${event.eventId}\tseverity=${event.severity}\tmsg=${JSON.stringify(flattenEvent(event))}`).join('\n');
     default:
       throw new SiemAdapterError(`Unsupported SIEM adapter '${String(destination.adapterType)}'`);
   }

@@ -71,6 +71,20 @@ describe('The SiemForwardingService', function () {
     expect(updated.deliveryState).to.equal('ignored');
   });
 
+  it('marks pending events ignored when SIEM is enabled with no active destinations', async function () {
+    AppConfigService.brandingAppConfigMap.default.siem.enabled = true;
+    AppConfigService.brandingAppConfigMap.default.siem.destinations = [];
+    const eventId = `siem-forwarding-no-destinations-${Date.now()}`;
+    await securityEvent(eventId);
+
+    await siemForwardingService.forwardSecurityEvents({ attrs: { data: { brandId: 'default' } } });
+
+    const updated = await SecurityEvent.findOne({ eventId });
+    expect(updated.deliveryState).to.equal('ignored');
+    expect(updated.destinationStates).to.deep.equal({});
+    expect(await SiemDeliveryAttempt.count({ eventId })).to.equal(0);
+  });
+
   it('lists delivery attempts with filters and pagination', async function () {
     const eventId = `siem-delivery-status-${Date.now()}`;
     createdAttemptEventIds.push(eventId);

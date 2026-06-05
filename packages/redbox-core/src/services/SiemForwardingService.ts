@@ -134,6 +134,10 @@ export namespace Services {
         return;
       }
       const destinations = this.enabledDestinations(config);
+      if (destinations.length === 0) {
+        await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored', destinationStates: {} });
+        return;
+      }
       const destinationResults: Record<string, string> = {};
       for (const destination of destinations) {
         const attemptNumber = await this.nextAttemptNumber(event.eventId, destination.id);

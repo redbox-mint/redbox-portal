@@ -113,6 +113,42 @@ describe('SIEM services and helpers', function () {
     expect((otlpPayload.body as any).resourceLogs[0].scopeLogs[0].logRecords[0].severityText).to.equal('info');
   });
 
+  it('escapes CEF and LEEF header delimiters in user-controlled fields', async function () {
+    const event = {
+      eventId: 'event-1',
+      brandId: 'brand-1',
+      eventType: 'record.create|injected\tattribute\\tail',
+      category: 'recordLifecycle|shifted\\category',
+      severity: 'warning',
+      occurredAt: '2026-01-01T00:00:00.000Z',
+      source: 'RecordAuditService',
+      deliveryState: 'pending',
+      payload: { ok: true },
+    } as any;
+
+    const cefPayload = await Effect.runPromise(buildSiemPayload([event], {
+      id: 'cef',
+      name: 'CEF',
+      enabled: true,
+      adapterType: 'cef',
+      endpointUrl: 'https://cef.example/logs',
+    }));
+
+    expect(cefPayload.body).to.contain('record.create\\|injected\tattribute\\\\tail');
+    expect(cefPayload.body).to.contain('recordLifecycle\\|shifted\\\\category');
+
+    const leefPayload = await Effect.runPromise(buildSiemPayload([event], {
+      id: 'leef',
+      name: 'LEEF',
+      enabled: true,
+      adapterType: 'leef',
+      endpointUrl: 'https://leef.example/logs',
+    }));
+
+    expect(leefPayload.body).to.contain('record.create\\|injected\\tattribute\\\\tail');
+    expect(leefPayload.body).to.not.contain('injected\tattribute');
+  });
+
   it('fails payload construction for unsupported adapter types', async function () {
     try {
       await Effect.runPromise(buildSiemPayload([], {
