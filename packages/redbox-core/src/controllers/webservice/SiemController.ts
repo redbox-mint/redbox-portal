@@ -4,6 +4,7 @@ import {
   Controllers as controllers,
   getValidatedApiRequest,
 } from '../../index';
+import type { SiemConfiguration, SiemDestinationConfig } from '../../configmodels/SiemConfiguration';
 import type { SiemTestInput } from '../../services/siem/SiemTypes';
 
 type SecurityEventServiceApi = {
@@ -57,6 +58,34 @@ export namespace Controllers {
 
     private siemForwardingService(): SiemForwardingServiceApi {
       return sails.services.siemforwardingservice as unknown as SiemForwardingServiceApi;
+    }
+
+    private assertTestDestinationAllowed(destination: SiemDestinationConfig, config: SiemConfiguration): void {
+      if (typeof destination?.id !== 'string' || destination.id.trim() === '') {
+        throw new Error('A configured destination id is required.');
+      }
+      let requestedUrl: URL;
+      try {
+        requestedUrl = new URL(destination.endpointUrl);
+      } catch {
+        throw new Error('Destination endpoint URL is invalid.');
+      }
+      if (!['https:', 'http:'].includes(requestedUrl.protocol)) {
+        throw new Error('Destination endpoint URL scheme is not allowed.');
+      }
+      const configuredDestination = (config.destinations ?? []).find((item) => item.id === destination.id);
+      if (configuredDestination == null) {
+        throw new Error('Destination is not configured for this brand.');
+      }
+      let configuredUrl: URL;
+      try {
+        configuredUrl = new URL(configuredDestination.endpointUrl);
+      } catch {
+        throw new Error('Configured destination endpoint URL is invalid.');
+      }
+      if (requestedUrl.origin !== configuredUrl.origin || requestedUrl.pathname !== configuredUrl.pathname) {
+        throw new Error('Destination endpoint URL is not configured for this brand.');
+      }
     }
 
     private isQueryValidationError(error: unknown): boolean {
@@ -172,10 +201,13 @@ export namespace Controllers {
         if (!body || typeof body !== 'object' || !('destination' in body)) {
           return this.respondError(req, res, new Error('A destination is required.'), 400);
         }
+        const brand = this.getBrand(req);
+        const config = await AppConfigService.getAppConfigByBrandAndKey(brand.id, 'siem') as SiemConfiguration;
+        this.assertTestDestinationAllowed((body as SiemTestInput).destination, config);
         const result = await this.siemForwardingService().testDestination(body as SiemTestInput);
         return this.apiRespond(req, res, result, 200);
       } catch (error) {
-        return this.respondError(req, res, error);
+        return this.respondError(req, res, error, 400);
       }
     }
   }

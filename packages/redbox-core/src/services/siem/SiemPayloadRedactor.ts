@@ -11,7 +11,14 @@ function matchesDenylist(keyPath: string, key: string, denylistedPaths: string[]
   const lowerPath = keyPath.toLowerCase();
   return denylistedPaths.some((path) => {
     const lowerDenyPath = path.toLowerCase();
-    return lowerPath === lowerDenyPath || lowerKey === lowerDenyPath || lowerKey.includes(lowerDenyPath);
+    if (lowerPath === lowerDenyPath || lowerKey === lowerDenyPath) {
+      return true;
+    }
+    if (lowerDenyPath.endsWith('.*')) {
+      const prefix = lowerDenyPath.slice(0, -2);
+      return lowerPath === prefix || lowerPath.startsWith(`${prefix}.`);
+    }
+    return false;
   });
 }
 

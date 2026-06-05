@@ -1,7 +1,11 @@
 /// <reference path="../sails.ts" />
 import { Attr, Entity, toWaterlineModelDef } from '../decorators';
 
-@Entity('securityevent')
+@Entity('securityevent', {
+  indexes: [
+    { attributes: { brandId: 1, deliveryState: 1, occurredAt: 1 } },
+  ],
+})
 export class SecurityEventClass {
   @Attr({ type: 'string', required: true, unique: true })
   public eventId!: string;
