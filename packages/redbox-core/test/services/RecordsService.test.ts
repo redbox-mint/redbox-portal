@@ -313,6 +313,9 @@ describe('RecordsService', function () {
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
+    (global as any).SecurityEventService = {
+      emitFromRecordAudit: sinon.stub().resolves(undefined)
+    };
     (global as any).RedboxJavaStorageService = mockStorageService;
     (global as any).SolrSearchService = mockSearchService;
 
@@ -339,6 +342,7 @@ describe('RecordsService', function () {
     delete (global as any).RecordValidationService;
     delete (global as any).DomSanitizerService;
     delete (global as any).TranslationService;
+    delete (global as any).SecurityEventService;
     delete (global as any).RedboxJavaStorageService;
     delete (global as any).SolrSearchService;
     delete (globalThis as any).__w05Hooks;
@@ -1028,6 +1032,32 @@ describe('RecordsService', function () {
       RecordsService.storeRecordAudit(job);
 
       expect(mockStorageService.createRecordAudit.called).to.be.true;
+    });
+  });
+
+  describe('createRecordAudit', function () {
+    it('should emit a record audit security event after successful storage', async function () {
+      const recordAudit = { id: 'record-123', action: 'updated' };
+
+      const response = await RecordsService.createRecordAudit(recordAudit);
+
+      expect((response as any).success).to.equal(true);
+      expect((global as any).SecurityEventService.emitFromRecordAudit.calledOnceWith(recordAudit)).to.be.true;
+    });
+
+    it('should not emit a record audit security event after soft-failed storage', async function () {
+      const failedResponse = {
+        success: false,
+        message: 'storage failed',
+        isSuccessful: () => false
+      };
+      mockStorageService.createRecordAudit.resolves(failedResponse);
+      const recordAudit = { id: 'record-123', action: 'updated' };
+
+      const response = await RecordsService.createRecordAudit(recordAudit);
+
+      expect(response).to.equal(failedResponse);
+      expect((global as any).SecurityEventService.emitFromRecordAudit.called).to.be.false;
     });
   });
 

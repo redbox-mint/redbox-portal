@@ -9,6 +9,8 @@ import type { SiemDeliveryResult, SiemTestInput } from './siem/SiemTypes';
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
 
+const PROCESSING_EVENT_STALE_MS = 120 * 1000;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -55,6 +57,10 @@ export namespace Services {
     private async nextAttemptNumber(eventId: string, destinationId: string): Promise<number> {
       const count = await SiemDeliveryAttempt.count({ eventId, destinationId });
       return count + 1;
+    }
+
+    private maxAttemptsForDestination(destination: SiemDestinationConfig, delivery: SiemDeliveryConfig): number {
+      return destination.retry?.maxAttempts ?? delivery.maxAttempts;
     }
 
     private async claimEvent(eventId: string): Promise<boolean> {
@@ -106,13 +112,27 @@ export namespace Services {
       });
     }
 
-    private async updateEventState(event: SecurityEventAttributes, destinationResults: Record<string, string>, delivery: SiemDeliveryConfig): Promise<void> {
+    private async hasExceededAnyDestinationFailures(eventId: string, destinations: SiemDestinationConfig[], delivery: SiemDeliveryConfig): Promise<boolean> {
+      for (const destination of destinations) {
+        const failedAttempts = await SiemDeliveryAttempt.count({
+          eventId,
+          destinationId: destination.id,
+          status: 'failed',
+        });
+        if (failedAttempts >= this.maxAttemptsForDestination(destination, delivery)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private async updateEventState(event: SecurityEventAttributes, destinations: SiemDestinationConfig[], destinationResults: Record<string, string>, delivery: SiemDeliveryConfig): Promise<void> {
       const statuses = Object.values(destinationResults);
       const hasFailure = statuses.includes('failed');
       const delivered = statuses.length > 0 && statuses.every((status) => status === 'success');
-      const failedAttempts = await SiemDeliveryAttempt.count({ eventId: event.eventId, status: 'failed' });
+      const exceededDestinationFailures = await this.hasExceededAnyDestinationFailures(event.eventId, destinations, delivery);
       const allDeadLetter = statuses.length > 0 && statuses.every((status) => status === 'deadLetter');
-      const deliveryState = allDeadLetter ? 'deadLetter' : delivered ? 'delivered' : failedAttempts >= delivery.maxAttempts ? 'deadLetter' : hasFailure ? 'failed' : 'partial';
+      const deliveryState = allDeadLetter ? 'deadLetter' : delivered ? 'delivered' : exceededDestinationFailures ? 'deadLetter' : hasFailure ? 'failed' : 'partial';
       await SecurityEvent.update({ eventId: event.eventId }).set({
         deliveryState,
         destinationStates: destinationResults,
@@ -126,9 +146,19 @@ export namespace Services {
         .filter((id: unknown): id is string => typeof id === 'string' && id.trim() !== '');
     }
 
+    private async resetStaleProcessingEvents(brandId: string): Promise<void> {
+      const staleBefore = new Date(Date.now() - PROCESSING_EVENT_STALE_MS).toISOString();
+      await SecurityEvent.update({
+        brandId,
+        deliveryState: 'processing',
+        updatedAt: { '<=': staleBefore },
+      } as unknown as Record<string, unknown>).set({ deliveryState: 'failed' });
+    }
+
     private async findEventsForBrand(brandId: string): Promise<SecurityEventAttributes[]> {
       const config = this.getConfig(brandId);
       const delivery = this.deliveryConfig(config);
+      await this.resetStaleProcessingEvents(brandId);
       return SecurityEvent.find({
         brandId,
         deliveryState: ['pending', 'failed', 'partial'],
@@ -150,9 +180,10 @@ export namespace Services {
         return;
       }
       const destinationResults: Record<string, string> = {};
+      const delivery = this.deliveryConfig(config);
       for (const destination of destinations) {
         const attemptNumber = await this.nextAttemptNumber(event.eventId, destination.id);
-        if (attemptNumber > this.deliveryConfig(config).maxAttempts) {
+        if (attemptNumber > this.maxAttemptsForDestination(destination, delivery)) {
           destinationResults[destination.id] = 'deadLetter';
           continue;
         }
@@ -161,7 +192,7 @@ export namespace Services {
         destinationResults[destination.id] = result.status;
         await this.recordAttempt(event, destination, startedAt, result, attemptNumber);
       }
-      await this.updateEventState(event, destinationResults, this.deliveryConfig(config));
+      await this.updateEventState(event, destinations, destinationResults, delivery);
     }
 
     public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {

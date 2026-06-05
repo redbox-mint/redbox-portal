@@ -109,15 +109,18 @@ export namespace Controllers {
       if (destination.password === APP_CONFIG_SECRET_MASK) {
         destination.password = storedDestination.password;
       }
-      for (const [key, value] of Object.entries(destination.headers ?? {})) {
-        if (value !== APP_CONFIG_SECRET_MASK) {
-          continue;
-        }
-        const storedValue = storedDestination.headers?.[key];
-        if (storedValue != null) {
-          destination.headers[key] = storedValue;
-        } else {
-          delete destination.headers[key];
+      const headers = destination.headers;
+      if (headers != null) {
+        for (const [key, value] of Object.entries(headers)) {
+          if (value !== APP_CONFIG_SECRET_MASK) {
+            continue;
+          }
+          const storedValue = storedDestination.headers?.[key];
+          if (storedValue != null) {
+            headers[key] = storedValue;
+          } else {
+            delete headers[key];
+          }
         }
       }
       return { ...input, destination };
