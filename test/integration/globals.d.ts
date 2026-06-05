@@ -29,6 +29,10 @@ declare const I18nTranslation: any;
 declare const I18nBundle: any;
 
 declare const NamedQueryService: any;
+declare const SecurityEvent: any;
+declare const SecurityEventService: any;
+declare const SiemDeliveryAttempt: any;
+declare const SiemForwardingService: any;
 
 declare const PathRulesService: any;
 

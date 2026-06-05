@@ -33,7 +33,8 @@ export namespace Services {
     }
 
     private getConfig(brandId: string): SiemConfiguration {
-      const brandConfig = AppConfigService.getAppConfigurationForBrand(brandId) as unknown as Record<string, unknown>;
+      const brand = BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId);
+      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand?.name ?? brandId) as unknown as Record<string, unknown>;
       return ({
         enabled: false,
         destinations: [],
@@ -91,7 +92,11 @@ export namespace Services {
     }
 
     public async emitFromUserAudit(user: unknown, action: string, context: Record<string, unknown> = {}): Promise<void> {
-      const brandId = String(context.brandId ?? context.branding ?? 'default');
+      const brandValue = context.brandId ?? context.branding ?? 'default';
+      const brand = typeof brandValue === 'string'
+        ? BrandingService.getBrandById(brandValue) ?? BrandingService.getBrand(brandValue)
+        : undefined;
+      const brandId = String(brand?.id ?? brandValue);
       await this.emitSecurityEvent({
         brandId,
         portalId: typeof context.portalId === 'string' ? context.portalId : undefined,
@@ -104,8 +109,9 @@ export namespace Services {
     }
 
     public async emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
+      const brandId = await this.resolveBrandId(recordAudit);
       await this.emitSecurityEvent({
-        brandId: String(recordAudit.brandId ?? recordAudit.branding ?? 'default'),
+        brandId,
         eventType: `record.${String(recordAudit.action ?? 'audit')}`,
         category: 'recordLifecycle',
         source: 'RecordsService',
@@ -128,8 +134,9 @@ export namespace Services {
     }
 
     public async emitFromAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
+      const brandId = await this.resolveBrandId(attachmentAudit);
       await this.emitSecurityEvent({
-        brandId: String(attachmentAudit.brandId ?? 'default'),
+        brandId,
         eventType: `attachment.${String(attachmentAudit.action ?? 'audit')}`,
         category: 'attachmentAccess',
         source: 'StandardDatastreamService',
@@ -148,18 +155,54 @@ export namespace Services {
     }
 
     public async queryEvents(params: Record<string, unknown> = {}): Promise<{ rows: SecurityEventAttributes[]; total: number }> {
-      const limit = Math.min(Number(params.limit ?? 50), 500);
-      const skip = Math.max(Number(params.skip ?? 0), 0);
+      const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
+      const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
+      const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);
+      const skip = Math.max(Number.isFinite(requestedSkip) ? requestedSkip : 0, 0);
       const where: Record<string, unknown> = {};
-      ['brandId', 'eventType', 'category', 'deliveryState'].forEach((key) => {
+      ['brandId', 'eventType', 'category', 'severity', 'deliveryState'].forEach((key) => {
         if (typeof params[key] === 'string' && params[key] !== '') {
           where[key] = params[key];
         }
       });
+      const occurredAt: Record<string, string> = {};
+      if (typeof params.occurredAtStart === 'string' && params.occurredAtStart !== '') {
+        occurredAt['>='] = params.occurredAtStart;
+      }
+      if (typeof params.occurredAtEnd === 'string' && params.occurredAtEnd !== '') {
+        occurredAt['<='] = params.occurredAtEnd;
+      }
+      if (Object.keys(occurredAt).length > 0) {
+        where.occurredAt = occurredAt;
+      }
       const query = SecurityEvent.find(where).sort('occurredAt DESC').skip(skip).limit(limit);
       const rows = await query as unknown as SecurityEventAttributes[];
       const total = await SecurityEvent.count(where);
       return { rows, total };
     }
+
+    private async resolveBrandId(payload: Record<string, unknown>): Promise<string> {
+      const directBrand = payload.brandId ?? payload.branding ?? _.get(payload, 'record.metaMetadata.brandId') ?? _.get(payload, 'metaMetadata.brandId');
+      if (typeof directBrand === 'string' && directBrand.trim() !== '') {
+        const brand = BrandingService.getBrandById(directBrand) ?? BrandingService.getBrand(directBrand);
+        return String(brand?.id ?? directBrand);
+      }
+
+      const oid = String(payload.redboxOid ?? payload.oid ?? '').trim();
+      if (oid) {
+        const record = await Record.findOne({ redboxOid: oid }) as unknown as Record<string, unknown> | undefined;
+        const recordBrandId = _.get(record, 'metaMetadata.brandId');
+        if (typeof recordBrandId === 'string' && recordBrandId.trim() !== '') {
+          return recordBrandId;
+        }
+      }
+
+      const defaultBrand = BrandingService.getDefault();
+      return String(defaultBrand?.id ?? 'default');
+    }
   }
+}
+
+declare global {
+  let SecurityEventService: Services.SecurityEventService;
 }

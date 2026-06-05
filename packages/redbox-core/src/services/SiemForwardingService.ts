@@ -28,7 +28,8 @@ export namespace Services {
     }
 
     private getConfig(brandId: string): SiemConfiguration {
-      const brandConfig = AppConfigService.getAppConfigurationForBrand(brandId) as unknown as Record<string, unknown>;
+      const brand = BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId);
+      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand?.name ?? brandId) as unknown as Record<string, unknown>;
       return ({
         enabled: false,
         destinations: [],
@@ -102,7 +103,8 @@ export namespace Services {
       const hasFailure = statuses.includes('failed');
       const delivered = statuses.length > 0 && statuses.every((status) => status === 'success');
       const failedAttempts = await SiemDeliveryAttempt.count({ eventId: event.eventId, status: 'failed' });
-      const deliveryState = delivered ? 'delivered' : failedAttempts >= delivery.maxAttempts ? 'deadLetter' : hasFailure ? 'failed' : 'partial';
+      const allDeadLetter = statuses.length > 0 && statuses.every((status) => status === 'deadLetter');
+      const deliveryState = allDeadLetter ? 'deadLetter' : delivered ? 'delivered' : failedAttempts >= delivery.maxAttempts ? 'deadLetter' : hasFailure ? 'failed' : 'partial';
       await SecurityEvent.update({ eventId: event.eventId }).set({
         deliveryState,
         destinationStates: destinationResults,
@@ -162,14 +164,26 @@ export namespace Services {
     }
 
     public async getDeliveryStatus(params: Record<string, unknown> = {}): Promise<{ rows: Record<string, unknown>[]; total: number }> {
-      const limit = Math.min(Number(params.limit ?? 50), 500);
-      const skip = Math.max(Number(params.skip ?? 0), 0);
+      const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
+      const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
+      const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);
+      const skip = Math.max(Number.isFinite(requestedSkip) ? requestedSkip : 0, 0);
       const where: Record<string, unknown> = {};
-      ['brandId', 'destinationId', 'status'].forEach((key) => {
+      ['brandId', 'eventId', 'destinationId', 'status'].forEach((key) => {
         if (typeof params[key] === 'string' && params[key] !== '') {
           where[key] = params[key];
         }
       });
+      const startedAt: Record<string, string> = {};
+      if (typeof params.startedAtStart === 'string' && params.startedAtStart !== '') {
+        startedAt['>='] = params.startedAtStart;
+      }
+      if (typeof params.startedAtEnd === 'string' && params.startedAtEnd !== '') {
+        startedAt['<='] = params.startedAtEnd;
+      }
+      if (Object.keys(startedAt).length > 0) {
+        where.startedAt = startedAt;
+      }
       const rows = await SiemDeliveryAttempt.find(where).sort('startedAt DESC').skip(skip).limit(limit) as unknown as Record<string, unknown>[];
       const total = await SiemDeliveryAttempt.count(where);
       return { rows, total };
