@@ -5,6 +5,7 @@ import {
   getValidatedApiRequest,
 } from '../../index';
 import type { SiemConfiguration, SiemDestinationConfig } from '../../configmodels/SiemConfiguration';
+import { APP_CONFIG_SECRET_MASK } from '../../services/AppConfigService';
 import type { SiemTestInput } from '../../services/siem/SiemTypes';
 
 type SecurityEventServiceApi = {
@@ -86,6 +87,43 @@ export namespace Controllers {
       if (requestedUrl.origin !== configuredUrl.origin || requestedUrl.pathname !== configuredUrl.pathname) {
         throw new Error('Destination endpoint URL is not configured for this brand.');
       }
+    }
+
+    private unmaskedSiemConfig(brand: BrandingModel): SiemConfiguration {
+      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand.name) as unknown as Record<string, unknown>;
+      return ((brandConfig.siem ?? {}) as unknown) as SiemConfiguration;
+    }
+
+    private resolveMaskedTestDestinationSecrets(input: SiemTestInput, config: SiemConfiguration): SiemTestInput {
+      const storedDestination = (config.destinations ?? []).find((item) => item.id === input.destination.id);
+      if (storedDestination == null) {
+        return input;
+      }
+      const destination: SiemDestinationConfig = {
+        ...input.destination,
+        headers: input.destination.headers == null ? undefined : { ...input.destination.headers },
+      };
+      if (destination.token === APP_CONFIG_SECRET_MASK) {
+        destination.token = storedDestination.token;
+      }
+      if (destination.password === APP_CONFIG_SECRET_MASK) {
+        destination.password = storedDestination.password;
+      }
+      if (destination.headers?.Authorization === APP_CONFIG_SECRET_MASK) {
+        if (storedDestination.headers?.Authorization != null) {
+          destination.headers.Authorization = storedDestination.headers.Authorization;
+        } else {
+          delete destination.headers.Authorization;
+        }
+      }
+      if (destination.headers?.['X-Splunk-Token'] === APP_CONFIG_SECRET_MASK) {
+        if (storedDestination.headers?.['X-Splunk-Token'] != null) {
+          destination.headers['X-Splunk-Token'] = storedDestination.headers['X-Splunk-Token'];
+        } else {
+          delete destination.headers['X-Splunk-Token'];
+        }
+      }
+      return { ...input, destination };
     }
 
     private isQueryValidationError(error: unknown): boolean {
@@ -203,8 +241,10 @@ export namespace Controllers {
         }
         const brand = this.getBrand(req);
         const config = await AppConfigService.getAppConfigByBrandAndKey(brand.id, 'siem') as SiemConfiguration;
-        this.assertTestDestinationAllowed((body as SiemTestInput).destination, config);
-        const result = await this.siemForwardingService().testDestination(body as SiemTestInput);
+        const input = body as SiemTestInput;
+        this.assertTestDestinationAllowed(input.destination, config);
+        const resolvedInput = this.resolveMaskedTestDestinationSecrets(input, this.unmaskedSiemConfig(brand));
+        const result = await this.siemForwardingService().testDestination(resolvedInput);
         return this.apiRespond(req, res, result, 200);
       } catch (error) {
         return this.respondError(req, res, error, 400);
