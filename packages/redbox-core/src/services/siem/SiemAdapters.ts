@@ -16,6 +16,19 @@ function eventTime(event: SecurityEventAttributes): number {
   return Number.isNaN(parsed) ? Date.now() : parsed;
 }
 
+function syslogSeverity(eventSeverity: string): number {
+  switch (eventSeverity) {
+    case 'critical':
+      return 2;
+    case 'error':
+      return 3;
+    case 'warning':
+      return 4;
+    default:
+      return 6;
+  }
+}
+
 function flattenEvent(event: SecurityEventAttributes): Record<string, unknown> {
   return {
     eventId: event.eventId,
@@ -71,7 +84,7 @@ function buildBody(events: SecurityEventAttributes[], destination: SiemDestinati
         }],
       };
     case 'syslog-rfc5424-json':
-      return events.map((event) => `<14>1 ${event.occurredAt} redbox redbox-portal - ${event.eventId} - ${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `<${1 * 8 + syslogSeverity(event.severity)}>1 ${event.occurredAt} redbox redbox-portal - ${event.eventId} - ${JSON.stringify(flattenEvent(event))}`).join('\n');
     case 'cef':
       return events.map((event) => `CEF:0|ReDBox|Portal|1|${escapeCefHeaderField(event.eventType)}|${escapeCefHeaderField(event.category)}|${event.severity}|eventId=${event.eventId} msg=${JSON.stringify(flattenEvent(event))}`).join('\n');
     case 'leef':

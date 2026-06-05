@@ -57,6 +57,14 @@ export namespace Services {
       return count + 1;
     }
 
+    private async claimEvent(eventId: string): Promise<boolean> {
+      const claimed = await SecurityEvent.updateOne({
+        eventId,
+        deliveryState: ['pending', 'failed', 'partial'],
+      }).set({ deliveryState: 'processing' });
+      return claimed != null;
+    }
+
     private async recordAttempt(
       event: SecurityEventAttributes,
       destination: SiemDestinationConfig,
@@ -129,6 +137,9 @@ export namespace Services {
 
     private async processEvent(event: SecurityEventAttributes): Promise<void> {
       const config = this.getConfig(event.brandId);
+      if (!(await this.claimEvent(event.eventId))) {
+        return;
+      }
       if (config.enabled !== true) {
         await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored' });
         return;

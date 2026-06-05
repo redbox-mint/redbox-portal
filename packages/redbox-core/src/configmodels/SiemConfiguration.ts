@@ -19,8 +19,6 @@ export type SiemSeverity = 'info' | 'warning' | 'error' | 'critical';
 
 export interface SiemRetryConfig {
   maxAttempts?: number;
-  retryDelayMs?: number;
-  retryBackoffMultiplier?: number;
 }
 
 export interface SiemDestinationConfig {
@@ -54,8 +52,6 @@ export interface SiemRedactionConfig {
 export interface SiemDeliveryConfig {
   batchSize: number;
   maxAttempts: number;
-  retryDelayMs: number;
-  retryBackoffMultiplier: number;
   deadLetterRetentionDays: number;
   nonBlocking: boolean;
 }
@@ -95,8 +91,6 @@ export const DEFAULT_SIEM_REDACTION: SiemRedactionConfig = {
 export const DEFAULT_SIEM_DELIVERY: SiemDeliveryConfig = {
   batchSize: 50,
   maxAttempts: 3,
-  retryDelayMs: 60 * 1000,
-  retryBackoffMultiplier: 2,
   deadLetterRetentionDays: 30,
   nonBlocking: true,
 };
