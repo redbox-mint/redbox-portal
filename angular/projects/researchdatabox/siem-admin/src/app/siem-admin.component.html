@@ -1,0 +1,612 @@
+@if (!isReady) {
+  <div class="siem-loading siem-loading--page">
+    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+    <span>{{ 'siem-loading' | i18next }}</span>
+  </div>
+} @else {
+  <div class="col-xs-12">
+    <div class="panel panel-default siem-panel">
+      <div class="panel-heading siem-panel__heading">
+        <span class="panel-title">
+          <i class="fa fa-shield" aria-hidden="true"></i>
+          {{ 'siem-heading' | i18next }}
+        </span>
+        <div class="siem-header-actions">
+          <label class="siem-toggle" [class.siem-toggle--on]="draft.enabled">
+            <input type="checkbox" [(ngModel)]="draft.enabled" name="enabled">
+            <span class="siem-toggle__label">{{ (draft.enabled ? 'siem-enabled' : 'siem-disabled') | i18next }}</span>
+          </label>
+          <button type="button" class="btn btn-default siem-btn" (click)="refresh()" [disabled]="loading || saving">
+            <i class="fa fa-refresh" [class.fa-spin]="loading" aria-hidden="true"></i>
+            {{ 'siem-refresh' | i18next }}
+          </button>
+          <button type="button" class="btn btn-primary siem-btn" (click)="save()" [disabled]="!canSave()">
+            <i class="fa" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-save]="!saving" aria-hidden="true"></i>
+            {{ 'siem-save' | i18next }}
+          </button>
+        </div>
+      </div>
+      <div class="panel-body siem-panel__body">
+
+        <div class="siem-statusline">
+          @if (lastSavedAt) {
+            <span class="siem-statusline__item">{{ 'siem-last-saved' | i18next }} {{ lastSavedAt }}</span>
+          }
+          @if (isDirty()) {
+            <span class="siem-statusline__item siem-statusline__item--warn">
+              <i class="fa fa-pencil" aria-hidden="true"></i> {{ 'siem-unsaved-changes' | i18next }}
+            </span>
+          }
+        </div>
+
+        @if (loadError) {
+          <div class="alert alert-danger siem-alert" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            <span>{{ loadError }}</span>
+          </div>
+        }
+        @if (saveError) {
+          <div class="alert alert-danger siem-alert" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            <span>{{ saveError }}</span>
+          </div>
+        }
+        @if (saveSuccess && !isDirty()) {
+          <div class="alert alert-success siem-alert" role="alert">
+            <i class="fa fa-check-circle" aria-hidden="true"></i>
+            <span>{{ 'siem-save-success' | i18next }}</span>
+          </div>
+        }
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs siem-tabs">
+          <li [class.active]="activeTab === 'overview'">
+            <a href="javascript:void(0)" (click)="setActiveTab('overview')">{{ 'siem-tab-overview' | i18next }}</a>
+          </li>
+          <li [class.active]="activeTab === 'destinations'">
+            <a href="javascript:void(0)" (click)="setActiveTab('destinations')">{{ 'siem-tab-destinations' | i18next }}</a>
+          </li>
+          <li [class.active]="activeTab === 'policy'">
+            <a href="javascript:void(0)" (click)="setActiveTab('policy')">{{ 'siem-tab-policy' | i18next }}</a>
+          </li>
+        </ul>
+
+        <!-- ─── Overview tab ─── -->
+        @if (activeTab === 'overview') {
+          <section class="siem-section">
+            <div class="siem-stat-grid">
+              <div class="siem-stat siem-stat--primary">
+                <div class="siem-stat__label">{{ 'siem-stat-destinations' | i18next }}</div>
+                <div class="siem-stat__value">{{ destinationCount }}</div>
+              </div>
+              <div class="siem-stat siem-stat--success">
+                <div class="siem-stat__label">{{ 'siem-stat-delivered' | i18next }}</div>
+                <div class="siem-stat__value">{{ deliveredCount }}</div>
+              </div>
+              <div class="siem-stat siem-stat--danger">
+                <div class="siem-stat__label">{{ 'siem-stat-failed' | i18next }}</div>
+                <div class="siem-stat__value">{{ failedCount }}</div>
+              </div>
+              <div class="siem-stat siem-stat--warning">
+                <div class="siem-stat__label">{{ 'siem-stat-dead-letter' | i18next }}</div>
+                <div class="siem-stat__value">{{ deadLetterCount }}</div>
+              </div>
+            </div>
+
+            <div class="siem-overview-grid">
+              <div class="siem-subpanel">
+                <div class="siem-section__header">
+                  <h3 class="siem-section__subtitle">
+                    <i class="fa fa-server" aria-hidden="true"></i>
+                    {{ 'siem-destinations' | i18next }}
+                  </h3>
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="addDestination()">
+                    <i class="fa fa-plus" aria-hidden="true"></i> {{ 'siem-add-destination' | i18next }}
+                  </button>
+                </div>
+                @if (draft.destinations.length === 0) {
+                  <div class="siem-empty-state siem-empty-state--small">
+                    <p>{{ 'siem-no-destinations' | i18next }}</p>
+                  </div>
+                } @else {
+                  <ul class="siem-dest-list">
+                    @for (destination of draft.destinations; track destination.id) {
+                      <li class="siem-dest-list__item" (click)="selectDestination(destination.id)">
+                        <span class="siem-dest-list__name">{{ destination.name || destination.id }}</span>
+                        <span class="siem-status" [class]="'siem-status siem-status--' + (destination.enabled ? 'success' : 'muted')">
+                          <span class="siem-status__dot"></span>
+                          {{ (destination.enabled ? 'siem-on' : 'siem-off') | i18next }}
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div class="siem-subpanel">
+                <div class="siem-section__header">
+                  <h3 class="siem-section__subtitle">
+                    <i class="fa fa-heartbeat" aria-hidden="true"></i>
+                    {{ 'siem-delivery-health' | i18next }}
+                  </h3>
+                </div>
+                @if (deliveryError) {
+                  <div class="alert alert-danger siem-alert" role="alert">{{ deliveryError }}</div>
+                }
+                @if (loadingDelivery) {
+                  <div class="siem-loading"><span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span></div>
+                } @else if (deliveryResponse.rows.length === 0) {
+                  <div class="siem-empty-state siem-empty-state--small"><p>{{ 'siem-no-delivery' | i18next }}</p></div>
+                } @else {
+                  <div class="table-responsive">
+                    <table class="table siem-table">
+                      <thead>
+                        <tr>
+                          <th>{{ 'siem-col-status' | i18next }}</th>
+                          <th>{{ 'siem-col-destination' | i18next }}</th>
+                          <th>{{ 'siem-col-time' | i18next }}</th>
+                          <th class="siem-table__th--num">{{ 'siem-col-http' | i18next }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of deliveryResponse.rows.slice(0, 8); track row.id ?? row.eventId + '-' + row.attemptNumber) {
+                          <tr>
+                            <td>
+                              <span class="siem-status" [class]="'siem-status siem-status--' + getAttemptStatusVariant(row.status)">
+                                <span class="siem-status__dot"></span>{{ row.status }}
+                              </span>
+                            </td>
+                            <td>{{ row.destinationId }}</td>
+                            <td class="siem-table__cell--muted">{{ formatDate(row.startedAt) }}</td>
+                            <td class="siem-table__cell--num">{{ row.httpStatusCode ?? '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Recent events -->
+            <div class="siem-subpanel">
+              <div class="siem-section__header">
+                <h3 class="siem-section__subtitle">
+                  <i class="fa fa-list-ul" aria-hidden="true"></i>
+                  {{ 'siem-recent-events' | i18next }}
+                </h3>
+              </div>
+
+              <form class="siem-toolbar" (ngSubmit)="applyEventFilters($event)">
+                <div class="siem-toolbar__fields">
+                  <div class="siem-field">
+                    <label class="siem-field__label" for="siem-event-category">{{ 'siem-filter-category' | i18next }}</label>
+                    <select id="siem-event-category" class="form-control siem-field__input" [(ngModel)]="eventFilters.category" name="eventCategory">
+                      <option value="">{{ 'siem-filter-all' | i18next }}</option>
+                      @for (option of categoryOptions; track option.key) {
+                        <option [value]="option.key">{{ option.labelKey | i18next }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="siem-field">
+                    <label class="siem-field__label" for="siem-event-state">{{ 'siem-filter-state' | i18next }}</label>
+                    <select id="siem-event-state" class="form-control siem-field__input" [(ngModel)]="eventFilters.deliveryState" name="eventState">
+                      <option value="">{{ 'siem-filter-all' | i18next }}</option>
+                      <option value="pending">pending</option>
+                      <option value="delivered">delivered</option>
+                      <option value="partial">partial</option>
+                      <option value="failed">failed</option>
+                      <option value="deadLetter">deadLetter</option>
+                      <option value="ignored">ignored</option>
+                    </select>
+                  </div>
+                  <div class="siem-field siem-field--wide">
+                    <label class="siem-field__label" for="siem-event-type">{{ 'siem-filter-event-type' | i18next }}</label>
+                    <input id="siem-event-type" type="text" class="form-control siem-field__input" [(ngModel)]="eventFilters.eventType" name="eventType" placeholder="e.g. authentication.login.success">
+                  </div>
+                </div>
+                <div class="siem-toolbar__actions">
+                  <button type="button" class="btn btn-default siem-btn" (click)="clearEventFilters()">
+                    <i class="fa fa-refresh" aria-hidden="true"></i> {{ 'siem-filter-clear' | i18next }}
+                  </button>
+                  <button type="submit" class="btn btn-primary siem-btn">
+                    <i class="fa fa-filter" aria-hidden="true"></i> {{ 'siem-filter-apply' | i18next }}
+                  </button>
+                </div>
+              </form>
+
+              @if (eventsError) {
+                <div class="alert alert-danger siem-alert" role="alert">{{ eventsError }}</div>
+              }
+              @if (loadingEvents) {
+                <div class="siem-loading"><span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span></div>
+              } @else if (eventResponse.rows.length === 0) {
+                <div class="siem-empty-state siem-empty-state--small"><p>{{ 'siem-no-events' | i18next }}</p></div>
+              } @else {
+                <div class="table-responsive">
+                  <table class="table siem-table">
+                    <thead>
+                      <tr>
+                        <th>{{ 'siem-col-time' | i18next }}</th>
+                        <th>{{ 'siem-col-type' | i18next }}</th>
+                        <th>{{ 'siem-col-severity' | i18next }}</th>
+                        <th>{{ 'siem-col-state' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of eventResponse.rows; track row.id ?? row.eventId) {
+                        <tr>
+                          <td class="siem-table__cell--muted">{{ formatDate(row.occurredAt) }}</td>
+                          <td class="siem-table__cell--mono">{{ row.eventType }}</td>
+                          <td>
+                            <span class="siem-status" [class]="'siem-status siem-status--' + getSeverityVariant(row.severity)">
+                              <span class="siem-status__dot"></span>{{ row.severity }}
+                            </span>
+                          </td>
+                          <td>
+                            <span class="siem-status" [class]="'siem-status siem-status--' + getDeliveryStateVariant(row.deliveryState)">
+                              <span class="siem-status__dot"></span>{{ row.deliveryState }}
+                            </span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <div class="siem-pager">
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="onEventPagePrev()" [disabled]="eventSkip <= 0">
+                    <i class="fa fa-chevron-left" aria-hidden="true"></i> {{ 'siem-prev' | i18next }}
+                  </button>
+                  <span class="siem-pager__info">{{ eventResponse.total }} {{ 'siem-total' | i18next }}</span>
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="onEventPageNext()" [disabled]="eventSkip + eventPageSize >= eventResponse.total">
+                    {{ 'siem-next' | i18next }} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- ─── Destinations tab ─── -->
+        @if (activeTab === 'destinations') {
+          <section class="siem-section">
+            <div class="siem-dest-layout">
+              <div class="siem-dest-sidebar">
+                <button type="button" class="btn btn-default btn-block siem-btn" (click)="addDestination()">
+                  <i class="fa fa-plus" aria-hidden="true"></i> {{ 'siem-add-destination' | i18next }}
+                </button>
+                @if (draft.destinations.length === 0) {
+                  <div class="siem-empty-state siem-empty-state--small"><p>{{ 'siem-no-destinations' | i18next }}</p></div>
+                } @else {
+                  <ul class="siem-dest-list siem-dest-list--editable">
+                    @for (destination of draft.destinations; track destination.id; let i = $index) {
+                      <li class="siem-dest-list__item"
+                          [class.siem-dest-list__item--active]="destination.id === selectedDestinationId"
+                          (click)="selectDestination(destination.id)">
+                        <span class="siem-dest-list__name">{{ destination.name || destination.id }}</span>
+                        <span class="siem-dest-list__controls">
+                          <button type="button" class="btn btn-link btn-xs" title="{{ 'siem-move-up' | i18next }}" (click)="$event.stopPropagation(); moveDestination(destination.id, -1)" [disabled]="i === 0">
+                            <i class="fa fa-arrow-up" aria-hidden="true"></i>
+                          </button>
+                          <button type="button" class="btn btn-link btn-xs" title="{{ 'siem-move-down' | i18next }}" (click)="$event.stopPropagation(); moveDestination(destination.id, 1)" [disabled]="i === draft.destinations.length - 1">
+                            <i class="fa fa-arrow-down" aria-hidden="true"></i>
+                          </button>
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div class="siem-dest-editor">
+                @if (!selectedDestination) {
+                  <div class="siem-empty-state">
+                    <i class="fa fa-server" aria-hidden="true"></i>
+                    <p>{{ 'siem-select-destination' | i18next }}</p>
+                  </div>
+                } @else {
+                  <div class="siem-section__header siem-section__header--spread">
+                    <h3 class="siem-section__subtitle">{{ selectedDestination.name || selectedDestination.id }}</h3>
+                    <div class="siem-header-actions">
+                      <button type="button" class="btn btn-default btn-xs siem-btn" (click)="testDestination(selectedDestination.id)" [disabled]="testingById[selectedDestination.id]">
+                        <i class="fa" [class.fa-flask]="!testingById[selectedDestination.id]" [class.fa-spinner]="testingById[selectedDestination.id]" [class.fa-spin]="testingById[selectedDestination.id]" aria-hidden="true"></i>
+                        {{ 'siem-test' | i18next }}
+                      </button>
+                      <button type="button" class="btn btn-danger btn-xs siem-btn" (click)="removeDestination(selectedDestination.id)">
+                        <i class="fa fa-trash" aria-hidden="true"></i> {{ 'siem-remove' | i18next }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="siem-form-grid">
+                    <div class="siem-field">
+                      <label class="siem-field__label" for="siem-dest-name">{{ 'siem-dest-name' | i18next }}</label>
+                      <input id="siem-dest-name" type="text" class="form-control siem-field__input" [(ngModel)]="selectedDestination.name" name="destName">
+                    </div>
+                    <div class="siem-field">
+                      <label class="siem-field__label" for="siem-dest-adapter">{{ 'siem-dest-adapter' | i18next }}</label>
+                      <select id="siem-dest-adapter" class="form-control siem-field__input" [(ngModel)]="selectedDestination.adapterType" name="destAdapter">
+                        @for (option of adapterOptions; track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="siem-field siem-field--checkbox">
+                      <label class="siem-checkbox">
+                        <input type="checkbox" [(ngModel)]="selectedDestination.enabled" name="destEnabled">
+                        <span>{{ 'siem-dest-enabled' | i18next }}</span>
+                      </label>
+                    </div>
+                    <div class="siem-field siem-field--wide">
+                      <label class="siem-field__label" for="siem-dest-endpoint">{{ 'siem-dest-endpoint' | i18next }}</label>
+                      <input id="siem-dest-endpoint" type="text" class="form-control siem-field__input" [(ngModel)]="selectedDestination.endpointUrl" name="destEndpoint" placeholder="https://...">
+                    </div>
+                    @if (showsTokenField(selectedDestination.adapterType)) {
+                      <div class="siem-field siem-field--wide">
+                        <label class="siem-field__label" for="siem-dest-token">{{ 'siem-dest-token' | i18next }}</label>
+                        <input id="siem-dest-token" type="password" autocomplete="off" class="form-control siem-field__input" [(ngModel)]="selectedDestination.token" name="destToken">
+                        <span class="siem-field__hint">{{ 'siem-secret-hint' | i18next }}</span>
+                      </div>
+                    }
+                    @if (showsUsernamePasswordFields(selectedDestination.adapterType)) {
+                      <div class="siem-field">
+                        <label class="siem-field__label" for="siem-dest-username">{{ 'siem-dest-username' | i18next }}</label>
+                        <input id="siem-dest-username" type="text" class="form-control siem-field__input" [(ngModel)]="selectedDestination.username" name="destUsername">
+                      </div>
+                      <div class="siem-field">
+                        <label class="siem-field__label" for="siem-dest-password">{{ 'siem-dest-password' | i18next }}</label>
+                        <input id="siem-dest-password" type="password" autocomplete="off" class="form-control siem-field__input" [(ngModel)]="selectedDestination.password" name="destPassword">
+                        <span class="siem-field__hint">{{ 'siem-secret-hint' | i18next }}</span>
+                      </div>
+                    }
+                    <div class="siem-field">
+                      <label class="siem-field__label" for="siem-dest-timeout">{{ 'siem-dest-timeout' | i18next }}</label>
+                      <input id="siem-dest-timeout" type="number" class="form-control siem-field__input" [(ngModel)]="selectedDestination.timeoutMs" name="destTimeout">
+                    </div>
+                  </div>
+
+                  <!-- Headers -->
+                  <div class="siem-subsection">
+                    <div class="siem-section__header">
+                      <h4 class="siem-section__minortitle">{{ 'siem-dest-headers' | i18next }}</h4>
+                      <button type="button" class="btn btn-default btn-xs siem-btn" (click)="addHeader(selectedDestination.id)">
+                        <i class="fa fa-plus" aria-hidden="true"></i> {{ 'siem-add-header' | i18next }}
+                      </button>
+                    </div>
+                    @for (header of getHeaderEntries(selectedDestination.id); track $index; let i = $index) {
+                      <div class="siem-header-row">
+                        <input type="text" class="form-control siem-field__input" [(ngModel)]="header.key" [name]="'headerKey' + i" placeholder="{{ 'siem-header-key' | i18next }}">
+                        <input type="text" class="form-control siem-field__input" [(ngModel)]="header.value" [name]="'headerValue' + i" placeholder="{{ 'siem-header-value' | i18next }}">
+                        <button type="button" class="btn btn-link btn-xs siem-icon-btn" (click)="removeHeader(selectedDestination.id, i)" title="{{ 'siem-remove' | i18next }}">
+                          <i class="fa fa-times" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Format options -->
+                  @if (showsFormatOptionsField(selectedDestination.adapterType)) {
+                    <div class="siem-subsection">
+                      <h4 class="siem-section__minortitle">{{ 'siem-dest-format-options' | i18next }}</h4>
+                      <textarea class="form-control siem-textarea" rows="4" name="formatOptions"
+                        [ngModel]="getFormatOptionsText(selectedDestination.id)"
+                        (ngModelChange)="updateFormatOptionsText(selectedDestination.id, $event)"
+                        placeholder='{ "facility": 1 }'></textarea>
+                      @if (formatOptionsErrorById[selectedDestination.id]) {
+                        <span class="siem-field__error">{{ formatOptionsErrorById[selectedDestination.id] }}</span>
+                      }
+                    </div>
+                  }
+
+                  <!-- Test result -->
+                  @if (testErrorById[selectedDestination.id]) {
+                    <div class="alert alert-danger siem-alert" role="alert">
+                      <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+                      <span>{{ testErrorById[selectedDestination.id] }}</span>
+                    </div>
+                  }
+                  @if (testStateById[selectedDestination.id]; as testResult) {
+                    <div class="siem-test-result" [class.siem-test-result--ok]="testResult.status === 'success'" [class.siem-test-result--fail]="testResult.status === 'failed'">
+                      <div class="siem-test-result__head">
+                        <span class="siem-status" [class]="'siem-status siem-status--' + getAttemptStatusVariant(testResult.status)">
+                          <span class="siem-status__dot"></span>{{ testResult.status }}
+                        </span>
+                        @if (testResult.httpStatusCode) {
+                          <span class="siem-test-result__meta">HTTP {{ testResult.httpStatusCode }}</span>
+                        }
+                        @if (testResult.durationMs != null) {
+                          <span class="siem-test-result__meta">{{ testResult.durationMs }}ms</span>
+                        }
+                      </div>
+                      @if (testResult.responseSummary) {
+                        <pre class="siem-test-result__body">{{ testResult.responseSummary }}</pre>
+                      }
+                      @if (testResult.errorSummary) {
+                        <pre class="siem-test-result__body siem-test-result__body--error">{{ testResult.errorSummary }}</pre>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          </section>
+        }
+
+        <!-- ─── Policy tab ─── -->
+        @if (activeTab === 'policy') {
+          <section class="siem-section">
+            <div class="siem-subpanel">
+              <h3 class="siem-section__subtitle">{{ 'siem-event-categories' | i18next }}</h3>
+              <div class="siem-checkbox-grid">
+                @for (option of categoryOptions; track option.key) {
+                  <label class="siem-checkbox">
+                    <input type="checkbox" [(ngModel)]="draft.events.categories[option.key]" [name]="'cat-' + option.key">
+                    <span>{{ option.labelKey | i18next }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+
+            <div class="siem-subpanel">
+              <h3 class="siem-section__subtitle">{{ 'siem-redaction' | i18next }}</h3>
+              <div class="siem-checkbox-grid">
+                <label class="siem-checkbox">
+                  <input type="checkbox" [(ngModel)]="draft.redaction.includeActorEmail" name="includeActorEmail">
+                  <span>{{ 'siem-include-actor-email' | i18next }}</span>
+                </label>
+                <label class="siem-checkbox">
+                  <input type="checkbox" [(ngModel)]="draft.redaction.includeIpAddress" name="includeIpAddress">
+                  <span>{{ 'siem-include-ip' | i18next }}</span>
+                </label>
+                <label class="siem-checkbox">
+                  <input type="checkbox" [(ngModel)]="draft.redaction.includeUserAgent" name="includeUserAgent">
+                  <span>{{ 'siem-include-user-agent' | i18next }}</span>
+                </label>
+              </div>
+
+              <div class="siem-field siem-field--narrow">
+                <label class="siem-field__label" for="siem-max-payload">{{ 'siem-max-payload' | i18next }}</label>
+                <input id="siem-max-payload" type="number" class="form-control siem-field__input" [(ngModel)]="draft.redaction.maxPayloadBytes" name="maxPayloadBytes">
+              </div>
+
+              <div class="siem-subsection">
+                <div class="siem-section__header">
+                  <h4 class="siem-section__minortitle">{{ 'siem-denylisted-paths' | i18next }}</h4>
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="addDenylistPath()">
+                    <i class="fa fa-plus" aria-hidden="true"></i> {{ 'siem-add-path' | i18next }}
+                  </button>
+                </div>
+                @for (path of draft.redaction.denylistedPaths; track $index; let i = $index) {
+                  <div class="siem-header-row">
+                    <input type="text" class="form-control siem-field__input" [(ngModel)]="draft.redaction.denylistedPaths[i]" [name]="'denyPath' + i" placeholder="actor.password">
+                    <button type="button" class="btn btn-link btn-xs siem-icon-btn" (click)="removeDenylistPath(i)" title="{{ 'siem-remove' | i18next }}">
+                      <i class="fa fa-times" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="siem-subpanel">
+              <h3 class="siem-section__subtitle">{{ 'siem-delivery' | i18next }}</h3>
+              <div class="siem-form-grid">
+                <div class="siem-field">
+                  <label class="siem-field__label" for="siem-batch-size">{{ 'siem-batch-size' | i18next }}</label>
+                  <input id="siem-batch-size" type="number" class="form-control siem-field__input" [(ngModel)]="draft.delivery.batchSize" name="batchSize">
+                </div>
+                <div class="siem-field">
+                  <label class="siem-field__label" for="siem-max-attempts">{{ 'siem-max-attempts' | i18next }}</label>
+                  <input id="siem-max-attempts" type="number" class="form-control siem-field__input" [(ngModel)]="draft.delivery.maxAttempts" name="maxAttempts">
+                </div>
+                <div class="siem-field">
+                  <label class="siem-field__label" for="siem-retry-delay">{{ 'siem-retry-delay' | i18next }}</label>
+                  <input id="siem-retry-delay" type="number" class="form-control siem-field__input" [(ngModel)]="draft.delivery.retryDelayMs" name="retryDelayMs">
+                </div>
+                <div class="siem-field">
+                  <label class="siem-field__label" for="siem-backoff">{{ 'siem-backoff' | i18next }}</label>
+                  <input id="siem-backoff" type="number" class="form-control siem-field__input" [(ngModel)]="draft.delivery.retryBackoffMultiplier" name="retryBackoffMultiplier">
+                </div>
+                <div class="siem-field">
+                  <label class="siem-field__label" for="siem-dead-letter-days">{{ 'siem-dead-letter-days' | i18next }}</label>
+                  <input id="siem-dead-letter-days" type="number" class="form-control siem-field__input" [(ngModel)]="draft.delivery.deadLetterRetentionDays" name="deadLetterRetentionDays">
+                </div>
+                <div class="siem-field siem-field--checkbox">
+                  <label class="siem-checkbox">
+                    <input type="checkbox" [(ngModel)]="draft.delivery.nonBlocking" name="nonBlocking">
+                    <span>{{ 'siem-non-blocking' | i18next }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Delivery status monitoring -->
+            <div class="siem-subpanel">
+              <h3 class="siem-section__subtitle">
+                <i class="fa fa-heartbeat" aria-hidden="true"></i>
+                {{ 'siem-delivery-attempts' | i18next }}
+              </h3>
+              <form class="siem-toolbar" (ngSubmit)="applyDeliveryFilters($event)">
+                <div class="siem-toolbar__fields">
+                  <div class="siem-field">
+                    <label class="siem-field__label" for="siem-delivery-dest">{{ 'siem-col-destination' | i18next }}</label>
+                    <select id="siem-delivery-dest" class="form-control siem-field__input" [(ngModel)]="deliveryFilters.destinationId" name="deliveryDest">
+                      <option value="">{{ 'siem-filter-all' | i18next }}</option>
+                      @for (destination of draft.destinations; track destination.id) {
+                        <option [value]="destination.id">{{ destination.name || destination.id }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="siem-field">
+                    <label class="siem-field__label" for="siem-delivery-status">{{ 'siem-col-status' | i18next }}</label>
+                    <select id="siem-delivery-status" class="form-control siem-field__input" [(ngModel)]="deliveryFilters.status" name="deliveryStatus">
+                      <option value="">{{ 'siem-filter-all' | i18next }}</option>
+                      <option value="success">success</option>
+                      <option value="failed">failed</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="siem-toolbar__actions">
+                  <button type="button" class="btn btn-default siem-btn" (click)="clearDeliveryFilters()">
+                    <i class="fa fa-refresh" aria-hidden="true"></i> {{ 'siem-filter-clear' | i18next }}
+                  </button>
+                  <button type="submit" class="btn btn-primary siem-btn">
+                    <i class="fa fa-filter" aria-hidden="true"></i> {{ 'siem-filter-apply' | i18next }}
+                  </button>
+                </div>
+              </form>
+
+              @if (deliveryError) {
+                <div class="alert alert-danger siem-alert" role="alert">{{ deliveryError }}</div>
+              }
+              @if (loadingDelivery) {
+                <div class="siem-loading"><span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span></div>
+              } @else if (deliveryResponse.rows.length === 0) {
+                <div class="siem-empty-state siem-empty-state--small"><p>{{ 'siem-no-delivery' | i18next }}</p></div>
+              } @else {
+                <div class="table-responsive">
+                  <table class="table siem-table">
+                    <thead>
+                      <tr>
+                        <th>{{ 'siem-col-status' | i18next }}</th>
+                        <th>{{ 'siem-col-destination' | i18next }}</th>
+                        <th>{{ 'siem-col-adapter' | i18next }}</th>
+                        <th class="siem-table__th--num">{{ 'siem-col-attempt' | i18next }}</th>
+                        <th class="siem-table__th--num">{{ 'siem-col-http' | i18next }}</th>
+                        <th>{{ 'siem-col-time' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of deliveryResponse.rows; track row.id ?? row.eventId + '-' + row.attemptNumber) {
+                        <tr>
+                          <td>
+                            <span class="siem-status" [class]="'siem-status siem-status--' + getAttemptStatusVariant(row.status)">
+                              <span class="siem-status__dot"></span>{{ row.status }}
+                            </span>
+                          </td>
+                          <td>{{ row.destinationId }}</td>
+                          <td>{{ getAdapterLabel(row.adapterType) }}</td>
+                          <td class="siem-table__cell--num">{{ row.attemptNumber ?? '—' }}</td>
+                          <td class="siem-table__cell--num">{{ row.httpStatusCode ?? '—' }}</td>
+                          <td class="siem-table__cell--muted">{{ formatDate(row.startedAt) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <div class="siem-pager">
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="onDeliveryPagePrev()" [disabled]="deliverySkip <= 0">
+                    <i class="fa fa-chevron-left" aria-hidden="true"></i> {{ 'siem-prev' | i18next }}
+                  </button>
+                  <span class="siem-pager__info">{{ deliveryResponse.total }} {{ 'siem-total' | i18next }}</span>
+                  <button type="button" class="btn btn-default btn-xs siem-btn" (click)="onDeliveryPageNext()" [disabled]="deliverySkip + deliveryPageSize >= deliveryResponse.total">
+                    {{ 'siem-next' | i18next }} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </div>
+  </div>
+}

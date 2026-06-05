@@ -11,6 +11,7 @@ import {
   toDoiPublishingFormModel
 } from './DoiPublishing';
 import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
+import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration } from './SiemConfiguration';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -36,7 +37,8 @@ export type ConfigModelKey =
     | 'adminSidebar'
     | 'figsharePublishing'
     | 'doiPublishing'
-    | 'dashboardTableConfig';
+    | 'dashboardTableConfig'
+    | 'siem';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -101,6 +103,19 @@ export class ConfigModels {
             class: DashboardTableOverrideConfig,
             schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
+        }],
+        ['siem', {
+            modelName: 'SiemConfiguration',
+            title: 'SIEM Configuration',
+            class: SiemConfiguration,
+            schema: SIEM_CONFIGURATION_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
+            secretFields: [
+                'destinations[].token',
+                'destinations[].password',
+                'destinations[].headers.Authorization',
+                'destinations[].headers.X-Splunk-Token'
+            ]
         }],
     ]);
 

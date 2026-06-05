@@ -1,0 +1,641 @@
+/*
+  SIEM admin app – component styles
+  ---------------------------------
+  Builds on the base ReDBox theme (panels, buttons, tables) and adds the
+  structural layout, compact tables, status pills, stat tiles and toolbar
+  styling specific to the SIEM configuration workspace.
+*/
+
+/* ─── Panel & header ─── */
+
+.siem-panel {
+  margin-bottom: 0;
+}
+
+.siem-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.siem-panel .panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
+
+  i {
+    opacity: 0.85;
+  }
+}
+
+.siem-panel__body {
+  padding: 24px;
+}
+
+.siem-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.siem-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-transform: none;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+/* ─── Enabled toggle ─── */
+
+.siem-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: #4b5563;
+
+  input {
+    margin: 0;
+  }
+}
+
+.siem-toggle--on {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+/* ─── Status line ─── */
+
+.siem-statusline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.siem-statusline__item--warn {
+  color: #92400e;
+  font-weight: 600;
+}
+
+/* ─── Tabs ─── */
+
+.siem-tabs {
+  margin-bottom: 22px;
+}
+
+/* ─── Sections ─── */
+
+.siem-section {
+  margin-bottom: 8px;
+}
+
+.siem-section__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.siem-section__header--spread {
+  justify-content: space-between;
+}
+
+.siem-section__subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  i {
+    color: var(--mu-panel-bg, #6b7280);
+    font-size: 0.85rem;
+  }
+}
+
+.siem-section__minortitle {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.siem-subpanel {
+  margin-bottom: 26px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.siem-subsection {
+  margin-top: 18px;
+}
+
+/* ─── Stat grid ─── */
+
+.siem-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.siem-stat {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 14px 16px;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #d1d5db;
+  }
+}
+
+.siem-stat__label {
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.siem-stat__value {
+  color: #111827;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.siem-stat--primary::before { background: #4338ca; }
+.siem-stat--success::before { background: #16a34a; }
+.siem-stat--danger::before  { background: #dc2626; }
+.siem-stat--warning::before { background: #d97706; }
+
+/* ─── Overview grid ─── */
+
+.siem-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr);
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+/* ─── Destination list ─── */
+
+.siem-dest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.siem-dest-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+  cursor: pointer;
+  background: #fff;
+
+  &:last-child {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.siem-dest-list__item--active {
+  background: #eef2ff;
+  box-shadow: inset 3px 0 0 #4338ca;
+}
+
+.siem-dest-list__name {
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.siem-dest-list__controls {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ─── Destination editor layout ─── */
+
+.siem-dest-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(360px, 2.4fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.siem-dest-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.siem-dest-editor {
+  border: 1px solid #e5e7eb;
+  padding: 18px 20px;
+  background: #fff;
+  min-width: 0;
+}
+
+/* ─── Forms ─── */
+
+.siem-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.siem-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.siem-field--wide {
+  grid-column: 1 / -1;
+}
+
+.siem-field--narrow {
+  max-width: 240px;
+  margin-top: 12px;
+}
+
+.siem-field--checkbox {
+  justify-content: flex-end;
+}
+
+.siem-field__label {
+  color: #4b5563;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.siem-field__input {
+  height: 36px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+
+  &:focus {
+    border-color: #6b7280;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.12);
+  }
+}
+
+.siem-field__hint {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.siem-field__error {
+  font-size: 12px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.siem-textarea {
+  font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
+  font-size: 12px;
+}
+
+.siem-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 500;
+  font-size: 13px;
+  color: #374151;
+
+  input {
+    margin: 0;
+  }
+}
+
+.siem-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.siem-header-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr auto;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.siem-icon-btn {
+  color: #6b7280;
+
+  &:hover {
+    color: #991b1b;
+  }
+}
+
+/* ─── Tables ─── */
+
+.siem-table {
+  margin-bottom: 0;
+  width: 100%;
+
+  thead th {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 9px 12px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    border-bottom: 1px solid #f3f4f6;
+    color: #1f2937;
+    font-size: 13px;
+    padding: 9px 12px;
+    vertical-align: middle;
+    background: #fff;
+  }
+
+  tbody tr:hover td {
+    background: #f9fafb;
+  }
+}
+
+.siem-table__th--num {
+  text-align: right;
+}
+
+.siem-table__cell--num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.siem-table__cell--muted {
+  color: #6b7280;
+}
+
+.siem-table__cell--mono {
+  font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
+  font-size: 12px;
+}
+
+/* ─── Toolbar ─── */
+
+.siem-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.siem-toolbar__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.siem-toolbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ─── Status pills ─── */
+
+.siem-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.siem-status__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.siem-status--success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.siem-status--info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.siem-status--warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.siem-status--danger  { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.siem-status--muted   { background: #f3f4f6; border: 1px solid #e5e7eb; color: #4b5563; }
+.siem-status--neutral { background: #f9fafb; border: 1px solid #e5e7eb; color: #374151; }
+
+/* ─── Test result ─── */
+
+.siem-test-result {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.siem-test-result--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.siem-test-result--fail {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.siem-test-result__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.siem-test-result__meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.siem-test-result__body {
+  margin: 6px 0 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+}
+
+.siem-test-result__body--error {
+  color: #991b1b;
+}
+
+/* ─── Pager ─── */
+
+.siem-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.siem-pager__info {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ─── Alerts, loading, empty ─── */
+
+.siem-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+
+  i {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.siem-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.siem-loading--page {
+  min-height: 12rem;
+}
+
+.siem-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 20px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  color: #6b7280;
+  text-align: center;
+
+  i {
+    font-size: 1.8rem;
+    color: #9ca3af;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}
+
+.siem-empty-state--small {
+  padding: 18px;
+
+  i {
+    font-size: 1.2rem;
+  }
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 991px) {
+  .siem-overview-grid,
+  .siem-dest-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .siem-panel__body {
+    padding: 16px;
+  }
+
+  .siem-form-grid,
+  .siem-checkbox-grid,
+  .siem-toolbar__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .siem-header-row {
+    grid-template-columns: 1fr;
+  }
+}
