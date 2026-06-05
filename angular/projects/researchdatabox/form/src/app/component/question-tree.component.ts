@@ -17,7 +17,8 @@ import {
   QuestionTreeOutcome,
   isQuestionTreeQuestionActivated,
 } from "@researchdatabox/sails-ng-common";
-import { Component, inject, ViewChild, ViewContainerRef } from "@angular/core";
+import { Component, DestroyRef, inject, ViewChild, ViewContainerRef } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AbstractControl, FormGroup } from "@angular/forms";
 import { FormComponentsMap, FormService } from "../form.service";
 import { FormComponent } from "../form.component";
@@ -83,6 +84,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   private componentContainer!: ViewContainerRef;
 
   private eventBus = inject(FormComponentEventBus);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -189,6 +191,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
           && event.sourceId !== '*'
         ),
         debounceTime(50),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
     this.eventBus
@@ -200,6 +203,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
           && event.sourceId !== '*'
         ),
         debounceTime(50),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
   }

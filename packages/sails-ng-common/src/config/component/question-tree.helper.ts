@@ -291,8 +291,10 @@ export function isQuestionTreeQuestionActivated(questionId: string, questions: Q
         case "true":
           continue;
         case "and":
-        case "or":
           rulesToCheck.push(...currentRule.args);
+          continue;
+        case "or":
+          rulesToCheck.push(...currentRule.args.filter(rule => isQuestionTreeQuestionRuleTrue(rule, data)));
           continue;
         case "in":
         case "notin":

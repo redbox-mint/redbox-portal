@@ -8,7 +8,9 @@ import {
   QuestionTreeFieldComponentConfigFrame, QuestionTreeFieldComponentDefinitionFrame,
   QuestionTreeModelValueType,
   QuestionTreeOutcomeInfo,
-  QuestionTreeOutcomeInfoKey
+  QuestionTreeOutcomeInfoKey,
+  QuestionTreeQuestion,
+  isQuestionTreeQuestionActivated,
 } from "@researchdatabox/sails-ng-common";
 import {SimpleInputComponent} from "./simple-input.component";
 import * as sinon from "sinon";
@@ -740,6 +742,42 @@ describe('QuestionTreeComponent', async () => {
 
     expect(firstLabel?.textContent?.trim()).toEqual(expectedValue);
     expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
+  });
+
+  describe("activation rule checks", () => {
+    it("should activate a question when an or rule has one true branch and one false branch", () => {
+      const questions: QuestionTreeQuestion[] = [
+        {
+          id: "q1",
+          answersMin: 1,
+          answersMax: 1,
+          answers: [{value: "yes"}],
+          rules: {op: "true"},
+        },
+        {
+          id: "q2",
+          answersMin: 1,
+          answersMax: 1,
+          answers: [{value: "no"}],
+          rules: {op: "true"},
+        },
+        {
+          id: "target",
+          answersMin: 1,
+          answersMax: 1,
+          answers: [{value: "continue"}],
+          rules: {
+            op: "or",
+            args: [
+              {op: "in", q: "q1", a: ["yes"]},
+              {op: "in", q: "q2", a: ["no"]},
+            ],
+          },
+        },
+      ];
+
+      expect(isQuestionTreeQuestionActivated("target", questions, {q1: "yes", q2: null})).toBeTrue();
+    });
   });
 
   describe("outcome info checks", async () => {
