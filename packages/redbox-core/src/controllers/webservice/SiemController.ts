@@ -109,18 +109,15 @@ export namespace Controllers {
       if (destination.password === APP_CONFIG_SECRET_MASK) {
         destination.password = storedDestination.password;
       }
-      if (destination.headers?.Authorization === APP_CONFIG_SECRET_MASK) {
-        if (storedDestination.headers?.Authorization != null) {
-          destination.headers.Authorization = storedDestination.headers.Authorization;
-        } else {
-          delete destination.headers.Authorization;
+      for (const [key, value] of Object.entries(destination.headers ?? {})) {
+        if (value !== APP_CONFIG_SECRET_MASK) {
+          continue;
         }
-      }
-      if (destination.headers?.['X-Splunk-Token'] === APP_CONFIG_SECRET_MASK) {
-        if (storedDestination.headers?.['X-Splunk-Token'] != null) {
-          destination.headers['X-Splunk-Token'] = storedDestination.headers['X-Splunk-Token'];
+        const storedValue = storedDestination.headers?.[key];
+        if (storedValue != null) {
+          destination.headers[key] = storedValue;
         } else {
-          delete destination.headers['X-Splunk-Token'];
+          delete destination.headers[key];
         }
       }
       return { ...input, destination };
