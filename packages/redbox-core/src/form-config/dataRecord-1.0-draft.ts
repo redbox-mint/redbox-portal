@@ -39,7 +39,7 @@ const formConfig: FormConfigFrame = {
   //     class: "script",// or "valueEquals", "valueInList", "hasKey" etc.
   //     config: {
   //         name: "runSomeOperationThatNeedsTheEntireFormData", // the unique name of the operation
-  //         template: "<%  %>" 
+  //         template: "<%  %>"
   //     }
   //   },
   //   {
@@ -306,7 +306,7 @@ const formConfig: FormConfigFrame = {
                           queryId: 'party',
                           labelField: 'metadata.fullName',
                           valueField: 'oid',
-                          placeholder: 'Start typing a party name...',
+                          placeholder: '@lookup-placeholder-party',
                           minChars: 1,
                           debounceMs: 250,
                           maxResults: 25,
