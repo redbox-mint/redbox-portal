@@ -90,6 +90,7 @@ export * from './config/component/date-input.model';
 export * from './config/component/date-input.outline';
 export * from './config/component/question-tree.model';
 export * from './config/component/question-tree.outline';
+export * from './config/component/question-tree.helper';
 export * from './config/component/checkbox-tree.model';
 export * from './config/component/checkbox-tree.outline';
 export * from './config/component/record-selector.model';

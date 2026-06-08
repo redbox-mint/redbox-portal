@@ -5,6 +5,7 @@ import {
   getValidatedApiRequest,
   executeNamedQueryRoute,
 } from '../../index';
+import type { ReportConfigDto } from '../../services/ReportsService';
 
 export namespace Controllers {
   /**
@@ -16,7 +17,15 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = ['executeNamedQuery'];
+    protected override _exportedMethods: string[] = [
+      'executeNamedQuery',
+      'listConfigs',
+      'getConfig',
+      'createConfig',
+      'updateConfig',
+      'deleteConfig',
+      'previewConfig',
+    ];
 
     /**
      **************************************************************************************************
@@ -24,7 +33,7 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async executeNamedQuery(req: Sails.Req, res: Sails.Res) {
       try {
@@ -59,15 +68,9 @@ export namespace Controllers {
           });
         }
         const paramMap = _.clone(query);
-        const response = await NamedQueryService.performNamedQueryFromConfig(
-          namedQuery,
-          paramMap,
-          brand,
-          start,
-          rows
-        );
+        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
         sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
-        return this.apiRespond(req, res, response, 200);
+        return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error: unknown) {
         sails.log.error(`executeNamedQuery error: ${error}`);
         const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
@@ -77,6 +80,112 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       }
+    }
+
+    public async listConfigs(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, {
+          data: await ReportsService.listConfigs(brand),
+          status: 200,
+          headers: this.getNoCacheHeaders(),
+        });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async getConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const report = await ReportsService.getConfig(brand, validated.params.name as string);
+        if (!report) {
+          const errorResponse = new APIErrorResponse('Report not found');
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        return this.sendResp(req, res, { data: report, status: 200, headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async createConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, {
+          data: await ReportsService.createConfig(brand, validated.body as ReportConfigDto),
+          status: 201,
+          headers: this.getNoCacheHeaders(),
+        });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async updateConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, {
+          data: await ReportsService.updateConfig(
+            brand,
+            validated.params.name as string,
+            validated.body as ReportConfigDto
+          ),
+          status: 200,
+          headers: this.getNoCacheHeaders(),
+        });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async deleteConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, {
+          data: await ReportsService.deleteConfig(brand, validated.params.name as string),
+          status: 200,
+          headers: this.getNoCacheHeaders(),
+        });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async previewConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, {
+          data: await ReportsService.previewConfig(brand, validated.body as ReportConfigDto, req),
+          status: 200,
+          headers: this.getNoCacheHeaders(),
+        });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    private sendReportConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      sails.log.error(`report config error: ${error}`);
+      const status =
+        typeof error === 'object' && error !== null && 'status' in error
+          ? Number((error as { status: number }).status)
+          : 500;
+      const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
+      return this.sendResp(req, res, {
+        status,
+        displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+        headers: this.getNoCacheHeaders(),
+      });
     }
 
     /**

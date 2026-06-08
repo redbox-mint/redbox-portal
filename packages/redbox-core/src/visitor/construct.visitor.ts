@@ -1138,8 +1138,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
-    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
+    this.sharedProps.setPropOverride('closeOnSave', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
@@ -2074,7 +2077,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
       this.formPathHelper.modelName,
       this.formPathHelper.formPath,
-      item
+      item,
+      // Provide the model value so the component visible state can be set correctly.
+      this.currentModelValue(),
     );
 
     // Apply the reusable component overrides.

@@ -95,6 +95,7 @@ export function createMockModel(name: string): any {
     findOne: sinon.stub().returns(createQueryObject(null)),
     create: sinon.stub().returns(createQueryObject({})),
     update: sinon.stub().returns(createQueryObject([])),
+    updateOne: sinon.stub().returns(createQueryObject({})),
     destroy: sinon.stub().returns(createQueryObject([])),
   };
 }

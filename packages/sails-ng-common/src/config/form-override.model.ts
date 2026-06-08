@@ -567,13 +567,18 @@ export class FormOverride {
    * @param name The form component name.
    * @param lineagePath The form component lineage path.
    * @param item The question tree component.
+   * @param modelData The question tree model data.
    * @private
    */
   public applyQuestionTreeDsl(
     name: string | null,
     lineagePath: LineagePaths,
-    item: QuestionTreeFieldComponentDefinitionOutline
+    item: QuestionTreeFieldComponentDefinitionOutline,
+    modelData?: unknown,
   ): AvailableFormComponentDefinitionFrames[] {
+    if (!name) {
+      throw new Error(`${this.logName}: A name is required to apply the question tree DSL.`);
+    }
     const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
     const availableMeta = item.config?.availableMeta ?? {};
     const questions = item.config?.questions ?? [];
@@ -587,7 +592,7 @@ export class FormOverride {
       errors.push(...this.questionTreeHelper.validateQuestion(question, questionIndex, availableOutcomeValues, availableMeta, questionAnswerValuesMap));
 
       // Transform rules DSL to expressions.
-      result.push(this.questionTreeHelper.transformQuestionConfig(name, lineagePath, item, question));
+      result.push(this.questionTreeHelper.transformQuestionConfig(name, lineagePath, item, modelData, question.id, questions));
     });
 
       if (errors.length > 0) {

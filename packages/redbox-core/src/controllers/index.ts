@@ -24,6 +24,7 @@ import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
 import * as DashboardConfigControllerModule from './DashboardConfigController';
+import * as NamedQueryControllerModule from './NamedQueryController';
 
 // Webservice controller imports
 import * as WSAdminControllerModule from './webservice/AdminController';
@@ -32,6 +33,7 @@ import * as WSBrandingControllerModule from './webservice/BrandingController';
 import * as WSExportControllerModule from './webservice/ExportController';
 import * as WSFormManagementControllerModule from './webservice/FormManagementController';
 import * as WSIntegrationAuditControllerModule from './webservice/IntegrationAuditController';
+import * as WSHarvestRunControllerModule from './webservice/HarvestRunController';
 import * as WSRecordControllerModule from './webservice/RecordController';
 import * as WSRecordTypeControllerModule from './webservice/RecordTypeController';
 import * as WSReportControllerModule from './webservice/ReportController';
@@ -40,6 +42,7 @@ import * as WSTranslationControllerModule from './webservice/TranslationControll
 import * as WSUserManagementControllerModule from './webservice/UserManagementController';
 import * as WSVocabularyControllerModule from './webservice/VocabularyController';
 import * as WSDashboardConfigControllerModule from './webservice/DashboardConfigController';
+import * as WSNamedQueryControllerModule from './webservice/NamedQueryController';
 
 // Lazy instantiation cache
 const controllerCache: Record<string, unknown> = {};
@@ -71,6 +74,7 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
     get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
+    get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
@@ -80,6 +84,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
     get ExportController() { return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports()); },
     get FormManagementController() { return getOrCreate('WS_FormManagementController', () => new WSFormManagementControllerModule.Controllers.FormManagement().exports()); },
+    get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
     get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
     get RecordController() { return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports()); },
     get RecordTypeController() { return getOrCreate('WS_RecordTypeController', () => new WSRecordTypeControllerModule.Controllers.RecordType().exports()); },
@@ -89,6 +94,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get UserManagementController() { return getOrCreate('WS_UserManagementController', () => new WSUserManagementControllerModule.Controllers.UserManagement().exports()); },
     get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
     get DashboardConfigController() { return getOrCreate('WS_DashboardConfigController', () => new WSDashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
+    get NamedQueryController() { return getOrCreate('WS_NamedQueryController', () => new WSNamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
@@ -114,6 +120,7 @@ export const ControllerNames = [
     'VocabularyController',
     'WorkspaceAsyncController',
     'WorkspaceTypesController',
+    'NamedQueryController',
 ];
 
 export const WebserviceControllerNames = [
@@ -123,6 +130,7 @@ export const WebserviceControllerNames = [
     'DashboardConfigController',
     'ExportController',
     'FormManagementController',
+    'HarvestRunController',
     'IntegrationAuditController',
     'RecordController',
     'RecordTypeController',
@@ -131,4 +139,5 @@ export const WebserviceControllerNames = [
     'TranslationController',
     'UserManagementController',
     'VocabularyController',
+    'NamedQueryController',
 ];

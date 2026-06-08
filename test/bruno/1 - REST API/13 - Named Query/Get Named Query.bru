@@ -1,0 +1,28 @@
+meta {
+  name: Get Named Query
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/test-query
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Has errors property", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("errors");
+    expect(jsonData.errors).to.be.an("array");
+  });
+}

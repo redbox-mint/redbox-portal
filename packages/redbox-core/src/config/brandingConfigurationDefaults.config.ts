@@ -369,6 +369,7 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             defaultExpanded: true,
             items: [
                 { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
+                { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
                 { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
                 { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
             ]
@@ -383,7 +384,8 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
                 { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
                 { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
-                { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' }
+                { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' },
+                { id: 'named-query', labelKey: 'menu-named-query', href: '/admin/named-query' }
             ]
         },
         {

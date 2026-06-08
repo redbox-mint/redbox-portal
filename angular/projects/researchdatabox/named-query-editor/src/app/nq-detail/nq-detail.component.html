@@ -1,0 +1,92 @@
+<div class="nq-detail">
+  <ul class="nav nav-tabs nq-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'basics'"
+              role="tab" [attr.aria-selected]="activeTab === 'basics'"
+              (click)="setTab('basics')">
+        {{ 'named-query-tab-basics' | i18next }}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'mongo'"
+              role="tab" [attr.aria-selected]="activeTab === 'mongo'"
+              (click)="setTab('mongo')">
+        {{ 'named-query-tab-mongo' | i18next }}
+        <span *ngIf="mongoKeyCount > 0" class="badge badge-secondary ml-1">{{ mongoKeyCount }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'params'"
+              role="tab" [attr.aria-selected]="activeTab === 'params'"
+              (click)="setTab('params')">
+        {{ 'named-query-tab-params' | i18next }}
+        <span *ngIf="paramCount > 0" class="badge badge-secondary ml-1">{{ paramCount }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'mappings'"
+              role="tab" [attr.aria-selected]="activeTab === 'mappings'"
+              (click)="setTab('mappings')">
+        {{ 'named-query-tab-mappings' | i18next }}
+        <span *ngIf="mappingCount > 0" class="badge badge-secondary ml-1">{{ mappingCount }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'sort'"
+              role="tab" [attr.aria-selected]="activeTab === 'sort'"
+              (click)="setTab('sort')">
+        {{ 'named-query-tab-sort-filters' | i18next }}
+        <span *ngIf="(sortCount + filterCount) > 0" class="badge badge-secondary ml-1">{{ sortCount + filterCount }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="nq-tab-content" *ngIf="draft">
+    <div *ngIf="activeTab === 'basics'" class="nq-tab-pane">
+      <div class="row g-2">
+        <div class="form-group col-md-6">
+          <label for="nq-name">{{ 'named-query-name' | i18next }}</label>
+          <input id="nq-name" type="text" class="form-control"
+                 [(ngModel)]="draft.name"
+                 [readonly]="!isNew"
+                 pattern="[A-Za-z0-9_-]+"
+                 title="Letters, numbers, underscores, and hyphens only"
+                 [attr.placeholder]="'named-query-name-placeholder' | i18next" />
+          <small *ngIf="!isNew" class="form-text text-muted">{{ 'named-query-name-readonly-help' | i18next }}</small>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
+          <select id="nq-collection" class="form-control" [(ngModel)]="draft.collectionName">
+            <option value="" disabled>{{ 'named-query-collection-select' | i18next }}</option>
+            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ collection }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-check">
+        <input id="nq-expand-relations" type="checkbox" class="form-check-input"
+               [(ngModel)]="draft.expandRelations" />
+        <label for="nq-expand-relations" class="form-check-label">
+          {{ 'named-query-expand-relations' | i18next }}
+        </label>
+      </div>
+    </div>
+
+    <div *ngIf="activeTab === 'mongo'" class="nq-tab-pane">
+      <mongo-query-editor [(mongoQuery)]="draft.mongoQuery"></mongo-query-editor>
+    </div>
+
+    <div *ngIf="activeTab === 'params'" class="nq-tab-pane">
+      <query-param-editor [(queryParams)]="draft.queryParams"></query-param-editor>
+    </div>
+
+    <div *ngIf="activeTab === 'mappings'" class="nq-tab-pane">
+      <result-mapping-editor [(resultObjectMapping)]="draft.resultObjectMapping"></result-mapping-editor>
+    </div>
+
+    <div *ngIf="activeTab === 'sort'" class="nq-tab-pane">
+      <sort-editor [(sort)]="draft.sort"></sort-editor>
+      <hr class="my-3" />
+      <related-filter-editor [(relatedRecordFilters)]="draft.relatedRecordFilters"></related-filter-editor>
+    </div>
+  </div>
+</div>

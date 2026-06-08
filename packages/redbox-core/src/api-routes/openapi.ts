@@ -1,6 +1,4 @@
-import 'zod-to-openapi';
-
-import { OpenAPIGenerator } from 'zod-to-openapi';
+import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { ZodTypeAny } from 'zod';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
@@ -152,19 +150,36 @@ function sanitizeOpenApiValue<T>(value: T): T {
 }
 
 function createSchemaConverter() {
-  const generator = new OpenAPIGenerator([]);
-  // zod-to-openapi 0.2.1 exposes these only as runtime properties; revisit this when upgrading the package.
+  let componentSchemas: Record<string, unknown> = {};
+  let schemaIndex = 0;
+
   return {
     toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
-      return sanitizeOpenApiValue(
-        (
-          generator as unknown as { generateSingle: (schema: ZodTypeAny) => Record<string, unknown> }
-        ).generateSingle(schema)
-      );
+      const registry = new OpenAPIRegistry();
+      const path = `/__redbox_schema_conversion/${schemaIndex++}`;
+      registry.registerPath({
+        method: 'get',
+        path,
+        responses: {
+          200: {
+            description: 'Schema conversion',
+            content: { 'application/json': { schema } },
+          },
+        },
+      });
+      const document = new OpenApiGeneratorV3(registry.definitions).generateDocument({
+        openapi: '3.0.3',
+        info: { title: 'ReDBox schema conversion', version: '1.0.0' },
+      });
+      const convertedSchema = document.paths[path]?.get?.responses?.[200]?.content?.['application/json']?.schema;
+      if (!convertedSchema) {
+        throw new Error('@asteasolutions/zod-to-openapi did not generate the schema registered by the OpenAPI adapter');
+      }
+      componentSchemas = { ...componentSchemas, ...document.components?.schemas };
+      return sanitizeOpenApiValue(convertedSchema);
     },
     getComponentSchemas(): Record<string, unknown> | undefined {
-      const refs = (generator as unknown as { refs?: Record<string, unknown> }).refs ?? {};
-      return Object.keys(refs).length ? sanitizeOpenApiValue(refs) : undefined;
+      return Object.keys(componentSchemas).length ? sanitizeOpenApiValue(componentSchemas) : undefined;
     },
   };
 }

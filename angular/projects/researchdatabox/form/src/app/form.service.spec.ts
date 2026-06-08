@@ -279,6 +279,31 @@ describe('The FormService', () => {
       expect(control.valid).toBeTrue();
       expect(control.errors).toBeNull();
     });
+
+    it('should keep both errors when the same validator class is used twice on one control', async () => {
+      const control = new FormControl("hello world 2!");
+      const validators: FormValidatorConfig[] = [
+        { class: 'pattern', message: "@must-start-with-prefix", config: { pattern: "^prefix.*$", description: "must start with prefix" } },
+        { class: 'pattern', message: "@must-end-with-suffix", config: { pattern: ".*suffix$", description: "must end with suffix" } },
+      ];
+      const mapEntry = {
+        lineagePaths: {
+          formConfig: ["componentDefinitions", "0"],
+        },
+      } as unknown as FormFieldCompMapEntry;
+
+      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      await waitForAsyncValidation();
+
+      expect(control.invalid).toBeTrue();
+      // Both validators kept their own entry in the merged errors object (no collision).
+      expect(Object.keys(control.errors ?? {}).sort()).toEqual(["pattern#0", "pattern#1"]);
+
+      // The real class is recovered for display, so both appear as 'pattern'.
+      const componentErrors = service.getFormValidatorComponentErrors(control);
+      expect(componentErrors.map(e => e.class)).toEqual(["pattern", "pattern"]);
+      expect(componentErrors.map(e => e.message).sort()).toEqual(["@must-end-with-suffix", "@must-start-with-prefix"]);
+    });
   });
 
   describe('getDynamicImportFormCompiledItems', () => {
@@ -486,5 +511,49 @@ describe('The FormService', () => {
     expect(seedVocabSpy).toHaveBeenCalled();
     expect(createSpy).toHaveBeenCalled();
     expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
+  });
+
+  it("should find nested component", async function () {
+    const entryTwo: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "two"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one", "two"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: []},
+    };
+    const entryOne: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "one"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: [entryTwo]},
+    };
+    const entries: FormFieldCompMapEntry[] = [entryOne];
+    const actual = service.getFormFieldCompMapEntry({dataModel: ["one", "two"]}, entries);
+    expect(actual).toEqual(entryTwo);
+  });
+
+  it("should not find nested component with incorrect query", async function () {
+    const entryTwo: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "two"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one", "two"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: []},
+    };
+    const entryOne: FormFieldCompMapEntry = {
+      // @ts-ignore
+      compConfigJson: {name: "one"},
+      // @ts-ignore
+      lineagePaths: {dataModel: ["one"]},
+      // @ts-ignore
+      component: {formFieldCompMapEntries: [entryTwo]},
+    };
+    const entries: FormFieldCompMapEntry[] = [entryOne];
+    const actual = service.getFormFieldCompMapEntry({dataModel: ["two"]}, entries);
+    expect(actual).toEqual(undefined);
   });
 });

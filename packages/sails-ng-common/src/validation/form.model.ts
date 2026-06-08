@@ -29,6 +29,15 @@ export type FormValidatorErrors = {
   [key: string]: {
     message: string;
     params: FormValidatorErrorParams;
+    /**
+     * The validator class.
+     *
+     * Only set when the error key differs from the class, which happens when the same
+     * validator class is used more than once on a control. In that case the key is made
+     * unique so Angular's error merging keeps every instance, while this property carries
+     * the real class for display.
+     */
+    class?: string;
   } & FormValidatorTargetField;
 };
 
@@ -39,6 +48,18 @@ export type FormValidatorErrors = {
 export type FormValidatorCreateConfig = {
   class?: string;
   message?: string;
+  /**
+   * The key to use for this validator's entry in the merged errors object.
+   *
+   * Defaults to the class. Set to a unique value when the same class is used more than
+   * once on a control, so Angular's error merging does not overwrite earlier instances.
+   *
+   * @internal - This field is managed automatically by the framework. Do not set it
+   * manually in form configuration; doing so will produce an error key that does not
+   * match the validator class, breaking the display recovery in
+   * `getFormValidatorComponentErrors`.
+   */
+  errorKey?: string;
   [key: string]: unknown;
 } & FormValidatorTargetField;
 

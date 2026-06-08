@@ -1,0 +1,41 @@
+meta {
+  name: Reject Invalid Report Config
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "invalid report config",
+    "title": "Invalid Report Config",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "does-not-exist"
+    },
+    "solrQuery": null,
+    "filter": [],
+    "columns": [
+      {
+        "label": "Title",
+        "property": "title"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status code is 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

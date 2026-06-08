@@ -111,14 +111,23 @@ export function formValidatorBuildError(
   const optionMessageValue = formValidatorGetDefinitionString(config, optionMessageKey);
   const optionTargetFieldKey = "targetField";
   const optionTargetFieldValue = formValidatorGetDefinitionObject(config, optionTargetFieldKey, {});
+  // The error key is the validator class, unless a unique error key was assigned because the
+  // same class is used more than once on a control. Keying by a unique value lets Angular's
+  // error merging keep every instance instead of overwriting earlier ones.
+  const optionErrorKeyKey = "errorKey";
+  const optionErrorKeyValue = formValidatorGetDefinitionString(config, optionErrorKeyKey, optionNameValue);
   const result: FormValidatorErrors = {
-    [optionNameValue]: {
+    [optionErrorKeyValue]: {
       [optionMessageKey]: optionMessageValue,
       params: {...params},
     }
   };
+  // Preserve the real class when the key differs, so the class can be recovered for display.
+  if (optionErrorKeyValue !== optionNameValue) {
+    result[optionErrorKeyValue][optionNameKey] = optionNameValue;
+  }
   if (Object.keys(optionTargetFieldValue).length > 0) {
-    result[optionNameValue][optionTargetFieldKey] = optionTargetFieldValue
+    result[optionErrorKeyValue][optionTargetFieldKey] = optionTargetFieldValue
   }
   return result;
 }
