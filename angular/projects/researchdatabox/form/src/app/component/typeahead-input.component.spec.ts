@@ -686,4 +686,30 @@ describe("TypeaheadInputComponent", () => {
 
         expect((formComponent as any).form.get("vocab_lookup")?.value).toBeNull();
     });
+
+    it("displays translated placeholder", async () => {
+      const formConfig: FormConfigFrame = {
+        name: "testing",
+        componentDefinitions: [
+          {
+            name: "person_lookup",
+            component: {
+              class: "TypeaheadInputComponent",
+              config: {
+                sourceType: "static",
+                staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                placeholder: '@lookup-placeholder-party',
+              }
+            },
+            model: {
+              class: "TypeaheadInputModel",
+              config: {}
+            }
+          }
+        ]
+      };
+      const { fixture } = await createFormAndWaitForReady(formConfig);
+      const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+      expect(input.placeholder).toEqual("Start typing a party name...");
+    });
 });
