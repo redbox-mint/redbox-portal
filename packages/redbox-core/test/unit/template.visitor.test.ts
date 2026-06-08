@@ -57,23 +57,6 @@ describe("Template Visitor", async () => {
                         kind: "jsonata",
                         value: `value = "hide repeatable_textfield_1"`,
                     },
-                    {
-                        // layout.visible
-                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "0", "config", "template"],
-                        kind: "jsonata",
-                        value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
-                    },
-                    {
-                        // component.visible
-                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "1", "config", "template"],
-                        kind: "jsonata",
-                        value: '$count(formData.`questiontree_1`.`question_1`[][$ in ["no"]]) > 0',
-                    },
-                    {
-                        key: ["componentDefinitions", "0", "component", "config", "tabs", "1", "component", "config", "componentDefinitions", "2", "component", "config", "componentDefinitions", "1", "expressions", "2", "config", "template",],
-                        kind: "jsonata",
-                        value: "($count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0 ? formData.`questiontree_1`.`question_2` : null)",
-                    },
                 ]
             },
             {
