@@ -1,37 +1,35 @@
-import { Component, inject, effect, signal, Injector } from '@angular/core';
-import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { FormComponent } from '../form.component';
-import { SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedEvent, FormStateFacade } from '../form-state';
-import { FormService } from "../form.service";
+import {Component, effect, signal} from '@angular/core';
+import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import {FormComponentEventType, createFormSaveRequestedEvent} from '../form-state';
+import {ButtonBaseComponent} from "./button-base.component";
 
 @Component({
   selector: 'redbox-form-save-button',
   template: `
-  @if (isVisible) {
-    <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-    <div class="rb-form-save-button">
-      <button type="button" [class]="buttonCssClasses" (click)="save()" [innerHtml]="translate(currentLabel())" [disabled]="disabled()"></button>
-    </div>
-    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
-  }
+    @if (isVisible) {
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
+      <div class="rb-form-save-button">
+        <button
+          type="button"
+          [class]="buttonCssClasses"
+          (click)="save()"
+          [innerHtml]="translate(currentLabel())"
+          [disabled]="disabled()"
+        ></button>
+      </div>
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+    }
   `,
   standalone: false
 })
-export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
+export class SaveButtonComponent extends ButtonBaseComponent {
   public override logName = SaveButtonComponentName;
   disabled = signal<boolean>(true);
-  private readonly eventBus = inject(FormComponentEventBus);
   public override componentDefinition?: SaveButtonFieldComponentDefinitionOutline;
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
-  protected formStateFacade = inject(FormStateFacade);
-  protected formService = inject(FormService);
-  private _injector = inject(Injector);
 
-  get buttonCssClasses(): string {
-    const configuredClasses = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['buttonCssClasses'];
-    return this.resolveButtonCssClasses(typeof configuredClasses === 'string' ? configuredClasses : undefined, 'btn-primary');
-  }
+
+  protected override fallbackVariantClass: string = 'btn-primary';
 
   constructor() {
     super();
@@ -66,12 +64,13 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
   public async save() {
     if (!this.disabled()) {
       // Publish a typed event to request save; NgRx effects will orchestrate execution
+      const redirectLocation = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
       this.eventBus.publish(
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave,
           targetStep: this.componentDefinition?.config?.targetStep,
           closeOnSave: this.componentDefinition?.config?.closeOnSave,
-          redirectLocation: this.componentDefinition?.config?.redirectLocation,
+          redirectLocation: await this.resolveRedirectLocation(redirectLocation),
           redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
           enabledValidationGroups: this.componentDefinition?.config?.enabledValidationGroups ?? this.getFormComponent.enabledValidationGroups,
           sourceId: this.name ?? undefined
@@ -80,22 +79,5 @@ export class SaveButtonComponent extends FormFieldBaseComponent<undefined> {
     } else {
       this.loggerService.debug(`Save button is disabled; save action not triggered.`);
     }
-  }
-
-  private get getFormComponent(): FormComponent {
-    return this.formComponent;
-  }
-
-  private resolveButtonCssClasses(configured: string | undefined, fallbackVariantClass: string): string {
-    const normalized = (configured ?? '').trim().replace(/\s+/g, ' ');
-    if (!normalized) {
-      return `btn ${fallbackVariantClass}`;
-    }
-    const classTokens = normalized.split(/\s+/);
-    return classTokens.includes('btn') ? normalized : `btn ${normalized}`;
-  }
-
-  protected translate(value?: string): string {
-    return this.formService.translate(value);
   }
 }
