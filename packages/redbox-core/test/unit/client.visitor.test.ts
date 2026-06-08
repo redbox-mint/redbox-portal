@@ -1,8 +1,9 @@
 import {
-  FormConfigFrame, FormExpressionsTemplateLayoutConfigFrame,
+  FormConfigFrame, FormExpressionsOptionsConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
-  QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
-  QuestionTreeQuestion,
+  QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeMeta, QuestionTreeOutcome,
+  QuestionTreeOutcomeInfoKey, QuestionTreeQuestion,
   RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
 } from "@researchdatabox/sails-ng-common";
@@ -1659,12 +1660,6 @@ describe("Client Visitor", async () => {
         }
       ]
     };
-    const expressionBase: FormExpressionsTemplateLayoutConfigFrame = {
-      condition: "/questiontree_1::field.value.changed",
-      template: "",
-      conditionKind: 'jsonpointer',
-      target: `layout.visible`,
-    };
     const expected: FormConfigFrame = {
       name: "form",
       componentDefinitions: [
@@ -1683,8 +1678,8 @@ describe("Client Visitor", async () => {
                     class: "RadioInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_1-yes"},
-                        {value: "no", label: "@questiontree_1-question_1-no"},
+                        {value: "yes", label: "@questiontree_1-item-question_1-yes-label"},
+                        {value: "no", label: "@questiontree_1-item-question_1-no-label"},
                       ]
                     }
                   },
@@ -1702,8 +1697,8 @@ describe("Client Visitor", async () => {
                     class: "CheckboxInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_2-yes"},
-                        {value: "no", label: "@questiontree_1-question_2-no"},
+                        {value: "yes", label: "@questiontree_1-item-question_2-yes-label"},
+                        {value: "no", label: "@questiontree_1-item-question_2-no-label"},
                       ]
                     }
                   },
@@ -1714,15 +1709,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_2-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase,
-                        template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
-                      }
-                    }
-                  ],
                 },
                 {
                   name: "question_3",
@@ -1730,9 +1716,9 @@ describe("Client Visitor", async () => {
                     class: "CheckboxInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_3-yes"},
-                        {value: "maybe", label: "@questiontree_1-question_3-maybe"},
-                        {value: "no", label: "@questiontree_1-question_3-no"}]
+                        {value: "yes", label: "@questiontree_1-item-question_3-yes-label"},
+                        {value: "maybe", label: "@questiontree_1-item-question_3-maybe-label"},
+                        {value: "no", label: "@questiontree_1-item-question_3-no-label"}]
                     }
                   },
                   layout: {
@@ -1742,15 +1728,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_3-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase,
-                        template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
-                      }
-                    }
-                  ],
                 },
                 {
                   name: "question_4",
@@ -1770,28 +1747,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_4-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase, template: "(" +
-                          "(" +
-                          "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
-                          ")" +
-                          ") or (" +
-                          "(" +
-                          "formData.`questiontree_1`.`question_1`[] = [\"no\"]" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(formData.`questiontree_1`.`question_2`)" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
-                          ")" +
-                          ")"
-                      }
-                    }
-                  ],
                 },
               ],
             }
@@ -1812,13 +1767,6 @@ describe("Client Visitor", async () => {
 
     expect(actual).to.containSubset(expected);
     const questionTree = actual.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
-    for (const componentDefinition of questionTree.component.config?.componentDefinitions ?? []) {
-      for (const expression of componentDefinition.expressions ?? []) {
-        if (expression.config.template !== undefined) {
-          expect(expression.config.hasTemplate, expression.name).to.equal(true);
-        }
-      }
-    }
   });
 
   it("should transform question tree answers to content in view mode", async () => {

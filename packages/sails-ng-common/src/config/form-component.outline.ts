@@ -134,7 +134,7 @@ export const FormExpressionsTargetFieldDisabled = "field.disabled" as const;
 type FormExpressionsTargetFieldDisabledType = typeof FormExpressionsTargetFieldDisabled;
 interface FormExpressionsTargetFieldDisabledConfigFrame {
   /**
-   * A convenience target that sets all of `component.visible`, `layout.visible`, and `model.disabled`.
+   * A convenience target that sets all of `component.disabled`, `layout.disabled`, and `model.disabled`.
    */
   target: FormExpressionsTargetFieldDisabledType;
 }

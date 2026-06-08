@@ -7,87 +7,16 @@ import {
 import {AvailableFormComponentDefinitionFrames} from "../dictionary.outline";
 import {ReusableFormComponentDefinitionFrame} from "./reusable.outline";
 import {LineagePaths} from "../names/naming-helpers";
-import {PropertiesHelper} from "../visitor/common.model";
 import {ILogger} from "../../logger.interface";
-import {FormExpressionsConfigFrame} from "../form-component.outline";
+import {guessType} from "../helpers";
 
 export class QuestionTreeHelper {
   private readonly logName = "QuestionTreeHelper";
   private readonly defaultQuestionTreeLabelPrefix = "questiontree";
   private readonly logger: ILogger;
-  private readonly propertiesHelper: PropertiesHelper;
 
   constructor(logger: ILogger) {
     this.logger = logger;
-    this.propertiesHelper = new PropertiesHelper();
-  }
-
-  /**
-   * Convert the question tree rules to a JSONata expression to control the visibility.
-   * @param lineagePath The question tree lineage paths.
-   * @param rule The current question rule.
-   * @return The JSONata expression.
-   */
-  public questionTreeRuleToExpression(lineagePath: LineagePaths, rule: QuestionTreeQuestionRules): string {
-    switch (rule.op) {
-      case "true":
-        return 'true';
-      case "and":
-        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' and ');
-      case "or":
-        return rule.args.map(arg => `(${this.questionTreeRuleToExpression(lineagePath, arg)})`).join(' or ');
-      case "in":
-      case "notin":
-      case "only":
-        // Build the jsonata format identifier.
-        // Use the question tree angular component path, plus the question id as the path.
-        const identifierString = this.questionReference(lineagePath, rule.q);
-        // The value can be converted to a json array for the jsonata expression.
-        const values = (Array.isArray(rule.a) ? rule.a : [rule.a]).map(i => this.propertiesHelper.toFieldReference(i));
-        const valueString = JSON.stringify(values);
-        if (rule.op === "in") {
-          return `$count(${identifierString}[][$ in ${valueString}]) > 0`;
-        } else if (rule.op === "only") {
-          return `${identifierString}[] = ${valueString}`;
-        } else if (rule.op === "notin") {
-          return `$count(${identifierString}[][$not($ in ${valueString})]) = $count(${identifierString})`;
-        }
-        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
-      default:
-        throw new Error(`${this.logName} unknown rule ${JSON.stringify(rule)}.`);
-    }
-  }
-
-  /**
-   * Build the JSONata reference / identifier from the question tree lineage path and qauestion id.
-   * @param lineagePath The question tree lineage paths.
-   * @param questionId The question id.
-   * @return The JSONata reference / identifier.
-   */
-  public questionReference(lineagePath: LineagePaths, questionId: string) {
-    const path = [...lineagePath.dataModel, questionId]
-    return `formData.${this.propertiesHelper.lineagePathToExpressionIdentifiers([...path])}`
-  }
-
-  /**
-   * Convert the visibility JSONata rule expression to a JSONata expression to set the model.value.
-   * @param ruleExpression The visibility JSONata rule expression.
-   * @param questionReference The JSONata question reference / identifier.
-   * @return The JSONata expression to set the model.value.
-   */
-  public questionTreeModelValueExpression(ruleExpression: string, questionReference: string): string {
-    // NOTE: A Question Tree component model.value could be set to null based on either of two criteria:
-    //  1) Using the rule expression:
-    //    - If the rule expression is true, then component should be visible, use the existing model value.
-    //    - If the rule expression is false, then component should be hidden, so set the model.value to null.
-    //  2) Using the visible state of the component:
-    //    - If the component is visible, use the existing data model value.
-    //    - If the component is hidden, set the model.value to null.
-
-    //  Chose to use the rule expression, as it is directly responsible for the changes.
-    //  However, there could be edge cases where the rule expression is not enough,
-    //  and the field.ui-attribute.changed might need to be used instead.
-    return `(${ruleExpression} ? ${questionReference} : null)`;
   }
 
   public validateQuestions(questions: QuestionTreeQuestion[]) {
@@ -221,82 +150,44 @@ export class QuestionTreeHelper {
    * @param name The question tree name.
    * @param lineagePath The question tree lineage path.
    * @param item The question tree component config.
-   * @param question The question config to transform.
+   * @param modelData The full question tree model data.
+   * @param questionId The question config to transform.
+   * @param questions The questions config.
    * @return A reusable form definition representing the question and available answers.
    */
   public transformQuestionConfig(
-    name: string | null,
+    name: string,
     lineagePath: LineagePaths,
     item: QuestionTreeFieldComponentDefinitionOutline,
-    question: QuestionTreeQuestion
+    modelData: unknown,
+    questionId: string,
+    questions: QuestionTreeQuestion[],
   ): ReusableFormComponentDefinitionFrame {
     if (!lineagePath.angularComponentsJsonPointer) {
       throw new Error(`${this.logName}: Did not provide lineage path JSON pointer ${JSON.stringify({
         name, lineagePath, item
       })}`);
     }
+    if (modelData !== undefined && (guessType(modelData) !== 'object' || typeof modelData !== 'object')) {
+      throw new Error(`${this.logName}: Expected model data to be an object, but got ${modelData}`);
+    }
 
-    const id = question.id;
+    const question = questions.find(q => q.id === questionId);
+    if (question === undefined) {
+      throw new Error(`${this.logName}: Could not find question id ${questionId}`);
+    }
+    const id = questionId;
     const answersMax = question.answersMax;
     const answers = question.answers;
-    const rules = question.rules;
 
-    const ruleExpression = this.questionTreeRuleToExpression(lineagePath, rules);
-    const questionReference = this.questionReference(lineagePath, id);
-    const modelValueExpression = this.questionTreeModelValueExpression(ruleExpression, questionReference);
-
-    // TODO: Component visibility is based on the rule expressions, but the record data can change this.
-    //       For now, the visibility change due to record data is done on the client only.
-    //       It might be necessary to calculate the visibility on the server-side using the record data.
-    const isVisible = !ruleExpression || ruleExpression === 'true';
-
-    // Notes:
-    // - condition is always executed, should be true or false, if true, then evals template
-    // - The condition should restrict to the question tree.
-    // - use formData in the template to get the current value of a component of the question tree
-    // - Both the layout and component have `visible` properties, so they both need to be set.
-
-    const configCondition = `${lineagePath.angularComponentsJsonPointer}::field.value.changed`;
-    const expressions: FormExpressionsConfigFrame[] | undefined = isVisible ? undefined : [
-      {
-        // Show and hide the layout based on the rules for the question.
-        name: `${name}-${id}-layoutvis-qt`,
-        config: {
-          template: ruleExpression,
-          conditionKind: 'jsonpointer',
-          condition: configCondition,
-          target: `layout.visible`
-        }
-      },
-      {
-        // TODO: if the layout is changed to also control the component visibility, this expression can be removed.
-        // Show and hide the component based on the rules for the question.
-        name: `${name}-${id}-compvis-qt`,
-        config: {
-          template: ruleExpression,
-          conditionKind: 'jsonpointer',
-          condition: configCondition,
-          target: `component.visible`
-        }
-      },
-      {
-        // Set the component value to null based on the rules for the question.
-        name: `${name}-${id}-modval-qt`,
-        config: {
-          template: modelValueExpression,
-          conditionKind: 'jsonpointer',
-          condition: configCondition,
-          target: `model.value`
-        }
-      },
-    ];
+    const isVisible = isQuestionTreeQuestionActivated(id, questions, modelData as Record<string, unknown>);
 
     // build reusable component
     const hasOneAnswer = answersMax === 1;
     const componentOptions = answers.map(a => {
-      return {value: a.value, label: a.label ?? `@${name}-${id}-${a.value}`};
+      return {value: a.value, label: this.questionAnswerLabelKey(name, id, a.value, a.label)};
     });
-    const questionLabel = question.label !== undefined ? question.label : this.questionLabelKey(name, id);
+    const questionLabel = this.questionLabelKey(name, id, question.label);
     const questionHelpText = this.questionHelpKey(name, id);
     const componentAnswerOne: AvailableFormComponentDefinitionFrames = {
       overrides: {reusableFormName: "questiontree-answer-one"},
@@ -307,9 +198,11 @@ export class QuestionTreeHelper {
             {
               name: "questiontree_answer_one",
               overrides: {replaceName: id},
-              layout: {class: "DefaultLayout", config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}},
+              layout: {
+                class: "DefaultLayout",
+                config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}
+              },
               component: {class: "RadioInputComponent", config: {options: componentOptions, visible: isVisible}},
-              expressions: expressions,
             },
           ],
         },
@@ -325,9 +218,11 @@ export class QuestionTreeHelper {
             {
               name: 'questiontree_answer_one_more',
               overrides: {replaceName: id},
-              layout: {class: 'DefaultLayout', config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}},
+              layout: {
+                class: 'DefaultLayout',
+                config: {label: questionLabel, helpText: questionHelpText, visible: isVisible}
+              },
               component: {class: 'CheckboxInputComponent', config: {options: componentOptions, visible: isVisible}},
-              expressions: expressions,
             },
           ],
         },
@@ -336,18 +231,123 @@ export class QuestionTreeHelper {
     return hasOneAnswer ? componentAnswerOne : componentAnswerMore;
   }
 
-  private questionLabelKey(componentName: string | null, label: string): string {
-    if (label.startsWith("@")) {
-      return label;
-    }
-
-    const keyPrefix = (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
-    return `@${keyPrefix}-item-${label}-label`;
+  private questionLabelPrefix(componentName: string) {
+    return (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
   }
 
-  private questionHelpKey(componentName: string | null, questionId: string): string {
-    const keyPrefix = (componentName ?? "").trim().replace(/^@+/, "") || this.defaultQuestionTreeLabelPrefix;
+  private questionLabelKey(componentName: string, questionId: string, questionLabel: string | undefined): string {
+    if (!!questionLabel?.trim()) {
+      return questionLabel;
+    }
+
+    const keyPrefix = this.questionLabelPrefix(componentName);
+    return `@${keyPrefix}-item-${questionId}-label`;
+  }
+
+  private questionHelpKey(componentName: string, questionId: string): string {
+    const keyPrefix = this.questionLabelPrefix(componentName);
     return `@${keyPrefix}-item-${questionId}-help`;
   }
 
+  private questionAnswerLabelKey(componentName: string, questionId: string, answerValue: string, answerLabel: string | null | undefined) {
+    if (!!answerLabel?.trim()) {
+      return answerLabel;
+    }
+
+    const keyPrefix = this.questionLabelPrefix(componentName);
+    return `@${keyPrefix}-item-${questionId}-${answerValue}-label`;
+  }
+
+}
+
+/**
+ * Determine whether a question should be 'activated' based on the provided question tree form model data.
+ * - An activated question is visible and can have a non-null data model. A question is active if its rules evaluate to true.
+ * - A deactivated question is not visible and its form model data must be null.
+ * @param questionId The question id.
+ * @param questions The questions config.
+ * @param data The current question tree form data.
+ */
+export function isQuestionTreeQuestionActivated(questionId: string, questions: QuestionTreeQuestion[], data: Record<string, unknown>): boolean {
+  const questionIdsToCheck = [questionId];
+  while (questionIdsToCheck.length > 0) {
+    const currentQuestionId = questionIdsToCheck.shift();
+    const currentQuestion = questions.find(q => q.id === currentQuestionId);
+    if (currentQuestion === undefined) {
+      return false;
+    }
+
+    const rulesToCheck = [currentQuestion?.rules];
+    while (rulesToCheck.length > 0) {
+      const currentRule = rulesToCheck.shift();
+      if (currentRule === undefined) {
+        return false;
+      }
+
+      if (!isQuestionTreeQuestionRuleTrue(currentRule, data)) {
+        return false;
+      }
+      switch (currentRule?.op) {
+        case "true":
+          continue;
+        case "and":
+          rulesToCheck.push(...currentRule.args);
+          continue;
+        case "or":
+          rulesToCheck.push(...currentRule.args.filter(rule => isQuestionTreeQuestionRuleTrue(rule, data)));
+          continue;
+        case "in":
+        case "notin":
+        case "only":
+          if (currentRule.q) {
+            questionIdsToCheck.push(currentRule.q);
+          }
+          continue;
+        default:
+          throw new Error(`Unknown question tree question rule ${JSON.stringify(currentRule)}.`);
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Determine whether a rule is true given the data.
+ * @param rule The question tree question rule to check.
+ * @param data The question tree data.
+ */
+export function isQuestionTreeQuestionRuleTrue(rule: QuestionTreeQuestionRules, data: Record<string, unknown>): boolean {
+  switch (rule.op) {
+    case "true":
+      return true;
+
+    case "and":
+      return rule.args.every(rule => isQuestionTreeQuestionRuleTrue(rule, data));
+
+    case "or":
+      return rule.args.some(rule => isQuestionTreeQuestionRuleTrue(rule, data));
+
+    case "in":
+      const valueIn = data?.[rule.q] ?? "";
+      const actualIn = Array.isArray(valueIn) ? valueIn : [valueIn];
+      const expectedIn = Array.isArray(rule.a) ? rule.a : [rule.a];
+      return expectedIn.every(e => actualIn.filter(a => !!a).includes(e));
+
+    case "notin":
+      const valueNotIn = data?.[rule.q] ?? "";
+      const actualNotIn = Array.isArray(valueNotIn) ? valueNotIn : [valueNotIn];
+      const expectedNotIn = Array.isArray(rule.a) ? rule.a : [rule.a];
+      return expectedNotIn.every(e => !actualNotIn.filter(a => !!a).includes(e));
+
+    case "only":
+      const valueOnly = data?.[rule.q] ?? "";
+      const actualOnly = Array.isArray(valueOnly) ? valueOnly : [valueOnly];
+      const expectedOnly = Array.isArray(rule.a) ? rule.a : [rule.a];
+      return actualOnly.length === expectedOnly.length &&
+        expectedOnly.every(e => actualOnly.filter(a => !!a).includes(e)) &&
+        actualOnly.every(a => expectedOnly.filter(e => !!e).includes(a));
+
+    default:
+      throw new Error(`Unknown question tree question rule ${JSON.stringify(rule)}.`);
+  }
 }
