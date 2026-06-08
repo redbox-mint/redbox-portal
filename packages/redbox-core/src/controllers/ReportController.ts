@@ -19,7 +19,13 @@ export namespace Controllers {
       'render',
       'get',
       'getResults',
-      'downloadCSV'
+      'downloadCSV',
+      'listConfigs',
+      'getConfig',
+      'createConfig',
+      'updateConfig',
+      'deleteConfig',
+      'previewConfig'
     ];
 
     /**
@@ -107,6 +113,74 @@ export namespace Controllers {
         const message = error instanceof Error ? error.message : String(error);
         return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders(), errors: [error] });
       }
+    }
+
+    public async listConfigs(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, { data: await ReportsService.listConfigs(brand), headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async getConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        const report = await ReportsService.getConfig(brand, req.param('name'));
+        if (!report) {
+          return this.sendResp(req, res, { status: 404, data: { status: false, message: 'Report not found' }, headers: this.getNoCacheHeaders() });
+        }
+        return this.sendResp(req, res, { data: report, headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async createConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        const report = await ReportsService.createConfig(brand, req.body);
+        return this.sendResp(req, res, { status: 201, data: report, headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async updateConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        const report = await ReportsService.updateConfig(brand, req.param('name'), req.body);
+        return this.sendResp(req, res, { data: report, headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async deleteConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        return this.sendResp(req, res, { data: await ReportsService.deleteConfig(brand, req.param('name')), headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    public async previewConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding as string);
+        const params = { param: (name: string) => req.param(name) as string | undefined | null };
+        return this.sendResp(req, res, { data: await ReportsService.previewConfig(brand, req.body, params), headers: this.getNoCacheHeaders() });
+      } catch (error: unknown) {
+        return this.sendReportConfigError(req, res, error);
+      }
+    }
+
+    private sendReportConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      sails.log.error(error);
+      const status = typeof error === 'object' && error !== null && 'status' in error ? Number((error as { status: number }).status) : 500;
+      const message = error instanceof Error ? error.message : String(error);
+      return this.sendResp(req, res, { status, data: { status: false, message }, headers: this.getNoCacheHeaders() });
     }
 
     /**

@@ -473,7 +473,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return this.formService.translate(summary.message);
     }
     if (summary.id) {
-      return summary.id;
+      return this.formService.translate(summary.id);
     }
     return this.formService.translate("@validator-label-default");
   }

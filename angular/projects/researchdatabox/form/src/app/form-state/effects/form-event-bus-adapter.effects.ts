@@ -168,8 +168,8 @@ export class FormEventBusAdapterEffects {
         event.isValid
           ? FormActions.formValidationSuccess()
           : FormActions.formValidationFailure({
-              error: formatErrorsForMessage(event.errors)
-            })
+            error: formatErrorsForMessage(event.errors)
+          })
     )
   );
 
@@ -208,6 +208,9 @@ export class FormEventBusAdapterEffects {
           force: event.force,
           enabledValidationGroups: event.enabledValidationGroups,
           targetStep: event.targetStep,
+          closeOnSave: event.closeOnSave,
+          redirectLocation: event.redirectLocation,
+          redirectDelaySeconds: event.redirectDelaySeconds,
         });
         if (this.config.diagnosticsEnabled) {
           logPromotion(this.logger, FormComponentEventType.FORM_SAVE_REQUESTED, PromotionCriterion.TRIGGERS_SIDE_EFFECT, action.type);

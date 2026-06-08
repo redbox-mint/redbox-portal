@@ -1,0 +1,53 @@
+{
+  "collectionName": "record",
+  "brandIdFieldPath": "metaMetadata.brandId",
+  "resultObjectMapping": {
+    "oid": "{{record.redboxOid}}",
+    "title": "{{record.metadata.title}}",
+    "contributor_ci": "{{record.metadata.contributor_ci.text_full_name}}",
+    "contributor_data_manager": "{{record.metadata.contributor_data_manager.text_full_name}}"
+  },
+  "mongoQuery": {
+    "metaMetadata.type": "rdmp",
+    "metadata.title": null,
+    "dateCreated": null
+  },
+  "sort": [{ "lastSaveDate": "DESC" }],
+  "queryParams": {
+    "title": {
+      "type": "string",
+      "path": "metadata.title",
+      "queryType": "contains",
+      "whenUndefined": "defaultValue",
+      "defaultValue": ""
+    },
+    "dateCreatedBefore": {
+      "type": "string",
+      "path": "dateCreated",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateCreatedAfter": {
+      "type": "string",
+      "path": "dateCreated",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    },
+    "dateModifiedBefore": {
+      "type": "string",
+      "path": "lastSaveDate",
+      "queryType": "<=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "3000-01-01T00:00:00.000Z"
+    },
+    "dateModifiedAfter": {
+      "type": "string",
+      "path": "lastSaveDate",
+      "queryType": ">=",
+      "whenUndefined": "defaultValue",
+      "defaultValue": "1900-01-01T00:00:00.000Z"
+    }
+  }
+}

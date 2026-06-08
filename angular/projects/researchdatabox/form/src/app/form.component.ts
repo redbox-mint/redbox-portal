@@ -31,8 +31,21 @@ import {
   ViewContainerRef,
   ViewEncapsulation,
 } from '@angular/core';
-import {Subscription} from 'rxjs';
-import {Location, LocationStrategy, PathLocationStrategy} from '@angular/common';
+import {
+  catchError,
+  filter,
+  firstValueFrom,
+  interval,
+  map,
+  merge,
+  of,
+  startWith,
+  Subject,
+  Subscription,
+  take,
+  timeout
+} from 'rxjs';
+import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import {
   FormControlStatus,
   FormGroup,
@@ -64,12 +77,16 @@ import {
   FormRequestParamsMap,
   FormRequestParamValue,
   FormStatus,
+  FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
-  JSONataQuerySource, LineagePaths,
+  FormValidatorTargetFieldConfig,
+  isMatchingLineagePaths,
+  JSONataQuerySource,
+  LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
-import {FormBaseWrapperComponent} from './component/base-wrapper.component';
-import {FormComponentsMap, FormService} from './form.service';
-import {FormComponentEventBus} from './form-state/events/form-component-event-bus.service';
+import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { FormComponentsMap, FormService } from './form.service';
+import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import {
   FormComponentFocusRequestCoordinator
 } from './form-state/events/form-component-focus-request-coordinator.service';
@@ -78,21 +95,23 @@ import {
   createFormDefinitionReadyEvent,
   createFormDeleteFailureEvent,
   createFormDeleteSuccessEvent,
+  createFormRedirectRequestedEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
   createFormValidationBroadcastEvent,
+  DeleteEventConfig,
   FormComponentEvent,
   FormComponentEventType,
   FormStatusDirtyRequestEvent,
   FormValidationGroupsChangeInitial,
-  FormValidationGroupsChangeRequestEvent,
+  FormValidationGroupsChangeRequestEvent, SaveOperationEventConfig, SaveRedirectEventConfig,
 } from './form-state/events/form-component-event.types';
-import {FormStateFacade} from './form-state/facade/form-state.facade';
-import {Store} from '@ngrx/store';
+import { FormStateFacade } from './form-state/facade/form-state.facade';
+import { Store } from '@ngrx/store';
 import * as FormActions from './form-state/state/form.actions';
-import {FormComponentValueChangeEventConsumer} from './form-state/events/';
-import {DebugInfo, FormDebugStateService} from './form-debug/form-debug-state.service';
-import {FormBehaviourManager} from './form-state/behaviours/form-behaviour-manager.service';
+import { FormComponentValueChangeEventConsumer } from './form-state/events/';
+import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
+import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
 
 /**
  * The ReDBox Form
@@ -205,6 +224,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private eventBus = inject(FormComponentEventBus);
   private focusRequestCoordinator = inject(FormComponentFocusRequestCoordinator);
+  private preTemporarySaveValidationGroups: string[] = [];
+  private resetTemporaryValidationGroupsOnNextChange = false;
+  private pendingValidationTimeoutMs = 30000;
   public readonly eventScopeId = `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   /**
    * Status of the form, derived from the facade as signal
@@ -262,6 +284,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   subMaps: Record<string, Subscription> = {};
 
+  private isDestroyed = false;
+  private readonly destroy$ = new Subject<void>();
+
   /**
    * Debug info structure
    */
@@ -295,6 +320,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   private behaviourManager = inject(FormBehaviourManager);
 
+  private readonly document = inject(DOCUMENT);
+  private window: Window & typeof globalThis | null;
+
   protected configObj: Record<string, unknown> = {};
 
   public get config() {
@@ -311,6 +339,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   ) {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
+    this.window = this.document.defaultView;
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
@@ -341,10 +370,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.refreshRequestParamsFromUrl();
     this.initEffects();
-  }
-
-  protected get getFormService() {
-    return this.formService;
   }
 
   protected async initComponent(): Promise<void> {
@@ -509,11 +534,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
       .subscribe(async evt => {
-        // Default payload handling with safe fallbacks
-        const force = !!evt.force;
-        const targetStep = evt.targetStep ?? '';
-        const enabledValidationGroups = evt.enabledValidationGroups ?? [];
-        await this.saveForm(force, targetStep, enabledValidationGroups);
+        const force = evt.force;
+        const targetStep = evt.targetStep;
+        const enabledValidationGroups = evt.enabledValidationGroups;
+        const closeOnSave = evt?.closeOnSave;
+        const redirectLocation = evt?.redirectLocation;
+        const redirectDelaySeconds = evt?.redirectDelaySeconds;
+        await this.saveForm({
+          force, targetStep, enabledValidationGroups,
+          closeOnSave, redirectLocation, redirectDelaySeconds,
+        });
+      });
+    this.subMaps['saveSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnSave) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              // if closeOnSave is true, but no redirect is specified, go to the previous page.
+              historyDelta: evt?.redirectLocation ? undefined : -1,
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
@@ -523,6 +567,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           redirectLocation: evt.redirectLocation,
           redirectDelaySeconds: evt.redirectDelaySeconds,
         });
+      });
+    this.subMaps['deleteSuccessRedirectSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_DELETE_SUCCESS)
+      .subscribe((evt) => {
+        if (evt.closeOnDelete) {
+          this.eventBus.publish(
+            createFormRedirectRequestedEvent({
+              // if closeOnDelete is true, but no redirect is specified, go to the previous page.
+              historyDelta: evt?.redirectLocation ? undefined : -1,
+              redirectLocation: evt?.redirectLocation,
+              redirectDelaySeconds: evt?.redirectDelaySeconds,
+            })
+          );
+        }
       });
     // Listen for any changes components have made to their own definitions and update the query source
     this.subMaps['componentDefChangesRequestSub'] = this.eventBus
@@ -589,6 +647,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
       });
 
+    this.subMaps['redirectRequestedSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
+      .subscribe(evt => {
+        const redirectOptions = {
+          historyDelta: evt?.historyDelta,
+          redirectLocation: evt?.redirectLocation,
+          redirectDelaySeconds: evt?.redirectDelaySeconds,
+        };
+        try {
+          this.doRedirect(redirectOptions);
+        } catch (err) {
+          this.loggerService.error(`${this.logName}: Redirect failed with options ${redirectOptions}`, err);
+        }
+      });
+
     if (this.form) {
       // Wire the form events to update the formGroupStatus signal and publish validation events
       // At the moment, the code will only emit StatusChange and PristineChange events to the EventBus.
@@ -603,6 +676,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
+        if (this.resetTemporaryValidationGroupsOnNextChange) {
+          this.resetTemporaryValidationGroups();
+        }
         if (!this.shouldRefreshDebugSnapshots()) {
           return;
         }
@@ -718,33 +794,89 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Get the validation errors from all the controls in this form, and recurse into the control's child controls.
    */
   public getValidationErrors(): FormValidatorSummaryErrors[] {
-    const result: FormValidatorSummaryErrors[] = [];
-
-    // form validators
-    // TODO: allow form validators to specify one (or more?) components to 'own' the validator errors
-    if (this.form) {
-      // This method can be called while this component is being created,
-      // and before the FormComponent form is available.
-      // A later 'queue' call should update it after the form is ready,
-      // so don't include the FormComponent.form if it is not available.
-      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
-      if (formErrors.length > 0) {
-        result.push({
-          id: this.trimmedParams.formName(),
-          message: "form-labelMessage",
-          errors: formErrors,
-          lineagePaths: this.formService.buildLineagePaths()
-        });
-      }
-    }
+    const summaryErrors: FormValidatorSummaryErrors[] = [];
 
     // component validators
     const mapEntries = this.formDefMap?.components ?? [];
     for (const mapEntry of mapEntries) {
       const errors = this.formService.getFormValidatorSummaryErrors(mapEntry);
-      result.push(...errors);
+      summaryErrors.push(...errors);
     }
-    return result;
+
+    /* Form validator notes:
+     * 1. `getValidationErrors` can be called while this component is being created,
+     *  and before the FormComponent.form is available.
+     *  A later 'queue' call should update it after the form is ready,
+     *  so don't try to process the FormComponent.form if it is not available.
+     * 2. Collect the form-level validation errors after component validation errors,
+     *  so that any component details are already present, and it is clear whether assigning
+     *  errors to a component can re-use existing details or requires creating a new entry.
+     */
+    if (this.form) {
+      const formErrors = this.formService.getFormValidatorComponentErrors(this.form);
+      this.assignFormValidatorErrorsToComponent(summaryErrors, formErrors);
+    }
+
+    return summaryErrors;
+  }
+
+  /**
+   * Assign form-level validation errors to components using the form validators config.
+   * @param summaryErrors The current summary errors.
+   * @param formErrors The form-level validation errors.
+   */
+  public assignFormValidatorErrorsToComponent(
+    summaryErrors: FormValidatorSummaryErrors[],
+    formErrors: FormValidatorComponentErrors[],
+  ): void {
+    if (formErrors.length < 1) {
+      return;
+    }
+
+    const unownedFormError: FormValidatorComponentErrors[] = [];
+    for (const componentError of formErrors) {
+      // If there is no target field, this validation error is 'unowned' and is an overall form error.
+      const targetFieldLineagePaths = componentError.targetField;
+      if (targetFieldLineagePaths === undefined) {
+        unownedFormError.push(componentError);
+        continue;
+      }
+
+      // Find any existing errors for the matching lineage paths.
+      const summaryError = summaryErrors.find(s =>
+        isMatchingLineagePaths(s.lineagePaths, targetFieldLineagePaths));
+
+      if (summaryError !== undefined) {
+        // Add the error to any existing summary error for the component.
+        if (!summaryError.errors.includes(componentError)) {
+          summaryError.errors.push(componentError);
+        }
+      } else {
+        // Find the component using the lineage path and add the summary error.
+        const componentMapEntry = this.getComponentDefByName(targetFieldLineagePaths);
+        if (!!componentMapEntry?.lineagePaths) {
+          const { id, labelMessage } = this.formService.componentIdLabel(componentMapEntry.compConfigJson);
+          summaryErrors.push({
+            id: id,
+            message: labelMessage,
+            lineagePaths: componentMapEntry.lineagePaths,
+            errors: [componentError],
+          });
+        } else {
+          this.loggerService.warn(`${this.logName}: Could not assign validation error to component ${JSON.stringify({ componentError, targetFieldLineagePaths })}`);
+        }
+      }
+    }
+
+    // Add any form-level errors at the start of the array of summary errors.
+    if (unownedFormError.length > 0) {
+      summaryErrors.unshift({
+        id: null,
+        message: "@validator-error-form-level",
+        errors: unownedFormError,
+        lineagePaths: this.formService.buildLineagePaths()
+      });
+    }
   }
 
   public getDebugInfo() {
@@ -980,23 +1112,52 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * @return The first matching entry, or undefined if none match.
    */
   public getComponentDefByName(
-    name: string | Partial<LineagePaths>,
-    componentDefArr: FormFieldCompMapEntry[] = this.componentDefArr
+    name: string | LineagePathsOptional,
+    componentDefArr?: FormFieldCompMapEntry[]
   ): FormFieldCompMapEntry | undefined {
-    return this.formService.getFormFieldCompMapEntry(name, componentDefArr);
+    return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
-  public async saveForm(
-    forceSave: boolean = false,
-    targetStep: string = '',
-    enabledValidationGroups: string[] = ['all']
-  ) {
+  public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    const forceSave = options?.force ?? false;
+    const targetStep = options?.targetStep ?? '';
+    const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
+
+    if (this.form && options?.enabledValidationGroups) {
+      if (!this.resetTemporaryValidationGroupsOnNextChange) {
+        this.preTemporarySaveValidationGroups = [...this.enabledValidationGroups];
+      }
+      this.enabledValidationGroups = enabledValidationGroups;
+      this.resetTemporaryValidationGroupsOnNextChange = !this.validationGroupNamesEqual(
+        enabledValidationGroups,
+        this.preTemporarySaveValidationGroups
+      );
+      const validationGroups = this.validationGroups;
+      this.componentDefArr?.forEach(mapEntry =>
+        this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
+      );
+      this.form.updateValueAndValidity({ emitEvent: false });
+      this.broadcastFormStatus();
+    }
+
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
-    const formIsSaving = _isNull(this.saveResponse());
     const formIsModified = this.form?.dirty || forceSave;
+    if (this.form?.pending && !forceSave) {
+      const validationSettled = await this.waitForPendingValidation();
+      if (this.isDestroyed) {
+        return;
+      }
+      if (!validationSettled) {
+        const message = 'Form validation timed out. Please try again.';
+        this.loggerService.warn(`${this.logName}: ${message}`);
+        this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
+        return;
+      }
+    }
     // At this point, only the validators that we want to run will be set on the angular components.
     const formIsValid = this.form?.valid || forceSave;
+    const formIsSaving = _isNull(this.saveResponse());
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
@@ -1025,12 +1186,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
+            const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
                 savedData: currentFormValue,
-                oid: !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid(),
+                oid: oid,
                 response,
+                closeOnSave: options?.closeOnSave,
+                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
+                redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
           } else {
@@ -1078,7 +1243,49 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  public async deleteRecord(options?: { closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }) {
+  private async waitForPendingValidation(): Promise<boolean> {
+    const form = this.form;
+    if (!form) {
+      return true;
+    }
+    return firstValueFrom(
+      merge(form.statusChanges, form.valueChanges, this.destroy$, interval(0)).pipe(
+        startWith(null),
+        filter(() => !form.pending || this.isDestroyed),
+        take(1),
+        map(() => true),
+        timeout({ first: this.pendingValidationTimeoutMs }),
+        catchError(() => of(false))
+      )
+    );
+  }
+
+  private resetTemporaryValidationGroups(): void {
+    if (!this.form || this.validationGroupNamesEqual(this.enabledValidationGroups, this.preTemporarySaveValidationGroups)) {
+      this.resetTemporaryValidationGroupsOnNextChange = false;
+      return;
+    }
+    const enabledValidationGroups = [...this.preTemporarySaveValidationGroups];
+    this.enabledValidationGroups = enabledValidationGroups;
+    const validationGroups = this.validationGroups;
+    this.componentDefArr?.forEach(mapEntry =>
+      this.formService.updateValidators(mapEntry, enabledValidationGroups, validationGroups)
+    );
+    this.form.updateValueAndValidity({ emitEvent: false });
+    this.broadcastFormStatus();
+    this.resetTemporaryValidationGroupsOnNextChange = false;
+  }
+
+  private validationGroupNamesEqual(first: string[], second: string[]): boolean {
+    if (first.length !== second.length) {
+      return false;
+    }
+    const sortedFirst = [...first].sort();
+    const sortedSecond = [...second].sort();
+    return sortedFirst.every((value, index) => value === sortedSecond[index]);
+  }
+
+  public async deleteRecord(options?: DeleteEventConfig) {
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
       this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
@@ -1099,23 +1306,58 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             oid,
             response,
             closeOnDelete: options?.closeOnDelete,
-            redirectLocation: options?.redirectLocation,
+            redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,
           })
         );
-
-        if (options?.closeOnDelete && !_isEmpty(options?.redirectLocation)) {
-          const redirectLocation = this.resolveRedirectLocation(String(options.redirectLocation), oid);
-          const redirectDelaySeconds = Math.max(0, Number(options.redirectDelaySeconds ?? 3));
-          window.setTimeout(() => {
-            window.location.href = redirectLocation;
-          }, redirectDelaySeconds * 1000);
-        }
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
+    }
+  }
+
+  /**
+   * Redirect to another page.
+   * @param options The redirect options.
+   * @param options.historyDelta Allows using the History.go interface to move forward and backward in the browser's session history.
+   * @param options.redirectLocation The relative url to redirect to on a successful save if closeOnSave is true.
+   * @param options.redirectDelaySeconds Wait this many seconds before the redirect. Default is 3 seconds delay.
+   */
+  public doRedirect(options?: {
+    historyDelta?: number,
+    redirectLocation?: string,
+    redirectDelaySeconds?: number,
+  }) {
+    const historyDelta = options?.historyDelta;
+    const redirectLocation = options?.redirectLocation;
+    const redirectDelayMs = Math.max(0, options?.redirectDelaySeconds ?? 3) * 1000;
+
+    // Check for falsy means that history delta cannot be used to do a page reload `.historyGo(0)`.
+    // This is intended - if a page reload is needed, do it some other way.
+    if (!!historyDelta && !!redirectLocation) {
+      throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
+    }
+    if (!historyDelta && !redirectLocation) {
+      throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
+    }
+
+    const that = this;
+    if (historyDelta) {
+      this.window?.setTimeout(() => {
+        that.locationService.historyGo(historyDelta);
+      }, redirectDelayMs);
+    } else if (redirectLocation) {
+      this.window?.setTimeout(() => {
+        that.changeLocationHref(redirectLocation);
+      }, redirectDelayMs);
+    }
+  }
+
+  protected changeLocationHref(redirectLocation: string): void {
+    if (this.window?.location) {
+      this.window.location.href = redirectLocation;
     }
   }
 
@@ -1168,7 +1410,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /**
    * Get the form-level validators.
    */
-  public get formValidators() {
+  public get formValidators(): FormValidatorTargetFieldConfig[] {
     return this.formDefMap?.formConfig?.validators ?? [];
   }
 
@@ -1192,6 +1434,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   override ngOnDestroy(): void {
     super.ngOnDestroy();
+    this.isDestroyed = true;
+    this.destroy$.next();
+    this.destroy$.complete();
     // Clean up subscriptions
     Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
     this.focusRequestCoordinator.destroy();
@@ -1202,7 +1447,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.componentDefQuerySource;
   }
 
-  public get formConfigMeta(): Record<string,unknown> {
+  public get formConfigMeta(): Record<string, unknown> {
     return this.formDefMap?.formConfigMeta ?? {};
   }
 

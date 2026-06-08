@@ -1,0 +1,52 @@
+<div class="nq-subeditor">
+  <div class="nq-section-header">
+    <h6>{{ 'named-query-sort-heading' | i18next }}</h6>
+  </div>
+  <div *ngIf="entries.length > 0" class="table-responsive">
+    <table class="table table-sm table-bordered mb-0">
+      <thead class="thead-light">
+        <tr>
+          <th>{{ 'named-query-sort-field' | i18next }}</th>
+          <th style="width: 130px">{{ 'named-query-sort-direction' | i18next }}</th>
+          <th style="width: 70px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of entries; trackBy: trackById">
+          <td>
+            <input type="text" class="form-control form-control-sm"
+                   [ngModel]="entry.field"
+                   (ngModelChange)="onFieldChange(entry, $event)">
+          </td>
+          <td>
+            <select class="form-control form-control-sm"
+                    [ngModel]="entry.direction"
+                    (ngModelChange)="onDirectionChange(entry, $event)">
+              <option value="ASC">ASC</option>
+              <option value="DESC">DESC</option>
+            </select>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger" type="button"
+                    (click)="removeEntry(entry)">
+              {{ 'named-query-remove' | i18next }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-sort-empty' | i18next }}</p>
+
+  <div class="d-flex flex-wrap nq-add-row mt-2">
+    <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newField"
+           [attr.placeholder]="'named-query-sort-field-placeholder' | i18next">
+    <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newDirection">
+      <option value="ASC">ASC</option>
+      <option value="DESC">DESC</option>
+    </select>
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
+      {{ 'named-query-add' | i18next }}
+    </button>
+  </div>
+</div>

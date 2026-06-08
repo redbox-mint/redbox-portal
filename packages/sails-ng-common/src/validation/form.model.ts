@@ -1,5 +1,5 @@
 import { get as _get } from 'lodash';
-import {LineagePath, LineagePaths} from "../config/names/naming-helpers";
+import {LineagePath, LineagePaths, LineagePathsPartial} from "../config/names/naming-helpers";
 
 /**
  * The parameters for a validator error.
@@ -29,7 +29,16 @@ export type FormValidatorErrors = {
   [key: string]: {
     message: string;
     params: FormValidatorErrorParams;
-  };
+    /**
+     * The validator class.
+     *
+     * Only set when the error key differs from the class, which happens when the same
+     * validator class is used more than once on a control. In that case the key is made
+     * unique so Angular's error merging keeps every instance, while this property carries
+     * the real class for display.
+     */
+    class?: string;
+  } & FormValidatorTargetField;
 };
 
 /**
@@ -37,8 +46,22 @@ export type FormValidatorErrors = {
  * The config is different for each validator.
  */
 export type FormValidatorCreateConfig = {
+  class?: string;
+  message?: string;
+  /**
+   * The key to use for this validator's entry in the merged errors object.
+   *
+   * Defaults to the class. Set to a unique value when the same class is used more than
+   * once on a control, so Angular's error merging does not overwrite earlier instances.
+   *
+   * @internal - This field is managed automatically by the framework. Do not set it
+   * manually in form configuration; doing so will produce an error key that does not
+   * match the validator class, breaking the display recovery in
+   * `getFormValidatorComponentErrors`.
+   */
+  errorKey?: string;
   [key: string]: unknown;
-};
+} & FormValidatorTargetField;
 
 /**
  * The interface that a form control must implement to be validated by a validator function.
@@ -197,9 +220,25 @@ export interface FormValidatorConfig {
 }
 
 /**
+ * Allows specifying a field to 'own' any validation failures.
+ */
+export interface FormValidatorTargetField {
+  /**
+   * Lineage paths to a target field that will 'own' any validation failures.
+   */
+  targetField?: LineagePathsPartial;
+}
+
+/**
+ * Form-level validator config that allows specifying a field to 'own' any validation failures.
+ */
+export interface FormValidatorTargetFieldConfig extends FormValidatorConfig, FormValidatorTargetField {
+}
+
+/**
  * One validator error.
  */
-export interface FormValidatorComponentErrors {
+export interface FormValidatorComponentErrors extends FormValidatorTargetField {
   /**
    * The message id for the validator.
    */

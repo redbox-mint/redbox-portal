@@ -6,6 +6,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
+import {DeleteEventConfig, SaveOperationEventConfig, SaveRedirectEventConfig} from "../events";
 
 // Load actions (R3.2, R3.3, R8.2)
 export const loadInitialData = createAction(
@@ -26,12 +27,12 @@ export const loadInitialDataFailure = createAction(
 // Submit actions (R3.2, R3.3, R8.3)
 export const submitForm = createAction(
   '[Form] Submit Form',
-  props<{ force?: boolean; targetStep?: string; enabledValidationGroups?: string[]; }>()
+  props<SaveOperationEventConfig & SaveRedirectEventConfig>()
 );
 
 export const submitFormSuccess = createAction(
   '[Form] Submit Form Success',
-  props<{ savedData: any; lastSavedAt: string }>()
+  props<{ savedData: any; lastSavedAt: string } & SaveRedirectEventConfig>()
 );
 
 export const submitFormFailure = createAction(
@@ -41,12 +42,12 @@ export const submitFormFailure = createAction(
 
 export const deleteRecord = createAction(
   '[Form] Delete Record',
-  props<{ closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }>()
+  props<DeleteEventConfig>()
 );
 
 export const deleteRecordSuccess = createAction(
   '[Form] Delete Record Success',
-  props<{ oid: string; closeOnDelete?: boolean; redirectLocation?: string; redirectDelaySeconds?: number }>()
+  props<{ oid: string; } & DeleteEventConfig>()
 );
 
 export const deleteRecordFailure = createAction(

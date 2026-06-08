@@ -38,6 +38,7 @@ export namespace Controllers {
      * Exported methods, accessible from internet.
      */
     protected override _exportedMethods: string[] = [
+        'harvestRunsIndex',
         'rolesIndex',
         'usersIndex',
         'getBrandRoles',
@@ -81,6 +82,10 @@ export namespace Controllers {
 
     public rolesIndex(req: Sails.Req, res: Sails.Res) {
       return this.sendView(req, res, 'admin/roles');
+    }
+
+    public harvestRunsIndex(req: Sails.Req, res: Sails.Res) {
+      return this.sendView(req, res, 'admin/harvest-runs');
     }
 
     public usersIndex(req: Sails.Req, res: Sails.Res) {

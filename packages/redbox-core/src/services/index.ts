@@ -23,6 +23,7 @@ import * as FormVocabularyServiceModule from './FormVocabularyService';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
 import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateService';
 import * as FormsServiceModule from './FormsService';
+import * as HarvestRunServiceModule from './HarvestRunService';
 import * as IntegrationAuditServiceModule from './IntegrationAuditService';
 import * as I18nEntriesServiceModule from './I18nEntriesService';
 import * as NamedQueryServiceModule from './NamedQueryService';
@@ -73,6 +74,7 @@ export { FormVocabularyServiceModule as FormVocabularyService };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
 export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
 export { FormsServiceModule as FormsService };
+export { HarvestRunServiceModule as HarvestRunService };
 export { IntegrationAuditServiceModule as IntegrationAuditService };
 export { I18nEntriesServiceModule as I18nEntriesService };
 export { NamedQueryServiceModule as NamedQueryService };
@@ -200,6 +202,11 @@ export const ServiceExports = {
   },
   get FormsService() {
     return getOrCreateService('FormsService', () => new FormsServiceModule.Services.Forms().exports());
+  },
+  get HarvestRunService() {
+    return getOrCreateService('HarvestRunService', () =>
+      new HarvestRunServiceModule.Services.HarvestRunService().exports()
+    );
   },
   get I18nEntriesService() {
     return getOrCreateService('I18nEntriesService', () =>

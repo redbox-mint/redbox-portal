@@ -1,0 +1,28 @@
+meta {
+  name: Delete Report Config
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/report-config/bruno-report-config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns deleted marker", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data).to.deep.equal({ deleted: true });
+  });
+}

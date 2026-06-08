@@ -21,15 +21,14 @@ import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { DefaultLayoutComponent } from "./default-layout.component";
 import { createFormDefinitionChangeRequestEvent, createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
-import {FormComponent} from "../form.component";
+import { FormComponent } from "../form.component";
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
 type RepeatableSetValueOptions = ModifyOptions;
 
 class RepeatableFormArray
   extends FormArray<AbstractControl<unknown>>
-  implements CustomSetValueControl<Array<unknown>>
-{
+  implements CustomSetValueControl<Array<unknown>> {
   public customValueSetter?: (value: Array<unknown>, options?: RepeatableSetValueOptions) => Promise<void> | void;
 
   public async setCustomValue(
@@ -779,7 +778,7 @@ export interface RepeatableElementEntry {
 @Component({
   selector: 'redbox-form-repeatable-component-layout',
   template: `
-  <div class="rb-form-repeatable-item" [class.rb-form-repeatable-item--contributor]="isContributorInline">
+  <div class="rb-form-repeatable-item" [class.rb-form-repeatable-item--inline-fields]="isInlineLayout">
     <div class="rb-form-repeatable-item__content">
       <ng-container #componentContainer></ng-container>
     </div>
@@ -808,12 +807,13 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   public removeFn?: () => void;
   public canRemove = false;
 
-  protected get isContributorInline(): boolean {
+  protected get isInlineLayout(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
     if (typeof hostCssClasses !== 'string') {
       return false;
     }
-    return hostCssClasses.split(/\s+/).includes('rb-form-contributor-inline');
+    const hostCssClassList = hostCssClasses.split(/\s+/);
+    return hostCssClassList.includes('rb-form-contributor-inline') || hostCssClassList.includes('rb-form-inline-fields');
   }
 
   protected clickedRemove() {

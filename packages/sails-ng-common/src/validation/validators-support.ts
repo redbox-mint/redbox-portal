@@ -2,7 +2,7 @@ import {
   FormValidationGroups, FormValidatorComponentErrors,
   FormValidatorConfig, FormValidatorCreateConfig,
   FormValidatorDefinition, FormValidatorErrors,
-  FormValidatorFns
+  FormValidatorFns, FormValidatorTargetFieldConfig
 } from "./form.model";
 import { isTypeFormValidatorDefinition } from "../config/form-types.model";
 
@@ -39,9 +39,20 @@ export class ValidatorsSupport {
    */
   public createFormValidatorInstancesFromMapping(
     defMap: Map<string, FormValidatorDefinition>,
-    config: FormValidatorConfig[] | null | undefined,
+    config: (FormValidatorConfig | FormValidatorTargetFieldConfig)[] | null | undefined,
   ): FormValidatorFns {
     const result: FormValidatorFns = { syncDefs: [], asyncDefs: [] };
+
+    // Count how many times each class is used so we know which ones are duplicated.
+    // Duplicated classes need a unique error key so Angular's error merging keeps every
+    // instance instead of overwriting earlier ones (the merge key would otherwise collide).
+    const classCounts = new Map<string, number>();
+    for (const validatorConfigItem of (config ?? [])) {
+      const validatorClass = validatorConfigItem?.class;
+      classCounts.set(validatorClass, (classCounts.get(validatorClass) ?? 0) + 1);
+    }
+    const classOccurrences = new Map<string, number>();
+
     for (const validatorConfigItem of (config ?? [])) {
       const validatorClass = validatorConfigItem?.class;
       const def = defMap.get(validatorClass);
@@ -55,6 +66,18 @@ export class ValidatorsSupport {
         class: validatorClass,
         message: message,
       };
+
+      // Only assign a unique error key when the class is used more than once on this control.
+      // Single-use classes keep the class as the error key, so the error shape is unchanged.
+      const occurrence = (classOccurrences.get(validatorClass) ?? 0);
+      classOccurrences.set(validatorClass, occurrence + 1);
+      if ((classCounts.get(validatorClass) ?? 0) > 1) {
+        createConfig.errorKey = `${validatorClass}#${occurrence}`;
+      }
+
+      if ('targetField' in validatorConfigItem && validatorConfigItem.targetField !== undefined) {
+        createConfig.targetField = validatorConfigItem.targetField;
+      }
 
       if ('create' in def) {
         result.syncDefs.push(def.create(createConfig));
@@ -72,11 +95,21 @@ export class ValidatorsSupport {
    * @param errors The control's errors.
    */
   public getFormValidatorComponentErrors(errors: FormValidatorErrors | null): FormValidatorComponentErrors[] {
-    return Object.entries(errors ?? {}).map(([key, item]) => ({
-      class: key,
-      message: item.message ?? null,
-      params: { ...item.params },
-    })) ?? [];
+    const result: FormValidatorComponentErrors[] = [];
+    for (const [key, value] of Object.entries(errors ?? {})) {
+      const item: FormValidatorComponentErrors = {
+        // The error key matches the class unless the class was duplicated on a control, in
+        // which case the real class is carried on the value so it can be recovered here.
+        class: value.class ?? key,
+        message: value.message ?? null,
+        params: {...value.params},
+      };
+      if (value.targetField !== undefined) {
+        item.targetField = value.targetField;
+      }
+      result.push(item);
+    }
+    return result;
   }
 
   public checkValidationGroups(availableGroups: FormValidationGroups, enabledGroupNames: string[]) {

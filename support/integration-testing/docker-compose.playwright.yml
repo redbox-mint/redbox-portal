@@ -122,7 +122,7 @@ services:
       retries: 30
       start_period: '60s'
   mongodb:
-    image: mongo:7.0.29-jammy
+    image: mongo:7.0.34-jammy
     pull_policy: missing
     ports:
       - '27017:27017'

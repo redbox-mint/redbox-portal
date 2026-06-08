@@ -9,6 +9,26 @@
   --rb-form-color-danger-soft: #fff5f3;
 }
 
+.rb-form-view input[type="checkbox"],
+.rb-form-view input[type="radio"],
+.rb-form-edit input[type="checkbox"],
+.rb-form-edit input[type="radio"] {
+  accent-color: var(--bs-link-color, #0d6efd);
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.rb-form-view input[type="checkbox"],
+.rb-form-edit input[type="checkbox"] {
+  border-radius: 0.2rem;
+}
+
+.rb-inline-help-heading {
+  display: inline-block;
+  margin: 0 0 0 0.5rem;
+  vertical-align: middle;
+}
+
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
 .rb-form-host .rb-form-action-row {
   display: flex;

@@ -492,6 +492,53 @@ describe("Construct Visitor", async () => {
             expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.content).to.equal("**Bold**");
             expect((actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>)?.outputFormat).to.equal("markdown");
         });
+
+        it("should include button redirect properties", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                formMode: "view",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                      {
+                        name: "delete_button",
+                        component: {
+                          class: "DeleteButtonComponent",
+                          config: {
+                            closeOnDelete: true,
+                            redirectDelaySeconds: 10,
+                            redirectLocation: '{{concat "/" branding "/" portal "/dashboard/" oid}}',
+                          }
+                        }
+                      },
+                      {
+                        name: "save_button",
+                        component: {
+                          class: "SaveButtonComponent",
+                          config: {
+                            closeOnSave: true,
+                            redirectDelaySeconds: 5,
+                            redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                          }
+                        }
+                      }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("DeleteButtonComponent");
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset({
+              closeOnDelete: true,
+              redirectDelaySeconds: 10,
+              redirectLocation: '{{concat "/" branding "/" portal "/dashboard/" oid}}',
+            });
+            expect(actual.componentDefinitions?.[1]?.component?.class).to.equal("SaveButtonComponent");
+            expect(actual.componentDefinitions?.[1]?.component?.config).to.containSubset({
+              closeOnSave: true,
+              redirectDelaySeconds: 5,
+              redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+        });
     });
 
     describe("record metadata retriever", async () => {

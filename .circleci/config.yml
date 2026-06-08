@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: large
     steps:
       - checkout
@@ -40,7 +40,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   generate-api-docs:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: large
     steps:
       - checkout
@@ -75,7 +75,7 @@ jobs:
             - ~/.npm
   refresh-dependabot-package-locks:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -110,7 +110,7 @@ jobs:
             git push origin "HEAD:${CIRCLE_BRANCH}"
   build-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: large
     steps:
       - checkout
@@ -134,7 +134,7 @@ jobs:
             - docker-images/redbox-portal-runtime-datastream-cloud-test.tar
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: large
     steps:
       - checkout
@@ -158,7 +158,7 @@ jobs:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
   build-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: large
     steps:
       - checkout
@@ -564,7 +564,7 @@ jobs:
           path: packages/redbox-core/support/junit
   test-agenda-sqs-backend:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: medium
     steps:
       - checkout
@@ -642,7 +642,7 @@ jobs:
           path: packages/redbox-dev-tools/support/junit
   test-storage-mongo:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: medium
     steps:
       - checkout
@@ -688,7 +688,7 @@ jobs:
             - ~/.npm
   lint-redbox-core:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: medium
     steps:
       - checkout
@@ -776,7 +776,7 @@ jobs:
         type: string
         default: 'latest'
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     resource_class: medium
     steps:
       - checkout
@@ -804,31 +804,9 @@ jobs:
             bash support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load and tag tested Docker image
-          command: |
-            docker load -i /tmp/docker-images/redbox-portal-test.tar
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            # Determine the tag
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-            # Tag and push the tested amd64 image
-            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-amd64"
       - run:
           name: Upload container to Nexus
           command: |
@@ -841,9 +819,20 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+  publish-runtime-multiarch:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Publish runtime multi-arch image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime ""
   deploy-runtime-datastream-cloud:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -867,9 +856,31 @@ jobs:
 
             docker tag redbox-portal:runtime-datastream-cloud-test "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
+  publish-runtime-pdfgen-multiarch:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Publish runtime pdfgen multi-arch image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_pdfgen "-pdfgen"
+  publish-runtime-cloud-pdfgen-multiarch:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Publish runtime datastream cloud + pdfgen multi-arch image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -895,7 +906,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
   deploy-runtime-cloud-pdfgen:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -951,7 +962,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -960,7 +971,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
   publish-runtime-pdfgen-manifest:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -969,7 +980,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
   publish-runtime-cloud-pdfgen-manifest:
     docker:
-      - image: 'cimg/node:24.14.1'
+      - image: 'cimg/node:24.16.0'
     steps:
       - checkout
       - setup_remote_docker
@@ -1034,8 +1045,8 @@ jobs:
           paths:
             - ~/.npm
 orbs:
-  node: circleci/node@4.0.0
-  docker: circleci/docker@1.4.0
+  node: circleci/node@7.2.1
+  docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
   npm_publish_mode:
@@ -1157,6 +1168,13 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - deploy:
           requires:
             - test-bruno-general
@@ -1220,13 +1238,6 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
-          filters:
-            branches:
-              ignore: /^dependabot.*/
       - deploy-runtime-pdfgen-arm64:
           requires:
             - build-runtime-pdfgen
@@ -1270,6 +1281,7 @@ workflows:
           requires:
             - deploy-runtime-cloud-pdfgen
             - deploy-runtime-cloud-pdfgen-arm64
+            - publish-runtime-pdfgen-manifest
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1381,18 +1393,20 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
-          filters:
-            branches:
-              ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
       equal: [none, << pipeline.parameters.npm_publish_mode >>]
     jobs:
       - build:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             tags:
               only: /^v.*/
@@ -1561,6 +1575,15 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - publish-manifest:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-runtime-datastream-cloud:
           requires:
             - build-runtime-datastream-cloud
@@ -1607,15 +1630,6 @@ workflows:
             - test-redbox-core
             - test-agenda-sqs-backend
             - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
           filters:
             tags:
               only: /^v.*/
@@ -1668,6 +1682,7 @@ workflows:
           requires:
             - deploy-runtime-cloud-pdfgen
             - deploy-runtime-cloud-pdfgen-arm64
+            - publish-runtime-pdfgen-manifest
           filters:
             tags:
               only: /^v.*/

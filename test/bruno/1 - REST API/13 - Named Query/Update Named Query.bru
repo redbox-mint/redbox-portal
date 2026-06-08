@@ -1,0 +1,46 @@
+meta {
+  name: Update Named Query
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{host}}/default/rdmp/api/named-query/bruno-test-query
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "name": "bruno-test-query",
+    "collectionName": "user",
+    "mongoQuery": {
+      "type": "researcher"
+    },
+    "queryParams": {},
+    "resultObjectMapping": {
+      "name": "{{record.name}}"
+    },
+    "brandIdFieldPath": "branding",
+    "sort": [],
+    "expandRelations": false,
+    "relatedRecordFilters": []
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Has data property with name", function () {
+    var jsonData = res.getBody();
+    expect(jsonData).to.have.property("data");
+    expect(jsonData.data.name).to.eql("bruno-test-query");
+  });
+}

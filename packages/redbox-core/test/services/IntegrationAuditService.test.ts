@@ -1,9 +1,10 @@
-import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+
+let expect!: Chai.ExpectStatic;
 
 describe('IntegrationAuditService', function () {
   let service: InstanceType<typeof Services.IntegrationAuditService>;
@@ -561,3 +562,6 @@ describe('IntegrationAuditService', function () {
     expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-3', 'trace-1']);
   });
 });
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
