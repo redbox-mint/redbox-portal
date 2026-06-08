@@ -7,17 +7,23 @@ import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} fro
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
+import i18next from "i18next";
 
 describe("TypeaheadInputComponent", () => {
+  let translationService: any;
+
     beforeEach(async () => {
-        await createTestbedModule({
+      ({ translationService } = await createTestbedModule({
             declarations: {
                 "TypeaheadInputComponent": TypeaheadInputComponent
             },
             imports: {
                 "TypeaheadModule": TypeaheadModule.forRoot()
             }
-        });
+        }));
+      translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
+      translationService.translationMap = translationService.translationMap || {};
+      translationService.t = jasmine.createSpy('t').and.callFake((key: string) => translationService.translationMap[key] ?? key);
     });
 
     it("should create component", () => {
@@ -688,6 +694,26 @@ describe("TypeaheadInputComponent", () => {
     });
 
     it("displays translated placeholder", async () => {
+      const translationMapItems = {
+        '@lookup-placeholder-party': "Start typing a party name...",
+      }
+      if (!i18next.isInitialized) {
+        await i18next.init({
+          lng: 'en',
+          fallbackLng: 'en',
+          returnEmptyString: false,
+          resources: {
+            en: {
+              translation: {},
+            },
+          },
+        });
+      }
+      i18next.addResourceBundle('en', 'translation', translationMapItems, true, true);
+      await i18next.changeLanguage('en');
+
+      Object.assign(translationService.translationMap, translationMapItems);
+
       const formConfig: FormConfigFrame = {
         name: "testing",
         componentDefinitions: [
@@ -709,7 +735,10 @@ describe("TypeaheadInputComponent", () => {
         ]
       };
       const { fixture } = await createFormAndWaitForReady(formConfig);
+
       const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
       expect(input.placeholder).toEqual("Start typing a party name...");
+
+      expect(translationService.t).toHaveBeenCalledWith('@lookup-placeholder-party');
     });
 });
