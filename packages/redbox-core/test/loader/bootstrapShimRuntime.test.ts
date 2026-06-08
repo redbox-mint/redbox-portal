@@ -39,6 +39,7 @@ describe('bootstrapShimRuntime', function () {
             example: 'value',
             nested: { flag: true }
         };
+        (global as any).sails.models = {};
         (global as any).sails.log = {
             verbose: sinon.stub(),
             info: sinon.stub(),
@@ -77,9 +78,20 @@ describe('bootstrapShimRuntime', function () {
         });
     }
 
-    it('should run preLift, core bootstrap, and hook bootstraps in order', async function () {
+    it('should run preLift, migrations, core bootstrap, and hook bootstraps in order', async function () {
         const callOrder: string[] = [];
         const preLiftSetup = sinon.stub().callsFake(() => callOrder.push('preLift'));
+        (global as any).sails.models.migration = {
+            find: () => ({ sort: sinon.stub().resolves([]) }),
+            create: sinon.stub().resolves({}),
+            destroy: sinon.stub().resolves({})
+        };
+        const migration = {
+            name: '2026.06.08T10.00.00-test',
+            up: sinon.stub().callsFake(async () => {
+                callOrder.push('migration');
+            })
+        };
         const coreBootstrap = sinon.stub().callsFake(async () => {
             callOrder.push('core');
         });
@@ -93,11 +105,12 @@ describe('bootstrapShimRuntime', function () {
         const bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, [
             { name: 'hook-one', bootstrap: hookOne },
             { name: 'hook-two', bootstrap: hookTwo }
-        ]);
+        ], [migration]);
 
         await runBootstrap(bootstrap);
 
-        expect(callOrder).to.deep.equal(['preLift', 'core', 'hook-one', 'hook-two']);
+        expect(callOrder).to.deep.equal(['preLift', 'migration', 'core', 'hook-one', 'hook-two']);
+        expect((global as any).sails.log.verbose.calledWith('Data migrations complete.')).to.be.true;
         expect((global as any).sails.log.verbose.calledWith('Core bootstrap complete.')).to.be.true;
         expect((global as any).sails.log.verbose.calledWith('Hook bootstrap complete: hook-one')).to.be.true;
         expect((global as any).sails.log.verbose.calledWith('Hook bootstrap complete: hook-two')).to.be.true;

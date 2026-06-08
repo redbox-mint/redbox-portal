@@ -9,9 +9,10 @@
  * This gives you an opportunity to set up your data model, run jobs, or perform some special logic.
  */
 const { coreBootstrap, preLiftSetup, createGeneratedBootstrap } = require('@researchdatabox/redbox-core');
+const migrations = require('./migrations').migrations || [];
 {{{hookImports}}}
 
 const hookBootstraps = [
 {{{hookCalls}}}];
 
-module.exports.bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps);
+module.exports.bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps, migrations);
