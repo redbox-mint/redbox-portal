@@ -96,12 +96,15 @@ describe('CancelButtonComponent', () => {
   });
 
   it('should publish form.redirect.requested event', async () => {
+    const redirectLocationTemplate = '/@branding/@portal/dashboard/dataPublication/template/@oid';
+    const redirectLocationProvided = '/@branding/@portal/dashboard/dataPublication/provided/@oid';
+    const redirectLocationResolved = '/brand-1/portal-1/dashboard/dataPublication/provided/oid-123';
     const dynamicAssetOptions: DynamicAssetOptions = {
       entries: [{
         urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-123',
         callable: (keyString, _key, context) => {
-          if (keyString === 'componentDefinitions__0__component__config__redirectLocation') {
-            return `/dashboard/${context.oid}`;
+          if (keyString === 'componentDefinitions__1__component__config__redirectLocation') {
+            return redirectLocationProvided;
           }
           throw new Error(`Unknown key: ${keyString}`);
         },
@@ -112,14 +115,24 @@ describe('CancelButtonComponent', () => {
     if (!isTypeFieldDefinitionName<CancelButtonFieldComponentDefinitionFrame>(cancelButtonComp, CancelButtonComponentName)) {
       throw new Error(`Expected ${CancelButtonComponentName}, got ${JSON.stringify(cancelButtonComp)}`);
     }
-    const redirectLocation = '/brand-1/portal-1/dashboard/dataPublication';
     if (cancelButtonComp.config) {
-      cancelButtonComp.config.redirectLocation = redirectLocation;
+      cancelButtonComp.config.redirectLocation = redirectLocationTemplate;
       cancelButtonComp.config.redirectDelaySeconds = 2;
     }
 
     const {fixture, formComponent} = await createFormAndWaitForReady(
       formConfigRedirect, {oid: 'oid-123', editMode: true} as any, undefined, dynamicAssetOptions);
+    if (formComponent.formDefMap) {
+      if (!formComponent.formDefMap.formConfigMeta){
+        formComponent.formDefMap.formConfigMeta = {};
+      }
+      if (!formComponent.formDefMap.formConfigMeta['contextVariables']){
+        formComponent.formDefMap.formConfigMeta['contextVariables'] = {};
+      }
+      const contextVariables = formComponent.formDefMap.formConfigMeta['contextVariables'] as Record<string, unknown>;
+      contextVariables['@branding'] = 'brand-1';
+      contextVariables['@portal'] = 'portal-1';
+    }
 
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
@@ -136,11 +149,11 @@ describe('CancelButtonComponent', () => {
       button.click();
       await fixture.whenStable();
 
-      expect(changeLocationHrefSpy).toHaveBeenCalledWith(redirectLocation);
+      expect(changeLocationHrefSpy).toHaveBeenCalledWith(redirectLocationResolved);
       expect(locationHistoryGoSpy).not.toHaveBeenCalled();
       expect(events.length).toEqual(1);
       expect(events[0].historyDelta).toEqual(undefined);
-      expect(events[0].redirectLocation).toBe(redirectLocation);
+      expect(events[0].redirectLocation).toBe(redirectLocationResolved);
       expect(events[0].redirectDelaySeconds).toEqual(2);
       expect(events[0].sourceId).toBe('cancel_button');
     } finally {

@@ -9,13 +9,13 @@ import {createFormRedirectRequestedEvent} from "../form-state";
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       <div class="rb-form-cancel-button">
-      <button
-        type="button"
-        [class]="buttonCssClasses"
-        (click)="cancel()"
-        [disabled]="isCancelDisabled"
-        [innerHtml]="displayLabel"
-      ></button>
+        <button
+          type="button"
+          [class]="buttonCssClasses"
+          (click)="cancel()"
+          [disabled]="isCancelDisabled"
+          [innerHtml]="displayLabel"
+        ></button>
       </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
@@ -54,11 +54,13 @@ export class CancelButtonComponent extends ButtonBaseComponent {
     }
 
     const redirectLocationRaw = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
-    const redirectLocation = await this.resolveRedirectLocation(redirectLocationRaw);
+    const redirectLocationRendered = await this.resolveRedirectLocation(redirectLocationRaw);
+    const oid = String(this.getFormComponent.trimmedParams.oid() ?? "").trim();
+    const redirectLocation = this.formComponent.resolveRedirectLocation(redirectLocationRendered ?? '', oid);
     this.eventBus.publish(
       createFormRedirectRequestedEvent({
         // if there is a redirectLocation, use that, otherwise go to the previous page.
-        historyDelta: redirectLocation ? undefined : -1,
+        historyDelta: redirectLocationRendered ? undefined : -1,
         redirectLocation: redirectLocation,
         redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
         sourceId: this.name ?? undefined,
