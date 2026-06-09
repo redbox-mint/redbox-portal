@@ -5953,5 +5953,65 @@
     "category": "users",
     "description": "User audit history label for generic account linking events",
     "contentFormat": "plain"
+  },
+  "@validator-error-custom-text_2": {
+    "category": "validator",
+    "description": "Error message for a failed custom-text_2 validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-min": {
+    "category":  "validator",
+    "description":  "Error message for a failed min validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-max": {
+    "category":  "validator",
+    "description":  "Error message for a failed max validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-min-length": {
+    "category":  "validator",
+    "description":  "Error message for a failed min-length validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-max-length": {
+    "category":  "validator",
+    "description":  "Error message for a failed max-length validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-required": {
+    "category":  "validator",
+    "description":  "Error message for a failed required validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-required-true": {
+    "category":  "validator",
+    "description":  "Error message for a failed required-true validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-email": {
+    "category":  "validator",
+    "description":  "Error message for a failed email validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-pattern": {
+    "category":  "validator",
+    "description":  "Error message for a failed pattern validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-different-values": {
+    "category":  "validator",
+    "description":  "Error message for a failed different-values validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-orcid": {
+    "category":  "validator",
+    "description":  "Error message for a failed orcid validator",
+    "contentFormat":  "plain"
+  },
+  "@lookup-placeholder-party": {
+    "category": "lookup",
+    "description": "Placeholder text in lookup field for party records",
+    "contentFormat": "plain"
   }
 }

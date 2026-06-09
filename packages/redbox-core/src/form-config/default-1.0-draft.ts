@@ -385,7 +385,7 @@ const formConfig: FormConfigFrame = {
                           queryId: 'party',
                           labelField: 'metadata.fullName',
                           valueField: 'oid',
-                          placeholder: 'Start typing a party name...',
+                          placeholder: '@lookup-placeholder-party',
                           minChars: 1,
                           debounceMs: 250,
                           maxResults: 25,
