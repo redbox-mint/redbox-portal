@@ -1453,9 +1453,7 @@ workflows:
               ignore: /.*/
   docker_manual_publish:
     when:
-      and:
-        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
-        - equal: [manual, << pipeline.parameters.docker_publish_mode >>]
+      equal: [manual, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - publish-runtime-multiarch
       - publish-runtime-pdfgen-multiarch
