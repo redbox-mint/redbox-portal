@@ -860,12 +860,12 @@ export class DashboardComponent extends BaseComponent {
     let sortMapAtStep = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, this.recordType);
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'workspace') {
-      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
       this.records[step] = planTable;
       this.isProcessingPageChange = false;
@@ -917,46 +917,14 @@ export class DashboardComponent extends BaseComponent {
   }
 
 
-  private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let fields = _get(this.sortFields, step);
-    let sortString = 'metaMetadata.lastSaveDate:-1';
-    if (!_isUndefined(fields) && !_isEmpty(fields)) {
-      for (let i = 0; i < fields.length; i++) {
-        let sortField = fields[i];
-        if (!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep, sortField)) {
-          if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
-            sortString = `${sortField}:`;
-            if (sortMapAtStep[sortField].sort == 'desc') {
-              sortString = sortString + "-1";
-            } else {
-              sortString = sortString + "1";
-            }
-            return sortString;
-          } else {
-            if (sortMapAtStep[sortField].sort != null) {
-              sortString = `${sortField}:`;
-              if (sortMapAtStep[sortField].sort == 'desc') {
-                sortString = sortString + "-1";
-              } else {
-                sortString = sortString + "1";
-              }
-            }
-          }
-        }
-      }
-    }
-    return sortString;
-  }
-
-
-  private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string) {
-
+  private getActiveSortFieldFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
     let fields = _get(this.sortFields, step);
 
     if (_isUndefined(fields) || _isEmpty(fields) || _isEmpty(sortMapAtStep)) {
       return '';
     }
 
+    let activeSortField = '';
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
 
@@ -964,25 +932,61 @@ export class DashboardComponent extends BaseComponent {
         continue;
       }
 
-      if (sortMapAtStep[sortField].sort != null) {
+      let sort = _get(sortMapAtStep, [sortField, 'sort']);
+      if (sort !== 'asc' && sort !== 'desc') {
+        continue;
+      }
 
-        let secondarySort = sortMapAtStep[sortField].secondarySort;
+      if (forceDefault && _get(sortMapAtStep, [sortField, 'defaultSort']) == true) {
+        return sortField;
+      }
 
-        if (sortMapAtStep[sortField].sort == 'desc') {
-          if (secondarySort != null && secondarySort !== '') {
-            let sortString = `${secondarySort}:`;
-            sortString = sortString + "-1";
-            return sortString;
-          }
-        } else {
-          if (secondarySort != null && secondarySort !== '') {
-            let sortString = `${secondarySort}:`;
-            sortString = sortString + "1";
-            return sortString;
-          }
-        }
+      if (_isEmpty(activeSortField)) {
+        activeSortField = sortField;
       }
     }
+
+    return activeSortField;
+  }
+
+
+  private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
+    let sortString = 'metaMetadata.lastSaveDate:-1';
+    let sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
+
+    if (!_isEmpty(sortField)) {
+      sortString = `${sortField}:`;
+      if (_get(sortMapAtStep, [sortField, 'sort']) == 'desc') {
+        sortString = sortString + "-1";
+      } else {
+        sortString = sortString + "1";
+      }
+    }
+
+    return sortString;
+  }
+
+
+  private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
+    let sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
+
+    if (_isEmpty(sortField)) {
+      return '';
+    }
+
+    let secondarySort = _get(sortMapAtStep, [sortField, 'secondarySort']);
+    let sort = _get(sortMapAtStep, [sortField, 'sort']);
+
+    if (secondarySort != null && secondarySort !== '') {
+      let sortString = `${secondarySort}:`;
+      if (sort == 'desc') {
+        sortString = sortString + "-1";
+      } else {
+        sortString = sortString + "1";
+      }
+      return sortString;
+    }
+
     return '';
   }
 
@@ -1079,9 +1083,9 @@ export class DashboardComponent extends BaseComponent {
       this.records[step].currentPage = 1;
       let stagedRecords: any;
       if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       }
 
       let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
@@ -1102,9 +1106,9 @@ export class DashboardComponent extends BaseComponent {
       this.records[step].currentPage = 1;
       let stagedRecords: any;
       if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step));
+        stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
       }
 
       let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
