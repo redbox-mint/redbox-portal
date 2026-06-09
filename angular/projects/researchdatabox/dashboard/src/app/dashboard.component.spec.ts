@@ -227,6 +227,61 @@ describe('DashboardComponent standard', () => {
     );
   });
 
+  it('keeps the clicked sort when paginating after a column sort is selected', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const getRecordsSpy = spyOn(recordService, 'getRecords').and.returnValue(Promise.resolve(recordDataStandard.records as any));
+    spyOn(dashboardComponent, 'evaluatePlanTableColumns').and.returnValue({
+      items: recordDataStandard.records.items,
+      totalItems: recordDataStandard.records.totalItems,
+      currentPage: recordDataStandard.records.currentPage,
+      noItems: recordDataStandard.records.noItems,
+    } as any);
+
+    dashboardComponent.dashboardTypeSelected = 'standard';
+    dashboardComponent.recordType = 'rdmp';
+    dashboardComponent.filterFieldPath = 'metadata.title';
+    dashboardComponent.sortFields = {
+      draft: ['metadata.contributor_data_manager.text_full_name', 'metadata.title', 'metaMetadata.lastSaveDate'],
+    };
+    dashboardComponent.tableConfig = {
+      draft: [
+        { variable: 'metadata.contributor_data_manager.text_full_name', noSort: '', secondarySort: '' },
+        { variable: 'metadata.title', noSort: '', secondarySort: '' },
+        { variable: 'metaMetadata.lastSaveDate', noSort: '', secondarySort: '' },
+      ],
+    };
+    dashboardComponent.sortMap = {
+      draft: {
+        'metadata.contributor_data_manager.text_full_name': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metadata.title': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metaMetadata.lastSaveDate': { sort: 'desc', secondarySort: '', defaultSort: true },
+      },
+    };
+
+    await dashboardComponent.sortChanged({
+      step: 'draft',
+      sort: 'asc',
+      secondarySort: '',
+      variable: 'metadata.title',
+    } as any);
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'draft');
+
+    expect(getRecordsSpy).toHaveBeenCalledTimes(2);
+    expect(getRecordsSpy.calls.mostRecent().args).toEqual([
+      'rdmp',
+      'draft',
+      2,
+      '',
+      'metadata.title:1',
+      'metadata.title',
+      '',
+      '',
+      '',
+    ]);
+  });
+
   it('initializes a dashboard view and loads view templates', async () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
