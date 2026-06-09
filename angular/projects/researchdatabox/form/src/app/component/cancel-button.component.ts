@@ -61,6 +61,7 @@ export class CancelButtonComponent extends ButtonBaseComponent {
         historyDelta: redirectLocation ? undefined : -1,
         redirectLocation: redirectLocation,
         redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
+        sourceId: this.name ?? undefined,
       })
     );
   }
