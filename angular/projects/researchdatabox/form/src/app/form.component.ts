@@ -1536,7 +1536,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return `record/edit/${createdOid}`;
   }
 
-  private resolveRedirectLocation(template: string, oid: string): string {
+  public resolveRedirectLocation(template: string, oid: string): string {
     const contextVariables = (this.formConfigMeta["contextVariables"] ?? {}) as Record<string, unknown>;
     return template
       .replaceAll('@oid', oid)
