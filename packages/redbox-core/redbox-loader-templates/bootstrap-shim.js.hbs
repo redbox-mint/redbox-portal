@@ -9,7 +9,15 @@
  * This gives you an opportunity to set up your data model, run jobs, or perform some special logic.
  */
 const { coreBootstrap, preLiftSetup, createGeneratedBootstrap } = require('@researchdatabox/redbox-core');
-const migrations = require('./migrations').migrations || [];
+let migrations = [];
+// skip migrations if there are none specified
+try {
+  migrations = require('./migrations').migrations || [];
+} catch (e) {
+  if (e.code !== 'MODULE_NOT_FOUND') throw e;
+  console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
+}
+
 {{{hookImports}}}
 
 const hookBootstraps = [
