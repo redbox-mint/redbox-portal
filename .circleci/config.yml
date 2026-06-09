@@ -784,7 +784,7 @@ jobs:
             source support/build/docker-build-vars.sh
             docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
-  publish-runtime-multiarch:
+  publish-runtime-amd64:
     docker:
       - image: 'cimg/node:24.16.0'
     resource_class: large
@@ -792,10 +792,20 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Publish runtime multi-arch image
+          name: Publish amd64 runtime image
           no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime ""
-  publish-runtime-pdfgen-multiarch:
+          command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime ""
+  publish-runtime-arm64:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Publish arm64 runtime image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
+  publish-runtime-pdfgen-amd64:
     docker:
       - image: 'cimg/node:24.16.0'
     resource_class: large
@@ -803,9 +813,19 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Publish runtime pdfgen multi-arch image
+          name: Publish amd64 runtime pdfgen image
           no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_pdfgen "-pdfgen"
+          command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime_pdfgen "-pdfgen"
+  publish-runtime-pdfgen-arm64:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Publish arm64 runtime pdfgen image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   deploy-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -1455,8 +1475,18 @@ workflows:
     when:
       equal: [manual, << pipeline.parameters.docker_publish_mode >>]
     jobs:
-      - publish-runtime-multiarch
-      - publish-runtime-pdfgen-multiarch
+      - publish-runtime-amd64
+      - publish-runtime-arm64
+      - publish-manifest:
+          requires:
+            - publish-runtime-amd64
+            - publish-runtime-arm64
+      - publish-runtime-pdfgen-amd64
+      - publish-runtime-pdfgen-arm64
+      - publish-runtime-pdfgen-manifest:
+          requires:
+            - publish-runtime-pdfgen-amd64
+            - publish-runtime-pdfgen-arm64
   npm_beta_publish:
     when:
       and:
