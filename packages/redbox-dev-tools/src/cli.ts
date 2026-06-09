@@ -426,6 +426,34 @@ generate
   });
 
 generate
+  .command('migration <description>')
+  .description('Generate an app-local data migration in api/migrations/ (runs at lift, before coreBootstrap)')
+  .action(async (description: string) => {
+    try {
+      const globalOptions = program.opts();
+      const paths = resolvePaths(globalOptions);
+
+      const { MigrationGenerator } = require('./generators/migration');
+      const generator = new MigrationGenerator({
+        description,
+        dryRun: globalOptions.dryRun,
+        root: paths.root,
+      });
+
+      console.log(`\n🛠️  Generating data migration: ${description}...\n`);
+      await generator.generate();
+      console.log(`\n✅ Done! Created migration '${generator.migrationName}'.\n`);
+      console.log('Next steps:');
+      console.log(`  1. Implement up() in ${path.relative(paths.root, generator.migrationPath)} (remove the placeholder throw)`);
+      console.log('  2. Make sure up() is idempotent - it can run more than once');
+      console.log('  3. Test by lifting the app, then verify the Migration table contains the new name\n');
+    } catch (error: any) {
+      console.error(`\n❌ Error: ${error.message}\n`);
+      process.exit(1);
+    }
+  });
+
+generate
   .command('form-field <name>')
   .description('Generate a new form field DSL configuration')
   .requiredOption('--type <type>', 'Record type')

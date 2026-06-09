@@ -96,6 +96,42 @@ describe('MigrationRunner', function () {
         expect(created[0].source).to.equal('app');
         expect(created[0].appVersion).to.equal('1.2.3');
         expect(created[0].ranAt).to.be.a('number');
+        expect(created[0].durationMs).to.be.a('number');
+        expect(created[0].executedBy).to.be.a('string').and.to.not.be.empty;
+    });
+
+    it('should log the pending migration names before executing', async function () {
+        setMigrationModel(['2026.06.08T09.00.00-first']);
+
+        await runPendingMigrations([
+            { name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves() },
+            { name: '2026.06.08T10.00.00-second', up: sinon.stub().resolves() }
+        ]);
+
+        const info = (global as any).sails.log.info as sinon.SinonStub;
+        expect(info.calledWithMatch('Data migrations: 1 pending: 2026.06.08T10.00.00-second')).to.be.true;
+    });
+
+    it('should skip all migrations when REDBOX_SKIP_MIGRATIONS=true', async function () {
+        const originalValue = process.env.REDBOX_SKIP_MIGRATIONS;
+        process.env.REDBOX_SKIP_MIGRATIONS = 'true';
+        try {
+            const { created } = setMigrationModel();
+            const up = sinon.stub().resolves();
+
+            await runPendingMigrations([{ name: '2026.06.08T09.00.00-first', up }]);
+
+            expect(up.called).to.be.false;
+            expect(created).to.deep.equal([]);
+            const warn = (global as any).sails.log.warn as sinon.SinonStub;
+            expect(warn.calledWithMatch('REDBOX_SKIP_MIGRATIONS=true')).to.be.true;
+        } finally {
+            if (originalValue === undefined) {
+                delete process.env.REDBOX_SKIP_MIGRATIONS;
+            } else {
+                process.env.REDBOX_SKIP_MIGRATIONS = originalValue;
+            }
+        }
     });
 
     it('should skip already executed migrations', async function () {

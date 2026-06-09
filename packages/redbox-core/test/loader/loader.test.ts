@@ -395,6 +395,68 @@ describe('redbox-loader', function () {
             const stat = await fsPromises.stat(file);
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
         });
+
+        function runBootstrapShim(content: string, migrationsRequire: () => unknown): { exports: Record<string, unknown>; capturedMigrations: unknown } {
+            let capturedMigrations: unknown;
+            const fakeCore = {
+                coreBootstrap: async () => undefined,
+                preLiftSetup: () => undefined,
+                createGeneratedBootstrap: (
+                    _preLift: unknown,
+                    _core: unknown,
+                    _hooks: unknown,
+                    migrations: unknown
+                ) => {
+                    capturedMigrations = migrations;
+                    return () => undefined;
+                },
+            };
+            const fakeRequire = (id: string) => {
+                if (id === '@researchdatabox/redbox-core') {
+                    return fakeCore;
+                }
+                if (id === './migrations') {
+                    return migrationsRequire();
+                }
+                throw new Error(`Unexpected require: ${id}`);
+            };
+            const moduleStub = { exports: {} as Record<string, unknown> };
+            vm.runInNewContext(content, {
+                require: fakeRequire,
+                module: moduleStub,
+                exports: moduleStub.exports,
+                console: { warn: () => undefined },
+            });
+            return { exports: moduleStub.exports, capturedMigrations };
+        }
+
+        it('should tolerate a missing config/migrations.js and default to no migrations', async function () {
+            await redboxLoader.generateBootstrapShim(configDir, []);
+            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
+
+            const missingShim = () => {
+                const error = new Error("Cannot find module './migrations'") as NodeJS.ErrnoException;
+                error.code = 'MODULE_NOT_FOUND';
+                throw error;
+            };
+
+            const { exports: shimExports, capturedMigrations } = runBootstrapShim(content, missingShim);
+            expect(shimExports.bootstrap).to.be.a('function');
+            expect(capturedMigrations).to.deep.equal([]);
+        });
+
+        it('should rethrow MODULE_NOT_FOUND raised inside config/migrations.js', async function () {
+            await redboxLoader.generateBootstrapShim(configDir, []);
+            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
+
+            const missingHookInsideShim = () => {
+                const error = new Error("Cannot find module 'some-uninstalled-hook'") as NodeJS.ErrnoException;
+                error.code = 'MODULE_NOT_FOUND';
+                throw error;
+            };
+
+            expect(() => runBootstrapShim(content, missingHookInsideShim)).to.throw("Cannot find module 'some-uninstalled-hook'");
+        });
     });
 
     describe('findAndRegisterHooks', function () {
@@ -647,6 +709,69 @@ describe('redbox-loader', function () {
             const shimPath = path.join(configDir, 'migrations.js');
             delete require.cache[require.resolve(shimPath)];
             expect(() => require(shimPath)).to.throw('Duplicate Redbox migration name: duplicate');
+        });
+
+        it('should name the offending source when a migration export is invalid', async function () {
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '007-bad.js'),
+                `module.exports = { name: 'bad-migration' };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw('Invalid Redbox migration export from api/migrations/007-bad.js');
+        });
+
+        it('should reject a hook whose registerRedboxMigrations is async', async function () {
+            const packageName = 'redbox-hook-async-migrations';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasMigrations: true },
+                },
+                `module.exports.registerRedboxMigrations = async function() {
+                    return [];
+                };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, [
+                { name: packageName, module: packageName }
+            ]);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw(
+                `Invalid Redbox migration export from hook:${packageName}. Expected an array of migrations (registerRedboxMigrations() must be synchronous).`
+            );
+        });
+
+        it('should name both sources for duplicate migration names', async function () {
+            process.env.NODE_ENV = 'production';
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '008-duplicate-a.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '009-duplicate-b.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw(
+                'Duplicate Redbox migration name: duplicate (from api/migrations/009-duplicate-b.js, first defined in api/migrations/008-duplicate-a.js)'
+            );
         });
     });
 });

@@ -24,11 +24,23 @@ When ReDBox starts:
    - App-local migrations in `api/migrations/`
    - Hook migrations from packages with `sails.hasMigrations: true`
 4. Migrations run in **lexical order by name** (not execution order)
-5. Each successful migration is logged in the `Migration` table
+5. Each successful migration is logged in the `Migration` table (with its source, app version, duration, and executing hostname)
 6. Already-executed migrations are skipped on subsequent startups
 7. If any migration fails, startup halts (fail-fast)
 
+> **Run upgrades with a single instance.** There is no cross-instance lock: if several portal instances lift concurrently against the same database, each runs the pending migrations and they can execute the same `up()` at the same time. When upgrading a horizontally scaled deployment, scale down to one instance (or lift one instance first), let migrations complete, then scale back up. Back up the database before upgrading.
+
 ## Creating a Migration
+
+### Generating a Skeleton (Recommended)
+
+The `redbox-dev-tools` CLI can generate a correctly named migration file with the right handler signature:
+
+```bash
+npx redbox-dev-tools --root /path/to/app generate migration backfill-dataset-label
+```
+
+This writes `api/migrations/<timestamp>-backfill-dataset-label.js` with a timestamped `name` and an `up()` skeleton that destructures the Sails context correctly.
 
 ### File Location and Naming
 
@@ -49,12 +61,20 @@ All migrations export an object with:
 ```typescript
 {
   name: string;        // Unique identifier (e.g., "2026.06.08T10.00.00-rename-key")
-  up: (context: any) => Promise<void>;     // Required: forward transformation
-  down?: (context: any) => Promise<void>;  // Optional: rollback (not yet exposed via CLI)
+  up: (params: { name: string; context: Sails }) => Promise<void>;     // Required: forward transformation
+  down?: (params: { name: string; context: Sails }) => Promise<void>;  // Optional: rollback (not yet exposed via CLI)
 }
 ```
 
-The `context` parameter is the Sails global, providing access to models, services, and config.
+`up()` and `down()` receive Umzug's params object — **not** the Sails instance directly. The Sails instance is on `params.context`; destructure it:
+
+```javascript
+up: async ({ context: sails } = {}) => {
+  await sails.models.appconfig.update({ key: 'oldKey' }, { key: 'newKey' });
+}
+```
+
+Do **not** declare the first parameter as `sails` (`async up(sails) { ... }`) — that binds the params object to the name `sails`, shadowing the global, and `sails.models` will be `undefined`.
 
 ### Example: Backfilling a New Field
 
@@ -64,7 +84,7 @@ The `context` parameter is the Sails global, providing access to models, service
 module.exports = {
   name: '20260608T100000-backfill-dataset-label',
 
-  async up(sails) {
+  up: async ({ context: sails } = {}) => {
     // Find all Records without a label
     const records = await sails.models.record.find({
       label: null
@@ -79,7 +99,7 @@ module.exports = {
     sails.log.info(`Backfilled ${records.length} records with default labels`);
   },
 
-  async down(sails) {
+  down: async ({ context: sails } = {}) => {
     // Clear labels to reverse the migration
     await sails.models.record.update({})
       .set({ label: null });
@@ -97,7 +117,7 @@ module.exports = {
 module.exports = {
   name: '20260608T110000-migrate-appconfig-structure',
 
-  async up(sails) {
+  up: async ({ context: sails } = {}) => {
     const config = await sails.models.appconfig.findOne({ key: 'branding' });
     if (!config) return;
 
@@ -158,13 +178,13 @@ Key points:
 
 ## Migration Best Practices
 
-### 1. Idempotency and Safety
+### 1. Idempotency Is a Requirement, Not a Nicety
 
-Migrations can be tested in development before production. Structure them to be safe if run multiple times (though Umzug skips executed migrations on normal startup).
+A migration is recorded in the `Migration` table **after** its `up()` completes. If the process crashes (or the database write fails) between the migration finishing and being logged, the migration **will run again** on the next lift. Umzug skipping executed migrations only protects you on the happy path — every migration **must** be safe to run more than once.
 
 ```javascript
 // Good: Check before mutating
-async up(sails) {
+up: async ({ context: sails } = {}) => {
   const hasLabel = await sails.models.record.findOne({ where: { label: { '!=': null } } });
   if (hasLabel) return; // Already migrated
 
@@ -177,16 +197,17 @@ async up(sails) {
 For tables with millions of rows, batch the update to avoid memory/database load:
 
 ```javascript
-async up(sails) {
+up: async ({ context: sails } = {}) => {
   const BATCH_SIZE = 1000;
-  let offset = 0;
   let updated = 0;
 
+  // Re-query without an offset: each pass mutates the rows so they no
+  // longer match the criteria, shrinking the result set until it is empty.
+  // (Using .skip() here would jump over unprocessed rows.)
   while (true) {
     const batch = await sails.models.record
       .find({ label: null })
-      .limit(BATCH_SIZE)
-      .skip(offset);
+      .limit(BATCH_SIZE);
 
     if (batch.length === 0) break;
 
@@ -196,7 +217,6 @@ async up(sails) {
       updated++;
     }
 
-    offset += BATCH_SIZE;
     sails.log.info(`Processed ${updated} records...`);
   }
 }
@@ -207,7 +227,7 @@ async up(sails) {
 Always log what your migration does so operators can verify it succeeded:
 
 ```javascript
-async up(sails) {
+up: async ({ context: sails } = {}) => {
   const before = await sails.models.record.count();
   
   // ... migration logic ...
@@ -232,7 +252,7 @@ If a service exists for your domain, use it rather than querying models directly
 
 ```javascript
 // Better: Use a service if available
-async up(sails) {
+up: async ({ context: sails } = {}) => {
   const service = sails.services.core.recordService;
   if (service && service.backfillMissingLabels) {
     await service.backfillMissingLabels();
@@ -248,8 +268,17 @@ Query the `Migration` table to see which migrations have run:
 
 ```javascript
 const executed = await sails.models.migration.find().sort('ranAt ASC');
-console.log(executed.map(m => ({ name: m.name, source: m.source, ranAt: new Date(m.ranAt) })));
+console.log(executed.map(m => ({
+  name: m.name,
+  source: m.source,
+  appVersion: m.appVersion,
+  ranAt: new Date(m.ranAt),
+  durationMs: m.durationMs,
+  executedBy: m.executedBy
+})));
 ```
+
+At startup, the runner also logs the pending migration names (or `0 pending`) before executing, so the application log shows exactly what an upgrade is about to run.
 
 ### Manual Testing
 
@@ -277,6 +306,16 @@ If a migration's `up()` throws an error:
 1. Check the application logs for the specific error
 2. Fix the migration file
 3. Restart the application
+
+**Emergency boot (`REDBOX_SKIP_MIGRATIONS`):**
+
+If a broken migration is blocking startup in production and you need the portal up while you prepare a fix, set:
+
+```bash
+REDBOX_SKIP_MIGRATIONS=true
+```
+
+This skips **all** pending data migrations for that lift (a warning is logged). Skipped migrations are not marked as executed — they run on the next lift without the flag. Use it only as a temporary escape hatch: the application is running against un-migrated data until you ship the fixed (or follow-up fix) migration and restart without the flag.
 
 ### Orphaned Migration Rows
 
@@ -320,13 +359,13 @@ To add migrations from a hook package:
    }
    ```
 
-2. Export `registerRedboxMigrations()` from your hook's entry point:
+2. Export `registerRedboxMigrations()` from your hook's entry point. It **must be synchronous** and return the array directly — the generated shim consumes the return value without awaiting it, so an `async` function (returning a Promise) fails at startup:
    ```typescript
-   export async function registerRedboxMigrations(): Promise<RedboxMigration[]> {
+   export function registerRedboxMigrations(): RedboxMigration[] {
      return [
        {
          name: '@my-org/my-hook:20260608T100000-seed-dashboard',
-         async up(sails) {
+         up: async ({ context: sails } = {}) => {
            // ... migration logic
          }
        }

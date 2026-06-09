@@ -14,7 +14,11 @@ let migrations = [];
 try {
   migrations = require('./migrations').migrations || [];
 } catch (e) {
-  if (e.code !== 'MODULE_NOT_FOUND') throw e;
+  // Only tolerate config/migrations.js itself being absent (e.g. shims not yet
+  // regenerated). A MODULE_NOT_FOUND raised by a require() inside migrations.js
+  // (such as an uninstalled hook) must still fail the lift.
+  const isMigrationsShimMissing = e.code === 'MODULE_NOT_FOUND' && typeof e.message === 'string' && e.message.includes("'./migrations'");
+  if (!isMigrationsShimMissing) throw e;
   console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
 }
 

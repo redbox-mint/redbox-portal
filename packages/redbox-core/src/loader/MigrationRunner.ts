@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
 import { Umzug, type MigrationMeta, type RunnableMigration, type UmzugStorage } from 'umzug';
 
@@ -15,13 +16,21 @@ interface MigrationRow {
 
 interface MigrationModel {
     find: () => { sort: (criteria: string) => Promise<MigrationRow[]> };
-    create: (values: { name: string; source?: string; appVersion?: string; ranAt: number }) => Promise<unknown>;
+    create: (values: {
+        name: string;
+        source?: string;
+        appVersion?: string;
+        ranAt: number;
+        durationMs?: number;
+        executedBy?: string;
+    }) => Promise<unknown>;
     destroy: (criteria: { name: string }) => Promise<unknown>;
 }
 
 async function readAppVersion(): Promise<string | undefined> {
     try {
-        const packageJson = JSON.parse(await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf8')) as { version?: string };
+        const appPath = (sails.config as { appPath?: string } | undefined)?.appPath || process.cwd();
+        const packageJson = JSON.parse(await fs.readFile(path.join(appPath, 'package.json'), 'utf8')) as { version?: string };
         return packageJson.version;
     } catch {
         return undefined;
@@ -39,7 +48,8 @@ function getMigrationModel(): MigrationModel {
 function createMigrationStorage(
     migrationModel: MigrationModel,
     migrationsByName: Map<string, RedboxMigration>,
-    appVersion: string | undefined
+    appVersion: string | undefined,
+    startTimes: Map<string, number>
 ): UmzugStorage {
     return {
         async executed(): Promise<string[]> {
@@ -49,11 +59,14 @@ function createMigrationStorage(
 
         async logMigration({ name }: MigrationMeta): Promise<void> {
             const migration = migrationsByName.get(name);
+            const startedAt = startTimes.get(name);
             await migrationModel.create({
                 name,
                 source: migration?.source,
                 appVersion,
                 ranAt: Date.now(),
+                ...(startedAt === undefined ? {} : { durationMs: Date.now() - startedAt }),
+                executedBy: os.hostname(),
             });
         },
 
@@ -90,13 +103,28 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
         return;
     }
 
+    if (process.env.REDBOX_SKIP_MIGRATIONS === 'true') {
+        sails.log.warn(
+            `REDBOX_SKIP_MIGRATIONS=true – skipping ${migrations.length} registered data migration(s). ` +
+            'Skipped migrations remain pending and will run on the next lift without this flag.'
+        );
+        return;
+    }
+
     const orderedMigrations = [...migrations].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     const migrationsByName = new Map(orderedMigrations.map(migration => [migration.name, migration]));
     const migrationModel = getMigrationModel();
     const appVersion = await readAppVersion();
-    const storage = createMigrationStorage(migrationModel, migrationsByName, appVersion);
+    const startTimes = new Map<string, number>();
+    const storage = createMigrationStorage(migrationModel, migrationsByName, appVersion, startTimes);
 
-    const umzugMigrations = toRunnableMigrations(orderedMigrations);
+    const umzugMigrations = toRunnableMigrations(orderedMigrations).map(migration => ({
+        ...migration,
+        up: async (params: { name: string; path?: string; context: typeof sails }) => {
+            startTimes.set(migration.name, Date.now());
+            return migration.up(params);
+        },
+    }));
 
     const umzug = new Umzug({
         migrations: umzugMigrations,
@@ -104,6 +132,13 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
         storage,
         logger: createLogger(),
     });
+
+    const pending = await umzug.pending();
+    if (pending.length === 0) {
+        sails.log.info('Data migrations: 0 pending.');
+        return;
+    }
+    sails.log.info(`Data migrations: ${pending.length} pending: ${pending.map(migration => migration.name).join(', ')}`);
 
     await umzug.up();
 }
