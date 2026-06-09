@@ -18,18 +18,18 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
         <div class="modal-dialog" role="document">
           <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
             <div class="modal-header">
-              <h5 id="confirmationDialogTitle" class="modal-title">{{ title() }}</h5>
+              <h5 id="confirmationDialogTitle" class="modal-title">{{ title() | i18next }}</h5>
               <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p id="confirmationDialogMessage">{{ dialog()?.message }}</p>
+              <p id="confirmationDialogMessage">{{ dialog()?.message | i18next }}</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="cancel()" cdkFocusInitial>
-                {{ cancelLabel() }}
+                {{ cancelLabel() | i18next }}
               </button>
               <button type="button" [class]="confirmButtonClass()" (click)="confirm()">
-                {{ confirmLabel() }}
+                {{ confirmLabel() | i18next }}
               </button>
             </div>
           </div>

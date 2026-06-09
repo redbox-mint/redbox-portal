@@ -363,7 +363,16 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Save Button  */
 
-  async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> { }
+  async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
+    const redirectLocation = (item.config?.redirectLocation ?? '').trim();
+    if (redirectLocation) {
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'redirectLocation'],
+        value: redirectLocation,
+        kind: 'handlebars',
+      });
+    }
+  }
 
   async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
@@ -371,11 +380,22 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
 
   /* Cancel Button  */
 
-  async visitCancelButtonFieldComponentDefinition(_item: CancelButtonFieldComponentDefinitionOutline): Promise<void> { }
+  async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
+    const redirectLocation = (item.config?.redirectLocation ?? '').trim();
+    if (redirectLocation) {
+      this.templates?.push({
+        key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'redirectLocation'],
+        value: redirectLocation,
+        kind: 'handlebars',
+      });
+    }
+  }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
+
+  /* Delete Button */
 
   async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
     const redirectLocation = (item.config?.redirectLocation ?? '').trim();

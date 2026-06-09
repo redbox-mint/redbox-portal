@@ -2077,7 +2077,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
       this.formPathHelper.modelName,
       this.formPathHelper.formPath,
-      item
+      item,
+      // Provide the model value so the component visible state can be set correctly.
+      this.currentModelValue(),
     );
 
     // Apply the reusable component overrides.

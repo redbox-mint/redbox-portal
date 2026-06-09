@@ -417,8 +417,6 @@ describe('FormsService', function () {
         { kind: "handlebars" }, { kind: "jsonata" },
         { kind: "jsonata" }, { kind: "jsonata" },
         { kind: "jsonata" }, { kind: "jsonata" },
-        { kind: "jsonata" }, { kind: "jsonata" },
-        { kind: "jsonata" },
       ];
       expect(templates).to.containSubset(expected);
       expect(templates).to.have.length(expected.length);
