@@ -108,30 +108,6 @@ jobs:
 
             git commit -m 'Build(deps): refresh package locks'
             git push origin "HEAD:${CIRCLE_BRANCH}"
-  build-runtime-datastream-cloud:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build runtime_datastream_cloud image via Dockerfile
-          command: |
-            docker build \
-              --progress plain \
-              --target runtime_datastream_cloud \
-              --tag redbox-portal:runtime-datastream-cloud-test \
-              .
-      - run:
-          name: Save Docker image
-          command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-runtime-datastream-cloud-test.tar redbox-portal:runtime-datastream-cloud-test
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-            - docker-images/redbox-portal-runtime-datastream-cloud-test.tar
   build-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -156,30 +132,6 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
-  build-runtime-cloud-pdfgen:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build runtime_cloud_pdfgen image via Dockerfile
-          command: |
-            docker build \
-              --progress plain \
-              --target runtime_cloud_pdfgen \
-              --tag redbox-portal:runtime-cloud-pdfgen-test \
-              .
-      - run:
-          name: Save Docker image
-          command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar redbox-portal:runtime-cloud-pdfgen-test
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-            - docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
   test-bruno-general:
     machine:
       image: ubuntu-2204:current
@@ -843,32 +795,6 @@ jobs:
           name: Publish runtime multi-arch image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime ""
-  deploy-runtime-datastream-cloud:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load and push datastream cloud image
-          command: |
-            docker load -i /tmp/docker-images/redbox-portal-runtime-datastream-cloud-test.tar
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-
-            docker tag redbox-portal:runtime-datastream-cloud-test "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
   publish-runtime-pdfgen-multiarch:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -880,17 +806,6 @@ jobs:
           name: Publish runtime pdfgen multi-arch image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_pdfgen "-pdfgen"
-  publish-runtime-cloud-pdfgen-multiarch:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Publish runtime datastream cloud + pdfgen multi-arch image
-          no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   deploy-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -917,32 +832,6 @@ jobs:
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
-  deploy-runtime-cloud-pdfgen:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load and push datastream cloud + pdfgen image
-          command: |
-            docker load -i /tmp/docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-
-            docker tag redbox-portal:runtime-cloud-pdfgen-test "${REPO}:${DEPLOY_TAG}-cloud-pdfgen-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-cloud-pdfgen-amd64"
   deploy-arm64:
     machine:
       image: ubuntu-2204:current
@@ -963,16 +852,6 @@ jobs:
           name: Build and push arm64 pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
-  deploy-runtime-cloud-pdfgen-arm64:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: arm.medium
-    steps:
-      - checkout
-      - run:
-          name: Build and push arm64 datastream cloud + pdfgen image
-          no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   publish-manifest:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -991,15 +870,6 @@ jobs:
       - run:
           name: Create and push multi-arch pdfgen manifest
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
-  publish-runtime-cloud-pdfgen-manifest:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Create and push multi-arch datastream cloud + pdfgen manifest
-          command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-cloud-pdfgen"
   generate-docs:
     machine:
       image: ubuntu-2204:current
@@ -1078,10 +948,18 @@ parameters:
       - next
       - alpha
     default: beta
+  docker_publish_mode:
+    type: enum
+    enum:
+      - none
+      - manual
+    default: none
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1093,24 +971,12 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - build-runtime-datastream-cloud:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /^dependabot.*/
       - build-runtime-pdfgen:
           requires:
             - build
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - build-runtime-cloud-pdfgen:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - test-bruno-general:
           requires:
             - build
@@ -1180,14 +1046,14 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - publish-manifest:
           requires:
             - deploy
             - deploy-arm64
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy:
           requires:
             - test-bruno-general
@@ -1202,23 +1068,7 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
@@ -1234,23 +1084,7 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen-arm64:
           requires:
             - build-runtime-pdfgen
@@ -1266,41 +1100,19 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - publish-runtime-pdfgen-manifest:
           requires:
             - deploy-runtime-pdfgen
             - deploy-runtime-pdfgen-arm64
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-cloud-pdfgen-arm64:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - publish-runtime-cloud-pdfgen-manifest:
-          requires:
-            - deploy-runtime-cloud-pdfgen
-            - deploy-runtime-cloud-pdfgen-arm64
-            - publish-runtime-pdfgen-manifest
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
   build_test_dependabot:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1408,18 +1220,11 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - build:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
           filters:
             tags:
               only: /^v.*/
@@ -1433,23 +1238,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - build-runtime-datastream-cloud:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - build-runtime-pdfgen:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - build-runtime-cloud-pdfgen:
           requires:
             - build
           filters:
@@ -1597,43 +1386,9 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1674,33 +1429,6 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-runtime-cloud-pdfgen-arm64:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-runtime-cloud-pdfgen-manifest:
-          requires:
-            - deploy-runtime-cloud-pdfgen
-            - deploy-runtime-cloud-pdfgen-arm64
-            - publish-runtime-pdfgen-manifest
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - npm-publish-backend:
           release_kind: release
           release_version: ''
@@ -1723,9 +1451,19 @@ workflows:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
             branches:
               ignore: /.*/
+  docker_manual_publish:
+    when:
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [manual, << pipeline.parameters.docker_publish_mode >>]
+    jobs:
+      - publish-runtime-multiarch
+      - publish-runtime-pdfgen-multiarch
   npm_beta_publish:
     when:
-      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [beta, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta

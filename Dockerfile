@@ -101,19 +101,6 @@ USER node
 
 CMD ["node", "app.js"]
 
-# Plugin-augmented runtime variants for common release tags.
-FROM runtime AS runtime_datastream_cloud
-USER root
-RUN apt-get update \
- && apt-get install -y --no-install-recommends git
-USER node
-RUN npm install --omit=dev --no-save --package-lock=false \
-    @researchdatabox/sails-hook-redbox-datastream-cloud
-USER root
-RUN apt-get purge -y --auto-remove git \
- && rm -rf /var/lib/apt/lists/*
-USER node
-
 FROM runtime AS runtime_puppeteer_base
 USER root
 RUN set -eux; \
@@ -167,15 +154,6 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 RUN npm install --omit=dev --save --package-lock=true \
-    @researchdatabox/sails-hook-redbox-pdfgen@0.0.1-beta.103
-USER root
-RUN apt-get purge -y --auto-remove git \
- && rm -rf /var/lib/apt/lists/*
-USER node
-
-FROM runtime_puppeteer_base AS runtime_cloud_pdfgen
-RUN npm install --omit=dev --no-save --package-lock=false \
-    @researchdatabox/sails-hook-redbox-datastream-cloud \
     @researchdatabox/sails-hook-redbox-pdfgen@0.0.1-beta.103
 USER root
 RUN apt-get purge -y --auto-remove git \
