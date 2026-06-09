@@ -132,3 +132,183 @@ describe('Form behaviour visitors', () => {
     expect(onErrorAction?.config?.hasValueTemplate).to.equal(true);
   });
 });
+
+describe('Form behaviour visitors: extended action types', () => {
+  before(async function () {
+    ({ expect } = await import('chai'));
+  });
+
+  const buildFormConfig = () =>
+    ({
+      name: 'behaviour-form-extended',
+      behaviours: [
+        {
+          name: 'extended-actions',
+          condition: '/title::field.value.changed',
+          actions: [
+            {
+              type: 'runTemplate',
+              config: {
+                template: '$uppercase(value)',
+                resultKey: 'upperTitle',
+              },
+            },
+            {
+              type: 'setValues',
+              config: {
+                values: [
+                  {
+                    fieldPath: '/description',
+                    valueTemplate: 'upperTitle & "!"',
+                  },
+                  {
+                    fieldPath: '$substringBefore(event.fieldId, "/title") & "/summary"',
+                    fieldPathKind: 'jsonata',
+                  },
+                ],
+              },
+            },
+            {
+              type: 'setUIProperty',
+              config: {
+                fieldPath: '/description',
+                target: 'field.visible',
+                valueTemplate: '$exists(value)',
+              },
+            },
+            {
+              type: 'setUIProperties',
+              config: {
+                fieldPath: '$substringBefore(event.fieldId, "/title") & "/summary"',
+                fieldPathKind: 'jsonata',
+                properties: [
+                  {
+                    target: 'component.disabled',
+                    valueTemplate: 'value = ""',
+                  },
+                  {
+                    fieldPath: '/title',
+                    target: 'layout.cssClasses',
+                    value: 'highlight',
+                  },
+                ],
+              },
+            },
+          ],
+          onError: [
+            {
+              type: 'runTemplate',
+              config: {
+                template: '"failed"',
+              },
+            },
+          ],
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
+        },
+      ],
+    }) as FormConfigFrame & { behaviours: unknown[] };
+
+  it('construct visitor preserves the new action configs on form config', async () => {
+    const formConfig = buildFormConfig();
+    const visitor = new ConstructFormConfigVisitor(logger);
+    const constructed = await visitor.start({ data: formConfig, formMode: 'edit' });
+
+    expect((constructed as any).behaviours).to.deep.equal(formConfig.behaviours);
+  });
+
+  it('template visitor extracts templates from runTemplate and nested values/properties entries', async () => {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = await constructor.start({ data: buildFormConfig(), formMode: 'edit' });
+    const visitor = new TemplateFormConfigVisitor(logger);
+
+    const actual = await visitor.start({ form: constructed });
+
+    expect(actual).to.deep.equal([
+      {
+        key: ['behaviours', '0', 'actions', '0', 'config', 'template'],
+        kind: 'jsonata',
+        value: '$uppercase(value)',
+      },
+      {
+        key: ['behaviours', '0', 'actions', '1', 'config', 'values', '0', 'valueTemplate'],
+        kind: 'jsonata',
+        value: 'upperTitle & "!"',
+      },
+      {
+        key: ['behaviours', '0', 'actions', '1', 'config', 'values', '1', 'fieldPath'],
+        kind: 'jsonata',
+        value: '$substringBefore(event.fieldId, "/title") & "/summary"',
+      },
+      {
+        key: ['behaviours', '0', 'actions', '2', 'config', 'valueTemplate'],
+        kind: 'jsonata',
+        value: '$exists(value)',
+      },
+      {
+        key: ['behaviours', '0', 'actions', '3', 'config', 'fieldPath'],
+        kind: 'jsonata',
+        value: '$substringBefore(event.fieldId, "/title") & "/summary"',
+      },
+      {
+        key: ['behaviours', '0', 'actions', '3', 'config', 'properties', '0', 'valueTemplate'],
+        kind: 'jsonata',
+        value: 'value = ""',
+      },
+      {
+        key: ['behaviours', '0', 'onError', '0', 'config', 'template'],
+        kind: 'jsonata',
+        value: '"failed"',
+      },
+    ]);
+  });
+
+  it('client visitor strips new action templates and leaves literals untouched', async () => {
+    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructed = await constructor.start({ data: buildFormConfig(), formMode: 'edit' });
+    const visitor = new ClientFormConfigVisitor(logger);
+
+    const actual = await visitor.start({ form: constructed });
+    const behaviour = (actual as any).behaviours?.[0];
+    const [runTemplateAction, setValuesAction, setUIPropertyAction, setUIPropertiesAction] = behaviour?.actions ?? [];
+    const onErrorRunTemplate = behaviour?.onError?.[0];
+
+    // runTemplate: template stripped, marker set, resultKey untouched.
+    expect(runTemplateAction?.config?.template).to.equal(undefined);
+    expect(runTemplateAction?.config?.hasTemplate).to.equal(true);
+    expect(runTemplateAction?.config?.resultKey).to.equal('upperTitle');
+
+    // setValues entries: per-entry stripping and markers.
+    const [firstValue, secondValue] = setValuesAction?.config?.values ?? [];
+    expect(firstValue?.valueTemplate).to.equal(undefined);
+    expect(firstValue?.hasValueTemplate).to.equal(true);
+    expect(firstValue?.fieldPath).to.equal('/description');
+    expect(secondValue?.fieldPath).to.equal(undefined);
+    expect(secondValue?.hasFieldPathTemplate).to.equal(true);
+
+    // setUIProperty: stripped like a setValue config; target untouched.
+    expect(setUIPropertyAction?.config?.valueTemplate).to.equal(undefined);
+    expect(setUIPropertyAction?.config?.hasValueTemplate).to.equal(true);
+    expect(setUIPropertyAction?.config?.target).to.equal('field.visible');
+
+    // setUIProperties: action-level jsonata fieldPath stripped; entries handled
+    // individually; literal value/target pass through untouched.
+    expect(setUIPropertiesAction?.config?.fieldPath).to.equal(undefined);
+    expect(setUIPropertiesAction?.config?.hasFieldPathTemplate).to.equal(true);
+    const [firstProperty, secondProperty] = setUIPropertiesAction?.config?.properties ?? [];
+    expect(firstProperty?.valueTemplate).to.equal(undefined);
+    expect(firstProperty?.hasValueTemplate).to.equal(true);
+    expect(firstProperty?.target).to.equal('component.disabled');
+    expect(secondProperty?.fieldPath).to.equal('/title');
+    expect(secondProperty?.value).to.equal('highlight');
+    expect(secondProperty?.target).to.equal('layout.cssClasses');
+
+    expect(onErrorRunTemplate?.config?.template).to.equal(undefined);
+    expect(onErrorRunTemplate?.config?.hasTemplate).to.equal(true);
+  });
+});

@@ -343,9 +343,32 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // evaluate. JSONPointer conditions remain inline because they are cheap and
     // already executable in the browser without compiled assets.
     //
-    // v1 intentionally only strips the built-in behaviour templates defined in
-    // the implementation plan. Future extensibility would likely move this to a
-    // more generic registry-driven mechanism.
+    // This intentionally only strips the built-in behaviour templates defined
+    // in the implementation plan. Future extensibility would likely move this
+    // to a more generic registry-driven mechanism.
+    //
+    // The same stripping rules apply to an action's own config and to its
+    // nested `values` (setValues) / `properties` (setUIProperties) entries.
+    // Literal `value` and `target` keys pass through untouched.
+    const stripActionEntryTemplates = (entryConfig: unknown): void => {
+      const config = (entryConfig ?? {}) as {
+        valueTemplate?: string;
+        hasValueTemplate?: boolean;
+        fieldPath?: string;
+        fieldPathKind?: string;
+        hasFieldPathTemplate?: boolean;
+      };
+
+      if (config.valueTemplate) {
+        config.hasValueTemplate = true;
+        delete config.valueTemplate;
+      }
+      if (config.fieldPathKind === 'jsonata' && config.fieldPath) {
+        config.hasFieldPathTemplate = true;
+        delete config.fieldPath;
+      }
+    };
+
     const behaviours = (item as FormConfigOutline & { behaviours?: Array<Record<string, unknown>> }).behaviours;
     (behaviours ?? []).forEach((behaviour: Record<string, unknown>) => {
       const typedBehaviour = behaviour as Record<string, unknown> & {
@@ -373,21 +396,27 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       [typedBehaviour.actions, typedBehaviour.onError].forEach(actions => {
         (actions ?? []).forEach(action => {
           const config = action.config as {
-            valueTemplate?: string;
-            hasValueTemplate?: boolean;
-            fieldPath?: string;
-            fieldPathKind?: string;
-            hasFieldPathTemplate?: boolean;
+            template?: string;
+            hasTemplate?: boolean;
+            values?: unknown[];
+            properties?: unknown[];
           };
 
-          if (config.valueTemplate) {
-            config.hasValueTemplate = true;
-            delete config.valueTemplate;
+          stripActionEntryTemplates(config);
+
+          // The `runTemplate` action carries its JSONata under `template`,
+          // mirroring the `jsonataTransform` processor stripping above.
+          if (config.template) {
+            config.hasTemplate = true;
+            delete config.template;
           }
-          if (config.fieldPathKind === 'jsonata' && config.fieldPath) {
-            config.hasFieldPathTemplate = true;
-            delete config.fieldPath;
-          }
+
+          (['values', 'properties'] as const).forEach(entryListName => {
+            const entries = config[entryListName];
+            if (Array.isArray(entries)) {
+              entries.forEach(entry => stripActionEntryTemplates(entry));
+            }
+          });
         });
       });
     });

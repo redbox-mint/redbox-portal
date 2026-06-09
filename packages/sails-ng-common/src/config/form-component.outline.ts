@@ -148,6 +148,22 @@ interface FormExpressionsTargetValidationGroupsConfigFrame {
   target: FormExpressionsTargetValidationGroupsType;
 }
 
+/**
+ * Union of all expression target identifiers.
+ *
+ * Shared by the component-scoped expressions feature and the form-level
+ * behaviour actions (`setUIProperty` / `setUIProperties` / `runTemplate`
+ * instruction lists) so both use the same target vocabulary.
+ */
+export type FormExpressionsTargetType =
+  | FormExpressionsTargetModelValueType
+  | FormExpressionsTargetModelDisabledType
+  | FormExpressionsTargetLayoutPropertyType
+  | FormExpressionsTargetComponentPropertyType
+  | FormExpressionsTargetFieldVisibleType
+  | FormExpressionsTargetFieldDisabledType
+  | FormExpressionsTargetValidationGroupsType;
+
 /*
  * Expression with either operation or template and no target.
  */

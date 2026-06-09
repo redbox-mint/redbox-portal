@@ -1,6 +1,5 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
-  createFormValidationGroupsChangeRequestEvent,
   FormComponentEvent, FormComponentEventType, FormComponentEventTypeValue
 } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions, FormComponentEventQuerySource } from './form-component-base-event-producer-consumer';
@@ -10,21 +9,13 @@ import {
   getLastSegmentFromJSONPointer,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
-  FormExpressionsTargetModelValue,
-  FormExpressionsTargetLayoutPrefix,
-  FormExpressionsTargetComponentPrefix,
   FormExpressionsTargetValidationGroups,
   DynamicScriptResponse,
-  toBoolean,
   jsonataLibrary,
-  FormExpressionsTargetModelDisabled,
-  FormExpressionsTargetFieldVisible,
-  FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
-import { AbstractControl } from '@angular/forms';
-import {isTypeFormValidationGroupsChangeRequestInfo, setControlValue} from "../custom-set-value.control";
-import { syncComponentDisplayFromModel } from "../custom-display-sync.control";
+import { isEmpty as _isEmpty } from 'lodash-es';
+import {isTypeFormValidationGroupsChangeRequestInfo} from "../custom-set-value.control";
+import { applyExpressionTarget } from "../apply-expression-target";
 import { FormFieldModel } from "@researchdatabox/portal-ng-common";
 /**
  * Options main bag for matching events against conditions
@@ -406,71 +397,31 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @protected
    */
   protected async setTarget(targetValue: unknown, exprTarget: string, event: FormComponentEvent, expression: FormExpressionsConfigFrame) {
-    if (exprTarget === FormExpressionsTargetModelValue) {
-      // The model.value property must be handled specially.
-      if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
-        await setControlValue(this.model.formControl, targetValue, {emitEvent: false});
-        await syncComponentDisplayFromModel(this.options?.component);
-        // setControlValue with emitEvent:false suppresses Angular's
-        // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
-        // listeners like SaveButtonComponent never see that an expression-driven
-        // update flipped the form to valid (e.g. a downstream "required" target
-        // becoming populated), and the Save button stays disabled. Re-emit the
-        // current form status so signal-effect consumers can re-evaluate.
-        this.formComp?.broadcastFormStatus();
-      }
-
-    } else if (exprTarget === FormExpressionsTargetModelDisabled) {
-      // The model.disabled property must be handled specially.
-      const disabled = toBoolean(targetValue);
-      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
-
-    } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
-      const name = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
-      this.options?.definition?.layout?.setProperty?.(name, targetValue);
-
-    } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
-      const name = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
-      this.options?.definition?.component?.setProperty?.(name, targetValue);
-
-    } else if (exprTarget === FormExpressionsTargetFieldVisible) {
-      const name = 'visible';
-      const visible = toBoolean(targetValue);
-      this.options?.definition?.component?.setProperty?.(name, visible);
-      this.options?.definition?.layout?.setProperty?.(name, visible);
-
-    } else if (exprTarget === FormExpressionsTargetFieldDisabled) {
-      const name = 'disabled';
-      const disabled = toBoolean(targetValue);
-      this.options?.definition?.component?.setProperty?.(name, disabled);
-      this.options?.definition?.layout?.setProperty?.(name, disabled);
-      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
-
-    } else if (exprTarget === FormExpressionsTargetValidationGroups) {
-      if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
-        // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
-        // Only want to respond to events targeted to a specific component.
-        if (event.sourceId !== "*") {
-          this.eventBus.publish(createFormValidationGroupsChangeRequestEvent({
-            // Create a broadcast event, as this event is intended as a general broadcast.
-            sourceId: '*',
-            fieldId: event.fieldId,
-            ...targetValue,
-          }));
-        }
-      } else {
-        this.loggerService.error(
-          `FormComponentBaseEventConsumer: Invalid value '${targetValue}' for expression target ${FormExpressionsTargetValidationGroups}, expected {initial?: '[value]', groups: {include?: string[], exclude?: string[]}}.`,
-          {event, expression}
-        );
-      }
-
-    } else {
-      this.loggerService.warn(
-        `FormComponentBaseEventConsumer: Unknown target '${exprTarget}' in expression config.`,
-        expression
-      );
+    // Only publish validation-groups change events in response to scoped change
+    // events, don't need to respond to the broadcast events. Only want to
+    // respond to events targeted to a specific component.
+    if (exprTarget === FormExpressionsTargetValidationGroups
+      && isTypeFormValidationGroupsChangeRequestInfo(targetValue)
+      && event.sourceId === "*") {
+      return;
     }
+
+    await applyExpressionTarget(
+      exprTarget,
+      targetValue,
+      {
+        model: this.model,
+        component: this.options?.definition?.component,
+        layout: this.options?.definition?.layout,
+        displayComponent: this.options?.component,
+      },
+      {
+        eventBus: this.eventBus,
+        logger: this.loggerService,
+        broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
+        eventFieldId: event.fieldId,
+      }
+    );
   }
 
   /**

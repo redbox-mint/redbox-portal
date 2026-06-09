@@ -704,9 +704,10 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
    * and action templates are compiled so the raw source can be stripped before
    * the config reaches the browser.
    *
-   * v1 scope is intentionally narrow:
+   * Scope is intentionally narrow:
    * - processor templates are only read from `jsonataTransform`
-   * - action templates cover `valueTemplate` and JSONata `fieldPath`
+   * - action templates cover `valueTemplate`, JSONata `fieldPath`, the
+   *   `runTemplate` action `template`, and nested `values`/`properties` entries
    * - custom processors/actions are out of scope
    */
   protected async extractBehaviours(behaviours?: FormBehaviourConfigFrame[]): Promise<void> {
@@ -745,37 +746,69 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
         ] as const
       ).forEach(([listName, actions]) => {
         (actions ?? []).forEach((action: any, actionIndex: number) => {
+          const keyPrefix = ['behaviours', behaviourIndex.toString(), listName, actionIndex.toString(), 'config'];
           const config = action.config as {
-            valueTemplate?: string;
-            fieldPathKind?: string;
-            fieldPath?: string;
+            template?: string;
+            values?: unknown[];
+            properties?: unknown[];
           };
 
-          if (typeof config.valueTemplate === 'string') {
+          this.extractBehaviourActionEntryTemplates(config, keyPrefix);
+
+          if (typeof config.template === 'string') {
             this.templates.push({
-              key: [
-                'behaviours',
-                behaviourIndex.toString(),
-                listName,
-                actionIndex.toString(),
-                'config',
-                'valueTemplate',
-              ],
-              value: config.valueTemplate,
+              key: [...keyPrefix, 'template'],
+              value: config.template,
               kind: 'jsonata',
             });
           }
 
-          if (config.fieldPathKind === 'jsonata' && typeof config.fieldPath === 'string') {
-            this.templates.push({
-              key: ['behaviours', behaviourIndex.toString(), listName, actionIndex.toString(), 'config', 'fieldPath'],
-              value: config.fieldPath,
-              kind: 'jsonata',
-            });
-          }
+          (['values', 'properties'] as const).forEach(entryListName => {
+            const entries = config[entryListName];
+            if (Array.isArray(entries)) {
+              entries.forEach((entry, entryIndex) => {
+                this.extractBehaviourActionEntryTemplates(entry, [
+                  ...keyPrefix,
+                  entryListName,
+                  entryIndex.toString(),
+                ]);
+              });
+            }
+          });
         });
       });
     });
+  }
+
+  /**
+   * Extract the `valueTemplate` / JSONata `fieldPath` templates shared by
+   * behaviour action configs and their nested `values`/`properties` entries.
+   *
+   * Nested entry keys omit the entry's own `config` segment, e.g.
+   * `['behaviours', '0', 'actions', '1', 'config', 'values', '0', 'valueTemplate']`.
+   */
+  protected extractBehaviourActionEntryTemplates(entryConfig: unknown, keyPrefix: string[]): void {
+    const config = (entryConfig ?? {}) as {
+      valueTemplate?: string;
+      fieldPathKind?: string;
+      fieldPath?: string;
+    };
+
+    if (typeof config.valueTemplate === 'string') {
+      this.templates.push({
+        key: [...keyPrefix, 'valueTemplate'],
+        value: config.valueTemplate,
+        kind: 'jsonata',
+      });
+    }
+
+    if (config.fieldPathKind === 'jsonata' && typeof config.fieldPath === 'string') {
+      this.templates.push({
+        key: [...keyPrefix, 'fieldPath'],
+        value: config.fieldPath,
+        kind: 'jsonata',
+      });
+    }
   }
 
   protected async extractValidators(validators?: FormValidatorConfig[]): Promise<void> {

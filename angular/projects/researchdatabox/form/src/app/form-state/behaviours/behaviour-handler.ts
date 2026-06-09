@@ -3,6 +3,7 @@ import {
   ExpressionsConditionKind,
   FieldPathKind,
   FormBehaviourActionConfig,
+  FormBehaviourActionType,
   FormBehaviourConfigFrame,
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService, RecordService } from '@researchdatabox/portal-ng-common';
@@ -19,7 +20,7 @@ import {
 } from './behaviour-compiled-template-evaluator';
 import { isRepeatableFieldEntry, resolveFieldByPointer } from './behaviour-field-resolver';
 import { matchBehaviourCondition } from './behaviour-condition-matcher';
-import { BehaviourPipelineContext, executeBehaviourProcessor } from './behaviour-processors';
+import { BehaviourPipelineContext, BehaviourReservedContextKeys, executeBehaviourProcessor } from './behaviour-processors';
 import { executeBehaviourAction } from './behaviour-actions';
 import { getEventJSONPointerCondition } from '../events/form-component-base-event-producer-consumer';
 
@@ -62,8 +63,8 @@ export class BehaviourHandler {
    * hook extension point, or processor-specific debounce exists yet.
    */
   activate(): void {
-    this.validateLogicalActions('actions', this.behaviour.actions ?? []);
-    this.validateLogicalActions('onError', this.behaviour.onError ?? []);
+    this.validateActions('actions', this.behaviour.actions ?? []);
+    this.validateActions('onError', this.behaviour.onError ?? []);
 
     const observable = this.getEventObservable();
     const debounceMs = this.behaviour.debounceMs ?? 0;
@@ -181,6 +182,13 @@ export class BehaviourHandler {
 
   /**
    * Execute either the main action list or the `onError` fallback list.
+   *
+   * `state` lives for one list execution: `runTemplate` actions write the
+   * pipeline `value` and named context extras into it so later actions can
+   * read them, while the per-action context rebuild keeps `formData`
+   * re-snapshotted after each mutation. Extras spread before reserved keys
+   * could in principle collide, but bind-time validation rejects reserved
+   * `resultKey`s, so reserved keys always come from the rebuilt context.
    */
   private async executeActions(
     listName: 'actions' | 'onError',
@@ -188,12 +196,14 @@ export class BehaviourHandler {
     value: unknown,
     event: FormComponentEvent
   ): Promise<void> {
+    const state = { value, extras: {} as Record<string, unknown> };
     for (const [actionIndex, action] of actions.entries()) {
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
       }
-      await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
+      const pipelineContext = { ...this.buildPipelineContext(state.value, event), ...state.extras };
+      await executeBehaviourAction(action, pipelineContext, {
         behaviourIndex: this.behaviourIndex,
         actionIndex,
         listName,
@@ -202,8 +212,16 @@ export class BehaviourHandler {
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),
         fieldResolverContext: { formComponent: this.ctx.formComponent },
-        getLogicalFieldEntry: (targetListName, targetActionIndex) =>
-          this.logicalFieldEntries.get(this.buildActionKey(targetListName, targetActionIndex)),
+        getLogicalFieldEntry: (targetListName, targetActionIndex, targetEntryIndex) =>
+          this.logicalFieldEntries.get(this.buildActionKey(targetListName, targetActionIndex, targetEntryIndex)),
+        isEntrySkipped: (targetListName, targetActionIndex, targetEntryIndex) =>
+          this.permanentlySkippedActions.has(this.buildActionKey(targetListName, targetActionIndex, targetEntryIndex)),
+        updatePipelineValue: newValue => {
+          state.value = newValue;
+        },
+        setPipelineContextKey: (key, newValue) => {
+          state.extras[key] = newValue;
+        },
       });
     }
   }
@@ -253,52 +271,162 @@ export class BehaviourHandler {
   }
 
   /**
-   * Enforce the v1 `logical` targeting rules at bind time.
+   * Validate actions at bind time.
    *
-   * Scope and limitations:
-   * - only `actions` may use `logical`
-   * - the target must live inside a repeatable element
-   * - invalid logical actions are permanently skipped for the lifetime of the
-   *   handler rather than retried on every event
+   * Checks applied:
+   * - `logical` targeting rules for `setValue`, `setValues` entries,
+   *   `setUIProperty`, and `setUIProperties` (action-level defaults and
+   *   entries that own their field path): only `actions` may use `logical`,
+   *   and the target must live inside a repeatable element
+   * - `runTemplate` `resultKey` must be a valid identifier and must not
+   *   shadow a reserved pipeline context key
+   * - plural actions must have a non-empty `values`/`properties` list
+   *
+   * Invalid actions (or individual nested entries) are permanently skipped for
+   * the lifetime of the handler rather than retried on every event.
    */
-  private validateLogicalActions(listName: 'actions' | 'onError', actions: FormBehaviourActionConfig[]): void {
+  private validateActions(listName: 'actions' | 'onError', actions: FormBehaviourActionConfig[]): void {
     actions.forEach((action, actionIndex) => {
-      if (action.type !== 'setValue' || action.config.fieldPathKind !== FieldPathKind.Logical) {
-        return;
-      }
-
-      const actionKey = this.buildActionKey(listName, actionIndex);
-      if (listName === 'onError') {
-        this.ctx.logger.warn(
-          'BehaviourHandler: logical fieldPathKind is not supported in onError actions and will be skipped.',
-          {
-            behaviour: this.behaviour.name,
-            actionIndex,
+      switch (action.type) {
+        case FormBehaviourActionType.SetValue:
+        case FormBehaviourActionType.SetUIProperty:
+          this.validateLogicalEntry(listName, actionIndex, undefined, action.config);
+          return;
+        case FormBehaviourActionType.SetValues: {
+          if (!this.validateEntryList(listName, actionIndex, 'values', action.config?.values)) {
+            return;
           }
-        );
-        this.permanentlySkippedActions.add(actionKey);
-        return;
-      }
-
-      const resolved = resolveFieldByPointer(action.config.fieldPath, { formComponent: this.ctx.formComponent });
-      if (!resolved || !isRepeatableFieldEntry(resolved.entry)) {
-        this.ctx.logger.warn(
-          'BehaviourHandler: logical fieldPathKind must target a repeatable field and will be skipped.',
-          {
-            behaviour: this.behaviour.name,
-            actionIndex,
-            fieldPath: action.config.fieldPath,
+          action.config.values.forEach((entry, entryIndex) =>
+            this.validateLogicalEntry(listName, actionIndex, entryIndex, entry)
+          );
+          return;
+        }
+        case FormBehaviourActionType.SetUIProperties: {
+          if (!this.validateEntryList(listName, actionIndex, 'properties', action.config?.properties)) {
+            return;
           }
-        );
-        this.permanentlySkippedActions.add(actionKey);
-        return;
+          // Action-level defaults may be logical; an invalid default skips the
+          // whole action because every inheriting entry would fail anyway.
+          this.validateLogicalEntry(listName, actionIndex, undefined, action.config);
+          action.config.properties.forEach((entry, entryIndex) => {
+            if (entry.fieldPath !== undefined || entry.hasFieldPathTemplate === true) {
+              this.validateLogicalEntry(listName, actionIndex, entryIndex, entry);
+            }
+          });
+          return;
+        }
+        case FormBehaviourActionType.RunTemplate:
+          this.validateRunTemplateAction(listName, actionIndex, action.config);
+          return;
+        default:
+          return;
       }
-
-      this.logicalFieldEntries.set(actionKey, resolved.entry);
     });
   }
 
-  private buildActionKey(listName: 'actions' | 'onError', actionIndex: number): string {
-    return `${listName}:${actionIndex}`;
+  /**
+   * Permanently skip plural actions whose entry list is missing or empty so
+   * misconfiguration is reported once at bind time instead of silently
+   * no-opping on every event.
+   */
+  private validateEntryList(
+    listName: 'actions' | 'onError',
+    actionIndex: number,
+    entryListName: 'values' | 'properties',
+    entries: unknown
+  ): entries is unknown[] {
+    if (Array.isArray(entries) && entries.length > 0) {
+      return true;
+    }
+    this.ctx.logger.warn(`BehaviourHandler: action has a missing or empty '${entryListName}' list and will be skipped.`, {
+      behaviour: this.behaviour.name,
+      listName,
+      actionIndex,
+    });
+    this.permanentlySkippedActions.add(this.buildActionKey(listName, actionIndex));
+    return false;
+  }
+
+  /**
+   * Enforce the `logical` targeting rules for one action config or nested
+   * entry. `entryIndex` is undefined for whole-action configs; nested entries
+   * get their own skip/lock keys so one bad entry does not disable siblings.
+   */
+  private validateLogicalEntry(
+    listName: 'actions' | 'onError',
+    actionIndex: number,
+    entryIndex: number | undefined,
+    entryConfig: { fieldPath?: string; fieldPathKind?: string }
+  ): void {
+    if (entryConfig.fieldPathKind !== FieldPathKind.Logical) {
+      return;
+    }
+
+    const actionKey = this.buildActionKey(listName, actionIndex, entryIndex);
+    if (listName === 'onError') {
+      this.ctx.logger.warn(
+        'BehaviourHandler: logical fieldPathKind is not supported in onError actions and will be skipped.',
+        {
+          behaviour: this.behaviour.name,
+          actionIndex,
+          entryIndex,
+        }
+      );
+      this.permanentlySkippedActions.add(actionKey);
+      return;
+    }
+
+    const resolved = entryConfig.fieldPath
+      ? resolveFieldByPointer(entryConfig.fieldPath, { formComponent: this.ctx.formComponent })
+      : undefined;
+    if (!resolved || !isRepeatableFieldEntry(resolved.entry)) {
+      this.ctx.logger.warn(
+        'BehaviourHandler: logical fieldPathKind must target a repeatable field and will be skipped.',
+        {
+          behaviour: this.behaviour.name,
+          actionIndex,
+          entryIndex,
+          fieldPath: entryConfig.fieldPath,
+        }
+      );
+      this.permanentlySkippedActions.add(actionKey);
+      return;
+    }
+
+    this.logicalFieldEntries.set(actionKey, resolved.entry);
+  }
+
+  /**
+   * Validate a `runTemplate` action's `resultKey` at bind time. Invalid keys
+   * permanently skip the whole action: predictable, and consistent with the
+   * logical-kind handling above.
+   */
+  private validateRunTemplateAction(
+    listName: 'actions' | 'onError',
+    actionIndex: number,
+    config: { resultKey?: string } | undefined
+  ): void {
+    const resultKey = config?.resultKey;
+    if (resultKey === undefined) {
+      return;
+    }
+    const isReserved = (BehaviourReservedContextKeys as readonly string[]).includes(resultKey);
+    const isValidIdentifier = /^[A-Za-z_][A-Za-z0-9_]*$/.test(resultKey);
+    if (isReserved || !isValidIdentifier) {
+      this.ctx.logger.warn(
+        'BehaviourHandler: runTemplate resultKey is reserved or not a valid identifier; action will be skipped.',
+        {
+          behaviour: this.behaviour.name,
+          listName,
+          actionIndex,
+          resultKey,
+        }
+      );
+      this.permanentlySkippedActions.add(this.buildActionKey(listName, actionIndex));
+    }
+  }
+
+  private buildActionKey(listName: 'actions' | 'onError', actionIndex: number, entryIndex?: number): string {
+    return entryIndex === undefined ? `${listName}:${actionIndex}` : `${listName}:${actionIndex}:entries:${entryIndex}`;
   }
 }
