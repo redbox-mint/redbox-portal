@@ -12,8 +12,8 @@ export class MigrationClass {
   @Attr({ type: 'string' })
   public appVersion?: string;
 
-  @Attr({ type: 'number' })
-  public ranAt?: number;
+  @Attr({ type: 'number', required: true })
+  public ranAt!: number;
 }
 
 export const MigrationWLDef = toWaterlineModelDef(MigrationClass);
@@ -22,7 +22,7 @@ export interface MigrationAttributes extends Sails.WaterlineAttributes {
   name: string;
   source?: string;
   appVersion?: string;
-  ranAt?: number;
+  ranAt: number;
 }
 
 export interface MigrationWaterlineModel extends Sails.Model<MigrationAttributes> {

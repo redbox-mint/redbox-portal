@@ -116,6 +116,19 @@ module.exports = {
 };
 ```
 
+## Rollbacks and the `down` Handler
+
+The optional `down` handler is **forwarded to Umzug but not invoked by the normal lift**. ReDBox only ever runs pending `up()` migrations during startup; there is no automatic or CLI rollback wired into the portal today. A `down` handler therefore only runs if an operator drives Umzug manually (e.g. a one-off script that builds the same Umzug instance and calls `umzug.down()`).
+
+Because of this, treat `down` as a best-effort, manual safety net rather than a guaranteed reverse path:
+
+- **It may be a silent no-op.** If no rollback is ever triggered, the `down` you wrote never executes. Don't rely on it as part of routine deploys.
+- **The runtime context may differ at rollback time.** A `down` that references models or services contributed by a specific hook can fail at runtime if that hook is no longer installed, disabled, or loaded in a different order than when `up()` ran. Hook-authored migrations are the most exposed to this.
+- **Prefer idempotent, model-agnostic rollbacks.** Where a reverse is feasible, write `down` so it tolerates partially-applied state and only touches core models that are guaranteed to be present.
+- **When a safe reverse is not possible, omit `down`** rather than shipping one that throws or corrupts data on a partial rollback.
+
+The forwarding contract (that `down` is passed through verbatim) is covered by `toRunnableMigrations` and its tests in `MigrationRunner.test.ts`.
+
 ## Naming Conventions
 
 Use one of these formats:

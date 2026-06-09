@@ -543,10 +543,16 @@ describe('redbox-loader', function () {
 
     describe('generateMigrationConfigShim', function () {
         let configDir: string;
+        let originalNodeEnv: string | undefined;
 
         beforeEach(async function () {
+            originalNodeEnv = process.env.NODE_ENV;
             configDir = path.join(sandboxDir, 'config');
             await fsPromises.mkdir(configDir, { recursive: true });
+        });
+
+        afterEach(function () {
+            process.env.NODE_ENV = originalNodeEnv;
         });
 
         it('should generate a migrations.js shim aggregating hook and app-local migrations in name order', async function () {

@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
-import { runPendingMigrations, type RedboxMigration } from '../../src/loader/MigrationRunner';
+import { runPendingMigrations, toRunnableMigrations, type RedboxMigration } from '../../src/loader/MigrationRunner';
 
 const fsPromises = fs.promises;
 
@@ -132,6 +132,27 @@ describe('MigrationRunner', function () {
         expect((caughtError as { cause?: unknown }).cause).to.equal(failure);
         expect(second.called).to.be.false;
         expect(created).to.deep.equal([]);
+    });
+
+    it('should forward an optional down handler to Umzug for manual rollbacks', async function () {
+        const down = sinon.stub().resolves();
+        const [runnable] = toRunnableMigrations([
+            { name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves(), down }
+        ]);
+
+        expect(runnable.name).to.equal('2026.06.08T09.00.00-first');
+        expect(runnable.down).to.equal(down);
+
+        await runnable.down!({ name: runnable.name, path: undefined, context: (global as any).sails });
+        expect(down.calledOnce).to.be.true;
+    });
+
+    it('should leave down undefined when a migration omits it', async function () {
+        const [runnable] = toRunnableMigrations([
+            { name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves() }
+        ]);
+
+        expect(runnable.down).to.be.undefined;
     });
 
     it('should tolerate executed migration names missing from the current migration list', async function () {

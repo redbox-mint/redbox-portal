@@ -72,22 +72,31 @@ function createLogger(): ConstructorParameters<typeof Umzug>[0]['logger'] {
     };
 }
 
+/**
+ * Maps Redbox migrations onto Umzug's RunnableMigration shape. The optional `down`
+ * handler is forwarded verbatim so operators can perform manual rollbacks via Umzug;
+ * see the Data Migrations wiki for the rollback contract and its caveats.
+ */
+export function toRunnableMigrations(migrations: RedboxMigration[]): RunnableMigration<typeof sails>[] {
+    return migrations.map(migration => ({
+        name: migration.name,
+        up: migration.up,
+        down: migration.down,
+    }));
+}
+
 export async function runPendingMigrations(migrations: RedboxMigration[]): Promise<void> {
     if (migrations.length === 0) {
         return;
     }
 
-    const orderedMigrations = [...migrations].sort((a, b) => a.name.localeCompare(b.name));
+    const orderedMigrations = [...migrations].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     const migrationsByName = new Map(orderedMigrations.map(migration => [migration.name, migration]));
     const migrationModel = getMigrationModel();
     const appVersion = await readAppVersion();
     const storage = createMigrationStorage(migrationModel, migrationsByName, appVersion);
 
-    const umzugMigrations: RunnableMigration<typeof sails>[] = orderedMigrations.map(migration => ({
-        name: migration.name,
-        up: migration.up,
-        down: migration.down,
-    }));
+    const umzugMigrations = toRunnableMigrations(orderedMigrations);
 
     const umzug = new Umzug({
         migrations: umzugMigrations,
