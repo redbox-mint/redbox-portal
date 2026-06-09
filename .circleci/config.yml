@@ -809,8 +809,11 @@ jobs:
       - image: 'cimg/node:24.16.0'
     steps:
       - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: /tmp
       - run:
-          name: Upload container to Nexus
+          name: Upload package to Nexus
           command: |
             echo $CIRCLE_BRANCH
             npm pack
@@ -821,6 +824,14 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+      - run:
+          name: Publish amd64 runtime image
+          command: |
+            docker load -i /tmp/docker-images/redbox-portal-test.tar
+            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
+            source support/build/docker-build-vars.sh
+            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
+            docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-multiarch:
     docker:
       - image: 'cimg/node:24.16.0'

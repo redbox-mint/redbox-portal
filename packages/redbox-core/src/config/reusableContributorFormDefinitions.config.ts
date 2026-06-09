@@ -39,7 +39,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           queryId: 'party',
           labelField: 'metadata.fullName',
           valueField: 'metadata.fullName',
-          placeholder: 'Start typing a party name...',
+          placeholder: '@lookup-placeholder-party',
           minChars: 1,
           debounceMs: 250,
           maxResults: 25,

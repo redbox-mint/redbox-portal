@@ -1419,5 +1419,6 @@
   "manage-users-audit-event-enable": "Admin enabled this account",
   "manage-users-audit-event-link-primary": "This account was chosen as the primary account during account linking",
   "manage-users-audit-event-link-secondary": "This account was linked as a secondary alias to another account",
-  "manage-users-audit-event-link-generic": "Account linking event"
+  "manage-users-audit-event-link-generic": "Account linking event",
+  "@lookup-placeholder-party": "Start typing a party name..."
 }
