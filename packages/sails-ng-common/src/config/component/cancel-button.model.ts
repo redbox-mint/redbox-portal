@@ -14,13 +14,14 @@ import {
 
 export class CancelButtonFieldComponentConfig
   extends FieldComponentConfig
-  implements CancelButtonFieldComponentConfigOutline
-{
+  implements CancelButtonFieldComponentConfigOutline {
   confirmationMessage?: string;
   confirmationTitle?: string;
   cancelButtonMessage?: string;
   confirmButtonMessage?: string;
   buttonCssClasses?: string;
+  redirectLocation?: string;
+  redirectDelaySeconds?: number;
 
   constructor() {
     super();
