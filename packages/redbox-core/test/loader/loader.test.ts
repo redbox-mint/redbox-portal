@@ -660,10 +660,16 @@ describe('redbox-loader', function () {
 
             const shimPath = path.join(configDir, 'migrations.js');
             delete require.cache[require.resolve(shimPath)];
-            const loaded = require(shimPath) as { migrations: Array<{ name: string }> };
+            const loaded = require(shimPath) as { migrations: Array<{ name: string; source?: string }> };
             expect(loaded.migrations.map(migration => migration.name)).to.deep.equal([
                 '2026.06.08T09.00.00-local',
                 '2026.06.08T10.00.00-hook'
+            ]);
+            // source must be stamped onto each migration so MigrationRunner.logMigration
+            // can persist it: auto-derived for the hook, explicit value preserved for the local one.
+            expect(loaded.migrations.map(migration => migration.source)).to.deep.equal([
+                'app',
+                'hook:redbox-hook-migrations'
             ]);
         });
 
