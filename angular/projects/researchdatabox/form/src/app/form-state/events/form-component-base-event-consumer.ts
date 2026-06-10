@@ -30,6 +30,7 @@ import { AbstractControl } from '@angular/forms';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
+import jsonata from 'jsonata';
 /**
  * Options main bag for matching events against conditions
  */
@@ -201,7 +202,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         runtimeContext,
       };
 
-      return await compiledItems.evaluate(templateKey, context, { libraries: jsonataLibrary });
+      return await compiledItems.evaluate(templateKey, context, { jsonata, libraries: jsonataLibrary });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
       return (event as { value?: unknown }).value;

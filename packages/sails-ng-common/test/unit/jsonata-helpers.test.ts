@@ -101,6 +101,14 @@ describe('JSONata helpers', function () {
     expect(actual).to.eql('2026');
   });
 
+  it('should not expose the jsonata factory to client-style JSONata library bindings', async function () {
+    expect(jsonataLibrary).not.to.have.property('jsonata');
+
+    const actual = await jsonata('$exists($jsonata)').evaluate({}, jsonataLibrary);
+
+    expect(actual).to.eql(false);
+  });
+
   it('should format RFC 2822 date string values with luxon JSONata helper', async function () {
     const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
       date: 'Wed, 10 Jun 2026 00:00:00 +0930',
