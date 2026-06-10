@@ -32,6 +32,7 @@ describe("MapComponent", () => {
       start: jasmine.createSpy("start"),
       stop: jasmine.createSpy("stop"),
       on: jasmine.createSpy("on"),
+      setMode: jasmine.createSpy("setMode"),
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
         drawFeatures.push(...features);
       }),
@@ -228,5 +229,49 @@ describe("MapComponent", () => {
     await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     expect(fakeDraw.addFeatures).toHaveBeenCalled();
     expect(fakeMap.invalidateSize).toHaveBeenCalled();
+  });
+
+  it("initialises draw tooling when a disabled map is enabled after map load", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              disabled: true,
+              enableImport: true,
+              enabledModes: ["point", "polygon"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    expect(fakeDraw.start).not.toHaveBeenCalled();
+
+    mapComponent.setDisabled(false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fakeDraw.start).toHaveBeenCalled();
+
+    const polygonButton = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn"))
+      .find((button) => (button as HTMLButtonElement).textContent?.trim() === "Polygon") as HTMLButtonElement;
+    polygonButton.click();
+    fixture.detectChanges();
+
+    expect(fakeDraw.setMode).toHaveBeenCalledWith("polygon");
+    expect(mapComponent.activeMode).toBe("polygon");
   });
 });

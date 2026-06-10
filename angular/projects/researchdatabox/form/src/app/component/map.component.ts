@@ -1,5 +1,5 @@
 import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
+import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions} from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
   MapDrawingMode,
@@ -301,6 +301,13 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.invalidateMap();
   }
 
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    if (!disabled) {
+      this.ensureDrawInitialised();
+    }
+  }
+
   private initialiseMap(): void {
     if (!this.mapHost?.nativeElement || this.map || !this.mapDeps) {
       return;
@@ -321,7 +328,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
     const startingValue = this.currentModelValue();
     if (this.isEditMode()) {
-      this.initialiseDraw();
+      this.ensureDrawInitialised();
       if (startingValue.features.length > 0) {
         this.pushFeaturesToDraw(startingValue.features);
       }
@@ -331,6 +338,19 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
     this.installVisibilityObserver();
     this.invalidateMap();
+  }
+
+  private ensureDrawInitialised(): void {
+    if (this.draw || !this.map || !this.mapDeps || !this.isEditMode()) {
+      return;
+    }
+    this.featureLayer?.removeFrom(this.map);
+    this.featureLayer = undefined;
+    this.initialiseDraw();
+    const startingValue = this.currentModelValue();
+    if (startingValue.features.length > 0) {
+      this.pushFeaturesToDraw(startingValue.features);
+    }
   }
 
   private initialiseDraw(): void {
