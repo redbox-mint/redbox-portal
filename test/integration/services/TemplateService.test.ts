@@ -111,8 +111,9 @@ describe('The TemplateService', function () {
 
                 // Verify structure matches new implementation (key is [string], value has (context))
                 // For handlebars:
-                const handlebarsItem = clientMapping.find(i => i.key[0] === 'test1');
-                if (handlebarsItem) {
+                const handlebarsInput = args.inputs.find(i => i.kind === 'handlebars');
+                if (handlebarsInput) {
+                    const handlebarsItem = clientMapping.find(i => i.key[0] === handlebarsInput.key[0]);
                     expect(handlebarsItem.key).to.be.an('array');
                     expect(handlebarsItem.value).to.contain('(context)');
                 }
