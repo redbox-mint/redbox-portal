@@ -198,6 +198,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected readonly canSeeTechnicalDetails = signal(false);
   protected readonly technicalOpen = signal(false);
   protected readonly collapsed = signal(false);
+  protected readonly waitingForStatus = signal(false);
   // Integration names observed in-progress during this session (not persisted, so a
   // reload starts empty). Drives the researcher "show success only if it was live" rule.
   protected readonly seenInProgress = signal<Set<string>>(new Set<string>());
@@ -205,6 +206,8 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   private pollAttempts = 0;
   private graceRemaining = 0;
   private saveStatusTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** When set, rapid-poll at 100ms after each response instead of the normal interval. */
+  private rapidPollUntil: number | null = null;
 
   private get config(): Record<string, unknown> | undefined {
     return this.componentDefinition?.config as Record<string, unknown> | undefined;
@@ -222,6 +225,16 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   private get maxPollAttempts(): number {
     const val = this.config?.['maxPollAttempts'];
     return typeof val === 'number' && Number.isFinite(val) ? val : 60;
+  }
+
+  private get rapidPollDurationMs(): number {
+    const val = this.config?.['rapidPollDurationMs'];
+    return typeof val === 'number' && Number.isFinite(val) ? val : 3000;
+  }
+
+  private get rapidPollIntervalMs(): number {
+    const val = this.config?.['rapidPollIntervalMs'];
+    return typeof val === 'number' && Number.isFinite(val) ? val : 100;
   }
 
   private get technicalDetailRoles(): string[] {
@@ -244,7 +257,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
 
   // All roles: only render when there are integrations worth showing.
   protected readonly shouldRender = computed<boolean>(() => {
-    return this.displayIntegrations().length > 0;
+    return this.waitingForStatus() || this.displayIntegrations().length > 0;
   });
 
   constructor() {
@@ -268,12 +281,14 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         }
         if (this.saveStatusTimeout !== null) {
           clearTimeout(this.saveStatusTimeout);
+          this.saveStatusTimeout = null;
         }
-        this.saveStatusTimeout = setTimeout(() => {
-          this.graceRemaining = 3;
-          this.gracePollActive.set(true);
-          this.fetchStatus();
-        }, 1500);
+        // Rapid-poll: check immediately, then poll after each response
+        // for the configured duration before falling back to normal polling.
+        this.waitingForStatus.set(true);
+        this.rapidPollUntil = Date.now() + this.rapidPollDurationMs;
+        this.graceRemaining = 3;
+        this.fetchStatus();
       }
     });
   }
@@ -319,6 +334,21 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.hasError.set(false);
       this.recordSeenInProgress(response.integrations);
 
+      // Stop waiting once we have something to show
+      if (response.integrations.length > 0) {
+        this.waitingForStatus.set(false);
+      }
+
+      // Rapid polling: fire again 100ms after each response, for up to 3s.
+      if (this.rapidPollUntil !== null) {
+        if (Date.now() < this.rapidPollUntil) {
+          this.isPolling.set(true);
+          setTimeout(() => this.fetchStatus(), this.rapidPollIntervalMs);
+          return;
+        }
+        this.rapidPollUntil = null;
+      }
+
       const hasInFlight = response.integrations.some(i => i.status === 'started' && !i.synthesized);
       if (hasInFlight) {
         this.graceRemaining = 0;
@@ -332,6 +362,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       }
     } catch {
       this.hasError.set(true);
+      this.waitingForStatus.set(false);
       this.stopPolling();
     }
   }

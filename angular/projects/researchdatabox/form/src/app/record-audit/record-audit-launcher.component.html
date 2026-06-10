@@ -1,12 +1,11 @@
 @if (canView() && oid()) {
   @if (isOpen()) {
     <div
-      class="modal fade show d-block rb-audit-modal-overlay"
+      class="modal fade show d-block rb-form-modal-overlay"
       tabindex="-1"
       role="dialog"
       aria-modal="true"
       aria-labelledby="recordAuditModalTitle"
-      style="background-color: rgba(0,0,0,0.5)"
       (keydown.escape)="close()"
       (click.self)="close()"
     >
