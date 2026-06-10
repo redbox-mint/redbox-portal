@@ -28,7 +28,7 @@
     "@ngx-formly/core": "7.1.0",
     "@researchdatabox/sails-ng-common": "file:../packages/sails-ng-common",
     "@tiptap/core": "3.24.0",
-    "@tiptap/extension-link": "3.24.0",
+    "@tiptap/extension-link": "3.25.0",
     "@tiptap/extension-table": "3.24.0",
     "@tiptap/extension-table-cell": "3.24.0",
     "@tiptap/extension-table-header": "3.24.0",
