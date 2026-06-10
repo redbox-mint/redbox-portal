@@ -7,16 +7,13 @@
  */
 
 import { RequestHandler, Request, Response, NextFunction } from 'express';
-import type { PassportStatic } from 'passport';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
-
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
-import type { CompanionConfig } from './companion.config';
 import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
