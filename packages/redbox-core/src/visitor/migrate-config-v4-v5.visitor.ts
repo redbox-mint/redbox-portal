@@ -36,6 +36,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentConfig, GroupFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  EditTableFieldComponentConfig,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelConfig,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   SimpleInputComponentName,
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
@@ -1243,6 +1250,26 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* EditTable */
+  // There is no legacy v4 class that maps to the EditTable component.
+  // These methods exist so configs that already contain EditTable components don't throw.
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new EditTableFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new EditTableFieldModelConfig();
+    this.sharedPopulateFieldModelConfig(item.config, field);
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 

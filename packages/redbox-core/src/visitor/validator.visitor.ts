@@ -28,6 +28,9 @@ import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
   TabFormComponentDefinitionOutline,
@@ -277,6 +280,21 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
+    }
+
+    /* EditTable */
+
+    async visitEditTableFieldComponentDefinition(_item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+        // The componentDefinitions are a template for the add/edit dialog sub-form.
+        // The dialog sub-form is validated client-side before a row can be added or updated.
+        // The field-level validators run against the model's array value via the form component definition.
+    }
+
+    async visitEditTableFieldModelDefinition(_item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    }
+
+    async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
         await this.acceptFormComponentDefinition(item);
     }
 

@@ -409,6 +409,18 @@ export class FormPathHelper {
     };
   }
 
+  public lineagePathsForEditTableFieldComponentDefinition(
+    item: FormComponentDefinitionOutline,
+    index: number
+  ): LineagePathsPartial {
+    return {
+      formConfig: ['config', 'componentDefinitions', index.toString()],
+      dataModel: this.getFormPathDataModel(item),
+      angularComponents: this.getFormPathAngularComponents(item),
+      layout: this.getFormPathLayout(item),
+    };
+  }
+
   public lineagePathsForTabFieldComponentDefinition(
     item: FormComponentDefinitionOutline,
     index: number

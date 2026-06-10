@@ -14,6 +14,8 @@ import {
   FormConfigVisitor,
   FormComponentDefinitionOutline,
   HistoricalVocabMode,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
   GroupFieldComponentDefinitionOutline,
   GroupFormComponentDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -100,6 +102,16 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
+  }
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {
       await def.accept(this);
     }

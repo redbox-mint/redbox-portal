@@ -56,6 +56,8 @@ export * from './config/component/dropdown-input.model';
 export * from './config/component/dropdown-input.outline';
 export * from './config/component/group.model';
 export * from './config/component/group.outline';
+export * from './config/component/edit-table.model';
+export * from './config/component/edit-table.outline';
 export * from './config/component/radio-input.model';
 export * from './config/component/radio-input.outline';
 export * from './config/component/repeatable.model';

@@ -1088,6 +1088,96 @@ const formConfig: FormConfigFrame = {
       },
     },
     {
+      name: 'edit_table_contributors',
+      model: {
+        class: 'EditTableModel',
+        config: {
+          defaultValue: [
+            { name: 'Example Contributor', email: 'contributor@example.com', role: 'Data manager' },
+          ],
+        },
+      },
+      component: {
+        class: 'EditTableComponent',
+        config: {
+          label: 'Contributors (edit table demo)',
+          columns: [
+            { label: 'Name', path: 'name' },
+            { label: 'Email', path: 'email' },
+            { label: 'Role', path: 'role' },
+          ],
+          confirmDelete: true,
+          dialogAddTitle: 'Add contributor',
+          dialogEditTitle: 'Edit contributor',
+          componentDefinitions: [
+            {
+              name: 'name',
+              model: {
+                class: 'SimpleInputModel',
+                config: {
+                  validators: [{ class: 'required' }],
+                },
+              },
+              component: {
+                class: 'SimpleInputComponent',
+                config: { type: 'text' },
+              },
+              layout: {
+                class: 'DefaultLayout',
+                config: {
+                  label: 'Name',
+                  helpText: 'The full name of the contributor',
+                },
+              },
+            },
+            {
+              name: 'email',
+              model: {
+                class: 'SimpleInputModel',
+                config: {
+                  validators: [{ class: 'email' }],
+                },
+              },
+              component: {
+                class: 'SimpleInputComponent',
+                config: { type: 'email' },
+              },
+              layout: {
+                class: 'DefaultLayout',
+                config: {
+                  label: 'Email',
+                },
+              },
+            },
+            {
+              name: 'role',
+              model: {
+                class: 'SimpleInputModel',
+                config: {},
+              },
+              component: {
+                class: 'SimpleInputComponent',
+                config: { type: 'text' },
+              },
+              layout: {
+                class: 'DefaultLayout',
+                config: {
+                  label: 'Role',
+                },
+              },
+            },
+          ],
+        },
+      },
+      layout: {
+        class: 'DefaultLayout',
+        config: {
+          label: 'Contributors (edit table demo)',
+          helpText: 'Add, edit and delete contributors via the dialog.',
+        },
+      },
+    },
+    {
       name: 'save_button',
       component: {
         class: 'SaveButtonComponent',

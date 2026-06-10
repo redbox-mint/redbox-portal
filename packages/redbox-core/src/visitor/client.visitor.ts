@@ -31,6 +31,9 @@ import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
   TabFieldComponentDefinitionOutline,
@@ -532,6 +535,39 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFormComponentDefinition(item);
 
     // if there are no components, this is an invalid component
+    // indicate this by deleting all properties on item
+    if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
+      this.removePropsAll(item);
+    }
+  }
+
+  /* EditTable */
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+
+    const items: AvailableFormComponentDefinitionOutlines[] = [];
+    for (const [index, componentDefinition] of (item?.config?.componentDefinitions ?? []).entries()) {
+      items.push(componentDefinition);
+      await this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForEditTableFieldComponentDefinition(componentDefinition, index)
+      );
+    }
+    if (item.config) {
+      item.config.componentDefinitions = items.filter(i => this.hasObjectProps(i));
+    }
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    this.processFieldModelDefinition(item);
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+
+    // if the dialog sub-form has no components, this is an invalid component
     // indicate this by deleting all properties on item
     if ((item.component?.config?.componentDefinitions ?? [])?.length === 0) {
       this.removePropsAll(item);

@@ -29,6 +29,7 @@ import { RepeatableComponent, RepeatableElementLayoutComponent } from './compone
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
 import { SuggestedValidationSummaryFieldComponent } from './component/suggested-validation-summary.component';
 import { GroupFieldComponent } from './component/group.component';
+import { EditTableComponent } from './component/edit-table.component';
 import { DefaultLayoutComponent } from './component/default-layout.component';
 import { ActionRowLayoutComponent } from './component/action-row-layout.component';
 import { InlineLayoutComponent } from './component/inline-layout.component';
@@ -93,6 +94,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     ValidationSummaryFieldComponent,
     SuggestedValidationSummaryFieldComponent,
     GroupFieldComponent,
+    EditTableComponent,
     SaveButtonComponent,
     SaveStatusComponent,
     CancelButtonComponent,

@@ -4,6 +4,7 @@ import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import { FileUploadFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { DataLocationFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentDefinitionOutline, GroupFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { EditTableFieldComponentDefinitionOutline, EditTableFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { TabFieldComponentDefinitionOutline, TabFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { TabContentFieldComponentDefinitionOutline, TabContentFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { RepeatableFieldComponentDefinitionOutline, RepeatableFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
@@ -70,6 +71,17 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     }
 
     async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+        for (const def of item.config?.componentDefinitions ?? []) {
+            await def.accept(this);
+        }
+    }
+
+    // EditTable
+    async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
+        await item.component.accept(this);
+    }
+
+    async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
         for (const def of item.config?.componentDefinitions ?? []) {
             await def.accept(this);
         }

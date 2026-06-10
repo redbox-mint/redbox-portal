@@ -10,6 +10,7 @@ import { InlineLayoutComponent } from './component/inline-layout.component';
 import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
 import { SuggestedValidationSummaryFieldComponent } from './component/suggested-validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
+import { EditTableModel, EditTableComponent } from './component/edit-table.component';
 import { ContentComponent } from './component/content.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
@@ -91,6 +92,8 @@ import {
   DeleteButtonComponentName,
   TabNavButtonComponentName,
   GroupFieldComponentName,
+  EditTableComponentName,
+  EditTableModelName,
   TabLayoutName,
   TabContentLayoutName,
   AccordionComponentName,
@@ -113,6 +116,7 @@ export type AllComponentClassMapType = StaticClassMapType<string, typeof FormFie
 export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RepeatableComponentName]: RepeatableComponent,
   [GroupFieldComponentName]: GroupFieldComponent,
+  [EditTableComponentName]: EditTableComponent,
   [SaveButtonComponentName]: SaveButtonComponent,
   [SaveStatusComponentName]: SaveStatusComponent,
   [TextAreaComponentName]: TextAreaComponent,
@@ -156,6 +160,7 @@ export type AllModelClassMapType = StaticClassMapType<string, typeof FormFieldMo
 export const getStaticModelClassMap = (): StaticModelClassMapType => ({
   [RepeatableModelName]: RepeatableComponentModel,
   [GroupFieldModelName]: GroupFieldModel,
+  [EditTableModelName]: EditTableModel,
   [TextAreaModelName]: TextAreaModel,
   [SimpleInputModelName]: SimpleInputModel,
   [CheckboxInputModelName]: CheckboxInputModel,

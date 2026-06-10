@@ -25,7 +25,12 @@ import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
-} from '../component/group.outline';
+} from "../component/group.outline";
+import {
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
+} from '../component/edit-table.outline';
 import {
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
@@ -214,6 +219,14 @@ export interface FormConfigVisitorOutline {
   visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void>;
 
   visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void>;
+
+  /* EditTable */
+
+  visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void>;
+
+  visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void>;
+
+  visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void>;
 
   /* Tab  */
 

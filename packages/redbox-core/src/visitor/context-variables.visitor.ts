@@ -14,6 +14,9 @@ import {
   DropdownInputFormComponentDefinitionOutline,
   FormConfigOutline,
   FormConfigVisitor,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -106,6 +109,11 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     await item.model?.accept(this);
   }
 
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
+    await item.component?.accept(this);
+    await item.model?.accept(this);
+  }
+
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
   }
@@ -128,6 +136,10 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
+    await this.replaceModelConfigDeepValues(item.config);
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
     await this.replaceModelConfigDeepValues(item.config);
   }
 
@@ -173,6 +185,12 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     }
   }
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    for (const def of item.config?.componentDefinitions ?? []) {
+      await def.accept(this);
+    }
+  }
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {
       await def.accept(this);
     }

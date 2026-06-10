@@ -32,6 +32,9 @@ import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
   TabFieldComponentDefinitionOutline,
@@ -290,6 +293,38 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* EditTable */
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    // Extract the optional column format handlebars templates.
+    for (const [index, column] of (item.config?.columns ?? []).entries()) {
+      const format = (column?.format ?? '').trim();
+      if (format) {
+        this.templates?.push({
+          key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'columns', index.toString(), 'format'],
+          value: format,
+          kind: 'handlebars',
+        });
+      }
+    }
+
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      // Visit children
+      await this.formPathHelper.acceptFormPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForEditTableFieldComponentDefinition(componentDefinition, index)
+      );
+    }
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    await this.extractValidators(item.config?.validators);
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

@@ -35,6 +35,11 @@ import {
   GroupFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
   TabFormComponentDefinitionOutline,
@@ -294,6 +299,30 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* EditTable */
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    // The value is an array of objects:
+    // each dialog sub-form component contributes a property to the row element schema.
+    for (const [index, componentDefinition] of (item.config?.componentDefinitions ?? []).entries()) {
+      // Visit children
+      await this.acceptJsonTypeDefPath(
+        componentDefinition,
+        this.formPathHelper.lineagePathsForEditTableFieldComponentDefinition(componentDefinition, index),
+        ['elements', 'properties']
+      );
+    }
+  }
+
+  async visitEditTableFieldModelDefinition(_item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    // Build the json type def from the component instead of model for edit table.
+    // Need to visit nested components to build the correct structure.
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

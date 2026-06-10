@@ -34,6 +34,11 @@ import {
   GroupFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
   TabFormComponentDefinitionOutline,
@@ -286,6 +291,22 @@ export class DataValueFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* EditTable */
+
+  async visitEditTableFieldComponentDefinition(_item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    // The componentDefinitions are a template for the add/edit dialog sub-form,
+    // the row values live in the model's array value.
+    // So, don't process the dialog sub-form components.
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    this.setFromModelDefinition(item);
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

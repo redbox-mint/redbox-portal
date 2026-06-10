@@ -31,6 +31,17 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { GroupFieldComponentConfig, GroupFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
+  EditTableColumnConfig,
+  EditTableComponentName,
+  EditTableFieldComponentDefinitionFrame,
+  EditTableFieldComponentDefinitionOutline,
+  EditTableFieldModelDefinitionFrame,
+  EditTableFieldModelDefinitionOutline,
+  EditTableFormComponentDefinitionOutline,
+  EditTableModelName,
+} from '@researchdatabox/sails-ng-common';
+import { EditTableFieldComponentConfig, EditTableFieldModelConfig } from '@researchdatabox/sails-ng-common';
+import {
   SimpleInputComponentName,
   SimpleInputFieldComponentDefinitionFrame,
   SimpleInputFieldComponentDefinitionOutline,
@@ -835,6 +846,91 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* EditTable */
+
+  async visitEditTableFieldComponentDefinition(item: EditTableFieldComponentDefinitionOutline): Promise<void> {
+    // Get the current raw data for constructing the class instance.
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<EditTableFieldComponentDefinitionFrame>(currentData, EditTableComponentName)) {
+      throw new Error(
+        `Invalid ${EditTableComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const frame = currentData?.config ?? { componentDefinitions: [], columns: [] };
+
+    // Create the class instance for the config
+    item.config = new EditTableFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, frame);
+
+    // Validate and coerce the column definitions: drop entries missing 'label' or 'path'.
+    const columns: EditTableColumnConfig[] = [];
+    for (const column of frame?.columns ?? []) {
+      if (typeof column?.label !== 'string' || typeof column?.path !== 'string' || !column.label || !column.path) {
+        this.logger.warn(
+          `Invalid ${EditTableComponentName} column entry skipped at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(column)}`
+        );
+        continue;
+      }
+      columns.push(column);
+    }
+    item.config.columns = columns;
+
+    this.sharedProps.setPropOverride('addButtonLabel', item.config, frame);
+    this.sharedProps.setPropOverride('editButtonLabel', item.config, frame);
+    this.sharedProps.setPropOverride('deleteButtonLabel', item.config, frame);
+    this.sharedProps.setPropOverride('dialogAddTitle', item.config, frame);
+    this.sharedProps.setPropOverride('dialogEditTitle', item.config, frame);
+    this.sharedProps.setPropOverride('dialogSaveLabel', item.config, frame);
+    this.sharedProps.setPropOverride('dialogCancelLabel', item.config, frame);
+    this.sharedProps.setPropOverride('confirmDelete', item.config, frame);
+    this.sharedProps.setPropOverride('emptyMessage', item.config, frame);
+    this.sharedProps.setPropOverride('maxRows', item.config, frame);
+
+    frame.componentDefinitions = this.formOverride.applyOverridesReusable(
+      frame?.componentDefinitions ?? [],
+      this.reusableFormDefs
+    );
+
+    // Visit the dialog sub-form components
+    for (const [index, componentDefinition] of frame.componentDefinitions.entries()) {
+      const formComponent = this.constructFormComponent(componentDefinition);
+
+      // Continue the construction
+      await this.formPathHelper.acceptFormPath(
+        formComponent,
+        this.formPathHelper.lineagePathsForEditTableFieldComponentDefinition(formComponent, index)
+      );
+
+      // After the construction is done, apply any transforms
+      const itemTransformed = this.applyConstructPhaseTransform(formComponent);
+
+      // Store the instance on the item
+      item.config?.componentDefinitions.push(itemTransformed);
+    }
+  }
+
+  async visitEditTableFieldModelDefinition(item: EditTableFieldModelDefinitionOutline): Promise<void> {
+    // Get the current raw data for constructing the class instance.
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<EditTableFieldModelDefinitionFrame>(currentData, EditTableModelName)) {
+      throw new Error(
+        `Invalid ${EditTableModelName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+
+    // Create the class instance for the config
+    item.config = new EditTableFieldModelConfig();
+
+    this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+
+    this.setModelValue(item, currentData?.config);
+  }
+
+  async visitEditTableFormComponentDefinition(item: EditTableFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 

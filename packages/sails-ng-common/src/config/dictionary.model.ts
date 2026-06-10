@@ -10,6 +10,7 @@ import { ActionRowLayoutMap } from './component/action-row-layout.model';
 import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
+import { EditTableDefaults, EditTableMap } from './component/edit-table.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
 import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
@@ -64,6 +65,7 @@ export const AllDefs = [
   ...InlineLayoutMap,
   ...RepeatableMap,
   ...GroupMap,
+  ...EditTableMap,
   ...SaveButtonMap,
   ...SaveStatusMap,
   ...CancelButtonMap,
@@ -106,6 +108,7 @@ const RawDefaults = [
   // DefaultLayoutDefaults,
   RepeatableDefaults,
   GroupDefaults,
+  EditTableDefaults,
   SaveButtonDefaults,
   SaveStatusDefaults,
   CancelButtonDefaults,
