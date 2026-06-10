@@ -1,5 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { runPendingMigrations } from './MigrationRunner';
+import type { RedboxMigration } from './MigrationRunner';
 
 export interface GeneratedHookBootstrap {
     name: string;
@@ -63,7 +65,8 @@ async function exportPostBootstrapSnapshot(): Promise<void> {
 export function createGeneratedBootstrap(
     preLiftSetup: () => void,
     coreBootstrap: () => Promise<void>,
-    hookBootstraps: GeneratedHookBootstrap[]
+    hookBootstraps: GeneratedHookBootstrap[],
+    migrations: RedboxMigration[] = []
 ): (cb: BootstrapCallback) => void {
     return function bootstrap(cb: BootstrapCallback): void {
         try {
@@ -74,6 +77,11 @@ export function createGeneratedBootstrap(
         }
 
         (async () => {
+            if (migrations.length > 0) {
+                await runPendingMigrations(migrations);
+                sails.log.verbose('Data migrations complete.');
+            }
+
             await coreBootstrap();
             sails.log.verbose('Core bootstrap complete.');
 
