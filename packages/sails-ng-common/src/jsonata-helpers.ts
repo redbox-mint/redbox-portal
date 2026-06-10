@@ -46,7 +46,6 @@ export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: 
 }
 
 export const jsonataLibrary = {
-  jsonata: jsonata,
   luxonFormatDate,
 };
 
@@ -65,7 +64,7 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction('eval', () => undefined);
 
-  compiled.registerFunction('luxonFormatDate', luxonFormatDate);
+  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
 
   // TODO: register a function for obtaining translations
   // TODO: register a function for formatting date time values

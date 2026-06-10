@@ -586,6 +586,46 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(context.value).toBe('raw source');
   });
 
+  it('should normalize a plain field name to a JSON Pointer for context.value lookup', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'template-plain-field-name',
+      config: {
+        target: 'model.value',
+        hasTemplate: true,
+        condition: 'source',
+        template: '',
+      },
+    };
+    const { definition, component } = createSetup([expr]);
+    const evaluateSpy = jasmine.createSpy('evaluate').and.resolveTo('templatedValue');
+    const rawValue = {
+      source: 'plain-name value',
+    };
+
+    (consumer as any).options = { component, definition };
+    (consumer as any).expressions = [expr];
+    (consumer as any).formComp = {
+      form: {
+        value: rawValue,
+        getRawValue: () => rawValue,
+      },
+    };
+    spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate: evaluateSpy });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: 'source',
+      sourceId: 'source',
+      value: 'event source',
+      timestamp: Date.now(),
+    };
+
+    await (consumer as any).evaluateExpressionJSONata(expr, event, 'template');
+
+    const [, context] = evaluateSpy.calls.mostRecent().args;
+    expect(context.value).toBe('plain-name value');
+  });
+
   it('should include requestParams in JSONata evaluation context', async () => {
     const expr: FormExpressionsConfigFrame = {
       name: 'template-request-params',

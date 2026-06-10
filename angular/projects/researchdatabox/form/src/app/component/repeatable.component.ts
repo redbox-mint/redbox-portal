@@ -838,7 +838,8 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
         throw new Error(`${this.logName}: model not found in formControl.`);
       }
       this.formControl.removeAt(fromIndex, { ...options, emitEvent: false });
-      this.formControl.insert(toIndex, control, options);
+      this.formControl.insert(toIndex, control, { ...options, emitEvent: false });
+      this.formControl.updateValueAndValidity(options);
     } else {
       throw new Error(`${this.logName}: formControl is not a FormArray. Cannot move element.`);
     }

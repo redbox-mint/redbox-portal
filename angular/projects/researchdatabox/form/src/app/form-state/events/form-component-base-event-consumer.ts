@@ -171,12 +171,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
     try {
       const dataFieldId = event.fieldId || '';
+      const normalizedFieldId = dataFieldId && !dataFieldId.startsWith('/') ? '/' + dataFieldId : dataFieldId;
 
       // Expressions are allowed to reshape their inputs. Clone everything we
       // expose to JSONata so a mutating expression cannot leak writes back
       // into Angular form state or event objects.
       const rawFormValue = this.formComp?.form?.getRawValue?.() ?? this.formComp?.form?.value ?? {};
-      const valueOriginal = dataFieldId ? getObjectWithJsonPointer(rawFormValue, dataFieldId)?.val : undefined;
+      const valueOriginal = normalizedFieldId ? getObjectWithJsonPointer(rawFormValue, normalizedFieldId)?.val : undefined;
       const value = this.cloneExpressionContextValue(valueOriginal, 'value');
       const eventClone = this.cloneExpressionContextValue(event, 'event');
       const formData = this.cloneExpressionContextValue(rawFormValue, 'formData');
