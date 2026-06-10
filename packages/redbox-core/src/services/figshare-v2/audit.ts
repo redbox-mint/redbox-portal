@@ -19,7 +19,7 @@ export function startFigshareAudit(
   requestSummary: Record<string, unknown>,
   parentAuditContext?: IntegrationAuditContext | null
 ): IntegrationAuditContext | null {
-  if (typeof IntegrationAuditService?.startAudit !== 'function') {
+  if (typeof IntegrationAuditService === 'undefined' || typeof IntegrationAuditService.startAudit !== 'function') {
     return null;
   }
   return IntegrationAuditService.startAudit(oid, action, {
@@ -33,13 +33,13 @@ export function startFigshareAudit(
 }
 
 export function completeFigshareAudit(ctx: IntegrationAuditContext | null | undefined, details: Record<string, unknown>): void {
-  if (typeof IntegrationAuditService?.completeAudit === 'function') {
+  if (typeof IntegrationAuditService !== 'undefined' && typeof IntegrationAuditService.completeAudit === 'function') {
     IntegrationAuditService.completeAudit(ctx, details);
   }
 }
 
 export function failFigshareAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: Record<string, unknown>): void {
-  if (typeof IntegrationAuditService?.failAudit === 'function') {
+  if (typeof IntegrationAuditService !== 'undefined' && typeof IntegrationAuditService.failAudit === 'function') {
     IntegrationAuditService.failAudit(ctx, error, details);
   }
 }
