@@ -9,7 +9,7 @@ type CompletionSpec = {
 function getCompletionSpec(): CompletionSpec {
   const globalOptions = ['--root', '--core-types-root', '--angular-root', '--dry-run', '-h', '--help', '-V', '--version'];
   const topLevelCommands = ['init', 'check', 'migrate-hook-dependencies', 'generate', 'g', 'install-skills', 'skills', 'migrate-form-config', 'completion', 'help'];
-  const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-component', 'form-field', 'model'];
+  const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-component', 'form-field', 'migration', 'model'];
 
   const commandOptions: Record<string, string[]> = {
     'migrate-form-config': ['-i', '--input', '-o', '--output'],
@@ -26,6 +26,7 @@ function getCompletionSpec(): CompletionSpec {
     'generate angular-service': ['--app', '--methods'],
     'generate form-component': ['--app', '--with-service'],
     'generate form-field': ['--type'],
+    'generate migration': [],
     'generate model': ['--identity', '--attrs', '--belongs-to', '--has-many']
   };
 
@@ -170,7 +171,7 @@ Register-ArgumentCompleter -Native -CommandName redbox-dev-tools -ScriptBlock {
   $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
   $global = @('--root','--core-types-root','--angular-root','--dry-run','-h','--help','-V','--version')
   $top = @('init','check','migrate-hook-dependencies','generate','g','install-skills','skills','migrate-form-config','completion','help')
-  $generateSub = @('controller','service','method','angular-app','angular-service','form-component','form-field','model')
+  $generateSub = @('controller','service','method','angular-app','angular-service','form-component','form-field','migration','model')
 
   if ($tokens.Count -le 2) {
     @($top + $global) | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
