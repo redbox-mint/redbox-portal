@@ -329,9 +329,6 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     const startingValue = this.currentModelValue();
     if (this.isEditMode()) {
       this.ensureDrawInitialised();
-      if (startingValue.features.length > 0) {
-        this.pushFeaturesToDraw(startingValue.features);
-      }
     } else {
       this.renderReadonlyLayer(startingValue);
     }

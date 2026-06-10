@@ -227,7 +227,14 @@ describe("MapComponent", () => {
     };
 
     await createFormAndWaitForReady(formConfig, {editMode: true} as any);
-    expect(fakeDraw.addFeatures).toHaveBeenCalled();
+    expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
+      {
+        type: "Feature",
+        geometry: {type: "Point", coordinates: [144.96, -37.81]},
+        properties: {name: "Melbourne"}
+      }
+    ]);
+    expect(drawFeatures.length).toBe(1);
     expect(fakeMap.invalidateSize).toHaveBeenCalled();
   });
 
