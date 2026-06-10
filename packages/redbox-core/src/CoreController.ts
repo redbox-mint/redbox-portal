@@ -324,7 +324,8 @@ export namespace Controllers.Core {
       const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
-      this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
+      // TODO: there is too much data in these view details - are individual properties interesting?
+      // this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
 
       res.view(resolvedView, mergedLocal);
     }

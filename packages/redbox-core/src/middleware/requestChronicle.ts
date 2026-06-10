@@ -8,21 +8,20 @@ import {RequestChronicleHelper} from "../utilities/RequestChronicle";
  * @param next The next middleware callback.
  */
 export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
-  const item = RequestChronicleHelper.fromReq(sails.log, req);
-  item.start();
-
-  // Initialize the request chronicle with request context
-  item.updateReq(req);
-
-  try {
-    next();
+  // Conclude the request chronicle when the response is closed.
+  res.on('close', () => {
+    const _args = arguments;
+    const item = RequestChronicleHelper.fromReq(sails.log, res.req);
     item.updateRes(res);
-  } catch (error) {
-    item.addError(error);
-    throw error;
-  } finally {
     item.finish();
     item.log(sails.log);
-  }
+  });
+
+  // Create the request chronicle and init with request context
+  const item = RequestChronicleHelper.fromReq(sails.log, req);
+  item.start();
+  item.updateReq(req);
+
+  return next();
 }
 

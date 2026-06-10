@@ -12,11 +12,7 @@ import type { Logger, LoggerOptions, DestinationStream } from 'pino';
 import { ILogger } from '../Logger';
 
 // Declare global sails type for namespace logger
-declare const sails: {
-    config: {
-        lognamespace: Record<string, string>;
-    };
-};
+declare const sails: Sails.Application;
 
 export type SailsLogLevel = 'silly' | 'verbose' | 'trace' | 'debug' | 'log' | 'info' | 'warn' | 'error' | 'crit' | 'fatal' | 'silent' | 'blank';
 
@@ -37,6 +33,7 @@ export interface LogConfig {
     customLogger: ILogger;
     createNamespaceLogger: (name: string, parentLogger: ILogger, prefix?: string, level?: string) => ILogger;
     createPinoLogger: (level?: string, destination?: DestinationStream) => ILogger;
+    lognamespace: Record<string, string>;
 }
 
 /**
@@ -115,7 +112,7 @@ function createNamespaceLogger(name: string, parentLogger: ILogger, prefix?: str
     }
 
     // parentLogger is ILogger but underlying is pino. Need to cast to pino Logger to call child()
-    // However, ILogger methods are compatible. 
+    // However, ILogger methods are compatible.
     // Typescript might complain if we treat ILogger as pino Logger directly if ILogger is missing pino specific methods.
     // But since we created it via createPinoLogger, it IS a pino logger.
     const pinoParent = parentLogger as unknown as Logger;
@@ -146,4 +143,5 @@ export const log: LogConfig = {
     customLogger: customLogger,
     createNamespaceLogger: createNamespaceLogger,
     createPinoLogger: createPinoLogger,
+    lognamespace: {},
 };

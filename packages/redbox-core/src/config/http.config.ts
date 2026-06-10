@@ -26,25 +26,7 @@ import {UserModel} from "../model";
 import {consoleLogger} from "../Logger";
 
 // Declare Sails and its config structure
-declare const sails: {
-    config: {
-        appPath: string;
-        passport: PassportStatic; // The passport instance configured by UsersService
-        companion?: CompanionConfig;
-        appUrl?: string;
-        session: {
-            cookie?: {
-                maxAge?: number;
-            };
-        };
-        custom: CustomConfig;
-    };
-    hooks?: {
-        http?: {
-            server?: unknown;
-        };
-    };
-};
+declare const sails: Sails.Application;
 
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
@@ -385,10 +367,16 @@ export const http: HttpConfig = {
         // Lazy load passport middleware to use sails.config.passport
         // This ensures we use the same passport instance that has deserializeUser configured
         passportInit: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.initialize !== 'function') {
+                throw new Error(`Passport init failed: sails.config.passport.initialize is not a function.`);
+            }
             const middleware = sails.config.passport.initialize() as unknown as RequestHandler;
             return middleware(req, res, next);
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.session !== 'function') {
+              throw new Error(`Passport session failed: sails.config.passport.session is not a function.`);
+            }
             const middleware = sails.config.passport.session() as unknown as RequestHandler;
             const result = middleware(req, res, next);
             const user = req.user as UserModel | undefined | null;
@@ -697,7 +685,7 @@ export const http: HttpConfig = {
         },
 
         cacheControl: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
-            const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
+            const sessionTimeoutSeconds = sails.config.session === false || !sails.config.session.cookie?.maxAge ? 31536000 : sails.config.session.cookie.maxAge / 1000;
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
             const isImmutableAsset = isImmutableAssetPath(req.path);

@@ -109,7 +109,7 @@ export class RequestChronicleHelper {
     const startDate = this.#data.result.timestamp ? Date.parse(this.#data.result.timestamp) : dateNow;
     this.#data.result.durationMs = dateNow - startDate;
 
-    this.#data.result.outcome = this.hasErrors ? "success" : "error";
+    this.#data.result.outcome = this.hasErrors ? "error" : "success";
     this.#data.result.classification = this.classify();
   }
 
