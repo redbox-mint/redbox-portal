@@ -330,6 +330,40 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
   });
 
+  it('includes non-object HTTP response bodies in error summaries', function () {
+    const error = Object.assign(new Error('Figshare HTTP request failed'), {
+      statusCode: 401,
+      responseBody: 'Unauthorized'
+    });
+
+    const summary = (service as any).summarizeError(error);
+
+    expect(summary.statusCode).to.equal(401);
+    expect(summary.responseSummary.rawResponseBody).to.equal('Unauthorized');
+    expect(summary.responseSummary.message).to.equal('Figshare HTTP request failed');
+
+    const objectBodySummary = (service as any).summarizeError(Object.assign(new Error('boom'), {
+      statusCode: 422,
+      responseBody: { message: 'Invalid embargo' }
+    }));
+    expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
+  });
+
+  it('does not throw from getConfig when the record brand cannot be resolved', function () {
+    (global as any).BrandingService.getBrand = sinon.stub().returns(undefined);
+    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
+
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'ghost-brand' }
+    } as any);
+
+    // Unknown brands keep the graceful fallback contract: config still resolves via the
+    // branding configuration defaults path instead of throwing before the enabled check.
+    expect(resolved).to.not.equal(null);
+    expect(appConfigByBrandStub.calledWith('ghost-brand')).to.be.true;
+    expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.be.true;
+  });
+
   it('resolves live mode when figshareDev is disabled', function () {
     (global as any).sails.config.figshareDev = { enabled: false, mode: 'fixture' };
     const resolved = service.getConfig({

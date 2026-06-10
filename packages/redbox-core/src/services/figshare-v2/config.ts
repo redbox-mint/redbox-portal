@@ -35,7 +35,13 @@ export function getBrandName(record?: RecordModel): string {
   // Some callers (queue jobs, the workflow transition job) already pass a brand name.
   const brandByName = typeof brandingService.getBrand === 'function' ? brandingService.getBrand(rawBrand) : undefined;
   if (brandByName != null) return rawBrand;
-  throw new Error(`Cannot resolve Figshare publishing config: unknown brand id or name '${rawBrand}'`);
+  // Unknown brand (e.g. deleted): do NOT throw - resolveFigsharePublishingConfig must keep
+  // its `null -> graceful no-op` contract for lifecycle hooks (createUpdateFigshareArticle,
+  // uploadFilesToFigshareArticle, ...). Returning the raw value preserves the previous
+  // fallback semantics (AppConfigService serves the global brandingConfigurationDefaults
+  // for unknown keys), now with a warning instead of silence.
+  sails.log.warn(`FigService - unable to resolve brand id or name '${rawBrand}'; global branding configuration defaults will apply`);
+  return rawBrand;
 }
 
 function resolveFigshareDevConfig(): FigshareDevConfig {

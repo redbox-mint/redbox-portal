@@ -63,6 +63,7 @@ export function makeRuntimeLayer(config: ResolvedFigsharePublishingConfigData, r
 export async function runBuildMetadataPayload(config: ResolvedFigsharePublishingConfigData, record: RecordModel): Promise<Record<string, unknown>> {
   const runContext: FigshareRunContext = {
     recordOid: record.redboxOid ?? record.id ?? '',
+    brandId: String(record.metaMetadata?.brandId ?? 'default'),
     brandName: getBrandName(record),
     correlationId: `build-${Date.now()}`,
     triggerSource: 'buildMetadataPayload'

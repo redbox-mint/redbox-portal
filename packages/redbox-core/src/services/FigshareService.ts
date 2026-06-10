@@ -88,7 +88,10 @@ export namespace Services {
           : {
             errorType: error instanceof Error ? error.name : typeof error,
             message: errorMessage,
-            ...(statusCode != null ? { statusCode } : {})
+            ...(statusCode != null ? { statusCode } : {}),
+            // Plain-text API responses (e.g. "Unauthorized") still carry diagnostic value;
+            // keep them in the audit summary (same field name as doi-v2's toResponseSummary).
+            ...(responseBody != null ? { rawResponseBody: String(responseBody) } : {})
           }
       };
     }
