@@ -1,5 +1,11 @@
-import { jsonataCompile, jsonataCompileAndEvaluate, jsonataEvaluate, jsonataEvaluateFunc } from "../../src";
-
+import jsonata from 'jsonata';
+import {
+  jsonataCompile,
+  jsonataCompileAndEvaluate,
+  jsonataEvaluate,
+  jsonataEvaluateFunc,
+  jsonataLibrary,
+} from '../../src';
 
 describe('JSONata helpers', function () {
   let expect: Chai.ExpectStatic;
@@ -20,7 +26,7 @@ describe('JSONata helpers', function () {
   const cases = [
     {
       args: {
-        expression: "$sum(example.value)",
+        expression: '$sum(example.value)',
         input: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] },
         bindings: undefined,
       },
@@ -28,7 +34,7 @@ describe('JSONata helpers', function () {
     },
     {
       args: {
-        expression: "$a + $b()",
+        expression: '$a + $b()',
         input: {},
         bindings: { a: 4, b: () => 78 },
       },
@@ -40,7 +46,7 @@ describe('JSONata helpers', function () {
         input: { name: 'testing' },
         bindings: undefined,
       },
-      expected: "testing",
+      expected: 'testing',
     },
     {
       args: {
@@ -79,5 +85,27 @@ describe('JSONata helpers', function () {
         compareError(error, expected);
       }
     });
+  });
+
+  it('should expose luxon date formatting to compiled JSONata expressions', async function () {
+    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
+      date: '2026/06/10',
+    });
+
+    expect(actual).to.eql('2026');
+  });
+
+  it('should expose luxon date formatting to client-style JSONata library bindings', async function () {
+    const actual = await jsonata('$luxonFormatDate(date, "yyyy")').evaluate({ date: '2026-06-10' }, jsonataLibrary);
+
+    expect(actual).to.eql('2026');
+  });
+
+  it('should format RFC 2822 date string values with luxon JSONata helper', async function () {
+    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
+      date: 'Wed, 10 Jun 2026 00:00:00 +0930',
+    });
+
+    expect(actual).to.eql('2026');
   });
 });

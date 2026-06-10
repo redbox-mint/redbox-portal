@@ -314,9 +314,17 @@
   min-width: 0;
 }
 
-.rb-form-edit .rb-form-repeatable-item__remove {
+/* The per-row controls (sort + remove) are grouped into one compact toolbar so
+   they read as a single unit aligned to the right of each repeatable row. */
+.rb-form-edit .rb-form-repeatable-item__actions {
   flex: 0 0 auto;
   align-self: start;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rb-form-gap-2);
+}
+
+.rb-form-edit .rb-form-repeatable-item__remove {
   min-width: 34px;
   min-height: 34px;
   height: 34px;
@@ -327,19 +335,34 @@
   justify-content: center;
 }
 
+.rb-form-edit .rb-form-repeatable-item__sort {
+  flex: 0 0 auto;
+}
+
+.rb-form-edit .rb-form-repeatable-item__sort .btn {
+  min-width: 34px;
+  min-height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .rb-form-edit select.form-select {
   height: auto;
 }
 
-.rb-form-edit .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item:has(.rb-form-field-label) .rb-form-repeatable-item__actions {
   margin-top: 2.25rem;
 }
 
-.rb-form-edit .rb-form-repeatable-item:has(.rb-form-inline-label):not(:has(.rb-form-inline-fields, .rb-form-contributor-inline)) .rb-form-repeatable-item__remove {
+.rb-form-edit
+  .rb-form-repeatable-item:has(.rb-form-inline-label):not(:has(.rb-form-inline-fields, .rb-form-contributor-inline))
+  .rb-form-repeatable-item__actions {
   margin-top: 0;
 }
 
-.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--inline-fields .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item.rb-form-repeatable-item--inline-fields .rb-form-repeatable-item__actions {
   margin-top: 2.25rem;
 }
 
@@ -424,8 +447,7 @@
   border-radius: 0.65rem;
   border: 1px solid var(--rb-form-validation-outline);
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 241, 0.95)),
-    var(--rb-form-validation-surface);
+    linear-gradient(120deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 241, 0.95)), var(--rb-form-validation-surface);
   box-shadow: 0 6px 16px -14px var(--rb-form-validation-shadow);
 }
 
@@ -449,7 +471,10 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.45;
-  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
 }
 
 .rb-form-edit .rb-form-field-error-toggle:hover,
@@ -527,24 +552,40 @@
     --rb-form-inline-grid-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .rb-form-edit .rb-form-grid-cols-5 .rb-form-group {
+    --rb-form-inline-grid-columns: minmax(0, 0.65fr) repeat(4, minmax(0, 1fr));
+  }
+
   .rb-form-edit .rb-form-contributor-inline.rb-form-grid-cols-3 .rb-form-group {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-1 {
+.rb-form-edit
+  :is(.rb-form-inline-fields, .rb-form-contributor-inline)
+  .rb-form-group
+  > redbox-form-base-wrapper.rb-form-grid-span-1 {
   grid-column: span 1 !important;
 }
 
-.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-2 {
+.rb-form-edit
+  :is(.rb-form-inline-fields, .rb-form-contributor-inline)
+  .rb-form-group
+  > redbox-form-base-wrapper.rb-form-grid-span-2 {
   grid-column: span 2 !important;
 }
 
-.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-3 {
+.rb-form-edit
+  :is(.rb-form-inline-fields, .rb-form-contributor-inline)
+  .rb-form-group
+  > redbox-form-base-wrapper.rb-form-grid-span-3 {
   grid-column: span 3 !important;
 }
 
-.rb-form-edit :is(.rb-form-inline-fields, .rb-form-contributor-inline) .rb-form-group > redbox-form-base-wrapper.rb-form-grid-span-full {
+.rb-form-edit
+  :is(.rb-form-inline-fields, .rb-form-contributor-inline)
+  .rb-form-group
+  > redbox-form-base-wrapper.rb-form-grid-span-full {
   grid-column: 1 / -1 !important;
 }
 
@@ -569,36 +610,26 @@
   width: 100%;
 }
 
-.rb-form-edit :is(
-  .rb-form-funding-inline,
-  .rb-form-inline-fields--split-end,
-  .rb-form-grid-split-end
-) > .rb-form-group {
+.rb-form-edit
+  :is(.rb-form-funding-inline, .rb-form-inline-fields--split-end, .rb-form-grid-split-end)
+  > .rb-form-group {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--rb-form-gap-2);
 }
 
-.rb-form-edit :is(
-  .rb-form-funding-inline,
-  .rb-form-inline-fields--split-end,
-  .rb-form-grid-split-end
-) > .rb-form-group > redbox-form-base-wrapper:is(
-  .rb-form-inline-fields__field,
-  .rb-form-contributor-inline__field
-) {
+.rb-form-edit
+  :is(.rb-form-funding-inline, .rb-form-inline-fields--split-end, .rb-form-grid-split-end)
+  > .rb-form-group
+  > redbox-form-base-wrapper:is(.rb-form-inline-fields__field, .rb-form-contributor-inline__field) {
   min-width: 0;
   width: 100%;
 }
 
-.rb-form-edit :is(
-  .rb-form-funding-inline,
-  .rb-form-inline-fields--split-end,
-  .rb-form-grid-split-end
-) > .rb-form-group > redbox-form-base-wrapper:is(
-  .rb-form-inline-fields__field--fixed,
-  .rb-form-contributor-inline__field--role
-) {
+.rb-form-edit
+  :is(.rb-form-funding-inline, .rb-form-inline-fields--split-end, .rb-form-grid-split-end)
+  > .rb-form-group
+  > redbox-form-base-wrapper:is(.rb-form-inline-fields__field--fixed, .rb-form-contributor-inline__field--role) {
   width: 35rem;
 }
 
@@ -627,7 +658,7 @@
   resize: vertical;
 }
 
-.rb-form-edit .rb-form-repeatable-item:has(.rb-form-related-link-inline) .rb-form-repeatable-item__remove {
+.rb-form-edit .rb-form-repeatable-item:has(.rb-form-related-link-inline) .rb-form-repeatable-item__actions {
   position: relative;
   top: 2rem;
   margin-top: 2.25rem;
@@ -716,7 +747,7 @@
   }
 
   .rb-form-repeatable__add,
-  .rb-form-repeatable-item__remove {
+  .rb-form-repeatable-item__actions {
     display: none !important;
   }
 

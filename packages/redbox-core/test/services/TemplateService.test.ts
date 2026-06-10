@@ -1,24 +1,24 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('TemplateService', function() {
+describe('TemplateService', function () {
   let mockSails: any;
   let TemplateService: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
-        appPath: '/app'
+        appPath: '/app',
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub()
-      }
+        error: sinon.stub(),
+      },
     });
 
     setupServiceTestGlobals(mockSails);
@@ -28,13 +28,13 @@ describe('TemplateService', function() {
     TemplateService = new Services.Template();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     sinon.restore();
   });
 
-  describe('buildKeyString', function() {
-    it('should convert array key to string', function() {
+  describe('buildKeyString', function () {
+    it('should convert array key to string', function () {
       const result = TemplateService.buildKeyString(['report', 'columns', '0', 'render']);
 
       expect(result).to.be.a('string');
@@ -42,8 +42,8 @@ describe('TemplateService', function() {
     });
   });
 
-  describe('buildClientJsonata', function() {
-    it('should compile a valid JSONata expression', function() {
+  describe('buildClientJsonata', function () {
+    it('should compile a valid JSONata expression', function () {
       const expression = '$.firstName & " " & $.lastName';
 
       const result = TemplateService.buildClientJsonata(expression);
@@ -52,7 +52,7 @@ describe('TemplateService', function() {
       expect(result).to.include('firstName');
     });
 
-    it('should return null for invalid JSONata expression', function() {
+    it('should return null for invalid JSONata expression', function () {
       const invalidExpression = '{{{{invalid jsonata';
 
       const result = TemplateService.buildClientJsonata(invalidExpression);
@@ -60,7 +60,7 @@ describe('TemplateService', function() {
       expect(result).to.be.null;
     });
 
-    it('should normalize the expression', function() {
+    it('should normalize the expression', function () {
       // Test with unicode characters that should be normalized
       const expression = '$.name';
 
@@ -70,9 +70,8 @@ describe('TemplateService', function() {
     });
   });
 
-
-  describe('buildClientHandlebars', function() {
-    it('should precompile a valid Handlebars template', function() {
+  describe('buildClientHandlebars', function () {
+    it('should precompile a valid Handlebars template', function () {
       const template = '{{firstName}} {{lastName}}';
 
       const result = TemplateService.buildClientHandlebars(template);
@@ -82,7 +81,7 @@ describe('TemplateService', function() {
       expect(result).to.include('function');
     });
 
-    it('should register helpers once', function() {
+    it('should register helpers once', function () {
       // Call twice to test caching
       TemplateService.buildClientHandlebars('{{name}}');
       TemplateService.buildClientHandlebars('{{other}}');
@@ -92,8 +91,8 @@ describe('TemplateService', function() {
     });
   });
 
-  describe('buildServerHandlebars', function() {
-    it('should compile a valid Handlebars template', function() {
+  describe('buildServerHandlebars', function () {
+    it('should compile a valid Handlebars template', function () {
       const template = '{{firstName}} {{lastName}}';
 
       const result = TemplateService.buildServerHandlebars(template);
@@ -101,7 +100,7 @@ describe('TemplateService', function() {
       expect(result).to.be.a('function');
     });
 
-    it('should execute the compiled template', function() {
+    it('should execute the compiled template', function () {
       const template = '{{firstName}} {{lastName}}';
 
       const compiled = TemplateService.buildServerHandlebars(template);
@@ -111,11 +110,9 @@ describe('TemplateService', function() {
     });
   });
 
-  describe('buildClientMapping', function() {
-    it('should build mapping for JSONata inputs', function() {
-      const inputs = [
-        { key: ['field1'], kind: 'jsonata', value: '$.name' }
-      ];
+  describe('buildClientMapping', function () {
+    it('should build mapping for JSONata inputs', function () {
+      const inputs = [{ key: ['field1'], kind: 'jsonata', value: '$.name' }];
 
       const result = TemplateService.buildClientMapping(inputs);
 
@@ -125,10 +122,16 @@ describe('TemplateService', function() {
       expect(result[0]).to.have.property('value');
     });
 
-    it('should build mapping for Handlebars inputs', function() {
-      const inputs = [
-        { key: ['field1'], kind: 'handlebars', value: '{{name}}' }
-      ];
+    it('should pass client JSONata library bindings through extra', function () {
+      const inputs = [{ key: ['field1'], kind: 'jsonata', value: '$helper($.name)' }];
+
+      const result = TemplateService.buildClientMapping(inputs);
+
+      expect(result[0].value).to.include('evaluate(context, extra?.libraries)');
+    });
+
+    it('should build mapping for Handlebars inputs', function () {
+      const inputs = [{ key: ['field1'], kind: 'handlebars', value: '{{name}}' }];
 
       const result = TemplateService.buildClientMapping(inputs);
 
@@ -136,26 +139,24 @@ describe('TemplateService', function() {
       expect(result).to.have.lengthOf(1);
     });
 
-    it('should throw for duplicate keys', function() {
+    it('should throw for duplicate keys', function () {
       const inputs = [
         { key: ['field1'], kind: 'jsonata', value: '$.name' },
-        { key: ['field1'], kind: 'jsonata', value: '$.other' }
+        { key: ['field1'], kind: 'jsonata', value: '$.other' },
       ];
 
       expect(() => TemplateService.buildClientMapping(inputs)).to.throw('Keys must be unique');
     });
 
-    it('should throw for unknown input kind', function() {
-      const inputs = [
-        { key: ['field1'], kind: 'unknown' as any, value: 'test' }
-      ];
+    it('should throw for unknown input kind', function () {
+      const inputs = [{ key: ['field1'], kind: 'unknown' as any, value: 'test' }];
 
       expect(() => TemplateService.buildClientMapping(inputs)).to.throw('Unknown input kind');
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
+  describe('exports', function () {
+    it('should export all public methods', function () {
       const exported = TemplateService.exports();
 
       expect(exported).to.have.property('buildClientMapping');

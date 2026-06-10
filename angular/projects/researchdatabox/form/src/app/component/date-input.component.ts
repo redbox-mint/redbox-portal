@@ -1,5 +1,10 @@
 import { Component, ElementRef, Input, ViewChild } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  ModifyOptions,
+} from '@researchdatabox/portal-ng-common';
 import { DateInputFieldComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.model';
 import {
   DateInputComponentName,
@@ -238,31 +243,29 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           (blur)="onInputBlur($event)"
         />
         <div class="input-group-append">
-          <span class="input-group-text date-input-addon" (click)="toggleDatepicker()" >
+          <span class="input-group-text date-input-addon" (click)="toggleDatepicker()">
             <i class="fa fa-calendar"></i>
           </span>
         </div>
         @if (enableTimePicker) {
-          <input
-            type="time"
-            class="form-control"
-            [readonly]="isReadonly"
-            (change)="onTimeChange($event)"
-          />
+          <input type="time" class="form-control" [readonly]="isReadonly" (change)="onTimeChange($event)" />
         }
       </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  styles: [`
-    .date-input-width {
-      flex: none !important;
-      width: 50% !important;
-    }
-    .date-input-addon {
-      height: 34px;
-    }`],
-  standalone: false
+  styles: [
+    `
+      .date-input-width {
+        flex: none !important;
+        width: 50% !important;
+      }
+      .date-input-addon {
+        height: 34px;
+      }
+    `,
+  ],
+  standalone: false,
 })
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
   protected override logName = DateInputComponentName;
@@ -293,7 +296,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.tooltip = this.getStringProperty('tooltip');
     let dateConfig = this.componentDefinition?.config as DateInputFieldComponentConfigFrame;
     let defaultConfig = new DateInputFieldComponentConfig();
-    let cfg = (_isUndefined(dateConfig) || _isEmpty(dateConfig)) ? defaultConfig : dateConfig;
+    let cfg = _isUndefined(dateConfig) || _isEmpty(dateConfig) ? defaultConfig : dateConfig;
     this.placeholder = cfg.placeholder ?? defaultConfig.placeholder ?? this.placeholder;
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.robustParsing = cfg.robustParsing ?? defaultConfig.robustParsing ?? this.robustParsing;
@@ -301,7 +304,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.bsFullConfig = cfg.bsFullConfig ?? {};
     if (!_isUndefined(this.model)) {
       this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
-      this.model.enableTimePicker = cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
+      this.model.enableTimePicker =
+        cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
     }
   }
 
@@ -329,7 +333,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
 
     if (normalizedValue !== undefined && !areDateInputValuesEqual(this.formControl?.value, normalizedValue)) {
-      this.formControl?.setValue(normalizedValue, { emitEvent: false });
+      this.formControl?.setValue(normalizedValue, { emitEvent: typeof dateValue === 'string' });
     }
 
     this.onDateChange((normalizedValue ?? dateValue ?? null) as DateInputModelValueType);
@@ -404,7 +408,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
       return {
         dateInputFormat: this.dateFormat,
         showWeekNumbers: this.showWeekNumbers,
-        containerClass: this.containerClass
+        containerClass: this.containerClass,
       } as BsDatepickerConfig;
     } else {
       return this.bsFullConfig as BsDatepickerConfig;
