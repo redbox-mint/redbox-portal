@@ -12,7 +12,6 @@ import {
 } from './form-component-base-event-producer-consumer';
 import {
   FormExpressionsConfigFrame,
-  getObjectWithJsonPointer,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue,
@@ -177,7 +176,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       // expose to JSONata so a mutating expression cannot leak writes back
       // into Angular form state or event objects.
       const rawFormValue = this.formComp?.form?.getRawValue?.() ?? this.formComp?.form?.value ?? {};
-      const valueOriginal = normalizedFieldId ? getObjectWithJsonPointer(rawFormValue, normalizedFieldId)?.val : undefined;
+      const valueOriginal = normalizedFieldId ? this.getValueForEventField(rawFormValue, normalizedFieldId) : undefined;
       const value = this.cloneExpressionContextValue(valueOriginal, 'value');
       const eventClone = this.cloneExpressionContextValue(event, 'event');
       const formData = this.cloneExpressionContextValue(rawFormValue, 'formData');
@@ -228,6 +227,54 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return value;
     }
   }
+
+  /**
+   * Read an event field value without using the logging JSON pointer helper.
+   * Some form events carry config-tree paths while the Angular form value is
+   * flat, so a missing path is an expected condition rather than an error.
+   */
+  protected getValueForEventField(rawFormValue: unknown, normalizedFieldId: string): unknown {
+    const directValue = this.getValueByJsonPointer(rawFormValue, normalizedFieldId);
+    if (directValue !== undefined) {
+      return directValue;
+    }
+
+    const lastSegment = normalizedFieldId.split('/').filter(Boolean).pop();
+    if (
+      lastSegment &&
+      rawFormValue &&
+      typeof rawFormValue === 'object' &&
+      Object.prototype.hasOwnProperty.call(rawFormValue, lastSegment)
+    ) {
+      return (rawFormValue as Record<string, unknown>)[lastSegment];
+    }
+
+    return undefined;
+  }
+
+  protected getValueByJsonPointer(source: unknown, pointer: string): unknown {
+    if (pointer === '') {
+      return source;
+    }
+    if (!pointer.startsWith('/')) {
+      return undefined;
+    }
+
+    let current = source;
+    for (const rawSegment of pointer.split('/').slice(1)) {
+      const segment = rawSegment.replace(/~1/g, '/').replace(/~0/g, '~');
+      if (
+        current === null ||
+        current === undefined ||
+        (typeof current !== 'object' && !Array.isArray(current)) ||
+        !Object.prototype.hasOwnProperty.call(current, segment)
+      ) {
+        return undefined;
+      }
+      current = (current as Record<string, unknown>)[segment];
+    }
+    return current;
+  }
   /**
    *
    * Checks if the event matches the JSON Pointer condition.
@@ -236,7 +283,6 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @returns
    */
   protected hasMatchedJSONPointerCondition(opts: FormComponentEventJSONPointerMatchOptions): boolean {
-    const querySource = opts.querySource;
     if (
       opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY &&
       opts.expression.config.runOnFormReady === false
@@ -244,10 +290,6 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return false;
     }
     const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
-    // Check if the pointer has a match in the query source, broadcasts will fail this check
-    const ref = querySource
-      ? getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer)
-      : undefined;
     const targetEvent = pointerCondition.event;
     const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.event.type;
     // Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:

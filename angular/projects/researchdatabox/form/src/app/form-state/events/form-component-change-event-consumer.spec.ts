@@ -626,6 +626,48 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(context.value).toBe('plain-name value');
   });
 
+  it('should quietly fall back to the flat field value when the event fieldId is a config path', async () => {
+    const expr: FormExpressionsConfigFrame = {
+      name: 'template-config-path-field-name',
+      config: {
+        target: 'model.value',
+        hasTemplate: true,
+        condition: '/mainTab/about/dataRecord',
+        template: '',
+      },
+    };
+    const { definition, component } = createSetup([expr]);
+    const evaluateSpy = jasmine.createSpy('evaluate').and.resolveTo('templatedValue');
+    const dataRecord = { oid: 'record-1', title: 'Selected record' };
+    const rawValue = {
+      dataRecord,
+    };
+
+    (consumer as any).options = { component, definition };
+    (consumer as any).expressions = [expr];
+    (consumer as any).formComp = {
+      form: {
+        value: rawValue,
+        getRawValue: () => rawValue,
+      },
+    };
+    spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate: evaluateSpy });
+
+    const event: FieldValueChangedEvent = {
+      type: 'field.value.changed',
+      fieldId: '/mainTab/about/dataRecord',
+      sourceId: '/mainTab/about/dataRecord',
+      value: dataRecord,
+      timestamp: Date.now(),
+    };
+
+    await (consumer as any).evaluateExpressionJSONata(expr, event, 'template');
+
+    const [, context] = evaluateSpy.calls.mostRecent().args;
+    expect(context.value).toEqual(dataRecord);
+    expect(loggerService.error).not.toHaveBeenCalled();
+  });
+
   it('should include requestParams in JSONata evaluation context', async () => {
     const expr: FormExpressionsConfigFrame = {
       name: 'template-request-params',
