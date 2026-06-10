@@ -29,6 +29,13 @@
   vertical-align: middle;
 }
 
+/* Dimmed backdrop for in-app modal dialogs.
+   Defined here (external stylesheet) instead of an inline style attribute,
+   because the portal CSP style-src does not allow inline styles. */
+.rb-form-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
 .rb-form-host .rb-form-action-row {
   display: flex;

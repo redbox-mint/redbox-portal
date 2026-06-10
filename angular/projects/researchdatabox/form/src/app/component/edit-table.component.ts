@@ -116,15 +116,14 @@ export class EditTableModel extends FormFieldModel<EditTableModelValueType> {
       </div>
       @if (dialogState(); as state) {
         <div
-          class="modal fade show d-block"
+          class="modal fade show d-block rb-form-modal-overlay"
           tabindex="-1"
           role="dialog"
           aria-modal="true"
           aria-labelledby="editTableDialogTitle"
-          style="background-color: rgba(0,0,0,0.5)"
           (keydown.escape)="cancelDialog()"
         >
-          <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
             <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
               <div class="modal-header">
                 <h5 id="editTableDialogTitle" class="modal-title">
@@ -133,7 +132,11 @@ export class EditTableModel extends FormFieldModel<EditTableModelValueType> {
                 <button type="button" class="btn-close" (click)="cancelDialog()" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                <ng-container #dialogContainer />
+                <!-- container-fluid pads the body so child wrappers using the form's
+                     default 'row' classes don't overflow the modal with negative margins. -->
+                <div class="container-fluid">
+                  <ng-container #dialogContainer />
+                </div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary rb-edit-table__dialog-cancel" (click)="cancelDialog()">
