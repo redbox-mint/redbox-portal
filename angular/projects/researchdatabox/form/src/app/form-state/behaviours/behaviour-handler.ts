@@ -111,11 +111,17 @@ export class BehaviourHandler {
    */
   private async execute(event: FormComponentEvent): Promise<void> {
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
-    // Once a runOnFormReady behaviour has completed its initial load pipeline,
-    // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
-    // Without this, a broadcast event (sourceId="*") emitted by the action
-    // passes the JSONata guard and restarts the pipeline indefinitely.
-    if (this.hasExecutedFormReady) {
+    // A behaviour configured to run *only* on form ready (runOnFormReady === true)
+    // must not re-run for any later event. Once its initial load pipeline completes,
+    // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries — so a
+    // broadcast event (sourceId="*") emitted by the action cannot restart the pipeline.
+    //
+    // This guard is deliberately scoped to runOnFormReady === true. Event-driven
+    // behaviours (runOnFormReady unset/false) may legitimately match the form-ready
+    // event via a JSONata or "*" condition; blocking them here would permanently
+    // silence every subsequent trigger for the rest of the form session.
+    const runsOnlyOnFormReady = this.behaviour.runOnFormReady === true;
+    if (runsOnlyOnFormReady && this.hasExecutedFormReady) {
       return;
     }
 
