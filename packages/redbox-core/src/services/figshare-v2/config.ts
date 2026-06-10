@@ -19,7 +19,23 @@ export interface ResolvedFigsharePublishingConfigData extends FigsharePublishing
 export function getBrandName(record?: RecordModel): string {
   if (record == null) return 'default';
   const rm = record as RecordModel;
-  return rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding as string ?? 'default';
+  const rawBrand = String(rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding ?? '').trim();
+  if (rawBrand === '') return 'default';
+
+  // `metaMetadata.brandId` holds the brand id, but AppConfigService keys its per-brand
+  // config map by brand NAME - resolve id -> name (mirrors doi-v2/config). Without this,
+  // id lookups silently fall through to the global brandingConfigurationDefaults and
+  // per-brand admin-UI overrides are ignored.
+  const brandingService = typeof BrandingService === 'undefined' ? undefined : BrandingService;
+  if (brandingService == null) return rawBrand;
+  const brandById = typeof brandingService.getBrandById === 'function' ? brandingService.getBrandById(rawBrand) : undefined;
+  if (brandById?.name != null && String(brandById.name).trim() !== '') {
+    return String(brandById.name);
+  }
+  // Some callers (queue jobs, the workflow transition job) already pass a brand name.
+  const brandByName = typeof brandingService.getBrand === 'function' ? brandingService.getBrand(rawBrand) : undefined;
+  if (brandByName != null) return rawBrand;
+  throw new Error(`Cannot resolve Figshare publishing config: unknown brand id or name '${rawBrand}'`);
 }
 
 function resolveFigshareDevConfig(): FigshareDevConfig {
