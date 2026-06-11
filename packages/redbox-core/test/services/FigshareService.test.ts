@@ -349,6 +349,48 @@ describe('FigshareService', function () {
     expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
   });
 
+  it('finds HTTP response details behind wrapped error causes', function () {
+    const httpError = Object.assign(new Error('Figshare HTTP request failed'), {
+      statusCode: 422,
+      responseBody: { message: 'Invalid field: group_id' }
+    });
+    const wrapped = new Error('outer wrapper', { cause: new Error('middle wrapper', { cause: httpError }) });
+
+    const summary = (service as any).summarizeError(wrapped);
+
+    expect(summary.statusCode).to.equal(422);
+    expect(summary.responseSummary).to.deep.equal({ message: 'Invalid field: group_id' });
+  });
+
+  it('includes HTTP response details on RBValidationError summaries via cause', function () {
+    const httpError = Object.assign(new Error('Figshare HTTP request failed'), {
+      statusCode: 403,
+      responseBody: { message: 'Forbidden' }
+    });
+    let thrown: unknown;
+    try {
+      (service as any).wrapHttpError(httpError, 'Error syncing record with Figshare');
+    } catch (error) {
+      thrown = error;
+    }
+
+    const summary = (service as any).summarizeError(thrown);
+
+    expect(summary.statusCode).to.equal(403);
+    expect(summary.responseSummary.responseBody).to.deep.equal({ message: 'Forbidden' });
+    expect(summary.responseSummary.displayErrors).to.be.an('array');
+  });
+
+  it('handles circular error causes without hanging', function () {
+    const error = new Error('self-referencing') as Error & { cause?: unknown };
+    error.cause = error;
+
+    const summary = (service as any).summarizeError(error);
+
+    expect(summary.statusCode).to.equal(undefined);
+    expect(summary.responseSummary.message).to.equal('self-referencing');
+  });
+
   it('does not throw from getConfig when the record brand cannot be resolved', function () {
     (global as any).BrandingService.getBrand = sinon.stub().returns(undefined);
     (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);

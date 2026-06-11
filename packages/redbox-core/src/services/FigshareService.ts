@@ -69,17 +69,40 @@ export namespace Services {
       return this._msgPrefix;
     }
 
+    // The FigshareHttpError carrying statusCode/responseBody may sit behind wrappers
+    // (RBValidationError from wrapHttpError, or any rethrow that sets `cause`), so walk
+    // the cause chain until HTTP details are found. The returned responseBody is raw;
+    // IntegrationAuditService sanitises it (redactObject) before persisting.
+    private findHttpErrorDetails(error: unknown): { statusCode?: number; responseBody?: unknown } {
+      const visited = new Set<unknown>();
+      let current: unknown = error;
+      while (current != null && typeof current === 'object' && !visited.has(current)) {
+        visited.add(current);
+        const candidate = current as { statusCode?: unknown; responseBody?: unknown; cause?: unknown };
+        if (typeof candidate.statusCode === 'number' || candidate.responseBody != null) {
+          return {
+            statusCode: typeof candidate.statusCode === 'number' ? candidate.statusCode : undefined,
+            responseBody: candidate.responseBody
+          };
+        }
+        current = candidate.cause;
+      }
+      return {};
+    }
+
     private summarizeError(error: unknown): { statusCode?: number; responseSummary?: Record<string, unknown> } {
+      const { statusCode, responseBody } = this.findHttpErrorDetails(error);
       if (error instanceof RBValidationError) {
         return {
+          statusCode,
           responseSummary: {
-            displayErrors: error.displayErrors
+            displayErrors: error.displayErrors,
+            ...(responseBody != null && typeof responseBody === 'object'
+              ? { responseBody: responseBody as Record<string, unknown> }
+              : responseBody != null ? { rawResponseBody: String(responseBody) } : {})
           }
         };
       }
-      const httpError = error as { statusCode?: number; responseBody?: unknown };
-      const statusCode = typeof httpError?.statusCode === 'number' ? httpError.statusCode : undefined;
-      const responseBody = httpError?.responseBody;
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         statusCode,

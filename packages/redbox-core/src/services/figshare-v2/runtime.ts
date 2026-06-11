@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Cause, Context, Effect, Exit, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { ResolvedFigsharePublishingConfigData, getBrandName } from './config';
@@ -52,6 +52,17 @@ export async function ensureNoFileUploadInProgress(client: FigshareClient, artic
   }
 }
 
+// Effect.runPromise rejects with a FiberFailure wrapper that hides the original error's
+// own properties - FigshareService.summarizeError needs FigshareHttpError's
+// statusCode/responseBody to land in the integration audit, so rethrow the squashed cause.
+async function runFigshareProgram<A, E>(program: Effect.Effect<A, E>): Promise<A> {
+  const exit = await Effect.runPromiseExit(program);
+  if (Exit.isSuccess(exit)) {
+    return exit.value;
+  }
+  throw Cause.squash(exit.cause);
+}
+
 export function makeRuntimeLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {
   return Layer.mergeAll(
     Layer.succeed(FigshareConfigTag, config),
@@ -73,7 +84,7 @@ export async function runBuildMetadataPayload(config: ResolvedFigsharePublishing
     return yield* Effect.promise(() => buildMetadataPayload(config, record, client));
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
 
-  return Effect.runPromise(program);
+  return runFigshareProgram(program);
 }
 
 export async function runSyncMetadataProgram(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
@@ -89,5 +100,5 @@ export async function runSyncMetadataProgram(config: ResolvedFigsharePublishingC
     return yield* Effect.promise(() => syncMetadataPhase(client, config, record, plan));
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
 
-  return Effect.runPromise(program);
+  return runFigshareProgram(program);
 }
