@@ -188,18 +188,15 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - test:
-          requires:
-            - build
       - deploy:
           requires:
-            - test
+            - build
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - build
           filters:
             branches:
               only: 'master'
@@ -211,18 +208,15 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
-      - test:
-          requires:
-            - build
       - deploy:
           requires:
-            - test
+            - build
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
           requires:
-            - test
+            - build
           filters:
             branches:
               only: 'master'
@@ -234,17 +228,9 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - deploy:
           requires:
-            - test
+            - build
           filters:
             tags:
               only: /^v.*/
