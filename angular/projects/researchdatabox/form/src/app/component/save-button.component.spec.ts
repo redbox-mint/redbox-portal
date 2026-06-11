@@ -68,7 +68,7 @@ describe('SaveButtonComponent', () => {
     translationService.translationMap['@save-button-default'] = 'Save';
     translationService.translationMap['@save-button-saving'] = 'Saving';
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const store = TestBed.inject(Store);
     // Dispatch validation pending action instead of direct mutation
     store.dispatch(FormActions.formValidationPending());
@@ -86,7 +86,7 @@ describe('SaveButtonComponent', () => {
     translationService.translationMap['@save-button-default'] = 'Save';
     translationService.translationMap['@save-button-saving'] = 'Saving';
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
 
     // TODO: how to get a protected / private property?
     const saveButtonComponent = fixture.componentInstance.componentDefArr[1].component as any;
@@ -219,11 +219,13 @@ describe('SaveButtonComponent', () => {
     const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
     delete saveButtonConfig['forceSave'];
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
     const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
     try {
+      store.dispatch(FormActions.formValidationSuccess());
       TestBed.flushEffects();
       fixture.detectChanges();
       await fixture.whenStable();
