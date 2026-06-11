@@ -25,6 +25,7 @@ const simulateBrowserLoadingJsFile = async function (value, callback) {
         await callback(path);
     } catch (err) {
         console.error(err);
+        throw err;
     } finally {
         if (tempDir) {
             await fs.rm(tempDir, { recursive: true, force: true });
@@ -49,7 +50,7 @@ describe('The TemplateService', function () {
 
                 // client
                 let clientString = TemplateService.buildClientHandlebars(args.template);
-                clientString = `export const testingData = Handlebars.template(${clientString});`
+                clientString = `const Handlebars = require(${JSON.stringify(require.resolve('handlebars'))}); exports.testingData = Handlebars.template(${clientString});`
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
                     const clientResult = clientReady.testingData(args.context);
@@ -133,7 +134,7 @@ describe('The TemplateService', function () {
                         const context = args.contexts[i];
                         const expectedValue = expected[i];
                         const extra = Object.assign({}, { jsonata: jsonata, libraries: { Handlebars: Handlebars } }, context.extra ?? {});
-                        const result = clientReady.evaluate(context.key, context.context, extra);
+                        const result = await clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expectedValue);
                     }
                 });
@@ -158,7 +159,7 @@ describe('The TemplateService', function () {
                 delete globalThis.__jsonataInjected;
                 const clientReady = require(path);
                 const extra = { jsonata: jsonata, libraries: { Handlebars: Handlebars } };
-                const result = clientReady.evaluate(['unsafe-jsonata'], {}, extra);
+                const result = await clientReady.evaluate(['unsafe-jsonata'], {}, extra);
 
                 expect(result).to.eql('"); globalThis.__jsonataInjected = true; ("');
                 expect(globalThis.__jsonataInjected).to.be.undefined;
