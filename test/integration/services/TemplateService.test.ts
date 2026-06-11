@@ -1,4 +1,4 @@
-import {jsonataDecodeCompile} from "@researchdatabox/sails-ng-common";
+import {jsonataDecodeCompile} from "../../../packages/sails-ng-common/src/jsonata-helpers";
 
 const fs = require('node:fs/promises');
 const os = require('node:os');
