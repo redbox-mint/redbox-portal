@@ -191,9 +191,15 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
   }
 
   private resolveCurrentValue(): ValueBindingValue {
-    const modelValue = typeof this.key === 'string' ? (this.model?.[this.key] as ValueBindingValue | undefined) : undefined;
+    // The schema models each binding as a JSON Schema object, so formly builds an
+    // object field: this.formControl is a FormGroup whose value is the binding
+    // itself, and this.model is the binding object (NOT the parent). The FormGroup
+    // value is the source of truth; fall back to the model object directly.
     const controlValue = this.formControl?.value as ValueBindingValue | undefined;
-    return modelValue ?? controlValue ?? {};
+    if (controlValue && typeof controlValue === 'object') {
+      return controlValue;
+    }
+    return (this.model as ValueBindingValue | undefined) ?? {};
   }
 
   private normaliseValue(value: ValueBindingValue): ValueBindingValue {
@@ -210,16 +216,68 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     return nextValue;
   }
 
-  private syncValue(value: ValueBindingValue, markChanged = false): void {
-    if (typeof this.key === 'string' && this.model) {
-      (this.model as Record<string, ValueBindingValue>)[this.key] = value;
+  /**
+   * Reduce the editor's working value to the keys that belong in the persisted
+   * binding, dropping empty source fields and the source fields that do not apply
+   * to the active kind. This mirrors what formly's parsers would do for rendered
+   * controls and keeps the saved config free of empty/stale entries.
+   */
+  private toModelValue(value: ValueBindingValue): Record<string, unknown> {
+    const kind: BindingKind = value.kind || 'path';
+    const next: Record<string, unknown> = { kind };
+
+    const hasText = (val: unknown): boolean => val != null && String(val).trim() !== '';
+
+    if (kind === 'path' && hasText(value.path)) {
+      next['path'] = value.path;
+    } else if (kind === 'handlebars' && hasText(value.template)) {
+      next['template'] = value.template;
+    } else if (kind === 'jsonata' && hasText(value.expression)) {
+      next['expression'] = value.expression;
     }
 
+    if (hasText(value.defaultValue)) {
+      next['defaultValue'] = value.defaultValue;
+    }
+
+    return next;
+  }
+
+  private syncValue(value: ValueBindingValue, markChanged = false): void {
+    // this.model IS the binding object (the schema models each binding as a JSON
+    // Schema object, so formly builds an object field whose model is the object
+    // itself, not the parent). The binding's child controls (kind/path/...) are
+    // never rendered as formly-fields, so formly never wires them back into the
+    // model; we must mutate the model object in place. Writing the whole value to
+    // this.model[this.key] (the previous behaviour) self-nested it, e.g. created
+    // description.description. Reusing the same object reference keeps formly's
+    // model binding intact.
+    const next = this.toModelValue(value);
+
+    const model = this.model as Record<string, unknown> | undefined;
+    if (model && typeof model === 'object') {
+      Object.keys(model).forEach(key => delete model[key]);
+      Object.assign(model, next);
+    }
+
+    // Keep the FormGroup in sync for completeness; child controls cover all five
+    // source fields, so a full patch clears any that no longer apply.
     if (this.formControl) {
-      if (typeof (this.formControl as { patchValue?: (val: ValueBindingValue) => void }).patchValue === 'function') {
-        (this.formControl as { patchValue: (val: ValueBindingValue) => void }).patchValue(value);
-      } else if (typeof (this.formControl as { setValue?: (val: ValueBindingValue) => void }).setValue === 'function') {
-        (this.formControl as { setValue: (val: ValueBindingValue) => void }).setValue(value);
+      const patch: Record<string, unknown> = {
+        kind: next['kind'] ?? 'path',
+        path: next['path'] ?? '',
+        template: next['template'] ?? '',
+        expression: next['expression'] ?? '',
+        defaultValue: next['defaultValue'] ?? ''
+      };
+      const control = this.formControl as {
+        patchValue?: (val: unknown) => void;
+        setValue?: (val: unknown) => void;
+      };
+      if (typeof control.patchValue === 'function') {
+        control.patchValue(patch);
+      } else if (typeof control.setValue === 'function') {
+        control.setValue(patch);
       }
       if (markChanged) {
         this.formControl.markAsDirty();
