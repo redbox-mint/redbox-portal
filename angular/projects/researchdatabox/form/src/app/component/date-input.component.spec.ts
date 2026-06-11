@@ -162,6 +162,37 @@ describe('DateInputComponent', () => {
     expect((inputElement as HTMLInputElement).value).toEqual('2025/08/10');
   });
 
+  it('should render a date-only ISO string without timezone shifting', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_iso_date_only_string',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: '2017-02-03' as unknown as Date,
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const inputElement = compiled.querySelector('input[type="text"]');
+    expect((inputElement as HTMLInputElement).value).toEqual('2017/02/03');
+  });
+
   it('should render the default placeholder for empty values', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_empty',
@@ -482,5 +513,49 @@ describe('DateInputComponent', () => {
     await fixture.whenStable();
 
     expect(emittedValues.some(value => value instanceof Date && value.getUTCFullYear() === 2026)).toBeTrue();
+  });
+
+  it('should ignore blur caused by a datepicker click and accept the selected date', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_deferred_blur',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: new Date('2026-06-09T00:00:00Z'),
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const inputElement = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+
+    spyOnProperty(dateInputComp.datepicker, 'isOpen').and.returnValue(true);
+    dateInputComp.onDocumentMouseDown({
+      target: {
+        closest: (selector: string) => selector === 'bs-datepicker-container, .bs-datepicker' ? {} : null,
+      },
+    } as unknown as MouseEvent);
+    inputElement.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    dateInputComp.onDatepickerValueChange(new Date(Date.UTC(2026, 5, 10)));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
   });
 });

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, ViewChild } from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -17,7 +17,7 @@ import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
 
-function normalizeDateInputValue(value: unknown): DateInputModelValueType | undefined {
+function normalizeDateInputValue(value: unknown, parseDateOnlyIso: boolean = false): DateInputModelValueType | undefined {
   if (_isUndefined(value) || _isNull(value)) {
     return value as DateInputModelValueType;
   }
@@ -32,7 +32,12 @@ function normalizeDateInputValue(value: unknown): DateInputModelValueType | unde
       return null;
     }
 
-    const isoDate = DateTime.fromISO(trimmedValue);
+    const isDateOnlyIso = /^\d{4}-\d{2}-\d{2}$/.test(trimmedValue);
+    if (isDateOnlyIso && !parseDateOnlyIso) {
+      return undefined;
+    }
+
+    const isoDate = DateTime.fromISO(trimmedValue, { zone: 'utc' });
     if (isoDate.isValid) {
       return isoDate.toJSDate();
     }
@@ -47,8 +52,8 @@ function normalizeDateInputValue(value: unknown): DateInputModelValueType | unde
 }
 
 function areDateInputValuesEqual(left: unknown, right: unknown): boolean {
-  const normalizedLeft = normalizeDateInputValue(left);
-  const normalizedRight = normalizeDateInputValue(right);
+  const normalizedLeft = normalizeDateInputValue(left, true);
+  const normalizedRight = normalizeDateInputValue(right, true);
 
   if (normalizedLeft === undefined || normalizedRight === undefined) {
     return left === right;
@@ -191,7 +196,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public dateFormat: string = '';
 
   protected override postCreateGetInitValue(): DateInputModelValueType | undefined {
-    return normalizeDateInputValue(this.fieldConfig.config?.value) ?? null;
+    return normalizeDateInputValue(this.fieldConfig.config?.value, true) ?? null;
   }
 
   public override setValue(value: DateInputModelValueType, opts?: ModifyOptions): void {
@@ -241,6 +246,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           [title]="tooltip | i18next"
           [placeholder]="placeholder | i18next"
           (blur)="onInputBlur($event)"
+          (bsValueChange)="onDatepickerValueChange($event)"
         />
         <div class="input-group-append">
           <span class="input-group-text date-input-addon" (click)="toggleDatepicker()">
@@ -278,6 +284,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private bsFullConfig: any = {};
   public enableTimePickerDefault: boolean = false;
   private lastValidValue: Date | null = null;
+  private ignoreNextBlur: boolean = false;
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
   @ViewChild('dateInputEl') dateInputEl!: ElementRef<HTMLInputElement>;
@@ -318,7 +325,30 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
   }
 
+  onDatepickerValueChange(dateValue: DateInputModelValueType): void {
+    if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
+      if (!this.robustParsing) {
+        const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
+        const visibleValue = this.dateInputEl?.nativeElement?.value;
+        const formattedValue = DateTime.fromJSDate(dateValue, { zone: 'utc' }).toFormat(luxonFmt);
+        if (visibleValue && visibleValue !== formattedValue) {
+          return;
+        }
+      }
+
+      this.lastValidValue = dateValue;
+      if (!areDateInputValuesEqual(this.formControl?.value, dateValue)) {
+        this.formControl?.setValue(dateValue, { emitEvent: true });
+      }
+      this.onDateChange(dateValue);
+    }
+  }
+
   private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
+    if (!this.robustParsing && typeof dateValue === 'string') {
+      return;
+    }
+
     if (isInvalidDateValue(dateValue)) {
       const recovery = this.lastValidValue instanceof Date ? this.lastValidValue : null;
       this.rewriteInputValue(recovery);
@@ -356,6 +386,11 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onInputBlur(event: FocusEvent): void {
+    if (this.ignoreNextBlur) {
+      this.ignoreNextBlur = false;
+      return;
+    }
+
     const inputEl = event.target as HTMLInputElement;
     const rawText = inputEl?.value || '';
     if (!rawText || rawText.trim() === '') {
@@ -366,13 +401,12 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
     if (!this.robustParsing) {
       const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
-      const matchesConfiguredFormat = DateTime.fromFormat(rawText, luxonFmt, { zone: 'utc' }).isValid;
+      const configuredDate = DateTime.fromFormat(rawText, luxonFmt, { zone: 'utc' });
+      const matchesConfiguredFormat = configuredDate.isValid && configuredDate.toFormat(luxonFmt) === rawText;
 
       if (!matchesConfiguredFormat) {
-        Promise.resolve().then(() => {
-          this.formControl?.setValue(rawText as unknown as DateInputModelValueType, { emitEvent: true });
-          inputEl.value = rawText;
-        });
+        this.formControl?.setValue(rawText as unknown as DateInputModelValueType, { emitEvent: false });
+        inputEl.value = rawText;
       }
       return;
     }
@@ -388,6 +422,18 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     } else {
       this.rewriteInputValue(this.lastValidValue);
       this.formControl?.setValue(this.lastValidValue, { emitEvent: true });
+    }
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(event: MouseEvent): void {
+    if (!this.datepicker?.isOpen) {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('bs-datepicker-container, .bs-datepicker')) {
+      this.ignoreNextBlur = true;
     }
   }
 
