@@ -14,6 +14,7 @@ import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-edit
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
 import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
+import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
 
 let configService: any;
 let userService: any;
@@ -55,6 +56,7 @@ describe('AppConfigComponent', () => {
         AppConfigComponent,
         ArrayTypeComponent,
         ObjectTypeComponent,
+        CheckboxTypeComponent,
         MenuEditorTypeComponent,
         AdminSidebarEditorTypeComponent,
         HomePanelsEditorTypeComponent,
@@ -69,6 +71,7 @@ describe('AppConfigComponent', () => {
             { name: 'array', component: ArrayTypeComponent },
             { name: 'object', component: ObjectTypeComponent },
             { name: 'textarea', component: FormlyFieldTextArea },
+            { name: 'app-config-checkbox', component: CheckboxTypeComponent },
             { name: 'menu-editor', component: MenuEditorTypeComponent },
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
             { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
@@ -161,6 +164,28 @@ describe('AppConfigComponent', () => {
     expect(button).toBeTruthy();
     expect(button.textContent).toBe('Submit')
     
+  });
+
+  it('renders boolean fields with the checkbox next to the label', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const enabledField = findFieldByKey(app.fields, 'enabled');
+    expect(enabledField?.type).toBe('app-config-checkbox');
+    expect(enabledField?.wrappers).toEqual([]);
+
+    const compiled = fixture.debugElement.nativeElement;
+    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+    const checkbox = checkboxLabel?.querySelector('input[type="checkbox"]');
+
+    expect(checkboxLabel).toBeTruthy();
+    expect(checkbox).toBeTruthy();
+    expect(checkboxLabel.textContent).toContain('Enabled');
   });
 
   it('applies menu editor type and hides showSearch for menu config', async () => {
@@ -668,7 +693,8 @@ export function getStubAppConfigService(recordData: any = {}) {
           "type": "object",
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "title": "Enabled"
             },
             "title": {
               "type": "string"

@@ -89,12 +89,29 @@ export class AppConfigComponent extends BaseComponent {
     }
 
     this.fields = [generatedField];
+    this.applyCheckboxType(this.fields);
     
     // Apply custom widget types for specific config models
     this.applyCustomWidgetTypes(this.fields);
     
     this.model = result.model;
     this.loggerService.debug(`AppConfig initialised.`);
+  }
+
+  private applyCheckboxType(fields: FormlyFieldConfig[]): void {
+    for (const field of fields) {
+      if (field.type === 'checkbox' || field.type === 'boolean') {
+        field.type = 'app-config-checkbox';
+        field.wrappers = [];
+      }
+      if (field.fieldGroup) {
+        this.applyCheckboxType(field.fieldGroup);
+      }
+      const fieldArrayGroup = (field.fieldArray as FormlyFieldConfig | undefined)?.fieldGroup;
+      if (fieldArrayGroup) {
+        this.applyCheckboxType(fieldArrayGroup);
+      }
+    }
   }
 
   /**
