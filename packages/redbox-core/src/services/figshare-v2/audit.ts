@@ -2,16 +2,6 @@ import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { FigshareRunContext } from './types';
 
-declare const IntegrationAuditService: {
-  startAudit: (
-    oid: string,
-    action: IntegrationAuditAction,
-    opts?: Record<string, unknown> & { integrationName?: IntegrationAuditName }
-  ) => IntegrationAuditContext;
-  completeAudit: (ctx: IntegrationAuditContext | null | undefined, result?: Record<string, unknown>) => void;
-  failAudit: (ctx: IntegrationAuditContext | null | undefined, error: unknown, details?: Record<string, unknown>) => void;
-};
-
 export function startFigshareAudit(
   oid: string,
   action: IntegrationAuditAction,
