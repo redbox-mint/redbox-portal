@@ -104,6 +104,9 @@ const HUMAN_LABELS: Record<string, string> = {
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
       font-size: 0.8rem;
     }
+    .binding-summary {
+      max-width: 400px;
+    }
     .binding-badge { font-size: 0.7rem; font-weight: 500; }
   `],
   standalone: false
