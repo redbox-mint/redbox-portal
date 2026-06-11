@@ -264,17 +264,24 @@ describe("MapComponent", () => {
 
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const disabledModeButtons = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
 
     expect(fakeDraw.start).not.toHaveBeenCalled();
+    expect(disabledModeButtons.some((button) => !button.disabled)).toBeFalse();
 
     mapComponent.setDisabled(false);
     fixture.detectChanges();
     await fixture.whenStable();
+    fixture.detectChanges();
+    const enabledModeButtons = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
 
     expect(fakeDraw.start).toHaveBeenCalled();
+    expect(enabledModeButtons.length).toBeGreaterThan(0);
+    expect(enabledModeButtons.every((button) => !button.disabled)).toBeTrue();
 
-    const polygonButton = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn"))
-      .find((button) => (button as HTMLButtonElement).textContent?.trim() === "Polygon") as HTMLButtonElement;
+    const polygonButton = enabledModeButtons.find((button) => button.textContent?.trim() === "Polygon") as HTMLButtonElement;
     polygonButton.click();
     fixture.detectChanges();
 
