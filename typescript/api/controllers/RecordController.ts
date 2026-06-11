@@ -674,7 +674,7 @@ export module Controllers {
                     replacement = req.param(customConfig.field);
                     break;
                   case 'user':
-                    replacement = req.user[customConfig.field];
+                    replacement = _.get(req.user, customConfig.field);
                     break;
                   case 'header':
                     replacement = req.get(customConfig.field);
