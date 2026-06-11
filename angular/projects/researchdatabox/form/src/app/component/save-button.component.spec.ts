@@ -194,6 +194,10 @@ describe('SaveButtonComponent', () => {
   });
 
   it('clicking save button should not publish when the form is unchanged', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    delete saveButtonConfig['targetStep'];
+    delete saveButtonConfig['forceSave'];
+
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
@@ -206,6 +210,35 @@ describe('SaveButtonComponent', () => {
       await fixture.whenStable();
       // Assert that no event was published
       expect(events.length).toBe(0);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('clicking target step save button should publish when the form is unchanged', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    delete saveButtonConfig['forceSave'];
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
+    try {
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const saveButton = fixture.nativeElement.querySelector('button');
+      expect(saveButton.disabled).toBeFalse();
+
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(events.length).toBe(1);
+      expect(events[0].force).toBe(true);
+      expect(events[0].targetStep).toBe('next_step');
+      expect(events[0].enabledValidationGroups).toEqual(["none"]);
     } finally {
       sub.unsubscribe();
     }
