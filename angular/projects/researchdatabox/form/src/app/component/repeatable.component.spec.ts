@@ -881,6 +881,58 @@ describe('RepeatableComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
   }));
 
+  it('should emit exactly one value change event when moving an element', fakeAsync(() => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_move_emit',
+      componentDefinitions: [
+        {
+          name: 'repeatable_move',
+          model: {
+            class: 'RepeatableModel',
+            config: { value: ['one', 'two', 'three'] }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              canSort: true,
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {}
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    let fixture: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+    });
+    flushMicrotasks();
+    tick();
+
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const formArray = repeatable.model?.getFormControl() as any;
+    let emitCount = 0;
+    const sub = formArray.valueChanges.subscribe(() => emitCount++);
+
+    repeatable.moveElementFn((repeatable as any).compDefMapEntries[0], 1)();
+    tick();
+    flushMicrotasks();
+
+    expect(emitCount).toBe(1);
+    expect(formArray.value).toEqual(['two', 'one', 'three']);
+
+    sub.unsubscribe();
+  }));
+
   it('should disable add and remove buttons and model when the repeatable is disabled', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_disabled_buttons_also_disabled',

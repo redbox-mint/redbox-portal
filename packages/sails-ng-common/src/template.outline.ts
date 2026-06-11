@@ -45,7 +45,7 @@ export function buildKeyString(key: TemplateCompileKey): TemplateCompileKeyForma
 
 export type DynamicScriptResponseEvaluateKey = TemplateCompileKey;
 export type DynamicScriptResponseEvaluateContext = unknown;
-export type DynamicScriptResponseEvaluateExtra = { libraries?: Record<string, unknown>, [key: string]: unknown };
+export type DynamicScriptResponseEvaluateExtra = { jsonata?: unknown, libraries?: Record<string, unknown>, [key: string]: unknown };
 export type DynamicScriptResponseEvaluateResult = unknown;
 
 export type DynamicScriptResponseEvaluate = (

@@ -1,13 +1,17 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   createFormValidationGroupsChangeRequestEvent,
-  FormComponentEvent, FormComponentEventType, FormComponentEventTypeValue
+  FormComponentEvent,
+  FormComponentEventType,
+  FormComponentEventTypeValue,
 } from './form-component-event.types';
-import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions, FormComponentEventQuerySource } from './form-component-base-event-producer-consumer';
+import {
+  FormComponentEventBaseProducerConsumer,
+  FormComponentEventBindingOptions,
+  FormComponentEventQuerySource,
+} from './form-component-base-event-producer-consumer';
 import {
   FormExpressionsConfigFrame,
-  getObjectWithJsonPointer,
-  getLastSegmentFromJSONPointer,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
   FormExpressionsTargetModelValue,
@@ -23,31 +27,32 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { AbstractControl } from '@angular/forms';
-import {isTypeFormValidationGroupsChangeRequestInfo, setControlValue} from "../custom-set-value.control";
-import { syncComponentDisplayFromModel } from "../custom-display-sync.control";
-import { FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
+import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
+import { FormFieldModel } from '@researchdatabox/portal-ng-common';
+import jsonata from 'jsonata';
 /**
  * Options main bag for matching events against conditions
  */
 export interface FormComponentEventMatchOptions {
-	condition: string;
-	conditionKind: ExpressionsConditionKindType;
-	event: FormComponentEvent;
-	expression: FormExpressionsConfigFrame;
+  condition: string;
+  conditionKind: ExpressionsConditionKindType;
+  event: FormComponentEvent;
+  expression: FormExpressionsConfigFrame;
 }
 
 export interface FormComponentEventJSONPointerMatchOptions extends FormComponentEventMatchOptions {
-	conditionKind: typeof ExpressionsConditionKind.JSONPointer;
-	querySource: FormComponentEventQuerySource;
+  conditionKind: typeof ExpressionsConditionKind.JSONPointer;
+  querySource: FormComponentEventQuerySource;
 }
 
 export interface FormComponentEventJSONataMatchOptions extends FormComponentEventMatchOptions {
-	conditionKind: typeof ExpressionsConditionKind.JSONata;
+  conditionKind: typeof ExpressionsConditionKind.JSONata;
 }
 
 export interface FormComponentEventJSONataQueryMatchOptions extends FormComponentEventMatchOptions {
-	conditionKind: typeof ExpressionsConditionKind.JSONataQuery;
-	querySource: FormComponentEventQuerySource;
+  conditionKind: typeof ExpressionsConditionKind.JSONataQuery;
+  querySource: FormComponentEventQuerySource;
 }
 
 /**
@@ -58,119 +63,124 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
  * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
+  /** Cache for the compiled items module */
+  protected compiledItemsCache?: DynamicScriptResponse;
 
-	/** Cache for the compiled items module */
-	protected compiledItemsCache?: DynamicScriptResponse;
+  /** The event type this consumer listens to - must be set by subclasses */
+  protected abstract readonly consumedEventType: FormComponentEventTypeValue;
 
-	/** The event type this consumer listens to - must be set by subclasses */
-	protected abstract readonly consumedEventType: FormComponentEventTypeValue;
+  constructor(eventBus: FormComponentEventBus) {
+    super(eventBus);
+  }
 
-	constructor(eventBus: FormComponentEventBus) {
-		super(eventBus);
-	}
+  /**
+   * Connect the consumer to a component instance. Replaces any existing subscription.
+   */
+  bind(options: FormComponentEventBindingOptions): void {
+    this.destroy();
+    try {
+      this.setupEventConsumption(options, this.consumedEventType);
+    } catch (error) {
+      this.loggerService.error(
+        `${this.constructor.name}: Error during setupEventConsumption for event type '${this.consumedEventType}'.`,
+        { error, consumedEventType: this.consumedEventType, options }
+      );
+      return;
+    }
+  }
 
-	/**
-	 * Connect the consumer to a component instance. Replaces any existing subscription.
-	 */
-	bind(options: FormComponentEventBindingOptions): void {
-		this.destroy();
-		try {
-			this.setupEventConsumption(options, this.consumedEventType);
-		} catch (error) {
-			this.loggerService.error(
-				`${this.constructor.name}: Error during setupEventConsumption for event type '${this.consumedEventType}'.`,
-				{ error, consumedEventType: this.consumedEventType, options }
-			);
-			return;
-		}
-	}
+  /**
+   * Tear down active subscriptions.
+   */
+  override destroy(): void {
+    super.destroy();
+    this.model = undefined;
+    this.compiledItemsCache = undefined;
+  }
 
-	/**
-	 * Tear down active subscriptions.
-	 */
-	override destroy(): void {
-		super.destroy();
-		this.model = undefined;
-		this.compiledItemsCache = undefined;
-	}
+  /**
+   * Get the compiled items module, caching the result for subsequent calls.
+   */
+  protected async getCompiledItems(): Promise<DynamicScriptResponse | undefined> {
+    if (this.compiledItemsCache) {
+      return this.compiledItemsCache;
+    }
+    if (!this.formComp) {
+      this.loggerService.warn(`${this.constructor.name}: No form component available to get compiled items.`);
+      return undefined;
+    }
+    try {
+      this.compiledItemsCache = await this.formComp.getFormCompiledItems();
+      return this.compiledItemsCache;
+    } catch (error) {
+      this.loggerService.error(`${this.constructor.name}: Error getting compiled items.`, error);
+      return undefined;
+    }
+  }
 
-	/**
-	 * Get the compiled items module, caching the result for subsequent calls.
-	 */
-	protected async getCompiledItems(): Promise<DynamicScriptResponse | undefined> {
-		if (this.compiledItemsCache) {
-			return this.compiledItemsCache;
-		}
-		if (!this.formComp) {
-			this.loggerService.warn(`${this.constructor.name}: No form component available to get compiled items.`);
-			return undefined;
-		}
-		try {
-			this.compiledItemsCache = await this.formComp.getFormCompiledItems();
-			return this.compiledItemsCache;
-		} catch (error) {
-			this.loggerService.error(`${this.constructor.name}: Error getting compiled items.`, error);
-			return undefined;
-		}
-	}
+  /**
+   * Build the key for the compiled JSONata expression property.
+   * The key format matches what TemplateFormConfigVisitor produces:
+   * [...lineagePaths.formConfig, 'expressions', expressionIndex, 'config', <property name>]
+   */
+  protected buildExpressionPropertyKey(
+    expression: FormExpressionsConfigFrame,
+    propertyName: string
+  ): (string | number)[] | undefined {
+    if (!this.options?.definition?.lineagePaths?.formConfig) {
+      this.loggerService.warn(
+        `${this.constructor.name}: No lineage paths available for building expression's ${propertyName} key.`
+      );
+      return undefined;
+    }
+    const expressionIndex = this.expressions?.indexOf(expression);
+    if (expressionIndex === undefined || expressionIndex < 0) {
+      this.loggerService.warn(`${this.constructor.name}: Expression not found in expressions array.`, expression);
+      return undefined;
+    }
+    return [...this.options.definition.lineagePaths.formConfig, 'expressions', expressionIndex, 'config', propertyName];
+  }
 
-	/**
-	 * Build the key for the compiled JSONata expression property.
-	 * The key format matches what TemplateFormConfigVisitor produces:
-	 * [...lineagePaths.formConfig, 'expressions', expressionIndex, 'config', <property name>]
-	 */
-	protected buildExpressionPropertyKey(expression: FormExpressionsConfigFrame, propertyName: string): (string | number)[] | undefined {
-		if (!this.options?.definition?.lineagePaths?.formConfig) {
-			this.loggerService.warn(`${this.constructor.name}: No lineage paths available for building expression's ${propertyName} key.`);
-			return undefined;
-		}
-		const expressionIndex = this.expressions?.indexOf(expression);
-		if (expressionIndex === undefined || expressionIndex < 0) {
-			this.loggerService.warn(`${this.constructor.name}: Expression not found in expressions array.`, expression);
-			return undefined;
-		}
-		return [
-			...(this.options.definition.lineagePaths.formConfig),
-			'expressions',
-			expressionIndex,
-			'config',
-			propertyName
-		];
-	}
-
-	/**
-	 * Evaluate the JSONata expression template with the provided context.
-	*
-	* Design note: when compiled templates are unavailable, fall back to the raw
-	* event value. That preserves historical behaviour for partially constructed
-	* forms instead of failing closed and clearing dependent fields.
+  /**
+   * Evaluate the JSONata expression template with the provided context.
+   *
+   * Design note: when compiled templates are unavailable, fall back to the raw
+   * event value. That preserves historical behaviour for partially constructed
+   * forms instead of failing closed and clearing dependent fields.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
    * @param propertyName - The property name in the expression config to evaluate (e.g., 'template', 'condition').
    * @returns The result of the evaluated expression.
-	 */
-	protected async evaluateExpressionJSONata(expression: FormExpressionsConfigFrame, event: FormComponentEvent, propertyName: string, additionalData: object = {}): Promise<unknown> {
-			const compiledItems = await this.getCompiledItems();
-			if (!compiledItems) {
-				return (event as { value?: unknown }).value;
-		}
+   */
+  protected async evaluateExpressionJSONata(
+    expression: FormExpressionsConfigFrame,
+    event: FormComponentEvent,
+    propertyName: string,
+    additionalData: object = {}
+  ): Promise<unknown> {
+    const compiledItems = await this.getCompiledItems();
+    if (!compiledItems) {
+      return (event as { value?: unknown }).value;
+    }
 
-		const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
-		if (!templateKey) {
-			return (event as { value?: unknown }).value;
-		}
+    const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
+    if (!templateKey) {
+      return (event as { value?: unknown }).value;
+    }
 
-		try {
-      const dataFieldId = getLastSegmentFromJSONPointer(event.fieldId || '');
+    try {
+      const dataFieldId = event.fieldId || '';
+      const normalizedFieldId = dataFieldId && !dataFieldId.startsWith('/') ? '/' + dataFieldId : dataFieldId;
 
-	      // Expressions are allowed to reshape their inputs. Clone everything we
-	      // expose to JSONata so a mutating expression cannot leak writes back
-	      // into Angular form state or event objects.
-	      const valueOriginal = dataFieldId ? this.formComp?.form?.value[dataFieldId] : undefined;
-	      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
-	      const eventClone = this.cloneExpressionContextValue(event, 'event');
-	      const formData = this.cloneExpressionContextValue(this.formComp?.form?.value ?? {}, 'formData');
+      // Expressions are allowed to reshape their inputs. Clone everything we
+      // expose to JSONata so a mutating expression cannot leak writes back
+      // into Angular form state or event objects.
+      const rawFormValue = this.formComp?.form?.getRawValue?.() ?? this.formComp?.form?.value ?? {};
+      const valueOriginal = normalizedFieldId ? this.getValueForEventField(rawFormValue, normalizedFieldId) : undefined;
+      const value = this.cloneExpressionContextValue(valueOriginal, 'value');
+      const eventClone = this.cloneExpressionContextValue(event, 'event');
+      const formData = this.cloneExpressionContextValue(rawFormValue, 'formData');
       const requestParams = this.cloneExpressionContextValue(
         (additionalData as { requestParams?: unknown }).requestParams ?? this.formComp?.requestParams?.() ?? {},
         'requestParams'
@@ -182,117 +192,170 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
       // Build the context for JSONata evaluation
       // Include the event value and any additional data that may be useful
-			const context = {
-				...additionalData,
+      const context = {
+        ...additionalData,
         value: value,
-				event: eventClone,
-				// Include the current form data if available
-				formData: formData,
+        event: eventClone,
+        // Include the current form data if available
+        formData: formData,
         requestParams,
-				runtimeContext
-			};
+        runtimeContext,
+      };
 
-			return await compiledItems.evaluate(templateKey, context, {libraries :jsonataLibrary});
-		} catch (error) {
-				this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
-				return (event as { value?: unknown }).value;
-			}
-		}
+      return await compiledItems.evaluate(templateKey, context, { jsonata, libraries: jsonataLibrary });
+    } catch (error) {
+      this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
+      return (event as { value?: unknown }).value;
+    }
+  }
 
-		/**
-		 * Best-effort clone used to isolate JSONata evaluation from live Angular
-		 * state. If cloning fails, continue with the original reference because the
-		 * form should still behave, even if the expression loses mutation safety.
-		 */
-		protected cloneExpressionContextValue<T>(value: T, label: string): T {
-			if (value === undefined) {
-				return value;
-			}
-			try {
-				return structuredClone(value);
-			} catch (error) {
-				this.loggerService.warn(`${this.constructor.name}: Failed to clone ${label} for JSONata context. Falling back to the original value.`, error);
-				return value;
-			}
-		}
-		/**
-		 *
-		 * Checks if the event matches the JSON Pointer condition.
-	 *
-	 * @param opts
-	 * @returns
-	 */
-	protected hasMatchedJSONPointerCondition(opts: FormComponentEventJSONPointerMatchOptions): boolean {
-		const querySource = opts.querySource;
-		if (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady === false) {
-			return false;
-		}
-		const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
-		// Check if the pointer has a match in the query source, broadcasts will fail this check
-		const ref = querySource
-			? getObjectWithJsonPointer(querySource.jsonPointerSource, pointerCondition.jsonPointer)
-			: undefined;
-		const targetEvent = pointerCondition.event;
-		const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.event.type;
-		// Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
-		// 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId.
-		// Do not require the target component's local query source to also contain that
-		// pointer: cross-tree sync expressions intentionally listen to fields outside the
-		// target component's subtree (e.g. People tab -> Permissions tab).
-		const hasScopedMatch = pointerCondition.jsonPointer == opts.event.sourceId;
-		// 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
-		const eventFieldId = opts.event.fieldId || "";
-		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && opts.expression.config.runOnFormReady !== false);
-		// Precise JSON Pointer match: exact match OR path prefix followed by segment delimiter
-		const jsonPointer = pointerCondition.jsonPointer;
-		const hasPointerMatch = jsonPointer === ""
-			|| eventFieldId === jsonPointer
-			|| eventFieldId.startsWith(jsonPointer + "/");
-		let hasBroadcastMatch = ((opts.event.sourceId === '*' || isRunOnFormReady) && hasPointerMatch);
+  /**
+   * Best-effort clone used to isolate JSONata evaluation from live Angular
+   * state. If cloning fails, continue with the original reference because the
+   * form should still behave, even if the expression loses mutation safety.
+   */
+  protected cloneExpressionContextValue<T>(value: T, label: string): T {
+    if (value === undefined) {
+      return value;
+    }
+    try {
+      return structuredClone(value);
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructor.name}: Failed to clone ${label} for JSONata context. Falling back to the original value.`,
+        error
+      );
+      return value;
+    }
+  }
 
-		return (hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch));
-	}
+  /**
+   * Read an event field value without using the logging JSON pointer helper.
+   * Some form events carry config-tree paths while the Angular form value is
+   * flat, so a missing path is an expected condition rather than an error.
+   */
+  protected getValueForEventField(rawFormValue: unknown, normalizedFieldId: string): unknown {
+    const directValue = this.getValueByJsonPointer(rawFormValue, normalizedFieldId);
+    if (directValue !== undefined) {
+      return directValue;
+    }
+
+    const lastSegment = normalizedFieldId.split('/').filter(Boolean).pop();
+    if (
+      lastSegment &&
+      rawFormValue &&
+      typeof rawFormValue === 'object' &&
+      Object.prototype.hasOwnProperty.call(rawFormValue, lastSegment)
+    ) {
+      return (rawFormValue as Record<string, unknown>)[lastSegment];
+    }
+
+    return undefined;
+  }
+
+  protected getValueByJsonPointer(source: unknown, pointer: string): unknown {
+    if (pointer === '') {
+      return source;
+    }
+    if (!pointer.startsWith('/')) {
+      return undefined;
+    }
+
+    let current = source;
+    for (const rawSegment of pointer.split('/').slice(1)) {
+      const segment = rawSegment.replace(/~1/g, '/').replace(/~0/g, '~');
+      if (
+        current === null ||
+        current === undefined ||
+        (typeof current !== 'object' && !Array.isArray(current)) ||
+        !Object.prototype.hasOwnProperty.call(current, segment)
+      ) {
+        return undefined;
+      }
+      current = (current as Record<string, unknown>)[segment];
+    }
+    return current;
+  }
+  /**
+   *
+   * Checks if the event matches the JSON Pointer condition.
+   *
+   * @param opts
+   * @returns
+   */
+  protected hasMatchedJSONPointerCondition(opts: FormComponentEventJSONPointerMatchOptions): boolean {
+    if (
+      opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY &&
+      opts.expression.config.runOnFormReady === false
+    ) {
+      return false;
+    }
+    const pointerCondition = this.getEventJSONPointerCondition(opts.condition);
+    const targetEvent = pointerCondition.event;
+    const hasMatchedTargetEvent = targetEvent === '*' || targetEvent === opts.event.type;
+    // Scenarios where it will match if the `targetEvent` matches, that is '*' or the specific event type AND the `sourceId` matches:
+    // 1. Scoped - the `pointerCondition.jsonPointer` will match the event.sourceId.
+    // Do not require the target component's local query source to also contain that
+    // pointer: cross-tree sync expressions intentionally listen to fields outside the
+    // target component's subtree (e.g. People tab -> Permissions tab).
+    const hasScopedMatch = pointerCondition.jsonPointer == opts.event.sourceId;
+    // 2. Broadcast - the opts.event.sourceId is '*' indicating broadcast, and the condition's jsonPointer matches path of the `fieldId` of the event OR this is a form ready event and the expression is set to run on form ready
+    const eventFieldId = opts.event.fieldId || '';
+    const isRunOnFormReady =
+      opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY &&
+      opts.expression.config.runOnFormReady !== false;
+    // Precise JSON Pointer match: exact match OR path prefix followed by segment delimiter
+    const jsonPointer = pointerCondition.jsonPointer;
+    const hasPointerMatch =
+      jsonPointer === '' || eventFieldId === jsonPointer || eventFieldId.startsWith(jsonPointer + '/');
+    let hasBroadcastMatch = (opts.event.sourceId === '*' || isRunOnFormReady) && hasPointerMatch;
+
+    return hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch);
+  }
   /**
    * Sets up event consumption for the specified event type.
-	 *
-	 * Matching and consumption stay serial on purpose. Several expressions can
-	 * target the same control, and preserving declaration order avoids hidden
-	 * race conditions between async template evaluations.
+   *
+   * Matching and consumption stay serial on purpose. Several expressions can
+   * target the same control, and preserving declaration order avoids hidden
+   * race conditions between async template evaluations.
    *
    * @param options
    * @param eventType
    */
-	protected setupEventConsumption(options: FormComponentEventBindingOptions, eventType: FormComponentEventTypeValue) {
-		this.options = options;
+  protected setupEventConsumption(options: FormComponentEventBindingOptions, eventType: FormComponentEventTypeValue) {
+    this.options = options;
 
-		const expressions: FormExpressionsConfigFrame[] | undefined  = options.definition?.expressions;
-		if (expressions === undefined || _isEmpty(expressions)) {
-			const msg = `${this.constructor.name}: No expressions defined for component '${options.component?.formFieldConfigName()}'. Change events will not be consumed.`;
-			this.logDebug(msg, options.definition);
-			return;
-		}
-		this.expressions = expressions;
+    const expressions: FormExpressionsConfigFrame[] | undefined = options.definition?.expressions;
+    if (expressions === undefined || _isEmpty(expressions)) {
+      const msg = `${this.constructor.name}: No expressions defined for component '${options.component?.formFieldConfigName()}'. Change events will not be consumed.`;
+      this.logDebug(msg, options.definition);
+      return;
+    }
+    this.expressions = expressions;
 
-		// Model is optional for some components
-		const model:  FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
-		if (!model || !model?.formControl) {
-			this.logDebug(`${this.constructor.name}: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`, options.definition);
-		} else {
-			this.model = model;
-		}
+    // Model is optional for some components
+    const model: FormFieldModel<unknown> | undefined = options.definition?.model ?? options.component?.model;
+    if (!model || !model?.formControl) {
+      this.logDebug(
+        `${this.constructor.name}: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Change events may or may not be properly consumed.`,
+        options.definition
+      );
+    } else {
+      this.model = model;
+    }
 
-		this.setupQuerySourceUpdateListener();
+    this.setupQuerySourceUpdateListener();
 
-		const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-			const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
-			if (hasConditionMatches) {
-				for (const expr of hasConditionMatches) {
-					await this.consumeEvent(event, expr);
-				}
-			}
-		});
-		this.subscriptions.set(eventType, sub);
-	}
+    const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
+      const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
+      if (hasConditionMatches) {
+        for (const expr of hasConditionMatches) {
+          await this.consumeEvent(event, expr);
+        }
+      }
+    });
+    this.subscriptions.set(eventType, sub);
+  }
   /**
    * Returns all expressions that match the event based on their conditions.
    *
@@ -300,86 +363,97 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @param expressions
    * @returns
    */
-	protected async getMatchedExpressions(event: FormComponentEvent, expressions: FormExpressionsConfigFrame[]): Promise<FormExpressionsConfigFrame[] | null> {
-		const matchedExpressions: FormExpressionsConfigFrame[] = [];
-		for (const expr of expressions) {
-			// Will match if condition is undefined
-			if (expr.config.condition === undefined || expr.config.condition === null) {
-				matchedExpressions.push(expr);
-				continue;
-			}
-			// Will skip if the event is FORM_DEFINITION_READY and the expression is not set to run on form ready
-			if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expr.config.runOnFormReady === false) {
-				continue;
-			}
-			if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && !this.componentDefQuerySource) {
-				// Ensure the query source is available since this is the first event after form ready
-				this.componentDefQuerySource = this.formComp?.getQuerySource();
-			}
-
-			const conditionKind = expr.config.conditionKind || ExpressionsConditionKind.JSONPointer;
-			let hasMatchedCondition = false;
-
-			if (conditionKind === ExpressionsConditionKind.JSONPointer) {
-				const matchOpts: FormComponentEventJSONPointerMatchOptions = {
-					condition: expr.config.condition || '',
-					conditionKind: ExpressionsConditionKind.JSONPointer,
-					querySource: this.getEventQuerySource(event)!,
-					event: event,
-					expression: expr
-				};
-				hasMatchedCondition = this.hasMatchedJSONPointerCondition(matchOpts);
-			} else if (conditionKind === ExpressionsConditionKind.JSONata) {
-				const matchOpts: FormComponentEventJSONataMatchOptions = {
-					condition: expr.config.condition || '',
-					conditionKind: ExpressionsConditionKind.JSONata,
-					event: event,
-					expression: expr
-				};
-				hasMatchedCondition = await this.hasMatchedJSONataCondition(matchOpts, expr);
-			} else if (conditionKind === ExpressionsConditionKind.JSONataQuery) {
-				const matchOpts: FormComponentEventJSONataQueryMatchOptions = {
-					condition: expr.config.condition || '',
-					conditionKind: ExpressionsConditionKind.JSONataQuery,
-					querySource: this.getEventQuerySource(event)!,
-					event: event,
-					expression: expr
-				};
-				// The querySource must be updated each time before evaluating the condition. The querySource is updated via subscription to the event bus, set up in `setupQuerySourceUpdateListener()` emitted via FormComponentEventType.FORM_DEFINITION_CHANGED.
-				// The challenge is that this may or may not have happened at this point. There's another event that fires that root form listens and recalculates the query source, so at this point should mitigate this risk.
-
-				hasMatchedCondition = await this.hasMatchedJSONataQueryCondition(matchOpts, expr);
+  protected async getMatchedExpressions(
+    event: FormComponentEvent,
+    expressions: FormExpressionsConfigFrame[]
+  ): Promise<FormExpressionsConfigFrame[] | null> {
+    const matchedExpressions: FormExpressionsConfigFrame[] = [];
+    for (const expr of expressions) {
+      // Will match if condition is undefined
+      if (expr.config.condition === undefined || expr.config.condition === null) {
+        matchedExpressions.push(expr);
+        continue;
+      }
+      // Will skip if the event is FORM_DEFINITION_READY and the expression is not set to run on form ready
+      if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expr.config.runOnFormReady === false) {
+        continue;
+      }
+      if (event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && !this.componentDefQuerySource) {
+        // Ensure the query source is available since this is the first event after form ready
+        this.componentDefQuerySource = this.formComp?.getQuerySource();
       }
 
-			if (hasMatchedCondition) {
-				matchedExpressions.push(expr);
-			}
-		}
-		return !_isEmpty(matchedExpressions) ? matchedExpressions : null;
-	}
+      const conditionKind = expr.config.conditionKind || ExpressionsConditionKind.JSONPointer;
+      let hasMatchedCondition = false;
 
-	protected async hasMatchedJSONataCondition(opts: FormComponentEventJSONataMatchOptions, expression: FormExpressionsConfigFrame): Promise<boolean> {
+      if (conditionKind === ExpressionsConditionKind.JSONPointer) {
+        const matchOpts: FormComponentEventJSONPointerMatchOptions = {
+          condition: expr.config.condition || '',
+          conditionKind: ExpressionsConditionKind.JSONPointer,
+          querySource: this.getEventQuerySource(event)!,
+          event: event,
+          expression: expr,
+        };
+        hasMatchedCondition = this.hasMatchedJSONPointerCondition(matchOpts);
+      } else if (conditionKind === ExpressionsConditionKind.JSONata) {
+        const matchOpts: FormComponentEventJSONataMatchOptions = {
+          condition: expr.config.condition || '',
+          conditionKind: ExpressionsConditionKind.JSONata,
+          event: event,
+          expression: expr,
+        };
+        hasMatchedCondition = await this.hasMatchedJSONataCondition(matchOpts, expr);
+      } else if (conditionKind === ExpressionsConditionKind.JSONataQuery) {
+        const matchOpts: FormComponentEventJSONataQueryMatchOptions = {
+          condition: expr.config.condition || '',
+          conditionKind: ExpressionsConditionKind.JSONataQuery,
+          querySource: this.getEventQuerySource(event)!,
+          event: event,
+          expression: expr,
+        };
+        // The querySource must be updated each time before evaluating the condition. The querySource is updated via subscription to the event bus, set up in `setupQuerySourceUpdateListener()` emitted via FormComponentEventType.FORM_DEFINITION_CHANGED.
+        // The challenge is that this may or may not have happened at this point. There's another event that fires that root form listens and recalculates the query source, so at this point should mitigate this risk.
+
+        hasMatchedCondition = await this.hasMatchedJSONataQueryCondition(matchOpts, expr);
+      }
+
+      if (hasMatchedCondition) {
+        matchedExpressions.push(expr);
+      }
+    }
+    return !_isEmpty(matchedExpressions) ? matchedExpressions : null;
+  }
+
+  protected async hasMatchedJSONataCondition(
+    opts: FormComponentEventJSONataMatchOptions,
+    expression: FormExpressionsConfigFrame
+  ): Promise<boolean> {
     // JSONata will only match on broadcast events, not on scoped, or the form ready event is not set to run on form ready
-		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false);
+    const isRunOnFormReady =
+      opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false;
     if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
-		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition');
-		return !!result;
-	}
+    const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition');
+    return !!result;
+  }
 
-	protected async hasMatchedJSONataQueryCondition(opts: FormComponentEventJSONataQueryMatchOptions, expression: FormExpressionsConfigFrame): Promise<boolean> {
+  protected async hasMatchedJSONataQueryCondition(
+    opts: FormComponentEventJSONataQueryMatchOptions,
+    expression: FormExpressionsConfigFrame
+  ): Promise<boolean> {
     // JSONataQuery will only match on broadcast events, not on scoped
-		const isRunOnFormReady = (opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false);
+    const isRunOnFormReady =
+      opts.event.sourceId == FormComponentEventType.FORM_DEFINITION_READY && expression.config.runOnFormReady !== false;
     if (opts.event.sourceId !== '*' && !isRunOnFormReady) {
       return false;
     }
-		const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', {
+    const result = await this.evaluateExpressionJSONata(expression, opts.event, 'condition', {
       querySource: opts.querySource?.querySource,
-      runtimeContext: opts.querySource?.runtimeContext
+      runtimeContext: opts.querySource?.runtimeContext,
     });
-		return !!result;
-	}
+    return !!result;
+  }
 
   /**
    * Sets the expression target property to the value.
@@ -405,11 +479,16 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @param expression The expression associated with this change.
    * @protected
    */
-  protected async setTarget(targetValue: unknown, exprTarget: string, event: FormComponentEvent, expression: FormExpressionsConfigFrame) {
+  protected async setTarget(
+    targetValue: unknown,
+    exprTarget: string,
+    event: FormComponentEvent,
+    expression: FormExpressionsConfigFrame
+  ) {
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
       if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
-        await setControlValue(this.model.formControl, targetValue, {emitEvent: false});
+        await setControlValue(this.model.formControl, targetValue, { emitEvent: false });
         await syncComponentDisplayFromModel(this.options?.component);
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
@@ -419,52 +498,47 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         // current form status so signal-effect consumers can re-evaluate.
         this.formComp?.broadcastFormStatus();
       }
-
     } else if (exprTarget === FormExpressionsTargetModelDisabled) {
       // The model.disabled property must be handled specially.
       const disabled = toBoolean(targetValue);
-      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
-
+      this.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
       const name = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
       this.options?.definition?.layout?.setProperty?.(name, targetValue);
-
     } else if (exprTarget.startsWith(FormExpressionsTargetComponentPrefix)) {
       const name = exprTarget.substring(FormExpressionsTargetComponentPrefix.length);
       this.options?.definition?.component?.setProperty?.(name, targetValue);
-
     } else if (exprTarget === FormExpressionsTargetFieldVisible) {
       const name = 'visible';
       const visible = toBoolean(targetValue);
       this.options?.definition?.component?.setProperty?.(name, visible);
       this.options?.definition?.layout?.setProperty?.(name, visible);
-
     } else if (exprTarget === FormExpressionsTargetFieldDisabled) {
       const name = 'disabled';
       const disabled = toBoolean(targetValue);
       this.options?.definition?.component?.setProperty?.(name, disabled);
       this.options?.definition?.layout?.setProperty?.(name, disabled);
-      this.model?.setDisabled?.(disabled, {emitEvent: false, onlySelf: true});
-
+      this.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
     } else if (exprTarget === FormExpressionsTargetValidationGroups) {
       if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {
         // Only publish an event in response to scoped change events, don't need to respond to the broadcast events.
         // Only want to respond to events targeted to a specific component.
-        if (event.sourceId !== "*") {
-          this.eventBus.publish(createFormValidationGroupsChangeRequestEvent({
-            // Create a broadcast event, as this event is intended as a general broadcast.
-            sourceId: '*',
-            fieldId: event.fieldId,
-            ...targetValue,
-          }));
+        if (event.sourceId !== '*') {
+          this.eventBus.publish(
+            createFormValidationGroupsChangeRequestEvent({
+              // Create a broadcast event, as this event is intended as a general broadcast.
+              sourceId: '*',
+              fieldId: event.fieldId,
+              ...targetValue,
+            })
+          );
         }
       } else {
         this.loggerService.error(
           `FormComponentBaseEventConsumer: Invalid value '${targetValue}' for expression target ${FormExpressionsTargetValidationGroups}, expected {initial?: '[value]', groups: {include?: string[], exclude?: string[]}}.`,
-          {event, expression}
+          { event, expression }
         );
       }
-
     } else {
       this.loggerService.warn(
         `FormComponentBaseEventConsumer: Unknown target '${exprTarget}' in expression config.`,
@@ -478,5 +552,5 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @param event
    * @param expression
    */
-	protected abstract consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void>;
+  protected abstract consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void>;
 }

@@ -58,8 +58,8 @@ describe('parseFreeTextDate', () => {
 describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
-      declarations: [DateInputComponent]
-      , imports: [BsDatepickerModule.forRoot()]
+      declarations: [DateInputComponent],
+      imports: [BsDatepickerModule.forRoot()],
     });
   });
 
@@ -83,13 +83,12 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              value: new Date('2025-08-10T10:00:00Z')
+              value: new Date('2025-08-10T10:00:00Z'),
             },
           },
           component: {
             class: 'DateInputComponent',
-            config: {
-            },
+            config: {},
           },
         },
       ],
@@ -115,13 +114,12 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              value: new Date('2025-08-10T10:00:00Z')
+              value: new Date('2025-08-10T10:00:00Z'),
             },
           },
           component: {
             class: 'DateInputComponent',
-            config: {
-            },
+            config: {},
           },
         },
       ],
@@ -147,13 +145,12 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              value: '2025-08-10T10:00:00.000Z' as unknown as Date
+              value: '2025-08-10T10:00:00.000Z' as unknown as Date,
             },
           },
           component: {
             class: 'DateInputComponent',
-            config: {
-            },
+            config: {},
           },
         },
       ],
@@ -250,7 +247,7 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              value: new Date('2025-08-10T10:00:00Z')
+              value: new Date('2025-08-10T10:00:00Z'),
             },
           },
           component: {
@@ -298,7 +295,7 @@ describe('DateInputComponent', () => {
           component: {
             class: 'DateInputComponent',
             config: {
-              robustParsing: false
+              robustParsing: false,
             },
           },
         },
@@ -335,7 +332,7 @@ describe('DateInputComponent', () => {
           model: {
             class: 'DateInputModel',
             config: {
-              value: new Date('2025-08-10T10:00:00Z')
+              value: new Date('2025-08-10T10:00:00Z'),
             },
           },
           component: {
@@ -446,5 +443,44 @@ describe('DateInputComponent', () => {
 
     expect(dateInputComp.model?.formControl?.value).toEqual(new Date('2025-08-10T10:00:00Z'));
     expect(inputElement.value).toEqual('2025/08/10');
+  });
+
+  it('should emit a value change when typed text is normalized to a Date', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_emit_normalized_text',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {},
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const inputElement = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+    const emittedValues: unknown[] = [];
+    dateInputComp.model?.formControl?.valueChanges.subscribe(value => emittedValues.push(value));
+
+    inputElement.value = '2026/06/10';
+    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    inputElement.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(emittedValues.some(value => value instanceof Date && value.getUTCFullYear() === 2026)).toBeTrue();
   });
 });

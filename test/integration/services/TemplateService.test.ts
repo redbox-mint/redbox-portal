@@ -4,6 +4,7 @@ const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
 const Handlebars = require('handlebars');
+const jsonata = require('jsonata');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -67,13 +68,17 @@ describe('The TemplateService', function () {
                 args: {
                     inputs: [
                         { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
-                        { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" }
+                        { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" },
+                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")" }
                     ],
                     contexts: [
                         { key: ["test1"], context: { doesWhat: "testing" } },
                         { key: ["test1"], context: { doesWhat: "another one" } },
                         { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: {} },
                         { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: {} },
+                        { key: ["test3"], context: {}, extra: {} },
+                        { key: ["test4"], context: {}, extra: {} },
                     ]
                 },
                 expected: [
@@ -81,6 +86,27 @@ describe('The TemplateService', function () {
                     "Handlebars <b>another one</b> precompiled!",
                     24,
                     237,
+                    false,
+                    undefined,
+                ],
+            },
+            {
+                args: {
+                    inputs: [
+                        { key: ['test1'], kind: "jsonata", value: "$sum(example.value)" },
+                        { key: ['test2'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test3'], kind: "jsonata", value: "$eval(\"1+1\")" }
+                    ],
+                    contexts: [
+                        { key: ["test1"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: { jsonata: { default: jsonata } } },
+                        { key: ["test2"], context: {}, extra: { jsonata: { default: jsonata } } },
+                        { key: ["test3"], context: {}, extra: { jsonata: { default: jsonata } } },
+                    ]
+                },
+                expected: [
+                    24,
+                    false,
+                    undefined,
                 ],
             },
         ];
@@ -91,8 +117,9 @@ describe('The TemplateService', function () {
 
                 // Verify structure matches new implementation (key is [string], value has (context))
                 // For handlebars:
-                const handlebarsItem = clientMapping.find(i => i.key[0] === 'test1');
-                if (handlebarsItem) {
+                const handlebarsInput = args.inputs.find(i => i.kind === 'handlebars');
+                if (handlebarsInput) {
+                    const handlebarsItem = clientMapping.find(i => i.key[0] === handlebarsInput.key[0]);
                     expect(handlebarsItem.key).to.be.an('array');
                     expect(handlebarsItem.value).to.contain('(context)');
                 }
@@ -105,7 +132,7 @@ describe('The TemplateService', function () {
                     for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
                         const expectedValue = expected[i];
-                        const extra = Object.assign({}, { libraries: { Handlebars: Handlebars } }, context.extra ?? {});
+                        const extra = Object.assign({}, { jsonata: jsonata, libraries: { Handlebars: Handlebars } }, context.extra ?? {});
                         const result = clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expectedValue);
                     }

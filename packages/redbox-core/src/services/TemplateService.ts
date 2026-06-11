@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods} from '../decorator/PopulateExportedMethods.decorator';
-import {Services as services} from '../CoreService';
-import Handlebars, {TemplateDelegate as HandlebarsTemplateDelegate} from "handlebars";
+import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
+import { Services as services } from '../CoreService';
+import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import {
   buildKeyString,
   jsonataCompile,
@@ -28,141 +28,138 @@ import {
   TemplateCompileInput,
   TemplateCompileItem,
   TemplateCompileKey,
-  templateCompileKind
-} from "@researchdatabox/sails-ng-common";
-
+  templateCompileKind,
+} from '@researchdatabox/sails-ng-common';
 
 export namespace Services {
+  @PopulateExportedMethods
+  export class Template extends services.Core.Service {
+    private helpersRegistered: boolean = false;
 
-    @PopulateExportedMethods
-    export class Template extends services.Core.Service {
-
-        private helpersRegistered: boolean = false;
-
-        /**
-         * Ensure shared Handlebars helpers are registered on the server.
-         */
-        private ensureHelpersRegistered() {
-            if (!this.helpersRegistered) {
-                registerSharedHandlebarsHelpers(Handlebars);
-                this.helpersRegistered = true;
-                sails.log.verbose('TemplateService: Registered shared Handlebars helpers');
-            }
-        }
-
-        /**
-         * Compile one or more inputs into an output mapping.
-         *
-         * The mapping provides a function 'evaluate(key, context)'.
-         * Provide the key for the template, and the context to apply to the template.
-         * @param inputs
-         */
-        public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
-            const keys = inputs.map(i => buildKeyString(i.key));
-            const keysUnique = new Set(keys);
-            if (keysUnique.size != keys.length) {
-                const duplicates = keys.filter((item, index) => keys.indexOf(item) != index);
-                const duplicatesUnique = Array.from(new Set(duplicates)).sort();
-                throw new Error(`Keys must be unique: '${duplicatesUnique.join(', ')}'`);
-            }
-
-            const result: TemplateCompileItem[] = [];
-            for (const input of inputs) {
-                // The key is stored as a string array (composite key).
-                // The duplicate check above uses the flattened, normalized string form (buildKeyString)
-                // to ensure uniqueness across the composite keys.
-                switch (input.kind) {
-                    case "jsonata":
-                        const jsonataExpr = this.buildClientJsonata(input.value);
-                        if (jsonataExpr) {
-                            result.push({
-                                key: input.key,
-                                value: `jsonata(${JSON.stringify(jsonataExpr)}).evaluate(context)`,
-                            });
-                        }
-                        break;
-                    case "handlebars":
-                        result.push({
-                            key: input.key,
-                            value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
-                        });
-                        break;
-                    default:
-                        throw new Error(`Unknown input kind '${input.kind}' expected one of: '${templateCompileKind.join(', ')}'`);
-                }
-            }
-            return result;
-        }
-
-        /**
-         * Compile a JSONata expression to a form that is ready to be executed on the client.
-         *
-         * The expression will be normalised and have some transformations applied.
-         *
-         * @param expression The JSONata expression to compile.
-         */
-        public buildClientJsonata(expression: string): string | null {
-            try {
-                expression = normaliseVisual(expression);
-                // Validate the expression by compiling it
-                const compiled = jsonataCompile(expression);
-                sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
-                // Return the expression string for client-side compilation
-                // The client will call jsonata(expression).evaluate(context)
-                return expression;
-            } catch (error) {
-                sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
-                return null;
-            }
-        }
-
-        /**
-         * Compile a Handlebars template to a form that is ready to be executed on the client.
-         *
-         * The template will be normalised and have some transformations applied.
-         *
-         * @param template
-         */
-        public buildClientHandlebars(template: string): string | null {
-            try {
-                this.ensureHelpersRegistered();
-                template = normaliseVisual(template);
-                // handlebars pre-compiled output is already a string
-                const result = Handlebars.precompile(template)?.toString();
-                sails.log.verbose(`Built client Handlebars template '${template}'`);
-                return result;
-            } catch (error) {
-                sails.log.error(`Could not build client Handlebars template '${template}'`, error);
-                return null;
-            }
-        }
-
-        /**
-         * Compile a Handlebars template to a form that is ready to be executed on the server.
-         *
-         * The template will be normalised and have some transformations applied.
-         *
-         * @param template
-         */
-        public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
-            try {
-                this.ensureHelpersRegistered();
-                template = normaliseVisual(template);
-                const result = Handlebars.compile(template);
-                sails.log.verbose(`Built server Handlebars template '${template}'`);
-                return result;
-            } catch (error) {
-                sails.log.error(`Could not build server Handlebars template '${template}'`, error);
-                return null;
-            }
-        }
-
-        public buildKeyString(key: TemplateCompileKey): string {
-            return buildKeyString(key);
-        }
+    /**
+     * Ensure shared Handlebars helpers are registered on the server.
+     */
+    private ensureHelpersRegistered() {
+      if (!this.helpersRegistered) {
+        registerSharedHandlebarsHelpers(Handlebars);
+        this.helpersRegistered = true;
+        sails.log.verbose('TemplateService: Registered shared Handlebars helpers');
+      }
     }
+
+    /**
+     * Compile one or more inputs into an output mapping.
+     *
+     * The mapping provides a function 'evaluate(key, context)'.
+     * Provide the key for the template, and the context to apply to the template.
+     * @param inputs
+     */
+    public buildClientMapping(inputs: TemplateCompileInput[]): TemplateCompileItem[] {
+      const keys = inputs.map(i => buildKeyString(i.key));
+      const keysUnique = new Set(keys);
+      if (keysUnique.size != keys.length) {
+        const duplicates = keys.filter((item, index) => keys.indexOf(item) != index);
+        const duplicatesUnique = Array.from(new Set(duplicates)).sort();
+        throw new Error(`Keys must be unique: '${duplicatesUnique.join(', ')}'`);
+      }
+
+      const result: TemplateCompileItem[] = [];
+      for (const input of inputs) {
+        // The key is stored as a string array (composite key).
+        // The duplicate check above uses the flattened, normalized string form (buildKeyString)
+        // to ensure uniqueness across the composite keys.
+        switch (input.kind) {
+          case 'jsonata':
+            const jsonataExpr = this.buildClientJsonata(input.value);
+            if (jsonataExpr) {
+              result.push({
+                key: input.key,
+                value: `(() => { const expression = jsonata(${JSON.stringify(jsonataExpr)}); expression.registerFunction("eval", () => undefined); return expression.evaluate(context, extra?.libraries); })()`,
+              });
+            }
+            break;
+          case 'handlebars':
+            result.push({
+              key: input.key,
+              value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
+            });
+            break;
+          default:
+            throw new Error(`Unknown input kind '${input.kind}' expected one of: '${templateCompileKind.join(', ')}'`);
+        }
+      }
+      return result;
+    }
+
+    /**
+     * Compile a JSONata expression to a form that is ready to be executed on the client.
+     *
+     * The expression will be normalised and have some transformations applied.
+     *
+     * @param expression The JSONata expression to compile.
+     */
+    public buildClientJsonata(expression: string): string | null {
+      try {
+        expression = normaliseVisual(expression);
+        // Validate the expression by compiling it
+        const compiled = jsonataCompile(expression);
+        sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
+        // Return the expression string for client-side compilation
+        // The client will call jsonata(expression).evaluate(context)
+        return expression;
+      } catch (error) {
+        sails.log.error(`Could not compile client JSONata expression '${expression}'`, error);
+        return null;
+      }
+    }
+
+    /**
+     * Compile a Handlebars template to a form that is ready to be executed on the client.
+     *
+     * The template will be normalised and have some transformations applied.
+     *
+     * @param template
+     */
+    public buildClientHandlebars(template: string): string | null {
+      try {
+        this.ensureHelpersRegistered();
+        template = normaliseVisual(template);
+        // handlebars pre-compiled output is already a string
+        const result = Handlebars.precompile(template)?.toString();
+        sails.log.verbose(`Built client Handlebars template '${template}'`);
+        return result;
+      } catch (error) {
+        sails.log.error(`Could not build client Handlebars template '${template}'`, error);
+        return null;
+      }
+    }
+
+    /**
+     * Compile a Handlebars template to a form that is ready to be executed on the server.
+     *
+     * The template will be normalised and have some transformations applied.
+     *
+     * @param template
+     */
+    public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
+      try {
+        this.ensureHelpersRegistered();
+        template = normaliseVisual(template);
+        const result = Handlebars.compile(template);
+        sails.log.verbose(`Built server Handlebars template '${template}'`);
+        return result;
+      } catch (error) {
+        sails.log.error(`Could not build server Handlebars template '${template}'`, error);
+        return null;
+      }
+    }
+
+    public buildKeyString(key: TemplateCompileKey): string {
+      return buildKeyString(key);
+    }
+  }
 }
 
 declare global {
-    let TemplateService: Services.Template;
+  let TemplateService: Services.Template;
 }
