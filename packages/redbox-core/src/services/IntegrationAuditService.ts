@@ -677,3 +677,7 @@ export namespace Services {
     }
   }
 }
+
+declare global {
+  let IntegrationAuditService: Services.IntegrationAuditService;
+}

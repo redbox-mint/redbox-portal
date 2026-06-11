@@ -7,12 +7,18 @@ import { syncAssetsPhase } from './figshare-v2/assets';
 import { syncEmbargoPhase } from './figshare-v2/embargo';
 import { publishIfNeededPhase } from './figshare-v2/publish';
 import { writeBackPhase } from './figshare-v2/writeback';
-import { buildMetadataPayload as buildV2MetadataPayload, syncMetadataPhase } from './figshare-v2/metadata';
+import { completeFigshareAudit, failFigshareAudit, startFigshareAudit } from './figshare-v2/audit';
+import {
+  runBuildMetadataPayload,
+  runSyncMetadataProgram,
+  isCurationLocked as isArticleCurationLocked,
+  listArticleFiles as listAllArticleFiles,
+  ensureNoFileUploadInProgress as ensureNoUploadsInProgress,
+} from './figshare-v2/runtime';
 import { buildDeleteFilesMessage, buildPublishAfterUploadsMessage } from './figshare-v2/queue';
 import { shouldRunWorkflowTransitionJob } from './figshare-v2/workflow';
 import { FigshareClient, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
 import { RBValidationError } from '../model/RBValidationError';
-import { IntegrationAuditContext } from './IntegrationAuditService';
 import { QueueService } from '../QueueService';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import {
@@ -32,11 +38,6 @@ import {
 } from './figshare-v2/types';
 
 declare const AgendaQueueService: QueueService;
-declare const IntegrationAuditService: {
-  startAudit(oid: string, action: IntegrationAuditAction, opts?: Record<string, unknown>): IntegrationAuditContext;
-  completeAudit(ctx: IntegrationAuditContext | null | undefined, result?: Record<string, unknown>): void;
-  failAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details?: Record<string, unknown>): void;
-};
 
 export namespace Services {
   export class FigshareService extends services.Core.Service {
@@ -59,25 +60,78 @@ export namespace Services {
       'init',
     ];
 
-    private startIntegrationAudit(
-      record: RecordModel,
-      action: IntegrationAuditAction,
-      details: Record<string, unknown>
-    ): IntegrationAuditContext {
-      const oid = String(record.redboxOid ?? record.id ?? '');
-      return IntegrationAuditService.startAudit(oid, action, {
-        brandId: record.metaMetadata?.brandId,
-        triggeredBy: details.triggerSource,
-        requestSummary: details,
+    private _msgPrefix!: string;
+
+    private msgPrefix() {
+      if (!this._msgPrefix) {
+        this._msgPrefix = TranslationService.t('Figshare API error');
+      }
+      return this._msgPrefix;
+    }
+
+    private summarizeError(error: unknown): { statusCode?: number; responseSummary?: Record<string, unknown> } {
+      if (error instanceof RBValidationError) {
+        return {
+          responseSummary: {
+            displayErrors: error.displayErrors
+          }
+        };
+      }
+      const httpError = error as { statusCode?: number; responseBody?: unknown };
+      const statusCode = typeof httpError?.statusCode === 'number' ? httpError.statusCode : undefined;
+      const responseBody = httpError?.responseBody;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        statusCode,
+        responseSummary: responseBody != null && typeof responseBody === 'object'
+          ? responseBody as Record<string, unknown>
+          : {
+            errorType: error instanceof Error ? error.name : typeof error,
+            message: errorMessage,
+            ...(statusCode != null ? { statusCode } : {}),
+            // Plain-text API responses (e.g. "Unauthorized") still carry diagnostic value;
+            // keep them in the audit summary (same field name as doi-v2's toResponseSummary).
+            ...(responseBody != null ? { rawResponseBody: String(responseBody) } : {})
+          }
+      };
+    }
+
+    private wrapHttpError(error: unknown, message: string, fallbackStatus?: number): never {
+      const statusCode = (error as { statusCode?: number })?.statusCode ?? fallbackStatus;
+      if (error instanceof RBValidationError) {
+        throw error;
+      }
+      throw new RBValidationError({
+        message: `${this.msgPrefix()} ${message}`,
+        options: { cause: error },
+        displayErrors: this.figshareResponseToRBValidationError(statusCode ?? 500).displayErrors
       });
     }
 
-    private completeIntegrationAudit(ctx: IntegrationAuditContext, details: Record<string, unknown>): void {
-      IntegrationAuditService.completeAudit(ctx, details);
-    }
-
-    private failIntegrationAudit(ctx: IntegrationAuditContext, error: unknown, details: Record<string, unknown>): void {
-      IntegrationAuditService.failAudit(ctx, error, details);
+    private figshareResponseToRBValidationError(statusCode: number, messagePrefix?: string): RBValidationError {
+      let message: string;
+      switch (statusCode) {
+        case 403:
+          message = 'not-authorised';
+          break;
+        case 404:
+          message = 'not-found';
+          break;
+        case 422:
+          message = 'invalid-format';
+          break;
+        case 500:
+          message = 'server-error';
+          break;
+        default:
+          message = 'unknown-error';
+          break;
+      }
+      const translated = TranslationService.t(message);
+      return new RBValidationError({
+        message: `${this.msgPrefix()} ${messagePrefix ?? translated}`,
+        displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }]
+      });
     }
 
     private assertConfig(record: RecordModel, operation: string): NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>> {
@@ -105,7 +159,7 @@ export namespace Services {
     }
 
     public async buildMetadataPayload(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel): Promise<Record<string, unknown>> {
-      return buildV2MetadataPayload(config, record, this.makeClient(config, record, undefined, 'buildMetadataPayload'));
+      return runBuildMetadataPayload(config, record);
     }
 
     public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, jobId?: string, triggerSource: string = 'manual') {
@@ -130,17 +184,9 @@ export namespace Services {
       const rm = record as RecordModel;
 
       const publicationPlan = plan ?? this.preparePublication(rm);
-      const articleId = publicationPlan.articleId;
-      if (articleId) {
-        const currentArticle = await this.makeClient(config, rm, publicationPlan.syncState.correlationId, 'syncMetadata').getArticle(articleId);
-        if (this.isCurationLocked(rm, currentArticle)) {
-          return currentArticle;
-        }
-        await this.ensureNoFileUploadInProgress(config, rm, articleId);
-      }
-
-      const client = this.makeClient(config, rm, publicationPlan.syncState.correlationId, 'syncMetadata');
-      return syncMetadataPhase(client, config, rm, publicationPlan);
+      // The runtime program handles the curation lock and upload-in-progress checks.
+      const runContext = createRunContext(rm, config, publicationPlan.syncState.correlationId, 'syncMetadata');
+      return runSyncMetadataProgram(config, runContext, rm, publicationPlan);
     }
 
     public async syncAssets(record: RecordModel, article: FigshareArticle): Promise<AssetSyncResult & Record<string, unknown>> {
@@ -176,48 +222,24 @@ export namespace Services {
       return writeBackPhase(config, record, article, publishResult, assetSyncResult as AssetSyncResult | undefined);
     }
 
+    // Thin delegates to the figshare-v2 runtime helpers (single implementation lives
+    // there, shared with the Effect programs). Kept as instance methods so callers and
+    // tests retain a stub seam on the service.
     private async getArticleFiles(client: FigshareClient, articleId: string): Promise<FigshareFile[]> {
-      const files: FigshareFile[] = [];
-      let page = 1;
-      const pageSize = 20;
-      while (true) {
-        const pageResults = await client.listArticleFiles(articleId, page, pageSize);
-        if (!Array.isArray(pageResults) || pageResults.length === 0) {
-          break;
-        }
-        files.push(...pageResults);
-        if (pageResults.length < pageSize) {
-          break;
-        }
-        page++;
-      }
-      return files;
+      return listAllArticleFiles(client, articleId);
     }
 
     private isCurationLocked(record: RecordModel, article: FigshareArticle): boolean {
       const config = this.getConfig(record);
-      const statusField = config?.article.curationLock?.statusField ?? '';
-      const targetValue = config?.article.curationLock?.targetValue ?? 'public';
-      const updatesDisabled = config?.article.curationLock?.enabled === true;
-      if (!updatesDisabled || statusField === '') {
+      if (config == null) {
         return false;
       }
-      return String((article as Record<string, unknown>)[statusField] ?? '') === targetValue;
+      return isArticleCurationLocked(config, article);
     }
 
     private async ensureNoFileUploadInProgress(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, articleId: string): Promise<void> {
       const client = this.makeClient(config, record, undefined, 'ensureNoFileUploadInProgress');
-      const files = await this.getArticleFiles(client, articleId);
-      const inProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
-      if (inProgress) {
-        throw new RBValidationError({
-          message: `Figshare file uploads are still in progress for article '${articleId}'`,
-          displayErrors: [{
-            title: 'Figshare file uploads are still in progress',
-            detail: `Figshare file uploads are still in progress for article '${articleId}'`
-          }]
-        });
-      }
+      await ensureNoUploadsInProgress(client, articleId);
     }
 
     private async cleanupUploadedFiles(record: RecordModel, articleId: string): Promise<RecordModel> {
@@ -371,7 +393,8 @@ export namespace Services {
         return record;
       }
 
-      const auditCtx = this.startIntegrationAudit(rm, IntegrationAuditAction.syncRecordWithFigshare, {
+      const runContext = createRunContext(rm, config, jobId, triggerSource);
+      const auditCtx = startFigshareAudit(runContext.recordOid, IntegrationAuditAction.syncRecordWithFigshare, runContext, {
         triggerSource,
         jobId,
         correlationId: plan.syncState.correlationId,
@@ -388,7 +411,7 @@ export namespace Services {
           article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
         }
         const updatedRecord = this.writeBack(rm, article, publishResult, assetSyncResult);
-        this.completeIntegrationAudit(auditCtx, {
+        completeFigshareAudit(auditCtx, {
           message: 'Figshare sync completed successfully.',
           responseSummary: {
             triggerSource,
@@ -406,9 +429,11 @@ export namespace Services {
         syncState.status = 'failed';
         syncState.lastError = error instanceof Error ? error.message : String(error);
         this.setSyncState(config, rm, syncState);
-        this.failIntegrationAudit(auditCtx, error, {
+        const errorSummary = this.summarizeError(error);
+        failFigshareAudit(auditCtx, error, {
           message: 'Figshare sync failed.',
           errorDetail: error instanceof Error ? error.message : String(error),
+          httpStatusCode: errorSummary.statusCode,
           responseSummary: {
             triggerSource,
             jobId,
@@ -416,9 +441,10 @@ export namespace Services {
             articleId: plan.articleId,
             phase: 'syncRecordWithFigshare',
             partialProgress: syncState.partialProgress,
+            ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
           },
         });
-        throw error;
+        this.wrapHttpError(error, TranslationService.t('Error syncing record with Figshare'));
       }
     }
 
@@ -509,7 +535,8 @@ export namespace Services {
         return;
       }
 
-      const auditCtx = this.startIntegrationAudit(record, IntegrationAuditAction.publishAfterUploadFilesJob, {
+      const runContext = createRunContext(record, config, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
+      const auditCtx = startFigshareAudit(oid, IntegrationAuditAction.publishAfterUploadFilesJob, runContext, {
         triggerSource: 'publishAfterUploadFilesJob',
         jobId: `${oid}:publish-job`,
         correlationId: `${oid}:publish-job`,
@@ -522,22 +549,25 @@ export namespace Services {
         await this.ensureNoFileUploadInProgress(config, record, articleId);
       } catch (error) {
         if (!(error instanceof RBValidationError)) {
-          this.failIntegrationAudit(auditCtx, error, {
+          const errorSummary = this.summarizeError(error);
+          failFigshareAudit(auditCtx, error, {
             message: 'Figshare publish-after-uploads job failed while checking upload status.',
             errorDetail: error instanceof Error ? error.message : String(error),
+            httpStatusCode: errorSummary.statusCode,
             responseSummary: {
               articleId,
               correlationId: `${oid}:publish-job`,
               phase: 'verify-upload-status',
+              ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
             },
           });
-          throw error;
+          this.wrapHttpError(error, TranslationService.t('Error verifying Figshare upload status'));
         }
 
         sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
         try {
           this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-          this.completeIntegrationAudit(auditCtx, {
+          completeFigshareAudit(auditCtx, {
             message: 'Figshare publish-after-uploads job rescheduled because file uploads are still in progress.',
             responseSummary: {
               articleId,
@@ -548,7 +578,7 @@ export namespace Services {
           });
           return;
         } catch (queueError) {
-          this.failIntegrationAudit(auditCtx, queueError, {
+          failFigshareAudit(auditCtx, queueError, {
             message: 'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
             errorDetail: queueError instanceof Error ? queueError.message : String(queueError),
             responseSummary: {
@@ -567,7 +597,7 @@ export namespace Services {
         const article = await client.getArticle(articleId);
         const updatedRecord = this.writeBack(record, article, publishResult);
         await this.persistSyncRecord(oid, updatedRecord, user);
-        this.completeIntegrationAudit(auditCtx, {
+        completeFigshareAudit(auditCtx, {
           message: 'Figshare publish-after-uploads job completed successfully.',
           responseSummary: {
             articleId,
@@ -576,16 +606,19 @@ export namespace Services {
           },
         });
       } catch (error) {
-        this.failIntegrationAudit(auditCtx, error, {
+        const errorSummary = this.summarizeError(error);
+        failFigshareAudit(auditCtx, error, {
           message: 'Figshare publish-after-uploads job failed.',
           errorDetail: error instanceof Error ? error.message : String(error),
+          httpStatusCode: errorSummary.statusCode,
           responseSummary: {
             articleId,
             correlationId: `${oid}:publish-job`,
             phase: 'publish',
+            ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
           },
         });
-        throw error;
+        this.wrapHttpError(error, TranslationService.t('Error publishing Figshare article'));
       }
 
       try {
