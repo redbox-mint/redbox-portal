@@ -20,6 +20,7 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
 import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
+import { Buffer } from 'node:buffer';
 import {
   buildKeyString,
   jsonataCompile,
@@ -72,9 +73,10 @@ export namespace Services {
           case 'jsonata':
             const jsonataExpr = this.buildClientJsonata(input.value);
             if (jsonataExpr) {
+              const jsonataExprEncoded = this.encodeClientJsonataExpression(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `jsonata(${JSON.stringify(jsonataExpr)}).evaluate(context);`,
+                value: `(() => { const expressionSource = decodeURIComponent(Array.prototype.map.call(atob("${jsonataExprEncoded}"), c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")); const expression = jsonata(expressionSource); expression.registerFunction("eval", () => undefined); return expression.evaluate(context, extra?.libraries); })()`,
               });
             }
             break;
@@ -89,6 +91,10 @@ export namespace Services {
         }
       }
       return result;
+    }
+
+    private encodeClientJsonataExpression(expression: string): string {
+      return Buffer.from(expression, 'utf8').toString('base64');
     }
 
     /**
