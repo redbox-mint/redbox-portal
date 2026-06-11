@@ -94,12 +94,18 @@ describe('SaveButtonComponent', () => {
     const translateSpy = spyOn(saveButtonComponent, 'translate').and.callThrough();
 
     const store = TestBed.inject(Store);
+    // Make the form dirty so saveForm doesn't immediately reject
+    const textField = fixture.nativeElement.querySelector('input');
+    textField.value = 'new value';
+    textField.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
     // Dispatch submit action to trigger SAVING status
     store.dispatch(FormActions.submitForm({ force: false }));
     fixture.detectChanges();
     await fixture.whenStable();
 
-    TestBed.flushEffects();
+    TestBed.tick();
     const saveButton = fixture.nativeElement.querySelector('button');
     expect(saveButton.disabled).toBeTrue();
 
@@ -144,6 +150,8 @@ describe('SaveButtonComponent', () => {
       // Set status to VALIDATION_PENDING to disable button
       store.dispatch(FormActions.formValidationPending());
       fixture.detectChanges();
+      await fixture.whenStable();
+      TestBed.tick();
       const saveButton = fixture.nativeElement.querySelector('button');
       saveButton.click();
       fixture.detectChanges();
@@ -219,14 +227,11 @@ describe('SaveButtonComponent', () => {
     const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
     delete saveButtonConfig['forceSave'];
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const store = TestBed.inject(Store);
+    const { fixture } = await createFormAndWaitForReady(formConfig);
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
     const sub = eventBus.select$('form.save.requested').subscribe(e => events.push(e));
     try {
-      store.dispatch(FormActions.formValidationSuccess());
-      TestBed.flushEffects();
       fixture.detectChanges();
       await fixture.whenStable();
 
@@ -244,6 +249,19 @@ describe('SaveButtonComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('should disable standard save button on initial load when the form is pristine', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    delete saveButtonConfig['targetStep'];
+    delete saveButtonConfig['forceSave'];
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const saveButton = fixture.nativeElement.querySelector('button');
+    expect(saveButton.disabled).toBeTrue();
   });
 
   it('should render save button wrapper class used by action row', async () => {
