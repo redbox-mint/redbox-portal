@@ -7,14 +7,11 @@ import { DateTime } from 'luxon';
 export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
 
 /**
- * A function that registers a custom JSONata function.
+ * Format a date using the luxon library.
+ * @param value The value to format.
+ * @param format The format to use.
+ * @param sourceFormat The optional format of the value, if known.
  */
-export type JSONataRegisterFunction = (
-  name: string,
-  implementation: (this: jsonata.Focus, ...args: unknown[]) => unknown,
-  signature?: string
-) => void;
-
 export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: unknown): string {
   if (value === undefined || value === null || value === '') {
     return '';
@@ -45,9 +42,10 @@ export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: 
   return dateTime.isValid ? dateTime.toFormat(outputFormat) : '';
 }
 
-export const jsonataLibrary = {
-  luxonFormatDate,
-};
+/**
+ * helper object to provide the wrapped jsonata expression parsing.
+ */
+export const jsonataLibrary = {jsonata: jsonataCompile};
 
 /**
  * Provide a JSONata expression string and return a compiled JSONata expression object.
@@ -64,12 +62,11 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction('eval', () => undefined);
 
+  // Register a function for formatting date time values.
   compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
 
-  // TODO: register a function for obtaining translations
-  // TODO: register a function for formatting date time values
-  // TODO: register a function / context state holder that provides model data
-  // TODO: replace regex with google's re2?
+  // TODO: consider registering a function for translations
+  // TODO: consider replacing regex with google's re2?
 
   return compiled;
 }

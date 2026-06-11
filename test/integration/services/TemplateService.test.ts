@@ -1,10 +1,10 @@
+import {jsonataLibrary} from "@researchdatabox/sails-ng-common";
 
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
 const Handlebars = require('handlebars');
-const jsonata = require('jsonata');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -59,6 +59,9 @@ describe('The TemplateService', function () {
         });
     });
     describe('compile mapping', function () {
+        const extraHandlebars = {libraries: { Handlebars: Handlebars}};
+        const extraJsonata = {libraries: jsonataLibrary};
+        const extraHandlebarsAndJsonata = {libraries: { Handlebars: Handlebars, ...jsonataLibrary}};
         const cases = [
             {
                 args: { inputs: [], contexts: [] },
@@ -67,18 +70,18 @@ describe('The TemplateService', function () {
             {
                 args: {
                     inputs: [
-                        { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
+                        { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!"},
                         { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" },
-                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" },
-                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")" }
+                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)", extra: extraJsonata  },
+                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")", extra: extraJsonata  }
                     ],
                     contexts: [
-                        { key: ["test1"], context: { doesWhat: "testing" } },
-                        { key: ["test1"], context: { doesWhat: "another one" } },
-                        { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: {} },
-                        { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: {} },
-                        { key: ["test3"], context: {}, extra: {} },
-                        { key: ["test4"], context: {}, extra: {} },
+                        { key: ["test1"], context: { doesWhat: "testing" }, extra: extraHandlebars },
+                        { key: ["test1"], context: { doesWhat: "another one" }, extra: extraHandlebars },
+                        { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: extraJsonata},
+                        { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: extraJsonata },
+                        { key: ["test3"], context: {}, extra: extraJsonata },
+                        { key: ["test4"], context: {}, extra: extraJsonata },
                     ]
                 },
                 expected: [
@@ -98,9 +101,9 @@ describe('The TemplateService', function () {
                         { key: ['test3'], kind: "jsonata", value: "$eval(\"1+1\")" }
                     ],
                     contexts: [
-                        { key: ["test1"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: { jsonata: { default: jsonata } } },
-                        { key: ["test2"], context: {}, extra: { jsonata: { default: jsonata } } },
-                        { key: ["test3"], context: {}, extra: { jsonata: { default: jsonata } } },
+                        { key: ["test1"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: extraJsonata },
+                        { key: ["test2"], context: {}, extra: extraJsonata },
+                        { key: ["test3"], context: {}, extra: extraJsonata },
                     ]
                 },
                 expected: [
@@ -132,7 +135,7 @@ describe('The TemplateService', function () {
                     for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
                         const expectedValue = expected[i];
-                        const extra = Object.assign({}, { jsonata: jsonata, libraries: { Handlebars: Handlebars } }, context.extra ?? {});
+                        const extra = context.extra ?? {};
                         const result = clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expectedValue);
                     }
