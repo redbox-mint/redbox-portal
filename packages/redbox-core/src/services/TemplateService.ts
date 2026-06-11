@@ -76,7 +76,7 @@ export namespace Services {
               const jsonataExprEncoded = jsonataExpressionEncode(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `jsonata(${jsonataExprEncoded}).evaluate(context);`,
+                value: `jsonata("${jsonataExprEncoded}").evaluate(context);`,
               });
             }
             break;
