@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Input, Injector, inject, signal } from "@angular/core";
+import { Component, DestroyRef, Input, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
@@ -280,8 +280,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     }
     this.syncSelectionFromModel();
     await this.expandToSelectedNodes();
-    const visible = this.getVisibleNodes();
-    this.focusedNodeId = visible[0]?.id ?? null;
+    this.focusedNodeId = this.rootNodes[0]?.id ?? null;
   }
 
   public isExpanded(node: CheckboxTreeRenderNode): boolean {
@@ -338,8 +337,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public getTabIndex(node: CheckboxTreeRenderNode): number {
-    const firstVisibleId = this.getVisibleNodes()[0]?.id ?? null;
-    const focusId = this.focusedNodeId ?? firstVisibleId;
+    const focusId = this.focusedNodeId ?? this.rootNodes[0]?.id ?? null;
     return node.id === focusId ? 0 : -1;
   }
 

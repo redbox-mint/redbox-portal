@@ -5,6 +5,7 @@ const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
 const Handlebars = require('handlebars');
+const jsonata = require('jsonata');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -82,6 +83,8 @@ describe('The TemplateService', function () {
                         { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: extraJsonata },
                         { key: ["test3"], context: {}, extra: extraJsonata },
                         { key: ["test4"], context: {}, extra: extraJsonata },
+                        { key: ["test3"], context: {}, extra: {} },
+                        { key: ["test4"], context: {}, extra: {} },
                     ]
                 },
                 expected: [
