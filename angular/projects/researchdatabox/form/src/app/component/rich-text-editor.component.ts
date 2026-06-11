@@ -7,7 +7,7 @@ import TableRow from "@tiptap/extension-table-row";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
 import { Subscription } from "rxjs";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
 import {
   escapeHtmlText,
   RichTextEditorComponentName,
@@ -193,6 +193,13 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       this.skipNextSync = true;
       this.setEditorValue(nextValue);
     });
+  }
+
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    if (this.editor) {
+      this.editor.setEditable(!this.isReadonly && !this.isDisabled);
+    }
   }
 
   public onToolbarAction(action: string): void {
