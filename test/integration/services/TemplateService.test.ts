@@ -22,9 +22,10 @@ const simulateBrowserLoadingJsFile = async function (value, callback) {
         tempDir = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'testing-'));
         const path = `${tempDir}/compile-mapping.js`;
         await fs.writeFile(path, value);
-        callback(path);
+        await callback(path);
     } catch (err) {
         console.error(err);
+        throw err;
     } finally {
         if (tempDir) {
             await fs.rm(tempDir, { recursive: true, force: true });
@@ -49,7 +50,7 @@ describe('The TemplateService', function () {
 
                 // client
                 let clientString = TemplateService.buildClientHandlebars(args.template);
-                clientString = `export const testingData = Handlebars.template(${clientString});`
+                clientString = `const Handlebars = require(${JSON.stringify(require.resolve('handlebars'))}); exports.testingData = Handlebars.template(${clientString});`
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
                     const clientResult = clientReady.testingData(args.context);
@@ -133,11 +134,35 @@ describe('The TemplateService', function () {
                         const context = args.contexts[i];
                         const expectedValue = expected[i];
                         const extra = Object.assign({}, { jsonata: jsonata, libraries: { Handlebars: Handlebars } }, context.extra ?? {});
-                        const result = clientReady.evaluate(context.key, context.context, extra);
+                        const result = await clientReady.evaluate(context.key, context.context, extra);
                         expect(result).to.eql(expectedValue);
                     }
                 });
 
+            });
+        });
+
+        it('should encode JSONata expressions as inert data in generated client mappings', async function () {
+            const expression = '"\\"); globalThis.__jsonataInjected = true; (\\""';
+            const clientMapping = TemplateService.buildClientMapping([
+                { key: ['unsafe-jsonata'], kind: 'jsonata', value: expression },
+            ]);
+
+            expect(clientMapping).to.have.length(1);
+            expect(clientMapping[0].value).to.not.contain(expression);
+            expect(clientMapping[0].value).to.contain('atob(');
+
+            const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
+            const clientString = ejs.render(templateContent, { entries: clientMapping });
+
+            await simulateBrowserLoadingJsFile(clientString, async (path) => {
+                delete globalThis.__jsonataInjected;
+                const clientReady = require(path);
+                const extra = { jsonata: jsonata, libraries: { Handlebars: Handlebars } };
+                const result = await clientReady.evaluate(['unsafe-jsonata'], {}, extra);
+
+                expect(result).to.eql('"); globalThis.__jsonataInjected = true; ("');
+                expect(globalThis.__jsonataInjected).to.be.undefined;
             });
         });
     });
