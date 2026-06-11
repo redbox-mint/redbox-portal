@@ -20,7 +20,7 @@ import {
   FormExpressionsTargetValidationGroups,
   DynamicScriptResponse,
   toBoolean,
-  jsonataLibrary,
+  jsonataDecodeCompile,
   FormExpressionsTargetModelDisabled,
   FormExpressionsTargetFieldVisible,
   FormExpressionsTargetFieldDisabled,
@@ -200,7 +200,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         runtimeContext,
       };
 
-      return await compiledItems.evaluate(templateKey, context, { jsonata, libraries: jsonataLibrary });
+      return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
       return (event as { value?: unknown }).value;

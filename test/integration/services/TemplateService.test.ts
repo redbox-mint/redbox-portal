@@ -1,11 +1,10 @@
-import {jsonataLibrary} from "@researchdatabox/sails-ng-common";
+import {jsonataDecodeCompile} from "@researchdatabox/sails-ng-common";
 
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
 const Handlebars = require('handlebars');
-const jsonata = require('jsonata');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -62,8 +61,8 @@ describe('The TemplateService', function () {
     });
     describe('compile mapping', function () {
         const extraHandlebars = {libraries: { Handlebars: Handlebars}};
-        const extraJsonata = {libraries: jsonataLibrary};
-        const extraHandlebarsAndJsonata = {libraries: { Handlebars: Handlebars, ...jsonataLibrary}};
+        const extraJsonata = {libraries: {jsonata: jsonataDecodeCompile}};
+        const extraHandlebarsAndJsonata = {libraries: { Handlebars: Handlebars, jsonata: jsonataDecodeCompile}};
         const cases = [
             {
                 args: { inputs: [], contexts: [] },
@@ -72,10 +71,10 @@ describe('The TemplateService', function () {
             {
                 args: {
                     inputs: [
-                        { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!"},
+                        { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
                         { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" },
-                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)", extra: extraJsonata  },
-                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")", extra: extraJsonata  }
+                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")" },
                     ],
                     contexts: [
                         { key: ["test1"], context: { doesWhat: "testing" }, extra: extraHandlebars },
@@ -156,7 +155,6 @@ describe('The TemplateService', function () {
 
             expect(clientMapping).to.have.length(1);
             expect(clientMapping[0].value).to.not.contain(expression);
-            expect(clientMapping[0].value).to.contain('atob(');
 
             const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
             const clientString = ejs.render(templateContent, { entries: clientMapping });
@@ -164,8 +162,7 @@ describe('The TemplateService', function () {
             await simulateBrowserLoadingJsFile(clientString, async (path) => {
                 delete globalThis.__jsonataInjected;
                 const clientReady = require(path);
-                const extra = { jsonata: jsonata, libraries: { Handlebars: Handlebars } };
-                const result = await clientReady.evaluate(['unsafe-jsonata'], {}, extra);
+                const result = await clientReady.evaluate(['unsafe-jsonata'], {}, extraHandlebarsAndJsonata);
 
                 expect(result).to.eql('"); globalThis.__jsonataInjected = true; ("');
                 expect(globalThis.__jsonataInjected).to.be.undefined;

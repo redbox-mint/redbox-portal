@@ -1,5 +1,6 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
+import {decodeBase64, encodeBase64} from "./html-helpers";
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
@@ -43,9 +44,25 @@ export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: 
 }
 
 /**
- * helper object to provide the wrapped jsonata expression parsing.
+ * Prepare a jsonata expression to be transferred from server to client.
+ * @param expression The jsonata expression string.
  */
-export const jsonataLibrary = {jsonata: jsonataCompile};
+export function jsonataExpressionEncode(expression: string): string {
+  return encodeBase64(expression);
+}
+
+/**
+ * Provide an encoded JSONata expression string and return a compiled JSONata expression object.
+ *
+ * Registers the common custom functions that should be available everywhere.
+ *
+ * @param expressionEncoded The encoded expression string.
+ * @param options The compile options.
+ * @return compiled JSONata expression object
+ */
+export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  return jsonataCompile(decodeBase64(expressionEncoded), options);
+}
 
 /**
  * Provide a JSONata expression string and return a compiled JSONata expression object.
@@ -60,7 +77,7 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   const compiled = jsonata(expression, options);
 
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
-  compiled.registerFunction('eval', () => undefined);
+  compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
 
   // Register a function for formatting date time values.
   compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
