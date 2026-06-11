@@ -4,6 +4,7 @@ import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec'
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { FormComponentEventBus, FormComponentEventType } from '../form-state';
 
 describe('parseFreeTextDate', () => {
   it('should parse exact match for configured format', () => {
@@ -558,6 +559,61 @@ describe('DateInputComponent', () => {
     await fixture.whenStable();
 
     expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
+  });
+
+  it('should mark the form dirty when a date is selected from the datepicker', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_datepicker_dirty',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {},
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+    const eventBus = TestBed.inject(FormComponentEventBus) as FormComponentEventBus;
+    const emittedEvents: any[] = [];
+    const subscription = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe((event: unknown) => {
+      emittedEvents.push(event);
+    });
+
+    expect(formComponent.form?.dirty).toBeFalse();
+    expect(dateInputComp.model?.formControl?.dirty).toBeFalse();
+
+    spyOnProperty(dateInputComp.datepicker, 'isOpen').and.returnValue(true);
+    dateInputComp.onDocumentMouseDown({
+      target: {
+        closest: (selector: string) => selector === 'bs-datepicker-container, .bs-datepicker' ? {} : null,
+      },
+    } as unknown as MouseEvent);
+    dateInputComp.onDatepickerValueChange(new Date(Date.UTC(2026, 5, 10)));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
+    expect(dateInputComp.model?.formControl?.dirty).toBeTrue();
+    expect(formComponent.form?.dirty).toBeTrue();
+    const datepickerDirtyEvent = emittedEvents.find(
+      event => event.fieldId === 'date_test' && event.reason === 'datepicker.selection'
+    );
+    expect(datepickerDirtyEvent?.type).toBe(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST);
+    subscription.unsubscribe();
   });
 
   it('should not leave ignoreNextBlur stuck after icon-opened datepicker flow', async () => {

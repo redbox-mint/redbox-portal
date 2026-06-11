@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -16,6 +16,7 @@ import { mapMomentToLuxonFormat } from '@researchdatabox/sails-ng-common/dist/sr
 import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
+import { createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 
 function normalizeDateInputValue(value: unknown, parseDateOnlyIso: boolean = false): DateInputModelValueType | undefined {
   if (_isUndefined(value) || _isNull(value)) {
@@ -285,6 +286,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   public enableTimePickerDefault: boolean = false;
   private lastValidValue: Date | null = null;
   private ignoreNextBlur: boolean = false;
+  private datepickerSelectionInProgress: boolean = false;
+  private readonly eventBus = inject(FormComponentEventBus);
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
   @ViewChild('dateInputEl') dateInputEl!: ElementRef<HTMLInputElement>;
@@ -327,11 +330,31 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
   onDatepickerValueChange(dateValue: DateInputModelValueType): void {
     if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
+      const isDatepickerUserSelection = this.datepickerSelectionInProgress;
+
       this.lastValidValue = dateValue;
       if (!areDateInputValuesEqual(this.formControl?.value, dateValue)) {
         this.formControl?.setValue(dateValue, { emitEvent: true });
       }
+
+      if (isDatepickerUserSelection) {
+        this.requestFormDirty('datepicker.selection');
+        this.formControl?.markAsDirty();
+        this.formControl?.markAsTouched();
+      }
+
+      this.datepickerSelectionInProgress = false;
     }
+  }
+
+  private requestFormDirty(reason: string): void {
+    this.eventBus.publish(
+      createFormStatusDirtyRequestEvent({
+        fieldId: this.formFieldConfigName() || undefined,
+        sourceId: this.formFieldConfigName() || undefined,
+        reason,
+      })
+    );
   }
 
   private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
@@ -423,6 +446,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
     const target = event.target as HTMLElement | null;
     if (target?.closest('bs-datepicker-container, .bs-datepicker')) {
+      this.datepickerSelectionInProgress = true;
       // Only suppress the next blur if the input is currently focused.
       // If the input is already blurred (e.g. after clicking the calendar icon),
       // no blur event will fire to clear the flag, so it would stay stuck.
