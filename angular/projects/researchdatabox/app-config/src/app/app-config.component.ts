@@ -100,17 +100,23 @@ export class AppConfigComponent extends BaseComponent {
 
   private applyCheckboxType(fields: FormlyFieldConfig[]): void {
     for (const field of fields) {
-      if (field.type === 'checkbox' || field.type === 'boolean') {
-        field.type = 'app-config-checkbox';
-        field.wrappers = [];
-      }
-      if (field.fieldGroup) {
-        this.applyCheckboxType(field.fieldGroup);
-      }
-      const fieldArrayGroup = (field.fieldArray as FormlyFieldConfig | undefined)?.fieldGroup;
-      if (fieldArrayGroup) {
-        this.applyCheckboxType(fieldArrayGroup);
-      }
+      this.applyCheckboxTypeToField(field);
+    }
+  }
+
+  private applyCheckboxTypeToField(field: FormlyFieldConfig): void {
+    if (field.type === 'checkbox' || field.type === 'boolean') {
+      field.type = 'app-config-checkbox';
+      field.wrappers = [];
+    }
+    if (field.fieldGroup) {
+      this.applyCheckboxType(field.fieldGroup);
+    }
+    const fieldArray = field.fieldArray as FormlyFieldConfig | FormlyFieldConfig[] | undefined;
+    if (Array.isArray(fieldArray)) {
+      this.applyCheckboxType(fieldArray);
+    } else if (fieldArray) {
+      this.applyCheckboxTypeToField(fieldArray);
     }
   }
 

@@ -11,7 +11,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
           [id]="id"
           [formControl]="formControl"
           [formlyAttributes]="field">
-        <span>{{ props.label }}</span>
+        <span>{{ props.label || field.key }}</span>
         @if (props.required) {
           <span class="app-config-checkbox-required">*</span>
         }

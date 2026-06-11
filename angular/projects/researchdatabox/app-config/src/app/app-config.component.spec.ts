@@ -37,9 +37,20 @@ function findFieldByKey(fields: FormlyFieldConfig[] | undefined, key: string): F
       return nested;
     }
     if (field.fieldArray) {
-      const arrayNested = findFieldByKey((field.fieldArray as any).fieldGroup, key);
-      if (arrayNested) {
-        return arrayNested;
+      const fieldArray = field.fieldArray as FormlyFieldConfig | FormlyFieldConfig[];
+      if (Array.isArray(fieldArray)) {
+        const arrayNested = findFieldByKey(fieldArray, key);
+        if (arrayNested) {
+          return arrayNested;
+        }
+      } else {
+        if (fieldArray.key === key) {
+          return fieldArray;
+        }
+        const arrayNested = findFieldByKey(fieldArray.fieldGroup, key);
+        if (arrayNested) {
+          return arrayNested;
+        }
       }
     }
   }
@@ -186,6 +197,40 @@ describe('AppConfigComponent', () => {
     expect(checkboxLabel).toBeTruthy();
     expect(checkbox).toBeTruthy();
     expect(checkboxLabel.textContent).toContain('Enabled');
+  });
+
+  it('falls back to the field key when a checkbox label is missing', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'booleanWithoutTitle';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.debugElement.nativeElement;
+    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+
+    expect(checkboxLabel?.textContent).toContain('enabled');
+  });
+
+  it('applies the checkbox type to boolean array items', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    const fields: FormlyFieldConfig[] = [{
+      key: 'flags',
+      type: 'array',
+      fieldArray: {
+        type: 'boolean'
+      }
+    }];
+
+    (app as any).applyCheckboxType(fields);
+
+    const flagsFieldArray = fields[0].fieldArray as FormlyFieldConfig;
+    expect(flagsFieldArray?.type).toBe('app-config-checkbox');
+    expect(flagsFieldArray?.wrappers).toEqual([]);
   });
 
   it('applies menu editor type and hides showSearch for menu config', async () => {
@@ -472,6 +517,20 @@ export function getStubAppConfigService(recordData: any = {}) {
             categories: {
               mappingTable: []
             }
+          }
+        };
+      }
+      if (configKey === 'booleanWithoutTitle') {
+        return {
+          fieldOrder: ['enabled'],
+          schema: {
+            type: 'object',
+            properties: {
+              enabled: { type: 'boolean' }
+            }
+          },
+          model: {
+            enabled: true
           }
         };
       }
