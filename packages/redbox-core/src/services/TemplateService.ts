@@ -74,7 +74,7 @@ export namespace Services {
             if (jsonataExpr) {
               result.push({
                 key: input.key,
-                value: `(() => { const expression = jsonata(${JSON.stringify(jsonataExpr)}); expression.registerFunction("eval", () => undefined); return expression.evaluate(context, extra?.libraries); })();`,
+                value: `jsonata(${JSON.stringify(jsonataExpr)}).evaluate(context);`,
               });
             }
             break;
