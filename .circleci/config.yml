@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:20.11'
+      - image: 'cimg/node:20.19'
     resource_class: large
     steps:
       - checkout
@@ -57,7 +57,7 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:20.11'
+      - image: 'cimg/node:20.19'
     steps:
       - checkout
       - run:
