@@ -95,6 +95,12 @@ describe('JSONata helpers', function () {
     expect(actual).to.eql('2026');
   });
 
+  it('should not allow JSONata eval to run dynamic expressions on the server side', async function () {
+    const actual = await jsonataCompileAndEvaluate('$eval("1+1")', {});
+
+    expect(actual).to.be.undefined;
+  });
+
   it('should expose luxon date formatting to client-style JSONata library bindings', async function () {
     const actual = await jsonata('$luxonFormatDate(date, "yyyy")').evaluate({ date: '2026-06-10' }, jsonataLibrary);
 

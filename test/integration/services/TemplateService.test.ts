@@ -69,7 +69,8 @@ describe('The TemplateService', function () {
                     inputs: [
                         { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
                         { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" },
-                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" }
+                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")" }
                     ],
                     contexts: [
                         { key: ["test1"], context: { doesWhat: "testing" } },
@@ -77,6 +78,7 @@ describe('The TemplateService', function () {
                         { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: {} },
                         { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: {} },
                         { key: ["test3"], context: {}, extra: {} },
+                        { key: ["test4"], context: {}, extra: {} },
                     ]
                 },
                 expected: [
@@ -85,22 +87,26 @@ describe('The TemplateService', function () {
                     24,
                     237,
                     false,
+                    undefined,
                 ],
             },
             {
                 args: {
                     inputs: [
                         { key: ['test1'], kind: "jsonata", value: "$sum(example.value)" },
-                        { key: ['test2'], kind: "jsonata", value: "$exists($jsonata)" }
+                        { key: ['test2'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test3'], kind: "jsonata", value: "$eval(\"1+1\")" }
                     ],
                     contexts: [
                         { key: ["test1"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: { jsonata: { default: jsonata } } },
                         { key: ["test2"], context: {}, extra: { jsonata: { default: jsonata } } },
+                        { key: ["test3"], context: {}, extra: { jsonata: { default: jsonata } } },
                     ]
                 },
                 expected: [
                     24,
                     false,
+                    undefined,
                 ],
             },
         ];

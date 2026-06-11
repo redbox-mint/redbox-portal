@@ -128,6 +128,7 @@ describe('TemplateService', function () {
       const result = TemplateService.buildClientMapping(inputs);
 
       expect(result[0].value).to.include('jsonata(');
+      expect(result[0].value).to.include('registerFunction("eval"');
       expect(result[0].value).to.include('evaluate(context, extra?.libraries)');
     });
 
