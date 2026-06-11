@@ -127,9 +127,12 @@ describe('TemplateService', function () {
 
       const result = TemplateService.buildClientMapping(inputs);
 
-      expect(result[0].value).to.include('jsonata(');
-      expect(result[0].value).to.include('registerFunction("eval"');
-      expect(result[0].value).to.include('evaluate(context, extra?.libraries)');
+      expect(result).to.have.length(1);
+      expect(result[0].value).to.include('jsonata("');
+      expect(result[0].value).to.include('").evaluate(context);');
+      expect(result[0].value).to.not.include('$helper');
+      expect(result[0].value).to.not.include('field1');
+      expect(result[0].value).to.not.include('name');
     });
 
     it('should build mapping for Handlebars inputs', function () {
