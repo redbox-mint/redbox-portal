@@ -327,20 +327,10 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
   onDatepickerValueChange(dateValue: DateInputModelValueType): void {
     if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
-      if (!this.robustParsing) {
-        const luxonFmt = mapMomentToLuxonFormat(this.dateFormat);
-        const visibleValue = this.dateInputEl?.nativeElement?.value;
-        const formattedValue = DateTime.fromJSDate(dateValue, { zone: 'utc' }).toFormat(luxonFmt);
-        if (visibleValue && visibleValue !== formattedValue) {
-          return;
-        }
-      }
-
       this.lastValidValue = dateValue;
       if (!areDateInputValuesEqual(this.formControl?.value, dateValue)) {
         this.formControl?.setValue(dateValue, { emitEvent: true });
       }
-      this.onDateChange(dateValue);
     }
   }
 
@@ -405,7 +395,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
       const matchesConfiguredFormat = configuredDate.isValid && configuredDate.toFormat(luxonFmt) === rawText;
 
       if (!matchesConfiguredFormat) {
-        this.formControl?.setValue(rawText as unknown as DateInputModelValueType, { emitEvent: false });
+        this.formControl?.setValue(rawText as unknown as DateInputModelValueType, { emitEvent: false, emitModelToViewChange: false });
         inputEl.value = rawText;
       }
       return;
@@ -433,7 +423,12 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
     const target = event.target as HTMLElement | null;
     if (target?.closest('bs-datepicker-container, .bs-datepicker')) {
-      this.ignoreNextBlur = true;
+      // Only suppress the next blur if the input is currently focused.
+      // If the input is already blurred (e.g. after clicking the calendar icon),
+      // no blur event will fire to clear the flag, so it would stay stuck.
+      if (this.dateInputEl?.nativeElement === document.activeElement) {
+        this.ignoreNextBlur = true;
+      }
     }
   }
 

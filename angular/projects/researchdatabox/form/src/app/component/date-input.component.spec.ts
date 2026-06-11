@@ -545,6 +545,7 @@ describe('DateInputComponent', () => {
     const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
     const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
 
+    inputElement.focus();
     spyOnProperty(dateInputComp.datepicker, 'isOpen').and.returnValue(true);
     dateInputComp.onDocumentMouseDown({
       target: {
@@ -556,6 +557,94 @@ describe('DateInputComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
+  });
+
+  it('should not leave ignoreNextBlur stuck after icon-opened datepicker flow', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_icon_blur',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: new Date('2026-06-09T00:00:00Z'),
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {},
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const inputElement = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+
+    spyOnProperty(dateInputComp.datepicker, 'isOpen').and.returnValue(true);
+
+    // Simulate the icon-opened flow: the input blurs before the datepicker opens,
+    // so when the user later clicks a date the input is already unfocused.
+    dateInputComp.onDocumentMouseDown({
+      target: {
+        closest: (selector: string) => selector === 'bs-datepicker-container, .bs-datepicker' ? {} : null,
+      },
+    } as unknown as MouseEvent);
+
+    dateInputComp.onDatepickerValueChange(new Date(Date.UTC(2026, 5, 10)));
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
+
+    // A subsequent manual blur should still be processed.
+    inputElement.value = '2026/06/11';
+    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    inputElement.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 11)));
+  });
+
+  it('should accept datepicker selection when robustParsing is disabled', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_datepicker_non_robust',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'date_test',
+          model: {
+            class: 'DateInputModel',
+            config: {
+              value: new Date('2025-08-10T10:00:00Z'),
+            },
+          },
+          component: {
+            class: 'DateInputComponent',
+            config: {
+              robustParsing: false,
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const dateInputDebug = fixture.debugElement.query(By.directive(DateInputComponent));
+    const dateInputComp = dateInputDebug.componentInstance as DateInputComponent;
+
+    dateInputComp.onDatepickerValueChange(new Date(Date.UTC(2026, 5, 10)));
     expect(dateInputComp.model?.formControl?.value).toEqual(new Date(Date.UTC(2026, 5, 10)));
   });
 });
