@@ -6,6 +6,7 @@ import type {ValidatedApiRouteRequest} from './api-routes/validation';
 import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 
 // passport import type is to be able to access 'Express.AuthenticatedRequest' from '@types/passport'.
+// oxlint-disable-next-line eslint/no-unused-vars
 import type * as passportType from 'passport';
 
 

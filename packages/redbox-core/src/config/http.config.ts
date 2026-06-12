@@ -19,7 +19,6 @@ import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 import {requestChronicle} from "../middleware/requestChronicle";
 import {RequestChronicleHelper} from "../utilities/RequestChronicle";
-import {UserModel} from "../model";
 import {consoleLogger} from "../Logger";
 
 // Declare Sails and its config structure
