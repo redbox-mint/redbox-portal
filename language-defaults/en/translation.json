@@ -1430,5 +1430,10 @@
   "@integration-status-empty": "No integration activity recorded for this record yet.",
   "@integration-status-name-doi": "DOI (DataCite)",
   "@integration-status-name-figshare": "Figshare",
-  "@integration-status-keyresult-doi": "Draft DOI minted:"
+  "@integration-status-keyresult-doi": "Draft DOI minted:",
+  "@integration-status-keyresult-figshare": "Figshare Article ID:",
+  "@integration-status-timestamp-started": "Started {{date}}",
+  "@integration-status-timestamp-completed": "Completed {{date}}",
+  "@integration-status-timestamp-completed-with-duration": "Completed {{date}} (in {{seconds}}s)",
+  "@integration-status-error": "Failed to load integration status."
 }

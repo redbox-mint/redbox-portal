@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal, OnDestroy } from '@angular
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { IntegrationStatusComponentName } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
-import { RecordService, IntegrationStatusItem } from '@researchdatabox/portal-ng-common';
+import { RecordService, IntegrationStatusItem, TranslationService } from '@researchdatabox/portal-ng-common';
 
 @Component({
   selector: 'redbox-form-integration-status',
@@ -18,7 +18,14 @@ import { RecordService, IntegrationStatusItem } from '@researchdatabox/portal-ng
             </span>
           }
         </div>
-        @if (integrations().length === 0) {
+        @if (hasError()) {
+          <div class="card-body py-2">
+            <p class="text-danger rb-int-meta mb-0">
+              <i class="fa fa-exclamation-circle fa-fw" aria-hidden="true"></i>
+              {{ '@integration-status-error' | i18next }}
+            </p>
+          </div>
+        } @else if (integrations().length === 0) {
           <div class="card-body py-2">
             <p class="text-muted rb-int-meta mb-0">
               <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
@@ -30,7 +37,7 @@ import { RecordService, IntegrationStatusItem } from '@researchdatabox/portal-ng
             @for (item of integrations(); track item.traceId) {
               <li class="list-group-item">
                 <div class="d-flex align-items-center gap-3">
-                  <span class="badge" [ngClass]="badgeClass(item.status)" rb-int-badge role="status">
+                  <span class="badge rb-int-badge" [ngClass]="badgeClass(item.status)" role="status">
                     @if (item.status === 'started') {
                       <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
                     } @else if (item.status === 'success') {
@@ -49,6 +56,12 @@ import { RecordService, IntegrationStatusItem } from '@researchdatabox/portal-ng
                   <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
                     <strong>{{ '@integration-status-keyresult-doi' | i18next }}</strong>
                     <a href="https://doi.org/{{doi}}" target="_blank" rel="noopener noreferrer" class="ms-2">{{doi}} <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
+                  </div>
+                }
+                @if (getKeyResult(item, 'articleId'); as articleId) {
+                  <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                    <strong>{{ '@integration-status-keyresult-figshare' | i18next }}</strong>
+                    <span class="ms-2">{{articleId}}</span>
                   </div>
                 }
                 @if (item.message && item.status === 'failed') {
@@ -70,11 +83,13 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   public override logName = IntegrationStatusComponentName;
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly recordService = inject(RecordService);
+  private readonly translationService = inject(TranslationService);
 
   protected readonly oid = signal<string | null>(null);
   protected readonly integrations = signal<IntegrationStatusItem[]>([]);
   protected readonly isPolling = signal(false);
   protected readonly hasError = signal(false);
+  protected readonly gracePollActive = signal(false);
   private pollTimerId: number | null = null;
   private pollAttempts = 0;
   private saveStatusTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -120,7 +135,13 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         if (eventOid) {
           this.oid.set(eventOid);
         }
-        this.saveStatusTimeout = setTimeout(() => this.fetchStatus(), 1500);
+        if (this.saveStatusTimeout !== null) {
+          clearTimeout(this.saveStatusTimeout);
+        }
+        this.saveStatusTimeout = setTimeout(() => {
+          this.gracePollActive.set(true);
+          this.fetchStatus();
+        }, 1500);
       }
     });
   }
@@ -153,7 +174,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.hasError.set(false);
 
       const hasInFlight = response.integrations.some(i => i.status === 'started');
-      if (hasInFlight) {
+      if (hasInFlight || this.gracePollActive()) {
         this.startPolling();
       } else {
         this.stopPolling();
@@ -186,6 +207,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.pollTimerId = null;
     }
     this.isPolling.set(false);
+    this.gracePollActive.set(false);
   }
 
   protected badgeClass(status: string): string {
@@ -224,20 +246,20 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected timestampText(item: IntegrationStatusItem): string {
     const started = item.startedAt ? new Date(item.startedAt) : null;
     const completed = item.completedAt ? new Date(item.completedAt) : null;
+    const ts = this.translationService;
 
     if (item.status === 'started' && started) {
-      return 'Started ' + started.toLocaleString();
+      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString() });
     }
     if (completed) {
-      let text = 'Completed ' + completed.toLocaleString();
       if (item.durationMs != null) {
         const secs = (item.durationMs / 1000).toFixed(1);
-        text += ' (in ' + secs + 's)';
+        return ts.t('@integration-status-timestamp-completed-with-duration', { date: completed.toLocaleString(), seconds: secs });
       }
-      return text;
+      return ts.t('@integration-status-timestamp-completed', { date: completed.toLocaleString() });
     }
     if (started) {
-      return 'Started ' + started.toLocaleString();
+      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString() });
     }
     return '';
   }

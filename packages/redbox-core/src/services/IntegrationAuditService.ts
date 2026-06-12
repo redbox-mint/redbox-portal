@@ -686,8 +686,14 @@ export namespace Services {
         if (!_.isEmpty(rs['doi'])) {
           keyResult['doi'] = rs['doi'];
         }
-        if (!_.isEmpty(rs['figshareArticleId'])) {
-          keyResult['figshareArticleId'] = rs['figshareArticleId'];
+        if (!_.isEmpty(rs['data']) && _.isPlainObject(rs['data'])) {
+          const dataId = (rs['data'] as Record<string, unknown>)['id'];
+          if (!_.isEmpty(dataId)) {
+            keyResult['doi'] = dataId;
+          }
+        }
+        if (!_.isEmpty(rs['articleId'])) {
+          keyResult['articleId'] = rs['articleId'];
         }
         if (!_.isEmpty(keyResult)) {
           return keyResult;
@@ -732,8 +738,17 @@ export namespace Services {
         };
       });
 
+      let filteredTraces = traces;
+      if (!_.isEmpty(params.integrationName)) {
+        const rawFilter = String(params.integrationName).trim();
+        const names = rawFilter.split(',').map(n => n.trim().toLowerCase()).filter(Boolean);
+        if (names.length > 0) {
+          filteredTraces = traces.filter(trace => names.includes((trace.integrationName ?? '').toLowerCase()));
+        }
+      }
+
       const grouped = new Map<string, IntegrationStatusSummary>();
-      traces.forEach(trace => {
+      filteredTraces.forEach(trace => {
         const name = trace.integrationName;
         const existing = grouped.get(name);
         if (!existing || (this.getRowSortTimestamp({ startedAt: trace.startedAt } as Record<string, unknown>) > this.getRowSortTimestamp({ startedAt: existing.startedAt } as Record<string, unknown>))) {

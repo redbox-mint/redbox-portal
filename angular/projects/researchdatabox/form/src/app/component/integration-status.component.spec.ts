@@ -5,6 +5,7 @@ import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec'
 import { IntegrationStatusComponent } from './integration-status.component';
 import { SimpleInputComponent } from './simple-input.component';
 import { RecordService, IntegrationStatusItem } from '@researchdatabox/portal-ng-common';
+import { FormComponentEventBus, FormComponentEventType } from '../form-state';
 
 let formConfig: FormConfigFrame;
 
@@ -81,5 +82,83 @@ describe('IntegrationStatusComponent', () => {
 
     const emptyText = fixture.nativeElement.querySelector('.card-body');
     expect(emptyText).toBeTruthy();
+  });
+
+  it('should fetch status on save success with oid', async () => {
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(
+      Promise.resolve({ integrations: [{ integrationName: 'doi', status: 'success', startedAt: new Date().toISOString(), traceId: 't1' }] })
+    );
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+
+    const testOid = 'oid-save-test';
+    eventBus.emit({ type: FormComponentEventType.FORM_SAVE_SUCCESS, oid: testOid } as any);
+
+    await new Promise(resolve => setTimeout(resolve, 1600));
+
+    expect(mockRecordService.getRecordIntegrationStatus).toHaveBeenCalled();
+  });
+
+  it('should start grace polling on save success even when no items are in flight', fakeAsync(() => {
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(
+      Promise.resolve({ integrations: [] })
+    );
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance;
+    const eventBus = TestBed.inject(FormComponentEventBus);
+
+    component.oid.set('test-oid');
+    eventBus.emit({ type: FormComponentEventType.FORM_SAVE_SUCCESS, oid: 'test-oid' } as any);
+
+    tick(1600);
+
+    expect(mockRecordService.getRecordIntegrationStatus).toHaveBeenCalled();
+    expect(component.gracePollActive()).toBe(true);
+
+    tick(5000);
+    expect(mockRecordService.getRecordIntegrationStatus).toHaveBeenCalledTimes(2);
+  }));
+
+  it('should stop polling after maxPollAttempts', fakeAsync(() => {
+    let callCount = 0;
+    mockRecordService.getRecordIntegrationStatus.and.callFake(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({ integrations: [{ integrationName: 'doi', status: 'started', startedAt: new Date().toISOString(), traceId: 't1' }] });
+      }
+      return Promise.resolve({ integrations: [] });
+    });
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance;
+    component.oid.set('test-oid');
+    component.fetchStatus();
+
+    tick(0);
+
+    expect(component.isPolling()).toBe(true);
+
+    for (let i = 0; i < 65; i++) {
+      tick(5000);
+    }
+
+    expect(component.isPolling()).toBe(false);
+    expect(callCount).toBeLessThanOrEqual(62);
+  }));
+
+  it('should show error state on fetch failure', async () => {
+    mockRecordService.getRecordIntegrationStatus.and.rejectWith(new Error('network error'));
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const errorText = fixture.nativeElement.querySelector('.text-danger');
+    expect(errorText).toBeTruthy();
   });
 });

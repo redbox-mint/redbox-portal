@@ -1,0 +1,36 @@
+meta {
+  name: Get record integration status data - Unauthorised
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/record/integrationStatus/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token:
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.5
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/record/viewAudit/{{dmpOid}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 403", function () {
+      expect(res.getStatus()).to.equal(403);
+  });
+}
