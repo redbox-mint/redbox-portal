@@ -199,7 +199,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     // itself, and this.model is the binding object (NOT the parent). The FormGroup
     // value is the source of truth; fall back to the model object directly.
     const controlValue = this.formControl?.value as ValueBindingValue | undefined;
-    if (controlValue && typeof controlValue === 'object') {
+    if (controlValue && typeof controlValue === 'object' && Object.keys(controlValue).length > 0) {
       return controlValue;
     }
     return (this.model as ValueBindingValue | undefined) ?? {};
@@ -278,9 +278,9 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
         setValue?: (val: unknown) => void;
       };
       if (typeof control.patchValue === 'function') {
-        control.patchValue(patch);
+        control.patchValue(patch, { emitEvent: false });
       } else if (typeof control.setValue === 'function') {
-        control.setValue(patch);
+        control.setValue(patch, { emitEvent: false });
       }
       if (markChanged) {
         this.formControl.markAsDirty();
