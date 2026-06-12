@@ -9,6 +9,7 @@ import { SimpleInputComponentName } from '../../src/config/component/simple-inpu
 import { GroupFieldComponentName } from '../../src/config/component/group.outline';
 import { DropdownInputComponentName } from '../../src/config/component/dropdown-input.outline';
 import { CheckboxInputComponentName } from '../../src/config/component/checkbox-input.outline';
+import { TypeaheadInputComponentName } from '../../src/config/component/typeahead-input.outline';
 import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
@@ -207,6 +208,87 @@ describe('FormOverride reusable expansion', () => {
     expect(result).to.equal(
       '{{#if (get content "research_themes" "")}}{{#if (isArray (get content "research_themes" ""))}}<ul>{{#each (get content "research_themes" "")}}{{#if (eq this "tropicalEcoSystems")}}<li data-value="{{this}}">{{t "Tropical Eco Systems"}}</li>{{else}}{{#if (eq this "industriesEconomies")}}<li data-value="{{this}}">{{t "Industries and Economies"}}</li>{{else}}<li>{{this}}</li>{{/if}}{{/if}}{{/each}}</ul>{{else}}{{#if (eq (get content "research_themes" "") "tropicalEcoSystems")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Tropical Eco Systems"}}</span>{{else}}{{#if (eq (get content "research_themes" "") "industriesEconomies")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Industries and Economies"}}</span>{{else}}<span>{{default (get content "research_themes" "") ""}}</span>{{/if}}{{/if}}{{/if}}{{/if}}'
     );
+  });
+
+  it('renders typeahead leaf values using the configured label field', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: TypeaheadInputComponentName,
+          config: {
+            labelField: 'dc_description',
+            valueField: 'value',
+          },
+        },
+      } as never,
+      'content',
+      ['fundingSource']
+    );
+
+    expect(result).to.contain('(get (get content "fundingSource" "") "dc_description" "")');
+    expect(result).to.contain('{{{renderMetadataValue (get content "fundingSource" "")}}}');
+    expect(result).to.not.equal('{{default (get content "fundingSource" "") ""}}');
+  });
+
+  it('renders repeatable typeahead objects without stringifying them', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).generateTemplateForComponent(
+      {
+        name: 'foaf:fundedBy_foaf:Agent',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: TypeaheadInputComponentName,
+                config: {
+                  labelField: 'dc_description',
+                  valueField: 'value',
+                },
+              },
+            },
+          },
+        },
+      } as never,
+      'content'
+    );
+
+    expect(result).to.contain('(get this "dc_description" "")');
+    expect(result).to.contain('{{{renderMetadataValue this}}}');
+    expect(result).to.not.contain('{{default this ""}}');
+  });
+
+  it('renders repeatable content objects using display fields after child transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).generateTemplateForComponent(
+      {
+        name: 'foaf:fundedBy_vivo:Grant',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: ContentComponentName,
+                config: {
+                  template: '<span>{{content}}</span>',
+                },
+              },
+            },
+          },
+        },
+      } as never,
+      'content'
+    );
+
+    expect(result).to.contain('(get this "dc_title" "")');
+    expect(result).to.contain('{{{renderMetadataValue this}}}');
+    expect(result).to.not.contain('{{default this ""}}');
   });
 
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {

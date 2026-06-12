@@ -1343,9 +1343,9 @@ export class FormOverride {
         trimmedTemplate === '{{{content}}}' ||
         trimmedTemplate === '<span>{{content}}</span>'
       ) {
-        return `{{default ${expression} ""}}`;
+        return this.renderDisplayValue(expression);
       }
-      return `{{default ${expression} ""}}`;
+      return this.renderDisplayValue(expression);
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(
@@ -1356,6 +1356,9 @@ export class FormOverride {
     }
     if (className === TextAreaComponentName) {
       return `<span>{{{plaintextToHtml ${expression}}}}</span>`;
+    }
+    if (className === TypeaheadInputComponentName) {
+      return this.renderTypeaheadValue(expression, component);
     }
     if (
       className === DropdownInputComponentName ||
@@ -1369,6 +1372,53 @@ export class FormOverride {
       return this.renderOptionSingleValue(expression, options);
     }
     return `{{default ${expression} ""}}`;
+  }
+
+  private renderTypeaheadValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const arrayItem = this.renderTypeaheadScalarValue('this', component);
+    const singleValue = this.renderTypeaheadScalarValue(expression, component);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderTypeaheadScalarValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const fields = this.getTypeaheadDisplayFields(component);
+    return this.renderDisplayScalarValue(expression, fields);
+  }
+
+  private renderDisplayValue(expression: string): string {
+    const fields = this.getCommonDisplayFields();
+    const arrayItem = this.renderDisplayScalarValue('this', fields);
+    const singleValue = this.renderDisplayScalarValue(expression, fields);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderDisplayScalarValue(expression: string, fields: string[]): string {
+    const objectBranches = fields.map(field =>
+      `{{#if (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}` +
+      `<span>{{{plaintextToHtml (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}}</span>` +
+      '{{else}}'
+    ).join('');
+
+    return `{{#if (isObject ${expression})}}${objectBranches}` +
+      `{{{renderMetadataValue ${expression}}}}${'{{/if}}'.repeat(fields.length)}` +
+      `{{else}}<span>{{{plaintextToHtml ${expression}}}}</span>{{/if}}`;
+  }
+
+  private getTypeaheadDisplayFields(component: AllFormComponentDefinitionOutlines): string[] {
+    const componentConfig =
+      component?.component?.config as { labelField?: string; valueField?: string } | undefined;
+    const fields = [
+      componentConfig?.labelField,
+      ...this.getCommonDisplayFields(),
+      componentConfig?.valueField,
+    ];
+    return Array.from(
+      new Set(fields.filter((field): field is string => typeof field === 'string' && field.trim().length > 0))
+    );
+  }
+
+  private getCommonDisplayFields(): string[] {
+    return ['label', 'name', 'title', 'dc_title', 'dc_description', 'value'];
   }
 
   private getOptionLabelPairs(component: AllFormComponentDefinitionOutlines): Array<{ value: string; label: string }> {
