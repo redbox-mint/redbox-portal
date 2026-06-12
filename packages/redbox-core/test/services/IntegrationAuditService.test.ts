@@ -611,18 +611,30 @@ describe('IntegrationAuditService', function () {
   });
 
   it('extractKeyResult reads doi from responseSummary.data.id (DataCite JSON:API mint shape)', async function () {
-    (global as any).sails.config.environment = 'integrationtest';
-    sinon.stub(trace, 'getActiveSpan').returns(undefined);
-
-    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
-      integrationName: IntegrationAuditName.doi,
-    });
-    service.completeAudit(ctx, {
-      message: 'DataCite create DOI request completed.',
-      responseSummary: { data: { id: '10.1234/mint-test' } },
-    });
-
-    await new Promise((resolve) => setImmediate(resolve));
+    mockStorageService.countIntegrationAudit.resolves(2);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-doi',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:01.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'createDoiRequest',
+        status: 'success',
+        traceId: 'trace-doi',
+        spanId: 'span-2',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:02.000Z',
+        responseSummary: { data: { id: '10.1234/mint-test' } },
+      },
+    ]);
 
     const statusResult = await service.getStatusSummary({ oid: 'oid-1' } as any);
     expect(statusResult).to.have.length(1);
@@ -630,18 +642,20 @@ describe('IntegrationAuditService', function () {
   });
 
   it('extractKeyResult reads articleId from responseSummary (figshare shape)', async function () {
-    (global as any).sails.config.environment = 'integrationtest';
-    sinon.stub(trace, 'getActiveSpan').returns(undefined);
-
-    const ctx = service.startAudit('oid-1', IntegrationAuditAction.syncRecordWithFigshare, {
-      integrationName: IntegrationAuditName.figshare,
-    });
-    service.completeAudit(ctx, {
-      message: 'Figshare sync completed.',
-      responseSummary: { articleId: '98765', phases: ['metadata sync'] },
-    });
-
-    await new Promise((resolve) => setImmediate(resolve));
+    mockStorageService.countIntegrationAudit.resolves(1);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-fig',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:01.000Z',
+        responseSummary: { articleId: '98765', phases: ['metadata sync'] },
+      },
+    ]);
 
     const statusResult = await service.getStatusSummary({ oid: 'oid-1' } as any);
     expect(statusResult).to.have.length(1);

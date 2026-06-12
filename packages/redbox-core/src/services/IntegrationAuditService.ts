@@ -724,7 +724,14 @@ export namespace Services {
 
       const traces = Array.from(rowsByTrace.entries()).map(([traceId, rows]) => {
         const built = this.buildTraceRecord(traceId, rows);
-        const newestRow = [...rows].sort((left, right) => this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left))[0] ?? {};
+        const newestRow = [...rows].sort((left, right) => {
+          const tsDiff = this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left);
+          if (tsDiff !== 0) return tsDiff;
+          const statusDiff = this.getStatusRank(right['status']) - this.getStatusRank(left['status']);
+          if (statusDiff !== 0) return statusDiff;
+          return this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+            - this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
+        })[0] ?? {};
         return {
           traceId,
           integrationName: built.integrationName ?? this.getString(newestRow['integrationName']) ?? '',

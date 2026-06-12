@@ -6,6 +6,14 @@ import { SimpleInputComponent } from './simple-input.component';
 import { RecordService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus, createFormSaveSuccessEvent } from '../form-state';
 
+const componentConfig = {
+  name: 'integration_status',
+  component: {
+    class: 'IntegrationStatusComponent',
+    config: { integrationNames: ['doi'], pollIntervalMs: 100, maxPollAttempts: 60 }
+  }
+};
+
 let formConfig: FormConfigFrame;
 
 describe('IntegrationStatusComponent', () => {
@@ -38,25 +46,11 @@ describe('IntegrationStatusComponent', () => {
           name: 'text_1_event',
           model: {
             class: 'SimpleInputModel',
-            config: {
-              value: 'hello world default!'
-            }
+            config: { value: 'hello world default!' }
           },
-          component: {
-            class: 'SimpleInputComponent'
-          }
+          component: { class: 'SimpleInputComponent' }
         },
-        {
-          name: 'integration_status',
-          component: {
-            class: 'IntegrationStatusComponent',
-            config: {
-              integrationNames: ['doi'],
-              pollIntervalMs: 100,
-              maxPollAttempts: 60
-            }
-          }
-        }
+        componentConfig
       ]
     };
   });
@@ -92,10 +86,15 @@ describe('IntegrationStatusComponent', () => {
     const component = fixture.componentInstance as any;
     const eventBus = TestBed.inject(FormComponentEventBus);
 
+    component.componentDefinition = componentConfig;
     component.oid.set('test-oid');
-    eventBus.publish(createFormSaveSuccessEvent({ oid: 'test-oid' }));
+    fixture.detectChanges();
 
-    tick(2000);
+    eventBus.publish(createFormSaveSuccessEvent({ oid: 'test-oid' }));
+    fixture.detectChanges();
+
+    tick(1550);
+    fixture.detectChanges();
 
     expect(mockRecordService.getRecordIntegrationStatus).toHaveBeenCalled();
   }));
@@ -109,10 +108,15 @@ describe('IntegrationStatusComponent', () => {
     const component = fixture.componentInstance as any;
     const eventBus = TestBed.inject(FormComponentEventBus);
 
+    component.componentDefinition = componentConfig;
     component.oid.set('test-oid');
-    eventBus.publish(createFormSaveSuccessEvent({ oid: 'test-oid' }));
+    fixture.detectChanges();
 
-    tick(2000);
+    eventBus.publish(createFormSaveSuccessEvent({ oid: 'test-oid' }));
+    fixture.detectChanges();
+
+    tick(1550);
+    fixture.detectChanges();
 
     expect(component.gracePollActive()).toBe(true);
     expect(mockRecordService.getRecordIntegrationStatus).toHaveBeenCalled();
@@ -125,16 +129,21 @@ describe('IntegrationStatusComponent', () => {
 
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
+
+    component.componentDefinition = componentConfig;
     component.oid.set('test-oid');
     component.graceRemaining = 1;
     component.gracePollActive.set(true);
-    component.fetchStatus();
+    fixture.detectChanges();
 
+    component.fetchStatus();
     tick(0);
+    fixture.detectChanges();
 
     expect(component.isPolling()).toBe(true);
 
     tick(300);
+    fixture.detectChanges();
 
     expect(component.isPolling()).toBe(false);
   }));
@@ -151,12 +160,16 @@ describe('IntegrationStatusComponent', () => {
 
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
+
+    component.componentDefinition = componentConfig;
     component.oid.set('test-oid');
     component.graceRemaining = 3;
     component.gracePollActive.set(true);
-    component.fetchStatus();
+    fixture.detectChanges();
 
+    component.fetchStatus();
     tick(200);
+    fixture.detectChanges();
 
     expect(component.gracePollActive()).toBe(false);
     expect(component.graceRemaining).toBe(0);
@@ -168,10 +181,14 @@ describe('IntegrationStatusComponent', () => {
 
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
+
+    component.componentDefinition = componentConfig;
     component.oid.set('test-oid');
+    fixture.detectChanges();
 
     component.fetchStatus();
     tick(0);
+    fixture.detectChanges();
 
     expect(component.hasError()).toBe(true);
   }));
