@@ -29,6 +29,67 @@
   vertical-align: middle;
 }
 
+.rb-form-host .fa,
+.rb-form-host .fas,
+.rb-form-host .far,
+.rb-form-host .fal,
+.rb-form-host .fab,
+.rb-form-host .fa-solid,
+.rb-form-host .fa-regular,
+.rb-form-host .fa-brands,
+.rb-form-host [class^="fa-"],
+.rb-form-host [class*=" fa-"] {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.rb-form-host a:hover .fa,
+.rb-form-host a:hover .fas,
+.rb-form-host a:hover .far,
+.rb-form-host a:hover .fal,
+.rb-form-host a:hover .fab,
+.rb-form-host a:hover .fa-solid,
+.rb-form-host a:hover .fa-regular,
+.rb-form-host a:hover .fa-brands,
+.rb-form-host a:hover [class^="fa-"],
+.rb-form-host a:hover [class*=" fa-"],
+.rb-form-host a:focus .fa,
+.rb-form-host a:focus .fas,
+.rb-form-host a:focus .far,
+.rb-form-host a:focus .fal,
+.rb-form-host a:focus .fab,
+.rb-form-host a:focus .fa-solid,
+.rb-form-host a:focus .fa-regular,
+.rb-form-host a:focus .fa-brands,
+.rb-form-host a:focus [class^="fa-"],
+.rb-form-host a:focus [class*=" fa-"] {
+  text-decoration: none;
+}
+
+.rb-form-host .fa::before,
+.rb-form-host .fas::before,
+.rb-form-host .far::before,
+.rb-form-host .fal::before,
+.rb-form-host .fab::before,
+.rb-form-host .fa-solid::before,
+.rb-form-host .fa-regular::before,
+.rb-form-host .fa-brands::before,
+.rb-form-host [class^="fa-"]::before,
+.rb-form-host [class*=" fa-"]::before {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.rb-form-host .rb-form-icon-link:hover,
+.rb-form-host .rb-form-icon-link:focus {
+  text-decoration: none;
+}
+
+.rb-form-host .rb-form-icon-link:hover .rb-form-icon-link__text,
+.rb-form-host .rb-form-icon-link:focus .rb-form-icon-link__text {
+  text-decoration: underline;
+}
+
 .rb-form-host .rb-form-rich-text-content table {
   width: auto;
   max-width: 100%;
