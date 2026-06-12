@@ -80,6 +80,12 @@
   text-decoration: none;
 }
 
+.rb-form-host .rb-form-icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
 .rb-form-host .rb-form-icon-link:hover,
 .rb-form-host .rb-form-icon-link:focus {
   text-decoration: none;
