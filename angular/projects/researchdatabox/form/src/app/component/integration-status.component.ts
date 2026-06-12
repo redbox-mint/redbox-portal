@@ -254,19 +254,20 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     const started = item.startedAt ? new Date(item.startedAt) : null;
     const completed = item.completedAt ? new Date(item.completedAt) : null;
     const ts = this.translationService;
+    const noEscape = { interpolation: { escapeValue: false } };
 
     if (item.status === 'started' && started) {
-      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString() });
+      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString(), ...noEscape });
     }
     if (completed) {
       if (item.durationMs != null) {
         const secs = (item.durationMs / 1000).toFixed(1);
-        return ts.t('@integration-status-timestamp-completed-with-duration', { date: completed.toLocaleString(), seconds: secs });
+        return ts.t('@integration-status-timestamp-completed-with-duration', { date: completed.toLocaleString(), seconds: secs, ...noEscape });
       }
-      return ts.t('@integration-status-timestamp-completed', { date: completed.toLocaleString() });
+      return ts.t('@integration-status-timestamp-completed', { date: completed.toLocaleString(), ...noEscape });
     }
     if (started) {
-      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString() });
+      return ts.t('@integration-status-timestamp-started', { date: started.toLocaleString(), ...noEscape });
     }
     return '';
   }
