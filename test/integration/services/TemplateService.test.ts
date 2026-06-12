@@ -155,11 +155,17 @@ describe('The TemplateService', function () {
                           const result = await clientReady.evaluate(context.key, context.context, extra);
                           expect(result).to.eql(expectedValue);
                         } catch (err) {
-                          if (err instanceof Error && expectedValue instanceof Error) {
+                          const errObj: Record<string, unknown> = (err as Record<string, unknown>) ?? {};
+                          if (errObj.message && expectedValue instanceof Error) {
                             expect(err.message).to.eql(expectedValue.message);
                           } else {
-                            expect.fail(`Threw unexpected error '${err}' expected '${expectedValue}': ${JSON.stringify({
-                              'typeof': typeof err, 'error': err, 'errorString': err?.toString(),
+                            expect.fail(`Threw unexpected error': ${JSON.stringify({
+                              'err': {
+                                'typeof': typeof err, 'isError': err instanceof Error, 'string': err?.toString(), 'obj': err
+                              },
+                              'expected': {
+                                'typeof': typeof expectedValue, 'isError': expectedValue instanceof Error, 'string': expectedValue?.toString(), 'obj': expectedValue
+                              },
                             })}`);
                           }
                         }
