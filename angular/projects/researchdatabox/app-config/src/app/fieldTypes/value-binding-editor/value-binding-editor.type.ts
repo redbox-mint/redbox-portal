@@ -274,8 +274,8 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
         defaultValue: next['defaultValue'] ?? ''
       };
       const control = this.formControl as {
-        patchValue?: (val: unknown) => void;
-        setValue?: (val: unknown) => void;
+        patchValue?: (val: unknown, options?: { emitEvent?: boolean; onlySelf?: boolean }) => void;
+        setValue?: (val: unknown, options?: { emitEvent?: boolean; onlySelf?: boolean }) => void;
       };
       if (typeof control.patchValue === 'function') {
         control.patchValue(patch, { emitEvent: false });
