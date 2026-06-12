@@ -3,14 +3,17 @@ import {
   FormConfig,
   guessType,
   QuestionTreeFieldComponentConfig,
-  QuestionTreeFieldComponentConfigFrame, QuestionTreeFieldComponentDefinitionOutline,
+  QuestionTreeFieldComponentConfigFrame,
+  QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFieldModelConfig,
   QuestionTreeFieldModelDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
   QuestionTreeMeta,
   QuestionTreeOutcome,
   QuestionTreeQuestion,
-  QuestionTreeQuestionAnswer, QuestionTreeQuestionRuleIn, QuestionTreeQuestionRules
+  QuestionTreeQuestionAnswer,
+  QuestionTreeQuestionRuleIn,
+  QuestionTreeQuestionRules,
 } from '@researchdatabox/sails-ng-common';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
@@ -708,7 +711,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     // Convert fields to components
     const fields: Record<string, unknown>[] = currentData.fields ?? [];
     // this.logger.info(`Processing '${item.name}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    for (let index = 0; index < fields.length; index++){
+    for (let index = 0; index < fields.length; index++) {
       const field = fields[index];
       const v4FormPathMore = ['fields', index.toString()];
       if (this.shouldOmitLegacyField(field, v4FormPathMore)) {
@@ -735,7 +738,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const hiddenComponentIndex = item.componentDefinitions.length;
         await this.acceptV4FormConfigPath(
           hiddenBinding.component,
-          this.formPathHelper.lineagePathsForFormConfigComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          this.formPathHelper.lineagePathsForFormConfigComponentDefinition(
+            hiddenBinding.component,
+            hiddenComponentIndex
+          ),
           hiddenBinding.v4FormPathMore
         );
         await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
@@ -827,7 +833,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (this.isLegacyAnchorControl(field)) {
       const definition = (field?.definition ?? {}) as Record<string, unknown>;
       const href = typeof definition.value === 'string' ? definition.value : '';
-      let cssClasses = this.normalizeLegacyButtonCssClasses(definition.cssClasses ?? definition.cssClass) ?? 'btn btn-primary';
+      let cssClasses =
+        this.normalizeLegacyButtonCssClasses(definition.cssClasses ?? definition.cssClass) ?? 'btn btn-primary';
       cssClasses = this.removeLegacyCssToken(cssClasses, 'margin-15');
       const label = typeof definition.label === 'string' ? definition.label : '';
       const showPencil = definition.showPencil === true;
@@ -981,6 +988,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('addButtonShow', item.config, definition);
     this.sharedProps.setPropOverride('allowZeroRows', item.config, definition);
     this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, definition);
+    this.sharedProps.setPropOverride('canSort', item.config, definition);
     const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 
     const fields = field?.definition?.fields ?? [];
@@ -1056,7 +1064,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
+  async visitRepeatableElementFieldLayoutDefinition(
+    item: RepeatableElementFieldLayoutDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableElementFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
@@ -1072,7 +1082,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const hasExplicitLabel = typeof definition.label === 'string';
       const contributorLabel = hasExplicitLabel
         ? (definition.label as string)
-        : (typeof definition.name === 'string' ? definition.name : undefined);
+        : typeof definition.name === 'string'
+          ? definition.name
+          : undefined;
       if (contributorLabel && item.layout?.config && !item.layout.config.label) {
         item.layout.config.label = contributorLabel;
       }
@@ -1081,17 +1093,23 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFieldComponentDefinition(
+    item: ValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new ValidationSummaryFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFormComponentDefinition(
+    item: ValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(
+    item: SuggestedValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new SuggestedValidationSummaryFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1101,13 +1119,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('header', item.config, field?.definition);
   }
 
-  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFormComponentDefinition(
+    item: SuggestedValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Record Metadata Retriever */
 
-  async visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordMetadataRetrieverFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1115,7 +1137,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config.visible = false;
   }
 
-  async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
+  async visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
     if (item.layout?.config) {
       item.layout.config.label = undefined;
@@ -1159,7 +1183,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config = config;
     this.sharedPopulateFieldComponentConfig(item.config, field);
 
-    const isButtonBarContainer = field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent';
+    const isButtonBarContainer =
+      field?.class === 'ButtonBarContainer' || field?.compClass === 'ButtonBarContainerComponent';
     const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
     if (isButtonBarContainer) {
       this.isInsideButtonBarContainer = true;
@@ -1175,7 +1200,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
       const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
       // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-      for (let index = 0; index < fields.length; index++){
+      for (let index = 0; index < fields.length; index++) {
         const childField = fields[index];
         if (childField?.class === 'Spacer' || childField?.compClass === 'SpacerComponent') {
           continue;
@@ -1206,11 +1231,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const hiddenBinding = await this.constructLegacyNameBindingCompanion(childField, v4FormPathMore);
         if (hiddenBinding) {
           await this.retargetLegacyTextBlockBinding(formComponent, hiddenBinding.sourceName, hiddenBinding.sourceName);
-          await this.ensureLegacyTextBlockComponentNameIsUnique(formComponent, hiddenBinding.sourceName, v4FormPathMore);
+          await this.ensureLegacyTextBlockComponentNameIsUnique(
+            formComponent,
+            hiddenBinding.sourceName,
+            v4FormPathMore
+          );
           const hiddenComponentIndex = config.componentDefinitions.length;
           await this.acceptV4FormConfigPath(
             hiddenBinding.component,
-            this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+            this.formPathHelper.lineagePathsForGroupFieldComponentDefinition(
+              hiddenBinding.component,
+              hiddenComponentIndex
+            ),
             hiddenBinding.v4FormPathMore
           );
           await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
@@ -1308,7 +1340,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const fields: Record<string, unknown>[] = field?.definition?.fields ?? [];
     // this.logger.info(`Processing '${item.class}': with ${fields.length} fields at ${JSON.stringify(this.v4FormPath)}.`);
-    for (let index = 0; index < fields.length; index++){
+    for (let index = 0; index < fields.length; index++) {
       const field1 = fields[index];
       const v4FormPathMore = ['definition', 'fields', index.toString()];
       if (this.shouldOmitLegacyField(field1, v4FormPathMore)) {
@@ -1335,7 +1367,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const hiddenComponentIndex = config.componentDefinitions.length;
         await this.acceptV4FormConfigPath(
           hiddenBinding.component,
-          this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(hiddenBinding.component, hiddenComponentIndex),
+          this.formPathHelper.lineagePathsForTabContentFieldComponentDefinition(
+            hiddenBinding.component,
+            hiddenComponentIndex
+          ),
           hiddenBinding.v4FormPathMore
         );
         await this.enforceLegacyHiddenBindingConfig(hiddenBinding.component, hiddenBinding.allowRoles);
@@ -1492,7 +1527,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRichTextEditorFieldComponentDefinition(
+    item: RichTextEditorFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new RichTextEditorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1576,12 +1613,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (typeof notesEnabled === 'boolean') {
       const metadataFields = notesEnabled
         ? [
-          {
-            id: 'notes',
-            name: 'Notes',
-            placeholder: 'Notes about this file.',
-          },
-        ]
+            {
+              id: 'notes',
+              name: 'Notes',
+              placeholder: 'Notes about this file.',
+            },
+          ]
         : [];
       this.sharedProps.setPropOverride('restrictions', item.config, {
         restrictions: {
@@ -1625,9 +1662,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     for (const prop of mappedProps) {
       if (field?.definition?.[prop] !== undefined) {
-        const value = prop === 'fileNameTemplate'
-          ? this.convertLegacyPdfListFileNameTemplate(field.definition[prop])
-          : field.definition[prop];
+        const value =
+          prop === 'fileNameTemplate'
+            ? this.convertLegacyPdfListFileNameTemplate(field.definition[prop])
+            : field.definition[prop];
         this.sharedProps.setPropOverride(prop, item.config, { [prop]: value });
       }
     }
@@ -1679,7 +1717,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'editNotesTitle',
       'cancelEditNotesButtonText',
       'applyEditNotesButtonText',
-      'editNotesCssClasses'
+      'editNotesCssClasses',
     ] as const;
 
     for (const prop of mappedProps) {
@@ -1699,7 +1737,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
-  async visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFieldComponentDefinition(
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new PublishDataLocationSelectorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1730,13 +1770,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFieldModelDefinition(
+    item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new PublishDataLocationSelectorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
     const field = this.getV4Data();
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
@@ -1887,7 +1931,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordSelectorFieldComponentDefinition(
+    item: RecordSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordSelectorFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1925,7 +1971,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
     this.sharedProps.setPropOverride('filterFields', item.config, {
       filterFields: Array.isArray(definition.filterFields)
-        ? definition.filterFields.map((fieldName) => String(fieldName))
+        ? definition.filterFields.map(fieldName => String(fieldName))
         : [],
     });
   }
@@ -1939,15 +1985,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       if (!value || typeof value !== 'object') {
         return null;
       }
-      const oid = typeof (value as Record<string, unknown>).oid === 'string'
-        ? String((value as Record<string, unknown>).oid).trim()
-        : '';
+      const oid =
+        typeof (value as Record<string, unknown>).oid === 'string'
+          ? String((value as Record<string, unknown>).oid).trim()
+          : '';
       if (!oid) {
         return null;
       }
-      const title = typeof (value as Record<string, unknown>).title === 'string'
-        ? String((value as Record<string, unknown>).title)
-        : undefined;
+      const title =
+        typeof (value as Record<string, unknown>).title === 'string'
+          ? String((value as Record<string, unknown>).title)
+          : undefined;
       return title ? { oid, title } : { oid };
     };
 
@@ -1986,7 +2034,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Typeahead Input */
 
-  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
+  async visitTypeaheadInputFieldComponentDefinition(
+    item: TypeaheadInputFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new TypeaheadInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2163,7 +2213,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const reusableComponentItem = this.sharedProps.sharedConstructFormComponent(reusableComponentItemData);
 
       if (reusableComponentItem.component?.config) {
-        this.sharedPopulateFieldComponentConfig(reusableComponentItem.component.config as FieldComponentConfigFrame, field);
+        this.sharedPopulateFieldComponentConfig(
+          reusableComponentItem.component.config as FieldComponentConfigFrame,
+          field
+        );
       }
       if (reusableComponentItem.layout?.config) {
         this.sharedPopulateFieldLayoutConfig(reusableComponentItem.layout.config as FieldLayoutConfigFrame, field);
@@ -2218,9 +2271,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Data classification to Question Tree config migration */
 
-
   public migrateDataClassificationToQuestionTree(data: any): QuestionTreeFieldComponentConfigFrame {
-
     const v4Definition = data.createDataClassificationStructure();
     const v4OrderedOutcomes: string[] = data.orderedOutcomes ?? [];
 
@@ -2228,11 +2279,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     //       The outcome meta is additional data that can be included in any outcomes, but is not the 'main' outcome.
     //       A question tree may have multiple outcomes, and multiple meta properties, each with the same or multiple values.
     const availableOutcomes: QuestionTreeOutcome[] = v4OrderedOutcomes.map(o => {
-      return { value: o, label: o }
+      return { value: o, label: o };
     });
     const availableMeta: QuestionTreeMeta = {};
     const questions: QuestionTreeQuestion[] = [];
-    const defaultOutcomePropName = "classification";
+    const defaultOutcomePropName = 'classification';
     for (const [questionId, questionInfo] of Object.entries(v4Definition)) {
       const qInfo = questionInfo as Record<string, unknown>;
 
@@ -2252,7 +2303,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         const answerLabel = rawAnswer?.label;
         const answerOutcome = rawAnswer?.outcome;
         const answerOutcomeGuessedType = guessType(answerOutcome);
-        if (answerOutcomeGuessedType === "string") {
+        if (answerOutcomeGuessedType === 'string') {
           questionAnswers.push({
             value: answerValue,
             label: answerLabel,
@@ -2261,9 +2312,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         } else if (answerOutcomeGuessedType === 'object') {
           // Use the v4 'classification' property as the v5 outcome,
           // any other property is outcome meta / additional data.
-          const meta = Object.fromEntries(Object.entries(answerOutcome)
-            .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
-            .map(([k, v]) => [k, v?.toString() ?? ""]));
+          const meta = Object.fromEntries(
+            Object.entries(answerOutcome)
+              .filter(([k, v]) => k !== defaultOutcomePropName && !!v)
+              .map(([k, v]) => [k, v?.toString() ?? ''])
+          );
           questionAnswers.push({
             value: answerValue,
             label: answerLabel,
@@ -2278,7 +2331,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
               availableMeta[k][v] = v;
             }
           });
-        } else if (["undefined", "null"].includes(answerOutcomeGuessedType)) {
+        } else if (['undefined', 'null'].includes(answerOutcomeGuessedType)) {
           questionAnswers.push({
             value: answerValue,
             label: answerLabel,
@@ -2289,18 +2342,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
 
       const rules: QuestionTreeQuestionRules = {
-        op: "or", args: [
+        op: 'or',
+        args: [
           ...Object.entries(rawConditions).map(([ruleQuestionId, ruleAnswerValue]) => {
-            return { op: "in", q: ruleQuestionId, a: ruleAnswerValue } as QuestionTreeQuestionRuleIn;
-          })
-        ]
+            return { op: 'in', q: ruleQuestionId, a: ruleAnswerValue } as QuestionTreeQuestionRuleIn;
+          }),
+        ],
       };
 
       questions.push({
         id: questionId,
-        label: typeof rawLabel === "string" ? rawLabel : undefined,
-        answersMin: parseInt(rawMinAnswers?.toString() ?? "1"),
-        answersMax: parseInt(rawMaxAnswers?.toString() ?? "1"),
+        label: typeof rawLabel === 'string' ? rawLabel : undefined,
+        answersMin: parseInt(rawMinAnswers?.toString() ?? '1'),
+        answersMax: parseInt(rawMaxAnswers?.toString() ?? '1'),
         answers: questionAnswers,
         rules: rules,
       });
@@ -2315,7 +2369,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Shared */
 
-  protected async acceptV4FormConfigPath(item: CanVisit, more?: LineagePathsPartial, v4FormPath?: string[]): Promise<void> {
+  protected async acceptV4FormConfigPath(
+    item: CanVisit,
+    more?: LineagePathsPartial,
+    v4FormPath?: string[]
+  ): Promise<void> {
     // Copy the original lineage paths so they can be restored.
     const original = [...(this.v4FormPath ?? [])];
     try {
@@ -2354,13 +2412,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return true;
   }
 
-  protected constructFormComponent(field: Record<string, unknown>, more?: LineagePath): AllFormComponentDefinitionOutlines {
+  protected constructFormComponent(
+    field: Record<string, unknown>,
+    more?: LineagePath
+  ): AllFormComponentDefinitionOutlines {
     const { componentClassName, modelClassName, layoutClassName: mappedLayoutClassName } = this.mapV4ToV5(field);
     let layoutClassName = mappedLayoutClassName;
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const isLegacyInlineContainer = this.isLegacyInlineContainer(field);
 
-    const name = String(definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-'));
+    const name = String(
+      definition.name ?? definition.id ?? [componentClassName, ...this.v4FormPath, ...(more ?? [])].join('-')
+    );
 
     // Build the form component definition frame
     const currentData: FormComponentDefinitionFrame = {
@@ -2408,7 +2471,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           const viewComponentClassName =
             currentData.component.class === RichTextEditorComponentName
               ? ContentComponentName
-              : currentData.component.class as ComponentClassNamesType;
+              : (currentData.component.class as ComponentClassNamesType);
           currentData.overrides = {
             ...(currentData.overrides ?? {}),
             formModeClasses: {
@@ -2440,7 +2503,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     currentData.constraints.authorization.allowRoles = [];
     const roles = Array.isArray(field?.roles) ? field.roles : [];
     if (roles.length > 0) {
-      currentData.constraints.authorization.allowRoles.push(...roles as string[]);
+      currentData.constraints.authorization.allowRoles.push(...(roles as string[]));
     }
 
     // TODO: Set the expressions
@@ -2469,19 +2532,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   protected async constructLegacyNameBindingCompanion(
     field: Record<string, unknown>,
     v4FormPathMore: LineagePath
-  ): Promise<{
-    component: AllFormComponentDefinitionOutlines;
-    sourceName: string;
-    allowRoles: string[];
-    v4FormPathMore: string[];
-  } | undefined> {
+  ): Promise<
+    | {
+        component: AllFormComponentDefinitionOutlines;
+        sourceName: string;
+        allowRoles: string[];
+        v4FormPathMore: string[];
+      }
+    | undefined
+  > {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const sourceName = typeof definition.name === 'string' ? definition.name.trim() : '';
     const sourceType = typeof definition.type === 'string' ? definition.type.trim().toLowerCase() : '';
     const sourceValue = definition.value;
-    const isLegacyLinkValue =
-      `${field?.class ?? ''}`.trim() === 'LinkValueComponent' &&
-      sourceName.length > 0;
+    const isLegacyLinkValue = `${field?.class ?? ''}`.trim() === 'LinkValueComponent' && sourceName.length > 0;
     const isLegacyHeadingTextBlock =
       `${field?.class ?? ''}`.trim() === 'Container' &&
       `${field?.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
@@ -2525,7 +2589,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     };
   }
 
-  protected async enforceLegacyHiddenBindingConfig(component: AllFormComponentDefinitionOutlines, allowRoles: string[] = []): Promise<void> {
+  protected async enforceLegacyHiddenBindingConfig(
+    component: AllFormComponentDefinitionOutlines,
+    allowRoles: string[] = []
+  ): Promise<void> {
     if (component.component?.config) {
       const hiddenComponentConfig = component.component.config as Record<string, unknown>;
       hiddenComponentConfig.type = 'hidden';
@@ -2591,7 +2658,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (isLegacyContributor) {
       const innerFields = definition.fields;
       if (Array.isArray(innerFields) && innerFields.length > 0) {
-        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<
+          string,
+          unknown
+        >;
         fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
       }
       if (!fallbackLabel) {
@@ -2599,12 +2669,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
 
-    const label =
-      hasExplicitLabel
-        ? (definition.label as string)
-        : isLegacyDataLocation
-          ? fallbackLabel
-          : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
+    const label = hasExplicitLabel
+      ? (definition.label as string)
+      : isLegacyDataLocation
+        ? fallbackLabel
+        : (typeof definition.name === 'string' ? definition.name : undefined) || fallbackLabel;
 
     const config = {
       label,
@@ -2643,7 +2712,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (isLegacyContributor) {
       const innerFields = definition.fields;
       if (Array.isArray(innerFields) && innerFields.length > 0) {
-        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<string, unknown>;
+        const firstDefinition = ((innerFields[0] as Record<string, unknown>)?.definition ?? {}) as Record<
+          string,
+          unknown
+        >;
         fallbackLabel = typeof firstDefinition.label === 'string' ? firstDefinition.label : undefined;
       }
       if (!fallbackLabel) {
@@ -2651,27 +2723,27 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
     }
     const migratedLabel =
-      (this.shouldSuppressLegacyTextBlockLayoutLabel(field) ||
-        this.isLegacyLinkValueControl(field) ||
-        this.isLegacyPDFListControl(field))
+      this.shouldSuppressLegacyTextBlockLayoutLabel(field) ||
+      this.isLegacyLinkValueControl(field) ||
+      this.isLegacyPDFListControl(field)
         ? undefined
         : hasExplicitLabel
           ? (definition.label as string)
           : isLegacyDataLocation
             ? fallbackLabel
             : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-            fallbackLabel ||
-            (typeof definition.name === 'string' ? definition.name : undefined) ||
-            (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
-              ? definition.value
-              : undefined);
+              fallbackLabel ||
+              (typeof definition.name === 'string' ? definition.name : undefined) ||
+              (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
+                ? definition.value
+                : undefined);
     const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
     const cssClassesMap =
       this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
         ? { label: legacyCssClasses }
         : undefined;
     const config = {
-      label: (this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer()) ? undefined : migratedLabel,
+      label: this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer() ? undefined : migratedLabel,
       helpText: typeof definition.help === 'string' ? definition.help : undefined,
       cssClassesMap,
     };
@@ -2698,9 +2770,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       !path || path.length < 1
         ? data
         : _get(
-          data,
-          path.map(i => i.toString())
-        );
+            data,
+            path.map(i => i.toString())
+          );
 
     // this.logger.info(JSON.stringify({path, result}));
     return result;
@@ -2726,7 +2798,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!this.isLegacyTextBlockSpanField(field)) {
       return false;
     }
-    const definition = ((field?.definition ?? {}) as Record<string, unknown>);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const hasHelpText = typeof definition.help === 'string' && definition.help.trim().length > 0;
     const hasLegacyCssClass = typeof definition.cssClasses === 'string' && definition.cssClasses.trim().length > 0;
     return hasHelpText || hasLegacyCssClass;
@@ -2736,20 +2808,21 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!field) {
       return false;
     }
-    const definition = ((field.definition ?? {}) as Record<string, unknown>);
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
     const isLegacyTextBlock =
       `${field.class ?? ''}`.trim() === 'Container' && `${field.compClass ?? ''}`.trim() === 'TextBlockComponent';
     const hasExplicitLabel = typeof definition.label === 'string' && definition.label.trim().length > 0;
     const hasLegacyNameBinding = typeof definition.name === 'string' && definition.name.trim().length > 0;
-    return isLegacyTextBlock && hasLegacyNameBinding && !hasExplicitLabel && !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field);
+    return (
+      isLegacyTextBlock &&
+      hasLegacyNameBinding &&
+      !hasExplicitLabel &&
+      !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field)
+    );
   }
 
   private getLegacyContributorReusableFormName(fieldDefinition: Record<string, unknown>): string {
-    const forceLookupOnly = this.parseLegacyTypeaheadBoolean(
-      fieldDefinition.forceLookupOnly,
-      false,
-      'forceLookupOnly'
-    );
+    const forceLookupOnly = this.parseLegacyTypeaheadBoolean(fieldDefinition.forceLookupOnly, false, 'forceLookupOnly');
     return forceLookupOnly ? 'standard-contributor-fields-lookup-only-group' : 'standard-contributor-fields-group';
   }
 
@@ -2805,13 +2878,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   protected async migrateOptions(field: Record<string, unknown>) {
-    return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map((option) => {
-      return {
-        label: option?.label ?? '',
-        value: option?.value ?? '',
-        disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
-      };
-    });
+    return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map(
+      option => {
+        return {
+          label: option?.label ?? '',
+          value: option?.value ?? '',
+          disabled: option?.disabled ?? option?.historicalOnly ?? undefined,
+        };
+      }
+    );
   }
 
   private async applyLegacyFormCssNormalization(item: FormConfigOutline): Promise<void> {
@@ -2866,9 +2941,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   private shouldUseInlineLayoutForAnchorButton(field: Record<string, unknown>, componentClassName: string): boolean {
     const v4ClassName = `${field?.class ?? ''}`.trim();
-    return v4ClassName === 'AnchorOrButton' && (
-      componentClassName === SaveButtonComponentName ||
-      componentClassName === ContentComponentName
+    return (
+      v4ClassName === 'AnchorOrButton' &&
+      (componentClassName === SaveButtonComponentName || componentClassName === ContentComponentName)
     );
   }
 
@@ -2901,24 +2976,23 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return false;
     }
     const definition = (field.definition ?? {}) as Record<string, unknown>;
-    return this.hasLegacyCssClass(definition.cssClasses, 'form-inline') || this.hasLegacyCssClass(definition.cssClass, 'form-inline');
+    return (
+      this.hasLegacyCssClass(definition.cssClasses, 'form-inline') ||
+      this.hasLegacyCssClass(definition.cssClass, 'form-inline')
+    );
   }
 
   private hasLegacyCssClass(value: unknown, token: string): boolean {
     if (typeof value !== 'string') {
       return false;
     }
-    return value
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .includes(token);
+    return value.trim().split(/\s+/).filter(Boolean).includes(token);
   }
 
   private mergeCssClassTokens(baseCssClasses: unknown, appendCssClasses: string): string {
     const classes = `${typeof baseCssClasses === 'string' ? baseCssClasses : ''} ${appendCssClasses}`
       .split(/\s+/)
-      .map((cssClass) => cssClass.trim())
+      .map(cssClass => cssClass.trim())
       .filter(Boolean);
     return Array.from(new Set(classes)).join(' ');
   }
@@ -2926,8 +3000,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   private removeLegacyCssToken(cssClasses: string, tokenToRemove: string): string {
     return cssClasses
       .split(/\s+/)
-      .map((cssClass) => cssClass.trim())
-      .filter((cssClass) => cssClass.length > 0 && cssClass !== tokenToRemove)
+      .map(cssClass => cssClass.trim())
+      .filter(cssClass => cssClass.length > 0 && cssClass !== tokenToRemove)
       .join(' ');
   }
 
@@ -3222,7 +3296,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   }
 
-  private resolveTypeaheadSourceType(definition: Record<string, unknown>): 'namedQuery' | 'vocabulary' | 'static' | 'external' | 'service' {
+  private resolveTypeaheadSourceType(
+    definition: Record<string, unknown>
+  ): 'namedQuery' | 'vocabulary' | 'static' | 'external' | 'service' {
     const legacySourceType = String(definition.sourceType ?? '')
       .trim()
       .toLowerCase();
@@ -3308,13 +3384,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const source = entry as Record<string, unknown>;
     const resolvedLabel = String(
       source.label ??
-      source.name ??
-      source.title ??
-      source.text ??
-      source[labelField] ??
-      source[valueField] ??
-      source.value ??
-      ''
+        source.name ??
+        source.title ??
+        source.text ??
+        source[labelField] ??
+        source[valueField] ??
+        source.value ??
+        ''
     ).trim();
     const resolvedValue = String(
       source.value ?? source[valueField] ?? source.name ?? source[labelField] ?? source.title ?? source.label ?? ''
@@ -3441,7 +3517,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         continue;
       }
 
-      const migratedRetriever = migratedComponents.find((component) => component.name === retrieverName);
+      const migratedRetriever = migratedComponents.find(component => component.name === retrieverName);
       if (migratedRetriever) {
         migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
           this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
@@ -3464,7 +3540,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           continue;
         }
 
-        const migratedTarget = migratedComponents.find((component) => component.name === targetName);
+        const migratedTarget = migratedComponents.find(component => component.name === targetName);
         if (!migratedTarget?.model) {
           continue;
         }
@@ -3516,7 +3592,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         ? (sourceConfig.relatedObjectSelected as Record<string, unknown>[])
         : [];
 
-      if (onValueUpdate.some((action) => action?.action === 'publishMetadata')) {
+      if (onValueUpdate.some(action => action?.action === 'publishMetadata')) {
         const parameterName = this.resolveLegacyParameterRetrieverName(sourceName, siblingFields);
         if (parameterName) {
           expressions.push({
@@ -3534,7 +3610,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         }
       }
 
-      if (relatedObjectSelected.some((action) => action?.action === 'publishMetadata')) {
+      if (relatedObjectSelected.some(action => action?.action === 'publishMetadata')) {
         expressions.push({
           name: `fetchOnRelatedObjectSelected-${sourceName}`,
           description: `Fetch metadata when ${sourceName} changes`,
@@ -3544,7 +3620,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             condition: `${this.buildNestedComponentJsonPointer(containerPointer, sourceName)}::field.value.changed`,
             operation: 'fetchMetadata',
             hasTemplate: true,
-            template: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
+            template:
+              '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
           },
         });
       }
@@ -3553,8 +3630,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return expressions;
   }
 
-  private resolveLegacyParameterRetrieverName(sourceName: string, siblingFields: Record<string, unknown>[]): string | undefined {
-    const parameterRetriever = siblingFields.find((field) => {
+  private resolveLegacyParameterRetrieverName(
+    sourceName: string,
+    siblingFields: Record<string, unknown>[]
+  ): string | undefined {
+    const parameterRetriever = siblingFields.find(field => {
       if (!this.isLegacyParameterRetrieverField(field)) {
         return false;
       }
@@ -3585,9 +3665,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return containerPointer || '';
     }
 
-    const normalizedContainerPointer = containerPointer && containerPointer !== '/'
-      ? this.trimTrailingJsonPointerSlashes(containerPointer)
-      : '';
+    const normalizedContainerPointer =
+      containerPointer && containerPointer !== '/' ? this.trimTrailingJsonPointerSlashes(containerPointer) : '';
     return `${normalizedContainerPointer}/${trimmedName}`;
   }
 
@@ -3657,23 +3736,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return null;
   }
 
-  private getChildComponentDefinitions(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] {
+  private getChildComponentDefinitions(
+    component: AllFormComponentDefinitionOutlines
+  ): AllFormComponentDefinitionOutlines[] {
     const componentConfig = component?.component?.config as Record<string, unknown> | undefined;
     const nested = [
       ...(Array.isArray(componentConfig?.componentDefinitions)
-        ? componentConfig.componentDefinitions as AllFormComponentDefinitionOutlines[]
+        ? (componentConfig.componentDefinitions as AllFormComponentDefinitionOutlines[])
         : []),
-      ...(Array.isArray(componentConfig?.tabs)
-        ? componentConfig.tabs as AllFormComponentDefinitionOutlines[]
-        : []),
+      ...(Array.isArray(componentConfig?.tabs) ? (componentConfig.tabs as AllFormComponentDefinitionOutlines[]) : []),
       ...(Array.isArray(componentConfig?.panels)
-        ? componentConfig.panels as AllFormComponentDefinitionOutlines[]
+        ? (componentConfig.panels as AllFormComponentDefinitionOutlines[])
         : []),
     ];
     return nested;
   }
 
-  private async retargetPublishDataLocationSelectorExpressions(components: AllFormComponentDefinitionOutlines[] | undefined): Promise<void> {
+  private async retargetPublishDataLocationSelectorExpressions(
+    components: AllFormComponentDefinitionOutlines[] | undefined
+  ): Promise<void> {
     for (const component of components ?? []) {
       if (component.component?.class === PublishDataLocationSelectorComponentName) {
         for (const expression of component.expressions ?? []) {
@@ -3681,7 +3762,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           if (!sourceName) {
             continue;
           }
-          const sourcePointer = this.findComponentAngularComponentsJsonPointer(this.v5FormConfig.componentDefinitions, sourceName);
+          const sourcePointer = this.findComponentAngularComponentsJsonPointer(
+            this.v5FormConfig.componentDefinitions,
+            sourceName
+          );
           if (sourcePointer) {
             expression.config.condition = `${sourcePointer}::field.value.changed`;
           }
@@ -3698,12 +3782,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       return null;
     }
 
-    const segments = pointer.split('/').filter((segment) => segment.length > 0);
+    const segments = pointer.split('/').filter(segment => segment.length > 0);
     return segments.length > 0 ? segments[segments.length - 1] : null;
   }
 
   private buildEventValueTemplate(propertyName: string): string {
-    const segments = propertyName.split('.').filter((segment) => segment.length > 0);
+    const segments = propertyName.split('.').filter(segment => segment.length > 0);
     if (segments.length === 0) {
       return 'event.value';
     }

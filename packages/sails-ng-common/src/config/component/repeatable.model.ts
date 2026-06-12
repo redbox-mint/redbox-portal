@@ -1,149 +1,165 @@
+import { FieldComponentConfig, FieldComponentDefinition } from '../field-component.model';
+import { FieldModelConfig, FieldModelDefinition } from '../field-model.model';
+import { FormComponentDefinition } from '../form-component.model';
+import { FieldLayoutConfig, FieldLayoutDefinition } from '../field-layout.model';
+import { ActionRowFieldLayoutConfig } from './action-row-layout.model';
+import { FormConfigVisitorOutline } from '../visitor/base.outline';
 import {
-    FieldComponentConfig,
-    FieldComponentDefinition,
-} from "../field-component.model";
+  FieldComponentConfigKind,
+  FieldComponentDefinitionKind,
+  FieldLayoutConfigKind,
+  FieldLayoutDefinitionKind,
+  FieldModelConfigKind,
+  FieldModelDefinitionKind,
+  FormComponentDefinitionKind,
+} from '../shared.outline';
 import {
-    FieldModelConfig,
-    FieldModelDefinition
-} from "../field-model.model";
-import {FormComponentDefinition} from "../form-component.model";
+  RepeatableComponentName,
+  RepeatableElementFieldLayoutConfigOutline,
+  RepeatableElementFieldLayoutDefinitionOutline,
+  RepeatableElementLayoutName,
+  RepeatableFieldComponentConfigOutline,
+  RepeatableFieldComponentDefinitionOutline,
+  RepeatableFieldModelConfigOutline,
+  RepeatableFieldModelDefinitionOutline,
+  RepeatableFormComponentDefinitionOutline,
+  RepeatableModelName,
+  RepeatableModelValueType,
+} from './repeatable.outline';
 import {
-    FieldLayoutConfig,
-    FieldLayoutDefinition,
-} from "../field-layout.model";
-import { ActionRowFieldLayoutConfig } from "./action-row-layout.model";
-import {FormConfigVisitorOutline} from "../visitor/base.outline";
-import {
-    FieldComponentConfigKind, FieldComponentDefinitionKind,
-    FieldLayoutConfigKind,
-    FieldLayoutDefinitionKind,
-    FieldModelConfigKind,
-    FieldModelDefinitionKind, FormComponentDefinitionKind
-} from "../shared.outline";
-import {
-    RepeatableComponentName,
-    RepeatableElementFieldLayoutConfigOutline,
-    RepeatableElementFieldLayoutDefinitionOutline,
-    RepeatableElementLayoutName, RepeatableFieldComponentConfigOutline,
-    RepeatableFieldComponentDefinitionOutline,
-    RepeatableFieldModelConfigOutline, RepeatableFieldModelDefinitionOutline, RepeatableFormComponentDefinitionOutline,
-    RepeatableModelName,
-    RepeatableModelValueType
-} from "./repeatable.outline";
-import {
-    AvailableFieldLayoutDefinitionOutlines, AvailableFormComponentDefinitionOutlines
-} from "../dictionary.outline";
-
+  AvailableFieldLayoutDefinitionOutlines,
+  AvailableFormComponentDefinitionOutlines,
+} from '../dictionary.outline';
 
 /* Repeatable Component */
-export class RepeatableFieldComponentConfig extends FieldComponentConfig implements RepeatableFieldComponentConfigOutline {
-    elementTemplate!: AvailableFormComponentDefinitionOutlines;
-    addButtonShow = true;
-    allowZeroRows = false;
-    hideWhenZeroRows = false;
+export class RepeatableFieldComponentConfig
+  extends FieldComponentConfig
+  implements RepeatableFieldComponentConfigOutline
+{
+  elementTemplate!: AvailableFormComponentDefinitionOutlines;
+  addButtonShow = true;
+  allowZeroRows = false;
+  hideWhenZeroRows = false;
+  canSort?: boolean;
 
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    /**
-     * Create a unique ID using the current timestamp and a random number.
-     * This unique id must not be stored in the database.
-     * It will be different for each form load.
-     * It is for distinguishing the repeatable element entries.
-     */
-    public static getLocalUID(): string {
-        const randomNumber = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-        return `${Date.now()}-${randomNumber}`;
-    }
+  /**
+   * Create a unique ID using the current timestamp and a random number.
+   * This unique id must not be stored in the database.
+   * It will be different for each form load.
+   * It is for distinguishing the repeatable element entries.
+   */
+  public static getLocalUID(): string {
+    const randomNumber = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(5, '0');
+    return `${Date.now()}-${randomNumber}`;
+  }
 }
 
+export class RepeatableFieldComponentDefinition
+  extends FieldComponentDefinition
+  implements RepeatableFieldComponentDefinitionOutline
+{
+  class = RepeatableComponentName;
+  config?: RepeatableFieldComponentConfigOutline;
 
-export class RepeatableFieldComponentDefinition extends FieldComponentDefinition implements RepeatableFieldComponentDefinitionOutline {
-    class = RepeatableComponentName;
-    config?: RepeatableFieldComponentConfigOutline;
+  constructor() {
+    super();
+  }
 
-    constructor() {
-        super();
-    }
-
-    async accept(visitor: FormConfigVisitorOutline) {
-        await visitor.visitRepeatableFieldComponentDefinition(this);
-    }
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRepeatableFieldComponentDefinition(this);
+  }
 }
-
 
 /* Repeatable Model */
-export class RepeatableFieldModelConfig extends FieldModelConfig<RepeatableModelValueType> implements RepeatableFieldModelConfigOutline {
-    constructor() {
-        super();
-    }
+export class RepeatableFieldModelConfig
+  extends FieldModelConfig<RepeatableModelValueType>
+  implements RepeatableFieldModelConfigOutline
+{
+  constructor() {
+    super();
+  }
 }
 
-export class RepeatableFieldModelDefinition extends FieldModelDefinition<RepeatableModelValueType> implements RepeatableFieldModelDefinitionOutline {
-    class = RepeatableModelName;
-    config?: RepeatableFieldModelConfigOutline;
+export class RepeatableFieldModelDefinition
+  extends FieldModelDefinition<RepeatableModelValueType>
+  implements RepeatableFieldModelDefinitionOutline
+{
+  class = RepeatableModelName;
+  config?: RepeatableFieldModelConfigOutline;
 
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    async accept(visitor: FormConfigVisitorOutline) {
-        await visitor.visitRepeatableFieldModelDefinition(this);
-    }
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRepeatableFieldModelDefinition(this);
+  }
 }
-
 
 /* Repeatable Element Layout */
-export class RepeatableElementFieldLayoutConfig extends ActionRowFieldLayoutConfig implements RepeatableElementFieldLayoutConfigOutline {
-    constructor() {
-        super();
-    }
+export class RepeatableElementFieldLayoutConfig
+  extends ActionRowFieldLayoutConfig
+  implements RepeatableElementFieldLayoutConfigOutline
+{
+  constructor() {
+    super();
+  }
 }
 
-export class RepeatableElementFieldLayoutDefinition extends FieldLayoutDefinition implements RepeatableElementFieldLayoutDefinitionOutline {
-    public class = RepeatableElementLayoutName;
-    public config?: RepeatableElementFieldLayoutConfigOutline;
+export class RepeatableElementFieldLayoutDefinition
+  extends FieldLayoutDefinition
+  implements RepeatableElementFieldLayoutDefinitionOutline
+{
+  public class = RepeatableElementLayoutName;
+  public config?: RepeatableElementFieldLayoutConfigOutline;
 
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    async accept(visitor: FormConfigVisitorOutline) {
-        await visitor.visitRepeatableElementFieldLayoutDefinition(this);
-    }
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRepeatableElementFieldLayoutDefinition(this);
+  }
 }
-
 
 /* Repeatable Form Component */
-export class RepeatableFormComponentDefinition extends FormComponentDefinition implements RepeatableFormComponentDefinitionOutline {
-    public component!: RepeatableFieldComponentDefinitionOutline;
-    public model?: RepeatableFieldModelDefinitionOutline;
-    public layout?: AvailableFieldLayoutDefinitionOutlines;
+export class RepeatableFormComponentDefinition
+  extends FormComponentDefinition
+  implements RepeatableFormComponentDefinitionOutline
+{
+  public component!: RepeatableFieldComponentDefinitionOutline;
+  public model?: RepeatableFieldModelDefinitionOutline;
+  public layout?: AvailableFieldLayoutDefinitionOutlines;
 
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    async accept(visitor: FormConfigVisitorOutline) {
-        await visitor.visitRepeatableFormComponentDefinition(this);
-    }
+  async accept(visitor: FormConfigVisitorOutline) {
+    await visitor.visitRepeatableFormComponentDefinition(this);
+  }
 }
 
 export const RepeatableMap = [
-    {kind: FieldComponentConfigKind, def: RepeatableFieldComponentConfig},
-    {kind: FieldComponentDefinitionKind, def: RepeatableFieldComponentDefinition, class: RepeatableComponentName},
-    {kind: FieldModelConfigKind, def: RepeatableFieldModelConfig},
-    {kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName},
-    {kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig},
-    {kind: FieldLayoutDefinitionKind, def: RepeatableElementFieldLayoutDefinition, class: RepeatableElementLayoutName},
-    {kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class: RepeatableComponentName},
+  { kind: FieldComponentConfigKind, def: RepeatableFieldComponentConfig },
+  { kind: FieldComponentDefinitionKind, def: RepeatableFieldComponentDefinition, class: RepeatableComponentName },
+  { kind: FieldModelConfigKind, def: RepeatableFieldModelConfig },
+  { kind: FieldModelDefinitionKind, def: RepeatableFieldModelDefinition, class: RepeatableModelName },
+  { kind: FieldLayoutConfigKind, def: RepeatableElementFieldLayoutConfig },
+  { kind: FieldLayoutDefinitionKind, def: RepeatableElementFieldLayoutDefinition, class: RepeatableElementLayoutName },
+  { kind: FormComponentDefinitionKind, def: RepeatableFormComponentDefinition, class: RepeatableComponentName },
 ];
 export const RepeatableDefaults = {
-    [FormComponentDefinitionKind]: {
-        [RepeatableComponentName]: {
-            [FieldComponentDefinitionKind]: RepeatableComponentName,
-            [FieldModelDefinitionKind]: RepeatableModelName,
-        },
+  [FormComponentDefinitionKind]: {
+    [RepeatableComponentName]: {
+      [FieldComponentDefinitionKind]: RepeatableComponentName,
+      [FieldModelDefinitionKind]: RepeatableModelName,
     },
+  },
 };

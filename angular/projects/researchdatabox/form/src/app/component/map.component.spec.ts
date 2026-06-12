@@ -32,6 +32,7 @@ describe("MapComponent", () => {
       start: jasmine.createSpy("start"),
       stop: jasmine.createSpy("stop"),
       on: jasmine.createSpy("on"),
+      setMode: jasmine.createSpy("setMode"),
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
         drawFeatures.push(...features);
       }),
@@ -226,7 +227,65 @@ describe("MapComponent", () => {
     };
 
     await createFormAndWaitForReady(formConfig, {editMode: true} as any);
-    expect(fakeDraw.addFeatures).toHaveBeenCalled();
+    expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
+      {
+        type: "Feature",
+        geometry: {type: "Point", coordinates: [144.96, -37.81]},
+        properties: {name: "Melbourne"}
+      }
+    ]);
+    expect(drawFeatures.length).toBe(1);
     expect(fakeMap.invalidateSize).toHaveBeenCalled();
+  });
+
+  it("initialises draw tooling when a disabled map is enabled after map load", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              disabled: true,
+              enableImport: true,
+              enabledModes: ["point", "polygon"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const disabledModeButtons = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
+
+    expect(fakeDraw.start).not.toHaveBeenCalled();
+    expect(disabledModeButtons.some((button) => !button.disabled)).toBeFalse();
+
+    mapComponent.setDisabled(false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const enabledModeButtons = Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
+
+    expect(fakeDraw.start).toHaveBeenCalled();
+    expect(enabledModeButtons.length).toBeGreaterThan(0);
+    expect(enabledModeButtons.every((button) => !button.disabled)).toBeTrue();
+
+    const polygonButton = enabledModeButtons.find((button) => button.textContent?.trim() === "Polygon") as HTMLButtonElement;
+    polygonButton.click();
+    fixture.detectChanges();
+
+    expect(fakeDraw.setMode).toHaveBeenCalledWith("polygon");
+    expect(mapComponent.activeMode).toBe("polygon");
   });
 });

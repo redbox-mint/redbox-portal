@@ -17,6 +17,21 @@ import {
 } from './types';
 import { logEvent, redactObject, withSpan } from './observability';
 
+export class FigshareHttpError extends Error {
+  statusCode?: number;
+  responseBody?: unknown;
+
+  constructor(message: string, options: { statusCode?: number; responseBody?: unknown; cause?: unknown } = {}) {
+    super(message);
+    this.name = 'FigshareHttpError';
+    this.statusCode = options.statusCode;
+    this.responseBody = options.responseBody;
+    if (options.cause != null) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
+  }
+}
+
 function isReadablePayload(payload: unknown): payload is { pipe: (...args: unknown[]) => unknown } {
   return payload != null && typeof payload === 'object' && typeof (payload as { pipe?: unknown }).pipe === 'function';
 }
@@ -136,12 +151,18 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
         error: redactObject(error)
       });
       if (!retryable || attempt === retryConfig.maxAttempts) {
-        throw error;
+        // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
+        // request config (including the Authorization header) and must not propagate.
+        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || url}`, {
+          statusCode: status == null ? undefined : Number(status),
+          responseBody: axiosErr?.response?.data,
+          cause: error
+        });
       }
       await new Promise((resolve) => setTimeout(resolve, getRetryDelay(retryConfig.baseDelayMs, retryConfig.maxDelayMs, attempt)));
     }
   }
-  throw new Error(`Figshare request failed for ${method} ${path}`);
+  throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path}`);
 }
 
 export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData): FigshareClient {

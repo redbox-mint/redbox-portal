@@ -5,6 +5,9 @@ import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
+import type { RedboxMigration } from './MigrationRunner';
+
+export type { RedboxMigration } from './MigrationRunner';
 
 export interface LoaderOptions {
     forceRegenerate?: boolean;
@@ -12,6 +15,11 @@ export interface LoaderOptions {
 }
 
 export interface HookBootstrapRegistration {
+    name: string;
+    module: string;
+}
+
+export interface HookMigrationRegistration {
     name: string;
     module: string;
 }
@@ -38,6 +46,7 @@ export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
     hookPolicies: Record<string, HookPolicyRegistration>;
     hookBootstraps: HookBootstrapRegistration[];
+    hookMigrations: HookMigrationRegistration[];
     hookApiRoutes: HookApiRouteRegistration[];
     hookServices: Record<string, HookServiceRegistration>;
     hookControllers: Record<string, HookControllerRegistration>;
@@ -89,6 +98,7 @@ export interface GenerateAllShimsStats {
     configShimStats: GenerationStats;
     apiRouteHookStats: GenerationStats;
     bootstrapStats: BootstrapGenerationStats;
+    migrationStats: GenerationStats;
 }
 
 export interface GenerateAllShimsSkippedResult {
@@ -232,6 +242,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
     const hookModels: Record<string, HookModelRegistration> = {};
     const hookPolicies: Record<string, HookPolicyRegistration> = {};
     const hookBootstraps: HookBootstrapRegistration[] = [];
+    const hookMigrations: HookMigrationRegistration[] = [];
     const hookApiRoutes: HookApiRouteRegistration[] = [];
     const hookServices: Record<string, HookServiceRegistration> = {};
     const hookControllers: Record<string, HookControllerRegistration> = {};
@@ -249,6 +260,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
             hookModels,
             hookPolicies,
             hookBootstraps,
+            hookMigrations,
             hookApiRoutes,
             hookServices,
             hookControllers,
@@ -285,6 +297,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     hasModels?: boolean;
                     hasPolicies?: boolean;
                     hasBootstrap?: boolean;
+                    hasMigrations?: boolean;
                     hasApiRoutes?: boolean;
                     hasServices?: boolean;
                     hasControllers?: boolean;
@@ -332,6 +345,19 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     log.verbose(`Registered bootstrap from ${depName}`);
                 } else {
                     log.warn(`Hook ${depName} has 'hasBootstrap: true' but no 'registerRedboxBootstrap' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasMigrations === true) {
+                log.verbose(`Found hook with migrations: ${depName}`);
+                const hookModule = require(depModulePath) as {
+                    registerRedboxMigrations?: () => RedboxMigration[];
+                };
+                if (typeof hookModule.registerRedboxMigrations === 'function') {
+                    hookMigrations.push({ name: depName, module: depName });
+                    log.verbose(`Registered migrations from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasMigrations: true' but no 'registerRedboxMigrations' function`);
                 }
             }
 
@@ -411,12 +437,105 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
         hookModels,
         hookPolicies,
         hookBootstraps,
+        hookMigrations,
         hookApiRoutes,
         hookServices,
         hookControllers,
         hookWebserviceControllers,
         hookFormConfigs,
     };
+}
+
+export async function discoverLocalMigrationFiles(appPath: string): Promise<string[]> {
+    const migrationsDir = path.join(appPath, 'api', 'migrations');
+    try {
+        const entries = await fs.readdir(migrationsDir, { withFileTypes: true });
+        return entries
+            .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+            .map(entry => entry.name)
+            .sort();
+    } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
+}
+
+export async function generateMigrationConfigShim(
+    configDir: string,
+    appPath: string,
+    hookMigrations: HookMigrationRegistration[]
+): Promise<GenerationStats> {
+    const filePath = path.join(configDir, 'migrations.js');
+    const localMigrationFiles = await discoverLocalMigrationFiles(appPath);
+
+    const hookImports = hookMigrations
+        .map(hook => {
+            const varName = sanitizePackageNameForVar(hook.name, 'migrations');
+            return `const ${varName} = require('${hook.module}').registerRedboxMigrations();`;
+        })
+        .join('\n');
+
+    const localImports = localMigrationFiles
+        .map((fileName, index) => `const appMigration_${index} = require('../api/migrations/${fileName}');`)
+        .join('\n');
+
+    const migrationSourceEntries = [
+        ...hookMigrations.map(
+            hook => `  { source: 'hook:${hook.name}', migrations: ${sanitizePackageNameForVar(hook.name, 'migrations')} },`
+        ),
+        ...localMigrationFiles.map(
+            (fileName, index) => `  { source: 'api/migrations/${fileName}', migrations: [appMigration_${index}] },`
+        ),
+    ].join('\n');
+
+    const content = [
+        `'use strict';`,
+        `/**`,
+        ` * Migration config shim`,
+        ` * Auto-generated by @researchdatabox/redbox-core loader`,
+        ` * Do not edit manually - regenerated when .regenerate-shims marker exists`,
+        ` */`,
+        hookImports,
+        localImports,
+        ``,
+        `const migrationSources = [`,
+        migrationSourceEntries,
+        `];`,
+        ``,
+        `const seenMigrationNames = new Map();`,
+        `const migrations = [];`,
+        `for (const { source, migrations: sourceMigrations } of migrationSources) {`,
+        `  if (!Array.isArray(sourceMigrations)) {`,
+        `    throw new Error('Invalid Redbox migration export from ' + source + '. Expected an array of migrations (registerRedboxMigrations() must be synchronous).');`,
+        `  }`,
+        `  for (const migration of sourceMigrations) {`,
+        `    if (!migration || typeof migration.name !== 'string' || typeof migration.up !== 'function') {`,
+        `      throw new Error('Invalid Redbox migration export from ' + source + '. Each migration must include name and up().');`,
+        `    }`,
+        `    if (seenMigrationNames.has(migration.name)) {`,
+        `      const message = 'Duplicate Redbox migration name: ' + migration.name + ' (from ' + source + ', first defined in ' + seenMigrationNames.get(migration.name) + ')';`,
+        `      if (process.env.NODE_ENV === 'production') {`,
+        `        throw new Error(message);`,
+        `      }`,
+        `      console.warn('[redbox-loader:warn]', message);`,
+        `      continue;`,
+        `    }`,
+        `    seenMigrationNames.set(migration.name, source);`,
+        `    migrations.push(migration);`,
+        `  }`,
+        `}`,
+        ``,
+        `migrations.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));`,
+        ``,
+        `module.exports.migrations = migrations;`,
+        ``,
+    ].join('\n');
+
+    const written = await writeFileIfChanged(filePath, content);
+    return { generated: written ? 1 : 0, total: 1 };
 }
 
 export async function generateApiRouteHookConfig(
@@ -1008,6 +1127,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             hookModels,
             hookPolicies,
             hookBootstraps,
+            hookMigrations,
             hookApiRoutes,
             hookServices,
             hookControllers,
@@ -1050,6 +1170,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             configShimStats,
             apiRouteHookStats,
             bootstrapStats,
+            migrationStats,
         ] = await Promise.all([
             generateModelShims(modelsDir, hookModels),
             generatePolicyShims(policiesDir, hookPolicies),
@@ -1061,6 +1182,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             generateConfigShims(configDir, hookConfigs),
             generateApiRouteHookConfig(configDir, hookApiRoutes),
             generateBootstrapShim(configDir, hookBootstraps),
+            generateMigrationConfigShim(configDir, appPath, hookMigrations),
         ]);
 
         log.verbose(`Shim generation took ${(performance.now() - genStart).toFixed(2)}ms`);
@@ -1076,6 +1198,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
         log.verbose(`API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`);
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
+        log.verbose(`Migrations: ${migrationStats.generated}/${migrationStats.total} written (${hookMigrations.length} hooks)`);
 
         await generatePreLiftSnapshot(appPath, hookConfigs);
 
@@ -1107,6 +1230,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 configShimStats,
                 apiRouteHookStats,
                 bootstrapStats,
+                migrationStats,
             },
             totalTimeMs: Number.parseFloat(totalTime),
         };

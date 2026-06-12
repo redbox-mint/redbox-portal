@@ -841,6 +841,8 @@
   "form.validationErrorsAriaLabel": "{{fieldName}} validation errors",
   "add-button-label": "Add Item",
   "remove-button-label": "Remove Item",
+  "move-up-button-label": "Move up",
+  "move-down-button-label": "Move down",
   "select-all-items": "Select All Items",
   "select-item": "Select",
   "move-up-button": "Move entry up",

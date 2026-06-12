@@ -5,7 +5,9 @@ export function evaluate(key, context, extra) {
 
     // Provide libraries from context
     const Handlebars = extra?.libraries?.Handlebars ?? null;
-    const jsonata = extra?.libraries?.jsonata ?? null;
+    const jsonataModule = extra?.jsonata ?? null;
+    const jsonataFn = typeof jsonataModule === "function" ? jsonataModule : jsonataModule?.default ?? null;
+    const jsonata = jsonataFn ? jsonataFn : () => { throw new Error("JSONata instance not provided in extra.jsonata"); };
 
     switch (key) {
     <% for (const entry of entries) { %>

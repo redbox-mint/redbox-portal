@@ -9,9 +9,22 @@
  * This gives you an opportunity to set up your data model, run jobs, or perform some special logic.
  */
 const { coreBootstrap, preLiftSetup, createGeneratedBootstrap } = require('@researchdatabox/redbox-core');
+let migrations = [];
+// skip migrations if there are none specified
+try {
+  migrations = require('./migrations').migrations || [];
+} catch (e) {
+  // Only tolerate config/migrations.js itself being absent (e.g. shims not yet
+  // regenerated). A MODULE_NOT_FOUND raised by a require() inside migrations.js
+  // (such as an uninstalled hook) must still fail the lift.
+  const isMigrationsShimMissing = e.code === 'MODULE_NOT_FOUND' && typeof e.message === 'string' && e.message.includes("'./migrations'");
+  if (!isMigrationsShimMissing) throw e;
+  console.warn('[redbox-loader] config/migrations.js not found – skipping data migrations. Regenerate shims to resolve.');
+}
+
 {{{hookImports}}}
 
 const hookBootstraps = [
 {{{hookCalls}}}];
 
-module.exports.bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps);
+module.exports.bootstrap = createGeneratedBootstrap(preLiftSetup, coreBootstrap, hookBootstraps, migrations);
