@@ -9,7 +9,7 @@ import { FormComponentEventBus, createFormSaveSuccessEvent } from '../form-state
 const componentConfig = {
   name: 'integration_status',
   component: {
-    class: 'IntegrationStatusComponent',
+    class: 'IntegrationStatusComponent' as const,
     config: { integrationNames: ['doi'], pollIntervalMs: 100, maxPollAttempts: 60 }
   }
 };
@@ -86,7 +86,7 @@ describe('IntegrationStatusComponent', () => {
     const component = fixture.componentInstance as any;
     const eventBus = TestBed.inject(FormComponentEventBus);
 
-    component.componentDefinition = componentConfig;
+    component.componentDefinition = componentConfig.component;
     component.oid.set('test-oid');
     fixture.detectChanges();
 
@@ -108,7 +108,7 @@ describe('IntegrationStatusComponent', () => {
     const component = fixture.componentInstance as any;
     const eventBus = TestBed.inject(FormComponentEventBus);
 
-    component.componentDefinition = componentConfig;
+    component.componentDefinition = componentConfig.component;
     component.oid.set('test-oid');
     fixture.detectChanges();
 
@@ -130,7 +130,7 @@ describe('IntegrationStatusComponent', () => {
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
 
-    component.componentDefinition = componentConfig;
+    component.componentDefinition = componentConfig.component;
     component.oid.set('test-oid');
     component.graceRemaining = 1;
     component.gracePollActive.set(true);
@@ -161,7 +161,7 @@ describe('IntegrationStatusComponent', () => {
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
 
-    component.componentDefinition = componentConfig;
+    component.componentDefinition = componentConfig.component;
     component.oid.set('test-oid');
     component.graceRemaining = 3;
     component.gracePollActive.set(true);
@@ -182,7 +182,7 @@ describe('IntegrationStatusComponent', () => {
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     const component = fixture.componentInstance as any;
 
-    component.componentDefinition = componentConfig;
+    component.componentDefinition = componentConfig.component;
     component.oid.set('test-oid');
     fixture.detectChanges();
 
