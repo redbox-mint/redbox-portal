@@ -77,6 +77,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected readonly hasError = signal(false);
   private pollTimerId: number | null = null;
   private pollAttempts = 0;
+  private saveStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private get config(): Record<string, unknown> | undefined {
     return this.componentDefinition?.config as Record<string, unknown> | undefined;
@@ -119,7 +120,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         if (eventOid) {
           this.oid.set(eventOid);
         }
-        setTimeout(() => this.fetchStatus(), 1500);
+        this.saveStatusTimeout = setTimeout(() => this.fetchStatus(), 1500);
       }
     });
   }
@@ -158,6 +159,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         this.stopPolling();
       }
     } catch {
+      this.hasError.set(true);
       this.stopPolling();
     }
   }
@@ -242,5 +244,9 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
 
   ngOnDestroy(): void {
     this.stopPolling();
+    if (this.saveStatusTimeout !== null) {
+      clearTimeout(this.saveStatusTimeout);
+      this.saveStatusTimeout = null;
+    }
   }
 }

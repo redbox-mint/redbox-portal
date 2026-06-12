@@ -6,19 +6,9 @@ import { FormAttributes } from '../waterline-models';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
 import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
+import type { IntegrationStatusSummary } from '../services/IntegrationAuditService';
 
 type AnyRecord = Record<string, unknown>;
-type IntegrationStatusSummary = {
-  integrationName: string;
-  status: string;
-  integrationAction?: string;
-  startedAt: string;
-  completedAt?: string;
-  durationMs?: number;
-  message?: string;
-  keyResult?: Record<string, unknown>;
-  traceId: string;
-};
 type AuditPath = Array<string | number>;
 type FormRecordConsistencyChange = {
   kind: 'add' | 'delete' | 'change';

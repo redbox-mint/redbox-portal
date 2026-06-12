@@ -591,6 +591,7 @@ export namespace Services {
           queryParams.oid = params.oid;
           queryParams.dateFrom = params.dateFrom;
           queryParams.dateTo = params.dateTo;
+          queryParams.integrationName = params.integrationName;
           queryParams.page = page;
           queryParams.pageSize = Math.min(MAX_BATCH, totalRows - rows.length);
 
@@ -618,6 +619,7 @@ export namespace Services {
         queryParams.oid = params.oid;
         queryParams.dateFrom = params.dateFrom;
         queryParams.dateTo = params.dateTo;
+        queryParams.integrationName = params.integrationName;
         queryParams.page = page;
         queryParams.pageSize = MAX_BATCH;
 
@@ -699,6 +701,7 @@ export namespace Services {
       queryParams.oid = params.oid;
       queryParams.dateFrom = params.dateFrom;
       queryParams.dateTo = params.dateTo;
+      queryParams.integrationName = params.integrationName;
 
       const allRows = await this.getAllIntegrationAuditRows(queryParams);
       if (allRows.length === 0) {

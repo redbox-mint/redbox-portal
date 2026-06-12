@@ -806,6 +806,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new IntegrationStatusFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('integrationNames', item.config, config);
+    this.sharedProps.setPropOverride('pollIntervalMs', item.config, config);
+    this.sharedProps.setPropOverride('maxPollAttempts', item.config, config);
+    this.sharedProps.setPropOverride('heading', item.config, config);
   }
 
   async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
