@@ -863,7 +863,7 @@ export class FormOverride {
     target.component.config.content = source.model.config.value;
     const uploadTemplate = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafFileUpload,
-      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
     );
     target.component.config.template = this.substituteReusableTemplateSlots(uploadTemplate, { valueExpr: 'content' });
     return target;
@@ -1284,7 +1284,7 @@ export class FormOverride {
     if (className === FileUploadComponentName) {
       const fileTemplate = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafFileUpload,
-        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
       );
       return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
     }
@@ -1418,7 +1418,7 @@ export class FormOverride {
   }
 
   private getCommonDisplayFields(): string[] {
-    return ['label', 'name', 'title', 'dc_title', 'dc_description', 'value'];
+    return ['label', 'name', 'title', 'dc_title', 'dc_description', 'utf8_name', 'value'];
   }
 
   private getOptionLabelPairs(component: AllFormComponentDefinitionOutlines): Array<{ value: string; label: string }> {

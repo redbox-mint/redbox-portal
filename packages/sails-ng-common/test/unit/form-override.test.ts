@@ -10,6 +10,7 @@ import { GroupFieldComponentName } from '../../src/config/component/group.outlin
 import { DropdownInputComponentName } from '../../src/config/component/dropdown-input.outline';
 import { CheckboxInputComponentName } from '../../src/config/component/checkbox-input.outline';
 import { TypeaheadInputComponentName } from '../../src/config/component/typeahead-input.outline';
+import { FileUploadComponentName } from '../../src/config/component/file-upload.outline';
 import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
@@ -289,6 +290,34 @@ describe('FormOverride reusable expansion', () => {
     expect(result).to.contain('(get this "dc_title" "")');
     expect(result).to.contain('{{{renderMetadataValue this}}}');
     expect(result).to.not.contain('{{default this ""}}');
+  });
+
+  it('renders utf8_name object values as display labels', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderDisplayValue('content');
+
+    expect(result).to.contain('(get content "utf8_name" "")');
+    expect(result).to.contain('{{{plaintextToHtml (get content "utf8_name" "")}}}');
+  });
+
+  it('renders file upload leaf values as attachment download links', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: FileUploadComponentName,
+        },
+      } as never,
+      'content',
+      ['contractualObligations_licences']
+    );
+
+    expect(result).to.contain('attachmentDownloadUrl this oid branding portal');
+    expect(result).to.contain('<a href="{{attachmentDownloadUrl this oid branding portal}}"');
+    expect(result).to.contain('target="_blank"');
+    expect(result).to.contain('rel="noopener noreferrer"');
   });
 
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {

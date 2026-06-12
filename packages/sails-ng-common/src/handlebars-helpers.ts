@@ -177,6 +177,80 @@ function renderMetadataValue(value: unknown): string {
   return renderMetadataPrimitive(value);
 }
 
+function trimSlashes(value: unknown): string {
+  return String(value ?? '').replace(/^\/+|\/+$/g, '');
+}
+
+function isSafeDownloadUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value) || value.startsWith('/');
+}
+
+function resolveAttachmentLocation(location: string, branding: unknown, portal: unknown): string {
+  if (!location) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(location)) {
+    return location;
+  }
+  const recordRelativeMatch = location.match(/^([^/]+)\/attach\/([^/?#]+)$/);
+  if (recordRelativeMatch) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    const path = `record/${encodeURIComponent(recordRelativeMatch[1])}/attach/${encodeURIComponent(recordRelativeMatch[2])}`;
+    return `/${[prefix, path].filter(Boolean).join('/')}`;
+  }
+  if (!isSafeDownloadUrl(location)) {
+    return '';
+  }
+  if (location.startsWith('/record/')) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    return prefix ? `/${prefix}${location}` : location;
+  }
+  return location;
+}
+
+function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
+  if (!_isPlainObject(attachment)) {
+    return '';
+  }
+
+  const item = attachment as Record<string, unknown>;
+  const url = String(item.url ?? '').trim();
+  if (url && isSafeDownloadUrl(url)) {
+    return url;
+  }
+
+  const uploadUrl = String(item.uploadUrl ?? '').trim();
+  if (uploadUrl) {
+    try {
+      const parsedUploadUrl = new URL(uploadUrl);
+      const uploadPath = resolveAttachmentLocation(parsedUploadUrl.pathname, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    } catch {
+      const uploadPath = resolveAttachmentLocation(uploadUrl, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    }
+  }
+
+  const location = resolveAttachmentLocation(String(item.location ?? '').trim(), branding, portal);
+  if (location) {
+    return location;
+  }
+
+  const fileId = String(item.fileId ?? '').trim();
+  const recordOid = String(oid ?? '').trim();
+  if (!fileId || !recordOid) {
+    return '';
+  }
+
+  const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+  const path = `record/${encodeURIComponent(recordOid)}/attach/${encodeURIComponent(fileId)}`;
+  return `/${[prefix, path].filter(Boolean).join('/')}`;
+}
+
 /**
  * Shared Handlebars helper definitions for use in both server and client contexts.
  * These helpers provide CSP-safe alternatives to lodash template expressions.
@@ -628,6 +702,20 @@ export const handlebarsHelperDefinitions = {
    */
   renderMetadataValue: function (value: unknown): string {
     return renderMetadataValue(value);
+  },
+
+  /**
+   * Build a view-mode download URL for a file upload attachment value.
+   *
+   * @example {{attachmentDownloadUrl this oid branding portal}}
+   */
+  attachmentDownloadUrl: function (
+    attachment: unknown,
+    oid: unknown,
+    branding: unknown,
+    portal: unknown
+  ): string {
+    return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
   },
 };
 
