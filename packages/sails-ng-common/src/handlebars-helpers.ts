@@ -178,7 +178,12 @@ function renderMetadataValue(value: unknown): string {
 }
 
 function trimSlashes(value: unknown): string {
-  return String(value ?? '').replace(/^\/+|\/+$/g, '');
+  const text = String(value ?? '');
+  let start = 0;
+  let end = text.length;
+  while (start < end && text[start] === '/') start++;
+  while (end > start && text[end - 1] === '/') end--;
+  return text.slice(start, end);
 }
 
 function isSafeDownloadUrl(value: string): boolean {
