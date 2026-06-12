@@ -4,7 +4,7 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
   "view-template-leaf-plain": [
     {
       name: "view_template_leaf_plain",
-      component: {class: "ContentComponent", config: {template: "<span>{{content}}</span>"}},
+      component: {class: "ContentComponent", config: {template: "<span>{{{plaintextToHtml content}}}</span>"}},
     },
   ],
   "view-template-leaf-date": [

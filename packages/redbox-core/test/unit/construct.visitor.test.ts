@@ -1221,6 +1221,31 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it("should preserve text area line breaks in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "description",
+                            component: { class: "TextAreaComponent" },
+                            model: { class: "TextAreaModel", config: {} },
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions,
+                record: { description: "Line 1\nLine 2" }
+            });
+
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: "Line 1\nLine 2",
+                template: `<span>{{{plaintextToHtml content}}}</span>`
+            });
+        });
+
         it("should transform data location components to content in view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({

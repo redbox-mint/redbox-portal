@@ -291,6 +291,13 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('plaintextToHtml', function () {
+        it('should escape text and preserve line breaks', function () {
+            const result = handlebarsHelperDefinitions.plaintextToHtml('Line 1\n<script>alert("x")</script>\r\nLine 3');
+            expect(result).to.equal('Line 1<br>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;<br>Line 3');
+        });
+    });
+
     describe('comparison helpers', function () {
         it('gt should return true if first > second', function () {
             expect(handlebarsHelperDefinitions.gt(5, 3)).to.be.true;

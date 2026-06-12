@@ -59,9 +59,9 @@ let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
 void import('marked')
   .then(markedModule => {
-    const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
-    if (typeof parseFn === 'function') {
-      cachedMarkedParser = (value: string): string => {
+      const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+      if (typeof parseFn === 'function') {
+        cachedMarkedParser = (value: string): string => {
         const result = parseFn(value);
         return typeof result === 'string' ? result : value;
       };
@@ -597,6 +597,15 @@ export const handlebarsHelperDefinitions = {
       }
     }
     return input;
+  },
+
+  /**
+   * Render plain text as escaped HTML while preserving line breaks.
+   *
+   * @example {{{plaintextToHtml content}}}
+   */
+  plaintextToHtml: function (value: unknown): string {
+    return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
   },
 
   /**

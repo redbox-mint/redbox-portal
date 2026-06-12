@@ -716,7 +716,10 @@ export class FormOverride {
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    this.commonContentPlain(source, target);
+    if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      target.component.config.content = source.model.config.value;
+      target.component.config.template = `<span>{{{plaintextToHtml content}}}</span>`;
+    }
     return target;
   }
 
@@ -1351,7 +1354,57 @@ export class FormOverride {
       );
       return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
     }
+    if (className === TextAreaComponentName) {
+      return `<span>{{{plaintextToHtml ${expression}}}}</span>`;
+    }
+    if (
+      className === DropdownInputComponentName ||
+      className === CheckboxInputComponentName ||
+      className === RadioInputComponentName
+    ) {
+      const options = this.getOptionLabelPairs(component);
+      if (className === CheckboxInputComponentName) {
+        return this.renderOptionListValue(expression, options);
+      }
+      return this.renderOptionSingleValue(expression, options);
+    }
     return `{{default ${expression} ""}}`;
+  }
+
+  private getOptionLabelPairs(component: AllFormComponentDefinitionOutlines): Array<{ value: string; label: string }> {
+    const componentConfig = component?.component?.config as { options?: Array<{ value?: unknown; label?: unknown }> } | undefined;
+    return (componentConfig?.options ?? [])
+      .filter(option => option?.value !== undefined && option?.label !== undefined)
+      .map(option => ({
+        value: String(option.value),
+        label: String(option.label),
+      }));
+  }
+
+  private renderOptionSingleValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const optionBranches = options.map(option =>
+      `{{#if (eq ${expression} "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<span data-value="{{default ${expression} ""}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</span>` +
+      '{{else}}'
+    ).join('');
+    return `${optionBranches}<span>{{default ${expression} ""}}</span>${'{{/if}}'.repeat(options.length)}`;
+  }
+
+  private renderOptionListValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const singleValue = this.renderOptionSingleValue(expression, options);
+    const optionBranches = options.map(option =>
+      `{{#if (eq this "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<li data-value="{{this}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</li>` +
+      '{{else}}'
+    ).join('');
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}${optionBranches}` +
+      `<li>{{this}}</li>${'{{/if}}'.repeat(options.length)}{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
   }
 
   private getGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {

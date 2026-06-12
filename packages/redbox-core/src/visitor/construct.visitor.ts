@@ -2192,10 +2192,19 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   ): AllFormComponentDefinitionOutlines {
     if (this.formMode === 'view') {
       const className = formComponent?.component?.class;
+      const componentConfig = formComponent?.component?.config as { inlineVocab?: boolean } | undefined;
       const shouldDeferToClientViewTransform =
         className === QuestionTreeComponentName ||
         className === RepeatableComponentName ||
-        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName);
+        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
+        (
+          componentConfig?.inlineVocab === true &&
+          (
+            className === DropdownInputComponentName ||
+            className === CheckboxInputComponentName ||
+            className === RadioInputComponentName
+          )
+        );
       if (shouldDeferToClientViewTransform) {
         return formComponent;
       }

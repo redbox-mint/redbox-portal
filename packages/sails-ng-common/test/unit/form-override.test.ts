@@ -7,6 +7,8 @@ import {
 import { ReusableComponentName } from '../../src/config/component/reusable.outline';
 import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
 import { GroupFieldComponentName } from '../../src/config/component/group.outline';
+import { DropdownInputComponentName } from '../../src/config/component/dropdown-input.outline';
+import { CheckboxInputComponentName } from '../../src/config/component/checkbox-input.outline';
 import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
 import { ILogger } from '../../src/logger.interface';
 
@@ -157,6 +159,54 @@ describe('FormOverride reusable expansion', () => {
     );
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+  });
+
+  it('renders dropdown leaf option labels in generated view templates', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: DropdownInputComponentName,
+          config: {
+            options: [
+              { value: 'dataset', label: 'Dataset' },
+              { value: 'software', label: 'Software' },
+            ],
+          },
+        },
+      } as never,
+      'content',
+      ['datatype']
+    );
+
+    expect(result).to.equal(
+      '{{#if (eq (get content "datatype" "") "dataset")}}<span data-value="{{default (get content "datatype" "") ""}}">{{t "Dataset"}}</span>{{else}}{{#if (eq (get content "datatype" "") "software")}}<span data-value="{{default (get content "datatype" "") ""}}">{{t "Software"}}</span>{{else}}<span>{{default (get content "datatype" "") ""}}</span>{{/if}}{{/if}}'
+    );
+  });
+
+  it('renders checkbox leaf option labels in generated view templates', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: CheckboxInputComponentName,
+          config: {
+            options: [
+              { value: 'tropicalEcoSystems', label: 'Tropical Eco Systems' },
+              { value: 'industriesEconomies', label: 'Industries and Economies' },
+            ],
+          },
+        },
+      } as never,
+      'content',
+      ['research_themes']
+    );
+
+    expect(result).to.equal(
+      '{{#if (get content "research_themes" "")}}{{#if (isArray (get content "research_themes" ""))}}<ul>{{#each (get content "research_themes" "")}}{{#if (eq this "tropicalEcoSystems")}}<li data-value="{{this}}">{{t "Tropical Eco Systems"}}</li>{{else}}{{#if (eq this "industriesEconomies")}}<li data-value="{{this}}">{{t "Industries and Economies"}}</li>{{else}}<li>{{this}}</li>{{/if}}{{/if}}{{/each}}</ul>{{else}}{{#if (eq (get content "research_themes" "") "tropicalEcoSystems")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Tropical Eco Systems"}}</span>{{else}}{{#if (eq (get content "research_themes" "") "industriesEconomies")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Industries and Economies"}}</span>{{else}}<span>{{default (get content "research_themes" "") ""}}</span>{{/if}}{{/if}}{{/if}}{{/if}}'
+    );
   });
 
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {
