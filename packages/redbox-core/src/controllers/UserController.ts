@@ -137,6 +137,11 @@ export namespace Controllers {
       const user = req.session.user ? req.session.user : req.user;
       this.updateChronicle(req, {userLogoutUser: user});
       const that = this;
+
+      if (typeof req.logout !== 'function'){
+        return res.serverError();
+      }
+
       req.logout(function (err: unknown) {
         if (err) {
           that.updateChronicle(req, {userLogoutSuccess: false}, [err]);
@@ -321,14 +326,22 @@ export namespace Controllers {
           that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
+
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         return req.logIn(user, function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
+
           // login success
-          // redir if api header call is not found
+          that.addRequestChronicleUserDetails(req, user);
           that.updateChronicle(req, {userLoginSuccess: true, userLoginIsAjax: isAjax});
+
+          // redir if api header call is not found
           if (isAjax) {
             return that.sendResp(req, res, {
               data: {
@@ -422,11 +435,16 @@ export namespace Controllers {
           that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
 
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         req.logIn(user, function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
+          that.addRequestChronicleUserDetails(req, user);
           that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
@@ -593,11 +611,16 @@ export namespace Controllers {
           that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
 
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         req.logIn(user, function (err: unknown) {
           if (err) {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
+          that.addRequestChronicleUserDetails(req, user);
           that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
@@ -629,6 +652,16 @@ export namespace Controllers {
           errors: [error],
           chronicle: {userFindSource: searchSource, userFindName: searchName},
         });
+      });
+    }
+
+    private addRequestChronicleUserDetails(req: Sails.Req, user: AnyRecord | null | undefined): void {
+      this.updateChronicle(req, {
+        userId: user?.id,
+        userUsername: user?.username,
+        userType: user?.type,
+        userName: user?.name,
+        userRoles: user?.roles,
       });
     }
     /**

@@ -43,12 +43,12 @@ export function checkAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFuncti
     if (rules) {
         // populate variables if this user has a role that can read or write...
         const canRead = PathRulesService.canRead(rules, roles as unknown as Parameters<typeof PathRulesService.canRead>[1], brand.name);
+        const contentTypeHeader = req.headers["content-type"] == null ? "" : req.headers["content-type"];
         if (!canRead) {
             if (req.isAuthenticated()) {
                 res.status(403).send();
                 return;
             } else {
-                const contentTypeHeader = req.headers["content-type"] == null ? "" : req.headers["content-type"];
                 if (contentTypeHeader.indexOf("application/json") !== -1) {
                     res.status(403).json({ message: "Access Denied" });
                     return;

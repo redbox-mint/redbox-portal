@@ -375,16 +375,7 @@ export const http: HttpConfig = {
               throw new Error(`Passport session failed: sails.config.passport.session is not a function.`);
             }
             const middleware = sails.config.passport.session() as unknown as RequestHandler;
-            const result = middleware(req, res, next);
-            const user = req.user as UserModel | undefined | null;
-            RequestChronicleHelper.fromReq(consoleLogger, req).addInfo({
-              userId: user?.id,
-              userUsername: user?.username,
-              userType: user?.type,
-              userName: user?.name,
-              userRoles: user?.roles,
-            });
-            return result;
+            return middleware(req, res, next);
         },
 
         companion: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {

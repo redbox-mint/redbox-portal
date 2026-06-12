@@ -5,6 +5,10 @@ import type {ApiRouteDefinition} from './api-routes/types';
 import type {ValidatedApiRouteRequest} from './api-routes/validation';
 import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 
+// passport import type is to be able to access 'Express.AuthenticatedRequest' from '@types/passport'.
+import type * as passportType from 'passport';
+
+
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
   interface SessionData {
