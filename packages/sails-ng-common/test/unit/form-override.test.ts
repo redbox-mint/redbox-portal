@@ -1,14 +1,14 @@
-import { FormOverride } from '../../src/config/form-override.model';
-import { ContentComponentName } from '../../src/config/component/content.outline';
 import {
+  FormOverride,
+  ContentComponentName,
   RepeatableComponentName,
   RepeatableFieldComponentDefinitionFrame,
-} from '../../src/config/component/repeatable.outline';
-import { ReusableComponentName } from '../../src/config/component/reusable.outline';
-import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
-import { GroupFieldComponentName } from '../../src/config/component/group.outline';
-import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
-import { ILogger } from '../../src/logger.interface';
+  ReusableComponentName,
+  SimpleInputComponentName,
+  GroupFieldComponentName,
+  isTypeFieldDefinitionName,
+  ILogger,
+} from '../../src';
 
 let expect: Chai.ExpectStatic;
 

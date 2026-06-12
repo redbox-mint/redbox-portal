@@ -1,5 +1,4 @@
-import { handlebarsHelperDefinitions } from '../../src/handlebars-helpers';
-import { escapeHtmlText } from '../../src/html-helpers';
+import { handlebarsHelperDefinitions, escapeHtmlText } from '../../src';
 
 describe('Shared Handlebars Helpers', function () {
     let expect: any;
