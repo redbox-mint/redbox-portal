@@ -8,6 +8,17 @@ import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
 
 type AnyRecord = Record<string, unknown>;
+type IntegrationStatusSummary = {
+  integrationName: string;
+  status: string;
+  integrationAction?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  message?: string;
+  keyResult?: Record<string, unknown>;
+  traceId: string;
+};
 type AuditPath = Array<string | number>;
 type FormRecordConsistencyChange = {
   kind: 'add' | 'delete' | 'change';
@@ -53,6 +64,7 @@ declare const FormRecordConsistencyService: {
 };
 declare const IntegrationAuditService: {
   getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
+  getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]>;
 };
 declare const TranslationService: {
   t(key: string): string;
@@ -67,6 +79,7 @@ export namespace Controllers {
       'getAuditData',
       'getPermissionsData',
       'getIntegrationAuditData',
+      'getIntegrationStatusData',
       'init',
     ];
 
@@ -488,6 +501,51 @@ export namespace Controllers {
           status: 500,
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to load record permissions.' }],
+        });
+      }
+    }
+
+    private hasEditAccess(brand: BrandingModel, user: AnyRecord | undefined, record: AnyRecord): Observable<boolean> {
+      const currentUser = user ?? {};
+      return of(this.recordsService.hasEditAccess(brand, currentUser, (currentUser['roles'] ?? []) as AnyRecord[], record));
+    }
+
+    public async getIntegrationStatusData(req: Sails.Req, res: Sails.Res) {
+      const oid = String(req.param('oid') ?? '').trim();
+      if (_.isEmpty(oid)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+      }
+
+      try {
+        const brand = this.getReqBrand(req);
+        const record = await this.getRecordOrSendNotFound(req, res, oid);
+        if (record == null) {
+          return;
+        }
+
+        const hasEdit = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
+        if (!hasEdit) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ code: 'view-error-no-permissions' }],
+            v1: { message: TranslationService.t('view-error-no-permissions') },
+          });
+        }
+
+        const integrationName = String(req.param('integrationName') ?? '').trim();
+        const params = new IntegrationAuditParams();
+        params.oid = oid;
+        if (!_.isEmpty(integrationName)) {
+          params.integrationName = integrationName;
+        }
+
+        const integrations = await IntegrationAuditService.getStatusSummary(params);
+        return this.sendResp(req, res, { data: { integrations } });
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load integration status data.' }],
         });
       }
     }

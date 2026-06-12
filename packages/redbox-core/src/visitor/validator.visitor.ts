@@ -25,6 +25,8 @@ import {
   SuggestedValidationSummaryFormComponentDefinitionOutline,
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -258,6 +260,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
+    }
+
+    /* Integration Status */
+
+    async visitIntegrationStatusFieldComponentDefinition(_item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    }
+
+    async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
         await this.acceptFormComponentDefinition(item);
     }
 

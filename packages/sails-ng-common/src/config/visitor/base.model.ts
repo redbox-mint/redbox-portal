@@ -55,6 +55,10 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '../component/save-status.outline';
 import {
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '../component/integration-status.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
@@ -318,6 +322,16 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();
   }
 

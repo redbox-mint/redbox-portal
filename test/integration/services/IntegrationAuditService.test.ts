@@ -274,4 +274,80 @@ describe('The IntegrationAuditService', function () {
     expect(audits.rows[0]).to.have.property('integrationAction', 'publishDoi');
     expect(audits.rows[0].responseSummary.doi).to.equal('10.1234/5678');
   });
+
+  it('returns status summary grouped by integration name without sensitive fields', async function () {
+    const oid = `integration-audit-service-${Date.now()}-5`;
+    createdOids.push(oid);
+    const traceDoi1 = `trace-${Date.now()}-doi1`;
+    const traceDoi2 = `trace-${Date.now()}-doi2`;
+    const traceFigshare = `trace-${Date.now()}-fig`;
+
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'doi',
+      integrationAction: 'publishDoi',
+      triggeredBy: 'test',
+      status: 'success',
+      traceId: traceDoi1,
+      spanId: `span-${Date.now()}-doi1`,
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:00:01.000Z',
+      durationMs: 1000,
+      responseSummary: { doi: '10.1234/5678' },
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'doi',
+      integrationAction: 'updateDoi',
+      triggeredBy: 'test',
+      status: 'started',
+      traceId: traceDoi2,
+      spanId: `span-${Date.now()}-doi2`,
+      startedAt: '2025-01-01T00:00:02.000Z',
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      triggeredBy: 'test',
+      status: 'failed',
+      traceId: traceFigshare,
+      spanId: `span-${Date.now()}-fig`,
+      startedAt: '2025-01-01T00:00:03.000Z',
+      completedAt: '2025-01-01T00:00:04.000Z',
+      durationMs: 1000,
+      message: 'figshare sync failed',
+      errorDetail: 'connection refused',
+      httpStatusCode: 502,
+      requestSummary: { query: 'select *' },
+      responseSummary: { error: 'timeout' },
+    });
+
+    await waitForAuditCount(oid, 3);
+
+    const summary = await integrationAuditService.getStatusSummary({ oid });
+
+    expect(summary).to.have.length(2);
+
+    const doiStatus = summary.find(s => s.integrationName === 'doi');
+    expect(doiStatus).to.be.ok;
+    expect(doiStatus!.status).to.equal('started');
+    expect(doiStatus!.integrationAction).to.equal('updateDoi');
+    expect(doiStatus!.keyResult).to.be.undefined;
+
+    const figshareStatus = summary.find(s => s.integrationName === 'figshare');
+    expect(figshareStatus).to.be.ok;
+    expect(figshareStatus!.status).to.equal('failed');
+    expect(figshareStatus!.message).to.equal('figshare sync failed');
+    expect(figshareStatus!.keyResult).to.be.undefined;
+
+    // Verify no sensitive fields are present
+    expect(figshareStatus).to.not.have.property('errorDetail');
+    expect(figshareStatus).to.not.have.property('requestSummary');
+    expect(figshareStatus).to.not.have.property('responseSummary');
+    expect(figshareStatus).to.not.have.property('httpStatusCode');
+  });
 });

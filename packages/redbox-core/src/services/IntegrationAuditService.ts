@@ -65,6 +65,18 @@ export type IntegrationAuditTraceLogResult = {
   total: number;
 };
 
+export type IntegrationStatusSummary = {
+  integrationName: string;
+  status: string;
+  integrationAction?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  message?: string;
+  keyResult?: Record<string, unknown>;
+  traceId: string;
+};
+
 type IntegrationAuditOptions = {
   brandId?: string;
   integrationName?: IntegrationAuditName;
@@ -93,6 +105,7 @@ export namespace Services {
       'failAudit',
       'getAuditLog',
       'getTraceAuditLog',
+      'getStatusSummary',
       'storeIntegrationAudit',
     ];
 
@@ -661,6 +674,71 @@ export namespace Services {
         rows: groupedRows.slice(skip, skip + pageSize),
         total,
       };
+    }
+
+    private extractKeyResult(row: Record<string, unknown>): Record<string, unknown> | undefined {
+      const responseSummary = row['responseSummary'] as Record<string, unknown> | undefined;
+      if (_.isPlainObject(responseSummary) && responseSummary != null) {
+        const keyResult: Record<string, unknown> = {};
+        const rs = responseSummary as Record<string, unknown>;
+        if (!_.isEmpty(rs['doi'])) {
+          keyResult['doi'] = rs['doi'];
+        }
+        if (!_.isEmpty(rs['figshareArticleId'])) {
+          keyResult['figshareArticleId'] = rs['figshareArticleId'];
+        }
+        if (!_.isEmpty(keyResult)) {
+          return keyResult;
+        }
+      }
+      return undefined;
+    }
+
+    public async getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]> {
+      const queryParams = new IntegrationAuditParams();
+      queryParams.oid = params.oid;
+      queryParams.dateFrom = params.dateFrom;
+      queryParams.dateTo = params.dateTo;
+
+      const allRows = await this.getAllIntegrationAuditRows(queryParams);
+      if (allRows.length === 0) {
+        return [];
+      }
+
+      const rowsByTrace = new Map<string, Record<string, unknown>[]>();
+      allRows.forEach(row => {
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace`;
+        const existing = rowsByTrace.get(traceId) ?? [];
+        existing.push(row);
+        rowsByTrace.set(traceId, existing);
+      });
+
+      const traces = Array.from(rowsByTrace.entries()).map(([traceId, rows]) => {
+        const built = this.buildTraceRecord(traceId, rows);
+        const newestRow = [...rows].sort((left, right) => this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left))[0] ?? {};
+        return {
+          traceId,
+          integrationName: built.integrationName ?? this.getString(newestRow['integrationName']) ?? '',
+          status: built.status,
+          integrationAction: this.getString(newestRow['integrationAction']),
+          startedAt: built.startedAt,
+          completedAt: built.completedAt,
+          durationMs: built.durationMs,
+          message: this.getString(newestRow['message']),
+          keyResult: this.extractKeyResult(newestRow),
+        };
+      });
+
+      const grouped = new Map<string, IntegrationStatusSummary>();
+      traces.forEach(trace => {
+        const name = trace.integrationName;
+        const existing = grouped.get(name);
+        if (!existing || (this.getRowSortTimestamp({ startedAt: trace.startedAt } as Record<string, unknown>) > this.getRowSortTimestamp({ startedAt: existing.startedAt } as Record<string, unknown>))) {
+          grouped.set(name, trace);
+        }
+      });
+
+      return Array.from(grouped.values());
     }
 
     public storeIntegrationAudit(job: AnyRecord): void {

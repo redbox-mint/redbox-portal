@@ -28,6 +28,10 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -501,6 +505,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

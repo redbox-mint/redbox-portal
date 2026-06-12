@@ -167,6 +167,22 @@ export interface IntegrationAuditTabResponse {
   summary: { numFound: number; page: number; pageSize: number; totalPages: number };
   records: IntegrationAuditTraceRecord[];
 }
+export interface IntegrationStatusItem {
+  integrationName: string;
+  status: string;
+  integrationAction?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  message?: string;
+  keyResult?: Record<string, unknown>;
+  traceId: string;
+}
+
+export interface IntegrationStatusResponse {
+  integrations: IntegrationStatusItem[];
+}
+
 /**
  * Record Service
  *
@@ -312,6 +328,30 @@ export class RecordService extends HttpClientService {
             editRoles: [],
             viewRoles: [],
           };
+        })
+      );
+    return await firstValueFrom(result$);
+  }
+
+  public async getRecordIntegrationStatus(oid: string, opts: { integrationName?: string } = {}): Promise<IntegrationStatusResponse> {
+    const url = `${this.brandingAndPortalUrl}/record/integrationStatus/${oid}`;
+    let params = new HttpParams();
+    if (!_isEmpty(opts.integrationName)) {
+      params = params.set('integrationName', String(opts.integrationName));
+    }
+    const requestOptions = this.getHttpOptions();
+    const httpOptions = {
+      context: requestOptions?.context,
+      observe: 'body' as const,
+      responseType: 'json' as const,
+      params,
+    };
+    const result$ = this.http
+      .get<{ data?: IntegrationStatusResponse } | IntegrationStatusResponse>(url, httpOptions)
+      .pipe(
+        map(response => {
+          const payload = (response as { data?: IntegrationStatusResponse })?.data ?? response as IntegrationStatusResponse | undefined;
+          return payload?.integrations ? payload : { integrations: [] };
         })
       );
     return await firstValueFrom(result$);

@@ -1422,5 +1422,13 @@
   "manage-users-audit-event-link-primary": "This account was chosen as the primary account during account linking",
   "manage-users-audit-event-link-secondary": "This account was linked as a secondary alias to another account",
   "manage-users-audit-event-link-generic": "Account linking event",
-  "@lookup-placeholder-party": "Start typing a party name..."
+  "@lookup-placeholder-party": "Start typing a party name...",
+  "@integration-status-heading": "Integrations",
+  "@integration-status-started": "In progress",
+  "@integration-status-success": "Success",
+  "@integration-status-failed": "Failed",
+  "@integration-status-empty": "No integration activity recorded for this record yet.",
+  "@integration-status-name-doi": "DOI (DataCite)",
+  "@integration-status-name-figshare": "Figshare",
+  "@integration-status-keyresult-doi": "Draft DOI minted:"
 }
