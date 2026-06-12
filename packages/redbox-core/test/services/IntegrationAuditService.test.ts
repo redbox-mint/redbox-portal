@@ -524,6 +524,130 @@ describe('IntegrationAuditService', function () {
     expect(result.rows[0].traceId).to.equal('trace-2');
   });
 
+  it('getStatusSummary filters by integrationName (single)', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-2',
+        spanId: 'span-2',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getStatusSummary({ oid: 'oid-1', integrationName: 'doi' } as any);
+
+    expect(result).to.have.length(1);
+    expect(result[0].integrationName).to.equal('doi');
+  });
+
+  it('getStatusSummary filters by integrationName (CSV multiple)', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-2',
+        spanId: 'span-2',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob',
+        status: 'success',
+        traceId: 'trace-3',
+        spanId: 'span-3',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getStatusSummary({ oid: 'oid-1', integrationName: 'figshare,doi' } as any);
+
+    expect(result).to.have.length(2);
+    expect(result.map(r => r.integrationName).sort()).to.deep.equal(['doi', 'figshare']);
+  });
+
+  it('getStatusSummary returns empty for non-matching integrationName', async function () {
+    mockStorageService.countIntegrationAudit.resolves(4);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getStatusSummary({ oid: 'oid-1', integrationName: 'nonexistent' } as any);
+
+    expect(result).to.have.length(0);
+  });
+
+  it('extractKeyResult reads doi from responseSummary.data.id (DataCite JSON:API mint shape)', async function () {
+    (global as any).sails.config.environment = 'integrationtest';
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
+      integrationName: IntegrationAuditName.doi,
+    });
+    service.completeAudit(ctx, {
+      message: 'DataCite create DOI request completed.',
+      responseSummary: { data: { id: '10.1234/mint-test' } },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const statusResult = await service.getStatusSummary({ oid: 'oid-1' } as any);
+    expect(statusResult).to.have.length(1);
+    expect(statusResult[0].keyResult?.doi).to.equal('10.1234/mint-test');
+  });
+
+  it('extractKeyResult reads articleId from responseSummary (figshare shape)', async function () {
+    (global as any).sails.config.environment = 'integrationtest';
+    sinon.stub(trace, 'getActiveSpan').returns(undefined);
+
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.syncRecordWithFigshare, {
+      integrationName: IntegrationAuditName.figshare,
+    });
+    service.completeAudit(ctx, {
+      message: 'Figshare sync completed.',
+      responseSummary: { articleId: '98765', phases: ['metadata sync'] },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const statusResult = await service.getStatusSummary({ oid: 'oid-1' } as any);
+    expect(statusResult).to.have.length(1);
+    expect(statusResult[0].keyResult?.articleId).to.equal('98765');
+  });
+
   it('filters traces by integration name before pagination', async function () {
     mockStorageService.countIntegrationAudit.resolves(4);
     mockStorageService.getIntegrationAudit.resolves([

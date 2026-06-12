@@ -92,6 +92,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected readonly gracePollActive = signal(false);
   private pollTimerId: number | null = null;
   private pollAttempts = 0;
+  private graceRemaining = 0;
   private saveStatusTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private get config(): Record<string, unknown> | undefined {
@@ -139,6 +140,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
           clearTimeout(this.saveStatusTimeout);
         }
         this.saveStatusTimeout = setTimeout(() => {
+          this.graceRemaining = 3;
           this.gracePollActive.set(true);
           this.fetchStatus();
         }, 1500);
@@ -174,7 +176,12 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.hasError.set(false);
 
       const hasInFlight = response.integrations.some(i => i.status === 'started');
-      if (hasInFlight || this.gracePollActive()) {
+      if (hasInFlight) {
+        this.graceRemaining = 0;
+        this.gracePollActive.set(false);
+        this.startPolling();
+      } else if (this.graceRemaining > 0) {
+        this.graceRemaining--;
         this.startPolling();
       } else {
         this.stopPolling();
