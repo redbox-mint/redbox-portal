@@ -29,6 +29,30 @@
   vertical-align: middle;
 }
 
+.rb-form-host .rb-form-rich-text-content table {
+  width: auto;
+  max-width: 100%;
+  margin: 0.75rem 0 1rem;
+  border-collapse: collapse;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.rb-form-host .rb-form-rich-text-content th,
+.rb-form-host .rb-form-rich-text-content td {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  vertical-align: top;
+}
+
+.rb-form-host .rb-form-rich-text-content th {
+  font-weight: 700;
+  background: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.rb-form-host .rb-form-rich-text-content tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.025);
+}
+
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
 .rb-form-host .rb-form-action-row {
   display: flex;

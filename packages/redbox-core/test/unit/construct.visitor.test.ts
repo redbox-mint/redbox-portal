@@ -1717,6 +1717,11 @@ describe("Construct Visitor", async () => {
             expect(template).to.contain("custom-leaf");
         });
 
+        it("should preserve line breaks in the default plain reusable view fragment", async () => {
+            const leafPlainTemplate = (reusableFormDefinitions["view-template-leaf-plain"]?.[0]?.component?.config as { template?: string } | undefined)?.template;
+            expect(leafPlainTemplate).to.equal("<span>{{{plaintextToHtml content}}}</span>");
+        });
+
         it("should keep repeatable and group components untransformed in view mode during construct phase", async () => {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
