@@ -25,7 +25,7 @@
   "dependencies": {
     "@agendajs/mongo-backend": "4.0.2",
     "@apidevtools/swagger-parser": "12.1.0",
-    "@aws-sdk/s3-request-presigner": "3.1060.0",
+    "@aws-sdk/s3-request-presigner": "3.1062.0",
     "@opentelemetry/api": "1.9.1",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
@@ -41,7 +41,7 @@
     "@types/uuid": "11.0.0",
     "agenda": "6.2.5",
     "async": "3.2.6",
-    "axios": "1.16.1",
+    "axios": "1.17.0",
     "bcryptjs": "3.0.3",
     "check-disk-space": "3.4.0",
     "clean-css": "5.3.3",
@@ -51,7 +51,7 @@
     "css-loader": "7.1.4",
     "css-minimizer-webpack-plugin": "8.0.0",
     "csv-stringify": "6.7.0",
-    "dompurify": "3.4.7",
+    "dompurify": "3.4.8",
     "effect": "3.21.2",
     "ejs": "6.0.1",
     "express": "5.2.1",
@@ -63,7 +63,7 @@
     "glob": "13.0.6",
     "graceful-fs": "4.2.11",
     "handlebars": "4.7.9",
-    "i18next": "26.3.0",
+    "i18next": "26.3.1",
     "jsdom": "29.1.1",
     "jsonata": "2.2.1",
     "language-data-commons-vocabs": "1.0.1",
@@ -108,7 +108,7 @@
     "@asteasolutions/zod-to-openapi": "7.3.4"
   },
   "overrides": {
-    "axios": "1.16.1",
+    "axios": "1.17.0",
     "fast-xml-parser": "5.8.0",
     "immutable": "5.1.5",
     "sails-mongo": {
