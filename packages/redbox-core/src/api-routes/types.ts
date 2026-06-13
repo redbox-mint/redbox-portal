@@ -1,9 +1,9 @@
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'head';
 export type ApiRequestSource = 'params' | 'query' | 'headers' | 'body';
 
-export type ApiSchemaField = ZodTypeAny;
+export type ApiSchemaField = ZodType;
 
 export interface ApiFileConstraint {
   required?: boolean;
