@@ -7,26 +7,32 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
 @Component({
   selector: 'redbox-form-integration-status',
   template: `
-    @if (isVisible && oid()) {
-      <div class="rb-integration-status card" role="region" [attr.aria-live]="hasError() ? 'assertive' : 'polite'" attr.aria-label="{{ headingText() | i18next }}">
-        <div class="card-header py-2 d-flex align-items-center">
-          <i class="fa fa-plug me-2" aria-hidden="true"></i>
-          <span class="fw-semibold">{{ headingText() | i18next }}</span>
+    @if (isVisible && oid() && shouldRender()) {
+      <div class="rb-integration-status panel panel-default" role="region" [attr.aria-live]="hasError() ? 'assertive' : 'polite'" attr.aria-label="{{ headingText() | i18next }}">
+        <div class="panel-heading d-flex align-items-center">
+          <span class="panel-title flex-grow-1">{{ headingText() | i18next }}</span>
           @if (isPolling()) {
-            <span class="ms-auto text-muted rb-int-meta">
-              <i class="fa fa-refresh fa-spin" aria-hidden="true"></i>
-            </span>
+            <i class="fa fa-refresh fa-spin me-2" aria-hidden="true"></i>
           }
+          <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none rb-int-collapse"
+            [attr.aria-expanded]="!collapsed()"
+            aria-controls="integration-status-body"
+            (click)="collapsed.set(!collapsed())"
+            attr.aria-label="{{ (collapsed() ? '@integration-status-expand' : '@integration-status-collapse') | i18next }}">
+            <i class="fa" [ngClass]="collapsed() ? 'fa-chevron-down' : 'fa-chevron-up'" aria-hidden="true"></i>
+          </button>
         </div>
-        @if (hasError()) {
-          <div class="card-body py-2">
+        @if (!collapsed()) {
+        <div id="integration-status-body">
+        @if (hasError() && canSeeTechnicalDetails()) {
+          <div class="panel-body">
             <p class="text-danger rb-int-meta mb-0">
               <i class="fa fa-exclamation-circle fa-fw" aria-hidden="true"></i>
               {{ '@integration-status-error' | i18next }}
             </p>
           </div>
-        } @else if (integrations().length === 0) {
-          <div class="card-body py-2">
+        } @else if (displayIntegrations().length === 0) {
+          <div class="panel-body">
             <p class="text-muted rb-int-meta mb-0">
               <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
               {{ '@integration-status-empty' | i18next }}
@@ -34,7 +40,7 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
           </div>
         } @else {
           <ul class="list-group list-group-flush">
-            @for (item of integrations(); track item.traceId) {
+            @for (item of displayIntegrations(); track item.traceId) {
               <li class="list-group-item">
                 @if (item.outcome; as outcome) {
                   <div class="d-flex align-items-center gap-3">
@@ -115,8 +121,8 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
             }
           </ul>
           @if (canSeeTechnicalDetails()) {
-            <div class="card-footer py-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary"
+            <div class="rb-int-technical-toggle border-top py-2 px-3">
+              <button type="button" class="btn btn-sm btn-link text-decoration-none p-0"
                 [attr.aria-expanded]="technicalOpen()"
                 aria-controls="integration-technical-details"
                 (click)="technicalOpen.set(!technicalOpen())">
@@ -170,6 +176,8 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
             }
           }
         }
+        </div>
+        }
       </div>
     }
   `,
@@ -189,6 +197,10 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected readonly gracePollActive = signal(false);
   protected readonly canSeeTechnicalDetails = signal(false);
   protected readonly technicalOpen = signal(false);
+  protected readonly collapsed = signal(false);
+  // Integration names observed in-progress during this session (not persisted, so a
+  // reload starts empty). Drives the researcher "show success only if it was live" rule.
+  protected readonly seenInProgress = signal<Set<string>>(new Set<string>());
   private pollTimerId: number | null = null;
   private pollAttempts = 0;
   private graceRemaining = 0;
@@ -220,6 +232,24 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   protected readonly headingText = computed(() => {
     const h = this.config?.['heading'];
     return typeof h === 'string' && h ? h : '@integration-status-heading';
+  });
+
+  // Privileged viewers (admin/librarian — same role set that unlocks technical details)
+  // see every integration in every state. Researchers only see in-progress and failures,
+  // plus any integration they have already watched go in-progress this session.
+  protected readonly displayIntegrations = computed<IntegrationStatusItem[]>(() => {
+    const all = this.integrations();
+    if (this.canSeeTechnicalDetails()) {
+      return all;
+    }
+    const seen = this.seenInProgress();
+    return all.filter(item => this.isInProgress(item) || this.isError(item) || seen.has(item.integrationName));
+  });
+
+  // Researchers only render the component when there is something worth showing; privileged
+  // viewers always render (so they get the idle/empty and load-error states too).
+  protected readonly shouldRender = computed<boolean>(() => {
+    return this.canSeeTechnicalDetails() || this.displayIntegrations().length > 0;
   });
 
   constructor() {
@@ -292,6 +322,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       });
       this.integrations.set(response.integrations);
       this.hasError.set(false);
+      this.recordSeenInProgress(response.integrations);
 
       const hasInFlight = response.integrations.some(i => i.status === 'started' && !i.synthesized);
       if (hasInFlight) {
@@ -333,6 +364,28 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     }
     this.isPolling.set(false);
     this.gracePollActive.set(false);
+  }
+
+  protected isInProgress(item: IntegrationStatusItem): boolean {
+    return item.status === 'started' || item.outcome?.severity === 'in-progress';
+  }
+
+  protected isError(item: IntegrationStatusItem): boolean {
+    return item.status === 'failed' || item.outcome?.severity === 'error';
+  }
+
+  private recordSeenInProgress(items: IntegrationStatusItem[]): void {
+    const names = items.filter(i => this.isInProgress(i)).map(i => i.integrationName);
+    if (names.length === 0) {
+      return;
+    }
+    this.seenInProgress.update(prev => {
+      const next = new Set(prev);
+      for (const name of names) {
+        next.add(name);
+      }
+      return next;
+    });
   }
 
   protected severityBadgeClass(severity: string): string {

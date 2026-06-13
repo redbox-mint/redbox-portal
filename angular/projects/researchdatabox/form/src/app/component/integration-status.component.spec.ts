@@ -19,7 +19,10 @@ let formConfig: FormConfigFrame;
 function createMockUserService(getInfoResult?: any) {
   return {
     waitForInit: () => Promise.resolve(),
-    getInfo: () => Promise.resolve(getInfoResult ?? { user: { roles: [{ name: 'Researcher' }] } }),
+    // Default to a privileged (admin) viewer so the render-focused tests below exercise the
+    // template regardless of the new researcher visibility filter; researcher-specific tests
+    // spy getInfo explicitly with a 'Researcher' role.
+    getInfo: () => Promise.resolve(getInfoResult ?? { user: { roles: [{ name: 'Admin' }] } }),
     getInfoUrl: () => '',
     loginLocal: () => Promise.resolve({}),
     getUsers: () => Promise.resolve([]),
@@ -95,7 +98,7 @@ describe('IntegrationStatusComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const emptyText = fixture.nativeElement.querySelector('.card-body');
+    const emptyText = fixture.nativeElement.querySelector('.panel-body');
     expect(emptyText).toBeTruthy();
   });
 
@@ -273,7 +276,7 @@ describe('IntegrationStatusComponent', () => {
     fixture.detectChanges();
 
     expect(component.canSeeTechnicalDetails()).toBe(false);
-    const toggle = fixture.nativeElement.querySelector('button');
+    const toggle = fixture.nativeElement.querySelector('button[aria-controls="integration-technical-details"]');
     expect(toggle).toBeFalsy();
   }));
 
@@ -327,7 +330,7 @@ describe('IntegrationStatusComponent', () => {
     component.canSeeTechnicalDetails.set(true);
     fixture.detectChanges();
 
-    const toggleBtn = fixture.nativeElement.querySelector('button');
+    const toggleBtn = fixture.nativeElement.querySelector('button[aria-controls="integration-technical-details"]');
     expect(toggleBtn).toBeTruthy();
     expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
 
@@ -437,5 +440,149 @@ describe('IntegrationStatusComponent', () => {
     fixture.detectChanges();
 
     expect(component.canSeeTechnicalDetails()).toBe(true);
+  }));
+
+  it('collapse toggle hides the body and updates aria-expanded', fakeAsync(() => {
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'success', startedAt: '', traceId: 't1',
+        outcome: { state: 'published', severity: 'success', labelKey: '@integration-status-outcome-doi-published' }
+      }]
+    }));
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    const collapseBtn = fixture.nativeElement.querySelector('.rb-int-collapse');
+    expect(collapseBtn).toBeTruthy();
+    expect(collapseBtn.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#integration-status-body')).toBeTruthy();
+
+    collapseBtn.click();
+    fixture.detectChanges();
+
+    expect(component.collapsed()).toBe(true);
+    expect(collapseBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('#integration-status-body')).toBeFalsy();
+    // Heading (with the toggle) remains so it can be re-expanded.
+    expect(fixture.nativeElement.querySelector('.panel-heading')).toBeTruthy();
+  }));
+
+  it('researcher does not see an already-successful integration on fresh load', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'success', startedAt: '', traceId: 't1',
+        outcome: { state: 'published', severity: 'success', labelKey: '@integration-status-outcome-doi-published' }
+      }]
+    }));
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    expect(component.canSeeTechnicalDetails()).toBe(false);
+    expect(component.displayIntegrations().length).toBe(0);
+    expect(component.shouldRender()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.rb-integration-status')).toBeFalsy();
+  }));
+
+  it('researcher always sees an in-progress integration', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'started', startedAt: new Date().toISOString(), traceId: 't1',
+        outcome: { state: 'in-progress', severity: 'in-progress', labelKey: '@integration-status-outcome-doi-in-progress' }
+      }]
+    }));
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    expect(component.displayIntegrations().length).toBe(1);
+    expect(component.shouldRender()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.rb-integration-status .badge')).toBeTruthy();
+
+    component.stopPolling();
+  }));
+
+  it('researcher always sees a failed integration', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'failed', startedAt: new Date().toISOString(), traceId: 't1', message: 'boom',
+        outcome: { state: 'error', severity: 'error', labelKey: '@integration-status-outcome-doi-error' }
+      }]
+    }));
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    expect(component.displayIntegrations().length).toBe(1);
+    expect(component.shouldRender()).toBe(true);
+  }));
+
+  it('researcher sees success only after watching it go in-progress', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
+    let call = 0;
+    mockRecordService.getRecordIntegrationStatus.and.callFake(() => {
+      call++;
+      if (call === 1) {
+        return Promise.resolve({ integrations: [{
+          integrationName: 'doi', status: 'started', startedAt: new Date().toISOString(), traceId: 't1',
+          outcome: { state: 'in-progress', severity: 'in-progress', labelKey: '@integration-status-outcome-doi-in-progress' }
+        }] });
+      }
+      return Promise.resolve({ integrations: [{
+        integrationName: 'doi', status: 'success', startedAt: new Date().toISOString(), completedAt: new Date().toISOString(), traceId: 't1',
+        outcome: { state: 'published', severity: 'success', labelKey: '@integration-status-outcome-doi-published' }
+      }] });
+    });
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+    expect(component.displayIntegrations().length).toBe(1); // in-progress shown
+
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+    expect(component.seenInProgress().has('doi')).toBe(true);
+    expect(component.displayIntegrations().length).toBe(1); // success still shown because it was watched live
+
+    component.stopPolling();
   }));
 });

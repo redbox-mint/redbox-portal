@@ -29,6 +29,31 @@
   vertical-align: middle;
 }
 
+/* Integration status reuses the global ".panel" theme so it matches the other admin
+   panels (e.g. the manage-roles page). Only minor tweaks are layered on top. */
+.rb-integration-status.panel {
+  margin-bottom: 1rem;
+}
+
+.rb-integration-status .rb-int-badge {
+  min-width: 7.5em;
+  justify-content: center;
+}
+
+.rb-integration-status .rb-int-meta {
+  font-size: 0.85rem;
+}
+
+/* Collapse toggle sits in the (branded) panel heading; the global theme already colours
+   .panel-heading .btn, so we only need layout tweaks here. */
+.rb-integration-status .rb-int-collapse {
+  line-height: 1;
+}
+
+.rb-integration-status .rb-int-technical-toggle {
+  border-color: var(--bs-border-color-translucent, rgba(0, 0, 0, 0.08));
+}
+
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
 .rb-form-host .rb-form-action-row {
   display: flex;

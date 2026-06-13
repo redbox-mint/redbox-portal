@@ -1439,6 +1439,8 @@
   "@integration-status-error": "Failed to load integration status.",
   "@external-services-heading": "External services",
   "@integration-status-technical-toggle": "Technical details",
+  "@integration-status-collapse": "Collapse integrations panel",
+  "@integration-status-expand": "Expand integrations panel",
   "@integration-status-outcome-doi-none": "No DOI yet",
   "@integration-status-outcome-doi-in-progress": "DOI being created",
   "@integration-status-outcome-doi-draft-assigned": "Draft DOI assigned",
