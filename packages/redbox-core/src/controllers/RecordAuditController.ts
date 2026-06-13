@@ -6,7 +6,7 @@ import { FormAttributes } from '../waterline-models';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
 import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
-import type { IntegrationStatusSummary } from '../services/IntegrationAuditService';
+import type { IntegrationStatusRecordContext, IntegrationStatusSummary } from '../services/IntegrationAuditService';
 
 type AnyRecord = Record<string, unknown>;
 type AuditPath = Array<string | number>;
@@ -55,6 +55,7 @@ declare const FormRecordConsistencyService: {
 declare const IntegrationAuditService: {
   getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
   getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]>;
+  getStatusSummaryWithOutcomes(params: IntegrationAuditParams, ctx: IntegrationStatusRecordContext): Promise<IntegrationStatusSummary[]>;
 };
 declare const TranslationService: {
   t(key: string): string;
@@ -529,7 +530,20 @@ export namespace Controllers {
           params.integrationName = integrationName;
         }
 
-        const integrations = await IntegrationAuditService.getStatusSummary(params);
+        // Build record context for outcome derivation.
+        // Brand override of doiPublishing.writeBack.citationDoiPath is resolved from brand config (follow-up).
+        const recordContext: IntegrationStatusRecordContext = {
+          citationDoi: (() => {
+            const val = _.get(record, 'metadata.citation_doi');
+            return typeof val === 'string' && val.trim() ? val.trim() : undefined;
+          })(),
+          workflowStage: (() => {
+            const val = _.get(record, 'workflow.stage');
+            return typeof val === 'string' && val.trim() ? val.trim() : undefined;
+          })(),
+        };
+
+        const integrations = await IntegrationAuditService.getStatusSummaryWithOutcomes(params, recordContext);
         return this.sendResp(req, res, { data: { integrations } });
       } catch (error) {
         return this.sendResp(req, res, {

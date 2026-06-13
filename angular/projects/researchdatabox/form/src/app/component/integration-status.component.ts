@@ -2,13 +2,13 @@ import { Component, computed, effect, inject, signal, OnDestroy } from '@angular
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { IntegrationStatusComponentName } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
-import { RecordService, IntegrationStatusItem, TranslationService } from '@researchdatabox/portal-ng-common';
+import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationService, UserService } from '@researchdatabox/portal-ng-common';
 
 @Component({
   selector: 'redbox-form-integration-status',
   template: `
     @if (isVisible && oid()) {
-      <div class="rb-integration-status card" role="region" [attr.aria-live]="hasError() ? 'assertive' : 'polite'" attr.aria-label="{{ '@integration-status-heading' | i18next }}">
+      <div class="rb-integration-status card" role="region" [attr.aria-live]="hasError() ? 'assertive' : 'polite'" attr.aria-label="{{ headingText() | i18next }}">
         <div class="card-header py-2 d-flex align-items-center">
           <i class="fa fa-plug me-2" aria-hidden="true"></i>
           <span class="fw-semibold">{{ headingText() | i18next }}</span>
@@ -36,43 +36,139 @@ import { RecordService, IntegrationStatusItem, TranslationService } from '@resea
           <ul class="list-group list-group-flush">
             @for (item of integrations(); track item.traceId) {
               <li class="list-group-item">
-                <div class="d-flex align-items-center gap-3">
-                  <span class="badge rb-int-badge" [ngClass]="badgeClass(item.status)" role="status">
-                    @if (item.status === 'started') {
-                      <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
-                    } @else if (item.status === 'success') {
-                      <i class="fa fa-check fa-fw" aria-hidden="true"></i>
-                    } @else if (item.status === 'failed') {
-                      <i class="fa fa-exclamation-triangle fa-fw" aria-hidden="true"></i>
+                @if (item.outcome; as outcome) {
+                  <div class="d-flex align-items-center gap-3">
+                    <span class="badge rb-int-badge" [ngClass]="severityBadgeClass(outcome.severity)" role="status">
+                      @if (outcome.severity === 'in-progress') {
+                        <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
+                      } @else if (outcome.severity === 'success') {
+                        <i class="fa fa-check fa-fw" aria-hidden="true"></i>
+                      } @else if (outcome.severity === 'error' || outcome.severity === 'warning') {
+                        <i class="fa fa-exclamation-triangle fa-fw" aria-hidden="true"></i>
+                      }
+                      {{ outcome.labelKey | i18next }}
+                    </span>
+                    <div>
+                      <span class="fw-semibold d-block">{{ integrationLabel(item.integrationName) | i18next }}</span>
+                      @if (!item.synthesized) {
+                        <span class="text-muted rb-int-meta d-block">{{ timestampText(item) }}</span>
+                      }
+                    </div>
+                  </div>
+                  @if (outcome.helpKey) {
+                    <div class="rb-int-meta mt-2 ms-1 ps-3 border-start text-muted">
+                      <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
+                      {{ outcome.helpKey | i18next }}
+                    </div>
+                  }
+                  @if (getKeyResult(item, 'doi'); as doi) {
+                    @if (outcome.severity !== 'error' && outcome.severity !== 'none') {
+                      <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                        <strong>{{ doiKeyLabel(outcome.state) | i18next }}</strong>
+                        <a href="https://doi.org/{{doi}}" target="_blank" rel="noopener noreferrer" class="ms-2">{{doi}} <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
+                      </div>
                     }
-                    {{ statusLabel(item.status) | i18next }}
-                  </span>
-                  <div>
-                    <span class="fw-semibold d-block">{{ integrationLabel(item.integrationName) | i18next }}</span>
-                    <span class="text-muted rb-int-meta d-block">{{ timestampText(item) }}</span>
+                  }
+                  @if (getKeyResult(item, 'articleId'); as articleId) {
+                    <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                      <strong>{{ '@integration-status-keyresult-figshare' | i18next }}</strong>
+                      <span class="ms-2">{{articleId}}</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="d-flex align-items-center gap-3">
+                    <span class="badge rb-int-badge" [ngClass]="badgeClass(item.status)" role="status">
+                      @if (item.status === 'started') {
+                        <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
+                      } @else if (item.status === 'success') {
+                        <i class="fa fa-check fa-fw" aria-hidden="true"></i>
+                      } @else if (item.status === 'failed') {
+                        <i class="fa fa-exclamation-triangle fa-fw" aria-hidden="true"></i>
+                      }
+                      {{ statusLabel(item.status) | i18next }}
+                    </span>
+                    <div>
+                      <span class="fw-semibold d-block">{{ integrationLabel(item.integrationName) | i18next }}</span>
+                      <span class="text-muted rb-int-meta d-block">{{ timestampText(item) }}</span>
+                    </div>
                   </div>
-                </div>
-                @if (getKeyResult(item, 'doi'); as doi) {
-                  <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
-                    <strong>{{ '@integration-status-keyresult-doi' | i18next }}</strong>
-                    <a href="https://doi.org/{{doi}}" target="_blank" rel="noopener noreferrer" class="ms-2">{{doi}} <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
-                  </div>
-                }
-                @if (getKeyResult(item, 'articleId'); as articleId) {
-                  <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
-                    <strong>{{ '@integration-status-keyresult-figshare' | i18next }}</strong>
-                    <span class="ms-2">{{articleId}}</span>
-                  </div>
-                }
-                @if (item.message && item.status === 'failed') {
-                  <div class="rb-int-meta mt-2 ms-1 ps-3 border-start border-danger text-danger">
-                    <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
-                    {{ item.message }}
-                  </div>
+                  @if (getKeyResult(item, 'doi'); as doi) {
+                    <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                      <strong>{{ '@integration-status-keyresult-doi' | i18next }}</strong>
+                      <a href="https://doi.org/{{doi}}" target="_blank" rel="noopener noreferrer" class="ms-2">{{doi}} <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
+                    </div>
+                  }
+                  @if (getKeyResult(item, 'articleId'); as articleId) {
+                    <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                      <strong>{{ '@integration-status-keyresult-figshare' | i18next }}</strong>
+                      <span class="ms-2">{{articleId}}</span>
+                    </div>
+                  }
+                  @if (item.message && item.status === 'failed') {
+                    <div class="rb-int-meta mt-2 ms-1 ps-3 border-start border-danger text-danger">
+                      <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
+                      {{ item.message }}
+                    </div>
+                  }
                 }
               </li>
             }
           </ul>
+          @if (canSeeTechnicalDetails()) {
+            <div class="card-footer py-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                [attr.aria-expanded]="technicalOpen()"
+                aria-controls="integration-technical-details"
+                (click)="technicalOpen.set(!technicalOpen())">
+                <i class="fa fa-cog fa-fw" aria-hidden="true"></i>
+                {{ '@integration-status-technical-toggle' | i18next }}
+              </button>
+            </div>
+            @if (technicalOpen()) {
+              <div id="integration-technical-details" class="list-group list-group-flush">
+                @for (item of integrations(); track item.traceId) {
+                  @if (!item.synthesized) {
+                    <li class="list-group-item">
+                      <div class="d-flex align-items-center gap-3">
+                        <span class="badge rb-int-badge" [ngClass]="badgeClass(item.status)" role="status">
+                          @if (item.status === 'started') {
+                            <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
+                          } @else if (item.status === 'success') {
+                            <i class="fa fa-check fa-fw" aria-hidden="true"></i>
+                          } @else if (item.status === 'failed') {
+                            <i class="fa fa-exclamation-triangle fa-fw" aria-hidden="true"></i>
+                          }
+                          {{ statusLabel(item.status) | i18next }}
+                        </span>
+                        <div>
+                          <span class="fw-semibold d-block">{{ integrationLabel(item.integrationName) | i18next }}</span>
+                          <span class="text-muted rb-int-meta d-block">{{ timestampText(item) }}</span>
+                        </div>
+                      </div>
+                      @if (getKeyResult(item, 'doi'); as doi) {
+                        <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                          <strong>{{ '@integration-status-keyresult-doi' | i18next }}</strong>
+                          <a href="https://doi.org/{{doi}}" target="_blank" rel="noopener noreferrer" class="ms-2">{{doi}} <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
+                        </div>
+                      }
+                      @if (getKeyResult(item, 'articleId'); as articleId) {
+                        <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+                          <strong>{{ '@integration-status-keyresult-figshare' | i18next }}</strong>
+                          <span class="ms-2">{{articleId}}</span>
+                        </div>
+                      }
+                      @if (item.message) {
+                        <div class="rb-int-meta mt-2 ms-1 ps-3 border-start" [ngClass]="item.status === 'failed' ? 'border-danger text-danger' : 'text-muted'">
+                          <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
+                          {{ item.message }}
+                        </div>
+                      }
+                    </li>
+                  }
+                }
+              </div>
+            }
+          }
         }
       </div>
     }
@@ -84,12 +180,15 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly recordService = inject(RecordService);
   private readonly translationService = inject(TranslationService);
+  private readonly userService = inject(UserService);
 
   protected readonly oid = signal<string | null>(null);
   protected readonly integrations = signal<IntegrationStatusItem[]>([]);
   protected readonly isPolling = signal(false);
   protected readonly hasError = signal(false);
   protected readonly gracePollActive = signal(false);
+  protected readonly canSeeTechnicalDetails = signal(false);
+  protected readonly technicalOpen = signal(false);
   private pollTimerId: number | null = null;
   private pollAttempts = 0;
   private graceRemaining = 0;
@@ -113,6 +212,11 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     return typeof val === 'number' && Number.isFinite(val) ? val : 60;
   }
 
+  private get technicalDetailRoles(): string[] {
+    const val = this.config?.['technicalDetailRoles'];
+    return Array.isArray(val) ? val as string[] : ['Admin', 'Librarians'];
+  }
+
   protected readonly headingText = computed(() => {
     const h = this.config?.['heading'];
     return typeof h === 'string' && h ? h : '@integration-status-heading';
@@ -126,6 +230,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
 
     effect(() => {
       readySignal();
+      void this.initRoleResolution();
       this.resolveOidAndFetch();
     });
 
@@ -146,6 +251,19 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         }, 1500);
       }
     });
+  }
+
+  private async initRoleResolution(): Promise<void> {
+    try {
+      await this.userService.waitForInit();
+      const res = await this.userService.getInfo();
+      const user = (res as any)?.user ?? res;
+      const userRoles = (user?.roles ?? []) as Array<{ name?: string }>;
+      const allowed = this.technicalDetailRoles;
+      this.canSeeTechnicalDetails.set(userRoles.some(r => r.name && allowed.includes(r.name)));
+    } catch {
+      this.canSeeTechnicalDetails.set(false);
+    }
   }
 
   private resolveOidAndFetch(): void {
@@ -175,7 +293,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.integrations.set(response.integrations);
       this.hasError.set(false);
 
-      const hasInFlight = response.integrations.some(i => i.status === 'started');
+      const hasInFlight = response.integrations.some(i => i.status === 'started' && !i.synthesized);
       if (hasInFlight) {
         this.graceRemaining = 0;
         this.gracePollActive.set(false);
@@ -217,6 +335,17 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     this.gracePollActive.set(false);
   }
 
+  protected severityBadgeClass(severity: string): string {
+    switch (severity) {
+      case 'in-progress': return 'text-bg-info';
+      case 'success': return 'text-bg-success';
+      case 'error': return 'text-bg-danger';
+      case 'warning': return 'text-bg-warning';
+      case 'pending': return 'text-bg-warning';
+      default: return 'text-bg-secondary';
+    }
+  }
+
   protected badgeClass(status: string): string {
     switch (status) {
       case 'started': return 'text-bg-info';
@@ -233,6 +362,10 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       case 'failed': return '@integration-status-failed';
       default: return status;
     }
+  }
+
+  protected doiKeyLabel(state: string): string {
+    return state === 'published' ? '@integration-status-keyresult-doi-published' : '@integration-status-keyresult-doi';
   }
 
   protected integrationLabel(name: string): string {

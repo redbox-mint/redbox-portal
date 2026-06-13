@@ -167,6 +167,15 @@ export interface IntegrationAuditTabResponse {
   summary: { numFound: number; page: number; pageSize: number; totalPages: number };
   records: IntegrationAuditTraceRecord[];
 }
+export type IntegrationOutcomeSeverity = 'none' | 'pending' | 'in-progress' | 'success' | 'warning' | 'error';
+
+export interface IntegrationOutcome {
+  state: string;
+  severity: IntegrationOutcomeSeverity;
+  labelKey: string;
+  helpKey?: string;
+}
+
 export interface IntegrationStatusItem {
   integrationName: string;
   status: string;
@@ -177,6 +186,8 @@ export interface IntegrationStatusItem {
   message?: string;
   keyResult?: Record<string, unknown>;
   traceId: string;
+  outcome?: IntegrationOutcome;
+  synthesized?: boolean;
 }
 
 export interface IntegrationStatusResponse {

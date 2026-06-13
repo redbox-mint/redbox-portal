@@ -20,6 +20,7 @@ export interface IntegrationStatusFieldComponentConfigFrame extends FieldCompone
     pollIntervalMs?: number;
     maxPollAttempts?: number;
     heading?: string;
+    technicalDetailRoles?: string[];
 }
 
 export interface IntegrationStatusFieldComponentConfigOutline extends IntegrationStatusFieldComponentConfigFrame, FieldComponentConfigOutline {

@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host}}/default/rdmp/record/integrationStatus/{{dmpOid}}
+  url: {{host}}/default/rdmp/record/integrationStatus/{{dmpOid}}?integrationName=doi,figshare
   body: none
   auth: none
 }
@@ -34,12 +34,12 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
 
-  test("Integration status response includes integrations array", function () {
+  test("Integration status response includes outcome for requested mapped integrations", function () {
       const jsonData = res.getBody();
       const data = jsonData.data ?? jsonData;
       expect(data.integrations).to.be.an("array");
-      if (data.integrations.length > 0) {
-        const item = data.integrations[0];
+      expect(data.integrations.length).to.be.at.least(1);
+      data.integrations.forEach(function (item) {
         expect(item).to.have.property("integrationName");
         expect(item).to.have.property("status");
         expect(item).to.have.property("startedAt");
@@ -48,6 +48,16 @@ tests {
         expect(item).to.not.have.property("requestSummary");
         expect(item).to.not.have.property("responseSummary");
         expect(item).to.not.have.property("httpStatusCode");
-      }
+        // Items for doi or figshare must have an outcome object with the contract shape
+        if (item.integrationName === "doi" || item.integrationName === "figshare") {
+          expect(item.outcome).to.be.an("object");
+          expect(item.outcome).to.have.property("state");
+          expect(item.outcome).to.have.property("severity");
+          expect(item.outcome).to.have.property("labelKey");
+          expect(item.outcome.state).to.be.a("string").that.is.not.empty;
+          expect(item.outcome.severity).to.be.oneOf(["none","pending","in-progress","success","warning","error"]);
+          expect(item.outcome.labelKey).to.be.a("string").that.is.not.empty;
+        }
+      });
   });
 }

@@ -15,6 +15,7 @@ export class IntegrationStatusFieldComponentConfig extends FieldComponentConfig 
     pollIntervalMs = 5000;
     maxPollAttempts = 60;
     heading?: string;
+    technicalDetailRoles: string[] = ['Admin', 'Librarians'];
 
     constructor() {
         super();
