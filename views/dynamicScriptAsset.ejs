@@ -4,8 +4,12 @@ export function evaluate(key, context, extra) {
     key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
 
     // Provide libraries from context
-    const Handlebars = extra?.libraries?.Handlebars ?? null;
-    const jsonata = extra?.libraries?.jsonata ?? null;
+    const Handlebars = typeof extra?.libraries?.Handlebars?.template === "function"
+        ? extra?.libraries?.Handlebars
+        : () => { throw new Error("Handlebars instance not provided in extra.libraries.Handlebars"); };
+    const jsonata = typeof extra?.libraries?.jsonata === "function"
+        ? extra?.libraries?.jsonata
+        : () => { throw new Error("JSONata instance not provided in extra.libraries.jsonata"); };
 
     switch (key) {
     <% for (const entry of entries) { %>
