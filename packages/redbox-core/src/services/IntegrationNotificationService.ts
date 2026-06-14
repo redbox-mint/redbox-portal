@@ -59,13 +59,13 @@ export namespace Services {
         let brandConfig: Record<string, unknown>;
 
         try {
-          let resolvedBrandId: string;
-          if (brandId) {
-            const brand = BrandingService.getBrandById(brandId);
-            resolvedBrandId = brand?.name ?? 'default';
-          } else {
-            const defaultBrand = BrandingService.getDefault();
-            resolvedBrandId = defaultBrand?.name ?? 'default';
+          let resolvedBrandId = brandId ? BrandingService.getBrandById(brandId)?.id : undefined;
+          if (!resolvedBrandId) {
+            resolvedBrandId = BrandingService.getDefault()?.id;
+          }
+          if (!resolvedBrandId) {
+            sails.log.error(`${this.logHeader} Could not resolve a brand id for notification config; skipping.`);
+            return;
           }
           const rawConfig = await AppConfigService.getAppConfigByBrandAndKey(resolvedBrandId, 'integrationNotification') as Record<string, unknown> | null;
           brandConfig = rawConfig ?? {};

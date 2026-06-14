@@ -30,8 +30,8 @@ describe('IntegrationNotificationService', function () {
       getAppConfigByBrandAndKey: sinon.stub().resolves(customBrandConfig),
     };
     mockBrandingService = {
-      getBrandById: sinon.stub().returns({ name: 'default', id: 'default' }),
-      getDefault: sinon.stub().returns({ name: 'default', id: 'default' }),
+      getBrandById: sinon.stub().returns({ name: 'default', id: 'brand-1' }),
+      getDefault: sinon.stub().returns({ name: 'default', id: 'default-brand-id' }),
     };
     mockCacheService = {
       get: sinon.stub().returns(of(null)),
@@ -105,6 +105,49 @@ describe('IntegrationNotificationService', function () {
       const templateName = mockEmailService.buildFromTemplate.firstCall.args[0];
       expect(templateName).to.equal('integrationFailure');
       expect(mockEmailService.sendMessage.calledOnce).to.be.true;
+    });
+
+    it('looks up notification config by brand id, not brand name', async function () {
+      const job = {
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            brandId: 'brand-1',
+            integrationName: 'figshare',
+            integrationAction: 'syncRecordWithFigshare',
+            status: 'failed',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      await service.dispatch(job);
+
+      expect(mockAppConfigService.getAppConfigByBrandAndKey.calledOnce).to.be.true;
+      expect(mockAppConfigService.getAppConfigByBrandAndKey.firstCall.args[0]).to.equal('brand-1');
+    });
+
+    it('falls back to the default brand id when no brandId is provided', async function () {
+      const job = {
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            integrationName: 'figshare',
+            integrationAction: 'syncRecordWithFigshare',
+            status: 'failed',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      await service.dispatch(job);
+
+      expect(mockAppConfigService.getAppConfigByBrandAndKey.calledOnce).to.be.true;
+      expect(mockAppConfigService.getAppConfigByBrandAndKey.firstCall.args[0]).to.equal('default-brand-id');
     });
 
     it('does not dispatch notification for started status', async function () {
