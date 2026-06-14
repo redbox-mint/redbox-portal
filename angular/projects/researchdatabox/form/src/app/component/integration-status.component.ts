@@ -234,22 +234,17 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     return typeof h === 'string' && h ? h : '@integration-status-heading';
   });
 
-  // Privileged viewers (admin/librarian — same role set that unlocks technical details)
-  // see every integration in every state. Researchers only see in-progress and failures,
-  // plus any integration they have already watched go in-progress this session.
+  // All roles: only show in-progress, failures, or integrations that went
+  // in-progress during this session (so they stay visible after completing).
   protected readonly displayIntegrations = computed<IntegrationStatusItem[]>(() => {
     const all = this.integrations();
-    if (this.canSeeTechnicalDetails()) {
-      return all;
-    }
     const seen = this.seenInProgress();
     return all.filter(item => this.isInProgress(item) || this.isError(item) || seen.has(item.integrationName));
   });
 
-  // Researchers only render the component when there is something worth showing; privileged
-  // viewers always render (so they get the idle/empty and load-error states too).
+  // All roles: only render when there are integrations worth showing.
   protected readonly shouldRender = computed<boolean>(() => {
-    return this.canSeeTechnicalDetails() || this.displayIntegrations().length > 0;
+    return this.displayIntegrations().length > 0;
   });
 
   constructor() {
