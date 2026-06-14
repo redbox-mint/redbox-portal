@@ -281,9 +281,20 @@ export namespace Services {
             sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
           }
         }
+        this.enqueueNotification(entry);
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
         sails.log.error(error);
+      }
+    }
+
+    private enqueueNotification(entry: IntegrationAuditModel): void {
+      try {
+        if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
+        AgendaQueueService.now('IntegrationNotificationService-Dispatch', entry);
+      } catch (err) {
+        sails.log.error(`${this.logHeader} Failed to enqueue integration notification.`);
+        sails.log.error(err);
       }
     }
 

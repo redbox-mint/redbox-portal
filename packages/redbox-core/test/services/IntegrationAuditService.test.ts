@@ -699,6 +699,120 @@ describe('IntegrationAuditService', function () {
     expect(result.total).to.equal(2);
     expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-3', 'trace-1']);
   });
+
+  describe('persistEntry - notification enqueue', function () {
+    let mockStorageService: Record<string, sinon.SinonStub>;
+    let mockQueueService: Record<string, sinon.SinonStub>;
+
+    beforeEach(function () {
+      mockStorageService = {
+        createIntegrationAudit: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
+        getIntegrationAudit: sinon.stub().resolves([]),
+        countIntegrationAudit: sinon.stub().resolves(0),
+      };
+      mockQueueService = {
+        now: sinon.stub(),
+      };
+
+      const mockSails = createMockSails({
+        config: {
+          storage: { serviceName: 'mongostorageservice' },
+          environment: 'development',
+        },
+        services: {
+          mongostorageservice: mockStorageService,
+        },
+        log: {
+          verbose: sinon.stub(),
+          debug: sinon.stub(),
+          info: sinon.stub(),
+          warn: sinon.stub(),
+          error: sinon.stub(),
+          trace: sinon.stub(),
+        },
+      });
+
+      setupServiceTestGlobals(mockSails);
+      (global as any).AgendaQueueService = mockQueueService;
+      service = new Services.IntegrationAuditService();
+      service.getStorageService();
+    });
+
+    afterEach(function () {
+      cleanupServiceTestGlobals();
+      delete (global as any).AgendaQueueService;
+      sinon.restore();
+    });
+
+    it('enqueues IntegrationNotificationService-Dispatch for failed status', async function () {
+      const auditData = {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'failed',
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        startedAt: new Date().toISOString(),
+      };
+      service.storeIntegrationAudit({ attrs: { data: auditData } });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockQueueService.now.calledOnce).to.be.true;
+      expect(mockQueueService.now.firstCall.args[0]).to.equal('IntegrationNotificationService-Dispatch');
+    });
+
+    it('enqueues IntegrationNotificationService-Dispatch for success status', async function () {
+      const auditData = {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        startedAt: new Date().toISOString(),
+      };
+      service.storeIntegrationAudit({ attrs: { data: auditData } });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockQueueService.now.calledOnce).to.be.true;
+      expect(mockQueueService.now.firstCall.args[0]).to.equal('IntegrationNotificationService-Dispatch');
+    });
+
+    it('does not enqueue notification for started status', async function () {
+      const auditData = {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'started',
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        startedAt: new Date().toISOString(),
+      };
+      service.storeIntegrationAudit({ attrs: { data: auditData } });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockQueueService.now.called).to.be.false;
+    });
+
+    it('does not break persistEntry when enqueue throws', async function () {
+      mockQueueService.now.throws(new Error('Queue unavailable'));
+
+      const auditData = {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'failed',
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        startedAt: new Date().toISOString(),
+      };
+      service.storeIntegrationAudit({ attrs: { data: auditData } });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockStorageService.createIntegrationAudit.called).to.be.true;
+      expect((global as any).sails.log.error.called).to.be.true;
+    });
+  });
 });
   before(async function () {
     ({ expect } = await import('chai'));

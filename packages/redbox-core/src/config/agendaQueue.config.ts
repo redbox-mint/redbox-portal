@@ -133,6 +133,11 @@ export const agendaQueue: AgendaQueueConfig = {
             }
         },
         {
+            name: 'IntegrationNotificationService-Dispatch',
+            fnName: 'integrationnotificationservice.dispatch',
+            options: { lockLifetime: 30000, lockLimit: 1, concurrency: 1 }
+        },
+        {
             name: 'RaidMintRetryJob',
             fnName: 'raidservice.mintRetryJob',
 
