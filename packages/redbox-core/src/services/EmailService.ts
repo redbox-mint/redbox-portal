@@ -22,7 +22,8 @@ import {
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
-import * as ejs from 'ejs';
+import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
+import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
@@ -45,6 +46,35 @@ export namespace Services {
       'evaluateProperties',
       'runTemplate',
     ];
+
+    private helpersRegistered: boolean = false;
+    private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
+
+    /**
+     * Register the shared Handlebars helpers once per service lifecycle.
+     * @private
+     */
+    private ensureHelpersRegistered() {
+      if (!this.helpersRegistered) {
+        registerSharedHandlebarsHelpers(Handlebars);
+        this.helpersRegistered = true;
+        sails.log.verbose('EmailService: Registered shared Handlebars helpers');
+      }
+    }
+
+    /**
+     * Compile (and cache) a Handlebars template from its source string.
+     * @param source The Handlebars template source.
+     * @return The compiled template delegate.
+     * @private
+     */
+    private getCompiledTemplate(source: string): HandlebarsTemplateDelegate {
+      this.ensureHelpersRegistered();
+      if (!this.compiledTemplates.has(source)) {
+        this.compiledTemplates.set(source, Handlebars.compile(source));
+      }
+      return this.compiledTemplates.get(source)!;
+    }
 
     /**
      * Simple API service to POST a message queue to Redbox.
@@ -159,7 +189,7 @@ export namespace Services {
     }
 
     /**
-     * Build Email Body from an EJS Template.
+     * Build Email Body from a Handlebars Template.
      * Templates are defined in sails config.
      *
      * @param template The file name without extension.
@@ -169,13 +199,9 @@ export namespace Services {
      */
     public async buildFromTemplateAsync(template: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        const readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
+        const readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.hbs', 'utf-8')
 
-
-        const renderedTemplate = ejs.render((readTemplate || "").toString(), data, {
-          cache: true,
-          filename: template
-        });
+        const renderedTemplate = this.getCompiledTemplate((readTemplate || "").toString())(data);
 
         res['status'] = 200;
         res['body'] = renderedTemplate;
@@ -231,15 +257,15 @@ export namespace Services {
     }
 
     /**
-     * Render a lodash template from a string.
+     * Render a Handlebars template from a string.
      * @param template The template string.
      * @param variables The variables to use when rendering the template.
      * @return The rendered template string.
      * @protected
      */
     public runTemplate(template: string, variables: Record<string, unknown>) {
-      if (template && template.indexOf('<%') != -1) {
-        return _.template(template, variables)();
+      if (template && template.indexOf('{{') != -1) {
+        return this.getCompiledTemplate(template)(variables);
       }
       return template;
     }
@@ -554,10 +580,8 @@ export namespace Services {
       if (!_.isNil(propValue) && !_.isNil(templateFunc)) {
         sails.log.verbose(`EmailService::EvaluatePropertyTemplate: Rendering using template function. Data: ${JSON.stringify(propValue)} `);
 
-        if (!_.has(templateData, 'imports')) {
-          // the lodash template function expects the data to be in under 'imports'
-          templateData['imports'] = _.cloneDeep(templateData);
-        }
+        // Handlebars reads the template context directly (record/oid are already
+        // top-level keys), so no lodash-style 'imports' wrapping is required.
         const func = templateFunc.bind(this);
         return func(propValue, templateData);
       }

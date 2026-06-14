@@ -228,6 +228,32 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('pluck', function () {
+        it('should extract a property from each item using dot notation', function () {
+            const creators = [{ email: 'a@x' }, { email: 'b@x' }, { email: 'c@x' }];
+            const result = handlebarsHelperDefinitions.pluck(creators, 'email');
+            expect(result).to.deep.equal(['a@x', 'b@x', 'c@x']);
+        });
+
+        it('should support nested paths and default missing values to empty string', function () {
+            const items = [{ meta: { name: 'one' } }, { meta: {} }];
+            const result = handlebarsHelperDefinitions.pluck(items, 'meta.name');
+            expect(result).to.deep.equal(['one', '']);
+        });
+
+        it('should return empty array for non-array input', function () {
+            const result = handlebarsHelperDefinitions.pluck('not an array' as any, 'email');
+            expect(result).to.deep.equal([]);
+        });
+
+        it('should combine with join to build a delimited string', function () {
+            const creators = [{ email: 'a@x' }, { email: 'b@x' }];
+            const plucked = handlebarsHelperDefinitions.pluck(creators, 'email');
+            const result = handlebarsHelperDefinitions.join(plucked, ',');
+            expect(result).to.equal('a@x,b@x');
+        });
+    });
+
     describe('substring', function () {
         it('should return sliced substring', function () {
             const result = handlebarsHelperDefinitions.substring('https://linked.data.gov.au/def/anzsrc-for/2020/300101', -6);
