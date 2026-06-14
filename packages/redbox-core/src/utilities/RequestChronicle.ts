@@ -114,11 +114,11 @@ export class RequestChronicleHelper {
   }
 
   get isRunning() {
-    return !!this.#data?.result?.timestamp && !this.#data?.result?.durationMs;
+    return !!this.#data?.result?.timestamp && this.#data?.result?.durationMs === undefined;
   }
 
   get isFinished() {
-    return !!this.#data?.result?.timestamp && !!this.#data?.result?.durationMs;
+    return !!this.#data?.result?.timestamp && Number.isFinite(this.#data?.result?.durationMs);
   }
 
   updateReq(req: Sails.Req): void {
