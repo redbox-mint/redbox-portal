@@ -200,13 +200,15 @@ export class RequestChronicleHelper {
     const notAllowedKeys = ['result', 'req', 'res', 'errors'];
     for (const [key, value] of Object.entries(info ?? {})) {
       if (notAllowedKeys.includes(key)) {
-        this.logger.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}'.`);
+        this.logger.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}' value '${value}'.`);
+        continue;
       }
       // TODO: Expecting only top-level properties, not nested props.
       //       If nested props are wanted, this might need to merge instead of replace.
       // TODO: should it be allowed to replace an existing arbitrary property?
-      if (this.#data[key] !== null && this.#data[key] !== undefined && this.#data[key] !== value) {
-        this.logger.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${this.#data[key]}' with new value '${value}'.`);
+      const currentValue = this.#data[key];
+      if (currentValue !== null && currentValue !== undefined && currentValue !== value) {
+        this.logger.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${currentValue}' with new value '${value}'.`);
       }
       this.#data[key] = value;
     }

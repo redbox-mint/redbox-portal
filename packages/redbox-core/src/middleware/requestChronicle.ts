@@ -10,7 +10,6 @@ import {RequestChronicleHelper} from "../utilities/RequestChronicle";
 export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
   // Conclude the request chronicle when the response is closed.
   res.on('close', () => {
-    const _args = arguments;
     const item = RequestChronicleHelper.fromReq(sails.log, res.req);
     item.updateRes(res);
     item.finish();

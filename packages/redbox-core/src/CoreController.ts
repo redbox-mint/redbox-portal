@@ -865,7 +865,7 @@ export namespace Controllers.Core {
         result = defaultValue;
       }
 
-      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(defaultValue)) {
+      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(result)) {
         return undefined;
       }
 
