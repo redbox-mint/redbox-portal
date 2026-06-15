@@ -32,6 +32,11 @@ export interface FigshareArticle {
   [key: string]: unknown;
 }
 
+export interface FigshareArticleCreateResponse {
+  location: string;
+  [key: string]: unknown;
+}
+
 export interface FigshareFile {
   id: number | string;
   name: string;

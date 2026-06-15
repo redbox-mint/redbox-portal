@@ -5,6 +5,7 @@ import { ResolvedFigsharePublishingConfigData } from './config';
 import {
   FigshareRunContext,
   FigshareArticle,
+  FigshareArticleCreateResponse,
   FigshareFile,
   FigshareUploadInit,
   FigshareUploadDescriptor,
@@ -71,7 +72,7 @@ function assertNumericPathId(label: string, value: string): string {
 }
 
 export interface FigshareClient {
-  createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle>;
+  createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle | FigshareArticleCreateResponse>;
   updateArticle(articleId: string, payload: FigshareArticlePayload): Promise<FigshareArticle>;
   getArticle(articleId: string): Promise<FigshareArticle>;
   listArticleFiles(articleId: string, page?: number, pageSize?: number): Promise<FigshareFile[]>;
@@ -255,7 +256,7 @@ export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData):
 export function makeLiveClient(config: FigsharePublishingConfigData, runContext: FigshareRunContext): FigshareClient {
   return {
     createArticle(payload: FigshareArticlePayload) {
-      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      return requestWithRetry<FigshareArticle | FigshareArticleCreateResponse>(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
     },
     updateArticle(articleId: string, payload: FigshareArticlePayload) {
       const normalizedArticleId = assertNumericPathId('articleId', articleId);

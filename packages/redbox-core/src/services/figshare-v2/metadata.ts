@@ -5,6 +5,7 @@ import { FigshareClient } from './http';
 import {
   RecordModel,
   FigshareArticle,
+  FigshareArticleCreateResponse,
   FigsharePublicationPlan,
   FigshareLicense,
   FigshareInstitutionAccount,
@@ -248,7 +249,16 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
 export async function syncMetadataPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
   const payload = await buildMetadataPayload(config, record, client);
   if (plan.action === 'create') {
-    return client.createArticle(payload);
+    const createResponse = await client.createArticle(payload);
+    if ('id' in createResponse && createResponse.id != null && String(createResponse.id).trim() !== '') {
+      return createResponse as FigshareArticle;
+    }
+    const location = String((createResponse as FigshareArticleCreateResponse).location ?? '');
+    const articleId = location.match(/\/articles\/(\d+)(?:\/)?(?:[?#].*)?$/)?.[1];
+    if (articleId == null) {
+      throw validationError('Figshare create article response did not include an article id or location');
+    }
+    return client.getArticle(articleId);
   }
   const articleId = String(plan.articleId ?? '').trim();
   if (articleId === '') {

@@ -70,4 +70,53 @@ describe('figshare-v2 runtime', function () {
     const result = await runSyncMetadataProgram(config, runContext, {} as any, { articleId: '123' } as any);
     expect(result).to.deep.equal(article);
   });
+
+  it('loads the created article from the location returned by Figshare', async function () {
+    const article = { id: '456', status: 'draft' };
+    const client = {
+      createArticle: sinon.stub().resolves({ location: 'https://api.figsh.com/v2/account/articles/456' }),
+      getArticle: sinon.stub().resolves(article),
+      listLicenses: sinon.stub().resolves([{ value: 1, name: 'CC-BY' }]),
+      searchInstitutionAccounts: sinon.stub().resolves([])
+    };
+    sinon.stub(httpModule, 'makeClientLayer').returns(
+      Layer.succeed(FigshareClientTag, client as any)
+    );
+
+    const config = {
+      article: { itemType: 'dataset' },
+      authors: { contributorPaths: [], uniqueBy: 'none', maxInlineAuthors: 0, lookup: [] },
+      metadata: {
+        title: { kind: 'path', path: 'metadata.title' },
+        description: { kind: 'path', path: 'metadata.description' },
+        keywords: { kind: 'path', path: 'metadata.keywords' },
+        categories: { source: { kind: 'path', path: 'metadata.categories' } },
+        license: { source: { kind: 'path', path: 'metadata.license' }, matchBy: 'valueExact', required: true },
+        customFields: []
+      },
+      categories: { mappingTable: [], allowUnmapped: true },
+      connection: { baseUrl: 'https://api.figsh.com/v2', token: 'token' }
+    } as any;
+    const record = {
+      metadata: {
+        title: 'Title',
+        description: 'Description',
+        keywords: [],
+        categories: [],
+        license: '1'
+      }
+    } as any;
+    const runContext = {
+      recordOid: 'oid-1',
+      brandId: 'default',
+      brandName: 'default',
+      correlationId: 'corr-1',
+      triggerSource: 'test'
+    } as any;
+
+    const result = await runSyncMetadataProgram(config, runContext, record, { action: 'create' } as any);
+
+    expect(result).to.deep.equal(article);
+    expect(client.getArticle.calledOnceWithExactly('456')).to.equal(true);
+  });
 });
