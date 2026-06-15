@@ -14,6 +14,7 @@ import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-edit
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
 import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
+import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
 
 let configService: any;
 let userService: any;
@@ -36,9 +37,20 @@ function findFieldByKey(fields: FormlyFieldConfig[] | undefined, key: string): F
       return nested;
     }
     if (field.fieldArray) {
-      const arrayNested = findFieldByKey((field.fieldArray as any).fieldGroup, key);
-      if (arrayNested) {
-        return arrayNested;
+      const fieldArray = field.fieldArray as FormlyFieldConfig | FormlyFieldConfig[];
+      if (Array.isArray(fieldArray)) {
+        const arrayNested = findFieldByKey(fieldArray, key);
+        if (arrayNested) {
+          return arrayNested;
+        }
+      } else {
+        if (fieldArray.key === key) {
+          return fieldArray;
+        }
+        const arrayNested = findFieldByKey(fieldArray.fieldGroup, key);
+        if (arrayNested) {
+          return arrayNested;
+        }
       }
     }
   }
@@ -55,6 +67,7 @@ describe('AppConfigComponent', () => {
         AppConfigComponent,
         ArrayTypeComponent,
         ObjectTypeComponent,
+        CheckboxTypeComponent,
         MenuEditorTypeComponent,
         AdminSidebarEditorTypeComponent,
         HomePanelsEditorTypeComponent,
@@ -69,6 +82,7 @@ describe('AppConfigComponent', () => {
             { name: 'array', component: ArrayTypeComponent },
             { name: 'object', component: ObjectTypeComponent },
             { name: 'textarea', component: FormlyFieldTextArea },
+            { name: 'app-config-checkbox', component: CheckboxTypeComponent },
             { name: 'menu-editor', component: MenuEditorTypeComponent },
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
             { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
@@ -161,6 +175,62 @@ describe('AppConfigComponent', () => {
     expect(button).toBeTruthy();
     expect(button.textContent).toBe('Submit')
     
+  });
+
+  it('renders boolean fields with the checkbox next to the label', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const enabledField = findFieldByKey(app.fields, 'enabled');
+    expect(enabledField?.type).toBe('app-config-checkbox');
+    expect(enabledField?.wrappers).toEqual([]);
+
+    const compiled = fixture.debugElement.nativeElement;
+    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+    const checkbox = checkboxLabel?.querySelector('input[type="checkbox"]');
+
+    expect(checkboxLabel).toBeTruthy();
+    expect(checkbox).toBeTruthy();
+    expect(checkboxLabel.textContent).toContain('Enabled');
+  });
+
+  it('falls back to the field key when a checkbox label is missing', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'booleanWithoutTitle';
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.debugElement.nativeElement;
+    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+
+    expect(checkboxLabel?.textContent).toContain('enabled');
+  });
+
+  it('applies the checkbox type to boolean array items', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    const fields: FormlyFieldConfig[] = [{
+      key: 'flags',
+      type: 'array',
+      fieldArray: {
+        type: 'boolean'
+      }
+    }];
+
+    (app as any).applyCheckboxType(fields);
+
+    const flagsFieldArray = fields[0].fieldArray as FormlyFieldConfig;
+    expect(flagsFieldArray?.type).toBe('app-config-checkbox');
+    expect(flagsFieldArray?.wrappers).toEqual([]);
   });
 
   it('applies menu editor type and hides showSearch for menu config', async () => {
@@ -450,6 +520,20 @@ export function getStubAppConfigService(recordData: any = {}) {
           }
         };
       }
+      if (configKey === 'booleanWithoutTitle') {
+        return {
+          fieldOrder: ['enabled'],
+          schema: {
+            type: 'object',
+            properties: {
+              enabled: { type: 'boolean' }
+            }
+          },
+          model: {
+            enabled: true
+          }
+        };
+      }
       if (configKey === 'doiPublishing') {
         return {
           fieldOrder: ['enabled', 'defaultProfile', 'connection', 'profiles'],
@@ -668,7 +752,8 @@ export function getStubAppConfigService(recordData: any = {}) {
           "type": "object",
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "title": "Enabled"
             },
             "title": {
               "type": "string"

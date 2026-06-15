@@ -20,6 +20,25 @@ export class RichTextEditorModel extends FormFieldModel<string> {
   protected override logName = RichTextEditorModelName;
 }
 
+type RichTextEditorChain = {
+  toggleBold: () => RichTextEditorChain;
+  toggleItalic: () => RichTextEditorChain;
+  toggleHeading: (attrs: { level: number }) => RichTextEditorChain;
+  toggleBulletList: () => RichTextEditorChain;
+  toggleOrderedList: () => RichTextEditorChain;
+  toggleBlockquote: () => RichTextEditorChain;
+  insertTable: (attrs: { rows: number; cols: number; withHeaderRow: boolean }) => RichTextEditorChain;
+  undo: () => RichTextEditorChain;
+  redo: () => RichTextEditorChain;
+  addRowAfter: () => RichTextEditorChain;
+  addColumnAfter: () => RichTextEditorChain;
+  deleteRow: () => RichTextEditorChain;
+  deleteColumn: () => RichTextEditorChain;
+  unsetLink: () => RichTextEditorChain;
+  toggleLink: (attrs: { href: string }) => RichTextEditorChain;
+  run: () => boolean;
+};
+
 @Component({
   selector: "redbox-rich-text-editor",
   template: `
@@ -206,7 +225,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (!this.editor || this.isDisabled) {
       return;
     }
-    const chain = this.editor.chain().focus();
+    const chain = this.editor.chain().focus() as RichTextEditorChain;
     switch (action) {
       case "bold":
         chain.toggleBold().run();

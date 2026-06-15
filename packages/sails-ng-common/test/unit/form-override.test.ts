@@ -3,11 +3,15 @@ import {
   ContentComponentName,
   RepeatableComponentName,
   RepeatableFieldComponentDefinitionFrame,
-  ReusableComponentName,
-  SimpleInputComponentName,
-  GroupFieldComponentName,
-  isTypeFieldDefinitionName,
-  ILogger,
+ ReusableComponentName,
+ SimpleInputComponentName,
+ GroupFieldComponentName,
+ DropdownInputComponentName,
+ CheckboxInputComponentName,
+ TypeaheadInputComponentName,
+ FileUploadComponentName,
+ isTypeFieldDefinitionName,
+ ILogger,
 } from '../../src';
 
 let expect: Chai.ExpectStatic;
@@ -157,6 +161,163 @@ describe('FormOverride reusable expansion', () => {
     );
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+  });
+
+  it('renders dropdown leaf option labels in generated view templates', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: DropdownInputComponentName,
+          config: {
+            options: [
+              { value: 'dataset', label: 'Dataset' },
+              { value: 'software', label: 'Software' },
+            ],
+          },
+        },
+      } as never,
+      'content',
+      ['datatype']
+    );
+
+    expect(result).to.equal(
+      '{{#if (eq (get content "datatype" "") "dataset")}}<span data-value="{{default (get content "datatype" "") ""}}">{{t "Dataset"}}</span>{{else}}{{#if (eq (get content "datatype" "") "software")}}<span data-value="{{default (get content "datatype" "") ""}}">{{t "Software"}}</span>{{else}}<span>{{default (get content "datatype" "") ""}}</span>{{/if}}{{/if}}'
+    );
+  });
+
+  it('renders checkbox leaf option labels in generated view templates', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: CheckboxInputComponentName,
+          config: {
+            options: [
+              { value: 'tropicalEcoSystems', label: 'Tropical Eco Systems' },
+              { value: 'industriesEconomies', label: 'Industries and Economies' },
+            ],
+          },
+        },
+      } as never,
+      'content',
+      ['research_themes']
+    );
+
+    expect(result).to.equal(
+      '{{#if (get content "research_themes" "")}}{{#if (isArray (get content "research_themes" ""))}}<ul>{{#each (get content "research_themes" "")}}{{#if (eq this "tropicalEcoSystems")}}<li data-value="{{this}}">{{t "Tropical Eco Systems"}}</li>{{else}}{{#if (eq this "industriesEconomies")}}<li data-value="{{this}}">{{t "Industries and Economies"}}</li>{{else}}<li>{{this}}</li>{{/if}}{{/if}}{{/each}}</ul>{{else}}{{#if (eq (get content "research_themes" "") "tropicalEcoSystems")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Tropical Eco Systems"}}</span>{{else}}{{#if (eq (get content "research_themes" "") "industriesEconomies")}}<span data-value="{{default (get content "research_themes" "") ""}}">{{t "Industries and Economies"}}</span>{{else}}<span>{{default (get content "research_themes" "") ""}}</span>{{/if}}{{/if}}{{/if}}{{/if}}'
+    );
+  });
+
+  it('renders typeahead leaf values using the configured label field', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: TypeaheadInputComponentName,
+          config: {
+            labelField: 'dc_description',
+            valueField: 'value',
+          },
+        },
+      } as never,
+      'content',
+      ['fundingSource']
+    );
+
+    expect(result).to.contain('(get (get content "fundingSource" "") "dc_description" "")');
+    expect(result).to.contain('{{{renderMetadataValue (get content "fundingSource" "")}}}');
+    expect(result).to.not.equal('{{default (get content "fundingSource" "") ""}}');
+  });
+
+  it('renders repeatable typeahead objects without stringifying them', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).generateTemplateForComponent(
+      {
+        name: 'foaf:fundedBy_foaf:Agent',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: TypeaheadInputComponentName,
+                config: {
+                  labelField: 'dc_description',
+                  valueField: 'value',
+                },
+              },
+            },
+          },
+        },
+      } as never,
+      'content'
+    );
+
+    expect(result).to.contain('(get this "dc_description" "")');
+    expect(result).to.contain('{{{renderMetadataValue this}}}');
+    expect(result).to.not.contain('{{default this ""}}');
+  });
+
+  it('renders repeatable content objects using display fields after child transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).generateTemplateForComponent(
+      {
+        name: 'foaf:fundedBy_vivo:Grant',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: ContentComponentName,
+                config: {
+                  template: '<span>{{content}}</span>',
+                },
+              },
+            },
+          },
+        },
+      } as never,
+      'content'
+    );
+
+    expect(result).to.contain('(get this "dc_title" "")');
+    expect(result).to.contain('{{{renderMetadataValue this}}}');
+    expect(result).to.not.contain('{{default this ""}}');
+  });
+
+  it('renders utf8_name object values as display labels', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderDisplayValue('content');
+
+    expect(result).to.contain('(get content "utf8_name" "")');
+    expect(result).to.contain('{{{plaintextToHtml (get content "utf8_name" "")}}}');
+  });
+
+  it('renders file upload leaf values as attachment download links', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: FileUploadComponentName,
+        },
+      } as never,
+      'content',
+      ['contractualObligations_licences']
+    );
+
+    expect(result).to.contain('attachmentDownloadUrl this oid branding portal');
+    expect(result).to.contain('<a href="{{attachmentDownloadUrl this oid branding portal}}"');
+    expect(result).to.contain('target="_blank"');
+    expect(result).to.contain('rel="noopener noreferrer"');
   });
 
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {

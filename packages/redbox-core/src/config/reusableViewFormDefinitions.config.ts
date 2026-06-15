@@ -4,7 +4,7 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
   "view-template-leaf-plain": [
     {
       name: "view_template_leaf_plain",
-      component: {class: "ContentComponent", config: {template: "<span>{{content}}</span>"}},
+      component: {class: "ContentComponent", config: {template: "<span>{{{plaintextToHtml content}}}</span>"}},
     },
   ],
   "view-template-leaf-date": [
@@ -52,7 +52,7 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "ContentComponent",
         config: {
-          template: "<ul class=\"rb-view-file-upload\">{{#each [[valueExpr]]}}<li>{{#if this.url}}<a href=\"{{this.url}}\" target=\"_blank\" rel=\"noopener\">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class=\"text-muted\"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>"
+          template: "<ul class=\"rb-view-file-upload\">{{#each [[valueExpr]]}}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href=\"{{attachmentDownloadUrl this oid branding portal}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class=\"text-muted\"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>"
         }
       },
     },
