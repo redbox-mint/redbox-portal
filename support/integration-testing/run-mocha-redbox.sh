@@ -87,7 +87,7 @@ else
   mocha_config_args+=(
     --require ts-node/register
     --require chai
-    --extension ts,js
+    --extension "ts,js"
     --recursive
     --timeout 30s
     --ui bdd
