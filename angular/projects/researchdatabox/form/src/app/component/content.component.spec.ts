@@ -46,6 +46,11 @@ describe('ContentComponent', () => {
               if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
                 return context?.translationService?.t?.('@missing.translation.key') ?? '';
               }
+              if (context?.content === 'USE_MARKDOWN_TEMPLATE') {
+                return context?.outputFormat === 'markdown'
+                  ? '<h2>Hi <strong>How does this render</strong></h2><table><tbody><tr><td>and</td><td>not</td><td>something</td></tr></tbody></table>'
+                  : context?.content;
+              }
               return Handlebars.compile('<h3>{{content}}</h3>')(context);
             default:
               throw new Error(`Unknown key: ${keyStr}`);
@@ -95,6 +100,40 @@ describe('ContentComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const element = compiled.querySelector('h3');
     expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
+    expect(compiled.querySelector('.rb-form-content')?.classList.contains('rb-form-rich-text-content')).toBeFalse();
+  });
+
+  it('should expose outputFormat to content templates for markdown rich text view rendering', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'markdown_content',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_MARKDOWN_TEMPLATE',
+              outputFormat: 'markdown',
+              template: '{{{markdownToHtml content outputFormat}}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(
+      formConfig, undefined, undefined, dynamicAssetOptions);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(lastTemplateContext?.outputFormat).toEqual('markdown');
+    expect(compiled.querySelector('.rb-form-content')?.classList.contains('rb-form-rich-text-content')).toBeTrue();
+    expect(compiled.querySelector('h2')?.innerHTML).toContain('<strong>How does this render</strong>');
+    expect(compiled.querySelector('table td')?.textContent).toEqual('and');
   });
 
   it('should render content as-is when contentIsTranslationCode is false', async () => {

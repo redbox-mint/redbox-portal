@@ -59,9 +59,9 @@ let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
 void import('marked')
   .then(markedModule => {
-    const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
-    if (typeof parseFn === 'function') {
-      cachedMarkedParser = (value: string): string => {
+      const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+      if (typeof parseFn === 'function') {
+        cachedMarkedParser = (value: string): string => {
         const result = parseFn(value);
         return typeof result === 'string' ? result : value;
       };
@@ -175,6 +175,85 @@ function renderMetadataValue(value: unknown): string {
   }
 
   return renderMetadataPrimitive(value);
+}
+
+function trimSlashes(value: unknown): string {
+  const text = String(value ?? '');
+  let start = 0;
+  let end = text.length;
+  while (start < end && text[start] === '/') start++;
+  while (end > start && text[end - 1] === '/') end--;
+  return text.slice(start, end);
+}
+
+function isSafeDownloadUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value) || value.startsWith('/');
+}
+
+function resolveAttachmentLocation(location: string, branding: unknown, portal: unknown): string {
+  if (!location) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(location)) {
+    return location;
+  }
+  const recordRelativeMatch = location.match(/^([^/]+)\/attach\/([^/?#]+)$/);
+  if (recordRelativeMatch) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    const path = `record/${encodeURIComponent(recordRelativeMatch[1])}/attach/${encodeURIComponent(recordRelativeMatch[2])}`;
+    return `/${[prefix, path].filter(Boolean).join('/')}`;
+  }
+  if (!isSafeDownloadUrl(location)) {
+    return '';
+  }
+  if (location.startsWith('/record/')) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    return prefix ? `/${prefix}${location}` : location;
+  }
+  return location;
+}
+
+function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
+  if (!_isPlainObject(attachment)) {
+    return '';
+  }
+
+  const item = attachment as Record<string, unknown>;
+  const url = String(item.url ?? '').trim();
+  if (url && isSafeDownloadUrl(url)) {
+    return url;
+  }
+
+  const uploadUrl = String(item.uploadUrl ?? '').trim();
+  if (uploadUrl) {
+    try {
+      const parsedUploadUrl = new URL(uploadUrl);
+      const uploadPath = resolveAttachmentLocation(parsedUploadUrl.pathname, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    } catch {
+      const uploadPath = resolveAttachmentLocation(uploadUrl, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    }
+  }
+
+  const location = resolveAttachmentLocation(String(item.location ?? '').trim(), branding, portal);
+  if (location) {
+    return location;
+  }
+
+  const fileId = String(item.fileId ?? '').trim();
+  const recordOid = String(oid ?? '').trim();
+  if (!fileId || !recordOid) {
+    return '';
+  }
+
+  const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+  const path = `record/${encodeURIComponent(recordOid)}/attach/${encodeURIComponent(fileId)}`;
+  return `/${[prefix, path].filter(Boolean).join('/')}`;
 }
 
 /**
@@ -615,6 +694,15 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Render plain text as escaped HTML while preserving line breaks.
+   *
+   * @example {{{plaintextToHtml content}}}
+   */
+  plaintextToHtml: function (value: unknown): string {
+    return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
+  },
+
+  /**
    * JSON stringify a value (useful for debugging).
    *
    * @example {{json data}}
@@ -634,6 +722,20 @@ export const handlebarsHelperDefinitions = {
    */
   renderMetadataValue: function (value: unknown): string {
     return renderMetadataValue(value);
+  },
+
+  /**
+   * Build a view-mode download URL for a file upload attachment value.
+   *
+   * @example {{attachmentDownloadUrl this oid branding portal}}
+   */
+  attachmentDownloadUrl: function (
+    attachment: unknown,
+    oid: unknown,
+    branding: unknown,
+    portal: unknown
+  ): string {
+    return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
   },
 };
 

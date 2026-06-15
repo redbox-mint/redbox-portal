@@ -1221,6 +1221,31 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it("should preserve text area line breaks in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "description",
+                            component: { class: "TextAreaComponent" },
+                            model: { class: "TextAreaModel", config: {} },
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions,
+                record: { description: "Line 1\nLine 2" }
+            });
+
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: "Line 1\nLine 2",
+                template: `<span>{{{plaintextToHtml content}}}</span>`
+            });
+        });
+
         it("should transform data location components to content in view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
@@ -1690,6 +1715,11 @@ describe("Construct Visitor", async () => {
             const template = (transformed.component?.config as { template?: string } | undefined)?.template ?? "";
             expect(transformed.component.class).to.equal("ContentComponent");
             expect(template).to.contain("custom-leaf");
+        });
+
+        it("should preserve line breaks in the default plain reusable view fragment", async () => {
+            const leafPlainTemplate = (reusableFormDefinitions["view-template-leaf-plain"]?.[0]?.component?.config as { template?: string } | undefined)?.template;
+            expect(leafPlainTemplate).to.equal("<span>{{{plaintextToHtml content}}}</span>");
         });
 
         it("should keep repeatable and group components untransformed in view mode during construct phase", async () => {

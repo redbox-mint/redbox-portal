@@ -287,6 +287,74 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('attachmentDownloadUrl', function () {
+        it('should build a branded attachment download URL from fileId and oid', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { fileId: 'content 1.txt', name: 'content1.txt' },
+                'oid/1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid%2F1/attach/content%201.txt');
+        });
+
+        it('should prefix record-relative attachment locations with branding and portal', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { location: '/record/oid-1/attach/file-1' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should normalize migrated attachment locations without a leading record segment', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { location: 'oid-1/attach/file-1' },
+                '',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should derive a branded attachment path from uploadUrl', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { uploadUrl: 'https://researchdata.example/default/rdmp/record/oid-1/attach/file-1' },
+                '',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should keep safe absolute URLs', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { url: 'https://example.test/download/file-1' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('https://example.test/download/file-1');
+        });
+
+        it('should reject unsafe attachment URLs', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { url: 'javascript:alert(1)', location: 'javascript:alert(2)' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('');
+        });
+    });
+
     describe('default', function () {
         it('should return value if truthy', function () {
             const result = handlebarsHelperDefinitions.default('hello', 'default');
@@ -314,6 +382,13 @@ describe('Shared Handlebars Helpers', function () {
         it('should return empty string when value is nullish', function () {
             const result = handlebarsHelperDefinitions.markdownToHtml(null, 'markdown');
             expect(result).to.equal('');
+        });
+    });
+
+    describe('plaintextToHtml', function () {
+        it('should escape text and preserve line breaks', function () {
+            const result = handlebarsHelperDefinitions.plaintextToHtml('Line 1\n<script>alert("x")</script>\r\nLine 3');
+            expect(result).to.equal('Line 1<br>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;<br>Line 3');
         });
     });
 
