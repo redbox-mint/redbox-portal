@@ -66,6 +66,14 @@ export {
     IntegrationAuditParams
 }
     from "./IntegrationAuditParams";
+export type {
+    IntegrationOutcome,
+    IntegrationOutcomeSeverity,
+    IntegrationStatusSummary,
+    IntegrationStatusRecordContext,
+    IntegrationOutcomeMapper
+}
+    from "./services/IntegrationAuditService";
 export * from './model/storage/HarvestRunModel';
 export {
     ILogger

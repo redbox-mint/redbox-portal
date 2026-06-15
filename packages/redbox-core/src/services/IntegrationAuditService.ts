@@ -93,6 +93,16 @@ export type IntegrationStatusSummary = {
   synthesized?: boolean;
 };
 
+/**
+ * Maps an integration status summary to a user-facing outcome (badge/label).
+ * Hooks register a mapper for their custom integration name via
+ * {@link Services.IntegrationAuditService.registerOutcomeMapper}.
+ */
+export type IntegrationOutcomeMapper = (
+  summary: IntegrationStatusSummary,
+  ctx: IntegrationStatusRecordContext
+) => IntegrationOutcome | undefined;
+
 type IntegrationAuditOptions = {
   brandId?: string;
   integrationName?: IntegrationAuditName;
@@ -123,6 +133,7 @@ export namespace Services {
       'getTraceAuditLog',
       'getStatusSummary',
       'getStatusSummaryWithOutcomes',
+      'registerOutcomeMapper',
       'storeIntegrationAudit',
     ];
 
@@ -885,10 +896,26 @@ export namespace Services {
       return undefined;
     }
 
-    private readonly outcomeMappers: Record<string, (summary: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext) => IntegrationOutcome | undefined> = {
+    private readonly outcomeMappers: Record<string, IntegrationOutcomeMapper> = {
       doi: (s, ctx) => this.mapDoiOutcome(s, ctx),
       figshare: (s, ctx) => this.mapFigshareOutcome(s, ctx),
     };
+
+    /**
+     * Registers an outcome mapper for a custom integration name so the
+     * integration-status component can render a badge/label for it. Hooks call
+     * this at lift time (e.g. on the 'ready' sails event). The integration name
+     * is matched case-insensitively; the last registration for a name wins.
+     */
+    public registerOutcomeMapper(integrationName: string, mapper: IntegrationOutcomeMapper): void {
+      const key = String(integrationName ?? '').trim().toLowerCase();
+      if (_.isEmpty(key) || typeof mapper !== 'function') {
+        sails.log.warn(`${this.logHeader} Ignoring invalid outcome mapper registration for '${integrationName}'.`);
+        return;
+      }
+      this.outcomeMappers[key] = mapper;
+      sails.log.verbose(`${this.logHeader} Registered outcome mapper for '${key}'.`);
+    }
 
     public async getStatusSummaryWithOutcomes(params: IntegrationAuditParams, ctx: IntegrationStatusRecordContext): Promise<IntegrationStatusSummary[]> {
       const summaries = await this.getStatusSummary(params);

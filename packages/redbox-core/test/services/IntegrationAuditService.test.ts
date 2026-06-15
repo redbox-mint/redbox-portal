@@ -662,6 +662,78 @@ describe('IntegrationAuditService', function () {
     expect(statusResult[0].keyResult?.articleId).to.equal('98765');
   });
 
+  it('applies a registered custom outcome mapper for an unknown integration name', async function () {
+    service.registerOutcomeMapper('rda', (summary) => {
+      if (summary.status === 'failed') {
+        return { state: 'error', severity: 'error', labelKey: '@integration-status-outcome-rda-error' };
+      }
+      if (summary.status === 'success') {
+        return { state: 'published', severity: 'success', labelKey: '@integration-status-outcome-rda-published' };
+      }
+      return { state: 'none', severity: 'none', labelKey: '@integration-status-outcome-rda-none' };
+    });
+
+    mockStorageService.countIntegrationAudit.resolves(2);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'rda',
+        integrationAction: 'produceMetadataFiles',
+        status: 'success',
+        traceId: 'trace-rda',
+        spanId: 'span-rda-1',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:03.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'rda',
+        integrationAction: 'produceRIFCS',
+        status: 'success',
+        traceId: 'trace-rda',
+        spanId: 'span-rda-2',
+        parentSpanId: 'span-rda-1',
+        startedAt: '2026-03-01T00:00:01.000Z',
+        completedAt: '2026-03-01T00:00:02.000Z',
+      },
+    ]);
+
+    const result = await service.getStatusSummaryWithOutcomes({ oid: 'oid-1', integrationName: 'rda' } as any, {} as any);
+
+    expect(result).to.have.length(1);
+    expect(result[0].integrationName).to.equal('rda');
+    expect(result[0].outcome?.state).to.equal('published');
+    expect(result[0].outcome?.severity).to.equal('success');
+  });
+
+  it('synthesizes a none tile for a registered integration name with no audit rows', async function () {
+    service.registerOutcomeMapper('rda', (summary) => {
+      if (summary.status === 'none') {
+        return { state: 'none', severity: 'none', labelKey: '@integration-status-outcome-rda-none' };
+      }
+      return undefined;
+    });
+
+    mockStorageService.countIntegrationAudit.resolves(0);
+    mockStorageService.getIntegrationAudit.resolves([]);
+
+    const result = await service.getStatusSummaryWithOutcomes({ oid: 'oid-1', integrationName: 'rda' } as any, {} as any);
+
+    expect(result).to.have.length(1);
+    expect(result[0].integrationName).to.equal('rda');
+    expect(result[0].synthesized).to.equal(true);
+    expect(result[0].outcome?.state).to.equal('none');
+  });
+
+  it('does not synthesize a tile for an unregistered integration name', async function () {
+    mockStorageService.countIntegrationAudit.resolves(0);
+    mockStorageService.getIntegrationAudit.resolves([]);
+
+    const result = await service.getStatusSummaryWithOutcomes({ oid: 'oid-1', integrationName: 'unregistered' } as any, {} as any);
+
+    expect(result).to.have.length(0);
+  });
+
   it('filters traces by integration name before pagination', async function () {
     mockStorageService.countIntegrationAudit.resolves(4);
     mockStorageService.getIntegrationAudit.resolves([

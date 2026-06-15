@@ -448,9 +448,10 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   }
 
   protected integrationLabel(name: string): string {
-    if (name === 'doi') return '@integration-status-name-doi';
-    if (name === 'figshare') return '@integration-status-name-figshare';
-    return name;
+    // Convention-based key so hooks can supply a friendly label for custom
+    // integration names by shipping `@integration-status-name-<name>` i18n keys.
+    // Built-in doi/figshare keys follow the same convention.
+    return `@integration-status-name-${name}`;
   }
 
   protected getKeyResult(item: IntegrationStatusItem, key: string): string | null {
