@@ -19,6 +19,7 @@ import {
   parseNavMappings,
   parseRoutes,
 } from './cli-parsers';
+import {registerUpdateLintRulesCommand} from "./commands/lint";
 
 const program = new Command();
 // List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
@@ -126,6 +127,8 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+
+registerUpdateLintRulesCommand(program);
 
 program
   .command('init [name]')
