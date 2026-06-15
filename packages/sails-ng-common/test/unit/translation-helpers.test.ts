@@ -1,6 +1,4 @@
-import path from "path";
-import {isLikelyNaturalLanguage} from "../../src/translation-helpers";
-import fs from 'fs';
+import {isLikelyNaturalLanguage} from "../../src";
 
 describe('Translation helpers', function () {
   let expect: any;

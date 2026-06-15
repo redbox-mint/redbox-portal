@@ -43,14 +43,37 @@ export function buildKeyString(key: TemplateCompileKey): TemplateCompileKeyForma
     return (key ?? [])?.map(i => normaliseVisual(i))?.join('__');
 }
 
+/**
+ * The form config lineage path to use as the key for selecting the compiled template.
+ */
 export type DynamicScriptResponseEvaluateKey = TemplateCompileKey;
+/**
+ * Context to pass to the template evaluator.
+ */
 export type DynamicScriptResponseEvaluateContext = unknown;
-export type DynamicScriptResponseEvaluateExtra = { jsonata?: unknown, libraries?: Record<string, unknown>, [key: string]: unknown };
+/**
+ * Provide the template library evaluator functions.
+ */
+export type DynamicScriptResponseEvaluateExtra = { jsonata?: unknown, libraries?: Record<string, unknown> };
+/**
+ * The result of evaluating the template.
+ */
 export type DynamicScriptResponseEvaluateResult = unknown;
-
+/**
+ * The evaluator function provided by the server to the client.
+ */
 export type DynamicScriptResponseEvaluate = (
+  /**
+   * The form config lineage path to use as the key for selecting the compiled template.
+   */
   key: DynamicScriptResponseEvaluateKey,
+  /**
+   * Context to pass to the template evaluator.
+   */
   context: DynamicScriptResponseEvaluateContext,
+  /**
+   * Provide the template library evaluator functions.
+   */
   extra?: DynamicScriptResponseEvaluateExtra,
 ) => DynamicScriptResponseEvaluateResult;
 
@@ -58,5 +81,8 @@ export type DynamicScriptResponseEvaluate = (
  * The type of the dynamic script asset response after import.
  */
 export interface DynamicScriptResponse {
+  /**
+   * The evaluator function provided by the server to the client.
+   */
   evaluate: DynamicScriptResponseEvaluate,
 }

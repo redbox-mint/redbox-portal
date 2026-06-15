@@ -20,10 +20,10 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as services } from '../CoreService';
 import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
-import { Buffer } from 'node:buffer';
 import {
   buildKeyString,
   jsonataCompile,
+  jsonataExpressionEncode,
   normaliseVisual,
   registerSharedHandlebarsHelpers,
   TemplateCompileInput,
@@ -73,10 +73,10 @@ export namespace Services {
           case 'jsonata':
             const jsonataExpr = this.buildClientJsonata(input.value);
             if (jsonataExpr) {
-              const jsonataExprEncoded = this.encodeClientJsonataExpression(jsonataExpr);
+              const jsonataExprEncoded = jsonataExpressionEncode(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `(() => { const expressionSource = decodeURIComponent(Array.prototype.map.call(atob("${jsonataExprEncoded}"), c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")); const expression = jsonata(expressionSource); expression.registerFunction("eval", () => undefined); return expression.evaluate(context, extra?.libraries); })()`,
+                value: `jsonata("${jsonataExprEncoded}").evaluate(context);`,
               });
             }
             break;
@@ -91,10 +91,6 @@ export namespace Services {
         }
       }
       return result;
-    }
-
-    private encodeClientJsonataExpression(expression: string): string {
-      return Buffer.from(expression, 'utf8').toString('base64');
     }
 
     /**

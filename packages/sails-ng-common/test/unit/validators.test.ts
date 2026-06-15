@@ -5,7 +5,10 @@ import {
   SimpleServerFormValidatorControl,
   FORM_VALIDATOR_EMAIL_REGEXP,
   formValidatorsSharedDefinitions,
-  ValidatorsSupport, FormValidationGroups, jsonataCompile, jsonataEvaluate, jsonataEvaluateFunc
+  ValidatorsSupport,
+  FormValidationGroups,
+  jsonataCompile,
+  jsonataEvaluate,
 } from "../../src";
 
 type TestCase = {
