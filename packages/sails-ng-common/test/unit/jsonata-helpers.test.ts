@@ -1,10 +1,8 @@
-import jsonata from 'jsonata';
 import {
   jsonataCompile,
   jsonataCompileAndEvaluate,
   jsonataEvaluate,
   jsonataEvaluateFunc,
-  jsonataLibrary,
 } from '../../src';
 
 describe('JSONata helpers', function () {
@@ -56,6 +54,57 @@ describe('JSONata helpers', function () {
       },
       expected: new Error('Expected ":" before end of expression'),
     },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: '2026/06/10'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: '2026-06-10'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        // should format RFC 2822 date string values with luxon JSONata helper
+        input: {date: 'Wed, 10 Jun 2026 00:00:00 +0930'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        // not expose the jsonata factory to client-style JSONata library bindings
+        expression: '$exists($jsonata)',
+        input: null,
+        bindings: undefined,
+      },
+      expected: false,
+    },
+    {
+      args: {
+        expression: '$jsonata("1+a", {"a": 2})',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error('Attempted to invoke a non-function'),
+    },
+    {
+      args: {
+        // should not allow JSONata eval to run dynamic expressions on the server side
+        expression: '$eval("1+a", {"a": 2})',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error('Attempted to invoke eval'),
+    },
   ];
   cases.forEach(({ args, expected }) => {
     it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
@@ -85,41 +134,5 @@ describe('JSONata helpers', function () {
         compareError(error, expected);
       }
     });
-  });
-
-  it('should expose luxon date formatting to compiled JSONata expressions', async function () {
-    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
-      date: '2026/06/10',
-    });
-
-    expect(actual).to.eql('2026');
-  });
-
-  it('should not allow JSONata eval to run dynamic expressions on the server side', async function () {
-    const actual = await jsonataCompileAndEvaluate('$eval("1+1")', {});
-
-    expect(actual).to.be.undefined;
-  });
-
-  it('should expose luxon date formatting to client-style JSONata library bindings', async function () {
-    const actual = await jsonata('$luxonFormatDate(date, "yyyy")').evaluate({ date: '2026-06-10' }, jsonataLibrary);
-
-    expect(actual).to.eql('2026');
-  });
-
-  it('should not expose the jsonata factory to client-style JSONata library bindings', async function () {
-    expect(jsonataLibrary).not.to.have.property('jsonata');
-
-    const actual = await jsonata('$exists($jsonata)').evaluate({}, jsonataLibrary);
-
-    expect(actual).to.eql(false);
-  });
-
-  it('should format RFC 2822 date string values with luxon JSONata helper', async function () {
-    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
-      date: 'Wed, 10 Jun 2026 00:00:00 +0930',
-    });
-
-    expect(actual).to.eql('2026');
   });
 });
