@@ -16,10 +16,11 @@ import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-edit
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
 import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
+import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
   ],
   imports: [
     BrowserModule,
@@ -32,6 +33,7 @@ import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshar
       { name: 'array', component: ArrayTypeComponent },
       { name: 'object', component: ObjectTypeComponent },
       { name: 'textarea', component: FormlyFieldTextArea },
+      { name: 'app-config-checkbox', component: CheckboxTypeComponent },
       { name: 'menu-editor', component: MenuEditorTypeComponent },
       { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
       { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
