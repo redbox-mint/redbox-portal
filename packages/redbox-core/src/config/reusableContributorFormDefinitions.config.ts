@@ -1,39 +1,40 @@
-import {ReusableFormDefinitions} from "@researchdatabox/sails-ng-common";
+import { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
 
 export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
   /**
    * Standard contributor field for title.
    */
-  "standard-contributor-field-title": [
+  'standard-contributor-field-title': [
     {
-      name: "title",
+      name: 'title',
       component: {
-        class: "SimpleInputComponent",
+        class: 'SimpleInputComponent',
         config: {
-          type: "text",
-          hostCssClasses: "d-block",
-          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field rb-form-contributor-inline__field--title",
-          onItemSelect: {rawPath: 'metadata.title'},
-        }
+          type: 'text',
+          hostCssClasses: 'd-block',
+          wrapperCssClasses:
+            'rb-form-inline-fields__field rb-form-contributor-inline__field rb-form-contributor-inline__field--title',
+          onItemSelect: { rawPath: 'metadata.title' },
+        },
       },
-      model: {class: "SimpleInputModel", config: {}},
+      model: { class: 'SimpleInputModel', config: {} },
       layout: {
-        class: "InlineLayout",
-        config: {label: "Title", hostCssClasses: "d-flex align-items-center gap-2"}
+        class: 'InlineLayout',
+        config: { label: 'Title', hostCssClasses: 'd-flex align-items-center gap-2' },
       },
-    }
+    },
   ],
   /**
    * Standard contributor field for name, that has typeahead and allows entering freeform text.
    */
-  "standard-contributor-field-name": [
+  'standard-contributor-field-name': [
     {
-      name: "name",
+      name: 'name',
       component: {
-        class: "TypeaheadInputComponent",
+        class: 'TypeaheadInputComponent',
         config: {
-          hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
+          hostCssClasses: 'flex-grow-1 d-block',
+          wrapperCssClasses: 'rb-form-inline-fields__field rb-form-contributor-inline__field',
           vocabRef: 'party',
           sourceType: 'namedQuery',
           queryId: 'party',
@@ -44,193 +45,201 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           debounceMs: 250,
           maxResults: 25,
           valueMode: 'value',
-        }
+        },
       },
-      model: {class: "TypeaheadInputModel", config: {}},
+      model: { class: 'TypeaheadInputModel', config: {} },
       layout: {
-        class: "InlineLayout",
-        config: {label: "Name", hostCssClasses: "d-flex align-items-center gap-2"}
+        class: 'InlineLayout',
+        config: { label: 'Name', hostCssClasses: 'd-flex align-items-center gap-2' },
       },
-    }
+    },
   ],
   /**
    * Standard contributor field for email.
    */
-  "standard-contributor-field-email": [
+  'standard-contributor-field-email': [
     {
-      name: "email",
+      name: 'email',
       component: {
-        class: "SimpleInputComponent",
+        class: 'SimpleInputComponent',
         config: {
-          type: "text",
-          hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
-          onItemSelect: {rawPath: 'metadata.email'},
-        }
+          type: 'text',
+          hostCssClasses: 'flex-grow-1 d-block',
+          wrapperCssClasses: 'rb-form-inline-fields__field rb-form-contributor-inline__field',
+          onItemSelect: { rawPath: 'metadata.email' },
+        },
       },
-      model: {class: "SimpleInputModel", config: {validators: [{class: "email"}]}},
+      model: { class: 'SimpleInputModel', config: { validators: [{ class: 'email' }] } },
       layout: {
-        class: "InlineLayout",
-        config: {label: "Email", hostCssClasses: "d-flex align-items-center gap-2"}
+        class: 'InlineLayout',
+        config: { label: 'Email', hostCssClasses: 'd-flex align-items-center gap-2' },
       },
     },
   ],
   /**
    * Standard contributor field for ORCID.
    */
-  "standard-contributor-field-orcid": [
+  'standard-contributor-field-orcid': [
     {
-      name: "orcid",
+      name: 'orcid',
       component: {
-        class: "SimpleInputComponent",
+        class: 'SimpleInputComponent',
         config: {
-          type: "text",
-          hostCssClasses: "flex-grow-1 d-block",
-          wrapperCssClasses: "rb-form-inline-fields__field rb-form-contributor-inline__field",
-          onItemSelect: {rawPath: 'metadata.orcid'},
-        }
+          type: 'text',
+          hostCssClasses: 'flex-grow-1 d-block',
+          wrapperCssClasses: 'rb-form-inline-fields__field rb-form-contributor-inline__field',
+          onItemSelect: { rawPath: 'metadata.orcid' },
+        },
       },
-      model: {class: "SimpleInputModel", config: {validators: [{class: "orcid"}]}},
+      model: { class: 'SimpleInputModel', config: { validators: [{ class: 'orcid' }] } },
       layout: {
-        class: "InlineLayout",
-        config: {label: "ORCID", hostCssClasses: "d-flex align-items-center gap-2"}
+        class: 'InlineLayout',
+        config: { label: 'ORCID', hostCssClasses: 'd-flex align-items-center gap-2' },
       },
     },
   ],
   /**
    * Standard contributor form fields.
    */
-  "standard-contributor-fields": [
+  'standard-contributor-fields': [
     {
-      overrides: {reusableFormName: "standard-contributor-field-name"},
-      name: "standard_contributor_field_name",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-name' },
+      name: 'standard_contributor_field_name',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-field-email"},
-      name: "standard_contributor_field_email",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-email' },
+      name: 'standard_contributor_field_email',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-field-orcid"},
-      name: "standard_contributor_field_orcid",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-orcid' },
+      name: 'standard_contributor_field_orcid',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
   ],
   /**
    * Standard contributor form fields in lookup-only mode.
    */
-  "standard-contributor-fields-lookup-only": [
+  'standard-contributor-fields-lookup-only': [
     {
-      overrides: {reusableFormName: "standard-contributor-field-name"},
-      name: "standard_contributor_field_name",
+      overrides: { reusableFormName: 'standard-contributor-field-name' },
+      name: 'standard_contributor_field_name',
       component: {
-        class: "ReusableComponent", config: {
+        class: 'ReusableComponent',
+        config: {
           componentDefinitions: [
             {
-              name: "name", component: {class: "TypeaheadInputComponent", config: {requireSelection: true}}
-            }
-          ]
-        }
+              name: 'name',
+              component: { class: 'TypeaheadInputComponent', config: { requireSelection: true } },
+            },
+          ],
+        },
       },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-field-email"},
-      name: "standard_contributor_field_email",
+      overrides: { reusableFormName: 'standard-contributor-field-email' },
+      name: 'standard_contributor_field_email',
       component: {
-        class: "ReusableComponent", config: {
+        class: 'ReusableComponent',
+        config: {
           componentDefinitions: [
             {
-              name: "email", component: {class: "SimpleInputComponent", config: {readonly: true}}
-            }
-          ]
-        }
+              name: 'email',
+              component: { class: 'SimpleInputComponent', config: { readonly: true } },
+            },
+          ],
+        },
       },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-field-orcid"},
-      name: "standard_contributor_field_orcid",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-orcid' },
+      name: 'standard_contributor_field_orcid',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
   ],
   /**
    * Standard contributor form fields in lookup-only mode without ORCID.
    */
-  "standard-contributor-fields-lookup-only-name-email": [
+  'standard-contributor-fields-lookup-only-name-email': [
     {
-      overrides: {reusableFormName: "standard-contributor-field-name"},
-      name: "standard_contributor_field_name",
+      overrides: { reusableFormName: 'standard-contributor-field-name' },
+      name: 'standard_contributor_field_name',
       component: {
-        class: "ReusableComponent", config: {
+        class: 'ReusableComponent',
+        config: {
           componentDefinitions: [
             {
-              name: "name", component: {class: "TypeaheadInputComponent", config: {requireSelection: true}}
-            }
-          ]
-        }
+              name: 'name',
+              component: { class: 'TypeaheadInputComponent', config: { requireSelection: true } },
+            },
+          ],
+        },
       },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-field-email"},
-      name: "standard_contributor_field_email",
+      overrides: { reusableFormName: 'standard-contributor-field-email' },
+      name: 'standard_contributor_field_email',
       component: {
-        class: "ReusableComponent", config: {
+        class: 'ReusableComponent',
+        config: {
           componentDefinitions: [
             {
-              name: "email", component: {class: "SimpleInputComponent", config: {readonly: true}}
-            }
-          ]
-        }
+              name: 'email',
+              component: { class: 'SimpleInputComponent', config: { readonly: true } },
+            },
+          ],
+        },
       },
     },
   ],
   /**
    * Standard contributor form fields with title for people sections.
    */
-  "standard-contributor-fields-with-title": [
+  'standard-contributor-fields-with-title': [
     {
-      overrides: {reusableFormName: "standard-contributor-field-title"},
-      name: "standard_contributor_field_title",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-title' },
+      name: 'standard_contributor_field_title',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-fields"},
-      name: "standard_contributor_fields_reusable_with_title",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-fields' },
+      name: 'standard_contributor_fields_reusable_with_title',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
   ],
   /**
    * Standard contributor form fields with title for people sections in lookup-only mode.
    */
-  "standard-contributor-fields-with-title-lookup-only": [
+  'standard-contributor-fields-with-title-lookup-only': [
     {
-      overrides: {reusableFormName: "standard-contributor-field-title"},
-      name: "standard_contributor_field_title",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-field-title' },
+      name: 'standard_contributor_field_title',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
     {
-      overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
-      name: "standard_contributor_fields_lookup_only_reusable_with_title",
-      component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+      overrides: { reusableFormName: 'standard-contributor-fields-lookup-only' },
+      name: 'standard_contributor_fields_lookup_only_reusable_with_title',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
   ],
   /**
    * Standard contributor form fields group.
    */
-  "standard-contributor-fields-group": [
+  'standard-contributor-fields-group': [
     {
-      name: "standard_contributor_fields_group",
-      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-      model: {class: "GroupModel", config: {}},
+      name: 'standard_contributor_fields_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Standard Contributor' } },
+      model: { class: 'GroupModel', config: {} },
       component: {
-        class: "GroupComponent",
+        class: 'GroupComponent',
         config: {
-          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
+          hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3',
           componentDefinitions: [
             {
-              overrides: {reusableFormName: "standard-contributor-fields"},
-              name: "standard_contributor_fields_reusable",
-              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+              overrides: { reusableFormName: 'standard-contributor-fields' },
+              name: 'standard_contributor_fields_reusable',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
             },
           ],
         },
@@ -240,20 +249,20 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
   /**
    * Standard contributor form fields group in lookup-only mode.
    */
-  "standard-contributor-fields-lookup-only-group": [
+  'standard-contributor-fields-lookup-only-group': [
     {
-      name: "standard_contributor_fields_lookup_only_group",
-      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-      model: {class: "GroupModel", config: {}},
+      name: 'standard_contributor_fields_lookup_only_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Standard Contributor' } },
+      model: { class: 'GroupModel', config: {} },
       component: {
-        class: "GroupComponent",
+        class: 'GroupComponent',
         config: {
-          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
+          hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3',
           componentDefinitions: [
             {
-              overrides: {reusableFormName: "standard-contributor-fields-lookup-only"},
-              name: "standard_contributor_fields_lookup_only_reusable",
-              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+              overrides: { reusableFormName: 'standard-contributor-fields-lookup-only' },
+              name: 'standard_contributor_fields_lookup_only_reusable',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
             },
           ],
         },
@@ -263,20 +272,20 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
   /**
    * Standard contributor form fields group in lookup-only mode without ORCID.
    */
-  "standard-contributor-fields-lookup-only-name-email-group": [
+  'standard-contributor-fields-lookup-only-name-email-group': [
     {
-      name: "standard_contributor_fields_lookup_only_name_email_group",
-      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-      model: {class: "GroupModel", config: {}},
+      name: 'standard_contributor_fields_lookup_only_name_email_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Standard Contributor' } },
+      model: { class: 'GroupModel', config: {} },
       component: {
-        class: "GroupComponent",
+        class: 'GroupComponent',
         config: {
-          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-2",
+          hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-2',
           componentDefinitions: [
             {
-              overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email"},
-              name: "standard_contributor_fields_lookup_only_name_email_reusable",
-              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+              overrides: { reusableFormName: 'standard-contributor-fields-lookup-only-name-email' },
+              name: 'standard_contributor_fields_lookup_only_name_email_reusable',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
             },
           ],
         },
@@ -286,20 +295,21 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
   /**
    * Standard contributor form fields group with title for people sections.
    */
-  "standard-contributor-fields-with-title-group": [
+  'standard-contributor-fields-with-title-group': [
     {
-      name: "standard_contributor_fields_with_title_group",
-      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-      model: {class: "GroupModel", config: {}},
+      name: 'standard_contributor_fields_with_title_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Standard Contributor' } },
+      model: { class: 'GroupModel', config: {} },
       component: {
-        class: "GroupComponent",
+        class: 'GroupComponent',
         config: {
-          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title",
+          hostCssClasses:
+            'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title',
           componentDefinitions: [
             {
-              overrides: {reusableFormName: "standard-contributor-fields-with-title"},
-              name: "standard_contributor_fields_with_title_reusable",
-              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+              overrides: { reusableFormName: 'standard-contributor-fields-with-title' },
+              name: 'standard_contributor_fields_with_title_reusable',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
             },
           ],
         },
@@ -309,20 +319,113 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
   /**
    * Standard contributor form fields group with title for people sections in lookup-only mode.
    */
-  "standard-contributor-fields-with-title-lookup-only-group": [
+  'standard-contributor-fields-with-title-lookup-only-group': [
     {
-      name: "standard_contributor_fields_with_title_lookup_only_group",
-      layout: {class: "DefaultLayout", config: {label: "Standard Contributor"}},
-      model: {class: "GroupModel", config: {}},
+      name: 'standard_contributor_fields_with_title_lookup_only_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Standard Contributor' } },
+      model: { class: 'GroupModel', config: {} },
       component: {
-        class: "GroupComponent",
+        class: 'GroupComponent',
         config: {
-          hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title",
+          hostCssClasses:
+            'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-4 rb-form-contributor-inline--with-title',
           componentDefinitions: [
             {
-              overrides: {reusableFormName: "standard-contributor-fields-with-title-lookup-only"},
-              name: "standard_contributor_fields_with_title_lookup_only_reusable",
-              component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+              overrides: { reusableFormName: 'standard-contributor-fields-with-title-lookup-only' },
+              name: 'standard_contributor_fields_with_title_lookup_only_reusable',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+            },
+          ],
+        },
+      },
+    },
+  ],
+  /**
+   * Citation contributor fields with separate family and given names.
+   */
+  'citation-contributor-fields-with-title-family-given-group': [
+    {
+      name: 'citation_contributor_fields_with_title_family_given_group',
+      layout: { class: 'DefaultLayout', config: { label: 'Citation Contributor' } },
+      model: { class: 'GroupModel', config: {} },
+      component: {
+        class: 'GroupComponent',
+        config: {
+          hostCssClasses:
+            'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-5 rb-form-contributor-inline--with-title',
+          componentDefinitions: [
+            {
+              overrides: { reusableFormName: 'standard-contributor-field-title' },
+              name: 'citation_contributor_field_title',
+              component: {
+                class: 'ReusableComponent',
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'title',
+                      overrides: { replaceName: 'honorific' },
+                      component: {
+                        class: 'SimpleInputComponent',
+                        config: { onItemSelect: { rawPath: 'metadata.title' } },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              overrides: { reusableFormName: 'standard-contributor-field-name' },
+              name: 'citation_contributor_field_family_name',
+              component: {
+                class: 'ReusableComponent',
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'name',
+                      overrides: { replaceName: 'family_name' },
+                      component: {
+                        class: 'TypeaheadInputComponent',
+                        config: {
+                          labelField: 'metadata.familyName',
+                          valueField: 'metadata.familyName',
+                          onItemSelect: { rawPath: 'metadata.familyName' },
+                        },
+                      },
+                      layout: {
+                        class: 'InlineLayout',
+                        config: { label: '@dmpt-people-family-hdr', hostCssClasses: 'd-flex align-items-center gap-2' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              name: 'given_name',
+              component: {
+                class: 'SimpleInputComponent',
+                config: {
+                  type: 'text',
+                  hostCssClasses: 'flex-grow-1 d-block',
+                  wrapperCssClasses: 'rb-form-inline-fields__field rb-form-contributor-inline__field',
+                  onItemSelect: { rawPath: 'metadata.givenName' },
+                },
+              },
+              model: { class: 'SimpleInputModel', config: {} },
+              layout: {
+                class: 'InlineLayout',
+                config: { label: '@dmpt-people-given-hdr', hostCssClasses: 'd-flex align-items-center gap-2' },
+              },
+            },
+            {
+              overrides: { reusableFormName: 'standard-contributor-field-email' },
+              name: 'citation_contributor_field_email',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+            },
+            {
+              overrides: { reusableFormName: 'standard-contributor-field-orcid' },
+              name: 'citation_contributor_field_orcid',
+              component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
             },
           ],
         },
@@ -333,80 +436,81 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
    * Contributor permissions repeatable.
    * Consuming configs should override labels, syncSources, and expressions as needed.
    */
-  "contributor-permissions": [
+  'contributor-permissions': [
     {
-      name: "contributor_permissions_repeatable",
+      name: 'contributor_permissions_repeatable',
       component: {
-        class: "RepeatableComponent",
+        class: 'RepeatableComponent',
         config: {
           addButtonShow: true,
           allowZeroRows: true,
           hideWhenZeroRows: false,
           syncSources: [
             {
-              fieldName: "",
-              blankCheckFields: ["name", "email", "username"],
-              defaultTemplate: {username: null, role: "View&Edit"}
+              fieldName: '',
+              blankCheckFields: ['name', 'email', 'username'],
+              defaultTemplate: { username: null, role: 'View&Edit' },
             },
             {
-              fieldName: "",
-              blankCheckFields: ["name", "email", "username"],
-              defaultTemplate: {username: null, role: "View&Edit"}
-            }
+              fieldName: '',
+              blankCheckFields: ['name', 'email', 'username'],
+              defaultTemplate: { username: null, role: 'View&Edit' },
+            },
           ],
           elementTemplate: {
-            name: "",
-            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email-group"},
+            name: '',
+            overrides: { reusableFormName: 'standard-contributor-fields-lookup-only-name-email-group' },
             component: {
-              class: "ReusableComponent",
+              class: 'ReusableComponent',
               config: {
-                label: "@dmpt-user-permissions-tab-dmp-permissions",
+                label: '@dmpt-user-permissions-tab-dmp-permissions',
                 componentDefinitions: [
                   {
-                    name: "standard_contributor_fields_lookup_only_name_email_group",
-                    overrides: {replaceName: ""},
+                    name: 'standard_contributor_fields_lookup_only_name_email_group',
+                    overrides: { replaceName: '' },
                     component: {
-                      class: "GroupComponent",
+                      class: 'GroupComponent',
                       config: {
-                        hostCssClasses: "rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3",
+                        hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3',
                         componentDefinitions: [
                           {
-                            overrides: {reusableFormName: "standard-contributor-fields-lookup-only-name-email"},
-                            name: "standard_contributor_fields_lookup_only_name_email_reusable",
-                            component: {class: "ReusableComponent", config: {componentDefinitions: []}},
+                            overrides: { reusableFormName: 'standard-contributor-fields-lookup-only-name-email' },
+                            name: 'standard_contributor_fields_lookup_only_name_email_reusable',
+                            component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
                           },
                           {
-                            name: "role",
+                            name: 'role',
                             component: {
-                              class: "DropdownInputComponent",
+                              class: 'DropdownInputComponent',
                               config: {
-                                hostCssClasses: "rb-form-inline-fields__field rb-form-inline-fields__field--fixed rb-form-contributor-inline__field rb-form-contributor-inline__field--role",
+                                hostCssClasses:
+                                  'rb-form-inline-fields__field rb-form-inline-fields__field--fixed rb-form-contributor-inline__field rb-form-contributor-inline__field--role',
                                 options: [
                                   {
-                                    label: "View",
-                                    value: "View"
+                                    label: 'View',
+                                    value: 'View',
                                   },
                                   {
-                                    label: "Edit",
-                                    value: "View&Edit"
-                                  }
-                                ]
-                              }
+                                    label: 'Edit',
+                                    value: 'View&Edit',
+                                  },
+                                ],
+                              },
                             },
                             model: {
-                              class: "DropdownInputModel",
+                              class: 'DropdownInputModel',
                               config: {
-                                validators: [{class: "required"}]
-                              }
+                                validators: [{ class: 'required' }],
+                              },
                             },
                             layout: {
-                              class: "InlineLayout",
+                              class: 'InlineLayout',
                               config: {
-                                label: "@dmpt-user-permissions-tab-role-hdr",
-                                hostCssClasses: "d-flex align-items-center gap-2"
-                              }
-                            }
-                          }
+                                label: '@dmpt-user-permissions-tab-role-hdr',
+                                hostCssClasses: 'd-flex align-items-center gap-2',
+                              },
+                            },
+                          },
                         ],
                       },
                     },
@@ -415,51 +519,51 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
               },
             },
             model: {
-              class: "GroupModel",
+              class: 'GroupModel',
               config: {
                 value: {
-                  role: "View"
+                  role: 'View',
                 },
                 newEntryValue: {
-                  role: "View"
+                  role: 'View',
                 },
               },
             },
             layout: {
-              class: "DefaultLayout",
+              class: 'DefaultLayout',
               config: {
-                label: "@dmpt-user-permissions-tab-dmp-permissions",
-                helpText: "@dmpt-user-permissions-tab-dmp-permission-help",
+                label: '@dmpt-user-permissions-tab-dmp-permissions',
+                helpText: '@dmpt-user-permissions-tab-dmp-permission-help',
               },
             },
           } as never,
         },
       },
       model: {
-        class: "RepeatableModel",
+        class: 'RepeatableModel',
         config: {
           defaultValue: [
             {
-              role: "View"
-            }
+              role: 'View',
+            },
           ],
           validators: [
             {
-              class: "required",
+              class: 'required',
               config: {
-                anyOfFields: ["name", "email", "username", "orcid"],
+                anyOfFields: ['name', 'email', 'username', 'orcid'],
               },
-            }
+            },
           ],
         },
       },
       layout: {
-        class: "DefaultLayout",
+        class: 'DefaultLayout',
         config: {
-          label: "@dmpt-user-permissions-tab-dmp-permissions",
-          helpText: "@dmpt-user-permissions-tab-dmp-permission-help",
+          label: '@dmpt-user-permissions-tab-dmp-permissions',
+          helpText: '@dmpt-user-permissions-tab-dmp-permission-help',
         },
       },
     },
   ],
-}
+};

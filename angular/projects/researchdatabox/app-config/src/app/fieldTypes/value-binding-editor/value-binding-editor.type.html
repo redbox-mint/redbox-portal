@@ -19,7 +19,7 @@
     </div>
     @if (collapsed) { @if (isConfigured) {
     <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
-      <span class="text-truncate" style="max-width: 400px">&larr; {{ summarySource }}</span>
+      <span class="text-truncate binding-summary">&larr; {{ summarySource }}</span>
       @if (kind !== 'path') {
       <span class="badge bg-secondary binding-badge">{{ kind }}</span>
       } @if (hasDefault) {

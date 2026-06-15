@@ -103,6 +103,7 @@ export namespace Services {
           }
         };
       }
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         statusCode,
