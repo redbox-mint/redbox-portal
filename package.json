@@ -109,7 +109,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "axios": "1.16.1",
+    "axios": "1.17.0",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
