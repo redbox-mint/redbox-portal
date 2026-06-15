@@ -299,14 +299,30 @@ export namespace Services {
       }
     }
 
-    private enqueueNotification(entry: IntegrationAuditModel): void {
-      try {
-        if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
-        AgendaQueueService.now('IntegrationNotificationService-Dispatch', entry);
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to enqueue integration notification.`);
+    /**
+     * Fire-and-forget enqueue that never lets a failure escape. AgendaQueueService.now
+     * is async and can throw synchronously (e.g. an unknown job) or reject later, so a
+     * plain try/catch around the call is not enough — the returned promise's rejection
+     * would surface as an unhandled rejection and crash the process. This swallows both.
+     */
+    private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): void {
+      const logFailure = (err: unknown) => {
+        sails.log.error(`${this.logHeader} ${failureMessage}`);
         sails.log.error(err);
+      };
+      try {
+        const result = AgendaQueueService.now(jobName, entry) as unknown;
+        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).catch(logFailure);
+        }
+      } catch (err) {
+        logFailure(err);
       }
+    }
+
+    private enqueueNotification(entry: IntegrationAuditModel): void {
+      if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
+      this.safeQueueNow('IntegrationNotificationService-Dispatch', entry, 'Failed to enqueue integration notification.');
     }
 
     private queueOrPersist(entry: IntegrationAuditModel): void {
@@ -314,12 +330,7 @@ export namespace Services {
         void this.persistEntry(entry);
         return;
       }
-      try {
-        AgendaQueueService.now(this.storeJobName, entry);
-      } catch (error) {
-        sails.log.error(`${this.logHeader} Failed to queue integration audit entry.`);
-        sails.log.error(error);
-      }
+      this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
     }
 
     public startAudit(oid: string, action: IntegrationAuditAction, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {

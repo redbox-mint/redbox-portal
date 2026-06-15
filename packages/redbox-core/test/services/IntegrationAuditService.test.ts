@@ -884,6 +884,37 @@ describe('IntegrationAuditService', function () {
       expect(mockStorageService.createIntegrationAudit.called).to.be.true;
       expect((global as any).sails.log.error.called).to.be.true;
     });
+
+    it('does not leak an unhandled rejection when enqueue rejects asynchronously', async function () {
+      // AgendaQueueService.now is async; an unknown job rejects the returned promise.
+      // The audit service must handle that rejection rather than let it escape and crash.
+      const unhandled: unknown[] = [];
+      const onUnhandled = (reason: unknown) => unhandled.push(reason);
+      process.on('unhandledRejection', onUnhandled);
+      try {
+        mockQueueService.now.rejects(new Error(`Unknown job 'IntegrationNotificationService-Dispatch'`));
+
+        const auditData = {
+          redboxOid: 'oid-1',
+          integrationName: 'figshare',
+          integrationAction: 'syncRecordWithFigshare',
+          status: 'failed',
+          traceId: 'a'.repeat(32),
+          spanId: 'b'.repeat(16),
+          startedAt: new Date().toISOString(),
+        };
+        service.storeIntegrationAudit({ attrs: { data: auditData } });
+        // Allow the rejected enqueue promise and its handler to settle.
+        await new Promise(resolve => setImmediate(resolve));
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(mockStorageService.createIntegrationAudit.called).to.be.true;
+        expect((global as any).sails.log.error.called).to.be.true;
+        expect(unhandled).to.have.length(0);
+      } finally {
+        process.removeListener('unhandledRejection', onUnhandled);
+      }
+    });
   });
 });
   before(async function () {
