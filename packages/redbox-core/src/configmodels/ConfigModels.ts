@@ -11,6 +11,7 @@ import {
   toDoiPublishingFormModel
 } from './DoiPublishing';
 import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
+import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -36,7 +37,8 @@ export type ConfigModelKey =
     | 'adminSidebar'
     | 'figsharePublishing'
     | 'doiPublishing'
-    | 'dashboardTableConfig';
+    | 'dashboardTableConfig'
+    | 'integrationNotification';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -101,6 +103,13 @@ export class ConfigModels {
             class: DashboardTableOverrideConfig,
             schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
+        }],
+        ['integrationNotification', {
+            modelName: 'IntegrationNotificationConfig',
+            title: 'Integration Notification',
+            class: IntegrationNotificationConfig,
+            schema: INTEGRATION_NOTIFICATION_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/IntegrationNotificationConfig.ts')
         }],
     ]);
 

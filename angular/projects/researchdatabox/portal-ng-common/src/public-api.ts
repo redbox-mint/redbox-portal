@@ -28,3 +28,5 @@ export * from './lib/lodash-template-utility.service';
 export * from './lib/handlebars-template.service';
 export * from './lib/portal-ng-common.module';
 export * from './lib/httpClient.service';
+export * from './lib/record-audit/record-audit.module';
+export * from './lib/record-audit/record-audit.component';

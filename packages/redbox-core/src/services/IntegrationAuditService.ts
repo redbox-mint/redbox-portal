@@ -65,6 +65,44 @@ export type IntegrationAuditTraceLogResult = {
   total: number;
 };
 
+export type IntegrationOutcomeSeverity = 'none' | 'pending' | 'in-progress' | 'success' | 'warning' | 'error';
+
+export type IntegrationOutcome = {
+  state: string;
+  severity: IntegrationOutcomeSeverity;
+  labelKey: string;
+  helpKey?: string;
+};
+
+export type IntegrationStatusRecordContext = {
+  citationDoi?: string;
+  workflowStage?: string;
+};
+
+export type IntegrationStatusSummary = {
+  integrationName: string;
+  status: string;
+  integrationAction?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  message?: string;
+  keyResult?: Record<string, unknown>;
+  traceId: string;
+  outcome?: IntegrationOutcome;
+  synthesized?: boolean;
+};
+
+/**
+ * Maps an integration status summary to a user-facing outcome (badge/label).
+ * Hooks register a mapper for their custom integration name via
+ * {@link Services.IntegrationAuditService.registerOutcomeMapper}.
+ */
+export type IntegrationOutcomeMapper = (
+  summary: IntegrationStatusSummary,
+  ctx: IntegrationStatusRecordContext
+) => IntegrationOutcome | undefined;
+
 type IntegrationAuditOptions = {
   brandId?: string;
   integrationName?: IntegrationAuditName;
@@ -93,6 +131,9 @@ export namespace Services {
       'failAudit',
       'getAuditLog',
       'getTraceAuditLog',
+      'getStatusSummary',
+      'getStatusSummaryWithOutcomes',
+      'registerOutcomeMapper',
       'storeIntegrationAudit',
     ];
 
@@ -251,10 +292,37 @@ export namespace Services {
             sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
           }
         }
+        this.enqueueNotification(entry);
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
         sails.log.error(error);
       }
+    }
+
+    /**
+     * Fire-and-forget enqueue that never lets a failure escape. AgendaQueueService.now
+     * is async and can throw synchronously (e.g. an unknown job) or reject later, so a
+     * plain try/catch around the call is not enough — the returned promise's rejection
+     * would surface as an unhandled rejection and crash the process. This swallows both.
+     */
+    private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): void {
+      const logFailure = (err: unknown) => {
+        sails.log.error(`${this.logHeader} ${failureMessage}`);
+        sails.log.error(err);
+      };
+      try {
+        const result = AgendaQueueService.now(jobName, entry) as unknown;
+        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).catch(logFailure);
+        }
+      } catch (err) {
+        logFailure(err);
+      }
+    }
+
+    private enqueueNotification(entry: IntegrationAuditModel): void {
+      if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
+      this.safeQueueNow('IntegrationNotificationService-Dispatch', entry, 'Failed to enqueue integration notification.');
     }
 
     private queueOrPersist(entry: IntegrationAuditModel): void {
@@ -262,12 +330,7 @@ export namespace Services {
         void this.persistEntry(entry);
         return;
       }
-      try {
-        AgendaQueueService.now(this.storeJobName, entry);
-      } catch (error) {
-        sails.log.error(`${this.logHeader} Failed to queue integration audit entry.`);
-        sails.log.error(error);
-      }
+      this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
     }
 
     public startAudit(oid: string, action: IntegrationAuditAction, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {
@@ -578,6 +641,9 @@ export namespace Services {
           queryParams.oid = params.oid;
           queryParams.dateFrom = params.dateFrom;
           queryParams.dateTo = params.dateTo;
+          if (params.integrationName && !params.integrationName.includes(',')) {
+            queryParams.integrationName = params.integrationName;
+          }
           queryParams.page = page;
           queryParams.pageSize = Math.min(MAX_BATCH, totalRows - rows.length);
 
@@ -605,6 +671,9 @@ export namespace Services {
         queryParams.oid = params.oid;
         queryParams.dateFrom = params.dateFrom;
         queryParams.dateTo = params.dateTo;
+        if (params.integrationName && !params.integrationName.includes(',')) {
+          queryParams.integrationName = params.integrationName;
+        }
         queryParams.page = page;
         queryParams.pageSize = MAX_BATCH;
 
@@ -661,6 +730,247 @@ export namespace Services {
         rows: groupedRows.slice(skip, skip + pageSize),
         total,
       };
+    }
+
+    private extractKeyResult(row: Record<string, unknown>): Record<string, unknown> | undefined {
+      const responseSummary = row['responseSummary'] as Record<string, unknown> | undefined;
+      const requestSummary = row['requestSummary'] as Record<string, unknown> | undefined;
+      const keyResult: Record<string, unknown> = {};
+
+      if (_.isPlainObject(requestSummary) && requestSummary != null) {
+        const event = (requestSummary as Record<string, unknown>)['event'];
+        if (event === 'draft' || event === 'publish') {
+          keyResult['event'] = event;
+        }
+      }
+
+      if (_.isPlainObject(responseSummary) && responseSummary != null) {
+        const rs = responseSummary as Record<string, unknown>;
+        if (!_.isEmpty(rs['doi'])) {
+          keyResult['doi'] = rs['doi'];
+        }
+        if (!_.isEmpty(rs['data']) && _.isPlainObject(rs['data'])) {
+          const dataId = (rs['data'] as Record<string, unknown>)['id'];
+          if (!_.isEmpty(dataId) && /^10\.\d+\/\S+/i.test(String(dataId))) {
+            keyResult['doi'] = dataId;
+          }
+        }
+        if (!_.isEmpty(rs['articleId'])) {
+          keyResult['articleId'] = rs['articleId'];
+        }
+        const publishResult = rs['publishResult'] as Record<string, unknown> | undefined;
+        if (_.isPlainObject(publishResult) && !_.isEmpty(publishResult)) {
+          keyResult['figsharePublished'] = true;
+          const publishStatus = (publishResult as Record<string, unknown>)['status'];
+          if (typeof publishStatus === 'string' && !_.isEmpty(publishStatus)) {
+            keyResult['figsharePublishStatus'] = publishStatus;
+          }
+        }
+      }
+
+      if (!_.isEmpty(keyResult)) {
+        return keyResult;
+      }
+      return undefined;
+    }
+
+    public async getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]> {
+      const queryParams = new IntegrationAuditParams();
+      queryParams.oid = params.oid;
+      queryParams.dateFrom = params.dateFrom;
+      queryParams.dateTo = params.dateTo;
+      if (params.integrationName && !params.integrationName.includes(',')) {
+        queryParams.integrationName = params.integrationName;
+      }
+
+      const allRows = await this.getAllIntegrationAuditRows(queryParams);
+      if (allRows.length === 0) {
+        return [];
+      }
+
+      const rowsByTrace = new Map<string, Record<string, unknown>[]>();
+      allRows.forEach(row => {
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace`;
+        const existing = rowsByTrace.get(traceId) ?? [];
+        existing.push(row);
+        rowsByTrace.set(traceId, existing);
+      });
+
+      const traces = Array.from(rowsByTrace.entries()).map(([traceId, rows]) => {
+        const built = this.buildTraceRecord(traceId, rows);
+        const newestRow = [...rows].sort((left, right) => {
+          const tsDiff = this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left);
+          if (tsDiff !== 0) return tsDiff;
+          const statusDiff = this.getStatusRank(right['status']) - this.getStatusRank(left['status']);
+          if (statusDiff !== 0) return statusDiff;
+          return this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+            - this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
+        })[0] ?? {};
+        return {
+          traceId,
+          integrationName: built.integrationName ?? this.getString(newestRow['integrationName']) ?? '',
+          status: built.status,
+          integrationAction: this.getString(newestRow['integrationAction']),
+          startedAt: built.startedAt,
+          completedAt: built.completedAt,
+          durationMs: built.durationMs,
+          message: this.getString(newestRow['message']),
+          keyResult: this.extractKeyResult(newestRow),
+        };
+      });
+
+      let filteredTraces = traces;
+      if (!_.isEmpty(params.integrationName)) {
+        const rawFilter = String(params.integrationName).trim();
+        const names = rawFilter.split(',').map(n => n.trim().toLowerCase()).filter(Boolean);
+        if (names.length > 0) {
+          filteredTraces = traces.filter(trace => names.includes((trace.integrationName ?? '').toLowerCase()));
+        }
+      }
+
+      const grouped = new Map<string, IntegrationStatusSummary>();
+      filteredTraces.forEach(trace => {
+        const name = trace.integrationName;
+        const existing = grouped.get(name);
+        if (!existing || (this.getRowSortTimestamp({ startedAt: trace.startedAt } as Record<string, unknown>) > this.getRowSortTimestamp({ startedAt: existing.startedAt } as Record<string, unknown>))) {
+          grouped.set(name, trace);
+        }
+      });
+
+      return Array.from(grouped.values());
+    }
+
+    private makeOutcome(name: string, state: string, severity: IntegrationOutcomeSeverity, withHelp?: boolean): IntegrationOutcome {
+      return {
+        state,
+        severity,
+        labelKey: `@integration-status-outcome-${name}-${state}`,
+        helpKey: withHelp ? `@integration-status-outcome-${name}-${state}-help` : undefined,
+      };
+    }
+
+    private isPublishedStage(stage?: string): boolean {
+      const lower = (stage ?? '').toLowerCase();
+      return lower === 'published' || lower === 'embargoed';
+    }
+
+    private mapDoiOutcome(s: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
+      const status = s.status;
+      const kr = s.keyResult ?? {};
+      const event = kr['event'] as string | undefined;
+      const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
+
+      if (status === 'started') return this.makeOutcome('doi', 'in-progress', 'in-progress');
+      if (status === 'failed') return this.makeOutcome('doi', 'error', 'error', true);
+
+      if (status === 'success') {
+        if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
+        if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
+          return this.makeOutcome('doi', 'published', 'success');
+        }
+        if (doiKnown) {
+          return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        }
+        return this.makeOutcome('doi', 'none', 'none');
+      }
+
+      if (status === 'none') {
+        if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
+          return this.makeOutcome('doi', 'published', 'success');
+        }
+        if (doiKnown) {
+          return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        }
+        return this.makeOutcome('doi', 'none', 'none');
+      }
+
+      return undefined;
+    }
+
+    private mapFigshareOutcome(s: IntegrationStatusSummary, _ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
+      const status = s.status;
+      const kr = s.keyResult ?? {};
+
+      if (status === 'started') return this.makeOutcome('figshare', 'in-progress', 'in-progress');
+      if (status === 'failed') return this.makeOutcome('figshare', 'error', 'error', true);
+
+      if (status === 'success') {
+        if (kr['figsharePublished'] === true) {
+          return this.makeOutcome('figshare', 'published', 'success');
+        }
+        return this.makeOutcome('figshare', 'deposited', 'success');
+      }
+
+      if (status === 'none') return this.makeOutcome('figshare', 'none', 'none');
+
+      return undefined;
+    }
+
+    private readonly outcomeMappers: Record<string, IntegrationOutcomeMapper> = {
+      doi: (s, ctx) => this.mapDoiOutcome(s, ctx),
+      figshare: (s, ctx) => this.mapFigshareOutcome(s, ctx),
+    };
+
+    /**
+     * Registers an outcome mapper for a custom integration name so the
+     * integration-status component can render a badge/label for it. Hooks call
+     * this at lift time (e.g. on the 'ready' sails event). The integration name
+     * is matched case-insensitively; the last registration for a name wins.
+     */
+    public registerOutcomeMapper(integrationName: string, mapper: IntegrationOutcomeMapper): void {
+      const key = String(integrationName ?? '').trim().toLowerCase();
+      if (_.isEmpty(key) || typeof mapper !== 'function') {
+        sails.log.warn(`${this.logHeader} Ignoring invalid outcome mapper registration for '${integrationName}'.`);
+        return;
+      }
+      this.outcomeMappers[key] = mapper;
+      sails.log.verbose(`${this.logHeader} Registered outcome mapper for '${key}'.`);
+    }
+
+    public async getStatusSummaryWithOutcomes(params: IntegrationAuditParams, ctx: IntegrationStatusRecordContext): Promise<IntegrationStatusSummary[]> {
+      const summaries = await this.getStatusSummary(params);
+
+      const rawFilter = String(params.integrationName ?? '').trim();
+      const requestedNames = rawFilter ? rawFilter.split(',').map(n => n.trim().toLowerCase()).filter(Boolean) : [];
+
+      summaries.forEach(s => {
+        const mapper = this.outcomeMappers[s.integrationName.toLowerCase()];
+        if (mapper) {
+          s.outcome = mapper(s, ctx);
+        }
+        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/published states without a doi yet
+        if (s.integrationName.toLowerCase() === 'doi' && !s.keyResult?.['doi'] && ctx.citationDoi) {
+          const outcomeState = s.outcome?.state;
+          if (outcomeState === 'draft-assigned' || outcomeState === 'published') {
+            if (!s.keyResult) s.keyResult = {};
+            s.keyResult['doi'] = ctx.citationDoi;
+          }
+        }
+      });
+
+      // Synthesis: add rows for requested integration names with zero audit rows
+      if (requestedNames.length > 0) {
+        const existingNames = new Set(summaries.map(s => s.integrationName.toLowerCase()));
+        for (const name of requestedNames) {
+          if (!existingNames.has(name) && this.outcomeMappers[name]) {
+            const synthesized: IntegrationStatusSummary = {
+              integrationName: name,
+              status: 'none',
+              startedAt: '',
+              traceId: `synthetic:${name}`,
+              synthesized: true,
+            };
+            if (name === 'doi' && ctx.citationDoi) {
+              synthesized.keyResult = { doi: ctx.citationDoi };
+            }
+            synthesized.outcome = this.outcomeMappers[name](synthesized, ctx);
+            summaries.push(synthesized);
+          }
+        }
+      }
+
+      return summaries;
     }
 
     public storeIntegrationAudit(job: AnyRecord): void {

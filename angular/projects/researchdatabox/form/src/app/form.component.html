@@ -15,4 +15,11 @@
   }
 
   <redbox-confirmation-dialog></redbox-confirmation-dialog>
+
+  <record-audit-launcher
+    [oid]="trimmedParams.oid()"
+    [branding]="trimmedParams.branding()"
+    [portal]="trimmedParams.portal()"
+    [allowedRoles]="viewAuditRoles()"
+  />
 </div>

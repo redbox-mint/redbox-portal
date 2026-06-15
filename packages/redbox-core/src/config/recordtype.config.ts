@@ -592,7 +592,7 @@ export const recordtype: RecordTypeConfig = {
                         function: 'sails.services.emailservice.sendRecordNotification',
                         options: {
                             triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
-                            to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
+                            to: "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
                             subject: "A publication has been staged for publishing.",
                             template: "publicationStaged",
                             onNotifySuccess: [
@@ -625,7 +625,7 @@ export const recordtype: RecordTypeConfig = {
                         function: 'sails.services.emailservice.sendRecordNotification',
                         options: {
                             triggerCondition: "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
-                            to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>,librarian@redboxresearchdata.com.au,<%= _.isEmpty(record.metadata.creators) ? '' : _.join(_.map(record.metadata.creators, (creator)=>{ return creator.email; }), ',') %>",
+                            to: "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},librarian@redboxresearchdata.com.au,{{join (pluck record.metadata.creators \"email\") \",\"}}",
                             subject: "A publication has been successfully published",
                             template: "publicationPublished",
                             onNotifySuccess: [
@@ -709,7 +709,7 @@ export const recordtype: RecordTypeConfig = {
                         function: 'sails.services.emailservice.sendRecordNotification',
                         options: {
                             triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
-                            to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
+                            to: "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
                             subject: "A publication has been staged for review.",
                             template: "publicationStaged",
                             onNotifySuccess: [
@@ -745,7 +745,7 @@ export const recordtype: RecordTypeConfig = {
                         function: 'sails.services.emailservice.sendRecordNotification',
                         options: {
                             triggerCondition: "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
-                            to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>,librarian@redboxresearchdata.com.au,<%= _.isEmpty(record.metadata.creators) ? '' : _.join(_.map(record.metadata.creators, (creator)=>{ return creator.email; }), ',') %>",
+                            to: "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},librarian@redboxresearchdata.com.au,{{join (pluck record.metadata.creators \"email\") \",\"}}",
                             subject: "A publication has been successfully published",
                             template: "publicationPublished",
                             onNotifySuccess: [

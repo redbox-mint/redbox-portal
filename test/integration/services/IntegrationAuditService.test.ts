@@ -274,4 +274,365 @@ describe('The IntegrationAuditService', function () {
     expect(audits.rows[0]).to.have.property('integrationAction', 'publishDoi');
     expect(audits.rows[0].responseSummary.doi).to.equal('10.1234/5678');
   });
+
+  it('returns status summary grouped by integration name without sensitive fields', async function () {
+    const oid = `integration-audit-service-${Date.now()}-5`;
+    createdOids.push(oid);
+    const traceDoi1 = `trace-${Date.now()}-doi1`;
+    const traceDoi2 = `trace-${Date.now()}-doi2`;
+    const traceFigshare = `trace-${Date.now()}-fig`;
+
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'doi',
+      integrationAction: 'publishDoi',
+      triggeredBy: 'test',
+      status: 'success',
+      traceId: traceDoi1,
+      spanId: `span-${Date.now()}-doi1`,
+      startedAt: '2025-01-01T00:00:00.000Z',
+      completedAt: '2025-01-01T00:00:01.000Z',
+      durationMs: 1000,
+      responseSummary: { doi: '10.1234/5678' },
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'doi',
+      integrationAction: 'updateDoi',
+      triggeredBy: 'test',
+      status: 'started',
+      traceId: traceDoi2,
+      spanId: `span-${Date.now()}-doi2`,
+      startedAt: '2025-01-01T00:00:02.000Z',
+    });
+    await IntegrationAudit.create({
+      redboxOid: oid,
+      brandId: 'default',
+      integrationName: 'figshare',
+      integrationAction: 'syncRecordWithFigshare',
+      triggeredBy: 'test',
+      status: 'failed',
+      traceId: traceFigshare,
+      spanId: `span-${Date.now()}-fig`,
+      startedAt: '2025-01-01T00:00:03.000Z',
+      completedAt: '2025-01-01T00:00:04.000Z',
+      durationMs: 1000,
+      message: 'figshare sync failed',
+      errorDetail: 'connection refused',
+      httpStatusCode: 502,
+      requestSummary: { query: 'select *' },
+      responseSummary: { error: 'timeout' },
+    });
+
+    await waitForAuditCount(oid, 3);
+
+    const summary = await integrationAuditService.getStatusSummary({ oid });
+
+    expect(summary).to.have.length(2);
+
+    const doiStatus = summary.find(s => s.integrationName === 'doi');
+    expect(doiStatus).to.be.ok;
+    expect(doiStatus!.status).to.equal('started');
+    expect(doiStatus!.integrationAction).to.equal('updateDoi');
+    expect(doiStatus!.keyResult).to.be.undefined;
+
+    const figshareStatus = summary.find(s => s.integrationName === 'figshare');
+    expect(figshareStatus).to.be.ok;
+    expect(figshareStatus!.status).to.equal('failed');
+    expect(figshareStatus!.message).to.equal('figshare sync failed');
+    expect(figshareStatus!.keyResult).to.be.undefined;
+
+    // Verify no sensitive fields are present
+    expect(figshareStatus).to.not.have.property('errorDetail');
+    expect(figshareStatus).to.not.have.property('requestSummary');
+    expect(figshareStatus).to.not.have.property('responseSummary');
+    expect(figshareStatus).to.not.have.property('httpStatusCode');
+  });
+
+  describe('getStatusSummaryWithOutcomes', function () {
+    it('doi success with event publish returns published outcome', async function () {
+      const oid = `outcome-doi-${Date.now()}-pub`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-out-pub`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        requestSummary: { event: 'publish' },
+        responseSummary: { doi: '10.1234/published' },
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, { workflowStage: 'queued' }
+      );
+
+      expect(result).to.have.length(1);
+      const item = result[0];
+      expect(item.outcome).to.be.ok;
+      expect(item.outcome!.state).to.equal('published');
+      expect(item.outcome!.severity).to.equal('success');
+      expect(item.outcome!.labelKey).to.equal('@integration-status-outcome-doi-published');
+      expect(item.outcome!.helpKey).to.be.undefined;
+      expect(item.keyResult!['event']).to.equal('publish');
+    });
+
+    it('doi success with event draft returns draft-assigned outcome with help', async function () {
+      const oid = `outcome-doi-${Date.now()}-draft`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-out-draft`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        requestSummary: { event: 'draft' },
+        responseSummary: { doi: '10.1234/draft-doi' },
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, {}
+      );
+
+      expect(result).to.have.length(1);
+      const item = result[0];
+      expect(item.outcome!.state).to.equal('draft-assigned');
+      expect(item.outcome!.severity).to.equal('pending');
+      expect(item.outcome!.helpKey).to.equal('@integration-status-outcome-doi-draft-assigned-help');
+    });
+
+    it('doi success no event derives from record context', async function () {
+      const oid = `outcome-doi-${Date.now()}-noevent`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-out-noevent`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        responseSummary: { doi: '10.1234/stage-doi' },
+      });
+
+      await waitForAuditCount(oid, 1);
+
+      // Record context with published stage -> published
+      const resultPub = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, { citationDoi: '10.1234/stage-doi', workflowStage: 'published' }
+      );
+      expect(resultPub[0].outcome!.state).to.equal('published');
+      expect(resultPub[0].outcome!.severity).to.equal('success');
+
+      // Record context with draft stage -> draft-assigned
+      const resultDraft = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, { citationDoi: '10.1234/stage-doi', workflowStage: 'draft' }
+      );
+      expect(resultDraft[0].outcome!.state).to.equal('draft-assigned');
+      expect(resultDraft[0].outcome!.severity).to.equal('pending');
+    });
+
+    it('figshare success with publishResult returns published outcome', async function () {
+      const oid = `outcome-fig-${Date.now()}-pub`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-out-figpub`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        responseSummary: { articleId: '12345', publishResult: { id: 'abc', status: 'published' } },
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, {}
+      );
+
+      expect(result).to.have.length(1);
+      const item = result[0];
+      expect(item.outcome!.state).to.equal('published');
+      expect(item.outcome!.severity).to.equal('success');
+      expect(item.keyResult!['figsharePublished']).to.equal(true);
+      expect(item.keyResult!['figsharePublishStatus']).to.equal('published');
+    });
+
+    it('figshare success without publishResult returns deposited outcome', async function () {
+      const oid = `outcome-fig-${Date.now()}-dep`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-out-figdep`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'figshare',
+        integrationAction: 'publishAfterUploadFilesJob', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        responseSummary: { articleId: '67890' },
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, {}
+      );
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('deposited');
+      expect(result[0].outcome!.severity).to.equal('success');
+    });
+
+    it('synthesizes rows for requested integrations with zero audit rows', async function () {
+      const oid = `outcome-synth-${Date.now()}`;
+      createdOids.push(oid);
+
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid, integrationName: 'doi,figshare' },
+        { citationDoi: '10.1234/legacy', workflowStage: 'queued' }
+      );
+
+      expect(result).to.have.length(2);
+
+      const doiRow = result.find(r => r.integrationName === 'doi');
+      expect(doiRow).to.be.ok;
+      expect(doiRow!.synthesized).to.equal(true);
+      expect(doiRow!.traceId).to.equal('synthetic:doi');
+      expect(doiRow!.status).to.equal('none');
+      expect(doiRow!.keyResult!['doi']).to.equal('10.1234/legacy');
+      expect(doiRow!.outcome!.state).to.equal('draft-assigned');
+
+      const figRow = result.find(r => r.integrationName === 'figshare');
+      expect(figRow).to.be.ok;
+      expect(figRow!.synthesized).to.equal(true);
+      expect(figRow!.traceId).to.equal('synthetic:figshare');
+      expect(figRow!.status).to.equal('none');
+      expect(figRow!.outcome!.state).to.equal('none');
+    });
+
+    it('doi started returns in-progress outcome', async function () {
+      const oid = `outcome-doi-${Date.now()}-started`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-doistart`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'started',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes({ oid }, {});
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('in-progress');
+      expect(result[0].outcome!.severity).to.equal('in-progress');
+    });
+
+    it('doi failed returns error outcome with help', async function () {
+      const oid = `outcome-doi-${Date.now()}-failed`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-doifail`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'failed',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        message: 'something went wrong',
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes({ oid }, {});
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('error');
+      expect(result[0].outcome!.severity).to.equal('error');
+      expect(result[0].outcome!.helpKey).to.equal('@integration-status-outcome-doi-error-help');
+    });
+
+    it('figshare started returns in-progress outcome', async function () {
+      const oid = `outcome-fig-${Date.now()}-started`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-figstart`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'started',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes({ oid }, {});
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('in-progress');
+      expect(result[0].outcome!.severity).to.equal('in-progress');
+    });
+
+    it('figshare failed returns error outcome with help', async function () {
+      const oid = `outcome-fig-${Date.now()}-failed`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-figfail`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'failed',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        message: 'deposit rejected',
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes({ oid }, {});
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('error');
+      expect(result[0].outcome!.severity).to.equal('error');
+      expect(result[0].outcome!.helpKey).to.equal('@integration-status-outcome-figshare-error-help');
+    });
+
+    it('sanitization preserved: no sensitive fields in outcomes path', async function () {
+      const oid = `outcome-safe-${Date.now()}`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-safe`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+        completedAt: '2025-01-01T00:00:01.000Z', durationMs: 1000,
+        requestSummary: { event: 'publish', requestBody: 'secret', profile: 'admin' },
+        responseSummary: { doi: '10.1234/safe' },
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes(
+        { oid }, {}
+      );
+
+      expect(result).to.have.length(1);
+      const item = result[0];
+      expect(item).to.not.have.property('errorDetail');
+      expect(item).to.not.have.property('requestSummary');
+      expect(item).to.not.have.property('responseSummary');
+      expect(item).to.not.have.property('httpStatusCode');
+      // Allowed keys only
+      const krKeys = Object.keys(item.keyResult ?? {});
+      expect(krKeys.every(k => ['doi', 'articleId', 'event', 'figsharePublished', 'figsharePublishStatus'].includes(k))).to.equal(true);
+    });
+  });
 });
