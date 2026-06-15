@@ -71,7 +71,7 @@ export namespace Services {
     private getCompiledTemplate(source: string): HandlebarsTemplateDelegate {
       this.ensureHelpersRegistered();
       if (!this.compiledTemplates.has(source)) {
-        this.compiledTemplates.set(source, Handlebars.compile(source));
+        this.compiledTemplates.set(source, Handlebars.compile(source, { strict: true }));
       }
       return this.compiledTemplates.get(source)!;
     }
