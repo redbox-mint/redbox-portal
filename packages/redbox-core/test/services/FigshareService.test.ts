@@ -205,6 +205,9 @@ describe('FigshareService', function () {
       completeAudit: sinon.stub(),
       failAudit: sinon.stub(),
     };
+    (global as any).TranslationService = {
+      t: sinon.stub().returnsArg(0)
+    };
     (global as any).NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
       performNamedQueryFromConfigResults: sinon.stub().resolves([])
@@ -227,6 +230,7 @@ describe('FigshareService', function () {
     delete (global as any).UsersService;
     delete (global as any).AgendaQueueService;
     delete (global as any).IntegrationAuditService;
+    delete (global as any).TranslationService;
     delete (global as any).NamedQueryService;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
@@ -279,10 +283,14 @@ describe('FigshareService', function () {
       await service.syncRecordWithFigshare(record, 'job-1');
       expect.fail('Expected syncRecordWithFigshare to throw');
     } catch (error) {
-      expect((error as Error).message).to.equal('sync exploded');
+      // Wrapped Doi-style: translated RBValidationError with the original error as cause.
+      expect((error as Error).message).to.equal('Figshare API error Error syncing record with Figshare');
+      expect(((error as Error).cause as Error)?.message).to.equal('sync exploded');
+      expect((error as { displayErrors?: Array<{ code?: string }> }).displayErrors?.[0]?.code).to.equal('server-error');
     }
     expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('sync exploded');
   });
 
   it('audits publishAfterUploadFilesJob success and failure paths', async function () {
@@ -315,9 +323,45 @@ describe('FigshareService', function () {
       } as any);
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
-      expect((error as Error).message).to.equal('publish failed');
+      // Wrapped Doi-style: translated RBValidationError with the original error as cause.
+      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
+      expect(((error as Error).cause as Error)?.message).to.equal('publish failed');
     }
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
+  });
+
+  it('includes non-object HTTP response bodies in error summaries', function () {
+    const error = Object.assign(new Error('Figshare HTTP request failed'), {
+      statusCode: 401,
+      responseBody: 'Unauthorized'
+    });
+
+    const summary = (service as any).summarizeError(error);
+
+    expect(summary.statusCode).to.equal(401);
+    expect(summary.responseSummary.rawResponseBody).to.equal('Unauthorized');
+    expect(summary.responseSummary.message).to.equal('Figshare HTTP request failed');
+
+    const objectBodySummary = (service as any).summarizeError(Object.assign(new Error('boom'), {
+      statusCode: 422,
+      responseBody: { message: 'Invalid embargo' }
+    }));
+    expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
+  });
+
+  it('does not throw from getConfig when the record brand cannot be resolved', function () {
+    (global as any).BrandingService.getBrand = sinon.stub().returns(undefined);
+    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
+
+    const resolved = service.getConfig({
+      metaMetadata: { brandId: 'ghost-brand' }
+    } as any);
+
+    // Unknown brands keep the graceful fallback contract: config still resolves via the
+    // branding configuration defaults path instead of throwing before the enabled check.
+    expect(resolved).to.not.equal(null);
+    expect(appConfigByBrandStub.calledWith('ghost-brand')).to.be.true;
+    expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.be.true;
   });
 
   it('resolves live mode when figshareDev is disabled', function () {

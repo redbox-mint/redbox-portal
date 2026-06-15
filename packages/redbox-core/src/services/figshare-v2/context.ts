@@ -9,6 +9,7 @@ export function createRunContext(record: RecordModel, config: FigsharePublishing
   const correlationId = jobId || `${recordOid || 'record'}-${Date.now()}`;
   return {
     recordOid: String(recordOid),
+    brandId: String(rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding ?? 'default'),
     brandName: getBrandName(record),
     articleId: articleId == null || articleId === '' ? undefined : String(articleId),
     jobId,

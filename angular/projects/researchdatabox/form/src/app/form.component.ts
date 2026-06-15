@@ -1143,7 +1143,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsModified = this.form?.dirty || forceSave;
-    if (this.form?.pending && !forceSave) {
+    if (this.form?.pending) {
       const validationSettled = await this.waitForPendingValidation();
       if (this.isDestroyed) {
         return;
@@ -1156,7 +1156,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     }
     // At this point, only the validators that we want to run will be set on the angular components.
-    const formIsValid = this.form?.valid || forceSave;
+    const formIsValid = this.form?.valid;
     const formIsSaving = _isNull(this.saveResponse());
 
     if (this.form && formIsModified) {

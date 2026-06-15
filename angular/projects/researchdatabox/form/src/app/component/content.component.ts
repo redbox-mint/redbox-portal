@@ -39,7 +39,7 @@ import {FormService} from "../form.service";
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <span [innerHtml]="content"></span>
+      <span class="rb-form-content" [class.rb-form-rich-text-content]="isRichTextContent" [innerHtml]="content"></span>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -48,6 +48,7 @@ import {FormService} from "../form.service";
 export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
   public content:string = '';
+  public isRichTextContent = false;
   private formValueChangesSub?: Subscription;
   private formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -69,6 +70,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
     const template = config?.template ?? '';
     const content = config?.content ?? '';
+    this.isRichTextContent = !!config?.outputFormat;
     const contentIsTranslationCode = (config as { contentIsTranslationCode?: boolean } | undefined)?.contentIsTranslationCode === true;
     const translationContentFormat = (config as { translationContentFormat?: 'plain' | 'html' } | undefined)?.translationContentFormat === 'html'
       ? 'html'
@@ -91,6 +93,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
             portal: runtimeContext.portal,
             oid: runtimeContext.oid,
             workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
+            outputFormat: config?.outputFormat,
           };
           const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";

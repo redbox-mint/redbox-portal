@@ -11,6 +11,7 @@ import {
 import type { ILogger } from '../../src/Logger';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { VocabInlineFormConfigVisitor } from '../../src/visitor/vocab-inline.visitor';
+import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
 
 describe('VocabInlineFormConfigVisitor', () => {
     const logger: ILogger = {
@@ -68,6 +69,67 @@ describe('VocabInlineFormConfigVisitor', () => {
         const options = dropdown?.component?.config?.options as Array<{ label: string; value: string }>;
         expect(options).to.have.length(2);
         expect(options[0]?.label).to.equal('Open');
+    });
+
+    it('resolves inline vocab labels before view-mode option fields are transformed to content', async () => {
+        const input: FormConfigFrame = {
+            name: 'test',
+            componentDefinitions: [
+                {
+                    name: 'access_type',
+                    component: {
+                        class: 'DropdownInputComponent',
+                        config: {
+                            options: [],
+                            vocabRef: 'access-rights',
+                            inlineVocab: true,
+                        },
+                    },
+                    model: { class: 'DropdownInputModel', config: {} },
+                },
+                {
+                    name: 'themes',
+                    component: {
+                        class: 'CheckboxInputComponent',
+                        config: {
+                            options: [],
+                            vocabRef: 'access-rights',
+                            inlineVocab: true,
+                        },
+                    },
+                    model: { class: 'CheckboxInputModel', config: {} },
+                },
+            ],
+        };
+
+        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructed = await constructor.start({
+            data: input,
+            formMode: 'view',
+            record: {
+                access_type: 'open',
+                themes: ['open', 'closed'],
+            },
+        });
+
+        expect(constructed.componentDefinitions[0]?.component?.class).to.equal('DropdownInputComponent');
+        expect(constructed.componentDefinitions[1]?.component?.class).to.equal('CheckboxInputComponent');
+
+        const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
+        await vocabVisitor.resolveVocabs(constructed);
+
+        const clientVisitor = new ClientFormConfigVisitor(logger);
+        const clientForm = await clientVisitor.start({ form: constructed, formMode: 'view' });
+
+        const dropdown = clientForm.componentDefinitions[0] as any;
+        const checkbox = clientForm.componentDefinitions[1] as any;
+        expect(dropdown.component.class).to.equal('ContentComponent');
+        expect(dropdown.component.config?.content).to.deep.equal({ value: 'open', label: 'Open' });
+        expect(checkbox.component.class).to.equal('ContentComponent');
+        expect(checkbox.component.config?.content).to.deep.equal([
+            { value: 'open', label: 'Open', disabled: undefined },
+            { value: 'closed', label: 'Closed', disabled: undefined },
+        ]);
     });
 
     it('does not inline when inlineVocab is false', async () => {

@@ -2,3 +2,24 @@
 
 /* Include menu editor styles - using @use for modern Sass */
 @use 'app/fieldTypes/menu-editor/menu-editor.type';
+
+.app-config-checkbox {
+  margin-bottom: 15px;
+}
+
+.app-config-checkbox-label {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.app-config-checkbox-label input[type='checkbox'] {
+  margin: 0;
+  position: static;
+}
+
+.app-config-checkbox-required {
+  margin-left: -4px;
+}

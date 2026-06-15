@@ -7,7 +7,7 @@ import TableRow from "@tiptap/extension-table-row";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
 import { Subscription } from "rxjs";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
 import {
   escapeHtmlText,
   RichTextEditorComponentName,
@@ -19,6 +19,25 @@ import {
 export class RichTextEditorModel extends FormFieldModel<string> {
   protected override logName = RichTextEditorModelName;
 }
+
+type RichTextEditorChain = {
+  toggleBold: () => RichTextEditorChain;
+  toggleItalic: () => RichTextEditorChain;
+  toggleHeading: (attrs: { level: number }) => RichTextEditorChain;
+  toggleBulletList: () => RichTextEditorChain;
+  toggleOrderedList: () => RichTextEditorChain;
+  toggleBlockquote: () => RichTextEditorChain;
+  insertTable: (attrs: { rows: number; cols: number; withHeaderRow: boolean }) => RichTextEditorChain;
+  undo: () => RichTextEditorChain;
+  redo: () => RichTextEditorChain;
+  addRowAfter: () => RichTextEditorChain;
+  addColumnAfter: () => RichTextEditorChain;
+  deleteRow: () => RichTextEditorChain;
+  deleteColumn: () => RichTextEditorChain;
+  unsetLink: () => RichTextEditorChain;
+  toggleLink: (attrs: { href: string }) => RichTextEditorChain;
+  run: () => boolean;
+};
 
 @Component({
   selector: "redbox-rich-text-editor",
@@ -195,11 +214,18 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     });
   }
 
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    super.setDisabled(disabled, opts);
+    if (this.editor) {
+      this.editor.setEditable(!this.isReadonly && !this.isDisabled);
+    }
+  }
+
   public onToolbarAction(action: string): void {
     if (!this.editor || this.isDisabled) {
       return;
     }
-    const chain = this.editor.chain().focus();
+    const chain = this.editor.chain().focus() as RichTextEditorChain;
     switch (action) {
       case "bold":
         chain.toggleBold().run();
