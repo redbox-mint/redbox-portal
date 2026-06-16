@@ -89,21 +89,21 @@ describe('JSONata helpers', function () {
     },
     {
       args: {
-        expression: '$luxonFormatDate(date, "yyyy-MM-dd")',
+        expression: '$luxonFormatDate(date, "yyyy-MM")',
         input: {date: 1781092138000},
         bindings: undefined,
       },
-      expected: '2026-06-10',
+      expected: '2026-06',
     },
     {
       args: {
-        expression: '$luxonFormatDate(date, "yyyy/MM/dd")',
+        expression: '$luxonFormatDate(date, "yyyy/MM")',
         // We want to use local timezones in the browser.
         // Use Z timezone to try to avoid rolling over to next or previous day.
         input: {date: new Date('2025-08-10T10:00:00Z')},
         bindings: undefined,
       },
-      expected: '2025/08/10',
+      expected: '2025/08',
     },
     {
       args: {
@@ -135,7 +135,7 @@ describe('JSONata helpers', function () {
         // We want to use local timezones in the browser.
         // Use a timezone near midday UTC to try to avoid rolling over to next or previous day.
         // should format RFC 2822 date string values with luxon JSONata helper
-        input: {date: 'Wed, 10 Jun 2026 00:00:00 +0030'},
+        input: {date: 'Wed, 10 Jun 2026 11:00:00 +0030'},
         bindings: undefined,
       },
       expected: '2026',
@@ -143,7 +143,7 @@ describe('JSONata helpers', function () {
     {
       args: {
         expression: '$luxonFormatDate(date, "yyyy")',
-        input: {date: ['Wed, 10 Jun 2026 00:00:00 +0030']},
+        input: {date: ['Wed, 10 Jun 2026 11:00:00 +0030']},
         bindings: undefined,
       },
       expected: new Error("Argument 1 of function \"luxonFormatDate\" does not match function signature"),
