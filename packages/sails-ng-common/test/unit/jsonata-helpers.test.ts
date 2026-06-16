@@ -57,10 +57,67 @@ describe('JSONata helpers', function () {
     {
       args: {
         expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: null},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: undefined},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, format)',
+        input: {date: undefined, format: undefined},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      // unparsable date
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: 'abc'},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy-MM-dd")',
+        input: {date: 1781581963000},
+        bindings: undefined,
+      },
+      expected: '2026-06-16',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy/MM/dd")',
+        input: {date: new Date('2025-08-10T10:00:00Z')},
+        bindings: undefined,
+      },
+      expected: '2025/08/10',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
         input: {date: '2026/06/10'},
         bindings: undefined,
       },
       expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy/MM/dd", "MM/dd/yyyy")',
+        input: {date: '06/10/2026'},
+        bindings: undefined,
+      },
+      expected: '2026/06/10',
     },
     {
       args: {
@@ -78,6 +135,14 @@ describe('JSONata helpers', function () {
         bindings: undefined,
       },
       expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: ['Wed, 10 Jun 2026 00:00:00 +0930']},
+        bindings: undefined,
+      },
+      expected: new Error("Argument 1 of function \"luxonFormatDate\" does not match function signature"),
     },
     {
       args: {
