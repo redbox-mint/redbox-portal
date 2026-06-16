@@ -482,16 +482,24 @@ export namespace Services {
       }
     }
 
-    public createUpdateFigshareArticle(oid: string, record: RecordModel, _options: Record<string, unknown>, _user: Record<string, unknown>) {
+    public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
+      if (this.metTriggerCondition(oid, record, options, user) !== 'true') {
+        sails.log.debug(`FigService - createUpdateFigshareArticle trigger condition not met for ${oid}`);
+        return record;
+      }
       if (this.getConfig(record) == null) {
         return record;
       }
       return this.syncRecordWithFigshare(record, `${oid}:pre`, 'pre-save');
     }
 
-    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, _options: Record<string, unknown>, user: UserModel) {
+    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+      if (this.metTriggerCondition(oid, record, options, user) !== 'true') {
+        sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
+        return record;
+      }
       if (this.getConfig(record) == null) {
-        return;
+        return record;
       }
       void this.syncRecordWithFigshare(record, `${oid}:post`, 'post-save')
         .then(async (updatedRecord: RecordModel) => {
