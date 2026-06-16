@@ -1805,7 +1805,15 @@ export namespace Services {
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent)));
+      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent)))
+        .then((result) => {
+          const context = _.isPlainObject(additionalContext) ? additionalContext as Record<string, unknown> : {};
+          void SecurityEventService.emitFromUserAudit(userObj, action, context).catch((error) => {
+            sails.log.error('Failed to emit user audit security event');
+            sails.log.error(error);
+          });
+          return result;
+        });
     }
 
     stringifyObject(object: unknown): unknown {

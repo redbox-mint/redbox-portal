@@ -133,6 +133,37 @@ export const agendaQueue: AgendaQueueConfig = {
             }
         },
         {
+            name: 'SecurityEventService-StoreSecurityEvent',
+            fnName: 'securityeventservice.storeSecurityEvent',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'SiemForwardingService-ForwardSecurityEvents',
+            fnName: 'siemforwardingservice.forwardSecurityEvents',
+            options: {
+                lockLifetime: 120 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        {
+            name: 'SiemForwardingService-RetryFailedDeliveries',
+            fnName: 'siemforwardingservice.retryFailedDeliveries',
+            options: {
+                lockLifetime: 120 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '1 minute'
+            }
+        },
+        {
             name: 'RaidMintRetryJob',
             fnName: 'raidservice.mintRetryJob',
 

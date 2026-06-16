@@ -19,6 +19,7 @@ import { translationApiRoutes } from './groups/translation';
 import { userApiRoutes } from './groups/users';
 import { vocabularyApiRoutes } from './groups/vocabulary';
 import { namedQueryApiRoutes } from './groups/named-query';
+import { siemApiRoutes } from './groups/siem';
 
 const apiDocumentInfo = {
   title: 'ReDBox Portal API',
@@ -44,6 +45,7 @@ const coreApiRouteGroups = [
   exportApiRoutes,
   notificationApiRoutes,
   namedQueryApiRoutes,
+  siemApiRoutes,
 ] as const;
 
 export function registerCoreApiRoutes(): ApiRouteDefinition[] {

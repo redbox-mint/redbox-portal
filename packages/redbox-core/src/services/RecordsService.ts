@@ -1661,7 +1661,24 @@ export namespace Services {
 
     async createRecordAudit(record: AnyRecord): Promise<unknown> {
       const storageServiceAny = this.storageService as unknown as AnyRecord;
-      return await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
+      const response = await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
+      const responseObj = response as { isSuccessful?: () => boolean; message?: unknown; details?: unknown } | null | undefined;
+      const persisted = responseObj?.isSuccessful == null || typeof responseObj.isSuccessful !== 'function' || responseObj.isSuccessful();
+      if (!persisted) {
+        sails.log.error(`${this.logHeader} Failed to persist record audit.`);
+        if (!_.isEmpty(responseObj?.message)) {
+          sails.log.error(`${this.logHeader} Storage response message: ${responseObj?.message}`);
+        }
+        if (!_.isNil(responseObj?.details)) {
+          sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(responseObj?.details)}`);
+        }
+        return response;
+      }
+      void SecurityEventService.emitFromRecordAudit(record).catch((error) => {
+        sails.log.error('Failed to emit record audit security event');
+        sails.log.error(error);
+      });
+      return response;
     }
 
     public async transitionWorkflowStep(

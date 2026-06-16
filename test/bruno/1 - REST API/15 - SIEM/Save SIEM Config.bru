@@ -1,0 +1,83 @@
+meta {
+  name: Save SIEM Config
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{host}}/default/rdmp/api/siem/config
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "enabled": true,
+    "destinations": [
+      {
+        "id": "bruno-splunk",
+        "name": "Bruno Splunk",
+        "enabled": false,
+        "adapterType": "splunk-hec-json",
+        "endpointUrl": "https://siem.example.invalid/services/collector",
+        "token": "bruno-secret-token",
+        "headers": {
+          "X-Splunk-Token": "bruno-header-token",
+          "X-Test": "visible"
+        }
+      }
+    ],
+    "events": {
+      "categories": {
+        "authentication": true,
+        "authorization": true,
+        "userManagement": true,
+        "recordLifecycle": true,
+        "integrationAudit": true,
+        "attachmentAccess": true
+      },
+      "severity": {
+        "authentication.login.failure": "warning",
+        "authorization.failure": "warning",
+        "integration.failure": "error"
+      }
+    },
+    "redaction": {
+      "denylistedPaths": ["password", "token", "authorization", "headers.Authorization"],
+      "maxPayloadBytes": 65536,
+      "includeActorEmail": false,
+      "includeIpAddress": false,
+      "includeUserAgent": false
+    },
+    "delivery": {
+      "batchSize": 50,
+      "maxAttempts": 3,
+      "retryDelayMs": 60000,
+      "retryBackoffMultiplier": 2,
+      "deadLetterRetentionDays": 30,
+      "nonBlocking": true
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Masks SIEM secrets in saved response", function () {
+    var jsonData = res.getBody();
+    var payload = jsonData.data || jsonData;
+    expect(payload.enabled).to.equal(true);
+    expect(payload.destinations[0].id).to.equal("bruno-splunk");
+    expect(payload.destinations[0].token).to.equal("__REDACTED__");
+    expect(payload.destinations[0].headers["X-Splunk-Token"]).to.equal("__REDACTED__");
+    expect(payload.destinations[0].headers["X-Test"]).to.equal("visible");
+  });
+}

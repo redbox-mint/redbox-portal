@@ -94,6 +94,11 @@ export const routes: RoutesConfig = {
         action: 'render',
         locals: { 'view': 'admin/translation' }
     },
+    '/:branding/:portal/admin/siem': {
+        controller: 'RenderViewController',
+        action: 'render',
+        locals: { 'view': 'admin/siem', pageTitleKey: 'menu-siemconfiguration' }
+    },
     '/:branding/:portal/admin/harvest-runs': {
         controller: 'AdminController',
         action: 'harvestRunsIndex'

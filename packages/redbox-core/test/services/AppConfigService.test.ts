@@ -142,6 +142,141 @@ describe('AppConfigService', function () {
       expect(result.connection.token).to.equal(APP_CONFIG_SECRET_MASK);
     });
 
+    it('should mask and preserve SIEM destination array secrets', async function () {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SiemConfiguration',
+        class: class SiemConfigurationMock { },
+        secretFields: [
+          'destinations[].token',
+          'destinations[].password',
+          'destinations[].headers.Authorization',
+          'destinations[].headers.X-Splunk-Token'
+        ]
+      });
+
+      const existingRecord = {
+        configData: {
+          enabled: true,
+          destinations: [
+            {
+              id: 'splunk',
+              name: 'Splunk',
+              enabled: true,
+              adapterType: 'splunk-hec-json',
+              endpointUrl: 'https://splunk.example/services/collector',
+              token: 'stored-token',
+              password: 'stored-password',
+              headers: {
+                Authorization: 'Bearer stored-auth',
+                'X-Splunk-Token': 'stored-splunk-token',
+                Safe: 'visible'
+              }
+            }
+          ]
+        }
+      };
+      const updateSet = sinon.stub().callsFake((data: Record<string, unknown>) => {
+        const updatedRecord = { configData: data.configData };
+        const p: any = Promise.resolve(updatedRecord);
+        p.exec = sinon.stub().yields(null, updatedRecord);
+        return p;
+      });
+
+      (global as any).AppConfig.find = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve([existingRecord]);
+        p.exec = sinon.stub().yields(null, [existingRecord]);
+        return p;
+      });
+      (global as any).AppConfig.findOne = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve(existingRecord);
+        p.exec = sinon.stub().yields(null, existingRecord);
+        return p;
+      });
+      (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
+
+      const maskedRead: any = await service.getAppConfigByBrandAndKey('brand1', 'siem');
+      expect(maskedRead.destinations[0].token).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(maskedRead.destinations[0].password).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(maskedRead.destinations[0].headers.Authorization).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(maskedRead.destinations[0].headers['X-Splunk-Token']).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(maskedRead.destinations[0].headers.Safe).to.equal('visible');
+
+      const result: any = await service.createOrUpdateConfig(
+        { id: 'brand1', name: 'default' } as any,
+        'siem',
+        {
+          enabled: true,
+          destinations: [
+            {
+              id: 'splunk',
+              name: 'Splunk',
+              enabled: true,
+              adapterType: 'splunk-hec-json',
+              endpointUrl: 'https://splunk.example/services/collector',
+              token: APP_CONFIG_SECRET_MASK,
+              password: APP_CONFIG_SECRET_MASK,
+              headers: {
+                Authorization: APP_CONFIG_SECRET_MASK,
+                'X-Splunk-Token': APP_CONFIG_SECRET_MASK,
+                Safe: 'updated'
+              }
+            }
+          ]
+        }
+      );
+
+      expect(updateSet.firstCall.args[0].configData.destinations[0].token).to.equal('stored-token');
+      expect(updateSet.firstCall.args[0].configData.destinations[0].password).to.equal('stored-password');
+      expect(updateSet.firstCall.args[0].configData.destinations[0].headers.Authorization).to.equal('Bearer stored-auth');
+      expect(updateSet.firstCall.args[0].configData.destinations[0].headers['X-Splunk-Token']).to.equal('stored-splunk-token');
+      expect(updateSet.firstCall.args[0].configData.destinations[0].headers.Safe).to.equal('updated');
+      expect(result.destinations[0].token).to.equal(APP_CONFIG_SECRET_MASK);
+    });
+
+    it('should preserve SIEM destination secrets by id when destinations are reordered', async function () {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SiemConfiguration',
+        class: class SiemConfigurationMock { },
+        secretFields: ['destinations[].token']
+      });
+
+      const existingRecord = {
+        configData: {
+          destinations: [
+            { id: 'splunk', token: 'splunk-token' },
+            { id: 'otel', token: 'otel-token' }
+          ]
+        }
+      };
+      const updateSet = sinon.stub().callsFake((data: Record<string, unknown>) => {
+        const updatedRecord = { configData: data.configData };
+        const p: any = Promise.resolve(updatedRecord);
+        p.exec = sinon.stub().yields(null, updatedRecord);
+        return p;
+      });
+
+      (global as any).AppConfig.find = sinon.stub().callsFake(() => {
+        const p: any = Promise.resolve([existingRecord]);
+        p.exec = sinon.stub().yields(null, [existingRecord]);
+        return p;
+      });
+      (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
+
+      await service.createOrUpdateConfig(
+        { id: 'brand1', name: 'default' } as any,
+        'siem',
+        {
+          destinations: [
+            { id: 'otel', token: APP_CONFIG_SECRET_MASK },
+            { id: 'splunk', token: APP_CONFIG_SECRET_MASK }
+          ]
+        }
+      );
+
+      expect(updateSet.firstCall.args[0].configData.destinations[0].token).to.equal('otel-token');
+      expect(updateSet.firstCall.args[0].configData.destinations[1].token).to.equal('splunk-token');
+    });
+
     it('should prefer the most recently updated duplicate config record when loading app config', async function () {
       (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
       (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
