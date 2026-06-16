@@ -52,7 +52,7 @@
     "css-minimizer-webpack-plugin": "8.0.0",
     "csv-stringify": "6.7.0",
     "dompurify": "3.4.8",
-    "effect": "3.21.2",
+    "effect": "3.21.3",
     "ejs": "6.0.1",
     "express": "5.2.1",
     "express-session": "1.19.0",
