@@ -66,7 +66,6 @@ import {
   FormPrehydratePayload,
   getObjectWithJsonPointer,
   jsonataEvaluateFunc,
-  jsonataLibrary,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
@@ -78,13 +77,13 @@ import {
   LineagePathsOptional,
   isPrefixLineagePaths,
   isMatchingLineagePaths,
+  jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
 import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from './service/vocab-tree.service';
-import jsonata from 'jsonata';
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
 // `formValidatorDefinitions` is the historical synchronous accessor and is preserved
@@ -1250,7 +1249,7 @@ export class FormService extends HttpClientService {
           try {
             const compiledItems = await this.formCompiledItems;
             for (const key of keys) {
-              const result = await compiledItems.evaluate(key, value, { jsonata, libraries: jsonataLibrary });
+              const result = await compiledItems.evaluate(key, value, { libraries: { jsonata: jsonataDecodeCompile} });
               if (result !== undefined) {
                 return result;
               }

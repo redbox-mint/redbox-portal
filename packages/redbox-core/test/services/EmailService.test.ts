@@ -123,6 +123,24 @@ describe('EmailService', function() {
       expect(result.body).to.equal('a@x,b@x');
     });
 
+    it('should fail when required template data is missing', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'required.hbs'), '<p>Hello {{name}}</p>');
+
+      const result = await EmailService.buildFromTemplateAsync('required', {});
+
+      expect(result.status).to.equal(500);
+      expect(result.body).to.equal('Templating error.');
+    });
+
+    it('should allow missing data in guarded optional blocks', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'optional.hbs'), '{{#if nickname}}<p>{{nickname}}</p>{{/if}}');
+
+      const result = await EmailService.buildFromTemplateAsync('optional', {});
+
+      expect(result.status).to.equal(200);
+      expect(result.body).to.equal('');
+    });
+
     it('should handle read error for a missing template', async function() {
       const result = await EmailService.buildFromTemplateAsync('does-not-exist', {});
 

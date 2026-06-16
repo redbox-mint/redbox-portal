@@ -1,18 +1,18 @@
-import { FormOverride } from '../../src/config/form-override.model';
-import { ContentComponentName } from '../../src/config/component/content.outline';
 import {
+  FormOverride,
+  ContentComponentName,
   RepeatableComponentName,
   RepeatableFieldComponentDefinitionFrame,
-} from '../../src/config/component/repeatable.outline';
-import { ReusableComponentName } from '../../src/config/component/reusable.outline';
-import { SimpleInputComponentName } from '../../src/config/component/simple-input.outline';
-import { GroupFieldComponentName } from '../../src/config/component/group.outline';
-import { DropdownInputComponentName } from '../../src/config/component/dropdown-input.outline';
-import { CheckboxInputComponentName } from '../../src/config/component/checkbox-input.outline';
-import { TypeaheadInputComponentName } from '../../src/config/component/typeahead-input.outline';
-import { FileUploadComponentName } from '../../src/config/component/file-upload.outline';
-import { isTypeFieldDefinitionName } from '../../src/config/form-types.outline';
-import { ILogger } from '../../src/logger.interface';
+ ReusableComponentName,
+ SimpleInputComponentName,
+ GroupFieldComponentName,
+ DropdownInputComponentName,
+ CheckboxInputComponentName,
+ TypeaheadInputComponentName,
+ FileUploadComponentName,
+ isTypeFieldDefinitionName,
+ ILogger,
+} from '../../src';
 
 let expect: Chai.ExpectStatic;
 
