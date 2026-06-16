@@ -213,7 +213,7 @@ export namespace Services.Core {
      * @param  user The user that triggered the hook, optional.
      * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid: string, record: Record<string, unknown>, options: Record<string, unknown>, user?: Record<string, unknown> | null): string {
+    protected metTriggerCondition(oid: string | null, record: Record<string, unknown>, options: Record<string, unknown>, user?: unknown): string {
       const triggerCondition = _.get(options, "triggerCondition", "") as string;
       const forceRun = _.get(options, "forceRun", false) as boolean;
       const variables = {
