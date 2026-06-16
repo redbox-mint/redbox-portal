@@ -1,15 +1,15 @@
 import { z } from '../zod-openapi';
-import type { ZodRawShape, ZodTypeAny } from 'zod';
+import type { ZodRawShape, ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
 
 export * from './responses';
 
-function withOpenApi<T extends ZodTypeAny>(schema: T, metadata: Record<string, unknown>): T {
+function withOpenApi<T extends ZodType>(schema: T, metadata: Record<string, unknown>): T {
   return (schema as unknown as { openapi: (metadata: Record<string, unknown>) => T }).openapi(metadata);
 }
 
-function withDescription<T extends ZodTypeAny>(schema: T, description?: string): T {
+function withDescription<T extends ZodType>(schema: T, description?: string): T {
   if (!description) {
     return schema;
   }
@@ -35,7 +35,7 @@ export function objectField(
   const shape = Object.entries(properties).reduce((acc, [key, schema]) => {
     acc[key] = requiredSet.has(key) ? schema : schema.optional();
     return acc;
-  }, {} as ZodRawShape);
+  }, {} as Record<string, ApiSchemaField>) as ZodRawShape;
 
   const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape);
   return description
