@@ -264,12 +264,17 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
+    // Pass the record oid (when known) so the compiled items are built from the record's
+    // current workflow-stage form rather than the starting-step form. Workflow-stage forms
+    // can differ structurally (e.g. extra tabs), which shifts expression keys and otherwise
+    // produces "Unknown key" errors when evaluating expressions on non-draft records.
+    const metaOid = typeof meta?.['oid'] === 'string' && meta['oid'] ? (meta['oid'] as string) : undefined;
     this.formCompiledItems = formConfig?.type
-      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
+      ? this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode)
       : undefined;
 
     if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
-      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode);
+      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode);
     }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
