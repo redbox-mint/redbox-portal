@@ -69,6 +69,17 @@ export namespace Services {
       return this._msgPrefix;
     }
 
+    private hasConfiguredTriggerCondition(options: Record<string, unknown>): boolean {
+      return typeof options?.triggerCondition === 'string' && options.triggerCondition.length > 0;
+    }
+
+    private shouldRunFigshareLifecycleSync(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown): boolean {
+      if (!this.hasConfiguredTriggerCondition(options) && !Boolean(options?.forceRun)) {
+        return true;
+      }
+      return this.metTriggerCondition(oid, record, options, user) === 'true';
+    }
+
     private summarizeError(error: unknown): { statusCode?: number; responseSummary?: Record<string, unknown> } {
       if (error instanceof RBValidationError) {
         return {
@@ -459,7 +470,7 @@ export namespace Services {
     }
 
     public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
-      if (this.metTriggerCondition(oid, record, options, user) !== 'true') {
+      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
         sails.log.debug(`FigService - createUpdateFigshareArticle trigger condition not met for ${oid}`);
         return record;
       }
@@ -470,7 +481,7 @@ export namespace Services {
     }
 
     public uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
-      if (this.metTriggerCondition(oid, record, options, user) !== 'true') {
+      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
         sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
         return record;
       }
