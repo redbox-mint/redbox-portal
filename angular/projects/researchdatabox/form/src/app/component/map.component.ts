@@ -521,6 +521,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     this.map?.updateSize();
     (this.map as any)?.renderSync?.();
+    if (this.hasOpenLayersEventElement()) {
+      this.ensureDrawInitialised();
+      return;
+    }
     this.drawReadyObserver = new MutationObserver(() => {
       if (this.hasOpenLayersEventElement()) {
         this.drawReadyObserver?.disconnect();

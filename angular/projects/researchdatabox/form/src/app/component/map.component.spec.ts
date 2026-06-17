@@ -8,17 +8,29 @@ describe("MapComponent", () => {
   let fakeDraw: any;
   let drawFeatures: unknown[];
   let fakeView: any;
+  let fakeRenderSync: jasmine.Spy;
   let fakeVectorLayer: any;
   let fakeVectorSource: any;
   let fakeGeoJSONFormat: any;
   let fakeFromLonLat: jasmine.Spy;
   let fakeIsEmpty: jasmine.Spy;
   let fakeMapCreatesCanvas: boolean;
+  let fakeMapCreatesCanvasOnRenderSync: boolean;
   let fakeMapTarget: HTMLElement | undefined;
   let fakeAdapterCtor: jasmine.Spy;
   let drawListeners: Record<string, Function[]>;
   let fakeSelectModeOptions: unknown[];
   let fakeXYZInstances: any[];
+
+  function appendOpenLayersCanvas(target: HTMLElement | undefined): void {
+    if (!target?.appendChild || target.querySelector("canvas")) {
+      return;
+    }
+    const viewport = document.createElement("div");
+    viewport.className = "ol-viewport";
+    viewport.appendChild(document.createElement("canvas"));
+    target.appendChild(viewport);
+  }
 
   // OpenLayers-style fake constructors
   function FakeMapCtor(this: any, opts: any) {
@@ -32,12 +44,9 @@ describe("MapComponent", () => {
     this.removeLayer = jasmine.createSpy("removeLayer");
     this.getView = jasmine.createSpy("getView").and.returnValue(fakeView);
     this.getViewport = jasmine.createSpy("getViewport").and.returnValue(this.target);
-    this.renderSync = jasmine.createSpy("renderSync");
-    if (fakeMapCreatesCanvas && this.target?.appendChild) {
-      const viewport = document.createElement("div");
-      viewport.className = "ol-viewport";
-      viewport.appendChild(document.createElement("canvas"));
-      this.target.appendChild(viewport);
+    this.renderSync = fakeRenderSync;
+    if (fakeMapCreatesCanvas) {
+      appendOpenLayersCanvas(this.target);
     }
     Object.assign(this, fakeMap);
     return this;
@@ -81,7 +90,13 @@ describe("MapComponent", () => {
     fakeSelectModeOptions = [];
     fakeXYZInstances = [];
     fakeMapCreatesCanvas = true;
+    fakeMapCreatesCanvasOnRenderSync = false;
     fakeMapTarget = undefined;
+    fakeRenderSync = jasmine.createSpy("renderSync").and.callFake(() => {
+      if (fakeMapCreatesCanvasOnRenderSync) {
+        appendOpenLayersCanvas(fakeMapTarget);
+      }
+    });
     fakeIsEmpty = jasmine.createSpy("isEmpty").and.returnValue(false);
     fakeFromLonLat = jasmine.createSpy("fromLonLat").and.callFake((coord: [number, number]) => coord);
 
@@ -592,6 +607,40 @@ describe("MapComponent", () => {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     fixture.detectChanges();
 
+    expect(fakeAdapterCtor).toHaveBeenCalled();
+    expect(fakeDraw.start).toHaveBeenCalled();
+  });
+
+  it("initialises draw tooling when renderSync creates the OpenLayers canvas", async () => {
+    fakeMapCreatesCanvas = false;
+    fakeMapCreatesCanvasOnRenderSync = true;
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fakeRenderSync).toHaveBeenCalled();
+    expect(fakeMapTarget?.querySelector("canvas")).not.toBeNull();
     expect(fakeAdapterCtor).toHaveBeenCalled();
     expect(fakeDraw.start).toHaveBeenCalled();
   });
