@@ -2,39 +2,128 @@ import {TestBed} from "@angular/core/testing";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {MAP_DEPENDENCIES_LOADER, MapComponent} from "./map.component";
-import * as L from "leaflet";
 
 describe("MapComponent", () => {
   let fakeMap: any;
   let fakeDraw: any;
   let drawFeatures: unknown[];
+  let fakeView: any;
+  let fakeVectorLayer: any;
+  let fakeVectorSource: any;
+  let fakeGeoJSONFormat: any;
+  let fakeFromLonLat: jasmine.Spy;
+  let fakeIsEmpty: jasmine.Spy;
+  let fakeMapCreatesCanvas: boolean;
+  let fakeMapTarget: HTMLElement | undefined;
+  let fakeAdapterCtor: jasmine.Spy;
+  let drawListeners: Record<string, Function[]>;
+  let fakeSelectModeOptions: unknown[];
+  let fakeXYZInstances: any[];
+
+  // OpenLayers-style fake constructors
+  function FakeMapCtor(this: any, opts: any) {
+    this.target = opts.target;
+    fakeMapTarget = opts.target;
+    this.layers = opts.layers;
+    this.view = opts.view;
+    this.updateSize = jasmine.createSpy("updateSize");
+    this.setTarget = jasmine.createSpy("setTarget");
+    this.addLayer = jasmine.createSpy("addLayer");
+    this.removeLayer = jasmine.createSpy("removeLayer");
+    this.getView = jasmine.createSpy("getView").and.returnValue(fakeView);
+    this.getViewport = jasmine.createSpy("getViewport").and.returnValue(this.target);
+    this.renderSync = jasmine.createSpy("renderSync");
+    if (fakeMapCreatesCanvas && this.target?.appendChild) {
+      const viewport = document.createElement("div");
+      viewport.className = "ol-viewport";
+      viewport.appendChild(document.createElement("canvas"));
+      this.target.appendChild(viewport);
+    }
+    Object.assign(this, fakeMap);
+    return this;
+  }
+
+  function FakeViewCtor(this: any, opts: any) {
+    this.center = opts.center;
+    this.zoom = opts.zoom;
+    this.fit = jasmine.createSpy("fit");
+    Object.assign(this, fakeView);
+    return this;
+  }
+
+  function FakeTileLayerCtor(this: any, opts: any) {
+    this.source = opts.source;
+  }
+
+  function FakeXYZCtor(this: any, opts: any) {
+    this.url = opts.url;
+    this.urls = opts.urls;
+    this.attributions = opts.attributions;
+    fakeXYZInstances.push(this);
+  }
+
+  function FakeVectorLayerCtor(this: any, opts: any) {
+    this.source = opts.source;
+    Object.assign(this, fakeVectorLayer);
+    return this;
+  }
+
+  function FakeVectorSourceCtor(this: any, opts: any) {
+    this.features = opts?.features ?? [];
+    this.getExtent = jasmine.createSpy("getExtent").and.returnValue([0, 0, 1, 1]);
+    Object.assign(this, fakeVectorSource);
+    return this;
+  }
 
   beforeEach(async () => {
     drawFeatures = [];
+    drawListeners = {};
+    fakeSelectModeOptions = [];
+    fakeXYZInstances = [];
+    fakeMapCreatesCanvas = true;
+    fakeMapTarget = undefined;
+    fakeIsEmpty = jasmine.createSpy("isEmpty").and.returnValue(false);
+    fakeFromLonLat = jasmine.createSpy("fromLonLat").and.callFake((coord: [number, number]) => coord);
+
+    fakeView = {
+      fit: jasmine.createSpy("fit")
+    };
 
     fakeMap = {
-      invalidateSize: jasmine.createSpy("invalidateSize"),
-      fitBounds: jasmine.createSpy("fitBounds"),
-      remove: jasmine.createSpy("remove")
+      updateSize: jasmine.createSpy("updateSize"),
+      setTarget: jasmine.createSpy("setTarget"),
+      addLayer: jasmine.createSpy("addLayer"),
+      removeLayer: jasmine.createSpy("removeLayer"),
+      getView: jasmine.createSpy("getView").and.returnValue(fakeView)
     };
 
-    const fakeLayer = {
-      addTo: jasmine.createSpy("addTo"),
-      removeFrom: jasmine.createSpy("removeFrom"),
-      getBounds: () => ({isValid: () => false})
+    fakeVectorLayer = {
+      addTo: jasmine.createSpy("addTo")
     };
 
-    spyOn(L, "tileLayer").and.returnValue({} as any);
-    spyOn(L, "map").and.returnValue(fakeMap);
-    spyOn(L, "geoJSON").and.returnValue(fakeLayer as any);
+    fakeVectorSource = {
+      features: [],
+      getExtent: jasmine.createSpy("getExtent").and.returnValue([0, 0, 1, 1])
+    };
+
+    fakeGeoJSONFormat = jasmine.createSpy("GeoJSONFormat").and.callFake(() => ({
+      readFeatures: jasmine.createSpy("readFeatures").and.returnValue([])
+    }));
 
     fakeDraw = {
       start: jasmine.createSpy("start"),
       stop: jasmine.createSpy("stop"),
-      on: jasmine.createSpy("on"),
+      on: jasmine.createSpy("on").and.callFake((eventName: string, listener: Function) => {
+        drawListeners[eventName] = drawListeners[eventName] ?? [];
+        drawListeners[eventName].push(listener);
+      }),
       setMode: jasmine.createSpy("setMode"),
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
         drawFeatures.push(...features);
+      }),
+      removeFeatures: jasmine.createSpy("removeFeatures").and.callFake((ids: unknown[]) => {
+        drawFeatures = drawFeatures.filter((feature: any) => !ids.includes(feature.id));
+        drawListeners["change"]?.forEach((listener) => listener({deletedIds: ids}));
       }),
       getSnapshot: jasmine.createSpy("getSnapshot").and.callFake(() => ({
         type: "FeatureCollection",
@@ -45,25 +134,48 @@ describe("MapComponent", () => {
     function FakeTerraDrawCtor(this: unknown) {
       return fakeDraw;
     }
+    fakeAdapterCtor = jasmine.createSpy("TerraDrawOpenLayersAdapter");
     function FakeAdapterCtor(this: unknown) {
+      fakeAdapterCtor();
       return {};
     }
     function FakeModeCtor(this: unknown) {
       return {};
     }
+    function FakeSelectModeCtor(this: unknown, options: unknown) {
+      fakeSelectModeOptions.push(options);
+      return {};
+    }
 
     const mapDependencies = {
-      L,
+      Map: FakeMapCtor as any,
+      View: FakeViewCtor as any,
+      TileLayer: FakeTileLayerCtor as any,
+      VectorLayer: FakeVectorLayerCtor as any,
+      XYZ: FakeXYZCtor as any,
+      VectorSource: FakeVectorSourceCtor as any,
+      GeoJSON: fakeGeoJSONFormat as any,
+      fromLonLat: fakeFromLonLat,
+      toLonLat: jasmine.createSpy("toLonLat"),
+      getUserProjection: jasmine.createSpy("getUserProjection"),
+      extentIsEmpty: fakeIsEmpty,
+      Feature: function FakeFeature() {} as any,
+      Fill: function FakeFill() {} as any,
+      Stroke: function FakeStroke() {} as any,
+      Circle: function FakeCircle() {} as any,
+      Style: function FakeStyle() {} as any,
+      Icon: function FakeIcon() {} as any,
+      Projection: function FakeProjection() {} as any,
       terraDraw: {
         TerraDraw: FakeTerraDrawCtor,
         TerraDrawPointMode: FakeModeCtor,
         TerraDrawPolygonMode: FakeModeCtor,
         TerraDrawLineStringMode: FakeModeCtor,
         TerraDrawRectangleMode: FakeModeCtor,
-        TerraDrawSelectMode: FakeModeCtor
+        TerraDrawSelectMode: FakeSelectModeCtor
       },
-      terraDrawLeafletAdapter: {
-        TerraDrawLeafletAdapter: FakeAdapterCtor
+      terraDrawOpenLayersAdapter: {
+        TerraDrawOpenLayersAdapter: fakeAdapterCtor
       },
       parseKmlToGeoJson: () => ({type: "FeatureCollection", features: []})
     } as any;
@@ -235,7 +347,7 @@ describe("MapComponent", () => {
       }
     ]);
     expect(drawFeatures.length).toBe(1);
-    expect(fakeMap.invalidateSize).toHaveBeenCalled();
+    expect(fakeMap.updateSize).toHaveBeenCalled();
   });
 
   it("initialises draw tooling when a disabled map is enabled after map load", async () => {
@@ -287,5 +399,373 @@ describe("MapComponent", () => {
 
     expect(fakeDraw.setMode).toHaveBeenCalledWith("polygon");
     expect(mapComponent.activeMode).toBe("polygon");
+  });
+
+  it("adds select/delete tooling and deletes selected draw features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  },
+                  {
+                    id: "feature-2",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [153.02, -27.47]},
+                    properties: {name: "Brisbane", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    expect(modeButtonText).toContain("Point");
+    expect(modeButtonText).toContain("Select/Edit");
+
+    const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
+    expect(deleteButton.disabled).toBeTrue();
+    const selectButton = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .find((button) => button.textContent?.trim() === "Select/Edit") as HTMLButtonElement;
+    selectButton.click();
+    fixture.detectChanges();
+
+    drawListeners["select"]?.forEach((listener) => listener("feature-1"));
+    fixture.detectChanges();
+    expect(deleteButton.disabled).toBeFalse();
+    const setValueSpy = spyOn(mapComponent.formControl, "setValue").and.callThrough();
+
+    deleteButton.click();
+    fixture.detectChanges();
+
+    expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith(["feature-1"]);
+    expect(setValueSpy).toHaveBeenCalledTimes(1);
+    expect(fakeDraw.setMode).toHaveBeenCalledWith("select");
+    expect(mapComponent.activeMode).toBe("select");
+    expect(mapComponent.selectedFeatureIds.size).toBe(0);
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual(["feature-2"]);
+  });
+
+  it("configures select mode so drawn rectangles can be manually selected", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["rectangle", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+
+    expect(fakeSelectModeOptions.length).toBeGreaterThan(0);
+    expect(fakeSelectModeOptions[0]).toEqual(jasmine.objectContaining({
+      allowManualDeselection: true,
+      allowManualSelection: true,
+      pointerDistance: 30,
+      flags: jasmine.objectContaining({
+        rectangle: jasmine.objectContaining({
+          feature: jasmine.objectContaining({
+            draggable: true,
+            coordinates: jasmine.objectContaining({
+              draggable: true,
+              midpoints: jasmine.objectContaining({draggable: true}),
+              deletable: true
+            })
+          })
+        })
+      })
+    }));
+  });
+
+  it("does not add select/delete tooling when select mode is disabled", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["point"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    expect(modeButtonText).toEqual(["Point"]);
+    expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
+    expect(fakeSelectModeOptions.length).toBe(0);
+  });
+
+  it("waits for the OpenLayers canvas before initialising draw tooling", async () => {
+    fakeMapCreatesCanvas = false;
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fakeAdapterCtor).not.toHaveBeenCalled();
+    expect(fakeDraw.start).not.toHaveBeenCalled();
+
+    expect(fakeMapTarget).toBeDefined();
+    const viewport = document.createElement("div");
+    viewport.className = "ol-viewport";
+    viewport.appendChild(document.createElement("canvas"));
+    fakeMapTarget!.appendChild(viewport);
+
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    fixture.detectChanges();
+
+    expect(fakeAdapterCtor).toHaveBeenCalled();
+    expect(fakeDraw.start).toHaveBeenCalled();
+  });
+
+  it("creates map with fromLonLat for configured center", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              center: [-27.47, 153.02],
+              zoom: 10
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    expect(fakeFromLonLat).toHaveBeenCalledWith([153.02, -27.47]);
+  });
+
+  it("calls draw.stop and map.setTarget on destroy", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.destroy();
+
+    expect(fakeDraw.stop).toHaveBeenCalled();
+    expect(fakeMap.setTarget).toHaveBeenCalledWith(undefined);
+  });
+
+  it("expands {s} in tile URL to multiple urls", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              tileLayers: [
+                {
+                  name: "Custom",
+                  url: "https://{s}.tile.example.com/{z}/{x}/{y}.png",
+                  options: {subdomains: ["x", "y", "z"]}
+                }
+              ]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+
+    expect(fakeFromLonLat).toHaveBeenCalled();
+    expect(fakeXYZInstances.length).toBe(1);
+    const xyzInstance = fakeXYZInstances[0];
+    expect(xyzInstance.urls).toEqual([
+      "https://x.tile.example.com/{z}/{x}/{y}.png",
+      "https://y.tile.example.com/{z}/{x}/{y}.png",
+      "https://z.tile.example.com/{z}/{x}/{y}.png"
+    ]);
+  });
+
+  it("expands legacy string subdomains in tile URL", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              tileLayers: [
+                {
+                  name: "Legacy",
+                  url: "https://{s}.tile.example.com/{z}/{x}/{y}.png",
+                  options: {subdomains: "abc"}
+                }
+              ]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+
+    expect(fakeXYZInstances.length).toBe(1);
+    expect(fakeXYZInstances[0].urls).toEqual([
+      "https://a.tile.example.com/{z}/{x}/{y}.png",
+      "https://b.tile.example.com/{z}/{x}/{y}.png",
+      "https://c.tile.example.com/{z}/{x}/{y}.png"
+    ]);
+  });
+
+  it("falls back to default tile subdomains when configured subdomains are empty", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              tileLayers: [
+                {
+                  name: "Empty",
+                  url: "https://{s}.tile.example.com/{z}/{x}/{y}.png",
+                  options: {subdomains: ""}
+                }
+              ]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+
+    expect(fakeXYZInstances.length).toBe(1);
+    expect(fakeXYZInstances[0].urls).toEqual([
+      "https://a.tile.example.com/{z}/{x}/{y}.png",
+      "https://b.tile.example.com/{z}/{x}/{y}.png",
+      "https://c.tile.example.com/{z}/{x}/{y}.png"
+    ]);
   });
 });
