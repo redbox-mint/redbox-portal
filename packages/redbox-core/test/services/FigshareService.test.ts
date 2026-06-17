@@ -246,6 +246,81 @@ describe('FigshareService', function () {
     expect(exports).to.have.property('syncRecordWithFigshare');
   });
 
+  it('honours triggerCondition before Figshare lifecycle sync', async function () {
+    const options = {
+      triggerCondition:
+        '<%= _.isEqual(record.workflow.stage, "queued") && _.isEqual(_.get(record, "metadata.dataset-will-be-published"), "yes") %>'
+    };
+    const draftRecord = {
+      redboxOid: 'oid-draft',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-draft', attachmentFields: [] },
+      workflow: { stage: 'draft', stageLabel: 'Draft' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      metadata: {
+        title: 'Draft dataset',
+        'dataset-will-be-published': 'yes'
+      },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const queuedRecord = {
+      redboxOid: 'oid-queued',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      metadata: {
+        title: 'Queued dataset',
+        'dataset-will-be-published': 'yes'
+      },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const user = { id: 'user-1', username: 'user-1', type: 'admin', name: 'User One', email: 'user-1@example.org', lastLogin: new Date(), additionalAttributes: {}, loginDisabled: false, workspaceApps: [], roles: [] };
+    const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(queuedRecord);
+
+    const skipped = service.createUpdateFigshareArticle('oid-draft', draftRecord, options, user);
+    expect(skipped).to.equal(draftRecord);
+    expect(syncStub.called).to.equal(false);
+
+    const uploadSkipped = service.uploadFilesToFigshareArticle('oid-draft', draftRecord, options, user);
+    expect(uploadSkipped).to.equal(draftRecord);
+    expect(syncStub.called).to.equal(false);
+
+    const synced = await service.createUpdateFigshareArticle('oid-queued', queuedRecord, options, user);
+    expect(synced).to.equal(queuedRecord);
+    expect(syncStub.calledOnceWithExactly(queuedRecord, 'oid-queued:pre', 'pre-save')).to.equal(true);
+  });
+
+  it('runs Figshare lifecycle sync when no triggerCondition is configured', async function () {
+    const record = {
+      redboxOid: 'oid-no-condition',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      metadata: {
+        title: 'Queued dataset',
+        'dataset-will-be-published': 'yes'
+      },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const user = { id: 'user-1', username: 'user-1', type: 'admin', name: 'User One', email: 'user-1@example.org', lastLogin: new Date(), additionalAttributes: {}, loginDisabled: false, workspaceApps: [], roles: [] };
+    const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(record);
+
+    const synced = await service.createUpdateFigshareArticle('oid-no-condition', record, {}, user);
+    expect(synced).to.equal(record);
+    expect(syncStub.calledOnceWithExactly(record, 'oid-no-condition:pre', 'pre-save')).to.equal(true);
+
+    service.uploadFilesToFigshareArticle('oid-no-condition', record, {}, user);
+    expect(syncStub.calledWithExactly(record, 'oid-no-condition:post', 'post-save')).to.equal(true);
+  });
+
   it('uses fixture mode to build metadata and write back article identifiers', async function () {
     const record = {
       metaMetadata: { brandId: 'default' },

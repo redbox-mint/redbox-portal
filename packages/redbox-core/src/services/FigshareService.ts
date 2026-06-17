@@ -69,6 +69,17 @@ export namespace Services {
       return this._msgPrefix;
     }
 
+    private hasConfiguredTriggerCondition(options: Record<string, unknown>): boolean {
+      return typeof options?.triggerCondition === 'string' && options.triggerCondition.length > 0;
+    }
+
+    private shouldRunFigshareLifecycleSync(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown): boolean {
+      if (!this.hasConfiguredTriggerCondition(options) && !Boolean(options?.forceRun)) {
+        return true;
+      }
+      return this.metTriggerCondition(oid, record, options, user) === 'true';
+    }
+
     private summarizeError(error: unknown): { statusCode?: number; responseSummary?: Record<string, unknown> } {
       if (error instanceof RBValidationError) {
         return {
@@ -458,16 +469,24 @@ export namespace Services {
       }
     }
 
-    public createUpdateFigshareArticle(oid: string, record: RecordModel, _options: Record<string, unknown>, _user: Record<string, unknown>) {
+    public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
+      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
+        sails.log.debug(`FigService - createUpdateFigshareArticle trigger condition not met for ${oid}`);
+        return record;
+      }
       if (this.getConfig(record) == null) {
         return record;
       }
       return this.syncRecordWithFigshare(record, `${oid}:pre`, 'pre-save');
     }
 
-    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, _options: Record<string, unknown>, user: UserModel) {
+    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
+        sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
+        return record;
+      }
       if (this.getConfig(record) == null) {
-        return;
+        return record;
       }
       void this.syncRecordWithFigshare(record, `${oid}:post`, 'post-save')
         .then(async (updatedRecord: RecordModel) => {
