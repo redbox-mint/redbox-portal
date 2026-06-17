@@ -3272,8 +3272,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       enabledModes.push(mode);
     }
 
-    const hasLegacyEditConfig = Object.prototype.hasOwnProperty.call(drawOptions, 'edit');
-    if (hasLegacyEditConfig && drawOptions.edit !== false) {
+    // Enable select/edit tooling by default for migrated maps. OpenLayers/TerraDraw
+    // supports selecting, editing and deleting existing features, so migrated records
+    // should get the Select/Delete tooling unless the legacy config explicitly
+    // disabled editing via `edit: false`.
+    if (drawOptions.edit !== false) {
       enabledModes.push('select');
     }
 

@@ -465,8 +465,8 @@ describe("MapComponent", () => {
     expect(modeButtonText).toContain("Point");
     expect(modeButtonText).toContain("Select/Edit");
 
-    const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
-    expect(deleteButton.disabled).toBeTrue();
+    // Delete button stays hidden until a feature is selected.
+    expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
     const selectButton = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
       .find((button) => button.textContent?.trim() === "Select/Edit") as HTMLButtonElement;
     selectButton.click();
@@ -474,6 +474,8 @@ describe("MapComponent", () => {
 
     drawListeners["select"]?.forEach((listener) => listener("feature-1"));
     fixture.detectChanges();
+    const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
+    expect(deleteButton).not.toBeNull();
     expect(deleteButton.disabled).toBeFalse();
     const setValueSpy = spyOn(mapComponent.formControl, "setValue").and.callThrough();
 
@@ -487,6 +489,57 @@ describe("MapComponent", () => {
     expect(mapComponent.selectedFeatureIds.size).toBe(0);
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual(["feature-2"]);
+  });
+
+  it("hides the select button until the map has features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const initialModeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    expect(initialModeButtonText).toEqual(["Point"]);
+    expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
+
+    mapComponent.formControl.setValue({
+      type: "FeatureCollection",
+      features: [
+        {
+          id: "feature-1",
+          type: "Feature",
+          geometry: {type: "Point", coordinates: [144.96, -37.81]},
+          properties: {name: "Melbourne", mode: "point"}
+        }
+      ]
+    });
+    fixture.detectChanges();
+
+    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    expect(modeButtonText).toContain("Select/Edit");
   });
 
   it("configures select mode so drawn rectangles can be manually selected", async () => {

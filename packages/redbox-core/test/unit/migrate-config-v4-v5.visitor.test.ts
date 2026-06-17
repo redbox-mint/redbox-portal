@@ -1085,6 +1085,67 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
   });
 
+  it('enables select tooling by default when legacy map has no edit config', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'map-migration-no-edit',
+        fields: [
+          {
+            class: 'MapField',
+            compClass: 'MapComponent',
+            definition: {
+              name: 'map_coverage',
+              drawOptions: {
+                draw: {
+                  marker: {},
+                  polygon: {},
+                  polyline: {},
+                  rectangle: {},
+                },
+              },
+            },
+            value: {},
+          },
+        ],
+      },
+    });
+
+    const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'select']);
+  });
+
+  it('omits select tooling when legacy map explicitly disables editing', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'map-migration-edit-false',
+        fields: [
+          {
+            class: 'MapField',
+            compClass: 'MapComponent',
+            definition: {
+              name: 'map_coverage',
+              drawOptions: {
+                draw: {
+                  marker: {},
+                  polygon: {},
+                  polyline: false,
+                  rectangle: false,
+                },
+                edit: false,
+              },
+            },
+            value: {},
+          },
+        ],
+      },
+    });
+
+    const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon']);
+  });
+
   it('migrates ButtonBarContainer as expected', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
     const migrated = await visitor.start({

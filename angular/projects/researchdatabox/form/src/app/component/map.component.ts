@@ -215,12 +215,23 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
                   {{ modeLabels[mode] }}
                 </button>
               }
-              @if (canDeleteSelectedFeatures) {
+              @if (canSelectFeatures && hasFeatures()) {
+                <button
+                  type="button"
+                  class="btn btn-light btn-sm rb-map-mode-btn rb-map-select-btn"
+                  [class.active]="activeMode === 'select'"
+                  (click)="setDrawMode('select')"
+                  [disabled]="isDisabled"
+                >
+                  {{ modeLabels['select'] }}
+                </button>
+              }
+              @if (canDeleteSelectedFeatures && selectedFeatureIds.size > 0) {
                 <button
                   type="button"
                   class="btn btn-outline-danger btn-sm rb-map-delete-btn"
                   (click)="deleteSelectedFeatures()"
-                  [disabled]="isDisabled || selectedFeatureIds.size === 0"
+                  [disabled]="isDisabled"
                 >
                   Delete selected
                 </button>
@@ -329,6 +340,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public toolbarModes: MapDrawingMode[] = [];
   public activeMode?: MapDrawingMode;
   public showDrawToolbar = false;
+  public canSelectFeatures = false;
   public canDeleteSelectedFeatures = true;
   public selectedFeatureIds = new Set<string | number>();
   public readonly modeLabels: Record<MapDrawingMode, string> = {
@@ -353,10 +365,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
       : ["point", "polygon", "linestring", "rectangle", "select"];
-    this.toolbarModes = [...this.enabledModes];
-    this.activeMode = this.toolbarModes.find((mode) => mode !== "select") ?? this.toolbarModes[0];
-    this.showDrawToolbar = this.toolbarModes.length > 0;
+    this.canSelectFeatures = this.enabledModes.includes("select");
     this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
+    this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
+    this.activeMode = this.toolbarModes[0] ?? (this.canSelectFeatures ? "select" : undefined);
+    this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
     this.coordinatesHelp = String(cfg.coordinatesHelp ?? "");
   }
@@ -520,7 +533,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return;
     }
     this.map?.updateSize();
-    (this.map as any)?.renderSync?.();
+    try {
+      (this.map as any)?.renderSync?.();
+    } catch (err) {
+      console.warn("OpenLayers renderSync() failed; falling back to MutationObserver for draw initialisation", err);
+    }
     if (this.hasOpenLayersEventElement()) {
       this.ensureDrawInitialised();
       return;
@@ -626,11 +643,15 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   public setDrawMode(mode: MapDrawingMode): void {
-    if (!this.draw || !this.toolbarModes.includes(mode)) {
+    if (!this.draw || !this.enabledModes.includes(mode)) {
       return;
     }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+  }
+
+  public hasFeatures(): boolean {
+    return this.currentModelValue().features.length > 0;
   }
 
   public deleteSelectedFeatures(): void {
