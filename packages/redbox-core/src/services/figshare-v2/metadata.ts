@@ -113,6 +113,15 @@ function matchesLicense(matchBy: FigsharePublishingConfigData['metadata']['licen
   return candidate.includes(normalized);
 }
 
+function normalizeCategorySourceCode(value: unknown): string {
+  const rawValue = String(value ?? '').trim();
+  if (rawValue === '') {
+    return '';
+  }
+  const lastSlashIndex = rawValue.lastIndexOf('/');
+  return lastSlashIndex === -1 ? rawValue : rawValue.slice(lastSlashIndex + 1);
+}
+
 async function resolveLicense(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel): Promise<unknown> {
   const licenseValue = await evaluateBinding(config.metadata.license.source, record as Record<string, unknown>);
   if (licenseValue == null || licenseValue === '') {
@@ -193,9 +202,11 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   const categorySource = await evaluateBinding(config.metadata.categories.source, recordData);
   const sourceItems = Array.isArray(categorySource) ? categorySource : categorySource != null ? [categorySource] : [];
   const sourceCodes = sourceItems.filter(Boolean).map((item: unknown) =>
-    typeof item === 'object' && item != null
-      ? String((item as Record<string, unknown>).notation ?? (item as Record<string, unknown>).code ?? '')
-      : String(item)
+    normalizeCategorySourceCode(
+      typeof item === 'object' && item != null
+        ? (item as Record<string, unknown>).notation ?? (item as Record<string, unknown>).code ?? ''
+        : item
+    )
   );
   const mappedCategories = sourceCodes
     .map((sourceCode: string) =>

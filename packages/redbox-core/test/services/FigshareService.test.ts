@@ -388,6 +388,46 @@ describe('FigshareService', function () {
     });
   });
 
+  it('maps Figshare categories from URI-based source notations', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        categories: {
+          source: { kind: 'path', path: 'metadata.anzsrcFor', defaultValue: [] },
+          mappingStrategy: 'for2020Mapping'
+        }
+      },
+      categories: {
+        mappingTable: [{ sourceCode: '300201', figshareCategoryId: 25508 }]
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        anzsrcFor: [
+          {
+            notation: 'https://linked.data.gov.au/def/anzsrc-for/2020/300201',
+            label: '300201 - Agricultural hydrology'
+          }
+        ],
+        license: 'CC-BY'
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.categories).to.deep.equal([25508]);
+  });
+
   it('uses institution account user_id values for resolved Figshare authors', async function () {
     const config = buildFigsharePublishingConfig({
       authors: {

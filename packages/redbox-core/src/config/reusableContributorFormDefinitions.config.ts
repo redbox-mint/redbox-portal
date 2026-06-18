@@ -159,7 +159,9 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
-   * Standard contributor form fields in lookup-only mode without ORCID.
+   * Compact standard contributor form fields in lookup-only mode.
+   * Used by permission rows where the visible layout is name/email focused, but
+   * still supports ORCID so lookup selections can persist contributor identity.
    */
   'standard-contributor-fields-lookup-only-name-email': [
     {
@@ -191,6 +193,11 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
           ],
         },
       },
+    },
+    {
+      overrides: { reusableFormName: 'standard-contributor-field-orcid' },
+      name: 'standard_contributor_field_orcid',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
     },
   ],
   /**
@@ -270,7 +277,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
     },
   ],
   /**
-   * Standard contributor form fields group in lookup-only mode without ORCID.
+   * Compact standard contributor form fields group in lookup-only mode.
    */
   'standard-contributor-fields-lookup-only-name-email-group': [
     {
