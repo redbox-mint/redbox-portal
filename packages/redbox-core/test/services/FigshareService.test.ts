@@ -5,7 +5,11 @@ import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
+import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
+import { buildMetadataPayload } from '../../src/services/figshare-v2/metadata';
 import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
+import type { RecordModel } from '../../src/services/figshare-v2/types';
+import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
 let expect!: Chai.ExpectStatic;
 
@@ -340,10 +344,54 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
   });
 
-  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
-    const record = {
+  it('uses path binding defaults when metadata values are null', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        customFields: [
+          {
+            figshareField: 'Number and size of Dataset',
+            value: { kind: 'path', path: 'metadata.dataset-size', defaultValue: '' }
+          },
+          {
+            figshareField: 'Author Research Institute',
+            value: { kind: 'path', path: 'metadata.research-centres', defaultValue: [] }
+          }
+        ]
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
       redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        'dataset-size': null,
+        'research-centres': null
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.custom_fields).to.deep.equal({
+      'Number and size of Dataset': '',
+      'Author Research Institute': []
+    });
+  });
+
+  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -351,7 +399,12 @@ describe('FigshareService', function () {
         forCodes: ['0101'],
         license: 'CC-BY',
       },
-    } as any;
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
     sinon.stub(service, 'syncMetadata').rejects(new Error('sync exploded'));
 
     try {
@@ -366,6 +419,42 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
     expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('sync exploded');
+  });
+
+  it('surfaces Figshare response messages for 4xx sync failures', async function () {
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const httpError = Object.assign(new Error('Figshare HTTP request failed for post /account/articles'), {
+      statusCode: 400,
+      responseBody: {
+        message: 'Invalid identifier format',
+        code: 'BadRequest'
+      }
+    });
+    sinon.stub(service, 'syncMetadata').rejects(httpError);
+
+    try {
+      await service.syncRecordWithFigshare(record, 'job-1');
+      expect.fail('Expected syncRecordWithFigshare to throw');
+    } catch (error) {
+      expect((error as { displayErrors?: Array<{ detail?: string }> }).displayErrors?.[0]?.detail)
+        .to.equal('Invalid identifier format');
+    }
   });
 
   it('audits publishAfterUploadFilesJob success and failure paths', async function () {
@@ -422,6 +511,18 @@ describe('FigshareService', function () {
       responseBody: { message: 'Invalid embargo' }
     }));
     expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
+  });
+
+  it('extracts created article id from the Figshare Location header', async function () {
+    const article = mapCreateArticleResponse<{ id?: string; location?: string }>({
+      data: {},
+      headers: {
+        location: 'https://api.figsh.com/v2/account/articles/123456'
+      }
+    });
+
+    expect(article.id).to.equal('123456');
+    expect(article.location).to.equal('https://api.figsh.com/v2/account/articles/123456');
   });
 
   it('does not throw from getConfig when the record brand cannot be resolved', function () {
