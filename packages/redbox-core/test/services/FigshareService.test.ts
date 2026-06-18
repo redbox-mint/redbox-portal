@@ -9,6 +9,7 @@ import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
 import { buildMetadataPayload } from '../../src/services/figshare-v2/metadata';
 import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
+import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
 let expect!: Chai.ExpectStatic;
@@ -385,6 +386,87 @@ describe('FigshareService', function () {
       'Number and size of Dataset': '',
       'Author Research Institute': []
     });
+  });
+
+  it('uses institution account user_id values for resolved Figshare authors', async function () {
+    const config = buildFigsharePublishingConfig({
+      authors: {
+        lookup: [
+          { matchBy: 'email', value: { kind: 'path', path: 'email' } }
+        ]
+      },
+      metadata: {
+        license: {
+          source: { kind: 'path', path: 'metadata.license' },
+          matchBy: 'valueExact',
+          required: true
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: '1',
+        contributor_ci: {
+          name: 'Patricia Hayman',
+          email: 'p.hayman@cqu.edu.au'
+        },
+        contributors: [
+          {
+            name: 'Mark Cottman-Fields',
+            email: 'm.cottmanfields@cqu.edu.au'
+          },
+          {
+            name: 'External Author',
+            email: 'external@example.org'
+          }
+        ]
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const searchInstitutionAccounts: FigshareClient['searchInstitutionAccounts'] = async (payload) => {
+      if (payload.email === 'p.hayman@cqu.edu.au') {
+        return [{ id: 1897685, user_id: 2544547, email: 'p.hayman@cqu.edu.au', first_name: 'Patricia', last_name: 'Hayman' }];
+      }
+      if (payload.email === 'm.cottmanfields@cqu.edu.au') {
+        return [{ id: 3015702, user_id: 4402702, email: 'm.cottmanfields@cqu.edu.au', first_name: 'Mark', last_name: 'Cottman-Fields' }];
+      }
+      return [];
+    };
+    const client: FigshareClient = {
+      createArticle: async () => ({ id: 'unused' }),
+      updateArticle: async () => ({ id: 'unused' }),
+      getArticle: async () => ({ id: 'unused' }),
+      listArticleFiles: async () => [],
+      createArticleFile: async () => ({ location: '' }),
+      getLocation: async () => ({ id: '', upload_url: '' }),
+      uploadFilePart: async () => ({}),
+      completeFileUpload: async () => ({ id: '', name: '' }),
+      deleteArticleFile: async () => ({}),
+      setEmbargo: async () => ({}),
+      clearEmbargo: async () => ({}),
+      publishArticle: async () => ({}),
+      listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
+      searchInstitutionAccounts
+    };
+
+    const payload = await buildMetadataPayload(config, record, client);
+
+    expect(payload.authors).to.deep.equal([
+      { id: 2544547 },
+      { id: 4402702 },
+      { name: 'External Author' }
+    ]);
   });
 
   it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {

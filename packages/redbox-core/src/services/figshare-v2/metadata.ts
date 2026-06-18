@@ -80,8 +80,8 @@ async function resolveAuthors(client: FigshareClient, config: FigsharePublishing
       }
       const matches: FigshareInstitutionAccount[] = await client.searchInstitutionAccounts({ [rule.matchBy]: value });
       const firstMatch = matches[0];
-      if (firstMatch?.id != null && firstMatch.id !== '') {
-        resolvedAuthors.push({ id: firstMatch.id });
+      if (firstMatch?.user_id != null && firstMatch.user_id !== '') {
+        resolvedAuthors.push({ id: firstMatch.user_id });
         matched = true;
         break;
       }
