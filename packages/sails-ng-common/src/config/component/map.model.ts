@@ -34,7 +34,7 @@ export class MapFieldComponentConfig extends FieldComponentConfig implements Map
     zoom = 4;
     mapHeight = "450px";
     tileLayers: MapTileLayerConfig[] = [];
-    enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+    enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
     enableImport = true;
     coordinatesHelp?: string;
 

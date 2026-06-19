@@ -684,6 +684,7 @@
   "@map-toolbar-polygon-help": "Draw a polygon by clicking each corner, then finish the shape.",
   "@map-toolbar-linestring-help": "Draw a line by clicking each point along the path.",
   "@map-toolbar-rectangle-help": "Draw a rectangle by clicking and dragging on the map.",
+  "@map-toolbar-circle-help": "Draw a circle by clicking and dragging on the map.",
   "@map-toolbar-select-help": "Select or edit existing map features.",
   "@map-toolbar-delete-selected-help": "Delete the selected map feature.",
   "@map-toolbar-clear-all-help": "Clear all points, lines, and shapes from the map.",

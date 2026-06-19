@@ -1,5 +1,5 @@
-import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions, TranslationService} from "@researchdatabox/portal-ng-common";
+import { AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject } from "@angular/core";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions, TranslationService } from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
   MapDrawingMode,
@@ -27,9 +27,9 @@ import type OLStroke from "ol/style/Stroke.js";
 import type OLStyle from "ol/style/Style.js";
 import type * as TerraDrawLibrary from "terra-draw";
 import type * as TerraDrawOpenLayersAdapterLibrary from "terra-draw-openlayers-adapter";
-import type {kml as ParseKmlToGeoJson} from "@tmcw/togeojson";
-import {FormComponent} from "../form.component";
-import {ConfirmationDialogService} from "../confirmation-dialog.service";
+import type { kml as ParseKmlToGeoJson } from "@tmcw/togeojson";
+import { FormComponent } from "../form.component";
+import { ConfirmationDialogService } from "../confirmation-dialog.service";
 
 export interface MapDependencies {
   Map: typeof OLMap;
@@ -154,6 +154,7 @@ interface TerraDrawDependencies {
   PolygonMode?: new (...args: unknown[]) => unknown;
   LineStringMode?: new (...args: unknown[]) => unknown;
   RectangleMode?: new (...args: unknown[]) => unknown;
+  CircleMode?: new (...args: unknown[]) => unknown;
   SelectMode?: new (...args: unknown[]) => unknown;
 }
 
@@ -167,7 +168,7 @@ type TerraDrawSelectModeOptions = {
       draggable: boolean;
       coordinates?: {
         draggable: boolean;
-        midpoints: boolean | {draggable: boolean};
+        midpoints: boolean | { draggable: boolean };
         deletable: boolean;
       };
     };
@@ -359,6 +360,10 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
       color: #0b5ed7;
     }
 
+    .rb-map-select-btn {
+      margin-top: 0.35rem;
+    }
+
     .rb-map-delete-btn,
     .rb-map-clear-btn {
       color: #333;
@@ -421,7 +426,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private readonly confirmationDialogService = inject(ConfirmationDialogService);
 
   @Input() public override model?: MapModel;
-  @ViewChild("mapHost", {static: false}) private mapHost?: ElementRef<HTMLDivElement>;
+  @ViewChild("mapHost", { static: false }) private mapHost?: ElementRef<HTMLDivElement>;
 
   public mapHeight = "450px";
   public enableImport = true;
@@ -442,7 +447,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
   private tileLayers: MapTileLayerConfig[] = [];
-  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
   public activeMode?: MapDrawingMode;
   public showDrawToolbar = false;
@@ -454,6 +459,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     polygon: "Polygon",
     linestring: "Line",
     rectangle: "Rectangle",
+    circle: "Circle",
     select: "Select/Edit"
   };
   public readonly modeIconClasses: Record<MapDrawingMode, string> = {
@@ -461,6 +467,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     polygon: "fa fa-object-ungroup",
     linestring: "fa fa-minus",
     rectangle: "fa fa-square",
+    circle: "fa fa-circle",
     select: "fa fa-mouse-pointer"
   };
   private readonly modeHelpTextKeys: Record<MapDrawingMode, string> = {
@@ -468,6 +475,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     polygon: "@map-toolbar-polygon-help",
     linestring: "@map-toolbar-linestring-help",
     rectangle: "@map-toolbar-rectangle-help",
+    circle: "@map-toolbar-circle-help",
     select: "@map-toolbar-select-help"
   };
   private readonly modeHelpTextFallbacks: Record<MapDrawingMode, string> = {
@@ -475,9 +483,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     polygon: "Draw a polygon by clicking each corner, then finish the shape.",
     linestring: "Draw a line by clicking each point along the path.",
     rectangle: "Draw a rectangle by clicking and dragging on the map.",
+    circle: "Draw a circle by clicking and dragging on the map.",
     select: "Select or edit existing map features."
   };
-  public translatedModeHelpText: Record<MapDrawingMode, string> = {...this.modeHelpTextFallbacks};
+  public translatedModeHelpText: Record<MapDrawingMode, string> = { ...this.modeHelpTextFallbacks };
   public deleteSelectedHelpText = "Delete the selected map feature.";
   public clearAllHelpText = "Clear all points, lines, and shapes from the map.";
 
@@ -494,7 +503,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.tileLayers = Array.isArray(cfg.tileLayers) ? cfg.tileLayers : [];
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
-      : ["point", "polygon", "linestring", "rectangle", "select"];
+      : ["point", "polygon", "linestring", "rectangle", "circle", "select"];
     this.canSelectFeatures = this.enabledModes.includes("select");
     this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
     this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
@@ -514,6 +523,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       polygon: this.translateText(this.modeHelpTextKeys.polygon, this.modeHelpTextFallbacks.polygon),
       linestring: this.translateText(this.modeHelpTextKeys.linestring, this.modeHelpTextFallbacks.linestring),
       rectangle: this.translateText(this.modeHelpTextKeys.rectangle, this.modeHelpTextFallbacks.rectangle),
+      circle: this.translateText(this.modeHelpTextKeys.circle, this.modeHelpTextFallbacks.circle),
       select: this.translateText(this.modeHelpTextKeys.select, this.modeHelpTextFallbacks.select)
     };
   }
@@ -618,7 +628,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     const tileLayerConfig = this.tileLayers[0] ?? {
       name: "OpenStreetMap",
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      options: {maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"}
+      options: { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }
     };
 
     const tileOptions: Record<string, unknown> = {};
@@ -726,7 +736,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         this.ensureDrawInitialised();
       }
     });
-    this.drawReadyObserver.observe(eventContainer, {childList: true, subtree: true});
+    this.drawReadyObserver.observe(eventContainer, { childList: true, subtree: true });
   }
 
   private hasOpenLayersEventElement(): boolean {
@@ -755,6 +765,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       const PolygonMode = deps.PolygonMode;
       const LineStringMode = deps.LineStringMode;
       const RectangleMode = deps.RectangleMode;
+      const CircleMode = deps.CircleMode;
       const SelectMode = deps.SelectMode;
       if (!TerraDrawCtor || !AdapterCtor) {
         return;
@@ -776,7 +787,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         toLonLat: this.mapDeps.toLonLat,
       };
 
-      const adapter = new AdapterCtor({map: this.map, lib: openLayersLib});
+      const adapter = new AdapterCtor({ map: this.map, lib: openLayersLib });
       const modes: unknown[] = [];
       if (this.enabledModes.includes("point") && PointMode) {
         modes.push(new PointMode());
@@ -788,7 +799,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         modes.push(new LineStringMode());
       }
       if (this.enabledModes.includes("rectangle") && RectangleMode) {
-        modes.push(new RectangleMode({drawInteraction: "click-drag"}));
+        modes.push(new RectangleMode({ drawInteraction: "click-drag" }));
+      }
+      if (this.enabledModes.includes("circle") && CircleMode) {
+        modes.push(new CircleMode({ drawInteraction: "click-drag" }));
       }
       if (this.enabledModes.includes("select") && SelectMode) {
         modes.push(new SelectMode(this.buildSelectModeOptions()));
@@ -803,7 +817,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
       this.draw.start?.();
       this.setInitialDrawMode();
-      this.draw.on?.("change", (changes?: {deletedIds?: unknown[]}) => {
+      this.draw.on?.("change", (changes?: { deletedIds?: unknown[] }) => {
         this.removeDeletedSelections(changes?.deletedIds);
         const value = this.readValueFromDraw();
         this.updateModelValue(value);
@@ -861,7 +875,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
           draggable: true,
           coordinates: {
             draggable: true,
-            midpoints: {draggable: true},
+            midpoints: { draggable: true },
             deletable: true
           }
         }
@@ -899,18 +913,19 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       PolygonMode: terraDraw.TerraDrawPolygonMode,
       LineStringMode: terraDraw.TerraDrawLineStringMode,
       RectangleMode: terraDraw.TerraDrawRectangleMode,
+      CircleMode: terraDraw.TerraDrawCircleMode,
       SelectMode: terraDraw.TerraDrawSelectMode
     };
   }
 
-  private createVectorSourceFromFeatureCollection(value: MapModelValueType): {source: OLVectorSource; features: any[]} {
+  private createVectorSourceFromFeatureCollection(value: MapModelValueType): { source: OLVectorSource; features: any[] } {
     const geoJsonFormat = new this.mapDeps!.GeoJSON();
     const features = geoJsonFormat.readFeatures(value as any, {
       dataProjection: "EPSG:4326",
       featureProjection: "EPSG:3857"
     });
     return {
-      source: new this.mapDeps!.VectorSource({features}),
+      source: new this.mapDeps!.VectorSource({ features }),
       features
     };
   }
@@ -920,7 +935,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return;
     }
     this.removeFeatureLayer();
-    const {source} = this.createVectorSourceFromFeatureCollection(value);
+    const { source } = this.createVectorSourceFromFeatureCollection(value);
     this.vectorSource = source;
     this.featureLayer = new this.mapDeps.VectorLayer({
       source: this.vectorSource
@@ -957,7 +972,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     if (!this.draw) {
       const currentValue = this.currentModelValue();
-      this.renderReadonlyLayer({...currentValue, features: [...currentValue.features, ...features as any[]]});
+      this.renderReadonlyLayer({ ...currentValue, features: [...currentValue.features, ...features as any[]] });
       return;
     }
     try {
@@ -976,7 +991,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return this.normalizeFeatureCollection(snapshot);
     }
     if (Array.isArray(snapshot)) {
-      return this.normalizeFeatureCollection({type: "FeatureCollection", features: snapshot});
+      return this.normalizeFeatureCollection({ type: "FeatureCollection", features: snapshot });
     }
     return this.currentModelValue();
   }
@@ -1012,7 +1027,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!value || typeof value !== "object") {
       return emptyFeatureCollection();
     }
-    const source = value as {type?: unknown; features?: unknown};
+    const source = value as { type?: unknown; features?: unknown };
     if (source.type === "FeatureCollection" && Array.isArray(source.features)) {
       return {
         type: "FeatureCollection",
@@ -1090,7 +1105,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       if (entries[0]?.isIntersecting) {
         this.invalidateMap();
       }
-    }, {threshold: 0.1});
+    }, { threshold: 0.1 });
     this.visibilityObserver.observe(this.mapHost.nativeElement);
   }
 
@@ -1118,7 +1133,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     const extent = this.vectorSource.getExtent();
     if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
-      this.map.getView().fit(extent, {padding: [12, 12, 12, 12]});
+      this.map.getView().fit(extent, { padding: [12, 12, 12, 12] });
     }
   }
 
