@@ -21,11 +21,9 @@ import {PopulateExportedMethods} from '../decorator/PopulateExportedMethods.deco
 import {Services as services} from '../CoreService';
 import {
   buildKeyString,
-  handlebarsCompile,
   handlebarsPrecompile,
   jsonataCompile,
   jsonataExpressionEncode,
-  normaliseVisual,
   TemplateCompileInput,
   TemplateCompileItem,
   TemplateCompileKey,
