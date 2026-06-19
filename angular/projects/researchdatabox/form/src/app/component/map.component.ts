@@ -271,7 +271,7 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
           <div class="rb-map-import mt-2">
             <label class="form-label">{{ importLabel }}</label>
             @if (coordinatesHelp) {
-              <div class="small text-muted mb-1" [innerHTML]="coordinatesHelp"></div>
+              <div class="small text-muted mb-1">{{ coordinatesHelp }}</div>
             }
             <textarea
               class="form-control"
@@ -511,7 +511,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
     const coordinatesHelp = String(cfg.coordinatesHelp ?? "");
-    this.coordinatesHelp = coordinatesHelp ? String(this.translationService.t(coordinatesHelp) ?? coordinatesHelp) : "";
+    this.coordinatesHelp = coordinatesHelp ? this.translateText(coordinatesHelp, coordinatesHelp) : "";
     this.translatedModeHelpText = this.translateModeHelpText();
     this.deleteSelectedHelpText = this.translateText("@map-toolbar-delete-selected-help", "Delete the selected map feature.");
     this.clearAllHelpText = this.translateText("@map-toolbar-clear-all-help", "Clear all points, lines, and shapes from the map.");
