@@ -87,6 +87,14 @@ describe("MapComponent", () => {
     return this;
   }
 
+  function getToolbarButtons(fixture: any): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
+  }
+
+  function getButtonLabel(button: HTMLButtonElement): string {
+    return button.getAttribute("aria-label") ?? "";
+  }
+
   beforeEach(async () => {
     drawFeatures = [];
     drawListeners = {};
@@ -621,7 +629,7 @@ describe("MapComponent", () => {
     expect(enabledModeButtons.length).toBeGreaterThan(0);
     expect(enabledModeButtons.every((button) => !button.disabled)).toBeTrue();
 
-    const polygonButton = enabledModeButtons.find((button) => button.textContent?.trim() === "Polygon") as HTMLButtonElement;
+    const polygonButton = enabledModeButtons.find((button) => getButtonLabel(button) === "Polygon") as HTMLButtonElement;
     polygonButton.click();
     fixture.detectChanges();
 
@@ -673,15 +681,14 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(modeButtonText).toContain("Point");
-    expect(modeButtonText).toContain("Select/Edit");
+    const modeButtons = getToolbarButtons(fixture);
+    const modeButtonLabels = modeButtons.map(getButtonLabel);
+    expect(modeButtonLabels).toContain("Point");
+    expect(modeButtonLabels).toContain("Select/Edit");
 
     // Delete button stays hidden until a feature is selected.
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
-    const selectButton = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .find((button) => button.textContent?.trim() === "Select/Edit") as HTMLButtonElement;
+    const selectButton = modeButtons.find((button) => getButtonLabel(button) === "Select/Edit") as HTMLButtonElement;
     selectButton.click();
     fixture.detectChanges();
 
@@ -790,9 +797,8 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const initialModeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(initialModeButtonText).toEqual(["Point"]);
+    const initialModeButtons = getToolbarButtons(fixture);
+    expect(initialModeButtons.map(getButtonLabel)).toEqual(["Point"]);
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
 
     mapComponent.formControl.setValue({
@@ -808,9 +814,7 @@ describe("MapComponent", () => {
     });
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(modeButtonText).toContain("Select/Edit");
+    expect(getToolbarButtons(fixture).map(getButtonLabel)).toContain("Select/Edit");
   });
 
   it("configures select mode so drawn rectangles can be manually selected", async () => {
@@ -884,8 +888,7 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    const modeButtonText = getToolbarButtons(fixture).map(getButtonLabel);
     const circleMode = fakeModeInstances.find((mode) => mode.modeName === "circle");
 
     expect(modeButtonText).toContain("Circle");
@@ -922,8 +925,7 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    const modeButtonText = getToolbarButtons(fixture).map(getButtonLabel);
     expect(modeButtonText).toEqual(["Point"]);
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
     expect(fakeSelectModeOptions.length).toBe(0);
