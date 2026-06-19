@@ -88,25 +88,6 @@ describe('TemplateService', function () {
     });
   });
 
-  describe('buildServerHandlebars', function () {
-    it('should compile a valid Handlebars template', function () {
-      const template = '{{firstName}} {{lastName}}';
-
-      const result = TemplateService.buildServerHandlebars(template);
-
-      expect(result).to.be.a('function');
-    });
-
-    it('should execute the compiled template', function () {
-      const template = '{{firstName}} {{lastName}}';
-
-      const compiled = TemplateService.buildServerHandlebars(template);
-      const output = compiled({ firstName: 'John', lastName: 'Doe' });
-
-      expect(output).to.equal('John Doe');
-    });
-  });
-
   describe('buildClientMapping', function () {
     it('should build mapping for JSONata inputs', function () {
       const inputs = [{ key: ['field1'], kind: 'jsonata', value: '$.name' }];
@@ -164,7 +145,6 @@ describe('TemplateService', function () {
       expect(exported).to.have.property('buildClientMapping');
       expect(exported).to.have.property('buildClientJsonata');
       expect(exported).to.have.property('buildClientHandlebars');
-      expect(exported).to.have.property('buildServerHandlebars');
       expect(exported).to.have.property('buildKeyString');
     });
   });

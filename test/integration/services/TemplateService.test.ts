@@ -1,12 +1,10 @@
-import {handlebarsTemplate} from "@researchdatabox/sails-ng-common";
-
 const jsonataHelpers = require("../../../packages/sails-ng-common/dist/src/jsonata-helpers");
+const handlebarsHelpers = require("../../../packages/sails-ng-common/dist/src/handlebars-helpers");
 
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
-const Handlebars = require('handlebars');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -46,7 +44,7 @@ describe('The TemplateService', function () {
         cases.forEach(({ args, expected }) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
-                const serverReady = TemplateService.buildServerHandlebars(args.template);
+                const serverReady = handlebarsHelpers.handlebarsCompile(args.template);
                 const serverResult = serverReady ? serverReady(args.context) : "";
                 expect(serverResult).to.eql(expected);
 
@@ -62,9 +60,9 @@ describe('The TemplateService', function () {
         });
     });
     describe('compile mapping', function () {
-        const extraHandlebars = {libraries: { handlebars: handlebarsTemplate }};
+        const extraHandlebars = {libraries: { handlebars: handlebarsHelpers.handlebarsTemplate }};
         const extraJsonata = {libraries: {jsonata: jsonataHelpers.jsonataDecodeCompile}};
-        const extraHandlebarsAndJsonata = {libraries: { handlebars: handlebarsTemplate, jsonata: jsonataHelpers.jsonataDecodeCompile}};
+        const extraHandlebarsAndJsonata = {libraries: { handlebars: handlebarsHelpers.handlebarsTemplate, jsonata: jsonataHelpers.jsonataDecodeCompile}};
         const cases = [
             {
                 args: { inputs: [], contexts: [] },

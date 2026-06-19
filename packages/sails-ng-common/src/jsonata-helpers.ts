@@ -1,6 +1,7 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
 import {decodeBase64, encodeBase64} from "./html-helpers";
+import {normaliseVisual} from "./config/names/naming-helpers";
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
@@ -52,6 +53,7 @@ export function luxonFormatDate(
  * @param expression The jsonata expression string.
  */
 export function jsonataExpressionEncode(expression: string): string {
+  expression = normaliseVisual(expression);
   return encodeBase64(expression);
 }
 
@@ -78,6 +80,7 @@ export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonat
  * @return compiled JSONata expression object
  */
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  expression = normaliseVisual(expression);
   const compiled = jsonata(expression, options);
 
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.

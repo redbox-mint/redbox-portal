@@ -29,6 +29,7 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
+import {normaliseVisual} from "./config/names/naming-helpers";
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -763,7 +764,8 @@ export function handlebarsInstance() {
  */
 export function handlebarsPrecompile(input: unknown, options?: PrecompileOptions): TemplateSpecification {
   const instance = handlebarsInstance();
-  return instance.precompile(input, options);
+  const value = normaliseVisual(input);
+  return instance.precompile(value, options);
 }
 
 /**
@@ -773,7 +775,8 @@ export function handlebarsPrecompile(input: unknown, options?: PrecompileOptions
  */
 export function handlebarsCompile(input: unknown, options?: CompileOptions): HandlebarsTemplateDelegate {
   const instance = handlebarsInstance();
-  return instance.compile(input, options);
+  const value = normaliseVisual(input);
+  return instance.compile(value, options);
 }
 
 /**

@@ -70,7 +70,7 @@ export namespace Services {
           case 'handlebars':
             result.push({
               key: input.key,
-              value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
+              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
             });
             break;
           default:
@@ -89,7 +89,6 @@ export namespace Services {
      */
     public buildClientJsonata(expression: string): string | null {
       try {
-        expression = normaliseVisual(expression);
         // Validate the expression by compiling it
         const compiled = jsonataCompile(expression);
         sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
@@ -111,27 +110,9 @@ export namespace Services {
      */
     public buildClientHandlebars(template: string): string | null {
       try {
-        template = normaliseVisual(template);
         return handlebarsPrecompile(template)?.toString();
       } catch (error) {
         sails.log.error(`Could not build client Handlebars template '${template}'`, error);
-        return null;
-      }
-    }
-
-    /**
-     * Compile a Handlebars template to a form that is ready to be executed on the server.
-     *
-     * The template will be normalised and have some transformations applied.
-     *
-     * @param template
-     */
-    public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
-      try {
-        template = normaliseVisual(template);
-        return handlebarsCompile(template);
-      } catch (error) {
-        sails.log.error(`Could not build server Handlebars template '${template}'`, error);
         return null;
       }
     }
