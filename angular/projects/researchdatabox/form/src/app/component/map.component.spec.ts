@@ -1,7 +1,9 @@
 import {TestBed} from "@angular/core/testing";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {TranslationService} from "@researchdatabox/portal-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {MAP_DEPENDENCIES_LOADER, MapComponent} from "./map.component";
+import {ConfirmationDialogService} from "../confirmation-dialog.service";
 
 describe("MapComponent", () => {
   let fakeMap: any;
@@ -136,6 +138,10 @@ describe("MapComponent", () => {
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
         drawFeatures.push(...features);
       }),
+      clear: jasmine.createSpy("clear").and.callFake(() => {
+        drawFeatures = [];
+        drawListeners["change"]?.forEach((listener) => listener({}));
+      }),
       removeFeatures: jasmine.createSpy("removeFeatures").and.callFake((ids: unknown[]) => {
         drawFeatures = drawFeatures.filter((feature: any) => !ids.includes(feature.id));
         drawListeners["change"]?.forEach((listener) => listener({deletedIds: ids}));
@@ -192,7 +198,16 @@ describe("MapComponent", () => {
       terraDrawOpenLayersAdapter: {
         TerraDrawOpenLayersAdapter: fakeAdapterCtor
       },
-      parseKmlToGeoJson: () => ({type: "FeatureCollection", features: []})
+      parseKmlToGeoJson: () => ({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [146.82, -19.25]},
+            properties: {name: "Townsville"}
+          }
+        ]
+      })
     } as any;
 
     await createTestbedModule({
@@ -258,6 +273,163 @@ describe("MapComponent", () => {
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect(modelValue?.type).toBe("FeatureCollection");
     expect((modelValue?.features ?? []).length).toBe(1);
+  });
+
+  it("imports a single GeoJSON feature snippet", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {type: "Point", coordinates: [146.82, -19.25]},
+      properties: {name: "Townsville"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue?.type).toBe("FeatureCollection");
+    expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].properties.name).toBe("Townsville");
+  });
+
+  it("imports a raw GeoJSON geometry snippet", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Point",
+      coordinates: [146.82, -19.25]
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].geometry.type).toBe("Point");
+  });
+
+  it("imports KML and updates form model value", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = "<kml><Placemark><Point><coordinates>146.82,-19.25</coordinates></Point></Placemark></kml>";
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].properties.name).toBe("Townsville");
+  });
+
+  it("renders translated coordinates help text", async () => {
+    const translationService = TestBed.inject(TranslationService as any) as any;
+    spyOn(translationService, "t").and.callFake((key: string) => {
+      if (key === "@dataPublication-geospatial-coordinates-help") {
+        return "Enter or paste translated KML or GeoJSON help.";
+      }
+      return key;
+    });
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              coordinatesHelp: "@dataPublication-geospatial-coordinates-help"
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Enter or paste translated KML or GeoJSON help.");
+    expect(fixture.nativeElement.textContent).not.toContain("@dataPublication-geospatial-coordinates-help");
   });
 
   it("shows invalid import error for malformed payload", async () => {
@@ -489,6 +661,64 @@ describe("MapComponent", () => {
     expect(mapComponent.selectedFeatureIds.size).toBe(0);
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual(["feature-2"]);
+  });
+
+  it("clears all map features after confirmation", async () => {
+    const confirmationDialogService = TestBed.inject(ConfirmationDialogService);
+    const confirmSpy = spyOn(confirmationDialogService, "confirm").and.resolveTo(true);
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const clearButton = fixture.nativeElement.querySelector(".rb-map-clear-btn") as HTMLButtonElement;
+    expect(clearButton).not.toBeNull();
+    clearButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith({
+      title: "Clear map features",
+      message: "Clear all map features?",
+      confirmLabel: "Clear All",
+      cancelLabel: "Cancel",
+      confirmButtonClass: "btn btn-danger"
+    });
+    expect(fakeDraw.clear).toHaveBeenCalled();
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue).toEqual({type: "FeatureCollection", features: []});
+    expect(fixture.nativeElement.querySelector(".rb-map-clear-btn")).toBeNull();
   });
 
   it("hides the select button until the map has features", async () => {
