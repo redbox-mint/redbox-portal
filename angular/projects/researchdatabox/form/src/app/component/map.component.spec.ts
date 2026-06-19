@@ -238,6 +238,38 @@ describe("MapComponent", () => {
     expect(component).toBeDefined();
   });
 
+  it("exposes toolbar help text to assistive technology", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const pointButton = fixture.nativeElement.querySelector(".rb-map-mode-btn") as HTMLButtonElement;
+    const helpId = pointButton.getAttribute("aria-describedby");
+    expect(helpId).toBe("rb-map-mode-help-point");
+    expect(fixture.nativeElement.querySelector(`#${helpId}`)?.textContent).toContain("Add a point marker to the map.");
+  });
+
   it("imports GeoJSON and updates form model value", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",

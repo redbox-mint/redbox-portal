@@ -207,6 +207,7 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
           @if (isEditMode() && showDrawToolbar) {
             <div class="rb-map-toolbar">
               @for (mode of toolbarModes; track mode) {
+                @let modeHelpId = 'rb-map-mode-help-' + mode;
                 <button
                   type="button"
                   class="btn btn-light btn-sm rb-map-mode-btn"
@@ -215,13 +216,16 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
                   [disabled]="isDisabled"
                   [attr.title]="modeLabels[mode]"
                   [attr.aria-label]="modeLabels[mode]"
+                  [attr.aria-describedby]="modeHelpId"
                 >
                   <i [class]="modeIconClasses[mode]" aria-hidden="true"></i>
                   <span class="visually-hidden">{{ modeLabels[mode] }}</span>
-                  <span class="rb-map-help-popover" role="tooltip" [attr.data-help]="translatedModeHelpText[mode]"></span>
+                  <span class="visually-hidden" [id]="modeHelpId">{{ translatedModeHelpText[mode] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText[mode]"></span>
                 </button>
               }
               @if (canSelectFeatures && hasFeatures()) {
+                @let selectHelpId = 'rb-map-mode-help-select';
                 <button
                   type="button"
                   class="btn btn-light btn-sm rb-map-mode-btn rb-map-select-btn"
@@ -230,13 +234,16 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
                   [disabled]="isDisabled"
                   [attr.title]="modeLabels['select']"
                   [attr.aria-label]="modeLabels['select']"
+                  [attr.aria-describedby]="selectHelpId"
                 >
                   <i [class]="modeIconClasses['select']" aria-hidden="true"></i>
                   <span class="visually-hidden">{{ modeLabels['select'] }}</span>
-                  <span class="rb-map-help-popover" role="tooltip" [attr.data-help]="translatedModeHelpText['select']"></span>
+                  <span class="visually-hidden" [id]="selectHelpId">{{ translatedModeHelpText['select'] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText['select']"></span>
                 </button>
               }
               @if (canDeleteSelectedFeatures && selectedFeatureIds.size > 0) {
+                @let deleteHelpId = 'rb-map-delete-help';
                 <button
                   type="button"
                   class="btn btn-outline-danger btn-sm rb-map-delete-btn"
@@ -244,13 +251,16 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
                   [disabled]="isDisabled"
                   title="Delete selected"
                   aria-label="Delete selected"
+                  [attr.aria-describedby]="deleteHelpId"
                 >
                   <i class="fa fa-trash" aria-hidden="true"></i>
                   <span class="visually-hidden">Delete selected</span>
-                  <span class="rb-map-help-popover" role="tooltip" [attr.data-help]="deleteSelectedHelpText"></span>
+                  <span class="visually-hidden" [id]="deleteHelpId">{{ deleteSelectedHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="deleteSelectedHelpText"></span>
                 </button>
               }
               @if (hasFeatures()) {
+                @let clearHelpId = 'rb-map-clear-help';
                 <button
                   type="button"
                   class="btn btn-outline-danger btn-sm rb-map-clear-btn"
@@ -258,10 +268,12 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
                   [disabled]="isDisabled"
                   title="Clear All"
                   aria-label="Clear All"
+                  [attr.aria-describedby]="clearHelpId"
                 >
                   <i class="fa fa-times-circle" aria-hidden="true"></i>
                   <span class="visually-hidden">Clear All</span>
-                  <span class="rb-map-help-popover" role="tooltip" [attr.data-help]="clearAllHelpText"></span>
+                  <span class="visually-hidden" [id]="clearHelpId">{{ clearAllHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="clearAllHelpText"></span>
                 </button>
               }
             </div>
