@@ -22,6 +22,7 @@ describe("MapComponent", () => {
   let fakeAdapterCtor: jasmine.Spy;
   let drawListeners: Record<string, Function[]>;
   let fakeSelectModeOptions: unknown[];
+  let fakeModeInstances: any[];
   let fakeXYZInstances: any[];
 
   function appendOpenLayersCanvas(target: HTMLElement | undefined): void {
@@ -90,6 +91,7 @@ describe("MapComponent", () => {
     drawFeatures = [];
     drawListeners = {};
     fakeSelectModeOptions = [];
+    fakeModeInstances = [];
     fakeXYZInstances = [];
     fakeMapCreatesCanvas = true;
     fakeMapCreatesCanvasOnRenderSync = false;
@@ -160,12 +162,18 @@ describe("MapComponent", () => {
       fakeAdapterCtor();
       return {};
     }
-    function FakeModeCtor(this: unknown) {
-      return {};
+    function fakeModeCtor(modeName: string) {
+      return function FakeModeCtor(this: unknown, options?: unknown) {
+        const mode = {modeName, options};
+        fakeModeInstances.push(mode);
+        return mode;
+      };
     }
     function FakeSelectModeCtor(this: unknown, options: unknown) {
+      const mode = {modeName: "select", options};
       fakeSelectModeOptions.push(options);
-      return {};
+      fakeModeInstances.push(mode);
+      return mode;
     }
 
     const mapDependencies = {
@@ -189,11 +197,11 @@ describe("MapComponent", () => {
       Projection: function FakeProjection() {} as any,
       terraDraw: {
         TerraDraw: FakeTerraDrawCtor,
-        TerraDrawPointMode: FakeModeCtor,
-        TerraDrawPolygonMode: FakeModeCtor,
-        TerraDrawLineStringMode: FakeModeCtor,
-        TerraDrawRectangleMode: FakeModeCtor,
-        TerraDrawCircleMode: FakeModeCtor,
+        TerraDrawPointMode: fakeModeCtor("point"),
+        TerraDrawPolygonMode: fakeModeCtor("polygon"),
+        TerraDrawLineStringMode: fakeModeCtor("linestring"),
+        TerraDrawRectangleMode: fakeModeCtor("rectangle"),
+        TerraDrawCircleMode: fakeModeCtor("circle"),
         TerraDrawSelectMode: FakeSelectModeCtor
       },
       terraDrawOpenLayersAdapter: {
@@ -815,6 +823,43 @@ describe("MapComponent", () => {
           })
         })
       })
+    }));
+  });
+
+  it("includes circle draw mode in default draw tooling", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
+      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    const circleMode = fakeModeInstances.find((mode) => mode.modeName === "circle");
+
+    expect(modeButtonText).toContain("Circle");
+    expect(circleMode).toEqual(jasmine.objectContaining({
+      modeName: "circle",
+      options: {drawInteraction: "click-drag"}
     }));
   });
 
