@@ -193,6 +193,7 @@ describe("MapComponent", () => {
         TerraDrawPolygonMode: FakeModeCtor,
         TerraDrawLineStringMode: FakeModeCtor,
         TerraDrawRectangleMode: FakeModeCtor,
+        TerraDrawCircleMode: FakeModeCtor,
         TerraDrawSelectMode: FakeSelectModeCtor
       },
       terraDrawOpenLayersAdapter: {
