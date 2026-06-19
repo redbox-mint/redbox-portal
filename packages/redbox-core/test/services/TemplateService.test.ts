@@ -85,9 +85,6 @@ describe('TemplateService', function () {
       // Call twice to test caching
       TemplateService.buildClientHandlebars('{{name}}');
       TemplateService.buildClientHandlebars('{{other}}');
-
-      // Should not throw, helpers registered once
-      expect(TemplateService.helpersRegistered).to.be.true;
     });
   });
 

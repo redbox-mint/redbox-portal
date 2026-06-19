@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { AppConfig } from './AppConfig.interface';
 
-export type DoiBindingKind = 'path' | 'handlebars' | 'jsonata';
 
 export interface PathBinding {
   kind: 'path';
@@ -22,6 +21,7 @@ export interface JsonataBinding {
 }
 
 export type ValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+export type DoiBindingKind = ValueBinding['kind'];
 
 export interface DoiNameIdentifierMapping {
   nameIdentifier: ValueBinding;

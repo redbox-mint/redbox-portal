@@ -1,17 +1,8 @@
 import _ from 'lodash';
-import Handlebars from 'handlebars';
-import {jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers} from '@researchdatabox/sails-ng-common';
+import {handlebarsCompile, jsonataCompileAndEvaluate} from '@researchdatabox/sails-ng-common';
 import { ValueBinding } from '../../configmodels/FigsharePublishing';
 import { AnyRecord } from './types';
 
-let handlebarsHelpersRegistered = false;
-
-export function ensureHandlebarsHelpersRegistered(): void {
-  if (!handlebarsHelpersRegistered) {
-    registerSharedHandlebarsHelpers(Handlebars);
-    handlebarsHelpersRegistered = true;
-  }
-}
 
 export function validateHandlebarsTemplate(template: string): void {
   const allowedHelpers = new Set(['default', 'join', 'lower', 'upper', 'trim', 'formatDate']);
@@ -45,9 +36,8 @@ export async function evaluateBinding(binding: ValueBinding | undefined, record:
   }
 
   if (binding.kind === 'handlebars') {
-    ensureHandlebarsHelpersRegistered();
     validateHandlebarsTemplate(binding.template);
-    const compiled = Handlebars.compile(binding.template);
+    const compiled = handlebarsCompile(binding.template);
     const value = compiled(record);
     return value === '' ? binding.defaultValue : value;
   }

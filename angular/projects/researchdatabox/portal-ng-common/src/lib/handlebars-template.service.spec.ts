@@ -5,7 +5,7 @@ import { HandlebarsTemplateService } from './handlebars-template.service';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
-import Handlebars from 'handlebars';
+import { handlebarsPrecompile } from "@researchdatabox/sails-ng-common";
 
 describe('HandlebarsTemplateService', () => {
   let service: HandlebarsTemplateService;
@@ -104,7 +104,7 @@ describe('HandlebarsTemplateService', () => {
     it('should execute precompiled template from loaded module if keys provided', async () => {
       // Create a real template spec using the full Handlebars (imported in test)
       const templateString = 'Precompiled: {{title}}';
-      const precompiledString = Handlebars.precompile(templateString);
+      const precompiledString = handlebarsPrecompile(templateString);
       // Convert string to spec object (simulating what the build/loader does)
       const templateSpec = new Function('return ' + precompiledString)();
 

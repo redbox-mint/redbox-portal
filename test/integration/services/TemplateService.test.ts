@@ -1,3 +1,5 @@
+import {handlebarsTemplate} from "@researchdatabox/sails-ng-common";
+
 const jsonataHelpers = require("../../../packages/sails-ng-common/dist/src/jsonata-helpers");
 
 const fs = require('node:fs/promises');
@@ -60,9 +62,9 @@ describe('The TemplateService', function () {
         });
     });
     describe('compile mapping', function () {
-        const extraHandlebars = {libraries: { Handlebars: Handlebars}};
+        const extraHandlebars = {libraries: { handlebars: handlebarsTemplate }};
         const extraJsonata = {libraries: {jsonata: jsonataHelpers.jsonataDecodeCompile}};
-        const extraHandlebarsAndJsonata = {libraries: { Handlebars: Handlebars, jsonata: jsonataHelpers.jsonataDecodeCompile}};
+        const extraHandlebarsAndJsonata = {libraries: { handlebars: handlebarsTemplate, jsonata: jsonataHelpers.jsonataDecodeCompile}};
         const cases = [
             {
                 args: { inputs: [], contexts: [] },

@@ -1,11 +1,11 @@
 import { promises as fs } from 'fs';
 import fsSync from 'fs';
-import Handlebars from 'handlebars';
 import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
 import type { RedboxMigration } from './MigrationRunner';
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type { RedboxMigration } from './MigrationRunner';
 
@@ -157,7 +157,7 @@ async function readLoaderTemplate(templateName: string): Promise<string> {
 }
 
 async function renderLoaderTemplate(templateName: string, replacements: Record<string, string>): Promise<string> {
-    const template = Handlebars.compile(await readLoaderTemplate(templateName), { noEscape: true });
+    const template = handlebarsCompile(await readLoaderTemplate(templateName), { noEscape: true });
     return template(replacements);
 }
 

@@ -20,17 +20,12 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
-import Handlebars from 'handlebars/runtime';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
 import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
-import { registerSharedHandlebarsHelpers, buildKeyString } from '@researchdatabox/sails-ng-common';
-
-// Type for compiled Handlebars template function
-type TemplateFunction = (context: any) => string;
+import {buildKeyString, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 
 /**
  * Service for managing pre-compiled Handlebars templates from the server.
@@ -46,7 +41,6 @@ export class HandlebarsTemplateService extends HttpClientService {
 
     // Registry of loaded template modules
     private moduleRegistry: Map<string, any> = new Map();
-    private helpersRegistered = false;
 
     constructor(
         @Inject(HttpClient) http: HttpClient,
@@ -56,29 +50,12 @@ export class HandlebarsTemplateService extends HttpClientService {
         @Inject(LoggerService) private loggerService: LoggerService
     ) {
         super(http, rootContext, utilityService, configService);
-        this.registerHelpers();
     }
 
     public override async waitForInit(): Promise<any> {
         await super.waitForInit();
         this.enableCsrfHeader();
         return this;
-    }
-
-    /**
-     * Register Handlebars helpers for use in dashboard and report templates.
-     * Uses shared helpers from sails-ng-common for consistency between server and client.
-     */
-    private registerHelpers() {
-        if (this.helpersRegistered) {
-            return;
-        }
-
-        // Register all shared helpers from sails-ng-common
-        registerSharedHandlebarsHelpers(Handlebars);
-
-        this.helpersRegistered = true;
-        this.loggerService.debug('Handlebars helpers registered');
     }
 
     /**
@@ -241,7 +218,7 @@ export class HandlebarsTemplateService extends HttpClientService {
                 try {
                     // The evaluate function compiles and runs the template with the context
                     // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
-                    return module.evaluate(keyParts, context, { libraries: { Handlebars } });
+                    return module.evaluate(keyParts, context, { libraries: {handlebars: handlebarsTemplate} });
                 } catch (e) {
                     this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
                     return null;
@@ -288,12 +265,5 @@ export class HandlebarsTemplateService extends HttpClientService {
      */
     public getCacheSize(): number {
         return this.moduleRegistry.size;
-    }
-
-    /**
-     * Get the libraries used by the templates (e.g. Handlebars with registered helpers).
-     */
-    public getLibraries(): any {
-        return { Handlebars };
     }
 }
