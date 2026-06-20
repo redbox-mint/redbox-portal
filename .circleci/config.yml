@@ -22,11 +22,11 @@ jobs:
             - ~/.npm
       - setup_remote_docker
       - run:
-          name: Build runtime image via Dockerfile
+          name: Build test image via Dockerfile
           command: |
             docker build \
               --progress plain \
-              --target runtime \
+              --target test \
               --tag redbox-portal:test \
               .
       - run:
