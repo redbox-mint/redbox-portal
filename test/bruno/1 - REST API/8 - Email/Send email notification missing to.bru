@@ -30,7 +30,7 @@ tests {
   test("Status code is 400", function () {
       expect(res.getStatus()).to.equal(400);
   });
-  test("Message contains error", function () {
-      expect(res.getBody().message).to.contain("An error has occurred");
+  test("Message contains validation error", function () {
+      expect(res.getBody().message).to.contain("body.to");
   });
 }

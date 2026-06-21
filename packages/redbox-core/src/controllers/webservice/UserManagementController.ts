@@ -148,14 +148,16 @@ export namespace Controllers {
       const searchQuery = query.query as string | undefined;
       const queryObject: Record<string, unknown> = {};
 
-      if (!searchField || !searchQuery) {
+      if ((searchField && !searchQuery) || (!searchField && searchQuery)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Both searchBy and query parameters are required' }],
           headers: this.getNoCacheHeaders(),
         });
       }
-      queryObject[searchField] = searchQuery;
+      if (searchField && searchQuery) {
+        queryObject[searchField] = searchQuery;
+      }
       const page: number = query.page != null ? parseInt(String(query.page), 10) : 1;
       const pageSize: number = query.pageSize != null ? parseInt(String(query.pageSize), 10) : 10;
       const skip = (page - 1) * pageSize;

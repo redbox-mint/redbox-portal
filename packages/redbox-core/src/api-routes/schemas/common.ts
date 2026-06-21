@@ -34,7 +34,7 @@ export const pageSizeField = (description?: string): ApiSchemaField =>
 export const userSearchByField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['id', 'username', 'email', 'name', 'oidcSub', 'apiToken']), description);
 export const recordTypeNameField = (description?: string): ApiSchemaField =>
-  withDescription(z.enum(['rdmp', 'dataPublication']), description);
+  patternStringField('^[A-Za-z0-9_-]+$', description);
 export const vocabularyTypeField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['flat', 'tree']), description);
 export const integrationAuditStatusField = (description?: string): ApiSchemaField =>
@@ -150,8 +150,7 @@ export const userSearchQuery = objectField(
     query: nonEmptyStringField('Search query'),
     includeDisabled: booleanQueryField('Include disabled users'),
   },
-  // listUsers requires both searchBy and query together; document them as required.
-  ['searchBy', 'query']
+  []
 );
 
 export const recordSearchQuery = objectField({

@@ -25,7 +25,7 @@ import {
   userSearchQuery,
 } from '../schemas/common';
 
-const userRoleNameSchema = z.enum(['Admin', 'Researcher', 'Guest', 'Librarians']).openapi({ description: 'Role name' });
+const userRoleNameSchema = nonEmptyStringField('Role name');
 const userRoleSelectionSchema = z.union([
   userRoleNameSchema,
   objectField({ name: userRoleNameSchema }, ['name'], 'Role reference'),
@@ -187,7 +187,7 @@ export const updateUserRoute = apiRoute(
               password: nonEmptyStringField(),
               roles: z.array(userRoleSelectionSchema).min(1),
             },
-            ['id', 'name', 'email', 'password', 'roles']
+            ['id', 'name', 'email', 'password']
           ),
         },
       },

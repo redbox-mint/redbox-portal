@@ -12,6 +12,7 @@ import {
   responseField,
   stringField,
 } from '../schemas/common';
+import { z } from '../zod-openapi';
 
 const translationKeyTailDescription = 'Translation key segment.';
 const localeField = patternStringField('^[a-z]{2}(-[A-Z]{2})?$');
@@ -36,6 +37,24 @@ const dottedTranslationParams = objectField(
 );
 
 const bundleParams = objectField({ locale: localeField, namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
+const setBundleEnvelopeBody = objectField(
+  {
+    data: objectField({}, [], 'Bundle payload', true),
+    splitToEntries: booleanField(),
+    overwriteEntries: booleanField(),
+  },
+  ['data'],
+  'Bundle payload'
+);
+const setBundleBody = z.union([
+  setBundleEnvelopeBody,
+  z.object({}).passthrough().openapi({
+    description: 'Legacy raw translation bundle payload',
+    additionalProperties: true,
+  }),
+]).openapi({
+  description: 'Translation bundle payload. Accepts either the canonical { data } envelope or a legacy raw bundle object.',
+});
 
 export const listEntriesRoute = apiRoute(
   'get',
@@ -186,15 +205,7 @@ export const setBundleRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField(
-            {
-              data: objectField({}, [], 'Bundle payload', true),
-              splitToEntries: booleanField(),
-              overwriteEntries: booleanField(),
-            },
-            ['data'],
-            'Bundle payload'
-          ),
+          schema: setBundleBody,
         },
       },
     },

@@ -44,7 +44,11 @@ import {
 } from '../../src/api-routes/schemas/common';
 import { getFormRoute, listFormsRoute } from '../../src/api-routes/groups/forms';
 import { sendNotificationRoute } from '../../src/api-routes/groups/notifications';
-import { executeNamedQueryRoute } from '../../src/api-routes/groups/reports';
+import { createReportConfigRoute, executeNamedQueryRoute } from '../../src/api-routes/groups/reports';
+import { updateNamedQueryRoute } from '../../src/api-routes/groups/named-query';
+import { setBundleRoute } from '../../src/api-routes/groups/translation';
+import { createVocabularyRoute } from '../../src/api-routes/groups/vocabulary';
+import { createUserRoute, listUsersRoute, updateUserRoute } from '../../src/api-routes/groups/users';
 import { downloadRecsRoute } from '../../src/api-routes/groups/export';
 import { getRecordTypeRoute, listRecordTypesRoute } from '../../src/api-routes/groups/recordtypes';
 import {
@@ -55,7 +59,7 @@ import {
 } from '../../src/api-routes/groups/admin';
 import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-routes/groups/appconfig';
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
-import { listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
+import { createRecordRoute, harvestRoute, listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
 
@@ -1067,6 +1071,266 @@ describe('API routes contract layer', async () => {
 
     expect(result.query.exactNames).to.deep.equal({ title: 'Nebula', creator: 'Andromeda' });
     expect(result.query.facetNames).to.deep.equal({ subject: 'Astronomy' });
+  });
+
+  it('should accept legacy flat record create metadata payloads', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', recordType: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        title: "Andrew's integration test",
+        description: 'Integration test description',
+        finalKeywords: ['270199', 'Golgi apparatus'],
+        contributor_ci: {
+          text_full_name: 'Prof Paul Gleeson',
+          email: 'notAReal@email.edu.au',
+          orcid: 'http://orcid.org/0000-0000-0000-000',
+        },
+        authorization: [],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createRecordRoute.request);
+    const extracted = extractApiRequest(request, createRecordRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).title).to.equal("Andrew's integration test");
+    expect((extracted.body as Record<string, unknown>).authorization).to.deep.equal([]);
+  });
+
+  it('should accept configured hyphenated record types in metadata create routes', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', recordType: 'existing-locations' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        authorization: {
+          edit: ['admin'],
+          view: ['admin'],
+          editPending: [],
+          viewPending: [],
+        },
+        metadata: { rdmpOid: 'rdmp-1' },
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createRecordRoute.request);
+    const extracted = extractApiRequest(request, createRecordRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect(extracted.params.recordType).to.equal('existing-locations');
+  });
+
+  it('should accept empty export date filters as absent values', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', format: 'json' },
+      query: { before: '', after: '', recType: 'rdmp' },
+      headers: {},
+      body: {},
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, downloadRecsRoute.request);
+    const extracted = extractApiRequest(request, downloadRecsRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect(extracted.query.before).to.equal('');
+    expect(extracted.query.after).to.equal('');
+  });
+
+  it('should accept legacy raw translation bundle payloads', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', locale: 'ar', namespace: 'translation' },
+      query: { splitToEntries: 'true', overwriteEntries: 'true' },
+      headers: { 'content-type': 'application/json' },
+      body: {
+        _meta: {
+          'hello-world': { category: 'test', description: 'Greeting' },
+        },
+        'hello-world': 'Hello World',
+        hello: { world2: 'Hello World' },
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, setBundleRoute.request);
+    const extracted = extractApiRequest(request, setBundleRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>)['hello-world']).to.equal('Hello World');
+    expect(extracted.query.splitToEntries).to.equal(true);
+    expect(extracted.query.overwriteEntries).to.equal(true);
+  });
+
+  it('should accept tracked harvest request payloads', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', recordType: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        records: [
+          {
+            harvestId: 'tracked-harvest-1',
+            operation: 'upsert',
+            recordRequest: {
+              metadata: {
+                title: 'Tracked harvest fixture',
+                identifier: 'tracked-harvest-1',
+              },
+            },
+          },
+        ],
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-1',
+        finalChunk: true,
+        chunk: {
+          index: 1,
+          label: 'fixture',
+        },
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, harvestRoute.request);
+    const extracted = extractApiRequest(request, harvestRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).sourceRunId).to.equal('source-run-1');
+    expect((extracted.body as Record<string, unknown>).finalChunk).to.equal(true);
+  });
+
+  it('should accept vocabulary create payloads with defaulted slug and local entries', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        name: 'Bruno Vocabulary',
+        type: 'flat',
+        source: 'local',
+        entries: [{ label: 'One', value: 'one' }],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createVocabularyRoute.request);
+    const extracted = extractApiRequest(request, createVocabularyRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).name).to.equal('Bruno Vocabulary');
+    expect((extracted.body as Record<string, unknown>).entries).to.deep.equal([{ label: 'One', value: 'one' }]);
+  });
+
+  it('should accept named query updates with same-name and extra definition fields', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', name: 'bruno-test-query' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        name: 'bruno-test-query',
+        collectionName: 'user',
+        mongoQuery: { type: 'researcher' },
+        queryParams: {},
+        resultObjectMapping: { name: '{{record.name}}' },
+        brandIdFieldPath: 'branding',
+        sort: [],
+        expandRelations: false,
+        relatedRecordFilters: [],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, updateNamedQueryRoute.request);
+    const extracted = extractApiRequest(request, updateNamedQueryRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).name).to.equal('bruno-test-query');
+    expect((extracted.body as Record<string, unknown>).sort).to.deep.equal([]);
+  });
+
+  it('should accept database report config payloads with null solr query', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        name: 'bruno-report-config',
+        title: 'Bruno Report Config',
+        reportSource: 'database',
+        databaseQuery: { queryName: 'listRDMPRecords' },
+        solrQuery: null,
+        filter: [
+          {
+            type: 'date-range',
+            paramName: 'modified',
+            message: 'Modified range',
+            property: 'dateModified',
+            database: {
+              fromProperty: 'dateModifiedAfter',
+              toProperty: 'dateModifiedBefore',
+            },
+          },
+        ],
+        columns: [{ label: 'Title', property: 'title' }],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createReportConfigRoute.request);
+    const extracted = extractApiRequest(request, createReportConfigRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).solrQuery).to.equal(null);
+  });
+
+  it('should accept list users requests without search filters', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: {},
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, listUsersRoute.request);
+    const extracted = extractApiRequest(request, listUsersRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect(extracted.query).to.deep.equal({});
+  });
+
+  it('should accept create user payloads with dynamic role names', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        username: 'apiresearcher',
+        name: 'researcher created via API',
+        email: 'apiresearcher@example.test',
+        password: 'a12345672A!',
+        roles: ['Admin', 'Researcher', 'Librarian'],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createUserRoute.request);
+    const extracted = extractApiRequest(request, createUserRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).roles).to.deep.equal(['Admin', 'Researcher', 'Librarian']);
+  });
+
+  it('should accept update user payloads without roles', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        id: 'user-id',
+        name: 'researcher created via API - modified',
+        email: 'apiresearcher@example.test',
+        password: 'a12345672A!',
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, updateUserRoute.request);
+    const extracted = extractApiRequest(request, updateUserRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).roles).to.equal(undefined);
   });
 
   it('should prefer canonical query values and fall back to body values when configured', async function () {

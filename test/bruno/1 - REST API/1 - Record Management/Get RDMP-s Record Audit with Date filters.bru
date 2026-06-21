@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: {{host}}/default/rdmp/api/records/audit/{{dmpOid}}?dateFrom=2023&dateTo=2021
+  url: {{host}}/default/rdmp/api/records/audit/{{dmpOid}}?dateFrom=2023-01-01T00:00:00.000Z&dateTo=2023-12-31T23:59:59.999Z
   body: none
   auth: none
 }
 
 query {
-  dateFrom: 2023
-  dateTo: 2021
+  dateFrom: 2023-01-01T00:00:00.000Z
+  dateTo: 2023-12-31T23:59:59.999Z
 }
 
 headers {

@@ -16,6 +16,20 @@ import {
   vocabularyTreeNodeSchema,
 } from '../schemas/common';
 
+const vocabularyEntryInputSchema = objectField(
+  {
+    id: patternStringField('^[A-Za-z0-9_.-]+$', 'Vocabulary entry id'),
+    label: stringField('Entry label'),
+    value: stringField('Entry value'),
+    identifier: stringField('Entry identifier'),
+    parent: patternStringField('^[A-Za-z0-9_.-]+$', 'Parent entry id'),
+    order: nonNegativeIntegerField('Entry order'),
+  },
+  ['label', 'value'],
+  'Vocabulary entry payload',
+  true
+);
+
 export const listVocabularyRoute = apiRoute(
   'get',
   '/:branding/:portal/api/vocabulary',
@@ -103,8 +117,11 @@ export const createVocabularyRoute = apiRoute(
               name: patternStringField('^[A-Za-z0-9_ -]+$'),
               slug: patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$'),
               type: vocabularyTypeField('Vocabulary type'),
+              source: patternStringField('^(local|rva)$', 'Vocabulary source'),
+              description: stringField('Vocabulary description'),
+              entries: arrayField(vocabularyEntryInputSchema, 'Vocabulary entries'),
             },
-            ['name', 'slug', 'type'],
+            ['name'],
             'Vocabulary payload'
           ),
         },

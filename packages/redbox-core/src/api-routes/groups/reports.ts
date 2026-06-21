@@ -1,5 +1,6 @@
 import { apiRoute } from '../route-factory';
 import { anyField, apiErrorResponseSchema, arrayField, genericObjectSchema, listApiResponseSchema, namedQueryResponseRecordSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
+import { z } from '../zod-openapi';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
@@ -10,7 +11,10 @@ const reportConfigBody = objectField(
     title: nonEmptyStringField(),
     reportSource: nonEmptyStringField(),
     databaseQuery: objectField({ queryName: nonEmptyStringField() }),
-    solrQuery: objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }),
+    solrQuery: z.union([
+      objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }),
+      z.null(),
+    ]),
     filter: arrayField(objectField({}, [], 'Filter object', true)),
     columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)),
   },

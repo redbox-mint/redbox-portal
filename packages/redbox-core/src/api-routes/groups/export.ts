@@ -11,7 +11,7 @@ export const downloadRecsRoute = apiRoute(
   'downloadRecs',
   {
     params: objectField({ format: nonEmptyStringField().openapi({ enum: ['csv', 'json'] }) }, ['format']),
-    query: objectField({ recType: stringField(), before: nonEmptyStringField(), after: nonEmptyStringField() }),
+    query: objectField({ recType: stringField(), before: stringField(), after: stringField() }),
   },
   {
     tags: ['Export'],

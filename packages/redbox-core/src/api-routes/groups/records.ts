@@ -45,7 +45,7 @@ const objectMetadataUpdateBody = z.record(z.string().min(1), z.unknown())
     additionalProperties: true,
   });
 
-const createRecordBody = objectField({
+const createRecordEnvelopeBody = objectField({
   metadata: z.object({}).passthrough().openapi({ description: 'Record metadata', additionalProperties: true }),
   authorization: objectField({
     edit: arrayField(stringField()),
@@ -55,12 +55,29 @@ const createRecordBody = objectField({
   }),
   workflowStage: nonEmptyStringField('Initial workflow stage'),
 });
+const createRecordBody = z.union([
+  createRecordEnvelopeBody,
+  z.object({}).passthrough().openapi({
+    description: 'Legacy flat record metadata payload',
+    additionalProperties: true,
+  }),
+]).openapi({
+  description: 'Record create payload. Supports either an envelope with metadata/authorization or a legacy flat metadata object.',
+});
 
 const harvestRecordRequestBody = z.object({
   records: z.array(z.object({
     harvestId: z.string().min(1),
+    operation: z.enum(['create', 'update', 'upsert', 'delete']).optional(),
     recordRequest: z.object({}).passthrough().optional(),
   }).strict()).min(1),
+  sourceRunId: nonEmptyStringField('Harvest source run identifier').optional(),
+  sourceName: nonEmptyStringField('Harvest source name').optional(),
+  finalChunk: z.boolean().optional(),
+  chunk: z.object({
+    index: z.number().int().min(0).optional(),
+    label: z.string().optional(),
+  }).passthrough().optional(),
 }).strict().openapi({ description: 'Harvest payload' });
 
 const legacyHarvestRecordRequestBody = z.object({
