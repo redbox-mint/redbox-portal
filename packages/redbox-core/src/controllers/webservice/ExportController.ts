@@ -57,7 +57,7 @@ export namespace Controllers {
         } else {
           const errorResponse = new APIErrorResponse('Unsupported export format');
           return this.sendResp(req, res, {
-            status: 500,
+            status: 400,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
             headers: this.getNoCacheHeaders(),
           });

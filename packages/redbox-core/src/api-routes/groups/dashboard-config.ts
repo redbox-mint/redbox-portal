@@ -1,5 +1,5 @@
 import { apiRoute } from '../route-factory';
-import { anyField, objectField, responseField, stringField } from '../schemas/common';
+import { anyField, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
 
 const dashboardConfigResponse = responseField(
   objectField({ data: anyField('Dashboard configuration data') }, ['data'], 'Dashboard configuration response', true),
@@ -8,33 +8,43 @@ const dashboardConfigResponse = responseField(
 
 const dashboardConfigBody = objectField({}, [], 'Dashboard configuration payload', true);
 
+const workflowStateDashboardConfigBody = objectField(
+  {
+    dashboardType: nonEmptyStringField('Dashboard type name'),
+    tableConfig: objectField({}, [], 'Dashboard table configuration', true),
+  },
+  ['dashboardType'],
+  'Workflow state dashboard configuration',
+  false
+);
+
 const dashboardConfigDefaultsQuery = objectField({
-  recordType: stringField('Record type name'),
-  workflowStage: stringField('Workflow stage name'),
-  viewName: stringField('Dashboard view name'),
-  stepName: stringField('Dashboard view step name'),
-  dashboardType: stringField('Dashboard type name'),
+  recordType: patternStringField('^[A-Za-z0-9_-]+$', 'Record type name'),
+  workflowStage: patternStringField('^[A-Za-z0-9_-]+$', 'Workflow stage name'),
+  viewName: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard view name'),
+  stepName: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard view step name'),
+  dashboardType: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard type name'),
 });
 
 const recordWorkflowParams = objectField(
   {
-    recordType: stringField('Record type name'),
-    workflowStage: stringField('Workflow stage name'),
+    recordType: patternStringField('^[A-Za-z0-9_-]+$', 'Record type name'),
+    workflowStage: patternStringField('^[A-Za-z0-9_-]+$', 'Workflow stage name'),
   },
   ['recordType', 'workflowStage']
 );
 
 const dashboardViewStepParams = objectField(
   {
-    viewName: stringField('Dashboard view name'),
-    stepName: stringField('Dashboard view step name'),
+    viewName: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard view name'),
+    stepName: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard view step name'),
   },
   ['viewName', 'stepName']
 );
 
 const dashboardTypeParams = objectField(
   {
-    dashboardType: stringField('Dashboard type name'),
+    dashboardType: patternStringField('^[A-Za-z0-9_-]+$', 'Dashboard type name'),
   },
   ['dashboardType']
 );
@@ -113,7 +123,7 @@ export const saveWorkflowStateDashboardConfigRoute = apiRoute(
   'saveWorkflowStateDashboardConfig',
   {
     params: recordWorkflowParams,
-    body: { required: true, content: { 'application/json': { schema: dashboardConfigBody } } },
+    body: { required: true, content: { 'application/json': { schema: workflowStateDashboardConfigBody } } },
   },
   {
     tags: ['DashboardConfig'],
@@ -142,7 +152,7 @@ export const saveDashboardViewStepConfigRoute = apiRoute(
   'saveDashboardViewStepConfig',
   {
     params: dashboardViewStepParams,
-    body: { required: true, content: { 'application/json': { schema: dashboardConfigBody } } },
+    body: { required: true, content: { 'application/json': { schema: workflowStateDashboardConfigBody } } },
   },
   {
     tags: ['DashboardConfig'],

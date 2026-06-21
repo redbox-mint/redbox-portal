@@ -1,12 +1,17 @@
+import { z } from '../zod-openapi';
 import { apiRoute } from '../route-factory';
 import {
   arrayField,
   idParams,
   integerField,
   listApiResponseSchema,
+  nonEmptyStringField,
+  nonNegativeIntegerField,
   objectField,
+  patternStringField,
   responseField,
   stringField,
+  vocabularyTypeField,
   vocabularySchema,
   vocabularyTreeNodeSchema,
 } from '../schemas/common';
@@ -18,11 +23,11 @@ export const listVocabularyRoute = apiRoute(
   'list',
   {
     query: objectField({
-      q: stringField(),
-      type: stringField(),
-      source: stringField(),
-      offset: stringField(),
-      sort: stringField(),
+      q: patternStringField('^[A-Za-z0-9_.*-]+$'),
+      type: patternStringField('^[A-Za-z0-9_-]+$'),
+      source: patternStringField('^[A-Za-z0-9_.-]+$'),
+      offset: patternStringField('^[A-Za-z0-9_.-]+$'),
+      sort: patternStringField('^[A-Za-z0-9_. -]+$'),
     }),
   },
   {
@@ -41,7 +46,7 @@ export const importVocabularyRoute = apiRoute(
     body: {
       required: true,
       content: {
-        'application/json': { schema: objectField({ rvaId: stringField(), versionId: stringField() }, ['rvaId']) },
+        'application/json': { schema: objectField({ rvaId: nonEmptyStringField(), versionId: nonEmptyStringField() }, ['rvaId']) },
       },
     },
   },
@@ -78,7 +83,19 @@ export const createVocabularyRoute = apiRoute(
   {
     body: {
       required: true,
-      content: { 'application/json': { schema: objectField({}, [], 'Vocabulary payload', true) } },
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              name: patternStringField('^[A-Za-z0-9_ -]+$'),
+              slug: patternStringField('^[A-Za-z0-9_-]+$'),
+              type: vocabularyTypeField('Vocabulary type'),
+            },
+            ['name', 'slug', 'type'],
+            'Vocabulary payload'
+          ),
+        },
+      },
     },
   },
   {
@@ -97,7 +114,20 @@ export const updateVocabularyRoute = apiRoute(
     params: idParams,
     body: {
       required: true,
-      content: { 'application/json': { schema: objectField({}, [], 'Vocabulary payload', true) } },
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              name: patternStringField('^[A-Za-z0-9_ -]+$'),
+              slug: patternStringField('^[A-Za-z0-9_-]+$'),
+              type: vocabularyTypeField('Vocabulary type'),
+            },
+            [],
+            'Vocabulary payload',
+            true
+          ),
+        },
+      },
     },
   },
   {
@@ -114,7 +144,26 @@ export const reorderVocabularyRoute = apiRoute(
   'reorder',
   {
     params: idParams,
-    body: { required: true, content: { 'application/json': { schema: objectField({}, [], 'Reorder payload', true) } } },
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              entries: (arrayField(
+                objectField(
+                  { id: nonEmptyStringField('Vocabulary entry id'), order: nonNegativeIntegerField('Entry order') },
+                  ['id', 'order'],
+                  'Vocabulary entry order item'
+                )
+              ) as z.ZodArray<any>).min(1),
+            },
+            ['entries'],
+            'Reorder payload'
+          ),
+        },
+      },
+    },
   },
   {
     tags: ['Vocabulary'],
@@ -143,7 +192,7 @@ export const syncVocabularyRoute = apiRoute(
   'sync',
   {
     params: idParams,
-    body: { required: true, content: { 'application/json': { schema: objectField({ versionId: stringField() }) } } },
+    body: { required: true, content: { 'application/json': { schema: objectField({ versionId: nonEmptyStringField() }, ['versionId']) } } },
   },
   {
     tags: ['Vocabulary'],

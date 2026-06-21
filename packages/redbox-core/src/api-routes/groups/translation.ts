@@ -3,6 +3,8 @@ import {
   apiActionResponseSchema,
   arrayField,
   booleanField,
+  nonEmptyStringField,
+  patternStringField,
   translationBundleSchema,
   translationEntrySchema,
   objectField,
@@ -14,21 +16,25 @@ const translationKeyTailDescription = 'Translation key path tail; may include sl
 
 const translationParams = objectField(
   {
-    locale: stringField(),
-    namespace: stringField(),
-    key: stringField(translationKeyTailDescription),
+    locale: patternStringField('^[A-Za-z0-9_-]+$'),
+    namespace: patternStringField('^[A-Za-z0-9_-]+$'),
+    key: patternStringField('^[A-Za-z0-9_\\/.-]+$', translationKeyTailDescription),
   },
   ['locale', 'namespace', 'key']
 );
 
-const bundleParams = objectField({ locale: stringField(), namespace: stringField() }, ['locale', 'namespace']);
+const bundleParams = objectField({ locale: patternStringField('^[A-Za-z0-9_-]+$'), namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
 
 export const listEntriesRoute = apiRoute(
   'get',
   '/:branding/:portal/api/i18n/entries',
   'webservice/TranslationController',
   'listEntries',
-  { query: objectField({ locale: stringField(), namespace: stringField(), keyPrefix: stringField() }) },
+  { query: objectField({
+    locale: patternStringField('^[A-Za-z0-9_-]+$'),
+    namespace: patternStringField('^[A-Za-z0-9_-]+$'),
+    keyPrefix: patternStringField('^[A-Za-z0-9_/-]+$'),
+  }) },
   {
     tags: ['Translation'],
     summary: 'List translation entries',
@@ -123,8 +129,7 @@ export const setBundleRoute = apiRoute(
               overwriteEntries: booleanField(),
             },
             [],
-            'Bundle payload',
-            true
+            'Bundle payload'
           ),
         },
       },

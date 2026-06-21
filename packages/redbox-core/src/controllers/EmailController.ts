@@ -26,6 +26,14 @@ export namespace Controllers {
             this.emailService = sails.services.emailservice as unknown as Services.Email;
         }
 
+        private sendTemplateRenderError(req: Sails.Req, res: Sails.Res) {
+            return this.sendResp(req, res, {
+                status: 400,
+                displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
+                headers: this.getNoCacheHeaders()
+            });
+        }
+
         /**
          * Send Email Notification
          *
@@ -83,11 +91,7 @@ export namespace Controllers {
                 emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined);
             } catch (error) {
                 sails.log.error("Failed to evaluate email template properties", error);
-                return this.sendResp(req, res, {
-                    status: 500,
-                    displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
-                });
+                return this.sendTemplateRenderError(req, res);
             }
             // const format = emailProperties.format;
             const formatRendered = emailProperties.formatRendered;
@@ -104,20 +108,12 @@ export namespace Controllers {
             // const template = emailProperties.template;
             const templateRendered = emailProperties.templateRendered;
             if (!templateRendered) {
-                return this.sendResp(req, res, {
-                    status: 500,
-                    displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
-                });
+                return this.sendTemplateRenderError(req, res);
             }
 
             return templateRendered.subscribe((buildResult: globalThis.Record<string, unknown>) => {
                 if (buildResult['status'] != 200) {
-                    return this.sendResp(req, res, {
-                        status: 500,
-                        displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                        headers: this.getNoCacheHeaders()
-                    });
+                    return this.sendTemplateRenderError(req, res);
                 } else {
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
@@ -143,11 +139,7 @@ export namespace Controllers {
                 }
             }, (error: unknown) => {
                 sails.log.error("Failed to render email template", error);
-                return this.sendResp(req, res, {
-                    status: 500,
-                    displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
-                });
+                return this.sendTemplateRenderError(req, res);
             });
 
         }

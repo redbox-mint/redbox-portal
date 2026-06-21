@@ -44,7 +44,14 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      const err = this.asError(error);
+      const status = this.statusForError(err);
+      return this.sendResp(req, res, {
+        status,
+        errors: [err],
+        displayErrors: [{ status: String(status), detail: err.message }],
+        headers: this.getNoCacheHeaders(),
+      });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
@@ -211,6 +218,13 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, errors: [new Error('recordType and workflowStage are required')], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardTableConfig(this.resolveBrand(req), recordType, workflowStage);
+        if (!merged) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ status: '404', detail: `Dashboard config not found for record type '${recordType}' and workflow stage '${workflowStage}'` }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
@@ -225,6 +239,13 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, errors: [new Error('viewName and stepName are required')], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(this.resolveBrand(req), viewName, stepName);
+        if (!merged) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ status: '404', detail: `Dashboard view config not found for view '${viewName}' and step '${stepName}'` }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
@@ -238,6 +259,13 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(this.resolveBrand(req), dashboardType);
+        if (!merged) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ status: '404', detail: `Dashboard type '${dashboardType}' not found` }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);

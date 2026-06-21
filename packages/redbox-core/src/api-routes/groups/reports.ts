@@ -1,25 +1,25 @@
 import { apiRoute } from '../route-factory';
-import { anyField, apiErrorResponseSchema, arrayField, listApiResponseSchema, namedQueryResponseRecordSchema, objectField, responseField, stringField } from '../schemas/common';
+import { anyField, apiErrorResponseSchema, arrayField, genericObjectSchema, listApiResponseSchema, namedQueryResponseRecordSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 const reportConfigBody = objectField(
   {
-    name: stringField(),
-    title: stringField(),
-    reportSource: stringField(),
-    databaseQuery: objectField({ queryName: stringField() }).nullable(),
-    solrQuery: objectField({ baseQuery: stringField(), searchCore: stringField() }).nullable(),
-    filter: arrayField(objectField({}, [], 'Filter object', true)).nullable(),
-    columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)).nullable(),
+    name: nonEmptyStringField(),
+    title: nonEmptyStringField(),
+    reportSource: nonEmptyStringField(),
+    databaseQuery: objectField({ queryName: nonEmptyStringField() }),
+    solrQuery: objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }),
+    filter: arrayField(objectField({}, [], 'Filter object', true)),
+    columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)),
   },
   ['name', 'title', 'reportSource'],
-  'Report configuration payload',
-  true
+  'Report configuration payload'
 );
 const reportConfigRequestBody = { required: true, content: { 'application/json': { schema: reportConfigBody } } };
 const reportConfigResponse = responseField(anyField('Report configuration response'), 'Report configuration response');
-const reportConfigParams = objectField({ name: stringField('Report name') }, ['name']);
+const reportConfigListResponse = responseField(arrayField(genericObjectSchema), 'Report configuration list');
+const reportConfigParams = objectField({ name: patternStringField('^[A-Za-z0-9_-]+$', 'Report name') }, ['name']);
 
 export const executeNamedQueryRoute = apiRoute(
   'get',
@@ -27,7 +27,7 @@ export const executeNamedQueryRoute = apiRoute(
   'webservice/ReportController',
   'executeNamedQuery',
   {
-    query: objectField({ queryName: stringField(), start: stringField(), rows: stringField() }, ['queryName']),
+    query: objectField({ queryName: patternStringField('^[A-Za-z0-9_/-]+$'), start: stringField(), rows: stringField() }, ['queryName']),
   },
   {
     tags: ['Reports'],
@@ -51,7 +51,7 @@ export const listReportConfigsRoute = apiRoute(
   {
     tags: ['Reports'],
     summary: 'List report configurations',
-    responses: { 200: reportConfigResponse, 500: internalServerErrorResponse },
+    responses: { 200: reportConfigListResponse, 500: internalServerErrorResponse },
   }
 );
 

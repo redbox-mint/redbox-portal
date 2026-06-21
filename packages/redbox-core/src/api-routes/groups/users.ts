@@ -3,15 +3,19 @@ import { z } from '../zod-openapi';
 import { apiRoute } from '../route-factory';
 import {
   arrayField,
+  apiErrorResponseSchema,
   apiActionResponseSchema,
   createUserApiResponseSchema,
   idParams,
   listApiResponseSchema,
   roleSummarySchema,
   userRecordSchema,
+  userSearchByField,
   objectField,
   responseField,
   linkedUserSummarySchema,
+  nonEmptyStringField,
+  patternStringField,
   statusMessageResponseSchema,
   stringField,
   userApiTokenApiResponseSchema,
@@ -43,7 +47,7 @@ export const findUserRoute = apiRoute(
   '/:branding/:portal/api/users/find',
   'webservice/UserManagementController',
   'getUser',
-  { query: objectField({ searchBy: stringField(), query: stringField() }, ['searchBy', 'query']) },
+  { query: objectField({ searchBy: userSearchByField(), query: nonEmptyStringField() }, ['searchBy', 'query']) },
   {
     tags: ['Users'],
     summary: 'Find user',
@@ -56,7 +60,7 @@ export const getUserRoute = apiRoute(
   '/:branding/:portal/api/users/get',
   'webservice/UserManagementController',
   'getUser',
-  { query: objectField({ searchBy: stringField(), query: stringField() }, ['searchBy', 'query']) },
+  { query: objectField({ searchBy: userSearchByField(), query: nonEmptyStringField() }, ['searchBy', 'query']) },
   {
     tags: ['Users'],
     summary: 'Get user',
@@ -69,7 +73,7 @@ export const searchLinkCandidatesRoute = apiRoute(
   '/:branding/:portal/api/users/link/candidates',
   'webservice/UserManagementController',
   'searchLinkCandidates',
-  { query: objectField({ query: stringField(), primaryUserId: stringField() }, ['query', 'primaryUserId']) },
+  { query: objectField({ query: nonEmptyStringField(), primaryUserId: nonEmptyStringField() }, ['query', 'primaryUserId']) },
   {
     tags: ['Users'],
     summary: 'Search user link candidates',
@@ -113,7 +117,7 @@ export const linkAccountsRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField({ primaryUserId: stringField(), secondaryUserId: stringField() }, [
+          schema: objectField({ primaryUserId: nonEmptyStringField(), secondaryUserId: nonEmptyStringField() }, [
             'primaryUserId',
             'secondaryUserId',
           ]),
@@ -124,7 +128,10 @@ export const linkAccountsRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Link accounts',
-    responses: { 200: responseField(userLinkResponseSchema, 'Linked accounts updated') },
+    responses: {
+      200: responseField(userLinkResponseSchema, 'Linked accounts updated'),
+      409: responseField(apiErrorResponseSchema, 'Link conflict'),
+    },
   }
 );
 
@@ -140,13 +147,13 @@ export const createUserRoute = apiRoute(
         'application/json': {
           schema: objectField(
             {
-              username: stringField(),
-              name: stringField(),
-              email: stringField(),
-              password: stringField(),
+              username: patternStringField('^[A-Za-z0-9_@. -]+$'),
+              name: patternStringField('^[A-Za-z0-9_@. -]+$'),
+              email: nonEmptyStringField(),
+              password: nonEmptyStringField(),
               roles: arrayField(userRoleSelectionSchema),
             },
-            ['username', 'name', 'password']
+            ['username', 'name', 'email', 'password']
           ),
         },
       },
@@ -155,7 +162,7 @@ export const createUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Create user',
-    responses: { 201: responseField(createUserApiResponseSchema, 'User created') },
+    responses: { 201: responseField(createUserApiResponseSchema, 'User created'), 409: responseField(apiErrorResponseSchema, 'User conflict') },
   }
 );
 
@@ -171,11 +178,11 @@ export const updateUserRoute = apiRoute(
         'application/json': {
           schema: objectField(
             {
-              id: stringField(),
+              id: nonEmptyStringField(),
               username: stringField(),
-              name: stringField(),
-              email: stringField(),
-              password: stringField(),
+              name: nonEmptyStringField(),
+              email: nonEmptyStringField(),
+              password: nonEmptyStringField(),
               roles: arrayField(userRoleSelectionSchema),
             },
             ['id', 'name', 'email', 'password']
@@ -222,7 +229,7 @@ export const generateAPITokenRoute = apiRoute(
   '/:branding/:portal/api/users/token/generate',
   'webservice/UserManagementController',
   'generateAPIToken',
-  { query: objectField({ id: stringField() }, ['id']) },
+  { query: objectField({ id: nonEmptyStringField() }, ['id']) },
   {
     tags: ['Users'],
     summary: 'Generate API token',
@@ -235,7 +242,7 @@ export const revokeAPITokenRoute = apiRoute(
   '/:branding/:portal/api/users/token/revoke',
   'webservice/UserManagementController',
   'revokeAPIToken',
-  { query: objectField({ id: stringField() }, ['id']) },
+  { query: objectField({ id: nonEmptyStringField() }, ['id']) },
   {
     tags: ['Users'],
     summary: 'Revoke API token',

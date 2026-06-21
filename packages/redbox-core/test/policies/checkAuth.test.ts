@@ -212,4 +212,76 @@ describe('checkAuth policy', function () {
         expect(getStatus()).to.be.undefined;
         expect(getBrandCalled).to.be.false;
     });
+
+    it('should return 401 JSON for API request without auth instead of login redirect', function () {
+        (global as any).PathRulesService.getRulesFromPath = () => ({ someRule: true });
+        (global as any).PathRulesService.canRead = () => false;
+
+        const { req, res, getStatus, getJson } = createMockReqRes({
+            authenticated: false,
+            path: '/default/rdmp/api/users',
+            contentType: 'text/html'
+        });
+        let nextCalled = false;
+
+        checkAuth(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.false;
+        expect(getStatus()).to.equal(401);
+        expect(getJson()).to.deep.equal({ message: 'Unauthorized', details: '' });
+        expect(res._redirectedToLogin).to.be.false;
+    });
+
+    it('should return 403 JSON with details for API request with auth but no permission', function () {
+        (global as any).PathRulesService.getRulesFromPath = () => ({ someRule: true });
+        (global as any).PathRulesService.canRead = () => false;
+
+        const { req, res, getStatus, getJson } = createMockReqRes({
+            authenticated: true,
+            path: '/default/rdmp/api/admin',
+            roles: ['user']
+        });
+        let nextCalled = false;
+
+        checkAuth(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.false;
+        expect(getStatus()).to.equal(403);
+        expect(getJson()).to.deep.equal({ message: 'Access Denied', details: '' });
+    });
+
+    it('should treat redboxApiAuthenticated as authenticated for API routes', function () {
+        (global as any).PathRulesService.getRulesFromPath = () => ({ someRule: true });
+        (global as any).PathRulesService.canRead = () => true;
+
+        const { req, res } = createMockReqRes({
+            authenticated: false,
+            path: '/default/rdmp/api/users'
+        });
+        req.redboxApiAuthenticated = true;
+        req.user = { roles: ['Admin'] };
+        let nextCalled = false;
+
+        checkAuth(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.true;
+    });
+
+    it('should return 401 for API request without auth when canRead is false', function () {
+        (global as any).PathRulesService.getRulesFromPath = () => ({ someRule: true });
+        (global as any).PathRulesService.canRead = () => false;
+
+        const { req, res, getStatus, getJson } = createMockReqRes({
+            authenticated: false,
+            path: '/default/rdmp/api/users'
+        });
+        req.redboxApiAuthenticated = false;
+        let nextCalled = false;
+
+        checkAuth(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.false;
+        expect(getStatus()).to.equal(401);
+        expect(getJson()).to.deep.equal({ message: 'Unauthorized', details: '' });
+    });
 });

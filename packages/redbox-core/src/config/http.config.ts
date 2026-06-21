@@ -657,7 +657,24 @@ export const http: HttpConfig = {
                 // strict: true,
                 // ... more Skipper options here ...
             });
-            return skipperMiddleware(req, res, next);
+            const parseFailedPattern = /entity\.parse\.failed/i;
+            const isJsonParseError = (err: unknown) => {
+                const errorRecord = err as { status?: unknown; statusCode?: unknown; type?: unknown; body?: unknown };
+                const status = errorRecord.status ?? errorRecord.statusCode;
+                return parseFailedPattern.test(String(errorRecord.type)) ||
+                    parseFailedPattern.test((err as Error)?.message ?? '') ||
+                    (status === 400 && Object.prototype.hasOwnProperty.call(errorRecord, 'body'));
+            };
+            return skipperMiddleware(req, res, (err?: unknown) => {
+                if (err && isJsonParseError(err)) {
+                    res.status(400);
+                    return res.json({
+                        message: 'Invalid JSON request body',
+                        details: '',
+                    });
+                }
+                return next(err instanceof Error ? err : err == null ? undefined : new Error(String(err)));
+            });
         },
 
         poweredBy: function (req: Request, res: Response, next: NextFunction) {

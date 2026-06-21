@@ -145,4 +145,90 @@ describe('isWebServiceAuthenticated policy', function () {
 
         expect(nextCalled).to.be.true;
     });
+
+    it('should return 401 JSON for contract API routes without valid auth', function () {
+        (global as any).sails = {
+            config: {
+                passport: {
+                    authenticate: (strategy: string, callback: Function) => {
+                        return (req: any, res: any) => {
+                            callback(null, false, null);
+                        };
+                    }
+                }
+            }
+        };
+
+        const req: any = {
+            isAuthenticated: () => false,
+            path: '/default/rdmp/api/users'
+        };
+        let statusCode: number | undefined;
+        let jsonBody: any;
+        const res: any = {
+            status: (code: number) => { statusCode = code; return res; },
+            json: (body: any) => { jsonBody = body; return res; }
+        };
+        let nextCalled = false;
+
+        isWebServiceAuthenticated(req, res, () => { nextCalled = true; });
+
+        expect(statusCode).to.equal(401);
+        expect(jsonBody).to.deep.equal({ message: 'Unauthorized', details: '' });
+        expect(nextCalled).to.be.false;
+    });
+
+    it('should set redboxApiAuthenticated and req.user for successful bearer auth on API route', function () {
+        const mockUser = { id: 'bearerUser', username: 'api-user', roles: ['Admin'] };
+
+        (global as any).sails = {
+            config: {
+                passport: {
+                    authenticate: (strategy: string, callback: Function) => {
+                        return (req: any, res: any) => {
+                            callback(null, mockUser, null);
+                        };
+                    }
+                }
+            }
+        };
+
+        const req: any = {
+            isAuthenticated: () => false,
+            path: '/default/rdmp/api/users'
+        };
+        const res: any = {};
+        let nextCalled = false;
+
+        isWebServiceAuthenticated(req, res, () => { nextCalled = true; });
+
+        expect(req.user).to.deep.equal(mockUser);
+        expect(req.redboxApiAuthenticated).to.be.true;
+        expect(nextCalled).to.be.true;
+    });
+
+    it('should preserve legacy behavior for non-contract routes without auth', function () {
+        (global as any).sails = {
+            config: {
+                passport: {
+                    authenticate: (strategy: string, callback: Function) => {
+                        return (req: any, res: any) => {
+                            callback(null, false, null);
+                        };
+                    }
+                }
+            }
+        };
+
+        const req: any = {
+            isAuthenticated: () => false,
+            path: '/non-api/page'
+        };
+        const res: any = {};
+        let nextCalled = false;
+
+        isWebServiceAuthenticated(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.true;
+    });
 });

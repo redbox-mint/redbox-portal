@@ -67,6 +67,17 @@ describe('AppConfigService', function () {
       expect((global as any).AppConfig.create.called).to.be.true;
     });
 
+    it('should reject config data with null-byte object keys before persisting', async function () {
+      try {
+        await service.createConfig('default', 'key', { nested: { ['bad\0key']: true } });
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.contain('Invalid JSON object key');
+      }
+
+      expect((global as any).AppConfig.create.called).to.be.false;
+    });
+
     it('should throw if config exists', async function () {
       const mockDeferred = (result: unknown) => {
         const p: any = Promise.resolve(result);
@@ -85,6 +96,24 @@ describe('AppConfigService', function () {
   });
 
   describe('secret fields', function () {
+    it('should reject update config data with null-byte object keys before persisting', async function () {
+      const updateSet = sinon.stub();
+      (global as any).AppConfig.updateOne = sinon.stub().returns({ set: updateSet });
+
+      try {
+        await service.createOrUpdateConfig(
+          { id: 'brand1', name: 'default' } as any,
+          'key',
+          { nested: [{ ['bad\0key']: true }] }
+        );
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.contain('Invalid JSON object key');
+      }
+
+      expect(updateSet.called).to.be.false;
+    });
+
     it('should mask secret fields when reading config', async function () {
       class SecretModel {
         connection = { token: 'secret-token' };

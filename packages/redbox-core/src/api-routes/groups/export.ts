@@ -1,5 +1,5 @@
 import { apiRoute } from '../route-factory';
-import { apiErrorResponseSchema, binaryField, objectField, responseField, stringField } from '../schemas/common';
+import { apiErrorResponseSchema, binaryField, nonEmptyStringField, objectField, responseField, stringField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
@@ -10,8 +10,8 @@ export const downloadRecsRoute = apiRoute(
   'webservice/ExportController',
   'downloadRecs',
   {
-    params: objectField({ format: stringField() }, ['format']),
-    query: objectField({ recType: stringField(), before: stringField(), after: stringField() }),
+    params: objectField({ format: nonEmptyStringField().openapi({ enum: ['csv', 'json'] }) }, ['format']),
+    query: objectField({ recType: stringField(), before: nonEmptyStringField(), after: nonEmptyStringField() }),
   },
   {
     tags: ['Export'],
@@ -25,6 +25,7 @@ export const downloadRecsRoute = apiRoute(
         content: {
           'text/csv': { schema: binaryField('CSV export file contents') },
           'text/json': { schema: binaryField('JSON export file contents') },
+          'application/json': { schema: objectField({}, [], 'JSON export payload', true) },
         },
       },
       400: badRequestResponse,

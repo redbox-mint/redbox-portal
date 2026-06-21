@@ -1,0 +1,159 @@
+networks:
+  main:
+
+x-fuzz-env: &fuzz-env
+  - NODE_ENV=integrationtest
+  - PORT=1500
+  - LOAD_DEFAULT_FORMS=true
+  - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
+  - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+  - sails_record__baseUrl_mint=http://203.101.226.160/mint
+  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_security__csrf=false
+  - sails_emailnotification__from=fuzzing@redbox.test
+  - sails_emailnotification__smtp__host=email-fuzz
+  - sails_emailnotification__smtp__port=1025
+
+x-fuzz-depends: &fuzz-depends
+  mongodb-fuzz:
+    condition: 'service_healthy'
+  solr-fuzz:
+    condition: 'service_healthy'
+  keycloak-fuzz:
+    condition: 'service_healthy'
+  email-fuzz:
+    condition: 'service_healthy'
+
+services:
+  redboxportal-fuzz:
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    pull_policy: 'missing'
+    init: true
+    ports:
+      - "127.0.0.1:1500:1500"
+    environment: *fuzz-env
+    volumes:
+      - "../../:/opt/redbox-portal"
+      - "./bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+      - "./config/local.js:/opt/redbox-portal/config/local.js"
+      - "./config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+      - "../../.tmp/api-fuzzing/attachments:/attachments"
+    depends_on: *fuzz-depends
+    networks:
+      main:
+        aliases:
+          - redboxportal-fuzz
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:1500/default/rdmp/home || exit 1']
+      interval: '30s'
+      timeout: '10s'
+      retries: 15
+      start_period: '120s'
+    entrypoint:
+      - /bin/bash
+      - -c
+      - "cd /opt/redbox-portal && node app.js"
+
+  mongodb-fuzz:
+    image: mongo:latest
+    pull_policy: 'always'
+    networks:
+      main:
+        aliases:
+          - mongodb-fuzz
+          - mongodb
+    healthcheck:
+      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+
+  solr-fuzz:
+    image: solr:latest
+    pull_policy: 'always'
+    expose:
+      - "8983"
+    networks:
+      main:
+        aliases:
+          - solr-fuzz
+          - solr
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl -f http://localhost:8983/solr/redbox/admin/ping || exit 1' ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox
+
+  keycloak-fuzz:
+    image: quay.io/keycloak/keycloak:26.6.3
+    pull_policy: 'always'
+    expose:
+      - "8080"
+    networks:
+      main:
+        aliases:
+          - keycloak-fuzz
+          - keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
+    volumes:
+      - "../integration-testing/keycloakdb/import:/opt/keycloak/data/import:ro"
+    command:
+      - start-dev
+      - --import-realm
+
+  email-fuzz:
+    image: axllent/mailpit:latest
+    pull_policy: 'always'
+    expose:
+      - '1025'
+      - '8025'
+    networks:
+      main:
+        aliases:
+          - email-fuzz
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    volumes:
+      - '../../.tmp/api-fuzzing/email:/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:8025']
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '10s'
+
+  schemathesis-fuzz:
+    build: .
+    image: redbox-api-fuzz/schemathesis:4.21.0
+    init: true
+    environment:
+      REDBOX_BASE_URL: http://redboxportal-fuzz:1500
+      REDBOX_API_TOKEN: d077835a-696b-4728-85cf-3ffd57152b1e
+      PYTHONPATH: /opt/api-fuzzing
+    volumes:
+      - "../../.tmp/api-fuzzing:/opt/api-fuzzing"
+      - "./hooks:/opt/api-fuzzing/hooks:ro"
+      - "./dictionaries:/opt/api-fuzzing/dictionaries:ro"
+    depends_on:
+      redboxportal-fuzz:
+        condition: 'service_healthy'
+    networks:
+      main:
+        aliases:
+          - schemathesis-fuzz
+    working_dir: /opt/api-fuzzing

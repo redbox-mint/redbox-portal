@@ -139,6 +139,29 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+    private errorStatus(error: unknown): number {
+      const message = this.asError(error).message;
+      if (/not found|no such|cannot find existing record|deletedRecordMetadata/i.test(message)) {
+        return 404;
+      }
+      if (/invalid|malformed|not valid|unexpected/i.test(message)) {
+        return 400;
+      }
+      return 500;
+    }
+
+    private async findRecordOr404(req: Sails.Req, res: Sails.Res, oid: string, detail: string): Promise<RecordModel | null> {
+      const record = await this.RecordsService.getMeta(oid);
+      if (_.isEmpty(record)) {
+        this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ detail }],
+        });
+        return null;
+      }
+      return record;
+    }
+
     private shouldIncludeRelationships(req: Sails.Req): boolean {
       const include = String(req.param('include') ?? req.query.include ?? '').trim().toLowerCase();
       const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '').trim().toLowerCase();
@@ -223,9 +246,16 @@ export namespace Controllers {
 
       try {
         const record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed to get record permission, cannot find record with oid: ${oid}` }],
+          });
+        }
         return this.sendResp(req, res, { data: record['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to get record permission.' }],
         });
@@ -243,6 +273,12 @@ export namespace Controllers {
       let record: RecordModel;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed to modify record meta for adding an editor, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (users != null && users.length > 0) {
           record.authorization.edit = _.union(record['authorization']['edit'], users);
         }
@@ -251,6 +287,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to modify record meta for adding an editor.' }],
         });
@@ -268,6 +305,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: recordResult['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor.' }],
         });
@@ -285,6 +323,12 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed getting record meta for adding a viewer, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.union(record['authorization']['view'], users);
         }
@@ -293,6 +337,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for adding a viewer.' }],
         });
@@ -310,6 +355,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding a viewer.' }],
         });
@@ -327,6 +373,12 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed getting record meta for removing an editor, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (users != null && users.length > 0) {
           record['authorization']['edit'] = _.difference(record['authorization']['edit'], users);
         }
@@ -335,6 +387,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing an editor.' }],
         });
@@ -352,6 +405,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed removing an editor.' }],
         });
@@ -369,6 +423,12 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed to modify record meta for removing a viewer, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.difference(record['authorization']['view'], users);
         }
@@ -377,6 +437,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to modify record meta for removing a viewer.' }],
         });
@@ -394,6 +455,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed removing a viewer.' }],
         });
@@ -409,7 +471,7 @@ export namespace Controllers {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
-            status: 400,
+            status: 404,
             displayErrors: [{ detail: `Failed to get meta, cannot find existing record with oid: ${oid}` }],
           });
         }
@@ -427,6 +489,7 @@ export namespace Controllers {
         });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Get Metadata failed.' }],
         });
@@ -456,6 +519,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to list audit records for ${oid}, please.` }],
         });
@@ -471,9 +535,16 @@ export namespace Controllers {
 
       try {
         const record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed to get object meta, cannot find record with oid: ${oid}` }],
+          });
+        }
         return this.sendResp(req, res, { data: record['metaMetadata'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to get object meta for ${oid}, please.`, meta: { oid } }],
         });
@@ -493,7 +564,7 @@ export namespace Controllers {
         record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
-            status: 400,
+            status: 404,
             displayErrors: [
               { detail: `Failed to update meta, cannot find existing record with oid: ${oid}.`, meta: { oid } },
             ],
@@ -512,6 +583,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Update Metadata failed.' }],
         });
@@ -533,6 +605,7 @@ export namespace Controllers {
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Update Metadata failed' }],
         });
@@ -548,16 +621,22 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed to update object meta, cannot find record with oid: ${oid}` }],
+          });
+        }
         record['metaMetadata'] = body as unknown as RecordModel['metaMetadata'];
       } catch (err) {
-        return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
+        return this.sendResp(req, res, { status: this.errorStatus(err), errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         return this.sendResp(req, res, { data: result });
       } catch (err) {
-        return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
+        return this.sendResp(req, res, { status: this.errorStatus(err), errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
       }
     }
 
@@ -634,13 +713,14 @@ export namespace Controllers {
                   });
                 } else {
                   return this.sendResp(req, res, {
-                    status: 500,
+                    status: 400,
                     displayErrors: [{ detail: 'Create Record failed' }],
                   });
                 }
               },
               (error: unknown) => {
                 return this.sendResp(req, res, {
+                  status: this.errorStatus(error),
                   errors: [this.asError(error)],
                   displayErrors: [{ detail: 'Create Record failed' }],
                 });
@@ -672,7 +752,10 @@ export namespace Controllers {
         }
 
         if (!found) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Attachment not found for oid: ${oid}, datastreamId: ${datastreamId}` }],
+          });
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -680,19 +763,18 @@ export namespace Controllers {
           mimeType = 'application/octet-stream';
         }
         const fileName = validated.query.fileName ? String(validated.query.fileName) : found.name ? found.name : datastreamId;
-        res.set('Content-Type', 'application/octet-stream');
 
         const size = found.size as string | undefined;
-        if (!_.isEmpty(size)) {
-          res.set('Content-Length', size!);
-        }
-
-        sails.log.verbose('fileName ' + fileName);
-        res.attachment(fileName as string);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
+          res.set('Content-Type', 'application/octet-stream');
+          if (!_.isEmpty(size)) {
+            res.set('Content-Length', size!);
+          }
+          sails.log.verbose('fileName ' + fileName);
+          res.attachment(fileName as string);
           if (response.readstream) {
             response.readstream.on('error', (error: unknown) => {
               // Handle the error here
@@ -708,14 +790,16 @@ export namespace Controllers {
           return;
         } catch (error) {
           return this.sendResp(req, res, {
+            status: this.errorStatus(error),
             errors: [this.asError(error)],
-            displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
+            displayErrors: [{ detail: `Attachment not found for oid: ${oid}, datastreamId: ${datastreamId}` }],
           });
         }
       } catch (error) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(error),
           errors: [this.asError(error)],
-          displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
+          displayErrors: [{ detail: `Attachment not found for oid: ${oid}, datastreamId: ${datastreamId}` }],
         });
       }
     }
@@ -1067,15 +1151,23 @@ export namespace Controllers {
         });
       }
 
-      const response = await this.RecordsService.restoreRecord(oid, user);
-      if (response.isSuccessful()) {
-        return this.sendResp(req, res, { data: response });
-      } else {
-        sails.log.verbose(`Restore attempt failed for OID: ${oid}`);
-        sails.log.verbose(JSON.stringify(response));
+      try {
+        const response = await this.RecordsService.restoreRecord(oid, user);
+        if (response.isSuccessful()) {
+          return this.sendResp(req, res, { data: response });
+        } else {
+          sails.log.verbose(`Restore attempt failed for OID: ${oid}`);
+          sails.log.verbose(JSON.stringify(response));
+          return this.sendResp(req, res, {
+            status: this.errorStatus(response.message),
+            displayErrors: [{ title: response.message, detail: String(response.details ?? '') }],
+          });
+        }
+      } catch (err) {
         return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: response.message, detail: String(response.details ?? '') }],
+          status: this.errorStatus(err),
+          errors: [this.asError(err)],
+          displayErrors: [{ detail: `Deleted record not found for oid: ${oid}` }],
         });
       }
     }
@@ -1091,12 +1183,9 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.RecordsService.getMeta(oid);
-      if (_.isEmpty(record)) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Record not found!' }],
-        });
+      const record = await this.findRecordOr404(req, res, oid, 'Record not found!');
+      if (record == null) {
+        return;
       }
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       if (_.isEmpty(brand)) {
@@ -1132,18 +1221,26 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const response = await this.RecordsService.destroyDeletedRecord(oid, user);
-      if (response.isSuccessful()) {
-        return this.sendResp(req, res, { data: response });
-      } else {
+      try {
+        const response = await this.RecordsService.destroyDeletedRecord(oid, user);
+        if (response.isSuccessful()) {
+          return this.sendResp(req, res, { data: response });
+        } else {
+          return this.sendResp(req, res, {
+            status: this.errorStatus(response.message),
+            displayErrors: [
+              {
+                title: response.message,
+                detail: `${String(response.details ?? '')} Destroy attempt failed for OID: ${oid}`,
+              },
+            ],
+          });
+        }
+      } catch (err) {
         return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [
-            {
-              title: response.message,
-              detail: `${String(response.details ?? '')} Destroy attempt failed for OID: ${oid}`,
-            },
-          ],
+          status: this.errorStatus(err),
+          errors: [this.asError(err)],
+          displayErrors: [{ detail: `Deleted record not found for oid: ${oid}` }],
         });
       }
     }
@@ -1163,7 +1260,7 @@ export namespace Controllers {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: 404,
             displayErrors: [{ detail: `Missing OID: ${oid}` }],
           });
         }
@@ -1176,7 +1273,7 @@ export namespace Controllers {
           )
         ) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: 403,
             displayErrors: [{ detail: `User has no edit permissions for :${oid}` }],
           });
         }
@@ -1186,6 +1283,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to transition workflow to ${targetStepName} for oid ${oid}.` }],
         });
@@ -1211,6 +1309,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to list attachments for ${oid}, pleas.` }],
         });
@@ -1227,11 +1326,18 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed adding an editor role, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.union(record['authorization']['editRoles'], roles);
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor role.' }],
         });
@@ -1249,6 +1355,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: recordResult['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed adding an editor role.' }],
         });
@@ -1265,11 +1372,18 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed getting record meta for adding a viewer role, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (roles != null && roles.length > 0) {
           record['authorization']['viewRoles'] = _.union(record['authorization']['viewRoles'], roles);
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for adding a viewer role.' }],
         });
@@ -1287,6 +1401,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed updating record meta for adding a viewer role.' }],
         });
@@ -1303,11 +1418,18 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed getting record meta for removing an editor role, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.difference(record['authorization']['editRoles'], roles);
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing an editor role.' }],
         });
@@ -1325,6 +1447,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed updating record meta for removing an editor role.' }],
         });
@@ -1341,11 +1464,18 @@ export namespace Controllers {
       let record;
       try {
         record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Failed getting record meta for removing a viewer role, cannot find record with oid: ${oid}` }],
+          });
+        }
         if (users != null && users.length > 0) {
           record['authorization']['viewRoles'] = _.difference(record['authorization']['viewRoles'], users);
         }
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing a viewer role.' }],
         });
@@ -1363,6 +1493,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: resultRecord['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
+          status: this.errorStatus(err),
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed getting record meta for removing a viewer role.' }],
         });

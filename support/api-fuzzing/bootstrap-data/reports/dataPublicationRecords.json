@@ -1,0 +1,52 @@
+{
+  "title": "Fuzz Data Publication Records",
+  "reportSource": "database",
+  "databaseQuery": {
+    "queryName": "listDataPublications"
+  },
+  "filter": [
+    {
+      "paramName": "title",
+      "type": "text",
+      "property": "title",
+      "label": "Title"
+    },
+    {
+      "paramName": "datatype",
+      "type": "text",
+      "property": "datatype",
+      "label": "Data Type"
+    },
+    {
+      "paramName": "dateCreatedRange",
+      "type": "date-range",
+      "startProperty": "dateCreated",
+      "endProperty": "dateCreated",
+      "label": "Date Created"
+    }
+  ],
+  "columns": [
+    {
+      "label": "Id",
+      "property": "oid",
+      "hide": true
+    },
+    {
+      "label": "Title",
+      "property": "title",
+      "template": "<a href='/default/rdmp/record/{{oid}}'>{{title}}</a>"
+    },
+    {
+      "label": "Data Type",
+      "property": "datatype"
+    },
+    {
+      "label": "Date Modified",
+      "property": "dateModified"
+    },
+    {
+      "label": "Date Created",
+      "property": "dateCreated"
+    }
+  ]
+}

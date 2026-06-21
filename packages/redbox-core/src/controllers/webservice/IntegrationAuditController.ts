@@ -45,7 +45,7 @@ export namespace Controllers {
         if (!VALID_INTEGRATION_AUDIT_STATUSES.has(status)) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: 'Invalid status parameter.' }],
+            displayErrors: [{ detail: `Invalid status filter: ${status}.` }],
           });
         }
         params.status = status as IntegrationAuditParams['status'];
@@ -57,7 +57,7 @@ export namespace Controllers {
         if (Number.isNaN(parsed.getTime())) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: 'Invalid dateFrom parameter.' }],
+            displayErrors: [{ detail: `Invalid dateFrom filter: ${dateFrom}.` }],
           });
         }
         params.dateFrom = parsed;
@@ -69,30 +69,39 @@ export namespace Controllers {
         if (Number.isNaN(parsed.getTime())) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: 'Invalid dateTo parameter.' }],
+            displayErrors: [{ detail: `Invalid dateTo filter: ${dateTo}.` }],
           });
         }
         params.dateTo = parsed;
       }
 
-      const page = this.parsePositiveInt(req.param('page'));
-      if (!_.isEmpty(req.param('page')) && page == null) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Invalid page parameter.' }],
-        });
+      const pageParam = req.param('page');
+      if (!_.isEmpty(pageParam)) {
+        const page = this.parsePositiveInt(pageParam);
+        if (page === null) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: `Invalid page: ${String(pageParam)}.` }],
+          });
+        }
+        params.page = page;
+      } else {
+        params.page = 1;
       }
 
-      const pageSize = this.parsePositiveInt(req.param('pageSize'));
-      if (!_.isEmpty(req.param('pageSize')) && pageSize == null) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Invalid pageSize parameter.' }],
-        });
+      const pageSizeParam = req.param('pageSize');
+      if (!_.isEmpty(pageSizeParam)) {
+        const pageSize = this.parsePositiveInt(pageSizeParam);
+        if (pageSize === null) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: `Invalid pageSize: ${String(pageSizeParam)}.` }],
+          });
+        }
+        params.pageSize = pageSize;
+      } else {
+        params.pageSize = 20;
       }
-
-      params.page = page ?? 1;
-      params.pageSize = pageSize ?? 20;
 
       try {
         const audit = await IntegrationAuditService.getAuditLog(params);

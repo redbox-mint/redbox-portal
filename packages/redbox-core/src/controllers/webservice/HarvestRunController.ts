@@ -17,24 +17,24 @@ export namespace Controllers {
       return Math.min(this.parsePositiveInt(value, 'pageSize') ?? 20, 100);
     }
 
-    private parseDate(value: unknown, fieldName: string): Date | undefined {
+    private parseDate(value: unknown, _fieldName: string): Date | undefined {
       if (_.isEmpty(value)) {
         return undefined;
       }
       const parsed = new Date(String(value));
       if (Number.isNaN(parsed.getTime())) {
-        throw new APIErrorResponse(`Invalid ${fieldName} parameter.`);
+        return undefined;
       }
       return parsed;
     }
 
-    private parsePositiveInt(value: unknown, fieldName: string): number | undefined {
+    private parsePositiveInt(value: unknown, _fieldName: string): number | undefined {
       if (_.isEmpty(value)) {
         return undefined;
       }
       const parsed = Number.parseInt(String(value), 10);
       if (!Number.isInteger(parsed) || parsed <= 0) {
-        throw new APIErrorResponse(`Invalid ${fieldName} parameter.`);
+        return undefined;
       }
       return parsed;
     }

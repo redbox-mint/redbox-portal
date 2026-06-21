@@ -31,12 +31,15 @@ import {
   enhancedHarvestChunkResponseSchema,
   errorResponseItemV2Schema,
   errorResponseV2Schema,
+  forbiddenResponseSchema,
   harvestRouteResponseSchema,
   harvestRunDetailResponseSchema,
   harvestRunEventSchema,
   harvestRunSummarySchema,
   listApiResponseSchema,
+  notFoundResponseSchema,
   storageServiceResponseSchema,
+  unauthorizedResponseSchema,
   userApiTokenApiResponseSchema,
 } from '../../src/api-routes/schemas/common';
 import { getFormRoute, listFormsRoute } from '../../src/api-routes/groups/forms';
@@ -642,6 +645,9 @@ describe('API routes contract layer', async () => {
     expect(errorResponseItemV2Schema.safeParse({ title: 'Validation failed', detail: 'Missing field' }).success).to.equal(true);
     expect(errorResponseV2Schema.safeParse({ errors: [{ title: 'Validation failed' }], meta: {} }).success).to.equal(true);
     expect(dataResponseV2Schema.safeParse({ data: { ok: true }, meta: {} }).success).to.equal(true);
+    expect(unauthorizedResponseSchema.safeParse({ message: 'Unauthorized', details: '' }).success).to.equal(true);
+    expect(forbiddenResponseSchema.safeParse({ message: 'Access Denied', details: '' }).success).to.equal(true);
+    expect(notFoundResponseSchema.safeParse({ message: 'Not found', details: 'Resource does not exist' }).success).to.equal(true);
     expect(buildResponseTypeSchema.safeParse({
       data: { ok: true },
       status: 200,
@@ -748,21 +754,39 @@ describe('API routes contract layer', async () => {
     expect(harvestRunEventsRoute.responses).to.have.property('404');
   });
 
-  it('should include shared 400 and 500 error envelopes in OpenAPI', function () {
+  it('should include shared 400, 401, 403, 404, and 500 error envelopes in OpenAPI', function () {
     const document = buildCoreApiOpenApiDocument();
     const operation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/users']?.get);
 
     const badRequest = operation.responses?.['400'];
+    const unauthorized = operation.responses?.['401'];
+    const forbidden = operation.responses?.['403'];
+    const notFound = operation.responses?.['404'];
     const serverError = operation.responses?.['500'];
-    const badRequestSchema = asOpenApiSchema(badRequest?.content?.['application/json']?.schema);
-    const serverErrorSchema = asOpenApiSchema(serverError?.content?.['application/json']?.schema);
 
     expect(badRequest?.description).to.equal('Bad request');
+    expect(unauthorized?.description).to.equal('Unauthorized');
+    expect(forbidden?.description).to.equal('Forbidden');
+    expect(notFound?.description).to.equal('Not found');
     expect(serverError?.description).to.equal('Internal server error');
-    expect(badRequestSchema.properties).to.have.property('message');
-    expect(badRequestSchema.properties).to.have.property('details');
-    expect(serverErrorSchema.properties).to.have.property('message');
-    expect(serverErrorSchema.properties).to.have.property('details');
+
+    for (const response of [badRequest, unauthorized, forbidden, notFound, serverError]) {
+      const responseSchema = asOpenApiSchema(response?.content?.['application/json']?.schema);
+      expect(responseSchema.properties).to.have.property('message');
+      expect(responseSchema.properties).to.have.property('details');
+    }
+  });
+
+  it('should include 401 and 403 in every route OpenAPI responses', function () {
+    const document = buildCoreApiOpenApiDocument();
+    for (const [path, methods] of Object.entries(document.paths)) {
+      for (const [method, operation] of Object.entries(methods as Record<string, unknown>)) {
+        const responses = (operation as Record<string, unknown>).responses as Record<string, unknown> | undefined;
+        expect(responses, `${method.toUpperCase()} ${path} missing responses`).to.exist;
+        expect(responses, `${method.toUpperCase()} ${path} missing 401`).to.have.property('401');
+        expect(responses, `${method.toUpperCase()} ${path} missing 403`).to.have.property('403');
+      }
+    }
   });
 
   it('should document multipart file constraints in OpenAPI', function () {
@@ -886,9 +910,9 @@ describe('API routes contract layer', async () => {
     expect(responseStatuses(listRecordTypesRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(refreshCachedResourcesRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(setAppConfigRoute)).to.deep.equal([200, 400, 500]);
-    expect(responseStatuses(getAppConfigByKeyRoute)).to.deep.equal([200, 400, 500]);
+    expect(responseStatuses(getAppConfigByKeyRoute)).to.deep.equal([200, 400, 404, 500]);
     expect(responseStatuses(listAppConfigsRoute)).to.deep.equal([200, 400, 500]);
-    expect(responseStatuses(getAppConfigByIdRoute)).to.deep.equal([200, 400, 500]);
+    expect(responseStatuses(getAppConfigByIdRoute)).to.deep.equal([200, 400, 404, 500]);
     expect(responseStatuses(saveAppConfigByIdRoute)).to.deep.equal([200, 400, 500]);
 
     const sendNotificationSchema = sendNotificationRoute.responses?.[200]?.content?.['application/json']?.schema;
@@ -898,7 +922,7 @@ describe('API routes contract layer', async () => {
       params: { branding: 'default', portal: 'rdmp' },
       query: {},
       headers: {},
-      body: { to: 'to@example.test', data: {} }
+      body: { to: 'to@example.test', template: 'welcome' }
     } as unknown as Sails.Req, sendNotificationRoute);
     expect(missingTemplateResult.valid).to.equal(true);
 
@@ -1033,7 +1057,7 @@ describe('API routes contract layer', async () => {
 
     expect(result.valid).to.equal(true);
     expect(extracted.query.merge).to.equal(false);
-    expect(extracted.query.datastreams).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).datastreams).to.equal('true');
   });
 
   it('should select request body schema from the request content type', async function () {
@@ -1090,11 +1114,14 @@ describe('API routes contract layer', async () => {
     const extracted = extractApiRequest(request, listRecordsRoute.request);
 
     expect(result.valid).to.equal(true);
-    expect(extracted.query.editOnly).to.equal(true);
-    expect(extracted.query.recordType).to.equal('dataset');
-    expect(extracted.query.start).to.equal(10);
-    expect(extracted.query.rows).to.equal(25);
-    expect(extracted.query.filterFields).to.equal('title,creator');
+    const body = extracted.body as Record<string, unknown>;
+    expect(body.editOnly).to.equal('true');
+    expect(body.recordType).to.equal('dataset');
+    expect(body.state).to.equal('published');
+    expect(body.start).to.equal('10');
+    expect(body.rows).to.equal('25');
+    expect(body.filterFields).to.equal('title,creator');
+    expect(body.filter).to.equal('alpha,beta');
   });
 
   it('should enforce multipart upload constraints through the shared route validator', async function () {

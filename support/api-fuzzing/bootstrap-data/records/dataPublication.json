@@ -1,0 +1,47 @@
+[
+  {
+    "redboxOid": "fuzz-dp-001",
+    "metaMetadata": {
+      "type": "dataPublication",
+      "brandId": "default",
+      "createdBy": "admin",
+      "form": "dataPublication-1.0-draft",
+      "searchCore": "default",
+      "attachmentFields": []
+    },
+    "workflow": {
+      "stage": "draft",
+      "stageLabel": "Draft"
+    },
+    "authorization": {
+      "view": [],
+      "edit": [],
+      "editRoles": ["admin", "librarian"],
+      "viewRoles": ["admin", "librarian"],
+      "editPending": [],
+      "viewPending": [],
+      "stored": {
+        "view": [],
+        "edit": [],
+        "editRoles": ["admin", "librarian"],
+        "viewRoles": ["admin", "librarian"],
+        "editPending": [],
+        "viewPending": []
+      }
+    },
+    "metadata": {
+      "title": "Fuzz Test Data Publication - Quantum Computing Dataset",
+      "description": "A simulated data publication record for testing API fuzzing infrastructure.",
+      "keywords": ["fuzzing", "testing", "quantum-computing", "dataset"],
+      "datatype": "dataset",
+      "creators": [
+        {
+          "text_full_name": "Dr. Alan Turing"
+        }
+      ]
+    },
+    "dateCreated": "2025-02-01T00:00:00.000Z",
+    "lastSaveDate": "2025-06-01T00:00:00.000Z",
+    "id": ""
+  }
+]

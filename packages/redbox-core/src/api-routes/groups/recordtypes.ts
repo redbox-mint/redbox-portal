@@ -1,5 +1,5 @@
 import { apiRoute } from '../route-factory';
-import { apiErrorResponseSchema, listApiResponseSchema, objectField, recordTypeSchema, responseField, stringField } from '../schemas/common';
+import { apiErrorResponseSchema, listApiResponseSchema, nonEmptyStringField, objectField, recordTypeSchema, responseField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
@@ -9,7 +9,7 @@ export const getRecordTypeRoute = apiRoute(
   '/:branding/:portal/api/recordtypes/get',
   'webservice/RecordTypeController',
   'getRecordType',
-  { query: objectField({ name: stringField() }, ['name']) },
+  { query: objectField({ name: nonEmptyStringField() }, ['name']) },
   {
     tags: ['RecordTypes'],
     summary: 'Get record type',

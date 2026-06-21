@@ -17,13 +17,27 @@ function withDescription<T extends ZodType>(schema: T, description?: string): T 
 }
 
 export const stringField = (description?: string): ApiSchemaField => withDescription(z.string(), description);
+export const nonEmptyStringField = (description?: string): ApiSchemaField => withDescription(z.string().min(1), description);
 export const numberField = (description?: string): ApiSchemaField => withDescription(z.number(), description);
 export const integerField = (description?: string): ApiSchemaField => withDescription(z.number().int(), description);
+export const nonNegativeIntegerField = (description?: string): ApiSchemaField =>
+  withDescription(z.number().int().min(0), description);
+export const userSearchByField = (description?: string): ApiSchemaField =>
+  withDescription(z.enum(['id', 'username', 'email', 'name', 'oidcSub', 'apiToken']), description);
+export const recordTypeNameField = (description?: string): ApiSchemaField =>
+  withDescription(z.enum(['rdmp', 'dataPublication']), description);
+export const vocabularyTypeField = (description?: string): ApiSchemaField =>
+  withDescription(z.enum(['flat', 'tree']), description);
 export const booleanField = (description?: string): ApiSchemaField => withDescription(z.boolean(), description);
 export const binaryField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string(), { type: 'string', format: 'binary', description });
 export const anyField = (description?: string): ApiSchemaField =>
   withOpenApi(z.unknown(), { type: 'object', description });
+// Enforces the supplied pattern at runtime (Zod regex) in addition to publishing
+// it as OpenAPI metadata, so contract validation actually rejects values that do
+// not match. A bare `.openapi({ pattern })` only documents the constraint.
+export const patternStringField = (pattern: string, description?: string): ApiSchemaField =>
+  withOpenApi(z.string().regex(new RegExp(pattern)), description ? { description, pattern } : { pattern });
 
 export function objectField(
   properties: Record<string, ApiSchemaField>,
@@ -37,7 +51,7 @@ export function objectField(
     return acc;
   }, {} as Record<string, ApiSchemaField>) as ZodRawShape;
 
-  const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape);
+  const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape).strict();
   return description
     ? withOpenApi(
       objectSchema,
@@ -72,45 +86,45 @@ export const brandPortalParams = objectField(
 
 export const oidParams = objectField(
   {
-    oid: stringField('Record OID'),
+    oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID'),
   },
   ['oid']
 );
 
 export const idParams = objectField(
   {
-    id: stringField('Identifier'),
+    id: patternStringField('^[A-Za-z0-9_.-]+$', 'Identifier'),
   },
   ['id']
 );
 
 export const recordTypeParams = objectField(
   {
-    recordType: stringField('Record type name'),
+    recordType: recordTypeNameField('Record type name'),
   },
   ['recordType']
 );
 
 export const targetStepParams = objectField(
   {
-    targetStep: stringField('Workflow step name'),
+    targetStep: nonEmptyStringField('Workflow step name'),
   },
   ['targetStep']
 );
 
 export const datastreamParams = objectField(
   {
-    oid: stringField('Record OID'),
-    datastreamId: stringField('Datastream identifier'),
+    oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID'),
+    datastreamId: patternStringField('^[A-Za-z0-9_.-]+$', 'Datastream identifier'),
   },
   ['oid', 'datastreamId']
 );
 
 export const userSearchQuery = objectField({
-  page: integerField('Page number'),
-  pageSize: integerField('Page size'),
-  searchBy: stringField('Field to search by'),
-  query: stringField('Search query'),
+  page: nonNegativeIntegerField('Page number'),
+  pageSize: nonNegativeIntegerField('Page size'),
+  searchBy: userSearchByField('Field to search by'),
+  query: nonEmptyStringField('Search query'),
   includeDisabled: booleanField('Include disabled users'),
 });
 
@@ -121,16 +135,18 @@ export const recordSearchQuery = objectField({
   core: stringField('Search core'),
   exactNames: objectField({}, [], 'Exact match field values keyed by field name', true),
   facetNames: objectField({}, [], 'Facet field values keyed by field name', true),
-  rows: integerField('Rows per page'),
-  page: integerField('Page number'),
+  rows: nonNegativeIntegerField('Rows per page'),
+  page: nonNegativeIntegerField('Page number'),
 });
 
 export const recordListQuery = objectField({
   editOnly: booleanField('Only include records the user can edit'),
   recordType: stringField('Record type filter'),
   state: stringField('Workflow state filter'),
-  start: integerField('Result offset'),
-  rows: integerField('Result count'),
+  start: nonNegativeIntegerField('Result offset'),
+  // Mirrors sails.config.api.max_requests (default 20); the controller rejects
+  // larger page sizes with a 400, so document the upper bound here.
+  rows: withDescription(z.number().int().min(0).max(20), 'Result count (max 20)'),
   packageType: stringField('Package type filter'),
   sort: stringField('Sort expression'),
   filterFields: stringField('Comma separated filter field names'),
@@ -148,11 +164,11 @@ export const recordUpdateQuery = objectField({
 });
 
 export const recordHarvestQuery = objectField({
-  updateMode: stringField('Harvest update mode'),
+  updateMode: nonEmptyStringField('Harvest update mode'),
 });
 
 export const recordDownloadQuery = objectField({
-  fileName: stringField('Override download filename'),
+  fileName: nonEmptyStringField('Override download filename'),
 });
 
 export const brandingDraftBody = objectField({
@@ -160,17 +176,21 @@ export const brandingDraftBody = objectField({
 });
 
 export const brandingPublishBody = objectField({
-  expectedVersion: integerField('Expected version'),
+  expectedVersion: nonNegativeIntegerField('Expected version'),
 });
 
-export const logoUploadBody = objectField({}, [], 'Multipart logo upload body', true);
+export const logoUploadBody = objectField({ logo: binaryField('Branding logo file') }, ['logo'], 'Multipart logo upload body');
 
-export const datastreamUploadBody = objectField({}, [], 'Multipart datastream upload body', true);
+export const datastreamUploadBody = objectField(
+  { attachmentFields: arrayField(binaryField('Datastream file')) },
+  ['attachmentFields'],
+  'Multipart datastream upload body'
+);
 
 export const notificationBody = objectField(
   {
     to: anyField('Recipient(s)'),
-    template: stringField('Template name'),
+    template: nonEmptyStringField('Template name'),
     from: anyField('Sender'),
     cc: anyField('CC recipients'),
     bcc: anyField('BCC recipients'),
@@ -178,5 +198,5 @@ export const notificationBody = objectField(
     format: stringField('Email format'),
     data: anyField('Template data'),
   },
-  []
+  ['to', 'template']
 );

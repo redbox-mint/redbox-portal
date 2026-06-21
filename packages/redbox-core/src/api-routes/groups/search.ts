@@ -1,6 +1,7 @@
 import { apiRoute } from '../route-factory';
 import {
   apiObjectActionResponseSchema,
+  nonEmptyStringField,
   searchResultsSchema,
   objectField,
   recordSearchQuery,
@@ -30,7 +31,7 @@ export const indexRecordRoute = apiRoute(
   '/:branding/:portal/api/search/index',
   'webservice/SearchController',
   'index',
-  { query: objectField({ oid: stringField() }, ['oid']) },
+  { query: objectField({ oid: nonEmptyStringField() }, ['oid']) },
   {
     tags: ['Search'],
     summary: 'Queue record indexing',

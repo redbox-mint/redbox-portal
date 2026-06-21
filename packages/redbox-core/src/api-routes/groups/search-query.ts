@@ -47,8 +47,14 @@ function getSearchFieldMap(source: SearchQueryRecord, fieldName: 'exactNames' | 
 
 export function normalizeSearchQuery(query: unknown): SearchQueryRecord {
     const source = isRecord(query) ? query : {};
+    const normalizedSource = Object.entries(source).reduce((acc, [key, value]) => {
+        if (!key.startsWith('exact_') && !key.startsWith('facet_')) {
+            acc[key] = value;
+        }
+        return acc;
+    }, {} as SearchQueryRecord);
     return {
-        ...source,
+        ...normalizedSource,
         exactNames: getSearchFieldMap(source, 'exactNames', 'exact_'),
         facetNames: getSearchFieldMap(source, 'facetNames', 'facet_'),
     };

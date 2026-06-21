@@ -1,0 +1,47 @@
+[
+  {
+    "redboxOid": "fuzz-rdmp-001",
+    "metaMetadata": {
+      "type": "rdmp",
+      "brandId": "default",
+      "createdBy": "admin",
+      "form": "default-1.0-draft",
+      "searchCore": "default",
+      "attachmentFields": []
+    },
+    "workflow": {
+      "stage": "draft",
+      "stageLabel": "Draft"
+    },
+    "authorization": {
+      "view": [],
+      "edit": [],
+      "editRoles": ["admin", "librarian"],
+      "viewRoles": ["admin", "librarian"],
+      "editPending": [],
+      "viewPending": [],
+      "stored": {
+        "view": [],
+        "edit": [],
+        "editRoles": ["admin", "librarian"],
+        "viewRoles": ["admin", "librarian"],
+        "editPending": [],
+        "viewPending": []
+      }
+    },
+    "metadata": {
+      "title": "Fuzz Test RDMP Record - Particle Physics Simulation",
+      "description": "A simulated research data management plan for testing API fuzzing infrastructure.",
+      "finalKeywords": ["fuzzing", "testing", "rdmp", "particle-physics"],
+      "contributor_ci": {
+        "text_full_name": "Dr. Jane Smith"
+      },
+      "contributor_data_manager": {
+        "text_full_name": "Data Management Team"
+      }
+    },
+    "dateCreated": "2025-01-15T00:00:00.000Z",
+    "lastSaveDate": "2025-06-01T00:00:00.000Z",
+    "id": ""
+  }
+]

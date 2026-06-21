@@ -20,6 +20,30 @@ export namespace Controllers {
     private asError(err: unknown): Error {
       return err instanceof Error ? err : new Error(String(err));
     }
+
+    private statusForError(err: unknown): number {
+      const message = this.asError(err).message;
+      if (/not found|no such/i.test(message)) {
+        return 404;
+      }
+      if (/invalid|required|must/i.test(message)) {
+        return 400;
+      }
+      return 500;
+    }
+
+    private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      const err = this.asError(error);
+      const status = this.statusForError(err);
+      const errorResponse = new APIErrorResponse(err.message);
+      return this.sendResp(req, res, {
+        status,
+        errors: [err],
+        displayErrors: [{ status: String(status), title: errorResponse.message, detail: errorResponse.details }],
+        headers: this.getNoCacheHeaders(),
+      });
+    }
+
     protected override _exportedMethods: string[] = [
       'listEntries',
       'getEntry',
@@ -44,13 +68,7 @@ export namespace Controllers {
         // Ensure metadata fields are included in the response
         return this.apiRespond(req, res, entries, 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -75,13 +93,7 @@ export namespace Controllers {
         }
         return this.apiRespond(req, res, entry, 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -113,13 +125,7 @@ export namespace Controllers {
         }
         return this.apiRespond(req, res, saved, 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -150,13 +156,7 @@ export namespace Controllers {
         }
         return this.apiRespond(req, res, new APIActionResponse('Deleted'), 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -180,13 +180,7 @@ export namespace Controllers {
         }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -215,13 +209,7 @@ export namespace Controllers {
         }
         return this.apiRespond(req, res, bundle, 200);
       } catch (error) {
-        const err = this.asError(error);
-        const errorResponse = new APIErrorResponse(err.message);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -242,12 +230,7 @@ export namespace Controllers {
         }
         return this.sendResp(req, res, { data: bundle, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const err = this.asError(error);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ detail: err.message }],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
   }

@@ -65,6 +65,12 @@ function validateFiles(
   constraints: Record<string, ApiFileConstraint>,
   issues: ApiValidationIssue[]
 ): void {
+  for (const name of Object.keys(files)) {
+    if (!Object.prototype.hasOwnProperty.call(constraints, name)) {
+      issues.push({ path: `files.${name}`, message: 'Unexpected file field' });
+    }
+  }
+
   for (const [name, constraint] of Object.entries(constraints)) {
     const uploaded = files[name] ?? [];
     if (constraint.required && uploaded.length === 0) {
@@ -87,6 +93,14 @@ function validateFiles(
       const sizeValue = file.size ?? file.bytes;
       const size =
         typeof sizeValue === 'number' ? sizeValue : typeof sizeValue === 'string' ? Number(sizeValue) : undefined;
+      if (
+        constraint.minBytes != null &&
+        typeof size === 'number' &&
+        Number.isFinite(size) &&
+        size < constraint.minBytes
+      ) {
+        issues.push({ path: `files.${name}[${index}]`, message: `File is smaller than minBytes ${constraint.minBytes}` });
+      }
       if (
         constraint.maxBytes != null &&
         typeof size === 'number' &&

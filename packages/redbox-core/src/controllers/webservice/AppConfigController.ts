@@ -18,6 +18,14 @@ export namespace Controllers {
       return error instanceof Error ? error.message : String(error);
     }
 
+    private getErrorStatus(error: unknown): number {
+      const message = this.getErrorMessage(error);
+      if (/no config found/i.test(message)) {
+        return 404;
+      }
+      return /invalid|required|must/i.test(message) ? 400 : 500;
+    }
+
     constructor() {
       super();
     }
@@ -48,7 +56,7 @@ export namespace Controllers {
         sails.log.error(error);
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
-          status: 500,
+          status: this.getErrorStatus(error),
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });
@@ -68,7 +76,7 @@ export namespace Controllers {
         sails.log.error(error);
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
-          status: 500,
+          status: this.getErrorStatus(error),
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });

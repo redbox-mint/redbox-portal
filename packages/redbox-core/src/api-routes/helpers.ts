@@ -455,6 +455,9 @@ export function getFileConstraintDescription(name: string, constraint: ApiFileCo
   if (constraint.maxBytes != null) {
     parts.push(`maxBytes=${constraint.maxBytes}`);
   }
+  if (constraint.minBytes != null) {
+    parts.push(`minBytes=${constraint.minBytes}`);
+  }
   if (constraint.mimeTypes?.length) {
     parts.push(`mimeTypes=${constraint.mimeTypes.join(',')}`);
   }
@@ -465,6 +468,10 @@ export function getFileConstraintOpenApiExtension(constraint: ApiFileConstraint)
   const extension: Record<string, unknown> = {};
   if (constraint.maxBytes != null) {
     extension['x-maxBytes'] = constraint.maxBytes;
+  }
+  if (constraint.minBytes != null) {
+    extension.minLength = constraint.minBytes;
+    extension['x-minBytes'] = constraint.minBytes;
   }
   if (constraint.mimeTypes?.length) {
     extension['x-mimeTypes'] = [...constraint.mimeTypes];
@@ -523,6 +530,9 @@ function coercePrimitiveValue(value: unknown, schema: ZodType): unknown {
     if (typeof value === 'string' && value.trim() !== '') {
       const coerced = Number(value);
       if (Number.isFinite(coerced)) {
+        if (isIntegerSchema(schema) && !Number.isInteger(coerced)) {
+          return value;
+        }
         return isIntegerSchema(schema) ? Math.trunc(coerced) : coerced;
       }
     }
@@ -555,11 +565,9 @@ export function coerceValueForSchema(value: unknown, schema: ZodType): unknown {
         result[key] = coerceValueForSchema(value[key], childSchema as unknown as ZodType);
       }
     }
-    if (isPassthroughObjectSchema(schema)) {
-      for (const [key, childValue] of Object.entries(value)) {
-        if (!Object.prototype.hasOwnProperty.call(shape, key)) {
-          result[key] = childValue;
-        }
+    for (const [key, childValue] of Object.entries(value)) {
+      if (!Object.prototype.hasOwnProperty.call(shape, key)) {
+        result[key] = childValue;
       }
     }
     return result;

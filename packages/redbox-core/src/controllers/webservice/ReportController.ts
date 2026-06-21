@@ -45,7 +45,7 @@ export namespace Controllers {
         if (!namedQuery) {
           const errorResponse = new APIErrorResponse('Named query not found');
           return this.sendResp(req, res, {
-            status: 400,
+            status: 404,
             displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
             headers: this.getNoCacheHeaders(),
           });

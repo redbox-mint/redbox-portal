@@ -91,15 +91,29 @@ export namespace Controllers {
       });
     }
 
-    private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
+	    private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
       if (user == null) {
         return null;
       }
       const sanitizedUser = { ...(user as UserAttributes & globalThis.Record<string, unknown>) };
       delete sanitizedUser['password'];
       delete sanitizedUser['token'];
-      return sanitizedUser as UserAttributes;
-    }
+	      return sanitizedUser as UserAttributes;
+	    }
+
+	    private statusForUserError(error: unknown): number {
+	      const message = String((error as Error)?.message ?? '');
+	      if (message.includes('No such user with id:') || message.includes('User not found') || message.includes('Both users must exist')) {
+	        return 404;
+	      }
+	      if (message.includes('already exists') || message.includes('must be unique')) {
+	        return 409;
+	      }
+	      if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role')) {
+	        return 400;
+	      }
+	      return 500;
+	    }
 
     private async getFilteredUserRecords(
       queryObject: Record<string, unknown>,
@@ -133,9 +147,15 @@ export namespace Controllers {
       const searchField = query.searchBy as string | undefined;
       const searchQuery = query.query as string | undefined;
       const queryObject: Record<string, unknown> = {};
-      if (searchField != null && searchQuery != null) {
-        queryObject[searchField] = searchQuery;
+
+      if (!searchField || !searchQuery) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Both searchBy and query parameters are required' }],
+          headers: this.getNoCacheHeaders(),
+        });
       }
+      queryObject[searchField] = searchQuery;
       const page: number = query.page != null ? parseInt(String(query.page), 10) : 1;
       const pageSize: number = query.pageSize != null ? parseInt(String(query.pageSize), 10) : 10;
       const skip = (page - 1) * pageSize;
@@ -176,6 +196,14 @@ export namespace Controllers {
       const { query } = validated;
       const searchField = query.searchBy as string;
       const searchQuery = query.query as string;
+
+      if (!searchField || !searchQuery) {
+        return that.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Both searchBy and query parameters are required' }],
+          headers: that.getNoCacheHeaders(),
+        });
+      }
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = searchQuery;
       User.findOne(queryObject).exec(function (err: unknown, user: UserAttributes | null) {
@@ -271,7 +299,7 @@ export namespace Controllers {
                 }
                 sails.log.error(error);
                 return this.sendResp(req, res, {
-                  status: 500,
+                  status: this.statusForUserError(error),
                   displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
                   headers: this.getNoCacheHeaders(),
                 });
@@ -290,7 +318,7 @@ export namespace Controllers {
 
           sails.log.error(error);
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.statusForUserError(error),
             displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
             headers: this.getNoCacheHeaders(),
           });
@@ -349,10 +377,10 @@ export namespace Controllers {
                 sails.log.error('Failed to update user roles:');
                 sails.log.error(error);
                 //TODO: Find more appropriate status code
-                const errorResponse = new APIErrorResponse((error as Error).message);
-                this.sendResp(req, res, {
-                  status: 500,
-                  displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+	            const errorResponse = new APIErrorResponse((error as Error).message);
+	            this.sendResp(req, res, {
+	              status: this.statusForUserError(error),
+	              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
                   headers: this.getNoCacheHeaders(),
                 });
               }
@@ -382,7 +410,7 @@ export namespace Controllers {
             });
           } else {
             return this.sendResp(req, res, {
-              status: 500,
+              status: this.statusForUserError(error),
               displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
               headers: this.getNoCacheHeaders(),
             });
@@ -411,10 +439,10 @@ export namespace Controllers {
           (error: unknown) => {
             sails.log.error('Failed to set UUID:');
             sails.log.error(error);
-            const errorResponse = new APIErrorResponse((error as Error).message);
-            this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+	            const errorResponse = new APIErrorResponse((error as Error).message);
+	            this.sendResp(req, res, {
+	              status: this.statusForUserError(error),
+	              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
               headers: this.getNoCacheHeaders(),
             });
           }
@@ -450,7 +478,7 @@ export namespace Controllers {
             sails.log.error(error);
             const errorResponse = new APIErrorResponse((error as Error).message);
             this.sendResp(req, res, {
-              status: 500,
+              status: this.statusForUserError(error),
               displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
               headers: this.getNoCacheHeaders(),
             });
@@ -492,9 +520,9 @@ export namespace Controllers {
         });
       } catch (error) {
         sails.log.error(error);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
+	        return this.sendResp(req, res, {
+	          status: this.statusForUserError(error),
+	          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders(),
         });
       }
@@ -520,7 +548,7 @@ export namespace Controllers {
       } catch (error) {
         sails.log.error(error);
         return this.sendResp(req, res, {
-          status: 500,
+          status: this.statusForUserError(error),
           displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders(),
         });
@@ -631,6 +659,8 @@ export namespace Controllers {
 
         if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('unauthor')) {
           statusCode = 403;
+        } else if (normalizedMessage.includes('both users must exist')) {
+          statusCode = 404;
         } else if (
           normalizedMessage.includes('required') ||
           normalizedMessage.includes('invalid') ||
@@ -661,7 +691,10 @@ export namespace Controllers {
     public async createSystemRole(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const body = validated.body as Record<string, unknown>;
-      const roleName = (body.roleName as string | undefined) ?? (validated.query.roleName as string | undefined);
+	      const roleName =
+	        (body.roleName as string | undefined) ??
+	        (validated.query.roleName as string | undefined) ??
+	        (validated.params.roleName as string | undefined);
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
@@ -713,9 +746,9 @@ export namespace Controllers {
         return this.apiRespond(req, res, { status: true, message: 'User disabled successfully' });
       } catch (err) {
         sails.log.error(err);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+	        return this.sendResp(req, res, {
+	          status: this.statusForUserError(err),
+	          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders(),
         });
       }
@@ -744,9 +777,9 @@ export namespace Controllers {
         return this.apiRespond(req, res, { status: true, message: 'User enabled successfully' });
       } catch (err) {
         sails.log.error(err);
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+	        return this.sendResp(req, res, {
+	          status: this.statusForUserError(err),
+	          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders(),
         });
       }

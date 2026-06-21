@@ -1,7 +1,8 @@
 import { apiRoute } from '../route-factory';
-import { apiErrorResponseSchema, appConfigValueSchema, apiActionResponseSchema, objectField, responseField, stringField } from '../schemas/common';
+import { apiErrorResponseSchema, appConfigValueSchema, apiActionResponseSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
+const notFoundResponse = responseField(apiErrorResponseSchema, 'Not found');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 
 export const refreshCachedResourcesRoute = apiRoute(
@@ -27,7 +28,7 @@ export const setAppConfigRoute = apiRoute(
   'webservice/AdminController',
   'setAppConfig',
   {
-    params: objectField({ configKey: stringField() }, ['configKey']),
+    params: objectField({ configKey: patternStringField('^[A-Za-z0-9_-]+$', 'Config key') }, ['configKey']),
     body: { required: true, content: { 'application/json': { schema: objectField({}, [], 'Config payload', true) } } },
   },
   {
@@ -46,13 +47,14 @@ export const getAppConfigByKeyRoute = apiRoute(
   '/:branding/:portal/api/admin/config/:configKey',
   'webservice/AdminController',
   'getAppConfig',
-  { params: objectField({ configKey: stringField() }, ['configKey']) },
+  { params: objectField({ configKey: patternStringField('^[A-Za-z0-9_-]+$', 'Config key') }, ['configKey']) },
   {
     tags: ['Admin'],
     summary: 'Get app config by key',
     responses: {
       200: responseField(appConfigValueSchema, 'App config value'),
       400: badRequestResponse,
+      404: notFoundResponse,
       500: internalServerErrorResponse,
     },
   }

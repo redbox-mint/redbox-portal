@@ -57,19 +57,38 @@ export namespace Controllers {
 
     public bootstrap() { }
 
-    public override async index(req: Sails.Req, res: Sails.Res) {
-      const validated = getValidatedApiRequest(req);
-      const { query } = validated;
-      const oid = query.oid as string;
-      const record: RecordModel = await this.RecordsService.getMeta(oid);
-      await this.searchService.index(oid, record);
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
+    }
 
-      return this.apiRespond(
-        req,
-        res,
-        new APIObjectActionResponse(oid, 'Index request added to message queue for processing'),
-        200
-      );
+    private errorStatus(error: unknown): number {
+      const message = this.asError(error).message;
+      if (/not found|no such|invalid|malformed|not valid|unexpected/i.test(message)) {
+        return 400;
+      }
+      return 500;
+    }
+
+    public override async index(req: Sails.Req, res: Sails.Res) {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const { query } = validated;
+        const oid = query.oid as string;
+        if (!oid) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'oid is required' }], headers: this.getNoCacheHeaders() });
+        }
+        const record: RecordModel = await this.RecordsService.getMeta(oid);
+        await this.searchService.index(oid, record);
+
+        return this.apiRespond(
+          req,
+          res,
+          new APIObjectActionResponse(oid, 'Index request added to message queue for processing'),
+          200
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { status: this.errorStatus(error), errors: [this.asError(error)], displayErrors: [{ detail: 'Index record failed.' }], headers: this.getNoCacheHeaders() });
+      }
     }
 
     public async indexAll(req: Sails.Req, res: Sails.Res) {
@@ -171,11 +190,10 @@ export namespace Controllers {
         );
         this.apiRespond(req, res, searchRes);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const errorResponse = new APIErrorResponse(errorMessage);
         this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          status: this.errorStatus(error),
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Search failed.' }],
           headers: this.getNoCacheHeaders(),
         });
       }

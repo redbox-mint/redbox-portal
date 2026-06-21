@@ -32,7 +32,14 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      const err = this.asError(error);
+      const status = this.statusForError(err);
+      return this.sendResp(req, res, {
+        status,
+        errors: [err],
+        displayErrors: [{ status: String(status), detail: err.message }],
+        headers: this.getNoCacheHeaders(),
+      });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {

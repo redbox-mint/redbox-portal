@@ -7,6 +7,7 @@ export type ApiSchemaField = ZodType;
 
 export interface ApiFileConstraint {
   required?: boolean;
+  minBytes?: number;
   maxBytes?: number;
   mimeTypes?: readonly string[];
   multiple?: boolean;

@@ -23,6 +23,7 @@ import { Services as services } from '../CoreService';
 import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
+import { assertNoNullByteObjectKeys } from '../utilities/JsonObjectKeyValidation';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 
@@ -279,6 +280,7 @@ export namespace Services {
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
+      assertNoNullByteObjectKeys(configData, 'configData');
       const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
       const mergedConfigData = this.mergeSecretFields(configKey, preparedConfigData, dbConfig?.configData);
@@ -296,6 +298,7 @@ export namespace Services {
     }
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
+      assertNoNullByteObjectKeys(configData, 'configData');
       const branding: BrandingModel = BrandingService.getBrand(brandName);
       const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);

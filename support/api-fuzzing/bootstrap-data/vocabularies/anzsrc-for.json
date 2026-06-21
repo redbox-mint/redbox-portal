@@ -1,0 +1,30 @@
+{
+  "name": "ANZSRC Fields of Research",
+  "slug": "anzsrc-for",
+  "description": "Australian and New Zealand Standard Research Classification Fields of Research",
+  "type": "flat",
+  "entries": [
+    { "label": "Mathematical Sciences", "value": "01", "order": 0 },
+    { "label": "Physical Sciences", "value": "02", "order": 1 },
+    { "label": "Chemical Sciences", "value": "03", "order": 2 },
+    { "label": "Earth Sciences", "value": "04", "order": 3 },
+    { "label": "Environmental Sciences", "value": "05", "order": 4 },
+    { "label": "Biological Sciences", "value": "06", "order": 5 },
+    { "label": "Agricultural and Veterinary Sciences", "value": "07", "order": 6 },
+    { "label": "Information and Computing Sciences", "value": "08", "order": 7 },
+    { "label": "Engineering", "value": "09", "order": 8 },
+    { "label": "Technology", "value": "10", "order": 9 },
+    { "label": "Medical and Health Sciences", "value": "11", "order": 10 },
+    { "label": "Built Environment and Design", "value": "12", "order": 11 },
+    { "label": "Education", "value": "13", "order": 12 },
+    { "label": "Economics", "value": "14", "order": 13 },
+    { "label": "Commerce, Management, Tourism and Services", "value": "15", "order": 14 },
+    { "label": "Studies in Human Society", "value": "16", "order": 15 },
+    { "label": "Psychology and Cognitive Sciences", "value": "17", "order": 16 },
+    { "label": "Law and Legal Studies", "value": "18", "order": 17 },
+    { "label": "Studies in Creative Arts and Writing", "value": "19", "order": 18 },
+    { "label": "Language, Communication and Culture", "value": "20", "order": 19 },
+    { "label": "History and Archaeology", "value": "21", "order": 20 },
+    { "label": "Philosophy and Religious Studies", "value": "22", "order": 21 }
+  ]
+}

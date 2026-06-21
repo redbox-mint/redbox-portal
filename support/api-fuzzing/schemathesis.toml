@@ -1,0 +1,9 @@
+base-url = "${REDBOX_BASE_URL}"
+hooks = "hooks.redbox_hooks"
+suppress-health-check = ["too_slow", "data_too_large"]
+
+[generation]
+max-examples = 100
+
+[dictionaries.edge]
+from-file = "dictionaries/redbox-edge.dict"

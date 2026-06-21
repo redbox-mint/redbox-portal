@@ -1,16 +1,38 @@
 import { apiRoute } from '../route-factory';
-import { anyField, objectField, responseField, stringField } from '../schemas/common';
+import { z } from '../zod-openapi';
+import { anyField, apiErrorResponseSchema, arrayField, genericObjectSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
 
-const namedQueryResponse = responseField(
-  objectField({ data: anyField('Named query data') }, ['data'], 'Named query response', true),
-  'Named query response'
+const namedQueryDataResponse = responseField(anyField('Named query response data'), 'Named query response');
+const namedQueryListResponse = responseField(arrayField(genericObjectSchema), 'Named query definitions');
+const namedQueryCollectionsResponse = responseField(arrayField(stringField()), 'Named query collection names');
+
+const namedQueryDefinitionBody = {
+  collectionName: z.enum(['record', 'user']).openapi({ description: 'Collection name' }),
+  resultObjectMapping: objectField({}, [], 'Result object mapping', true),
+  mongoQuery: objectField({}, [], 'Mongo query', true),
+  queryParams: objectField({}, [], 'Query parameters', true),
+};
+
+const createNamedQueryBody = objectField(
+  {
+    name: patternStringField('^[A-Za-z0-9_-]+$', 'Named query name'),
+    ...namedQueryDefinitionBody,
+  },
+  ['name', 'collectionName', 'resultObjectMapping', 'mongoQuery', 'queryParams'],
+  'Named query payload',
+  true
 );
 
-const namedQueryBody = objectField({}, [], 'Named query payload', true);
+const updateNamedQueryBody = objectField(
+  namedQueryDefinitionBody,
+  ['collectionName', 'resultObjectMapping', 'mongoQuery', 'queryParams'],
+  'Named query payload',
+  false
+);
 
 const nameParam = objectField(
   {
-    name: stringField('Named query name'),
+    name: patternStringField('^[A-Za-z0-9_-]+$', 'Named query name'),
   },
   ['name']
 );
@@ -24,7 +46,7 @@ export const listNamedQueriesRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'List all named queries for the brand',
-    responses: { 200: namedQueryResponse },
+    responses: { 200: namedQueryListResponse },
   }
 );
 
@@ -37,7 +59,7 @@ export const getNamedQueryCollectionsRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'List the collections that may be used when defining a named query',
-    responses: { 200: namedQueryResponse },
+    responses: { 200: namedQueryCollectionsResponse },
   }
 );
 
@@ -50,7 +72,7 @@ export const getNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Get a named query by name',
-    responses: { 200: namedQueryResponse },
+    responses: { 200: namedQueryDataResponse },
   }
 );
 
@@ -60,12 +82,15 @@ export const createNamedQueryRoute = apiRoute(
   'webservice/NamedQueryController',
   'createQuery',
   {
-    body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
+    body: { required: true, content: { 'application/json': { schema: createNamedQueryBody } } },
   },
   {
     tags: ['NamedQuery'],
     summary: 'Create a new named query',
-    responses: { 201: namedQueryResponse },
+    responses: {
+      201: namedQueryDataResponse,
+      409: responseField(apiErrorResponseSchema, 'Named query already exists'),
+    },
   }
 );
 
@@ -76,12 +101,12 @@ export const updateNamedQueryRoute = apiRoute(
   'updateQuery',
   {
     params: nameParam,
-    body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
+    body: { required: true, content: { 'application/json': { schema: updateNamedQueryBody } } },
   },
   {
     tags: ['NamedQuery'],
     summary: 'Update an existing named query',
-    responses: { 200: namedQueryResponse },
+    responses: { 200: namedQueryDataResponse },
   }
 );
 
@@ -94,7 +119,7 @@ export const deleteNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Delete a named query',
-    responses: { 200: namedQueryResponse },
+    responses: { 200: namedQueryDataResponse },
   }
 );
 

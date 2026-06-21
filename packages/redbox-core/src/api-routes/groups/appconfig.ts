@@ -2,6 +2,7 @@ import { apiRoute } from '../route-factory';
 import { apiErrorResponseSchema, appConfigValueSchema, objectField, responseField, stringField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
+const notFoundResponse = responseField(apiErrorResponseSchema, 'Not found');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 
 export const getAppConfigByIdRoute = apiRoute(
@@ -16,6 +17,7 @@ export const getAppConfigByIdRoute = apiRoute(
     responses: {
       200: responseField(appConfigValueSchema, 'App config'),
       400: badRequestResponse,
+      404: notFoundResponse,
       500: internalServerErrorResponse,
     },
   }

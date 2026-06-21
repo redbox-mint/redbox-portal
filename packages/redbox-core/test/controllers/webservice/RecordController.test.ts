@@ -51,6 +51,12 @@ function successResult(oid = 'record-1') {
     };
 }
 
+function failureResult() {
+    return {
+        isSuccessful: () => false,
+    };
+}
+
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {
     return Object.keys(authorization).reduce((acc, key) => {
         acc[key] = [...authorization[key]];
@@ -407,6 +413,24 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.firstCall.args[2]?.headers?.Location).to.equal(
                 'https://portal.example/default/default/api/records/metadata/created-record'
             );
+        });
+
+        it('returns bad request when record creation returns a validation failure', async () => {
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body: { title: 'Invalid record' },
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+            recordsService.create.resolves(failureResult());
+
+            await controller.create(req, {} as Sails.Res);
+            await flushPromises();
+
+            expect(recordsService.create.calledOnce).to.be.true;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
     });
 

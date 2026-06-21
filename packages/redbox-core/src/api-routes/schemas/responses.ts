@@ -77,6 +77,18 @@ export const apiErrorResponseSchema = withOpenApi(messageDetailsSchema, {
     description: 'Legacy API error response with message and details fields',
 });
 
+export const unauthorizedResponseSchema = withOpenApi(messageDetailsSchema, {
+    description: 'Unauthorized API response for missing or invalid credentials',
+});
+
+export const forbiddenResponseSchema = withOpenApi(messageDetailsSchema, {
+    description: 'Forbidden API response for authenticated requests without permission',
+});
+
+export const notFoundResponseSchema = withOpenApi(messageDetailsSchema, {
+    description: 'Not found API response for unknown resources',
+});
+
 export const apiActionResponseSchema = withOpenApi(messageDetailsSchema, {
     description: 'Legacy API action response with message and details fields',
 });
@@ -230,7 +242,7 @@ export const harvestRouteResponseSchema = withOpenApi(
 export const listApiSummarySchema = withOpenApi(
     z.object({
         numFound: z.number().int(),
-        page: z.number().int(),
+        page: z.number().int().nullable(),
         start: z.number().int(),
     }),
     { description: 'Legacy list response summary' }
@@ -386,7 +398,6 @@ const brandingReferenceSchema = withOpenApi(z.union([z.string(), z.number()]), {
 
 const jsonValueSchema = withOpenApi(z.unknown(), {
     description: 'Any JSON value',
-    type: 'object',
     nullable: true,
 });
 
@@ -415,7 +426,7 @@ export const brandingConfigSchema = withOpenApi(
         variables: jsonObjectSchema.optional(),
         version: z.number().int().optional(),
         hash: z.string().optional(),
-        logo: jsonObjectSchema.optional(),
+        logo: jsonObjectSchema.nullable().optional(),
         roles: z.array(roleSummarySchema).optional(),
         supportAgreementInformation: jsonObjectSchema.optional(),
     }).passthrough(),
@@ -485,8 +496,8 @@ export const userRecordSchema = withOpenApi(
         type: z.string(),
         name: z.string(),
         email: z.string(),
-        lastLogin: dateTimeSchema.nullable().optional(),
-        additionalAttributes: jsonObjectSchema.optional(),
+        lastLogin: z.union([dateTimeSchema, z.literal(''), z.null()]).optional(),
+        additionalAttributes: jsonObjectSchema.nullable().optional(),
         linkedPrimaryUserId: z.string().optional(),
         accountLinkState: z.string().optional(),
         effectivePrimaryUsername: z.string().optional(),
@@ -506,7 +517,7 @@ export const searchFilterSchema = withOpenApi(
         name: z.string(),
         title: z.string(),
         type: z.string(),
-        typeLabel: z.string(),
+        typeLabel: z.string().nullable().optional(),
     }).passthrough(),
     { description: 'Record type search filter' }
 );
@@ -529,18 +540,18 @@ export const recordTypeHookDeclarationSchema = withOpenApi(
 
 export const recordTypeHookOnEventSchema = withOpenApi(
     z.object({
-        pre: z.array(recordTypeHookDeclarationSchema),
-        post: z.array(recordTypeHookDeclarationSchema),
-        postSync: z.array(recordTypeHookDeclarationSchema),
+        pre: z.array(recordTypeHookDeclarationSchema).optional(),
+        post: z.array(recordTypeHookDeclarationSchema).optional(),
+        postSync: z.array(recordTypeHookDeclarationSchema).optional(),
     }).passthrough(),
     { description: 'Record type hook event handlers' }
 );
 
 export const recordTypeHooksSchema = withOpenApi(
     z.object({
-        onCreate: recordTypeHookOnEventSchema,
-        onUpdate: recordTypeHookOnEventSchema,
-        onDelete: recordTypeHookOnEventSchema,
+        onCreate: recordTypeHookOnEventSchema.optional(),
+        onUpdate: recordTypeHookOnEventSchema.optional(),
+        onDelete: recordTypeHookOnEventSchema.optional(),
     }).passthrough(),
     { description: 'Record type hooks configuration' }
 );
@@ -553,12 +564,12 @@ export const recordTypeSchema = withOpenApi(
         packageType: z.string().optional(),
         searchCore: z.string().optional(),
         workflowSteps: z.array(jsonObjectSchema).optional(),
-        searchFilters: z.array(searchFilterSchema).optional(),
+        searchFilters: z.array(searchFilterSchema).nullable().optional(),
         searchable: z.boolean().optional(),
-        transferResponsibility: jsonObjectSchema.optional(),
-        relatedTo: z.array(relatedToSchema).optional(),
+        transferResponsibility: jsonObjectSchema.nullable().optional(),
+        relatedTo: z.array(relatedToSchema).nullable().optional(),
         hooks: recordTypeHooksSchema.optional(),
-        dashboard: jsonObjectSchema.optional(),
+        dashboard: jsonObjectSchema.nullable().optional(),
     }).passthrough(),
     { description: 'Record type configuration' }
 );
@@ -602,7 +613,7 @@ export const vocabularySchema = withOpenApi(
         branding: z.union([z.string(), z.number(), brandingConfigSchema]).optional(),
         description: z.string().optional(),
         entries: z.array(vocabularyEntrySchema).optional(),
-        lastSyncedAt: dateTimeSchema.optional(),
+        lastSyncedAt: z.union([dateTimeSchema, z.literal(''), z.null()]).optional(),
         name: z.string(),
         owner: z.string().optional(),
         rvaSourceKey: z.string().nullable().optional(),
@@ -619,7 +630,7 @@ export const translationEntrySchema = withOpenApi(
     z.object({
         id: z.string().optional(),
         branding: brandingReferenceSchema.optional(),
-        bundle: brandingReferenceSchema.optional(),
+        bundle: brandingReferenceSchema.nullable().optional(),
         category: z.string().nullable().optional(),
         description: z.string().nullable().optional(),
         key: z.string(),

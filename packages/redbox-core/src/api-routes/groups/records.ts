@@ -1,4 +1,5 @@
 import { apiRoute } from '../route-factory';
+import { z } from '../zod-openapi';
 import {
   arrayField,
   apiErrorResponseSchema,
@@ -27,9 +28,25 @@ import {
   responseField,
   storageServiceResponseSchema,
   stringField,
+  nonEmptyStringField,
+  recordTypeNameField,
 } from '../schemas/common';
 
 const bodyFallback = ['body'] as const;
+
+const harvestRecordRequestBody = z.object({
+  records: z.array(z.object({
+    harvestId: z.string().min(1),
+    recordRequest: z.object({}).passthrough().optional(),
+  }).strict()).min(1),
+}).strict().openapi({ description: 'Harvest payload' });
+
+const legacyHarvestRecordRequestBody = z.object({
+  records: z.array(z.object({
+    harvest_id: z.string().min(1),
+    metadata: z.object({}).passthrough().optional(),
+  }).strict()).min(1),
+}).strict().openapi({ description: 'Legacy harvest payload' });
 
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
@@ -58,7 +75,7 @@ export const createRecordRoute = apiRoute(
   'webservice/RecordController',
   'create',
   {
-    params: objectField({ branding: stringField(), portal: stringField(), recordType: stringField() }, [
+    params: objectField({ branding: stringField(), portal: stringField(), recordType: recordTypeNameField() }, [
       'branding',
       'portal',
       'recordType',
@@ -115,7 +132,7 @@ export const harvestRoute = apiRoute(
   {
     params: recordTypeParams,
     query: recordHarvestQuery,
-    body: { content: { 'application/json': { schema: objectField({}, [], 'Harvest payload', true) } } },
+    body: { required: true, content: { 'application/json': { schema: harvestRecordRequestBody } } },
     legacyParamFallbacks: {
       updateMode: bodyFallback,
     },
@@ -139,7 +156,7 @@ export const legacyHarvestRoute = apiRoute(
   {
     params: recordTypeParams,
     query: recordUpdateQuery,
-    body: { content: { 'application/json': { schema: objectField({}, [], 'Legacy harvest payload', true) } } },
+    body: { required: true, content: { 'application/json': { schema: legacyHarvestRecordRequestBody } } },
     legacyParamFallbacks: {
       merge: bodyFallback,
     },
@@ -294,12 +311,7 @@ export const addUserEditRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField(
-            { users: arrayField(stringField()), pendingUsers: arrayField(stringField()) },
-            [],
-            'Permissions payload',
-            true
-          ),
+          schema: objectField({ users: arrayField(stringField()), pendingUsers: arrayField(stringField()) }, []),
         },
       },
     },
@@ -321,12 +333,7 @@ export const removeUserEditRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField(
-            { users: arrayField(stringField()), pendingUsers: arrayField(stringField()) },
-            [],
-            'Permissions payload',
-            true
-          ),
+          schema: objectField({ users: arrayField(stringField()), pendingUsers: arrayField(stringField()) }, []),
         },
       },
     },
@@ -348,12 +355,7 @@ export const addUserViewRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField(
-            { users: arrayField(stringField()), pendingUsers: arrayField(stringField()) },
-            [],
-            'Permissions payload',
-            true
-          ),
+          schema: objectField({ users: arrayField(stringField()), pendingUsers: arrayField(stringField()) }, []),
         },
       },
     },
@@ -375,12 +377,7 @@ export const removeUserViewRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField(
-            { users: arrayField(stringField()), pendingUsers: arrayField(stringField()) },
-            [],
-            'Permissions payload',
-            true
-          ),
+          schema: objectField({ users: arrayField(stringField()), pendingUsers: arrayField(stringField()) }, []),
         },
       },
     },
@@ -402,7 +399,7 @@ export const addRoleEditRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField({ roles: arrayField(stringField()) }, [], 'Role permissions payload', true),
+          schema: objectField({ roles: arrayField(stringField()) }, []),
         },
       },
     },
@@ -424,7 +421,7 @@ export const removeRoleEditRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField({ roles: arrayField(stringField()) }, [], 'Role permissions payload', true),
+          schema: objectField({ roles: arrayField(stringField()) }, []),
         },
       },
     },
@@ -446,7 +443,7 @@ export const addRoleViewRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField({ roles: arrayField(stringField()) }, [], 'Role permissions payload', true),
+          schema: objectField({ roles: arrayField(stringField()) }, []),
         },
       },
     },
@@ -468,7 +465,7 @@ export const removeRoleViewRoute = apiRoute(
     body: {
       content: {
         'application/json': {
-          schema: objectField({ roles: arrayField(stringField()) }, [], 'Role permissions payload', true),
+          schema: objectField({ roles: arrayField(stringField()) }, []),
         },
       },
     },
@@ -500,11 +497,12 @@ export const addDataStreamsRoute = apiRoute(
   'addDataStreams',
   {
     params: oidParams,
-    body: { content: { 'multipart/form-data': { schema: datastreamUploadBody } } },
+    body: { required: true, content: { 'multipart/form-data': { schema: datastreamUploadBody } } },
     files: {
       attachmentFields: {
         required: true,
         multiple: true,
+        minBytes: 1,
         maxBytes: 104857600,
         description: 'Datastream files',
       },
@@ -567,7 +565,7 @@ export const transitionWorkflowRoute = apiRoute(
   'webservice/RecordController',
   'transitionWorkflow',
   {
-    params: objectField({ targetStep: stringField(), oid: stringField() }, ['targetStep', 'oid']),
+    params: objectField({ targetStep: nonEmptyStringField(), oid: nonEmptyStringField() }, ['targetStep', 'oid']),
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },

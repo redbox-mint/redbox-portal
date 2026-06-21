@@ -96,6 +96,25 @@ describe('I18nEntriesService', function() {
     });
   });
 
+  describe('setBundle', function() {
+    it('should reject bundle data with null-byte object keys before persisting', async function() {
+      try {
+        await I18nEntriesService.setBundle(
+          { id: 'brand-1' },
+          'en',
+          'translation',
+          { nested: { ['bad\0key']: 'value' } }
+        );
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.contain('Invalid JSON object key');
+      }
+
+      expect(mockI18nBundle.create.called).to.be.false;
+      expect(mockI18nBundle.updateOne.called).to.be.false;
+    });
+  });
+
   describe('buildUid (private)', function() {
     it('should build correct uid', function() {
       const result = I18nEntriesService.buildUid({ id: 'brand-1' }, 'en', 'common', 'welcome');

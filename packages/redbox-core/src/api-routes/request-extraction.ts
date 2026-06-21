@@ -98,20 +98,16 @@ export function buildRequestSourceInput(
     return rawValue;
   }
   const properties = getObjectSchemaShape(schema);
-  if (!properties) {
-    return coerceValueForSchema(rawValue, schema);
-  }
-  if (isPassthroughObjectSchema(schema)) {
-    return coerceValueForSchema(rawValue, schema);
-  }
-  const projected = Object.keys(properties).reduce(
-    (acc, key) => {
-      acc[key] = getRequestValue(req, request, source, key);
+  const coercedValue = coerceValueForSchema(rawValue, schema);
+  if (source === 'params' && properties && isRecord(coercedValue)) {
+    return Object.keys(properties).reduce((acc, key) => {
+      if (Object.prototype.hasOwnProperty.call(coercedValue, key)) {
+        acc[key] = coercedValue[key];
+      }
       return acc;
-    },
-    {} as Record<string, unknown>
-  );
-  return coerceValueForSchema(projected, schema);
+    }, {} as Record<string, unknown>);
+  }
+  return coercedValue;
 }
 
 export function extractApiRequest(req: Sails.Req, request?: ApiRequestDefinition): ApiRequestExtraction {

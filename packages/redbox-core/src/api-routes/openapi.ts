@@ -241,6 +241,9 @@ function buildResponses(
   const routeResponses = route.responses ?? { 200: { description: 'Success' } };
   const defaultResponses: Record<number, ApiResponseDefinition> = {
     400: responseField(apiErrorResponseSchema, 'Bad request'),
+    401: responseField(apiErrorResponseSchema, 'Unauthorized'),
+    403: responseField(apiErrorResponseSchema, 'Forbidden'),
+    404: responseField(apiErrorResponseSchema, 'Not found'),
     500: responseField(apiErrorResponseSchema, 'Internal server error'),
   };
   const responseDefinitions: Record<string, ApiResponseDefinition> = {

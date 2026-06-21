@@ -34,6 +34,31 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+    private statusForError(error: unknown): number {
+      const message = this.asError(error).message;
+      if (/not found/i.test(message)) {
+        return 404;
+      }
+      if (/duplicate|already exists/i.test(message)) {
+        return 409;
+      }
+      if (/invalid|required|must|belongs to/i.test(message)) {
+        return 400;
+      }
+      return 500;
+    }
+
+    private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      const err = this.asError(error);
+      const status = this.statusForError(err);
+      return this.sendResp(req, res, {
+        status,
+        errors: [err],
+        displayErrors: [{ status: String(status), detail: err.message }],
+        headers: this.getNoCacheHeaders(),
+      });
+    }
+
     protected override _exportedMethods: string[] = [
       'list',
       'get',
@@ -72,11 +97,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
-        return this.sendResp(req, res, {
-          status: 500,
-          errors: [this.asError(error)],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -96,11 +117,7 @@ export namespace Controllers {
         const entries = await VocabularyService.getTree(id);
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, {
-          status: 500,
-          errors: [this.asError(error)],
-          headers: this.getNoCacheHeaders(),
-        });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -115,8 +132,7 @@ export namespace Controllers {
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -128,8 +144,7 @@ export namespace Controllers {
         const updated = await VocabularyService.update(id, body as Partial<VocabularyServiceModule.VocabularyInput>);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -139,18 +154,22 @@ export namespace Controllers {
         const { params, body } = validated;
         const id = String(params.id || '').trim();
         const bodyObj = body as Record<string, unknown>;
-        const entryOrders = Array.isArray(bodyObj?.entryOrders) ? bodyObj.entryOrders : null;
+        const entryOrders = Array.isArray(bodyObj?.entryOrders)
+          ? bodyObj.entryOrders
+          : Array.isArray(bodyObj?.entries)
+            ? bodyObj.entries
+            : null;
         if (!id) {
           return this.sendResp(req, res, {
             status: 400,
-            errors: [new Error('Missing required id')],
+            displayErrors: [{ detail: 'Missing required id', status: '400' }],
             headers: this.getNoCacheHeaders(),
           });
         }
         if (!entryOrders) {
           return this.sendResp(req, res, {
             status: 400,
-            errors: [new Error('entryOrders must be an array')],
+            displayErrors: [{ detail: 'entries must be an array', status: '400' }],
             headers: this.getNoCacheHeaders(),
           });
         }
@@ -163,7 +182,7 @@ export namespace Controllers {
           if (!entryId || !Number.isInteger(order) || order < 0) {
             return this.sendResp(req, res, {
               status: 400,
-              errors: [new Error('entryOrders must contain { id, order } with non-negative integer order')],
+              displayErrors: [{ detail: 'entries must contain { id, order } with non-negative integer order', status: '400' }],
               headers: this.getNoCacheHeaders(),
             });
           }
@@ -173,8 +192,7 @@ export namespace Controllers {
         const updated = await VocabularyService.reorderEntries(id, normalized);
         return this.sendResp(req, res, { data: { updated }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -186,8 +204,7 @@ export namespace Controllers {
         await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 
@@ -227,8 +244,7 @@ export namespace Controllers {
         const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
   }

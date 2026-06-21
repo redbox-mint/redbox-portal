@@ -1,5 +1,6 @@
 import { apiRoute } from '../route-factory';
 import {
+  apiErrorResponseSchema,
   arrayField,
   brandingDraftResponseSchema,
   brandingHistoryRecordSchema,
@@ -35,7 +36,7 @@ export const brandingPreviewRoute = apiRoute(
   '/:branding/:portal/api/branding/preview',
   'webservice/BrandingController',
   'preview',
-  { body: { content: { 'application/json': { schema: brandingDraftBody } } } },
+  { body: { required: true, content: { 'application/json': { schema: brandingDraftBody } } } },
   {
     tags: ['Branding'],
     summary: 'Create branding preview',
@@ -54,7 +55,10 @@ export const brandingPublishRoute = apiRoute(
   {
     tags: ['Branding'],
     summary: 'Publish branding',
-    responses: { 200: responseField(brandingPublishResponseSchema, 'Branding published') },
+    responses: {
+      200: responseField(brandingPublishResponseSchema, 'Branding published'),
+      409: responseField(apiErrorResponseSchema, 'Publish conflict - version mismatch'),
+    },
   }
 );
 
@@ -79,11 +83,12 @@ export const brandingLogoRoute = apiRoute(
   'webservice/BrandingController',
   'logo',
   {
-    body: { content: { 'multipart/form-data': { schema: logoUploadBody } } },
+    body: { required: true, content: { 'multipart/form-data': { schema: logoUploadBody } } },
     files: {
       logo: {
         required: true,
         multiple: false,
+        minBytes: 1,
         maxBytes: 512 * 1024,
         mimeTypes: ['image/png', 'image/jpeg', 'image/svg+xml'],
         description: 'Branding logo upload',

@@ -22,6 +22,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
 import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
+import { assertNoNullByteObjectKeys } from '../utilities/JsonObjectKeyValidation';
 
 
 export namespace Services {
@@ -386,6 +387,7 @@ export namespace Services {
       displayName?: string,
       options?: BundleSetOptions
     ): Promise<I18nBundleAttributes | null> {
+      assertNoNullByteObjectKeys(data, 'data');
       const brandingId = this.resolveBrandingId(branding);
 
       // Use provided display name or get default for the language

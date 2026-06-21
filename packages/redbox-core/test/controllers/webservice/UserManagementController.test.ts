@@ -41,10 +41,17 @@ describe('Webservice UserManagementController', () => {
             }
         };
         (global as any).BrandingService = {
-            getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+            getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [{ id: 'role-1', name: 'Admin' }] })
+        };
+        (global as any).RolesService = {
+            getRoleIds: sinon.stub().returns(['role-1'])
         };
         (global as any).UsersService = {
             getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
+            getUserWithUsername: sinon.stub().returns(of(null)),
+            addLocalUser: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', name: 'Target User', email: 'target@example.test', type: 'local', lastLogin: null })),
+            updateUserDetails: sinon.stub().returns(of([[{ id: 'user-1', username: 'target-user', name: 'Target User', email: 'target@example.test', type: 'local', lastLogin: null }]])),
+            updateUserRoles: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', name: 'Target User', email: 'target@example.test', type: 'local', lastLogin: null })),
             getUserAudit: sinon.stub().resolves({
                 records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
                 summary: { returnedCount: 1, truncated: false }
@@ -303,6 +310,39 @@ describe('Webservice UserManagementController', () => {
         await controller.linkAccounts(req, res);
 
         expect(sendRespStub.firstCall.args[2]?.status).to.equal(500);
+    });
+
+    it('should map duplicate user email failures to conflict', async () => {
+        (global as any).UsersService.addLocalUser = sinon.stub().returns(throwError(() => new Error('Email already exists, it must be unique')));
+        const req = makeReq({
+            session: { branding: 'default' },
+            body: { username: 'target-user', name: 'Target User', email: 'target@example.test', password: 'password' }
+        });
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        controller.createUser(req, res);
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
+    });
+
+    it('should map missing user roles during update to bad request', async () => {
+        (global as any).UsersService.updateUserRoles = sinon.stub().returns(throwError(() => new Error('Please assign at least one role')));
+        (global as any).RolesService.getRoleIds = sinon.stub().returns([]);
+        const req = makeReq({
+            session: { branding: 'default' },
+            body: { id: 'user-1', name: 'Target User', email: 'target@example.test', password: '', roles: [] }
+        });
+        const res = {} as unknown as Sails.Res;
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        controller.updateUser(req, res);
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
     });
 
     describe('disableUser', () => {
