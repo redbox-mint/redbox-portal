@@ -73,9 +73,15 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error: unknown) {
         sails.log.error(`executeNamedQuery error: ${error}`);
-        const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
+        const message = error instanceof Error ? error.message : String(error);
+        // Malformed/incompatible query parameters surface as Waterline criteria errors;
+        // treat these as a client error (400) rather than an internal server error.
+        const status = /invalid criteria|not a valid name for an attribute|could not filter|could not use the provided/i.test(message)
+          ? 400
+          : 500;
+        const errorResponse = new APIErrorResponse(message);
         return this.sendResp(req, res, {
-          status: 500,
+          status,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });

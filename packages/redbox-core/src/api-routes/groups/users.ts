@@ -14,6 +14,7 @@ import {
   objectField,
   responseField,
   linkedUserSummarySchema,
+  emailStringField,
   nonEmptyStringField,
   patternStringField,
   statusMessageResponseSchema,
@@ -24,9 +25,10 @@ import {
   userSearchQuery,
 } from '../schemas/common';
 
+const userRoleNameSchema = z.enum(['Admin', 'Researcher', 'Guest', 'Librarians']).openapi({ description: 'Role name' });
 const userRoleSelectionSchema = z.union([
-  stringField('Role name'),
-  objectField({ name: stringField('Role name') }, ['name'], 'Role reference', true),
+  userRoleNameSchema,
+  objectField({ name: userRoleNameSchema }, ['name'], 'Role reference'),
 ]);
 
 export const listUsersRoute = apiRoute(
@@ -117,7 +119,7 @@ export const linkAccountsRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField({ primaryUserId: nonEmptyStringField(), secondaryUserId: nonEmptyStringField() }, [
+          schema: objectField({ primaryUserId: patternStringField('^[A-Za-z0-9_.-]+$'), secondaryUserId: patternStringField('^[A-Za-z0-9_.-]+$') }, [
             'primaryUserId',
             'secondaryUserId',
           ]),
@@ -149,11 +151,11 @@ export const createUserRoute = apiRoute(
             {
               username: patternStringField('^[A-Za-z0-9_@. -]+$'),
               name: patternStringField('^[A-Za-z0-9_@. -]+$'),
-              email: nonEmptyStringField(),
+              email: emailStringField(),
               password: nonEmptyStringField(),
-              roles: arrayField(userRoleSelectionSchema),
+              roles: z.array(userRoleSelectionSchema).min(1),
             },
-            ['username', 'name', 'email', 'password']
+            ['username', 'name', 'email', 'password', 'roles']
           ),
         },
       },
@@ -180,12 +182,12 @@ export const updateUserRoute = apiRoute(
             {
               id: nonEmptyStringField(),
               username: stringField(),
-              name: nonEmptyStringField(),
-              email: nonEmptyStringField(),
+              name: patternStringField('^[A-Za-z0-9_@. -]+$'),
+              email: emailStringField(),
               password: nonEmptyStringField(),
-              roles: arrayField(userRoleSelectionSchema),
+              roles: z.array(userRoleSelectionSchema).min(1),
             },
-            ['id', 'name', 'email', 'password']
+            ['id', 'name', 'email', 'password', 'roles']
           ),
         },
       },

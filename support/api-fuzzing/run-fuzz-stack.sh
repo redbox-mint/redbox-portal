@@ -40,6 +40,10 @@ REDBOX_FUZZ_MAX_EXAMPLES="${REDBOX_FUZZ_MAX_EXAMPLES:-50}"
 REDBOX_FUZZ_KEEP_STACK="${REDBOX_FUZZ_KEEP_STACK:-false}"
 REDBOX_FUZZ_EXCLUDE_CHECKS="${REDBOX_FUZZ_EXCLUDE_CHECKS:-missing_required_header,ignored_auth,unsupported_method}"
 REDBOX_FUZZ_AUTH_MODE="${REDBOX_FUZZ_AUTH_MODE:-bearer}"
+# Multipart file-upload operations cannot be meaningfully fuzzed (Schemathesis cannot
+# synthesise real uploaded files), so they are excluded by default. See README "Known
+# limitations". Set to an empty string to include them.
+REDBOX_FUZZ_EXCLUDE_OPERATIONS="${REDBOX_FUZZ_EXCLUDE_OPERATIONS:-uploadBrandingLogo,uploadRecordDatastreams}"
 
 # -- Help --
 usage() {
@@ -294,6 +298,15 @@ esac
 # Exclude auth false-positive checks for dual-auth routes (bearer + session cookie)
 if [ "$REDBOX_FUZZ_AUTH_MODE" = "bearer" ] && [ -n "$REDBOX_FUZZ_EXCLUDE_CHECKS" ]; then
     ST_ARGS+=(--exclude-checks="$REDBOX_FUZZ_EXCLUDE_CHECKS")
+fi
+
+# Exclude non-fuzzable multipart file-upload operations (skipped for the reproduction
+# profile, which explicitly targets a single operation id).
+if [ "$PROFILE" != "reproduction" ] && [ -n "$REDBOX_FUZZ_EXCLUDE_OPERATIONS" ]; then
+    IFS=',' read -ra _excluded_ops <<< "$REDBOX_FUZZ_EXCLUDE_OPERATIONS"
+    for _op in "${_excluded_ops[@]}"; do
+        [ -n "$_op" ] && ST_ARGS+=(--exclude-operation-id="$_op")
+    done
 fi
 
 ST_ARGS+=("$SPEC_FILE")

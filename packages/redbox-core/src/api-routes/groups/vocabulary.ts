@@ -1,6 +1,7 @@
 import { z } from '../zod-openapi';
 import { apiRoute } from '../route-factory';
 import {
+  apiErrorResponseSchema,
   arrayField,
   idParams,
   integerField,
@@ -26,7 +27,8 @@ export const listVocabularyRoute = apiRoute(
       q: patternStringField('^[A-Za-z0-9_.*-]+$'),
       type: patternStringField('^[A-Za-z0-9_-]+$'),
       source: patternStringField('^[A-Za-z0-9_.-]+$'),
-      offset: patternStringField('^[A-Za-z0-9_.-]+$'),
+      offset: nonNegativeIntegerField('Result offset'),
+      limit: nonNegativeIntegerField('Result limit'),
       sort: patternStringField('^[A-Za-z0-9_. -]+$'),
     }),
   },
@@ -46,14 +48,25 @@ export const importVocabularyRoute = apiRoute(
     body: {
       required: true,
       content: {
-        'application/json': { schema: objectField({ rvaId: nonEmptyStringField(), versionId: nonEmptyStringField() }, ['rvaId']) },
+        'application/json': {
+          schema: objectField(
+            {
+              rvaId: patternStringField('^[1-9][0-9]*$'),
+              versionId: patternStringField('^[1-9][0-9]*$'),
+            },
+            ['rvaId']
+          ),
+        },
       },
     },
   },
   {
     tags: ['Vocabulary'],
     summary: 'Import vocabulary',
-    responses: { 200: responseField(vocabularySchema, 'Vocabulary imported') },
+    responses: {
+      200: responseField(vocabularySchema, 'Vocabulary imported'),
+      409: responseField(apiErrorResponseSchema, 'Vocabulary cannot be imported in its current state'),
+    },
   }
 );
 
@@ -88,7 +101,7 @@ export const createVocabularyRoute = apiRoute(
           schema: objectField(
             {
               name: patternStringField('^[A-Za-z0-9_ -]+$'),
-              slug: patternStringField('^[A-Za-z0-9_-]+$'),
+              slug: patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$'),
               type: vocabularyTypeField('Vocabulary type'),
             },
             ['name', 'slug', 'type'],
@@ -152,7 +165,7 @@ export const reorderVocabularyRoute = apiRoute(
             {
               entries: (arrayField(
                 objectField(
-                  { id: nonEmptyStringField('Vocabulary entry id'), order: nonNegativeIntegerField('Entry order') },
+                  { id: patternStringField('^[A-Za-z0-9_.-]+$', 'Vocabulary entry id'), order: nonNegativeIntegerField('Entry order') },
                   ['id', 'order'],
                   'Vocabulary entry order item'
                 )
@@ -168,7 +181,10 @@ export const reorderVocabularyRoute = apiRoute(
   {
     tags: ['Vocabulary'],
     summary: 'Reorder vocabulary entries',
-    responses: { 200: responseField(objectField({ updated: integerField() }, ['updated']), 'Vocabulary entries reordered') },
+    responses: {
+      200: responseField(objectField({ updated: integerField() }, ['updated']), 'Vocabulary entries reordered'),
+      409: responseField(apiErrorResponseSchema, 'Duplicate entry ids in reorder payload'),
+    },
   }
 );
 
@@ -198,6 +214,7 @@ export const syncVocabularyRoute = apiRoute(
     tags: ['Vocabulary'],
     summary: 'Sync vocabulary',
     responses: {
+      409: responseField(apiErrorResponseSchema, 'Vocabulary cannot be synced in its current state'),
       200: responseField(
         objectField(
           {

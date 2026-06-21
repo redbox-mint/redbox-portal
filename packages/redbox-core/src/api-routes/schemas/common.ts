@@ -2,6 +2,7 @@ import { z } from '../zod-openapi';
 import type { ZodRawShape, ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
+import { brandingThemeAllowedVariableNames } from '../../services/BrandingThemeTokens';
 
 export * from './responses';
 
@@ -19,15 +20,25 @@ function withDescription<T extends ZodType>(schema: T, description?: string): T 
 export const stringField = (description?: string): ApiSchemaField => withDescription(z.string(), description);
 export const nonEmptyStringField = (description?: string): ApiSchemaField => withDescription(z.string().min(1), description);
 export const numberField = (description?: string): ApiSchemaField => withDescription(z.number(), description);
-export const integerField = (description?: string): ApiSchemaField => withDescription(z.number().int(), description);
+// zod's `.int()` only accepts JS safe integers at runtime; publish the matching bounds so the
+// OpenAPI contract advertises a `maximum`/`minimum` and clients (and fuzzers) don't generate
+// int64 values that the server would reject with "Too big".
+export const integerField = (description?: string): ApiSchemaField =>
+  withDescription(z.number().int().min(Number.MIN_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER), description);
 export const nonNegativeIntegerField = (description?: string): ApiSchemaField =>
-  withDescription(z.number().int().min(0), description);
+  withDescription(z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), description);
+export const pageNumberField = (description?: string): ApiSchemaField =>
+  withDescription(z.number().int().min(1).max(10000), description);
+export const pageSizeField = (description?: string): ApiSchemaField =>
+  withDescription(z.number().int().min(1).max(100), description);
 export const userSearchByField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['id', 'username', 'email', 'name', 'oidcSub', 'apiToken']), description);
 export const recordTypeNameField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['rdmp', 'dataPublication']), description);
 export const vocabularyTypeField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['flat', 'tree']), description);
+export const integrationAuditStatusField = (description?: string): ApiSchemaField =>
+  withDescription(z.enum(['started', 'success', 'failed']), description);
 export const booleanField = (description?: string): ApiSchemaField => withDescription(z.boolean(), description);
 export const binaryField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string(), { type: 'string', format: 'binary', description });
@@ -38,6 +49,10 @@ export const anyField = (description?: string): ApiSchemaField =>
 // not match. A bare `.openapi({ pattern })` only documents the constraint.
 export const patternStringField = (pattern: string, description?: string): ApiSchemaField =>
   withOpenApi(z.string().regex(new RegExp(pattern)), description ? { description, pattern } : { pattern });
+export const dateTimeStringField = (description?: string): ApiSchemaField =>
+  withOpenApi(z.string().datetime({ offset: true }), { description, format: 'date-time' });
+export const emailStringField = (description?: string): ApiSchemaField =>
+  patternStringField('^[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$', description);
 
 export function objectField(
   properties: Record<string, ApiSchemaField>,
@@ -120,28 +135,36 @@ export const datastreamParams = objectField(
   ['oid', 'datastreamId']
 );
 
-export const userSearchQuery = objectField({
-  page: nonNegativeIntegerField('Page number'),
-  pageSize: nonNegativeIntegerField('Page size'),
-  searchBy: userSearchByField('Field to search by'),
-  query: nonEmptyStringField('Search query'),
-  includeDisabled: booleanField('Include disabled users'),
-});
+export const userSearchQuery = objectField(
+  {
+    page: pageNumberField('Page number'),
+    pageSize: pageSizeField('Page size'),
+    searchBy: userSearchByField('Field to search by'),
+    query: nonEmptyStringField('Search query'),
+    includeDisabled: booleanField('Include disabled users'),
+  },
+  // listUsers requires both searchBy and query together; document them as required.
+  ['searchBy', 'query']
+);
 
 export const recordSearchQuery = objectField({
   type: stringField('Record type'),
   workflow: stringField('Workflow name'),
   searchStr: stringField('Search string'),
   core: stringField('Search core'),
-  exactNames: objectField({}, [], 'Exact match field values keyed by field name', true),
-  facetNames: objectField({}, [], 'Facet field values keyed by field name', true),
+  exactNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
+    description: 'Exact match field values keyed by field name',
+  }),
+  facetNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
+    description: 'Facet field values keyed by field name',
+  }),
   rows: nonNegativeIntegerField('Rows per page'),
   page: nonNegativeIntegerField('Page number'),
-});
+}, [], undefined, true);
 
 export const recordListQuery = objectField({
   editOnly: booleanField('Only include records the user can edit'),
-  recordType: stringField('Record type filter'),
+  recordType: recordTypeNameField('Record type filter'),
   state: stringField('Workflow state filter'),
   start: nonNegativeIntegerField('Result offset'),
   // Mirrors sails.config.api.max_requests (default 20); the controller rejects
@@ -154,8 +177,8 @@ export const recordListQuery = objectField({
 });
 
 export const recordAuditQuery = objectField({
-  dateFrom: stringField('Start date filter'),
-  dateTo: stringField('End date filter'),
+  dateFrom: dateTimeStringField('Start date filter'),
+  dateTo: dateTimeStringField('End date filter'),
 });
 
 export const recordUpdateQuery = objectField({
@@ -171,8 +194,21 @@ export const recordDownloadQuery = objectField({
   fileName: nonEmptyStringField('Override download filename'),
 });
 
+// Branding variables are keyed by an editable theme token (optionally `$`-prefixed, which the
+// service strips) and valued with a 3- or 6-digit hex colour. Modelling these constraints
+// explicitly keeps the contract aligned with BrandingThemeCssService's validation.
+const brandingVariableValueField = patternStringField(
+  '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
+  'Hex colour value (#rgb or #rrggbb)'
+);
+const brandingVariableProperties = brandingThemeAllowedVariableNames
+  .flatMap(name => [name, `$${name}`])
+  .reduce((acc, key) => {
+    acc[key] = brandingVariableValueField;
+    return acc;
+  }, {} as Record<string, ApiSchemaField>);
 export const brandingDraftBody = objectField({
-  variables: objectField({}, [], 'Branding variables', true),
+  variables: objectField(brandingVariableProperties, [], 'Branding theme variables keyed by editable token name', false),
 });
 
 export const brandingPublishBody = objectField({
@@ -189,14 +225,14 @@ export const datastreamUploadBody = objectField(
 
 export const notificationBody = objectField(
   {
-    to: anyField('Recipient(s)'),
-    template: nonEmptyStringField('Template name'),
-    from: anyField('Sender'),
-    cc: anyField('CC recipients'),
-    bcc: anyField('BCC recipients'),
+    to: z.union([emailStringField(), z.array(emailStringField()).min(1)]).openapi({ description: 'Recipient(s)' }),
+    template: z.enum(['test', 'transferOwnerTo']).openapi({ description: 'Template name' }),
+    from: emailStringField('Sender').optional(),
+    cc: z.union([emailStringField(), z.array(emailStringField()).min(1)]).optional().openapi({ description: 'CC recipients' }),
+    bcc: z.union([emailStringField(), z.array(emailStringField()).min(1)]).optional().openapi({ description: 'BCC recipients' }),
     subject: stringField('Email subject'),
-    format: stringField('Email format'),
-    data: anyField('Template data'),
+    format: z.enum(['html', 'text']).optional().openapi({ description: 'Email format' }),
+    data: objectField({ data: stringField('Template data value') }, ['data'], 'Template data', true),
   },
   ['to', 'template']
 );

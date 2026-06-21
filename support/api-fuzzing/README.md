@@ -114,6 +114,7 @@ prints container status and portal log tail to help diagnose harness problems.
 | `REDBOX_FUZZ_OPERATION` | — | Operation ID filter (reproduction profile) |
 | `REDBOX_FUZZ_PROFILE` | `full` | Fuzzing profile (full/smoke/read-heavy/reproduction/unauthenticated/stable-smoke) |
 | `REDBOX_FUZZ_EXCLUDE_CHECKS` | `missing_required_header,ignored_auth,unsupported_method` | Comma-separated checks to exclude from the fuzz run |
+| `REDBOX_FUZZ_EXCLUDE_OPERATIONS` | `uploadBrandingLogo,uploadRecordDatastreams` | Comma-separated operation IDs to skip (multipart uploads — see [Known limitations](#known-limitations)). Set empty to include them. |
 | `REDBOX_FUZZ_AUTH_MODE` | `bearer` | Auth mode: `bearer` (injects token) or `none` (no credentials) |
 | `RBPORTAL_IMAGE` | `qcifengineering/redbox-portal:develop` | Portal Docker image |
 
@@ -176,6 +177,45 @@ For auth-boundary testing (no credentials at all):
 ```bash
 REDBOX_FUZZ_PROFILE=unauthenticated ./support/api-fuzzing/run-fuzz-stack.sh
 ```
+
+## Known limitations
+
+Some findings are inherent to fuzzing rather than defects in the API. These are handled
+explicitly so runs stay signal-rich:
+
+### Excluded operations (multipart file uploads)
+
+`POST /api/branding/logo` (`uploadBrandingLogo`) and `POST /api/records/datastreams/{oid}`
+(`uploadRecordDatastreams`) require a real uploaded file. Schemathesis cannot synthesise a
+valid multipart file part, so it only ever generates fileless requests, which the API
+correctly rejects with `400` (`no-file` / `File is required`). These would surface as
+permanent `positive_data_acceptance` failures, so they are excluded by default via
+`REDBOX_FUZZ_EXCLUDE_OPERATIONS`. To fuzz everything else about them (auth, params), set
+`REDBOX_FUZZ_EXCLUDE_OPERATIONS=` (empty). File handling itself is covered by the
+integration test suite.
+
+### NUL-byte sanitisation
+
+MongoDB cannot persist object keys or string values containing NUL (` `) bytes, so the
+portal correctly rejects such payloads with `400`. NUL bytes are therefore an unstorable
+input rather than a meaningful contract test. `hooks/redbox_hooks.py` strips NUL bytes from
+generated request **bodies** and **query values** before each call (path parameters are left
+intact so parameter-pattern negative tests still run, and only NUL is removed so other
+pattern-violating characters are preserved).
+
+### Accepted business-rule rejections
+
+A few endpoints return `400` for input that is schema-valid but semantically invalid; these
+are correct and cannot be expressed in the OpenAPI schema:
+
+- `POST /api/sendNotification` — `Failed to render email template` when `template` does not
+  resolve to a real template.
+- `POST /api/users` — `Please assign at least one role` when no supplied role resolves to a
+  known system role.
+- `POST /api/vocabulary/import` — upstream RVA registry returns `400` for an unknown
+  `rvaId`/`versionId`.
+
+These remain visible in reports as `positive_data_acceptance` notes and are expected.
 
 ## Security
 

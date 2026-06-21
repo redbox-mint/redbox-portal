@@ -109,7 +109,7 @@ export namespace Controllers {
 	      if (message.includes('already exists') || message.includes('must be unique')) {
 	        return 409;
 	      }
-	      if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role')) {
+	      if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role') || message.includes('must not contain null bytes')) {
 	        return 400;
 	      }
 	      return 500;
@@ -353,6 +353,14 @@ export namespace Controllers {
           }
 
           if (userReq.roles) {
+            if (!user || !_.isString((user as globalThis.Record<string, unknown>).id)) {
+              const errorResponse = new APIErrorResponse('No user found with given criteria');
+              return this.sendResp(req, res, {
+                status: 404,
+                displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+                headers: this.getNoCacheHeaders(),
+              });
+            }
             const roles: string[] = (userReq.roles as unknown[])
               .map((role: unknown) =>
                 _.isString(role) ? role : ((role as globalThis.Record<string, unknown>)?.name as string)
@@ -360,10 +368,11 @@ export namespace Controllers {
               .filter((roleName: unknown) => !_.isEmpty(roleName));
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, roleIds).subscribe(
-              (user: unknown) => {
+            const resolvedUser = user as globalThis.Record<string, unknown>;
+            UsersService.updateUserRoles(resolvedUser.id as string, roleIds).subscribe(
+              () => {
             //TODO: Add roles to the response
-            const u = user as globalThis.Record<string, unknown>;
+            const u = resolvedUser;
             const userResponse = new CreateUserAPIResponse();
             userResponse.id = u.id as string;
             userResponse.username = u.username as string;
@@ -621,7 +630,7 @@ export namespace Controllers {
 
       if (primaryUserId === secondaryUserId) {
         return this.sendResp(req, res, {
-          status: 400,
+          status: 409,
           displayErrors: [{ detail: 'Cannot link a user account to itself' }],
           headers: this.getNoCacheHeaders(),
         });

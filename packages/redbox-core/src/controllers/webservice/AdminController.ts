@@ -86,6 +86,15 @@ export namespace Controllers {
         let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name);
         if (!_.isEmpty(validatedConfigKey)) {
           config = _.get(config, validatedConfigKey!, null);
+          // A missing key resolves to null; respond with a documented 404 rather than
+          // letting a null payload fall through to the generic 500 path in sendResp.
+          if (config === null || config === undefined) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ title: 'No config found', detail: `No configuration found for key: ${validatedConfigKey}` }],
+              headers: this.getNoCacheHeaders(),
+            });
+          }
         }
 
         return this.apiRespond(req, res, config, 200);

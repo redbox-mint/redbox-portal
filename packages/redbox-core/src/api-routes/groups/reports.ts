@@ -5,7 +5,8 @@ const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 const reportConfigBody = objectField(
   {
-    name: nonEmptyStringField(),
+    // Must stay in sync with ReportsService.validateMutableConfig (URL-safe report name).
+    name: patternStringField('^[A-Za-z0-9_-]+$', 'URL-safe report name'),
     title: nonEmptyStringField(),
     reportSource: nonEmptyStringField(),
     databaseQuery: objectField({ queryName: nonEmptyStringField() }),
@@ -27,7 +28,7 @@ export const executeNamedQueryRoute = apiRoute(
   'webservice/ReportController',
   'executeNamedQuery',
   {
-    query: objectField({ queryName: patternStringField('^[A-Za-z0-9_/-]+$'), start: stringField(), rows: stringField() }, ['queryName']),
+    query: objectField({ queryName: patternStringField('^[A-Za-z][A-Za-z0-9_/-]+$'), start: stringField(), rows: stringField() }, ['queryName']),
   },
   {
     tags: ['Reports'],

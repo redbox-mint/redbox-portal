@@ -1,4 +1,39 @@
 import { resolveSiteTitle } from './siteTitle';
+import { buildErrorEnvelope } from './errorEnvelope';
+
+/**
+ * Returns true when the supplied value already matches a documented error
+ * envelope (legacy `{ message, details }` or JSON:API `{ errors, meta }`),
+ * so we pass it through unchanged.
+ */
+function isConformingErrorBody(value: unknown): boolean {
+    if (value == null || typeof value !== 'object') {
+        return false;
+    }
+    const record = value as Record<string, unknown>;
+    const hasMessageDetails = typeof record.message === 'string' && typeof record.details === 'string';
+    const hasErrorsMeta = Array.isArray(record.errors) && typeof record.meta === 'object';
+    return hasMessageDetails || hasErrorsMeta;
+}
+
+/**
+ * Coerces arbitrary serverError data into a version-appropriate error envelope so
+ * 500 responses match the published OpenAPI contract.
+ */
+function toServerErrorEnvelope(req: Sails.Req, data: unknown): unknown {
+    if (data === undefined || data === null) {
+        return buildErrorEnvelope(req, [{ detail: 'Internal server error' }]);
+    }
+    if (isConformingErrorBody(data)) {
+        return data;
+    }
+    const detail = typeof data === 'string' && data.trim() !== ''
+        ? data
+        : data instanceof Error && typeof data.message === 'string' && data.message.trim() !== ''
+            ? data.message
+            : 'Internal server error';
+    return buildErrorEnvelope(req, [{ detail }]);
+}
 
 declare module 'express-serve-static-core' {
     interface Response {
@@ -41,7 +76,7 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
     // If the user-agent wants JSON, always respond with JSON
     // If views are disabled, revert to json
     if (req.wantsJSON || sails.config.hooks.views === false) {
-        return res.json(data);
+        return res.json(toServerErrorEnvelope(req, data));
     }
 
     // If second argument is a string, we take that to mean it refers to a view.
@@ -72,7 +107,7 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
     // If no second argument provided, try to serve the implied view,
     // but fall back to sending JSON(P) if no view can be inferred.
     else return res.guessView({ data: viewData, title: siteTitle }, function couldNotGuessView() {
-        return res.json(data);
+        return res.json(toServerErrorEnvelope(req, data));
     });
 
 };

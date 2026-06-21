@@ -98,6 +98,7 @@ export const brandingLogoRoute = apiRoute(
   {
     tags: ['Branding'],
     summary: 'Upload branding logo',
+    operationId: 'uploadBrandingLogo',
     responses: { 200: responseField(brandingLogoResponseSchema, 'Branding logo uploaded') },
   }
 );

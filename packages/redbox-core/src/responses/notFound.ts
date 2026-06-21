@@ -1,3 +1,5 @@
+import { buildErrorEnvelope } from './errorEnvelope';
+
 declare module 'express-serve-static-core' {
     interface Response {
         notFound(data?: unknown, options?: string | { view?: string }): Response;
@@ -21,7 +23,7 @@ export function notFound(this: { req: Sails.Req, res: Sails.Res }, data?: unknow
     }
 
     if (req.wantsJSON || sails.config.hooks.views === false) {
-        return res.json(data || { errors: [{ detail: 'Not Found' }], meta: {} });
+        return res.json(data ?? buildErrorEnvelope(req, [{ detail: 'Not Found' }]));
     }
 
     options = (typeof options === 'string') ? { view: options } : options || {};
@@ -40,6 +42,6 @@ export function notFound(this: { req: Sails.Req, res: Sails.Res }, data?: unknow
         return res.view(options.view, { data: viewData, title: 'Not Found' });
     }
     else return res.guessView({ data: viewData, title: 'Not Found' }, function couldNotGuessView() {
-        return res.json({ errors: [{ detail: 'Not Found' }], meta: {} });
+        return res.json(buildErrorEnvelope(req, [{ detail: 'Not Found' }]));
     });
 };

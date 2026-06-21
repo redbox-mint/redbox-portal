@@ -1,12 +1,15 @@
 import { apiRoute } from '../route-factory';
 import {
   apiErrorResponseSchema,
+  dateTimeStringField,
+  integrationAuditStatusField,
   listApiResponseSchema,
   objectField,
   oidParams,
+  pageNumberField,
+  pageSizeField,
   recordAuditEntrySchema,
   responseField,
-  stringField,
 } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
@@ -21,11 +24,11 @@ export const getIntegrationAuditRoute = apiRoute(
   {
     params: oidParams,
     query: objectField({
-      status: stringField('Integration status filter'),
-      dateFrom: stringField('Start date filter'),
-      dateTo: stringField('End date filter'),
-      page: stringField('Page number'),
-      pageSize: stringField('Page size'),
+      status: integrationAuditStatusField('Integration status filter'),
+      dateFrom: dateTimeStringField('Start date filter'),
+      dateTo: dateTimeStringField('End date filter'),
+      page: pageNumberField('Page number'),
+      pageSize: pageSizeField('Page size'),
     }),
     legacyParamFallbacks: {
       status: bodyFallback,

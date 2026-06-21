@@ -44,7 +44,7 @@ const harvestRecordRequestBody = z.object({
 const legacyHarvestRecordRequestBody = z.object({
   records: z.array(z.object({
     harvest_id: z.string().min(1),
-    metadata: z.object({}).passthrough().optional(),
+    metadata: z.object({}).passthrough(),
   }).strict()).min(1),
 }).strict().openapi({ description: 'Legacy harvest payload' });
 
@@ -511,6 +511,7 @@ export const addDataStreamsRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Upload record datastreams',
+    operationId: 'uploadRecordDatastreams',
     responses: {
       200: responseField(datastreamUploadResponseSchema, 'Datastreams uploaded'),
     },

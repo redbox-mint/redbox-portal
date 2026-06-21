@@ -577,7 +577,8 @@ export namespace Controllers.Core {
         },
       };
       sails.log.error("Unknown API version in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+      // Default to the v1 contract's legacy { message, details } error envelope.
+      return res.status(500).json(new APIErrorResponse("An error has occurred", "Check server logs."));
     }
 
     private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
@@ -789,7 +790,8 @@ export namespace Controllers.Core {
         },
       };
       sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+      // v1 contract documents the legacy { message, details } error envelope.
+      return res.status(500).json(new APIErrorResponse("An error has occurred", "Check server logs."));
     }
 
     private handleV2Response(

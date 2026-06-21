@@ -131,6 +131,38 @@ function getHeaderValue(req: Sails.Req, name: string): string | undefined {
   return value;
 }
 
+// For multipart/form-data requests, file fields arrive on `req.files` (via the
+// upload stream), never on `req.body`. Validating them against the JSON body schema
+// would always fail with "expected string, received undefined" - even for valid
+// uploads. Strip the file-declared fields from the body schema so they are validated
+// solely through the `files` constraints (see validateFiles / validateApiRouteFiles).
+function stripFileFieldsFromBodySchema(
+  schema: ZodType,
+  contentType: string | undefined,
+  files: Record<string, ApiFileConstraint> | undefined
+): ZodType {
+  if (!files || !(contentType ?? '').toLowerCase().includes('multipart/form-data')) {
+    return schema;
+  }
+  const fileFieldNames = Object.keys(files);
+  if (!fileFieldNames.length) {
+    return schema;
+  }
+  const omit = (schema as unknown as { omit?: (mask: Record<string, true>) => ZodType }).omit;
+  if (typeof omit !== 'function') {
+    return schema;
+  }
+  const mask = fileFieldNames.reduce<Record<string, true>>((acc, name) => {
+    acc[name] = true;
+    return acc;
+  }, {});
+  try {
+    return omit.call(schema, mask);
+  } catch {
+    return schema;
+  }
+}
+
 function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
   const requestContentType = getHeaderValue(req, 'content-type')?.split(';')[0]?.trim().toLowerCase();
   if (!requestContentType) {
@@ -162,7 +194,8 @@ export function validateApiRequest(
     const contentType = getBodyContentType(req, contentTypes);
     const schema = contentType ? request.body.content[contentType]?.schema : undefined;
     if (schema) {
-      validateSource(req, request, 'body', schema, 'body', issues);
+      const bodySchema = stripFileFieldsFromBodySchema(schema, contentType, request.files);
+      validateSource(req, request, 'body', bodySchema, 'body', issues);
     }
   }
 

@@ -205,12 +205,38 @@ export namespace Services {
       return brandingString;
     }
 
+    // Whitelisted, sortable Vocabulary attributes. An invalid `sort` request would
+    // otherwise reach Waterline and throw an unhandled error (HTTP 500).
+    private static readonly SORTABLE_COLUMNS = new Set([
+      'name',
+      'slug',
+      'type',
+      'source',
+      'description',
+      'createdAt',
+      'updatedAt',
+      'lastSyncedAt',
+    ]);
+
+    private sanitizeSort(sortInput?: string): string {
+      const fallback = 'name ASC';
+      if (!sortInput || typeof sortInput !== 'string') {
+        return fallback;
+      }
+      const [attribute, directionRaw] = sortInput.trim().split(/\s+/);
+      const direction = (directionRaw || 'ASC').toUpperCase();
+      if (!Services.VocabularyService.SORTABLE_COLUMNS.has(attribute) || (direction !== 'ASC' && direction !== 'DESC')) {
+        return fallback;
+      }
+      return `${attribute} ${direction}`;
+    }
+
     public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
       const parsedLimit = Number.parseInt(String(options.limit ?? 25), 10);
       const parsedOffset = Number.parseInt(String(options.offset ?? 0), 10);
       const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(200, parsedLimit) : 25;
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
-      const sort = options.sort || 'name ASC';
+      const sort = this.sanitizeSort(options.sort);
 
       const where: VocabularyListWhere = {};
       if (options.type && VALID_TYPES.has(options.type as VocabType)) {

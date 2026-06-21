@@ -13,17 +13,18 @@ import {
 } from '../schemas/common';
 
 const translationKeyTailDescription = 'Translation key path tail; may include slash-delimited segments.';
+const localeField = patternStringField('^[a-z]{2}(-[A-Z]{2})?$');
 
 const translationParams = objectField(
   {
-    locale: patternStringField('^[A-Za-z0-9_-]+$'),
+    locale: localeField,
     namespace: patternStringField('^[A-Za-z0-9_-]+$'),
     key: patternStringField('^[A-Za-z0-9_\\/.-]+$', translationKeyTailDescription),
   },
   ['locale', 'namespace', 'key']
 );
 
-const bundleParams = objectField({ locale: patternStringField('^[A-Za-z0-9_-]+$'), namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
+const bundleParams = objectField({ locale: localeField, namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
 
 export const listEntriesRoute = apiRoute(
   'get',
@@ -128,7 +129,7 @@ export const setBundleRoute = apiRoute(
               splitToEntries: booleanField(),
               overwriteEntries: booleanField(),
             },
-            [],
+            ['data'],
             'Bundle payload'
           ),
         },

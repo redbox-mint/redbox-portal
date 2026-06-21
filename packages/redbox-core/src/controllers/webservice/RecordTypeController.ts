@@ -42,6 +42,13 @@ export namespace Controllers {
         const name = query.name as string;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
+        if (!recordType) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: 'Record type not found', detail: `No record type found for name: ${name}` }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
 
         return this.apiRespond(req, res, recordType, 200);
       } catch (error: unknown) {

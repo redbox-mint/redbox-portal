@@ -263,7 +263,7 @@ describe('Webservice UserManagementController', () => {
         await controller.linkAccounts(req, res);
 
         expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
     });
 
     it('should reject link requests when branding cannot be resolved', async () => {

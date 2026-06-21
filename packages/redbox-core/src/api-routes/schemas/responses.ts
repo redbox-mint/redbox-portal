@@ -243,7 +243,7 @@ export const listApiSummarySchema = withOpenApi(
     z.object({
         numFound: z.number().int(),
         page: z.number().int().nullable(),
-        start: z.number().int(),
+        start: z.number().int().nullable(),
     }),
     { description: 'Legacy list response summary' }
 );

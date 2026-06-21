@@ -63,7 +63,10 @@ export namespace Controllers {
 
     private errorStatus(error: unknown): number {
       const message = this.asError(error).message;
-      if (/not found|no such|invalid|malformed|not valid|unexpected/i.test(message)) {
+      if (/not found|no such/i.test(message)) {
+        return 404;
+      }
+      if (/invalid|malformed|not valid|unexpected|failed/i.test(message)) {
         return 400;
       }
       return 500;
@@ -78,6 +81,9 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'oid is required' }], headers: this.getNoCacheHeaders() });
         }
         const record: RecordModel = await this.RecordsService.getMeta(oid);
+        if (!record || _.isEmpty(record)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: `Record not found: ${oid}` }], headers: this.getNoCacheHeaders() });
+        }
         await this.searchService.index(oid, record);
 
         return this.apiRespond(
@@ -169,15 +175,28 @@ export namespace Controllers {
       const exactSearches = toSearchEntries(normalizedQuery.exactNames);
       const facetSearches = toSearchEntries(normalizedQuery.facetNames);
 
-      // If a record type is set, fetch from the configuration what core it's being sent from
-      if (type != null) {
-        const recordType: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, type));
+      // If a record type is set, fetch from the configuration what core it's being sent from.
+      // Guard against blank/unknown types so a missing record type yields a 404 instead of a
+      // crash when dereferencing `searchCore`.
+      if (type) {
+        const recordType: RecordTypeModel | undefined = await firstValueFrom(RecordTypesService.get(brand, type));
+        if (!recordType) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Record type not found: ${type}` }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         core = recordType.searchCore;
       }
 
+      // An empty `core` query parameter must fall back to the default Solr core rather than
+      // overriding searchFuzzy's default with an empty string (which resolves to no core).
+      const resolvedCore = _.isEmpty(core) ? undefined : core;
+
       try {
         const searchRes = await this.searchService.searchFuzzy(
-          core as string,
+          resolvedCore as string,
           type as string,
           workflow as string,
           searchString as string,

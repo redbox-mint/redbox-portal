@@ -1107,7 +1107,9 @@ export namespace Controllers {
       let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString!.split(',');
+        // filterFields holds the field NAMES (from query.filterFields); query.filter holds the
+        // values. Splitting filterString here crashed when filter was omitted.
+        filterFields = (filterFieldString as string).split(',');
       } else {
         filterString = undefined;
       }
@@ -1770,7 +1772,9 @@ export namespace Controllers {
       let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString!.split(',');
+        // filterFields holds the field NAMES (from query.filterFields); query.filter holds the
+        // values. Splitting filterString here crashed when filter was omitted.
+        filterFields = (filterFieldString as string).split(',');
       } else {
         filterString = undefined;
       }

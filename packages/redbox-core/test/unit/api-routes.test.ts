@@ -1018,6 +1018,31 @@ describe('API routes contract layer', async () => {
     expect(result.issues.some((issue) => issue.path === 'query.id')).to.equal(false);
   });
 
+  it('should not validate multipart file fields against the JSON body', async function () {
+    const multipartBody = {
+      required: true,
+      content: { 'multipart/form-data': { schema: objectField({ logo: stringField() }, ['logo']) } },
+    };
+    const multipartReq = {
+      params: {}, query: {}, headers: { 'content-type': 'multipart/form-data' }, body: {},
+    } as unknown as Sails.Req;
+
+    // File field declared in `files`: it arrives on req.files (not req.body), so the body
+    // validation must not reject the missing `logo` body field.
+    const uploadResult = validateApiRequest(multipartReq, {
+      body: multipartBody,
+      files: { logo: { required: true } },
+    } as unknown as Parameters<typeof validateApiRequest>[1]);
+    expect(uploadResult.valid).to.equal(true);
+
+    // Same body schema but no `files` declaration: the required field is still enforced.
+    const noFileResult = validateApiRequest(multipartReq, {
+      body: multipartBody,
+    } as unknown as Parameters<typeof validateApiRequest>[1]);
+    expect(noFileResult.valid).to.equal(false);
+    expect(noFileResult.issues.some((issue) => issue.path === 'body.logo')).to.equal(true);
+  });
+
   it('should normalize legacy search query filters into named maps', async function () {
     const request = {
       params: {},

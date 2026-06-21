@@ -305,6 +305,9 @@ export namespace Services {
     public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
+      if (!core) {
+        throw new Error(`Search core not found: ${coreId}`);
+      }
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
@@ -316,9 +319,14 @@ export namespace Services {
       const username = user.username;
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
+      if (!core) {
+        throw new Error(`Search core not found: ${coreId}`);
+      }
       const coreName = core.options.core;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
-      searchParam = `${searchParam} AND full_text:${searchQuery}`;
+      // Fall back to a match-all term when no search string is supplied so an empty query
+      // produces valid Solr syntax (e.g. `full_text:*`) instead of a malformed `full_text:`.
+      searchParam = `${searchParam} AND full_text:${_.isEmpty(searchQuery) ? '*' : searchQuery}`;
       _.forEach(exactSearches, (exactSearch: SearchField) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
@@ -329,7 +337,10 @@ export namespace Services {
         });
       }
       searchParam = `${searchParam}&start=${start}&rows=${rows}`
-      let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      // Only constrain by record type when one is supplied; otherwise the empty value would
+      // yield a malformed `metaMetadata_type:` clause and a Solr parse error.
+      const typeClause = _.isEmpty(type) ? '' : ` AND metaMetadata_type:${type}`;
+      let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=metaMetadata_brandId:${brand.id}${typeClause}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const response = await axios.get(url).then((response: { data: SolrResponse }) => response.data);

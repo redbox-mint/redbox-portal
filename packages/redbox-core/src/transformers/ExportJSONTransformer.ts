@@ -6,7 +6,9 @@ export class ExportJSONTransformer extends Transform {
     first: boolean = true;
     constructor(recordtype: string, modifiedBefore: string, modifiedAfter: string) {
         super();
-        this.push(`{ "recordType": "${recordtype}",\n "dateGenerated": "${DateTime.now().toISO()}",\n`);
+        // Escape values via JSON.stringify so quotes/control characters in the record type
+        // (sourced from a request parameter) cannot produce malformed JSON output.
+        this.push(`{ "recordType": ${JSON.stringify(recordtype ?? '')},\n "dateGenerated": ${JSON.stringify(DateTime.now().toISO())},\n`);
         if (!_.isEmpty(modifiedBefore) || !_.isEmpty(modifiedAfter)) {
             this.push(`"dateModifiedRange": ${this.getDateModifiedRangeObject(modifiedBefore, modifiedAfter)},\n`);
         }

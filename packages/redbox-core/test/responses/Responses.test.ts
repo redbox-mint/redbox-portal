@@ -167,12 +167,28 @@ describe('Responses', function () {
   });
 
   describe('serverError', function () {
-    it('should return 500', function () {
+    it('should return 500 with the legacy v1 error envelope', function () {
       const context = { req, res };
       serverError.call(context, 'oops');
 
       expect(res.status.calledWith(500)).to.be.true;
-      expect(res.json.calledWith('oops')).to.be.true;
+      expect({ ...res.json.firstCall.args[0] }).to.deep.equal({ message: 'oops', details: '' });
+    });
+
+    it('should return the JSON:API envelope when API version 2.0 is requested', function () {
+      req.headers = { 'x-redbox-api-version': '2.0' };
+      const context = { req, res };
+      serverError.call(context, 'oops');
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.firstCall.args[0]).to.deep.equal({ errors: [{ detail: 'oops' }], meta: {} });
+    });
+
+    it('should pass through an already-conforming error body', function () {
+      const context = { req, res };
+      serverError.call(context, { message: 'boom', details: 'context' });
+
+      expect(res.json.calledWith({ message: 'boom', details: 'context' })).to.be.true;
     });
 
     it('should render only site title for views', function () {

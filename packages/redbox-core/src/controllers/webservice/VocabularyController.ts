@@ -39,10 +39,15 @@ export namespace Controllers {
       if (/not found/i.test(message)) {
         return 404;
       }
-      if (/duplicate|already exists/i.test(message)) {
+      if (/status code 404/i.test(message)) {
+        return 404;
+      }
+      // State conflicts: the resource exists but the requested operation is incompatible
+      // with its current state (e.g. syncing a vocabulary that was not RVA-imported).
+      if (/duplicate|already exists|not an rva|not .*imported|conflict|no current concept tree/i.test(message)) {
         return 409;
       }
-      if (/invalid|required|must|belongs to/i.test(message)) {
+      if (/invalid|required|must|belongs to|cannot|not supported|unsupported|not allowed/i.test(message)) {
         return 400;
       }
       return 500;
@@ -229,8 +234,7 @@ export namespace Controllers {
         );
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendError(req, res, error);
       }
     }
 

@@ -4,6 +4,7 @@ import { apiErrorResponseSchema, appConfigValueSchema, apiActionResponseSchema, 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const notFoundResponse = responseField(apiErrorResponseSchema, 'Not found');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
+const appConfigKeyField = patternStringField('^(?!constructor$|prototype$|__proto__$)[A-Za-z0-9_-]+$', 'Config key');
 
 export const refreshCachedResourcesRoute = apiRoute(
   'get',
@@ -28,7 +29,7 @@ export const setAppConfigRoute = apiRoute(
   'webservice/AdminController',
   'setAppConfig',
   {
-    params: objectField({ configKey: patternStringField('^[A-Za-z0-9_-]+$', 'Config key') }, ['configKey']),
+    params: objectField({ configKey: appConfigKeyField }, ['configKey']),
     body: { required: true, content: { 'application/json': { schema: objectField({}, [], 'Config payload', true) } } },
   },
   {
@@ -47,7 +48,7 @@ export const getAppConfigByKeyRoute = apiRoute(
   '/:branding/:portal/api/admin/config/:configKey',
   'webservice/AdminController',
   'getAppConfig',
-  { params: objectField({ configKey: patternStringField('^[A-Za-z0-9_-]+$', 'Config key') }, ['configKey']) },
+  { params: objectField({ configKey: appConfigKeyField }, ['configKey']) },
   {
     tags: ['Admin'],
     summary: 'Get app config by key',
