@@ -17,6 +17,12 @@ export namespace Controllers {
    * Webservice TranslationController: manage language content via REST.
    */
   export class Translation extends controllers.Core.Controller {
+    private getEntryKey(params: Record<string, unknown>): string {
+      const key = params.key as string;
+      const keyExt = params.keyExt as string | undefined;
+      return keyExt ? `${key}.${keyExt}` : key;
+    }
+
     private asError(err: unknown): Error {
       return err instanceof Error ? err : new Error(String(err));
     }
@@ -80,7 +86,7 @@ export namespace Controllers {
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
-        const key = params.key as string;
+        const key = this.getEntryKey(params);
 
         const entry = await I18nEntriesService.getEntry(branding, locale, namespace, key);
         if (!entry) {
@@ -105,7 +111,7 @@ export namespace Controllers {
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
-        const key = params.key as string;
+        const key = this.getEntryKey(params);
         const bodyObj = body as Record<string, unknown>;
         const value = bodyObj?.value;
         const category = bodyObj?.category as string | undefined;
@@ -137,7 +143,7 @@ export namespace Controllers {
         const branding: BrandingModel = BrandingService.getBrand(brandName);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
-        const key = params.key as string;
+        const key = this.getEntryKey(params);
 
         const ok = await I18nEntriesService.deleteEntry(branding, locale, namespace, key);
         if (!ok) {

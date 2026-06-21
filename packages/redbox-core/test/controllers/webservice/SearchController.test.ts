@@ -134,5 +134,26 @@ describe('Webservice SearchController', () => {
             ]);
             expect(apiRespondStub.called).to.be.true;
         });
+
+        it('should map Solr query parser failures to conflict instead of bad request', async () => {
+            const req = makeReq({
+                session: { branding: 'default' } as Sails.Req['session'],
+                user: { username: 'tester', roles: [] },
+                apiRequest: {
+                    params: {},
+                    query: { searchStr: '*:* AND *:*' },
+                    body: undefined,
+                    files: {},
+                }
+            });
+            const res = {} as unknown as Sails.Res;
+            mockSails.services.solrsearchservice.searchFuzzy.rejects(new Error('Failed to parse query'));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.search(req, res);
+
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2].status).to.equal(409);
+        });
     });
 });

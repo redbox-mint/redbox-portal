@@ -6,7 +6,6 @@ import {
   idParams,
   integerField,
   listApiResponseSchema,
-  nonEmptyStringField,
   nonNegativeIntegerField,
   objectField,
   patternStringField,
@@ -65,6 +64,7 @@ export const importVocabularyRoute = apiRoute(
     summary: 'Import vocabulary',
     responses: {
       200: responseField(vocabularySchema, 'Vocabulary imported'),
+      400: responseField(apiErrorResponseSchema, 'RVA import request rejected'),
       409: responseField(apiErrorResponseSchema, 'Vocabulary cannot be imported in its current state'),
     },
   }
@@ -208,7 +208,7 @@ export const syncVocabularyRoute = apiRoute(
   'sync',
   {
     params: idParams,
-    body: { required: true, content: { 'application/json': { schema: objectField({ versionId: nonEmptyStringField() }, ['versionId']) } } },
+    body: { required: true, content: { 'application/json': { schema: objectField({ versionId: patternStringField('^[1-9][0-9]*$') }, ['versionId']) } } },
   },
   {
     tags: ['Vocabulary'],

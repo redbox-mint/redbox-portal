@@ -483,14 +483,14 @@ describe('API routes contract layer', async () => {
     expect(emptyRequiredArrayPaths).to.deep.equal([]);
   });
 
-  it('should document wildcard translation keys as reserved path tails', function () {
+  it('should document translation keys as safe single path segments', function () {
     const document = buildCoreApiOpenApiDocument();
     const operation = document.paths['/{branding}/{portal}/api/i18n/entries/{locale}/{namespace}/{key}']?.get as globalThis.Record<string, unknown>;
     const parameters = (operation.parameters as Array<globalThis.Record<string, unknown>>) ?? [];
     const keyParameter = parameters.find(parameter => parameter.name === 'key');
+    const keySchema = asOpenApiSchema(keyParameter?.schema);
 
-    expect(operation.description).to.contain('slash-delimited segments');
-    expect(keyParameter?.description).to.contain('slash-delimited segments');
+    expect(keySchema.pattern).to.equal('^[A-Za-z0-9_-]+$');
     expect(keyParameter).to.not.have.property('allowReserved');
   });
 
@@ -918,13 +918,13 @@ describe('API routes contract layer', async () => {
     const sendNotificationSchema = sendNotificationRoute.responses?.[200]?.content?.['application/json']?.schema;
     expect(sendNotificationSchema?.safeParse({ message: 'Sent', details: '' }).success).to.equal(true);
 
-    const missingTemplateResult = validateApiRouteRequest({
+    const unknownTemplateResult = validateApiRouteRequest({
       params: { branding: 'default', portal: 'rdmp' },
       query: {},
       headers: {},
       body: { to: 'to@example.test', template: 'welcome' }
     } as unknown as Sails.Req, sendNotificationRoute);
-    expect(missingTemplateResult.valid).to.equal(true);
+    expect(unknownTemplateResult.valid).to.equal(false);
 
     const formNotFoundSchema = getFormRoute.responses?.[404]?.content?.['application/json']?.schema;
     expect(formNotFoundSchema?.safeParse({ message: 'Form not found', details: '' }).success).to.equal(true);

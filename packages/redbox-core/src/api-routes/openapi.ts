@@ -176,7 +176,12 @@ function createSchemaConverter() {
         throw new Error('@asteasolutions/zod-to-openapi did not generate the schema registered by the OpenAPI adapter');
       }
       componentSchemas = { ...componentSchemas, ...document.components?.schemas };
-      return sanitizeOpenApiValue(convertedSchema);
+      const sanitizedSchema = sanitizeOpenApiValue(convertedSchema);
+      const openApiMetadata = (schema as unknown as { _def?: { openapi?: Record<string, unknown> } })._def?.openapi;
+      if (openApiMetadata?.minProperties != null && typeof sanitizedSchema === 'object' && sanitizedSchema != null) {
+        sanitizedSchema.minProperties = openApiMetadata.minProperties;
+      }
+      return sanitizedSchema;
     },
     getComponentSchemas(): Record<string, unknown> | undefined {
       return Object.keys(componentSchemas).length ? sanitizeOpenApiValue(componentSchemas) : undefined;
@@ -202,6 +207,10 @@ function buildParameters(
     }
     return undefined;
   };
+  const isDeepObjectQueryField = (schema: ZodType): boolean => {
+    const field = isOptionalSchema(schema) ? (schema as unknown as { unwrap: () => ZodType }).unwrap() : schema;
+    return getObjectSchema(field) != null || (field as unknown as { _zod?: { def?: { type?: string } } })._zod?.def?.type === 'record';
+  };
   const addParameters = (location: 'path' | 'query' | 'header', schema?: ZodType) => {
     const properties = getObjectSchemaShape(schema);
     if (!properties) {
@@ -220,7 +229,7 @@ function buildParameters(
           parameter.description = 'Wildcard path tail; may include slash-delimited segments.';
         }
       }
-      if (location === 'query' && getObjectSchema(field)) {
+      if (location === 'query' && isDeepObjectQueryField(field)) {
         parameter.style = 'deepObject';
         parameter.explode = true;
       }

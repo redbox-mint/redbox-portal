@@ -39,15 +39,21 @@ export namespace Controllers {
       if (/not found/i.test(message)) {
         return 404;
       }
+      if (/status code 400/i.test(message)) {
+        return 409;
+      }
       if (/status code 404/i.test(message)) {
         return 404;
       }
-      // State conflicts: the resource exists but the requested operation is incompatible
-      // with its current state (e.g. syncing a vocabulary that was not RVA-imported).
-      if (/duplicate|already exists|not an rva|not .*imported|conflict|no current concept tree/i.test(message)) {
+      if (/status code 429/i.test(message)) {
         return 409;
       }
-      if (/invalid|required|must|belongs to|cannot|not supported|unsupported|not allowed/i.test(message)) {
+      // State conflicts: the resource exists but the requested operation is incompatible
+      // with its current state (e.g. syncing a vocabulary that was not RVA-imported).
+      if (/duplicate|already exists|not an rva|not .*imported|conflict/i.test(message)) {
+        return 409;
+      }
+      if (/invalid|required|must|belongs to|cannot|not supported|unsupported|not allowed|no current concept tree/i.test(message)) {
         return 400;
       }
       return 500;

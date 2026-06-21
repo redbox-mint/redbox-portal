@@ -169,6 +169,10 @@ function getRoutePathSegments(path: string): string[] {
   return path.split('/').filter(Boolean);
 }
 
+function countRouteParams(segment: string): number {
+  return (segment.match(/:/g) || []).length;
+}
+
 function getRouteSegmentRank(segment: string): number {
   if (!segment.startsWith(':')) {
     return 3;
@@ -179,7 +183,7 @@ function getRouteSegmentRank(segment: string): number {
   if (segment.endsWith('?')) {
     return 1;
   }
-  return 2;
+  return countRouteParams(segment) + 1;
 }
 
 function hasSpecificTail(segments: readonly string[], startIndex: number): boolean {

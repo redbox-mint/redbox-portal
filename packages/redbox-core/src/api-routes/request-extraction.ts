@@ -110,16 +110,30 @@ export function buildRequestSourceInput(
   return coercedValue;
 }
 
+function buildParsedRequestSourceInput(
+  req: Sails.Req,
+  request: ApiRequestDefinition | undefined,
+  source: ApiRequestSource,
+  schema?: ZodType
+): unknown {
+  const value = buildRequestSourceInput(req, request, source, schema);
+  if (!schema) {
+    return value;
+  }
+  const parsed = schema.safeParse(value);
+  return parsed.success ? parsed.data : value;
+}
+
 export function extractApiRequest(req: Sails.Req, request?: ApiRequestDefinition): ApiRequestExtraction {
   const bodyContent = request?.body?.content;
   const bodyContentTypes = bodyContent ? Object.keys(bodyContent) : [];
   const bodyContentType = bodyContent ? getBodyContentTypeForExtraction(req, bodyContentTypes) : undefined;
   const bodySchema = bodyContentType ? bodyContent?.[bodyContentType]?.schema : undefined;
   return {
-    params: buildRequestSourceInput(req, request, 'params', request?.params) as Record<string, unknown>,
-    query: buildRequestSourceInput(req, request, 'query', request?.query) as Record<string, unknown>,
-    headers: buildRequestSourceInput(req, request, 'headers', request?.headers) as Record<string, unknown>,
-    body: buildRequestSourceInput(req, request, 'body', bodySchema),
+    params: buildParsedRequestSourceInput(req, request, 'params', request?.params) as Record<string, unknown>,
+    query: buildParsedRequestSourceInput(req, request, 'query', request?.query) as Record<string, unknown>,
+    headers: buildParsedRequestSourceInput(req, request, 'headers', request?.headers) as Record<string, unknown>,
+    body: buildParsedRequestSourceInput(req, request, 'body', bodySchema),
     files: getRequestFiles(req),
     raw: req,
   };

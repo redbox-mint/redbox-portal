@@ -84,7 +84,7 @@ export namespace Controllers {
                 template: body.template,
             };
             const config = {};
-            const templateDate = body.data;
+            const templateDate = body.data || {};
 
             let emailProperties;
             try {

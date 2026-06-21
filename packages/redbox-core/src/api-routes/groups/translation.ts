@@ -3,6 +3,7 @@ import {
   apiActionResponseSchema,
   arrayField,
   booleanField,
+  booleanQueryField,
   nonEmptyStringField,
   patternStringField,
   translationBundleSchema,
@@ -12,16 +13,26 @@ import {
   stringField,
 } from '../schemas/common';
 
-const translationKeyTailDescription = 'Translation key path tail; may include slash-delimited segments.';
+const translationKeyTailDescription = 'Translation key segment.';
 const localeField = patternStringField('^[a-z]{2}(-[A-Z]{2})?$');
 
 const translationParams = objectField(
   {
     locale: localeField,
     namespace: patternStringField('^[A-Za-z0-9_-]+$'),
-    key: patternStringField('^[A-Za-z0-9_\\/.-]+$', translationKeyTailDescription),
+    key: patternStringField('^[A-Za-z0-9_-]+$', translationKeyTailDescription),
   },
   ['locale', 'namespace', 'key']
+);
+
+const dottedTranslationParams = objectField(
+  {
+    locale: localeField,
+    namespace: patternStringField('^[A-Za-z0-9_-]+$'),
+    key: patternStringField('^[A-Za-z0-9_-]+$', translationKeyTailDescription),
+    keyExt: patternStringField('^[A-Za-z0-9_.-]+$', 'Translation key suffix after the first dot.'),
+  },
+  ['locale', 'namespace', 'key', 'keyExt']
 );
 
 const bundleParams = objectField({ locale: localeField, namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
@@ -45,7 +56,7 @@ export const listEntriesRoute = apiRoute(
 
 export const getEntryRoute = apiRoute(
   'get',
-  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key',
   'webservice/TranslationController',
   'getEntry',
   { params: translationParams },
@@ -59,7 +70,7 @@ export const getEntryRoute = apiRoute(
 
 export const setEntryRoute = apiRoute(
   'post',
-  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key',
   'webservice/TranslationController',
   'setEntry',
   {
@@ -81,9 +92,47 @@ export const setEntryRoute = apiRoute(
   }
 );
 
+export const getDottedEntryRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key.:keyExt',
+  'webservice/TranslationController',
+  'getEntry',
+  { params: dottedTranslationParams },
+  {
+    tags: ['Translation'],
+    summary: 'Get translation entry with dotted key',
+    description: 'Compatibility route for dotted translation keys.',
+    responses: { 200: responseField(translationEntrySchema, 'Translation entry') },
+  }
+);
+
+export const setDottedEntryRoute = apiRoute(
+  'post',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key.:keyExt',
+  'webservice/TranslationController',
+  'setEntry',
+  {
+    params: dottedTranslationParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField({ value: stringField(), category: stringField(), description: stringField() }, ['value']),
+        },
+      },
+    },
+  },
+  {
+    tags: ['Translation'],
+    summary: 'Set translation entry with dotted key',
+    description: 'Compatibility route for dotted translation keys.',
+    responses: { 200: responseField(translationEntrySchema, 'Translation entry saved') },
+  }
+);
+
 export const deleteEntryRoute = apiRoute(
   'delete',
-  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key',
   'webservice/TranslationController',
   'deleteEntry',
   { params: translationParams },
@@ -91,6 +140,20 @@ export const deleteEntryRoute = apiRoute(
     tags: ['Translation'],
     summary: 'Delete translation entry',
     description: translationKeyTailDescription,
+    responses: { 200: responseField(apiActionResponseSchema, 'Translation entry deleted') },
+  }
+);
+
+export const deleteDottedEntryRoute = apiRoute(
+  'delete',
+  '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key.:keyExt',
+  'webservice/TranslationController',
+  'deleteEntry',
+  { params: dottedTranslationParams },
+  {
+    tags: ['Translation'],
+    summary: 'Delete translation entry with dotted key',
+    description: 'Compatibility route for dotted translation keys.',
     responses: { 200: responseField(apiActionResponseSchema, 'Translation entry deleted') },
   }
 );
@@ -116,8 +179,8 @@ export const setBundleRoute = apiRoute(
   {
     params: bundleParams,
     query: objectField({
-      splitToEntries: booleanField(),
-      overwriteEntries: booleanField(),
+      splitToEntries: booleanQueryField(),
+      overwriteEntries: booleanQueryField(),
     }),
     body: {
       required: true,
@@ -147,7 +210,10 @@ export const translationApiRoutes = [
   listEntriesRoute,
   getEntryRoute,
   setEntryRoute,
+  getDottedEntryRoute,
+  setDottedEntryRoute,
   deleteEntryRoute,
+  deleteDottedEntryRoute,
   getBundleRoute,
   setBundleRoute,
 ];

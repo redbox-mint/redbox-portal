@@ -11,8 +11,8 @@ x-fuzz-env: &fuzz-env
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
   - sails_emailnotification__from=fuzzing@redbox.test
-  - sails_emailnotification__smtp__host=email-fuzz
-  - sails_emailnotification__smtp__port=1025
+  - sails_emailnotification__settings__serverOptions__host=email-fuzz
+  - sails_emailnotification__settings__serverOptions__port=1025
 
 x-fuzz-depends: &fuzz-depends
   mongodb-fuzz:

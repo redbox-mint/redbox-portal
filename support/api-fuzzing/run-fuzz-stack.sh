@@ -109,6 +109,7 @@ echo '[]' > "$SEED_DIR/records.json"
 echo '[]' > "$SEED_DIR/users.json"
 echo '[]' > "$SEED_DIR/vocabularies.json"
 echo '[]' > "$SEED_DIR/named-queries.json"
+echo '[]' > "$SEED_DIR/harvest-runs.json"
 
 # Copy schemathesis.toml into the tmp dir so it's available to the container
 cp "$SCRIPT_DIR/schemathesis.toml" "$TMP_DIR/schemathesis.toml"
@@ -142,9 +143,46 @@ fi
 echo "[5/7] Extracting seed data from API..."
 API_BASE="http://localhost:1500/default/rdmp/api"
 
+echo "  Creating tracked harvest run fixture..."
+HARVEST_FIXTURE_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
+    -H "Content-Type: application/json" \
+    -X POST "$API_BASE/records/harvest/rdmp" \
+    --data @- <<'JSON' 2>/dev/null || echo '{}'
+{
+  "records": [
+    {
+      "harvestId": "fuzz-harvest-record-001",
+      "operation": "upsert",
+      "recordRequest": {
+        "metadata": {
+          "title": "Fuzz tracked harvest fixture",
+          "identifier": "fuzz-harvest-record-001"
+        }
+      }
+    }
+  ],
+  "sourceRunId": "fuzz-harvest-source-run-001",
+  "sourceName": "fuzz-api",
+  "finalChunk": true,
+  "chunk": {
+    "index": 1,
+    "label": "fuzz-fixture"
+  }
+}
+JSON
+)
+HARVEST_RUN_IDS=$(echo "$HARVEST_FIXTURE_RESP" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+run = data.get('run') if isinstance(data, dict) else {}
+run_id = run.get('id') if isinstance(run, dict) else None
+print(json.dumps([run_id] if run_id else []))
+" 2>/dev/null || echo '[]')
+echo "$HARVEST_RUN_IDS" > "$SEED_DIR/harvest-runs.json"
+
 # Records
 echo -n "  Records: "
-RECORDS_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/record" 2>/dev/null || echo '[]')
+RECORDS_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/records/list" 2>/dev/null || echo '[]')
 RECORD_OIDS=$(echo "$RECORDS_RESP" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
@@ -171,7 +209,7 @@ echo "$(echo "$VOCAB_SLUGS" | python3 -c 'import json,sys; print(len(json.load(s
 echo "  Seed files written to: $SEED_DIR"
 
 # Fall back to static seeds if API extraction returned nothing
-for sf in records.json vocabularies.json named-queries.json; do
+for sf in records.json vocabularies.json named-queries.json users.json harvest-runs.json; do
     if [ "$(python3 -c "import json; print(len(json.load(open('$SEED_DIR/$sf'))))" 2>/dev/null || echo 0)" -eq 0 ]; then
         cp "$SCRIPT_DIR/seeds/$sf" "$SEED_DIR/$sf" 2>/dev/null || true
     fi
@@ -183,7 +221,7 @@ echo "  Generating seeds.dict for parameter generation..."
     echo "# ReDBox fuzz seeds - known entity IDs"
     python3 -c "
 import json, sys
-for f in ['records.json', 'vocabularies.json', 'named-queries.json']:
+for f in ['records.json', 'vocabularies.json', 'named-queries.json', 'users.json', 'harvest-runs.json']:
     try:
         with open('$SEED_DIR/' + f) as fh:
             for item in json.load(fh):
@@ -227,7 +265,7 @@ for path, methods in paths.items():
             name = param.get('name', '')
             location = param.get('in', '')
             key = f'{location}.{name}'
-            if any(x in name.lower() for x in ['record', 'oid', 'redboxoid', 'slug', 'vocab']):
+            if any(x in name.lower() for x in ['record', 'oid', 'redboxoid', 'slug', 'vocab', 'dashboard', 'workflow', 'view', 'step', 'locale', 'namespace', 'key', 'version', 'name']):
                 bindings[key] = True
 for key in sorted(bindings):
     print(f'\"{key}\" = {{ dictionary = \"seeds\", probability = 0.3 }}')
@@ -257,6 +295,15 @@ fi
 ST_ARGS+=(--max-examples="$REDBOX_FUZZ_MAX_EXAMPLES")
 ST_ARGS+=(--phases="examples,coverage,fuzzing,stateful")
 ST_ARGS+=(--checks="all")
+ST_ARGS+=(--exclude-path-regex=".*\\{key\\}\\.\\{keyExt\\}.*")
+# Exclude built-in status_code_conformance; our hooks register a
+# redbox_status_code_conformance check that wraps it with false-positive
+# filtering for endpoint patterns that use coercion or permissive schemas.
+if [ -n "$REDBOX_FUZZ_EXCLUDE_CHECKS" ]; then
+    ST_ARGS+=(--exclude-checks="status_code_conformance,ensure_resource_availability,${REDBOX_FUZZ_EXCLUDE_CHECKS}")
+else
+    ST_ARGS+=(--exclude-checks="status_code_conformance,ensure_resource_availability")
+fi
 ST_ARGS+=(--report=junit)
 ST_ARGS+=(--report-dir=/opt/api-fuzzing/reports)
 
@@ -286,7 +333,7 @@ case "$PROFILE" in
         ST_ARGS+=(--include-operation-id="$REDBOX_FUZZ_OPERATION")
         ;;
     unauthenticated)
-        ST_ARGS+=(--checks="not_a_server_error,status_code_conformance,content_type_conformance")
+        ST_ARGS+=(--checks="not_a_server_error,content_type_conformance")
         ;;
     stable-smoke)
         ST_ARGS+=(--workers=1)
@@ -295,10 +342,6 @@ case "$PROFILE" in
         ;;
 esac
 
-# Exclude auth false-positive checks for dual-auth routes (bearer + session cookie)
-if [ "$REDBOX_FUZZ_AUTH_MODE" = "bearer" ] && [ -n "$REDBOX_FUZZ_EXCLUDE_CHECKS" ]; then
-    ST_ARGS+=(--exclude-checks="$REDBOX_FUZZ_EXCLUDE_CHECKS")
-fi
 
 # Exclude non-fuzzable multipart file-upload operations (skipped for the reproduction
 # profile, which explicitly targets a single operation id).

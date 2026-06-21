@@ -4,6 +4,7 @@ import {
   arrayField,
   apiErrorResponseSchema,
   apiHarvestResponseSchema,
+  anyField,
   binaryField,
   datastreamSummarySchema,
   datastreamUploadResponseSchema,
@@ -33,6 +34,27 @@ import {
 } from '../schemas/common';
 
 const bodyFallback = ['body'] as const;
+const objectMetadataUpdateBody = z.record(z.string().min(1), z.unknown())
+  .refine(
+    value => value != null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0,
+    { message: 'Object metadata payload must not be empty' }
+  )
+  .openapi({
+    description: 'Object metadata payload',
+    minProperties: 1,
+    additionalProperties: true,
+  });
+
+const createRecordBody = objectField({
+  metadata: z.object({}).passthrough().openapi({ description: 'Record metadata', additionalProperties: true }),
+  authorization: objectField({
+    edit: arrayField(stringField()),
+    view: arrayField(stringField()),
+    editPending: arrayField(stringField()),
+    viewPending: arrayField(stringField()),
+  }),
+  workflowStage: nonEmptyStringField('Initial workflow stage'),
+});
 
 const harvestRecordRequestBody = z.object({
   records: z.array(z.object({
@@ -82,7 +104,7 @@ export const createRecordRoute = apiRoute(
     ]),
     body: {
       required: true,
-      content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
+      content: { 'application/json': { schema: createRecordBody } },
     },
   },
   {
@@ -177,7 +199,7 @@ export const updateObjectMetaRoute = apiRoute(
     params: oidParams,
     body: {
       required: true,
-      content: { 'application/json': { schema: objectField({}, [], 'Object metadata payload', true) } },
+      content: { 'application/json': { schema: objectMetadataUpdateBody } },
     },
   },
   {

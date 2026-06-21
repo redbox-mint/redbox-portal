@@ -40,6 +40,8 @@ export const vocabularyTypeField = (description?: string): ApiSchemaField =>
 export const integrationAuditStatusField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['started', 'success', 'failed']), description);
 export const booleanField = (description?: string): ApiSchemaField => withDescription(z.boolean(), description);
+export const booleanQueryField = (description?: string): ApiSchemaField =>
+  withDescription(z.union([z.boolean(), z.enum(['true', 'false'])]).transform(value => value === true || value === 'true'), description);
 export const binaryField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string(), { type: 'string', format: 'binary', description });
 export const anyField = (description?: string): ApiSchemaField =>
@@ -66,7 +68,12 @@ export function objectField(
     return acc;
   }, {} as Record<string, ApiSchemaField>) as ZodRawShape;
 
-  const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape).strict();
+  const objectSchema =
+    additionalProperties === true
+      ? z.object(shape).passthrough()
+      : additionalProperties === false
+        ? z.object(shape).strict()
+        : z.object(shape).catchall(additionalProperties);
   return description
     ? withOpenApi(
       objectSchema,
@@ -141,39 +148,39 @@ export const userSearchQuery = objectField(
     pageSize: pageSizeField('Page size'),
     searchBy: userSearchByField('Field to search by'),
     query: nonEmptyStringField('Search query'),
-    includeDisabled: booleanField('Include disabled users'),
+    includeDisabled: booleanQueryField('Include disabled users'),
   },
   // listUsers requires both searchBy and query together; document them as required.
   ['searchBy', 'query']
 );
 
 export const recordSearchQuery = objectField({
-  type: stringField('Record type'),
-  workflow: stringField('Workflow name'),
-  searchStr: stringField('Search string'),
-  core: stringField('Search core'),
+  type: nonEmptyStringField('Record type'),
+  workflow: patternStringField('^[A-Za-z0-9_.-]+$', 'Workflow name'),
+  searchStr: patternStringField('.*\\S.*', 'Search string'),
+  core: patternStringField('^[A-Za-z0-9_.-]+$', 'Search core'),
   exactNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
     description: 'Exact match field values keyed by field name',
   }),
   facetNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
     description: 'Facet field values keyed by field name',
   }),
-  rows: nonNegativeIntegerField('Rows per page'),
-  page: nonNegativeIntegerField('Page number'),
+  rows: pageSizeField('Rows per page'),
+  page: pageNumberField('Page number'),
 }, [], undefined, true);
 
 export const recordListQuery = objectField({
-  editOnly: booleanField('Only include records the user can edit'),
+  editOnly: booleanQueryField('Only include records the user can edit'),
   recordType: recordTypeNameField('Record type filter'),
-  state: stringField('Workflow state filter'),
+  state: patternStringField('^[A-Za-z0-9_-]+$', 'Workflow state filter'),
   start: nonNegativeIntegerField('Result offset'),
   // Mirrors sails.config.api.max_requests (default 20); the controller rejects
   // larger page sizes with a 400, so document the upper bound here.
   rows: withDescription(z.number().int().min(0).max(20), 'Result count (max 20)'),
-  packageType: stringField('Package type filter'),
-  sort: stringField('Sort expression'),
-  filterFields: stringField('Comma separated filter field names'),
-  filter: stringField('Comma separated filter values'),
+  packageType: patternStringField('^[A-Za-z0-9_,.-]+$', 'Package type filter'),
+  sort: patternStringField('^[A-Za-z0-9_.-]+\\s+(asc|desc|ASC|DESC)$', 'Sort expression, e.g. date_object_modified desc'),
+  filterFields: patternStringField('^[A-Za-z0-9_,.-]+$', 'Comma separated filter field names'),
+  filter: patternStringField('^[A-Za-z0-9_,. -]+$', 'Comma separated filter values'),
 });
 
 export const recordAuditQuery = objectField({
@@ -182,8 +189,8 @@ export const recordAuditQuery = objectField({
 });
 
 export const recordUpdateQuery = objectField({
-  merge: booleanField('Merge arrays instead of replacing them'),
-  datastreams: booleanField('Process datastream metadata updates'),
+  merge: booleanQueryField('Merge arrays instead of replacing them'),
+  datastreams: booleanQueryField('Process datastream metadata updates'),
 });
 
 export const recordHarvestQuery = objectField({
@@ -226,13 +233,13 @@ export const datastreamUploadBody = objectField(
 export const notificationBody = objectField(
   {
     to: z.union([emailStringField(), z.array(emailStringField()).min(1)]).openapi({ description: 'Recipient(s)' }),
-    template: z.enum(['test', 'transferOwnerTo']).openapi({ description: 'Template name' }),
-    from: emailStringField('Sender').optional(),
-    cc: z.union([emailStringField(), z.array(emailStringField()).min(1)]).optional().openapi({ description: 'CC recipients' }),
-    bcc: z.union([emailStringField(), z.array(emailStringField()).min(1)]).optional().openapi({ description: 'BCC recipients' }),
+    template: z.enum(['test']).openapi({ description: 'Template name' }),
+    from: emailStringField('Sender'),
+    cc: z.union([emailStringField(), z.array(emailStringField()).min(1).max(5)]).optional().openapi({ description: 'CC recipients' }),
+    bcc: z.union([emailStringField(), z.array(emailStringField()).min(1).max(5)]).optional().openapi({ description: 'BCC recipients' }),
     subject: stringField('Email subject'),
     format: z.enum(['html', 'text']).optional().openapi({ description: 'Email format' }),
-    data: objectField({ data: stringField('Template data value') }, ['data'], 'Template data', true),
+    data: objectField({ data: stringField('Template data value') }, ['data'], 'Template data'),
   },
-  ['to', 'template']
+  ['to', 'template', 'data']
 );

@@ -44,7 +44,8 @@ support/api-fuzzing/
 │   ├── records.json
 │   ├── users.json
 │   ├── vocabularies.json
-│   └── named-queries.json
+│   ├── named-queries.json
+│   └── harvest-runs.json
 └── README.md
 ```
 
@@ -146,7 +147,9 @@ Single JSON object with `title`, `reportSource`, `databaseQuery` referencing a n
 
 ## Seed extraction
 
-During a run, the orchestrator calls API endpoints to discover IDs for bootstrapped records, vocabularies, etc., and writes them to `.tmp/api-fuzzing/seeds/seeds.dict` in libFuzzer/AFL format. These seed values are injected into the Schemathesis run via the `[parameters]` TOML config section, which binds the `seeds` dictionary to specific path/query parameters matching known ID patterns (`oid`, `record`, `slug`, `vocab`, etc.) with 0.3 probability.
+During a run, the orchestrator calls API endpoints to discover IDs for bootstrapped records, vocabularies, etc., and writes them to `.tmp/api-fuzzing/seeds/seeds.dict` in libFuzzer/AFL format. It also creates one tracked harvest-run fixture so `/api/harvest-runs/{id}` and `/api/harvest-runs/{id}/events` can reach real service logic. These seed values are injected into the Schemathesis run via the `[parameters]` TOML config section, which binds the `seeds` dictionary to specific path/query parameters matching known ID patterns (`oid`, `record`, `slug`, `vocab`, `dashboard`, `workflow`, etc.) with 0.3 probability.
+
+The Schemathesis hook also normalizes fixture-sensitive path and query parameters for operations that otherwise spend most examples on application-level 404s, including record metadata/permissions, dashboard config, harvest runs, i18n entries, report config, vocabulary sync/reorder, and common user lookup routes.
 
 Static seed files in `support/api-fuzzing/seeds/` provide fallback values when the API hasn't been queried yet.
 

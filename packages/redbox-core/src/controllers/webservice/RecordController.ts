@@ -629,14 +629,24 @@ export namespace Controllers {
         }
         record['metaMetadata'] = body as unknown as RecordModel['metaMetadata'];
       } catch (err) {
-        return this.sendResp(req, res, { status: this.errorStatus(err), errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
+        const status = this.errorStatus(err);
+        return this.sendResp(req, res, {
+          status: status === 500 ? 400 : status,
+          errors: [this.asError(err)],
+          displayErrors: [{ detail: 'Update Object Metadata failed.' }],
+        });
       }
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         return this.sendResp(req, res, { data: result });
       } catch (err) {
-        return this.sendResp(req, res, { status: this.errorStatus(err), errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
+        const status = this.errorStatus(err);
+        return this.sendResp(req, res, {
+          status: status === 500 ? 400 : status,
+          errors: [this.asError(err)],
+          displayErrors: [{ detail: 'Update Object Metadata failed.' }],
+        });
       }
     }
 
@@ -1137,7 +1147,12 @@ export namespace Controllers {
             this.sendResp(req, res, { data: response });
           })
           .catch(error => {
-            this.sendResp(req, res, { errors: [this.asError(error)], displayErrors: [{ detail: error['error'] }] });
+            const err = this.asError(error);
+            this.sendResp(req, res, {
+              status: 400,
+              errors: [err],
+              displayErrors: [{ detail: String(error?.error ?? err.message ?? 'Failed to list records.') }],
+            });
           });
       }
     }
@@ -1800,9 +1815,11 @@ export namespace Controllers {
             this.sendResp(req, res, { data: response });
           })
           .catch(error => {
+            const err = this.asError(error);
             return this.sendResp(req, res, {
-              errors: [this.asError(error)],
-              displayErrors: [{ detail: error['error'] }],
+              status: 400,
+              errors: [err],
+              displayErrors: [{ detail: String(error?.error ?? err.message ?? 'Failed to list deleted records.') }],
             });
           });
       }

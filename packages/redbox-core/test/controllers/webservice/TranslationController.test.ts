@@ -27,6 +27,7 @@ describe('Webservice TranslationController', () => {
                 },
                 i18nentriesservice: {
                     setBundle: sinon.stub().resolves({ id: 'bundle-1' }),
+                    setEntry: sinon.stub().resolves({ id: 'entry-1' }),
                 },
                 translationservice: {
                     reloadResources: sinon.stub(),
@@ -64,6 +65,21 @@ describe('Webservice TranslationController', () => {
             splitToEntries: false,
             overwriteEntries: false,
         });
+        expect(apiRespond.calledOnce).to.be.true;
+    });
+
+    it('reconstructs dotted entry keys from compatibility route params', async () => {
+        const req = makeReq({
+            params: { locale: 'en', namespace: 'translation', key: 'e0O', keyExt: '0L.yXFk' },
+            body: { value: 'saved' },
+        });
+        const res = {} as Sails.Res;
+        const apiRespond = sinon.stub(controller as any, 'apiRespond');
+
+        await controller.setEntry(req, res);
+
+        expect((global as any).I18nEntriesService.setEntry.calledOnce).to.be.true;
+        expect((global as any).I18nEntriesService.setEntry.firstCall.args[3]).to.equal('e0O.0L.yXFk');
         expect(apiRespond.calledOnce).to.be.true;
     });
 });
