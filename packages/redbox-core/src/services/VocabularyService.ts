@@ -636,6 +636,12 @@ export namespace Services {
       const entries = payload.entries ?? [];
       delete payload.entries;
 
+      if (payload.type === 'flat') {
+        for (const entry of entries) {
+          delete entry.parent;
+        }
+      }
+
       const createPayload: Partial<VocabularyAttributes> = {
         name: payload.name,
         description: payload.description,
@@ -922,12 +928,14 @@ export namespace Services {
 
         let existing: VocabularyEntryAttributes | null = null;
         if (entry.identifier) {
-          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-          existing = await this.executeQuery(byIdentifier, connection);
+          const byIdentifier = VocabularyEntry.find({ vocabulary: vocabularyId, identifier: entry.identifier }).limit(1) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes[]>;
+          const results = await this.executeQuery(byIdentifier, connection);
+          existing = (results && results.length > 0) ? results[0] : null;
         }
         if (!existing) {
-          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-          existing = await this.executeQuery(byValue, connection);
+          const byValue = VocabularyEntry.find({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }).limit(1) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes[]>;
+          const results = await this.executeQuery(byValue, connection);
+          existing = (results && results.length > 0) ? results[0] : null;
         }
 
         if (!existing) {
@@ -979,8 +987,10 @@ export namespace Services {
 
     private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
-      if (isFlat && flatEntries.some(entry => entry.parent)) {
-        throw new Error('Vocabulary.type = flat does not support parent entries');
+      if (isFlat) {
+        for (const entry of flatEntries) {
+          delete entry.parent;
+        }
       }
 
       const destroyQuery = VocabularyEntry.destroy({ vocabulary: vocabularyId }) as Sails.WaterlinePromise<unknown[]>;
@@ -989,7 +999,7 @@ export namespace Services {
       const oldToNewIds: Record<string, string> = {};
       for (const entry of flatEntries) {
         const normalized = entry;
-        if (!normalized.label || normalized.value === null || normalized.value === undefined) {
+        if (!normalized.label || !normalized.value) {
           throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
         }
 

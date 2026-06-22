@@ -587,8 +587,9 @@ describe('MongoStorageService', function () {
 
     const query = runStub.firstCall.args[1];
     const options = runStub.firstCall.args[2];
-    expect(query.$or).to.have.length(2);
-    expect(query['metaMetadata.packageType'].$or).to.have.length(2);
+    expect(query.$and[0].$or).to.have.length(4);
+    expect(query.$and[1].$or).to.have.length(2);
+    expect(query.$and[2].$or).to.have.length(2);
     expect(query['workflow.stage']).to.equal('review');
     expect(query['metadata.title']).to.equal('Exact title');
     expect(options.sort.lastSaveDate).to.equal(1);

@@ -1,5 +1,6 @@
 import { apiRoute } from '../route-factory';
 import {
+  apiErrorResponseSchema,
   apiObjectActionResponseSchema,
   nonEmptyStringField,
   searchResultsSchema,
@@ -22,7 +23,15 @@ export const searchRecordsRoute = apiRoute(
   {
     tags: ['Search'],
     summary: 'Search records',
-    responses: { 200: responseField(searchResultsSchema, 'Search results') },
+    responses: {
+      200: responseField(searchResultsSchema, 'Search results'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      401: responseField(apiErrorResponseSchema, 'Unauthorized'),
+      403: responseField(apiErrorResponseSchema, 'Forbidden'),
+      404: responseField(apiErrorResponseSchema, 'Not found'),
+      409: responseField(apiErrorResponseSchema, 'Conflict'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 

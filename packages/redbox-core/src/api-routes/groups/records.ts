@@ -34,16 +34,20 @@ import {
 } from '../schemas/common';
 
 const bodyFallback = ['body'] as const;
-const objectMetadataUpdateBody = z.record(z.string().min(1), z.unknown().refine(v => v != null, { message: 'Property values must not be null' }))
-  .refine(
-    value => value != null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0,
-    { message: 'Object metadata payload must not be empty' }
-  )
-  .openapi({
-    description: 'Object metadata payload',
-    minProperties: 1,
-    additionalProperties: true,
-  });
+const objectMetadataValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.unknown()),
+  z.object({}).passthrough(),
+]);
+const objectMetadataUpdateBody = z.object({}).catchall(objectMetadataValue).refine(
+  (body) => Object.values(body).some((value) => value != null),
+  { message: 'Object metadata payload must include at least one non-null value' }
+).openapi({
+  description: 'Object metadata payload',
+  minProperties: 1,
+});
 
 const createRecordEnvelopeBody = objectField({
   metadata: z.object({}).passthrough().openapi({ description: 'Record metadata', additionalProperties: true }),
@@ -75,7 +79,7 @@ const harvestRecordRequestBody = z.object({
   sourceName: nonEmptyStringField('Harvest source name').optional(),
   finalChunk: z.boolean().optional(),
   chunk: z.object({
-    index: z.number().int().min(0).optional(),
+    index: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
     label: z.string().optional(),
   }).passthrough().optional(),
 }).strict().openapi({ description: 'Harvest payload' });
@@ -135,6 +139,9 @@ export const createRecordRoute = apiRoute(
           Location: stringField('Location of the created record'),
         },
       },
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'Record type not found'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
     },
   }
 );
@@ -182,6 +189,7 @@ export const harvestRoute = apiRoute(
     responses: {
       200: responseField(harvestRouteResponseSchema, 'Harvest results'),
       400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'Record type not found'),
       500: responseField(apiErrorResponseSchema, 'Internal server error'),
     },
   }
@@ -203,7 +211,12 @@ export const legacyHarvestRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Legacy harvest record metadata',
-    responses: { 200: responseField(arrayField(apiHarvestResponseSchema), 'Harvest results') },
+    responses: {
+      200: responseField(arrayField(apiHarvestResponseSchema), 'Harvest results'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'Record type not found'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
@@ -222,7 +235,11 @@ export const updateObjectMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update object metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Object metadata updated') },
+    responses: {
+      200: responseField(storageServiceResponseSchema, 'Object metadata updated'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'Record not found'),
+    },
   }
 );
 

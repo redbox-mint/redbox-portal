@@ -6,6 +6,7 @@ import {
   idParams,
   integerField,
   listApiResponseSchema,
+  nonEmptyStringField,
   nonNegativeIntegerField,
   objectField,
   patternStringField,
@@ -16,11 +17,18 @@ import {
   vocabularyTreeNodeSchema,
 } from '../schemas/common';
 
+const vocabularyNamePattern = '^(?=.*\\S)[A-Za-z0-9_ -]+$';
+const vocabularyNameField = z.string().regex(new RegExp(vocabularyNamePattern)).openapi({
+  description: 'Vocabulary name',
+  pattern: vocabularyNamePattern,
+});
+const vocabularySlugField = patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$', 'Vocabulary slug');
+
 const vocabularyEntryInputSchema = objectField(
   {
     id: patternStringField('^[A-Za-z0-9_.-]+$', 'Vocabulary entry id'),
-    label: stringField('Entry label'),
-    value: stringField('Entry value'),
+    label: nonEmptyStringField('Entry label'),
+    value: nonEmptyStringField('Entry value'),
     identifier: stringField('Entry identifier'),
     parent: patternStringField('^[A-Za-z0-9_.-]+$', 'Parent entry id'),
     order: nonNegativeIntegerField('Entry order'),
@@ -76,6 +84,7 @@ export const importVocabularyRoute = apiRoute(
   {
     tags: ['Vocabulary'],
     summary: 'Import vocabulary',
+    operationId: 'importVocabulary',
     responses: {
       200: responseField(vocabularySchema, 'Vocabulary imported'),
       400: responseField(apiErrorResponseSchema, 'RVA import request rejected'),
@@ -112,27 +121,18 @@ export const createVocabularyRoute = apiRoute(
         required: true,
         content: {
           'application/json': {
-            schema: objectField(
+              schema: objectField(
               {
-                name: patternStringField('^[A-Za-z0-9_ -]+$'),
-                slug: patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$'),
+                name: vocabularyNameField,
+                slug: vocabularySlugField,
                 type: vocabularyTypeField('Vocabulary type'),
                 source: patternStringField('^(local|rva)$', 'Vocabulary source'),
                 sourceId: stringField('Vocabulary source ID'),
                 description: stringField('Vocabulary description'),
                 entries: arrayField(vocabularyEntryInputSchema, 'Vocabulary entries'),
               },
-              ['name'],
+              ['name', 'slug'],
               'Vocabulary payload'
-            ).refine(
-              (data) => {
-                const d = data as Record<string, unknown>;
-                if (d.source === 'rva' && !d.sourceId) {
-                  return false;
-                }
-                return true;
-              },
-              { message: 'sourceId is required when source = rva' }
             ),
           },
         },
@@ -141,7 +141,11 @@ export const createVocabularyRoute = apiRoute(
   {
     tags: ['Vocabulary'],
     summary: 'Create vocabulary',
-    responses: { 201: responseField(vocabularySchema, 'Vocabulary created') },
+    responses: {
+      201: responseField(vocabularySchema, 'Vocabulary created'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      409: responseField(apiErrorResponseSchema, 'Conflict'),
+    },
   }
 );
 
@@ -158,8 +162,8 @@ export const updateVocabularyRoute = apiRoute(
         'application/json': {
           schema: objectField(
             {
-              name: patternStringField('^[A-Za-z0-9_ -]+$'),
-              slug: patternStringField('^[A-Za-z0-9_-]+$'),
+              name: vocabularyNameField,
+              slug: vocabularySlugField,
               type: vocabularyTypeField('Vocabulary type'),
             },
             [],

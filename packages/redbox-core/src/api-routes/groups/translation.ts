@@ -1,6 +1,7 @@
 import { apiRoute } from '../route-factory';
 import {
   apiActionResponseSchema,
+  apiErrorResponseSchema,
   arrayField,
   booleanField,
   booleanQueryField,
@@ -107,7 +108,10 @@ export const setEntryRoute = apiRoute(
     tags: ['Translation'],
     summary: 'Set translation entry',
     description: translationKeyTailDescription,
-    responses: { 200: responseField(translationEntrySchema, 'Translation entry saved') },
+    responses: {
+      200: responseField(translationEntrySchema, 'Translation entry saved'),
+      404: responseField(apiErrorResponseSchema, 'Entry not found (soft-deleted)'),
+    },
   }
 );
 

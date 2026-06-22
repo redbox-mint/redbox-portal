@@ -103,13 +103,13 @@ export namespace Controllers {
 
 	    private statusForUserError(error: unknown): number {
 	      const message = String((error as Error)?.message ?? '');
-	      if (message.includes('No such user with id:') || message.includes('User not found') || message.includes('Both users must exist')) {
-	        return 404;
-	      }
-	      if (message.includes('already exists') || message.includes('must be unique')) {
-	        return 409;
-	      }
-	      if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role') || message.includes('must not contain null bytes')) {
+      if (message.includes('No such user with id:') || message.includes('User not found') || message.includes('Both users must exist') || message.includes('Roles not found')) {
+        return 404;
+      }
+      if (message.includes('already exists') || message.includes('must be unique')) {
+        return 409;
+      }
+      if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role') || message.includes('must not contain null bytes')) {
 	        return 400;
 	      }
 	      return 500;
@@ -144,19 +144,20 @@ export namespace Controllers {
     public async listUsers(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
-      const searchField = query.searchBy as string | undefined;
-      const searchQuery = query.query as string | undefined;
+      let searchField = query.searchBy as string | undefined;
+      const searchQuery = query.query != null ? String(query.query) : undefined;
       const queryObject: Record<string, unknown> = {};
 
       if (searchField && !searchQuery) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Both searchBy and query parameters are required' }],
-          headers: this.getNoCacheHeaders(),
-        });
-      }
-      if (searchField && searchQuery) {
+        searchField = undefined;
+      } else if (searchField && searchQuery) {
         queryObject[searchField] = searchQuery;
+      } else if (searchQuery && !searchField) {
+        queryObject.or = [
+          { username: { contains: searchQuery } },
+          { name: { contains: searchQuery } },
+          { email: { contains: searchQuery } },
+        ];
       }
       const page: number = query.page != null ? parseInt(String(query.page), 10) : 1;
       const pageSize: number = query.pageSize != null ? parseInt(String(query.pageSize), 10) : 10;
@@ -259,10 +260,27 @@ export namespace Controllers {
             .filter((roleName: unknown) => !_.isEmpty(roleName));
           const brand: BrandingModel =
             BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+          if (roles.length === 0) {
+            const errorResponse = new APIErrorResponse('Please assign at least one role');
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+          const brandRoleNames: string[] = (brand?.roles ?? []).map(r => r.name);
           const roleIds = brand?.roles ? RolesService.getRoleIds(brand.roles, roles) : [];
           if (_.isEmpty(roleIds)) {
-            sails.log.warn('UserManagementController.createUser - No role ids resolved, skipping role assignment.');
-            return respondWithUser(response);
+            const unknownRoles = roles.filter(rn => !brandRoleNames.includes(rn));
+            const errorMessage = unknownRoles.length > 0
+              ? `Roles not found: ${unknownRoles.join(', ')}`
+              : 'Please assign at least one role';
+            const errorResponse = new APIErrorResponse(errorMessage);
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+              headers: this.getNoCacheHeaders(),
+            });
           }
           UsersService.updateUserRoles(response.id, roleIds).subscribe(
             (roleUser: UserModel) => {
@@ -369,18 +387,27 @@ export namespace Controllers {
               )
               .filter((roleName: unknown) => !_.isEmpty(roleName));
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+            if (roles.length === 0) {
+              const errorResponse = new APIErrorResponse('Please assign at least one role');
+              return this.sendResp(req, res, {
+                status: 404,
+                displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+                headers: this.getNoCacheHeaders(),
+              });
+            }
+            const brandRoleNames: string[] = (brand?.roles ?? []).map(r => r.name);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
             if (_.isEmpty(roleIds)) {
-              sails.log.warn('UserManagementController.updateUser - No role ids resolved, skipping role assignment.');
-              const u = user as globalThis.Record<string, unknown>;
-              const userResponse = new CreateUserAPIResponse();
-              userResponse.id = u.id as string;
-              userResponse.username = u.username as string;
-              userResponse.name = u.name as string;
-              userResponse.email = u.email as string;
-              userResponse.type = u.type as string;
-              userResponse.lastLogin = u.lastLogin as Date | null;
-              return this.apiRespond(req, res, userResponse, 201);
+              const unknownRoles = roles.filter(rn => !brandRoleNames.includes(rn));
+              const errorMessage = unknownRoles.length > 0
+                ? `Roles not found: ${unknownRoles.join(', ')}`
+                : 'Please assign at least one role';
+              const errorResponse = new APIErrorResponse(errorMessage);
+              return this.sendResp(req, res, {
+                status: 404,
+                displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+                headers: this.getNoCacheHeaders(),
+              });
             }
             const resolvedUser = user as globalThis.Record<string, unknown>;
             UsersService.updateUserRoles(resolvedUser.id as string, roleIds).subscribe(
@@ -760,7 +787,7 @@ export namespace Controllers {
         }
         if (String(req.user?.id ?? '') === String(userId)) {
           return this.sendResp(req, res, {
-            status: 400,
+            status: 409,
             displayErrors: [{ detail: 'You cannot disable your own account' }],
             headers: this.getNoCacheHeaders(),
           });

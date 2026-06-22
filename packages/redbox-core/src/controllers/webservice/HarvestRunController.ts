@@ -33,7 +33,7 @@ export namespace Controllers {
         return undefined;
       }
       const parsed = Number.parseInt(String(value), 10);
-      if (!Number.isInteger(parsed) || parsed <= 0) {
+      if (!Number.isInteger(parsed) || parsed <= 0 || parsed > Number.MAX_SAFE_INTEGER) {
         return undefined;
       }
       return parsed;

@@ -50,11 +50,18 @@ export namespace Controllers {
       }
       // State conflicts: the resource exists but the requested operation is incompatible
       // with its current state (e.g. syncing a vocabulary that was not RVA-imported).
+      if (/cannot parent itself/i.test(message)) {
+        return 409;
+      }
       if (/duplicate|already exists|not an rva|not .*imported|conflict/i.test(message)) {
         return 409;
       }
       if (/invalid|required|must|belongs to|cannot|not supported|unsupported|does not support|not allowed|no current concept tree/i.test(message)) {
         return 400;
+      }
+      // External service timeouts (e.g. RVA Registry unreachable)
+      if (/timeout/i.test(message)) {
+        return 503;
       }
       return 500;
     }
@@ -136,8 +143,22 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { body } = validated;
+        const bodyObj = body as Record<string, unknown>;
+        if (!String(bodyObj.slug ?? '').trim()) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ title: 'body.slug', detail: 'Required' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        if (bodyObj.type === 'flat' && Array.isArray(bodyObj.entries)) {
+          bodyObj.entries = (bodyObj.entries as Record<string, unknown>[]).map(entry => {
+            const { parent, ...rest } = entry;
+            return rest;
+          });
+        }
         const payload = {
-          ...(body as Record<string, unknown>),
+          ...bodyObj,
           branding: BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)).id,
         } as VocabularyServiceModule.VocabularyInput;
         const created = await VocabularyService.create(payload);

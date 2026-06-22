@@ -110,7 +110,7 @@ export namespace Services {
 
     private parsePositiveInt(value: unknown, fallback: number): number {
       const parsed = Number.parseInt(String(value ?? ''), 10);
-      return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+      return Number.isInteger(parsed) && parsed > 0 && parsed <= Number.MAX_SAFE_INTEGER ? parsed : fallback;
     }
 
     private harvestRunConfig(): HarvestRunsConfig {

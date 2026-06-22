@@ -18,7 +18,8 @@ function withDescription<T extends ZodType>(schema: T, description?: string): T 
 }
 
 export const stringField = (description?: string): ApiSchemaField => withDescription(z.string(), description);
-export const nonEmptyStringField = (description?: string): ApiSchemaField => withDescription(z.string().min(1), description);
+export const nonEmptyStringField = (description?: string): ApiSchemaField =>
+  withOpenApi(z.string().trim().min(1), description ? { description, pattern: '\\S' } : { pattern: '\\S' });
 export const numberField = (description?: string): ApiSchemaField => withDescription(z.number(), description);
 // zod's `.int()` only accepts JS safe integers at runtime; publish the matching bounds so the
 // OpenAPI contract advertises a `maximum`/`minimum` and clients (and fuzzers) don't generate
@@ -54,7 +55,7 @@ export const patternStringField = (pattern: string, description?: string): ApiSc
 export const dateTimeStringField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string().datetime({ offset: true }), { description, format: 'date-time' });
 export const emailStringField = (description?: string): ApiSchemaField =>
-  patternStringField('^[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$', description);
+  patternStringField('^[A-Za-z][A-Za-z0-9._%+-]*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$', description);
 
 export function objectField(
   properties: Record<string, ApiSchemaField>,
@@ -156,8 +157,11 @@ export const userSearchQuery = objectField(
 export const recordSearchQuery = objectField({
   type: nonEmptyStringField('Record type'),
   workflow: patternStringField('^[A-Za-z0-9_.-]+$', 'Workflow name'),
-  searchStr: patternStringField('.*\\S.*', 'Search string'),
-  core: patternStringField('^[A-Za-z0-9_.-]+$', 'Search core'),
+  searchStr: patternStringField('^[^\\x00-\\x1F\\x7F]*\\S[^\\x00-\\x1F\\x7F]*$', 'Search string'),
+  core: z.string().regex(/^[A-Za-z0-9_.-]+$/).refine(
+    val => !['__proto__', 'prototype'].includes(val),
+    { message: 'core must not contain prototype-pollution keys' }
+  ).openapi({ description: 'Search core', pattern: '^[A-Za-z0-9_.-]+$' }),
   exactNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
     description: 'Exact match field values keyed by field name',
   }),
@@ -177,8 +181,8 @@ export const recordListQuery = objectField({
   // larger page sizes with a 400, so document the upper bound here.
   rows: withDescription(z.number().int().min(0).max(20), 'Result count (max 20)'),
   packageType: patternStringField('^[A-Za-z0-9_,.-]+$', 'Package type filter'),
-  sort: patternStringField('^[A-Za-z0-9_.-]+\\s+(asc|desc|ASC|DESC)$', 'Sort expression, e.g. date_object_modified desc'),
-  filterFields: patternStringField('^[A-Za-z0-9_,.-]+$', 'Comma separated filter field names'),
+  sort: patternStringField('^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*[ \\t]+(asc|desc|ASC|DESC)$', 'Sort expression, e.g. date_object_modified desc'),
+  filterFields: patternStringField('^(?!.*(?:^|,)__proto__(?:,|$))(?!.*(?:^|,)constructor(?:,|$))(?!.*(?:^|,)prototype(?:,|$))[A-Za-z0-9_,.-]+$', 'Comma separated filter field names'),
   filter: patternStringField('^[A-Za-z0-9_,. -]+$', 'Comma separated filter values'),
 });
 

@@ -47,7 +47,8 @@ import { sendNotificationRoute } from '../../src/api-routes/groups/notifications
 import { createReportConfigRoute, executeNamedQueryRoute } from '../../src/api-routes/groups/reports';
 import { updateNamedQueryRoute } from '../../src/api-routes/groups/named-query';
 import { setBundleRoute } from '../../src/api-routes/groups/translation';
-import { createVocabularyRoute } from '../../src/api-routes/groups/vocabulary';
+import { createVocabularyRoute, updateVocabularyRoute } from '../../src/api-routes/groups/vocabulary';
+import { VocabularyWLDef } from '../../src/waterline-models/Vocabulary';
 import { createUserRoute, listUsersRoute, updateUserRoute } from '../../src/api-routes/groups/users';
 import { downloadRecsRoute } from '../../src/api-routes/groups/export';
 import { getRecordTypeRoute, listRecordTypesRoute } from '../../src/api-routes/groups/recordtypes';
@@ -59,7 +60,7 @@ import {
 } from '../../src/api-routes/groups/admin';
 import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-routes/groups/appconfig';
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
-import { createRecordRoute, harvestRoute, listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
+import { createRecordRoute, harvestRoute, listRecordsRoute, updateMetaRoute, updateObjectMetaRoute } from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
 
@@ -1099,6 +1100,45 @@ describe('API routes contract layer', async () => {
     expect((extracted.body as Record<string, unknown>).authorization).to.deep.equal([]);
   });
 
+  it('should reject null-only object metadata update payloads', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', oid: '0' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: { fuzzKey: null },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, updateObjectMetaRoute.request);
+
+    expect(result.valid).to.equal(false);
+    expect(result.issues.some((issue) => issue.path === 'body.fuzzKey')).to.equal(true);
+  });
+
+  it('should accept object metadata update payloads with non-null values', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', oid: 'record-1' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: { title: 'Object metadata update' },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, updateObjectMetaRoute.request);
+
+    expect(result.valid).to.equal(true);
+  });
+
+  it('should document object metadata update values as non-null top-level fields', function () {
+    const document = buildCoreApiOpenApiDocument();
+    const operation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/objectmetadata/{oid}']?.put);
+    const schema = asOpenApiSchema(operation.requestBody?.content?.['application/json']?.schema);
+    const additionalProperties = schema.additionalProperties as OpenApiSchema;
+    const anyOf = additionalProperties.anyOf as OpenApiSchema[] | undefined;
+
+    expect(schema.minProperties).to.equal(1);
+    expect(additionalProperties).to.be.an('object');
+    expect(anyOf?.some((entry) => entry.nullable === true)).to.equal(false);
+  });
+
   it('should accept configured hyphenated record types in metadata create routes', async function () {
     const request = {
       params: { branding: 'default', portal: 'rdmp', recordType: 'existing-locations' },
@@ -1197,13 +1237,31 @@ describe('API routes contract layer', async () => {
     expect((extracted.body as Record<string, unknown>).finalChunk).to.equal(true);
   });
 
-  it('should accept vocabulary create payloads with defaulted slug and local entries', async function () {
+  it('should reject vocabulary create payloads without slug', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        name: '-',
+        sourceId: '',
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createVocabularyRoute.request);
+
+    expect(result.valid).to.equal(false);
+    expect(result.issues.some((issue) => issue.path === 'body.slug')).to.equal(true);
+  });
+
+  it('should accept vocabulary create payloads with slug and local entries', async function () {
     const request = {
       params: { branding: 'default', portal: 'rdmp' },
       query: {},
       headers: { 'content-type': 'application/json' },
       body: {
         name: 'Bruno Vocabulary',
+        slug: 'bruno-vocabulary',
         type: 'flat',
         source: 'local',
         entries: [{ label: 'One', value: 'one' }],
@@ -1215,7 +1273,32 @@ describe('API routes contract layer', async () => {
 
     expect(result.valid).to.equal(true);
     expect((extracted.body as Record<string, unknown>).name).to.equal('Bruno Vocabulary');
+    expect((extracted.body as Record<string, unknown>).slug).to.equal('bruno-vocabulary');
     expect((extracted.body as Record<string, unknown>).entries).to.deep.equal([{ label: 'One', value: 'one' }]);
+  });
+
+  it('should reject whitespace-only vocabulary update names', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', id: 'vocabulary-1' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: { name: ' ' },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, updateVocabularyRoute.request);
+
+    expect(result.valid).to.equal(false);
+    expect(result.issues.some((issue) => issue.path === 'body.name')).to.equal(true);
+  });
+
+  it('should require explicit vocabulary slugs at the model layer', async function () {
+    const record = { name: '0', branding: 'default' };
+    const err = await new Promise<Error | undefined>((resolve) => {
+      VocabularyWLDef.beforeCreate?.(record, resolve);
+    });
+
+    expect(err).to.be.instanceOf(Error);
+    expect(err?.message).to.equal('Vocabulary.slug is required');
   });
 
   it('should accept named query updates with same-name and extra definition fields', async function () {

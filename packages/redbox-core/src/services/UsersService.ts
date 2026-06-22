@@ -2219,7 +2219,8 @@ export namespace Services {
       return this.getUserWithId(userid).pipe(flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-            return throwError(new Error('Please assign at least one role'));
+            sails.log.warn(`UsersService.updateUserRoles - No roles provided for user ${userid}, skipping role update.`);
+            return of(user);
           }
           // START Sails 1.0 upgrade
           const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);

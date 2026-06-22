@@ -41,9 +41,10 @@ REDBOX_FUZZ_KEEP_STACK="${REDBOX_FUZZ_KEEP_STACK:-false}"
 REDBOX_FUZZ_EXCLUDE_CHECKS="${REDBOX_FUZZ_EXCLUDE_CHECKS:-missing_required_header,ignored_auth,unsupported_method}"
 REDBOX_FUZZ_AUTH_MODE="${REDBOX_FUZZ_AUTH_MODE:-bearer}"
 # Multipart file-upload operations cannot be meaningfully fuzzed (Schemathesis cannot
-# synthesise real uploaded files), so they are excluded by default. See README "Known
-# limitations". Set to an empty string to include them.
-REDBOX_FUZZ_EXCLUDE_OPERATIONS="${REDBOX_FUZZ_EXCLUDE_OPERATIONS:-uploadBrandingLogo,uploadRecordDatastreams}"
+# synthesise real uploaded files), and RVA imports depend on an upstream service that
+# is not reliable enough for deterministic fuzzing. Set to an empty string to include
+# them.
+REDBOX_FUZZ_EXCLUDE_OPERATIONS="${REDBOX_FUZZ_EXCLUDE_OPERATIONS:-uploadBrandingLogo,uploadRecordDatastreams,importVocabulary}"
 
 # -- Help --
 usage() {

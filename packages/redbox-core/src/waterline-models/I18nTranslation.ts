@@ -84,6 +84,9 @@ export class I18nTranslationClass {
 
   @Attr({ type: 'string', unique: true })
   public uid?: string;
+
+  @Attr({ type: 'ref' })
+  public deletedAt?: Date;
 }
 
 // Export the Waterline model definition for runtime use
@@ -101,6 +104,7 @@ export interface I18nTranslationAttributes extends Sails.WaterlineAttributes {
   namespace?: string;
   uid?: string;
   value?: unknown;
+  deletedAt?: Date;
 }
 
 export interface I18nTranslationWaterlineModel extends Sails.Model<I18nTranslationAttributes> {

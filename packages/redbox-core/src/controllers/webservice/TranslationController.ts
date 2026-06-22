@@ -123,6 +123,14 @@ export namespace Controllers {
           contentFormat,
           description,
         });
+        if (!saved) {
+          const errorResponse = new APIErrorResponse('Entry not found');
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
         try { await TranslationService.reloadResources();
         } catch (e) {

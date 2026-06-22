@@ -1483,7 +1483,7 @@ export namespace Controllers {
       try {
         const recordType = await firstValueFrom(RecordTypesService.get(brand, normalizedRecordTypeName));
         if (recordType == null) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Record Type provided is not valid' }] });
         }
 
         const wfSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));

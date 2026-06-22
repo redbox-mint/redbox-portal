@@ -25,7 +25,7 @@ import {
   userSearchQuery,
 } from '../schemas/common';
 
-const userRoleNameSchema = nonEmptyStringField('Role name');
+const userRoleNameSchema = patternStringField('^[A-Za-z0-9][A-Za-z0-9_@. -]*$', 'Role name');
 const userRoleSelectionSchema = z.union([
   userRoleNameSchema,
   objectField({ name: userRoleNameSchema }, ['name'], 'Role reference'),
@@ -40,7 +40,11 @@ export const listUsersRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'List users',
-    responses: { 200: responseField(listApiResponseSchema(userRecordSchema), 'List of users') },
+    responses: {
+      200: responseField(listApiResponseSchema(userRecordSchema), 'List of users'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
@@ -164,7 +168,7 @@ export const createUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Create user',
-    responses: { 201: responseField(createUserApiResponseSchema, 'User created'), 409: responseField(apiErrorResponseSchema, 'User conflict') },
+    responses: { 201: responseField(createUserApiResponseSchema, 'User created'), 400: responseField(apiErrorResponseSchema, 'Bad request'), 409: responseField(apiErrorResponseSchema, 'User conflict') },
   }
 );
 
@@ -209,7 +213,11 @@ export const disableUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Disable user',
-    responses: { 200: responseField(statusMessageResponseSchema, 'User disabled') },
+    responses: {
+      200: responseField(statusMessageResponseSchema, 'User disabled'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'User not found'),
+    },
   }
 );
 
@@ -222,7 +230,11 @@ export const enableUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Enable user',
-    responses: { 200: responseField(statusMessageResponseSchema, 'User enabled') },
+    responses: {
+      200: responseField(statusMessageResponseSchema, 'User enabled'),
+      400: responseField(apiErrorResponseSchema, 'Bad request'),
+      404: responseField(apiErrorResponseSchema, 'User not found'),
+    },
   }
 );
 

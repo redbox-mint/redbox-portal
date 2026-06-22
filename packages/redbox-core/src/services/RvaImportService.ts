@@ -64,7 +64,7 @@ export namespace Services {
 
     private get httpClient(): AxiosInstance {
       if (!this.client) {
-        this.client = axios.create({ timeout: 15000 });
+        this.client = axios.create({ timeout: 30000 });
       }
       return this.client;
     }

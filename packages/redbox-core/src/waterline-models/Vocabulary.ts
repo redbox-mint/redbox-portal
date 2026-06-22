@@ -56,23 +56,27 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   }
 
   const hasSlug = typeof record.slug !== 'undefined';
-  if (hasSlug || hasName || isCreate) {
-    const rawSlug = hasSlug ? String(record.slug).trim() : '';
-    const slugSource = rawSlug && rawSlug !== '__AUTO__' ? rawSlug : name;
-    record.slug = slugify(slugSource);
-    if ((isCreate || hasSlug || hasName) && !String(record.slug ?? '').trim()) {
-      throw new Error('Vocabulary.slug is required');
+  if (isCreate && !hasSlug) {
+    throw new Error('Vocabulary.slug is required');
+  }
+  if (hasSlug) {
+    const rawSlug = String(record.slug).trim();
+    record.slug = rawSlug ? slugify(rawSlug) : '';
+    if (!String(record.slug ?? '').trim()) {
+      const error = 'Vocabulary.slug is required';
+      throw isCreate ? buildInvalidNewRecordError(error) : buildInvalidUpdateRecordError(error);
     }
   }
 
   const effectiveSource = source || String(record.source ?? '');
   if (effectiveSource === 'rva') {
     const sourceId = String(record.sourceId ?? '').trim();
-    if (!sourceId) {
-      throw new Error('Vocabulary.sourceId is required when source = rva');
+    if (sourceId) {
+      record.sourceId = sourceId;
+      record.rvaSourceKey = `${effectiveSource}:${sourceId}`;
+    } else {
+      delete record.rvaSourceKey;
     }
-    record.sourceId = sourceId;
-    record.rvaSourceKey = `${effectiveSource}:${sourceId}`;
   } else if (hasSource || isCreate) {
     delete record.rvaSourceKey;
   }
@@ -150,7 +154,7 @@ export class VocabularyClass {
   @Attr({ type: 'string' })
   public lastSyncedAt?: string;
 
-  @Attr({ type: 'string', defaultsTo: '__AUTO__' })
+  @Attr({ type: 'string', required: true })
   public slug!: string;
 
   @Attr({ type: 'string' })

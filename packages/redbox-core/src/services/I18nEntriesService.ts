@@ -218,7 +218,9 @@ export namespace Services {
 
     public async getEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<I18nTranslationAttributes | null> {
       const uid = this.buildUid(branding, locale, namespace, key);
-      return await I18nTranslation.findOne({ uid });
+      const entry = await I18nTranslation.findOne({ uid });
+      if (entry && (entry as unknown as Record<string, unknown>).deletedAt) return null;
+      return entry;
     }
 
     public async setEntry(
@@ -230,7 +232,11 @@ export namespace Services {
       options?: { bundleId?: string; category?: string; contentFormat?: unknown; description?: string; noReload?: boolean }
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
-      const existing = await this.getEntry(branding, locale, namespace, key);
+      const uid = this.buildUid(branding, locale, namespace, key);
+      const existing = await I18nTranslation.findOne({ uid });
+      if (existing && (existing as unknown as Record<string, unknown>).deletedAt) {
+        return null;
+      }
       const updates: Partial<I18nTranslationAttributes> = {
         value,
         branding: brandingId,
@@ -278,20 +284,20 @@ export namespace Services {
     public async deleteEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<boolean> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = this.buildUid(branding, locale, namespace, key);
-      const deleted = await I18nTranslation.destroyOne({ uid });
+      const existing = await I18nTranslation.findOne({ uid });
+      if (!existing) return false;
+      await I18nTranslation.updateOne({ id: existing.id }).set({ deletedAt: new Date() });
       // Keep bundle in sync by removing the key path if it exists
-      if (deleted) {
-        try {
-          const bundle = await this.getBundle(branding, locale, namespace);
-          if (bundle?.data) {
-            this.removeNested(bundle.data, key);
-            await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
-          }
-        } catch (e) {
-          this.logger.warn('Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+      try {
+        const bundle = await this.getBundle(branding, locale, namespace);
+        if (bundle?.data) {
+          this.removeNested(bundle.data, key);
+          await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
         }
+      } catch (e) {
+        this.logger.warn('Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
-      return !!deleted;
+      return true;
     }
 
     public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<I18nTranslationAttributes[]> {
@@ -301,7 +307,8 @@ export namespace Services {
         // Mongo-specific regex for prefix match
         where.key = { startsWith: keyPrefix };
       }
-      return await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
+      const entries = await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
+      return entries.filter(e => !(e as unknown as Record<string, unknown>).deletedAt);
     }
 
     public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {

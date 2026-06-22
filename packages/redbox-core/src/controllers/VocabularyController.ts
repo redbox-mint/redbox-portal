@@ -112,8 +112,11 @@ export namespace Controllers {
         payload.name = name;
       }
 
-      if (typeof body.slug !== 'undefined') {
-        payload.slug = String(body.slug).trim();
+      const slug = String(body.slug ?? '').trim();
+      if (!slug) {
+        errors.push('Missing required slug');
+      } else {
+        payload.slug = slug;
       }
       if (typeof body.description !== 'undefined') {
         payload.description = String(body.description).trim();

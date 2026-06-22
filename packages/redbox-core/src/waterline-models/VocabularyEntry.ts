@@ -27,16 +27,17 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     record.labelLower = label.toLowerCase();
   }
 
-  // On create, the record.value must be persent and be a string, which can be a non-empty string.
-  // On update, the record.value may be persent and must be a string, which can be a non-empty string, if it is present.
+  // On create, the record.value must be present and be a non-empty string.
+  // On update, the record.value may be present and must be a non-empty string, if it is present.
   const value = String(record.value ?? '').trim();
   const hasValueProp = Object.hasOwn(record, 'value');
   const hasValueVal = record.value !== undefined && record.value !== null;
-  if (isCreate && !hasValueVal) {
+  const hasNonEmptyValue = hasValueVal && value !== '';
+  if (isCreate && !hasNonEmptyValue) {
     throw buildInvalidNewRecordError('VocabularyEntry.value is required');
-  } else if (!isCreate && hasValueProp && !hasValueVal) {
+  } else if (!isCreate && hasValueProp && !hasNonEmptyValue) {
     throw buildInvalidUpdateRecordError('VocabularyEntry.value is required');
-  } else if ((isCreate && hasValueVal) || (!isCreate && hasValueProp && hasValueVal)) {
+  } else if (hasNonEmptyValue) {
     record.value = value;
     record.valueLower = value.toLowerCase();
   }

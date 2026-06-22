@@ -79,6 +79,20 @@ describe('Webservice VocabularyController', () => {
     expect(sendResp.calledOnce).to.be.true;
   });
 
+  it('rejects vocabulary create without slug', async () => {
+    const req = makeReq({
+      body: { description: '', entries: [], name: '0', source: 'local', sourceId: '', type: 'flat' },
+    });
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.create(req, res);
+
+    expect(sendResp.calledOnce).to.be.true;
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect((global as any).sails.services.vocabularyservice.create.called).to.equal(false);
+  });
+
   it('returns display error detail when RVA import fails', async () => {
     const req = makeReq({
       body: { rvaId: '141' },

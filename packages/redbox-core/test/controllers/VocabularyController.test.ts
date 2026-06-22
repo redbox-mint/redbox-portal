@@ -53,7 +53,7 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('creates vocabulary', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = { body: { name: 'Test', slug: 'test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -62,8 +62,23 @@ describe('Ajax VocabularyController', () => {
     expect(sendResp.calledOnce).to.be.true;
   });
 
+  it('rejects create without slug', async () => {
+    const req = {
+      body: { description: '', entries: [], name: '0', source: 'local', sourceId: '', type: 'flat' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.create(req, res);
+
+    expect(sendResp.calledOnce).to.be.true;
+    expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+    expect((global as any).sails.services.vocabularyservice.create.called).to.equal(false);
+  });
+
   it('returns 500 with errors array when create throws unexpectedly', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = { body: { name: 'Test', slug: 'test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).sails.services.vocabularyservice.create.rejects(new Error('database unavailable'));

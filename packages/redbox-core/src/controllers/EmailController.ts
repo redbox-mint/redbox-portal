@@ -28,7 +28,7 @@ export namespace Controllers {
 
         private sendTemplateRenderError(req: Sails.Req, res: Sails.Res) {
             return this.sendResp(req, res, {
-                status: 400,
+                status: 500,
                 displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
                 headers: this.getNoCacheHeaders()
             });
@@ -111,7 +111,8 @@ export namespace Controllers {
                 return this.sendTemplateRenderError(req, res);
             }
 
-            return templateRendered.subscribe((buildResult: globalThis.Record<string, unknown>) => {
+            return templateRendered.subscribe({
+                next: (buildResult: globalThis.Record<string, unknown>) => {
                 if (buildResult['status'] != 200) {
                     return this.sendTemplateRenderError(req, res);
                 } else {
@@ -125,7 +126,8 @@ export namespace Controllers {
                         bccRendered,
                     );
 
-                    return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
+                    return sendResponse.subscribe({
+                        next: (sendResult: globalThis.Record<string, unknown>) => {
                         if (!sendResult['success']) {
                             return this.sendResp(req, res, {
                                 status: 500,
@@ -135,11 +137,22 @@ export namespace Controllers {
                         } else {
                             return this.apiRespond(req, res, new APIActionResponse(String(sendResult['msg'] ?? '')), 200);
                         }
+                    },
+                    error: (error: unknown) => {
+                        sails.log.error("Failed to send email notification", error);
+                        return this.sendResp(req, res, {
+                            status: 500,
+                            displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
+                            headers: this.getNoCacheHeaders()
+                        });
+                    },
                     });
                 }
-            }, (error: unknown) => {
+            },
+            error: (error: unknown) => {
                 sails.log.error("Failed to render email template", error);
                 return this.sendTemplateRenderError(req, res);
+            },
             });
 
         }

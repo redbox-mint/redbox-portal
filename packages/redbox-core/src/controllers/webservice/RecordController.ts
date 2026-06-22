@@ -144,7 +144,7 @@ export namespace Controllers {
       if (/not found|no such|cannot find existing record|deletedRecordMetadata/i.test(message)) {
         return 404;
       }
-      if (/invalid|malformed|not valid|unexpected/i.test(message)) {
+      if (/invalid|malformed|not valid|unexpected|missing validat|must not be empty/i.test(message)) {
         return 400;
       }
       return 500;
@@ -552,12 +552,19 @@ export namespace Controllers {
     }
 
     public async updateMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const shouldMerge = validated.query.merge === true;
       const shouldProcessDatastreams = validated.query.datastreams === true;
+
+      const brand = BrandingService.getBrand(req.session?.branding as string);
+      if (!brand) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid branding configuration.' }],
+        });
+      }
 
       let record;
       try {
@@ -571,7 +578,6 @@ export namespace Controllers {
           });
         }
         if (shouldMerge) {
-          // behavior modified from replacing arrays to appending to arrays:
           record['metadata'] = _.mergeWith(record.metadata, body, (objValue: unknown, srcValue: unknown) => {
             if (_.isArray(objValue)) {
               return (objValue as unknown[]).concat(srcValue as unknown[]);
@@ -590,17 +596,14 @@ export namespace Controllers {
       }
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        // check if we need to process data streams
         if (shouldProcessDatastreams) {
           sails.log.verbose(`Processing datastreams of: ${oid}`);
           for (const attField of record.metaMetadata.attachmentFields) {
-            // TODO: add support for removing datastreams
             const datastreams = _.get(record['metadata'], attField, []) as Datastream[];
             await this.DatastreamService.addDatastreams(oid, datastreams);
           }
           return this.sendResp(req, res, { data: result });
         } else {
-          // not processing datastreams...
           return this.sendResp(req, res, { data: result });
         }
       } catch (err) {
@@ -613,37 +616,61 @@ export namespace Controllers {
     }
 
     public async updateObjectMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const validated = getValidatedApiRequest(req);
-      const oid = validated.params.oid as string;
-      const body = validated.body as globalThis.Record<string, unknown>;
-
-      let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        const validated = getValidatedApiRequest(req);
+        const body = validated.body as globalThis.Record<string, unknown>;
+        if (_.isEmpty(body)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'No object metadata changes to apply (body was empty).' }],
+          });
+        }
+        const safeBody = Object.entries(body).reduce((acc, [k, v]) => {
+          if (v != null) acc[k] = v;
+          return acc;
+        }, {} as { [key: string]: unknown });
+        const oid = validated.params.oid as string;
+        const brand = BrandingService.getBrand(req.session?.branding as string);
+        if (!brand) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Invalid branding configuration.' }],
+          });
+        }
+        let record: RecordModel | null | undefined;
+        try {
+          record = await this.RecordsService.getMeta(oid);
+        } catch (getMetaErr) {
+          if (/not found|no such|missing|cannot find|not exist|refusing|deletedRecordMetadata|404|status code 4/i.test(this.asError(getMetaErr).message)) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: `Failed to update object meta, cannot find record with oid: ${oid}` }],
+            });
+          }
+          throw getMetaErr;
+        }
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ detail: `Failed to update object meta, cannot find record with oid: ${oid}` }],
           });
         }
-        record['metaMetadata'] = body as unknown as RecordModel['metaMetadata'];
-      } catch (err) {
-        const status = this.errorStatus(err);
-        return this.sendResp(req, res, {
-          status: status === 500 ? 400 : status,
-          errors: [this.asError(err)],
-          displayErrors: [{ detail: 'Update Object Metadata failed.' }],
-        });
-      }
-
-      try {
+        record['metaMetadata'] = { ...(record.metaMetadata ?? {}), ...safeBody } as RecordModel['metaMetadata'];
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         return this.sendResp(req, res, { data: result });
       } catch (err) {
-        const status = this.errorStatus(err);
+        const oid = String(req.params?.oid ?? '(unknown)');
+        sails.log.error(`updateObjectMeta failed for oid ${oid}`, err);
+        const errorStatus = this.errorStatus(err);
+        const errMsg = this.asError(err).message;
+        if (/missing validated api request/i.test(errMsg)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Bad request: missing or invalid request body.' }],
+          });
+        }
         return this.sendResp(req, res, {
-          status: status === 500 ? 400 : status,
+          status: errorStatus,
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Update Object Metadata failed.' }],
         });
@@ -682,7 +709,8 @@ export namespace Controllers {
 
         const recordTypeObservable = RecordTypesService.get(brand, recordType);
 
-        recordTypeObservable.subscribe((recordTypeModel: unknown) => {
+        recordTypeObservable.subscribe({
+          next: (recordTypeModel: unknown) => {
           if (recordTypeModel) {
             const metadata = body['metadata'];
             const workflowStage = body['workflowStage'] as string | undefined;
@@ -743,7 +771,15 @@ export namespace Controllers {
               displayErrors: [{ detail: 'Record Type provided is not valid' }],
             });
           }
-        });
+        },
+        error: (error: unknown) => {
+          sails.log.error('RecordController.create - record type lookup failed', error);
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'Record Type provided is not valid' }],
+          });
+        },
+      });
       }
     }
 
@@ -1120,6 +1156,11 @@ export namespace Controllers {
         // filterFields holds the field NAMES (from query.filterFields); query.filter holds the
         // values. Splitting filterString here crashed when filter was omitted.
         filterFields = (filterFieldString as string).split(',');
+        const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+        filterFields = filterFields.filter(f => !dangerousKeys.includes(f));
+        if (_.isEmpty(filterFields)) {
+          filterString = undefined;
+        }
       } else {
         filterString = undefined;
       }
@@ -1525,7 +1566,17 @@ export namespace Controllers {
       const updateMode = _.isEmpty(validated.query.updateMode)
         ? 'override'
         : (validated.query.updateMode as string);
-      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      let recordTypeModel: RecordTypeModel;
+
+      try {
+        recordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      } catch (error) {
+        sails.log.error(`Failed to look up record type "${recordType}" for harvest`, error);
+        return this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ detail: 'Record Type provided is not valid' }],
+        });
+      }
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, {
@@ -1573,7 +1624,17 @@ export namespace Controllers {
 
       const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
-      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      let recordTypeModel: RecordTypeModel;
+
+      try {
+        recordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
+      } catch (error) {
+        sails.log.error(`Failed to look up record type "${recordType}" for legacyHarvest`, error);
+        return this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ detail: 'Record Type provided is not valid' }],
+        });
+      }
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, {
@@ -1790,6 +1851,11 @@ export namespace Controllers {
         // filterFields holds the field NAMES (from query.filterFields); query.filter holds the
         // values. Splitting filterString here crashed when filter was omitted.
         filterFields = (filterFieldString as string).split(',');
+        const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+        filterFields = filterFields.filter(f => !dangerousKeys.includes(f));
+        if (_.isEmpty(filterFields)) {
+          filterString = undefined;
+        }
       } else {
         filterString = undefined;
       }

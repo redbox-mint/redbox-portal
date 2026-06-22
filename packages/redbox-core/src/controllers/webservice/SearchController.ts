@@ -66,8 +66,15 @@ export namespace Controllers {
       if (/not found|no such/i.test(message)) {
         return 404;
       }
-      if (/invalid|malformed|not valid/i.test(message)) {
+      if (/invalid|malformed|not valid|conflict/i.test(message)) {
         return 400;
+      }
+      const errObj = error as { statusCode?: number; status?: number };
+      if (typeof errObj?.statusCode === 'number' && errObj.statusCode >= 400 && errObj.statusCode < 600) {
+        return errObj.statusCode;
+      }
+      if (typeof errObj?.status === 'number' && errObj.status >= 400 && errObj.status < 600) {
+        return errObj.status;
       }
       return 500;
     }
@@ -209,6 +216,7 @@ export namespace Controllers {
         );
         this.apiRespond(req, res, searchRes);
       } catch (error: unknown) {
+        sails.log.error(`SearchController.search error: ${this.asError(error).message}`, error);
         this.sendResp(req, res, {
           status: this.errorStatus(error),
           errors: [this.asError(error)],

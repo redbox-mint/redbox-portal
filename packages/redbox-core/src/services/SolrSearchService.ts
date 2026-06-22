@@ -224,14 +224,20 @@ export namespace Services {
 
     private async getSchema(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
-      const core: SolrCore = solrConfig.cores[coreId];
+      const core: SolrCore | undefined = Object.hasOwn(solrConfig.cores, coreId) ? solrConfig.cores[coreId] : undefined;
+      if (!core) {
+        throw new Error(`Search core not found: ${coreId}`);
+      }
       const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
       return await axios.get(schemaUrl).then((response: { data: unknown }) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
-      const core: SolrCore = solrConfig.cores[coreId];
+      const core: SolrCore | undefined = Object.hasOwn(solrConfig.cores, coreId) ? solrConfig.cores[coreId] : undefined;
+      if (!core) {
+        throw new Error(`Search core not found: ${coreId}`);
+      }
       const coreName: string = core.options.core;
       let solrUp = false;
       let tryCtr = 0;
@@ -304,7 +310,7 @@ export namespace Services {
 
     public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
-      const core: SolrCore = solrConfig.cores[coreId];
+      const core: SolrCore | undefined = Object.hasOwn(solrConfig.cores, coreId) ? solrConfig.cores[coreId] : undefined;
       if (!core) {
         throw new Error(`Search core not found: ${coreId}`);
       }
@@ -318,15 +324,16 @@ export namespace Services {
     public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
       const username = user.username;
       const solrConfig: SolrConfig = sails.config.solr;
-      const core: SolrCore = solrConfig.cores[coreId];
+      const core: SolrCore | undefined = Object.hasOwn(solrConfig.cores, coreId) ? solrConfig.cores[coreId] : undefined;
       if (!core) {
         throw new Error(`Search core not found: ${coreId}`);
       }
       const coreName = core.options.core;
-      let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
+      const safeWorkflowState = workflowState && /^[A-Za-z0-9_.-]+$/.test(workflowState) ? workflowState : '';
+      let searchParam = safeWorkflowState ? ` AND workflow_stage:${safeWorkflowState} ` : '';
       // Fall back to a match-all term when no search string is supplied so an empty query
       // produces valid Solr syntax (e.g. `full_text:*`) instead of a malformed `full_text:`.
-      searchParam = `${searchParam} AND full_text:${_.isEmpty(searchQuery) ? '*' : searchQuery}`;
+      searchParam = `${searchParam} AND full_text:${_.isEmpty(searchQuery) ? '*' : this.luceneEscape(searchQuery)}`;
       _.forEach(exactSearches, (exactSearch: SearchField) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });

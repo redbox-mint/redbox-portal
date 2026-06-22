@@ -655,22 +655,7 @@ export namespace Services {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
+      options['sort'] = this.parseSortParam(sort, 'lastSaveDate');
 
       if (!_.isEmpty(secondarySort)) {
         options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
@@ -707,6 +692,8 @@ export namespace Services {
         query['deletedRecordMetadata.workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
+        const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+        filterFields = filterFields.filter(f => !dangerousKeys.includes(f));
         const escapedFilterString = this.escapeRegExp(filterString);
         sails.log.verbose('escapedFilterString ' + escapedFilterString);
         for (const filterField of filterFields) {
@@ -759,22 +746,7 @@ export namespace Services {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
+      options['sort'] = this.parseSortParam(sort, 'lastSaveDate');
 
       if (!_.isEmpty(secondarySort)) {
         options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
@@ -799,7 +771,7 @@ export namespace Services {
           _.each(recordType, rType => {
             typeArray.push({ 'metaMetadata.type': rType });
           });
-          query['$or'] = typeArray;
+          andArray.push({ $or: typeArray });
         } else {
           const recType = recordType[0];
           if (!_.isUndefined(recType) && !_.isEmpty(recType)) {
@@ -815,7 +787,7 @@ export namespace Services {
           _.each(packageType, rType => {
             typeArray.push({ 'metaMetadata.packageType': rType });
           });
-          query['metaMetadata.packageType'] = { $or: typeArray };
+          andArray.push({ $or: typeArray });
         } else {
           const packType = packageType[0];
           if (!_.isUndefined(packType) && !_.isEmpty(packType)) {
@@ -829,6 +801,8 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
+        const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+        filterFields = filterFields.filter(f => !dangerousKeys.includes(f));
         const escapedFilterString = this.escapeRegExp(filterString);
         sails.log.verbose('escapedFilterString ' + escapedFilterString);
         for (const filterField of filterFields) {
@@ -1420,6 +1394,47 @@ export namespace Services {
 
     public async exists(oid: string): Promise<boolean> {
       return (await Record.count({ redboxOid: oid })) > 0;
+    }
+
+    private parseSortParam(sort: unknown, defaultField = 'lastSaveDate'): Record<string, number> {
+      if (_.isEmpty(sort)) {
+        return { [defaultField]: -1 };
+      }
+      const sortStr = `${sort}`;
+      const trimmed = sortStr.trim();
+
+      const directionMatch = trimmed.match(/^(.+?)\s+(asc|desc|ASC|DESC)$/);
+      if (directionMatch) {
+        const field = directionMatch[1].trim();
+        const dir = directionMatch[2].toLowerCase() === 'asc' ? 1 : -1;
+        return { [field]: dir };
+      }
+
+      if (trimmed.includes(':')) {
+        const sepIndex = trimmed.indexOf(':');
+        const field = trimmed.substring(0, sepIndex);
+        const dir = _.toNumber(trimmed.substring(sepIndex + 1));
+        return { [field]: Number.isFinite(dir) ? dir : -1 };
+      }
+
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed;
+        }
+      } catch {
+        // not JSON, fall through
+      }
+
+      if (/^\d/.test(trimmed)) {
+        try {
+          return JSON.parse(trimmed);
+        } catch {
+          return { [defaultField]: -1 };
+        }
+      }
+
+      return { [trimmed]: -1 };
     }
   }
 }
