@@ -34,7 +34,7 @@ import {
 } from '../schemas/common';
 
 const bodyFallback = ['body'] as const;
-const objectMetadataUpdateBody = z.record(z.string().min(1), z.unknown())
+const objectMetadataUpdateBody = z.record(z.string().min(1), z.unknown().refine(v => v != null, { message: 'Property values must not be null' }))
   .refine(
     value => value != null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0,
     { message: 'Object metadata payload must not be empty' }

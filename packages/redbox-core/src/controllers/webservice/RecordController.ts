@@ -739,7 +739,7 @@ export namespace Controllers {
             return;
           } else {
             return this.sendResp(req, res, {
-              status: 400,
+              status: 404,
               displayErrors: [{ detail: 'Record Type provided is not valid' }],
             });
           }
@@ -1529,7 +1529,7 @@ export namespace Controllers {
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, {
-          status: 400,
+          status: 404,
           displayErrors: [{ detail: 'Record Type provided is not valid' }],
         });
       }
@@ -1577,7 +1577,7 @@ export namespace Controllers {
 
       if (recordTypeModel == null) {
         return this.sendResp(req, res, {
-          status: 400,
+          status: 404,
           displayErrors: [{ detail: 'Record Type provided is not valid' }],
         });
       }

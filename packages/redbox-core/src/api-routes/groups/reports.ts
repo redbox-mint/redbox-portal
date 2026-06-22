@@ -11,10 +11,13 @@ const reportConfigBody = objectField(
     title: nonEmptyStringField(),
     reportSource: nonEmptyStringField(),
     databaseQuery: objectField({ queryName: nonEmptyStringField() }),
-    solrQuery: z.union([
-      objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }),
-      z.null(),
-    ]),
+    solrQuery: z.preprocess(
+      (val) => (Array.isArray(val) ? null : val),
+      z.union([
+        objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }),
+        z.null(),
+      ]),
+    ),
     filter: arrayField(objectField({}, [], 'Filter object', true)),
     columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)),
   },

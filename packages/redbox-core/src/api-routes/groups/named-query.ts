@@ -25,7 +25,6 @@ const createNamedQueryBody = objectField(
 
 const updateNamedQueryBody = objectField(
   {
-    name: patternStringField('^[A-Za-z0-9_-]+$', 'Named query name'),
     ...namedQueryDefinitionBody,
   },
   ['collectionName', 'resultObjectMapping', 'mongoQuery', 'queryParams'],

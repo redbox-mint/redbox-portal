@@ -66,8 +66,8 @@ export namespace Controllers {
       if (/not found|no such/i.test(message)) {
         return 404;
       }
-      if (/invalid|malformed|not valid|failed/i.test(message)) {
-        return 409;
+      if (/invalid|malformed|not valid/i.test(message)) {
+        return 400;
       }
       return 500;
     }

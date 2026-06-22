@@ -353,7 +353,7 @@ export namespace Services {
         title: config.title ?? '',
         reportSource: source as 'database' | 'solr',
         databaseQuery: config.databaseQuery ?? null,
-        solrQuery: config.solrQuery ?? null,
+        solrQuery: config.solrQuery != null && typeof config.solrQuery === 'object' && !Array.isArray(config.solrQuery) ? config.solrQuery : null,
         filter,
         columns,
         readOnly: source !== ReportSource.database,

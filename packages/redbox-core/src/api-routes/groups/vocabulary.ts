@@ -108,25 +108,35 @@ export const createVocabularyRoute = apiRoute(
   'webservice/VocabularyController',
   'create',
   {
-    body: {
-      required: true,
-      content: {
-        'application/json': {
-          schema: objectField(
-            {
-              name: patternStringField('^[A-Za-z0-9_ -]+$'),
-              slug: patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$'),
-              type: vocabularyTypeField('Vocabulary type'),
-              source: patternStringField('^(local|rva)$', 'Vocabulary source'),
-              description: stringField('Vocabulary description'),
-              entries: arrayField(vocabularyEntryInputSchema, 'Vocabulary entries'),
-            },
-            ['name'],
-            'Vocabulary payload'
-          ),
+      body: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: objectField(
+              {
+                name: patternStringField('^[A-Za-z0-9_ -]+$'),
+                slug: patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$'),
+                type: vocabularyTypeField('Vocabulary type'),
+                source: patternStringField('^(local|rva)$', 'Vocabulary source'),
+                sourceId: stringField('Vocabulary source ID'),
+                description: stringField('Vocabulary description'),
+                entries: arrayField(vocabularyEntryInputSchema, 'Vocabulary entries'),
+              },
+              ['name'],
+              'Vocabulary payload'
+            ).refine(
+              (data) => {
+                const d = data as Record<string, unknown>;
+                if (d.source === 'rva' && !d.sourceId) {
+                  return false;
+                }
+                return true;
+              },
+              { message: 'sourceId is required when source = rva' }
+            ),
+          },
         },
       },
-    },
   },
   {
     tags: ['Vocabulary'],

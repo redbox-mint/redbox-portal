@@ -148,7 +148,7 @@ export namespace Controllers {
       const searchQuery = query.query as string | undefined;
       const queryObject: Record<string, unknown> = {};
 
-      if ((searchField && !searchQuery) || (!searchField && searchQuery)) {
+      if (searchField && !searchQuery) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Both searchBy and query parameters are required' }],
@@ -370,6 +370,18 @@ export namespace Controllers {
               .filter((roleName: unknown) => !_.isEmpty(roleName));
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
+            if (_.isEmpty(roleIds)) {
+              sails.log.warn('UserManagementController.updateUser - No role ids resolved, skipping role assignment.');
+              const u = user as globalThis.Record<string, unknown>;
+              const userResponse = new CreateUserAPIResponse();
+              userResponse.id = u.id as string;
+              userResponse.username = u.username as string;
+              userResponse.name = u.name as string;
+              userResponse.email = u.email as string;
+              userResponse.type = u.type as string;
+              userResponse.lastLogin = u.lastLogin as Date | null;
+              return this.apiRespond(req, res, userResponse, 201);
+            }
             const resolvedUser = user as globalThis.Record<string, unknown>;
             UsersService.updateUserRoles(resolvedUser.id as string, roleIds).subscribe(
               () => {

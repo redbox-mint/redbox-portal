@@ -53,7 +53,7 @@ export namespace Controllers {
       if (/duplicate|already exists|not an rva|not .*imported|conflict/i.test(message)) {
         return 409;
       }
-      if (/invalid|required|must|belongs to|cannot|not supported|unsupported|not allowed|no current concept tree/i.test(message)) {
+      if (/invalid|required|must|belongs to|cannot|not supported|unsupported|does not support|not allowed|no current concept tree/i.test(message)) {
         return 400;
       }
       return 500;

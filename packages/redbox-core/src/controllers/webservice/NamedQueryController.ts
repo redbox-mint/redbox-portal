@@ -108,9 +108,7 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required', status: '400' }], headers: this.getNoCacheHeaders() });
         }
         const body = (req.body as Record<string, unknown>) || {};
-        if (body['name'] && body['name'] !== name) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Named query name cannot be changed', status: '400' }], headers: this.getNoCacheHeaders() });
-        }
+        delete body['name'];
         await NamedQueryService.update(brand, name, body as unknown as NamedQueryDefinition);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
