@@ -2,6 +2,25 @@ base-url = "${REDBOX_BASE_URL}"
 hooks = "hooks.redbox_hooks"
 suppress-health-check = ["too_slow", "data_too_large"]
 
+# Displayed warnings. "missing_auth" is intentionally omitted (suppressed).
+#
+# Every contract API operation declares `security: [{ bearerAuth: [] }]`, so the
+# coverage phase always generates auth-boundary probes (missing / empty / malformed
+# Authorization header). For operations with few or no other parameters (most GETs,
+# e.g. /admin/config, /forms, /roles, /records/list) those probes make up >=90% of
+# the generated cases, which trips Schemathesis' MISSING_AUTH heuristic
+# (AUTH_ERRORS_THRESHOLD = 0.9). The portal correctly returns 401 for those probes
+# and 200 for authenticated requests (verified directly), so the warning is a false
+# positive driven by our own security-boundary testing rather than broken auth.
+# All other warning categories remain enabled.
+warnings = [
+    "missing_test_data",
+    "validation_mismatch",
+    "missing_deserializer",
+    "unused_openapi_auth",
+    "method_not_allowed",
+]
+
 [generation]
 max-examples = 100
 

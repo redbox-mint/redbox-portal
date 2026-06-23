@@ -322,7 +322,15 @@ fi
 ST_ARGS+=(--max-examples="$REDBOX_FUZZ_MAX_EXAMPLES")
 ST_ARGS+=(--phases="examples,coverage,fuzzing,stateful")
 ST_ARGS+=(--checks="all")
-ST_ARGS+=(--exclude-path-regex=".*\\{key\\}\\.\\{keyExt\\}.*")
+# Excluded paths (combined into a single regex; --exclude-path-regex is not repeatable):
+#   1. {key}.{keyExt} translation asset routes (handled elsewhere).
+#   2. GET /records/datastreams/{oid}/{datastreamId} (getDataStream): seeded harvest
+#      records have no datastreams to download, so every positive case returns 404 and
+#      trips Schemathesis' MISSING_TEST_DATA warning. Seeding one would need a working
+#      multipart upload plus per-run datastreamId capture; the not-found path is low
+#      value and the upload counterpart (uploadRecordDatastreams) is already excluded.
+#      Excluded by path because the spec assigns this route no operationId.
+ST_ARGS+=(--exclude-path-regex=".*(\\{key\\}\\.\\{keyExt\\}|/datastreams/\\{oid\\}/\\{datastreamId\\}).*")
 # Exclude selected built-in checks; our hooks register Redbox wrappers that
 # preserve those checks while filtering known harness false positives.
 if [ -n "$REDBOX_FUZZ_EXCLUDE_CHECKS" ]; then

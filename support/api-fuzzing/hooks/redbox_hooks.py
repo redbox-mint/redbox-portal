@@ -241,10 +241,20 @@ def _path_param_examples(case):
         return {"oid": _seed_value("records.json", "fuzz-rdmp-001")}
 
     dynamic_examples = {
+        # NOTE: the bare "/api/records/permissions/" entry also matches the
+        # edit/editRole/view/viewRole sub-paths (they all take only {oid}), so it
+        # doubles as the example source for those. Keep it after the sub-path
+        # entries for readability; all inject the same seeded record OID.
         "/api/records/permissions/edit/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/records/permissions/editRole/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/records/permissions/view/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/records/permissions/viewRole/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
+        # Bare GET /api/records/permissions/{oid} requires the real storage OID
+        # (the redboxOid 404s); without this entry positive cases hit random OIDs
+        # and Schemathesis reports MISSING_TEST_DATA.
+        "/api/records/permissions/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
+        # GET /api/records/audit/{oid} likewise needs a real record OID.
+        "/api/records/audit/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/records/datastreams/": {"oid": _seed_value("records.json", "fuzz-rdmp-001"), "datastreamId": "metadata.json"},
         "/api/deletedrecords/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/harvest-runs/": {"id": _seed_value("harvest-runs.json", "fuzz-harvest-run")},
