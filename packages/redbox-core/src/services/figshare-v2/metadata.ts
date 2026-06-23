@@ -15,6 +15,8 @@ import {
 import { evaluateBinding } from './bindings';
 
 const figshareLicenseCache = new Map<string, FigshareLicense[]>();
+const relatedMaterialTitleKeys = ['related_title', 'title', 'name'];
+const relatedMaterialIdentifierKeys = ['related_doi', 'doi', 'related_url', 'url', 'identifier'];
 
 function validationError(message: string): RBValidationError {
   return new RBValidationError({
@@ -120,6 +122,61 @@ function normalizeCategorySourceCode(value: unknown): string {
   }
   const lastSlashIndex = rawValue.lastIndexOf('/');
   return lastSlashIndex === -1 ? rawValue : rawValue.slice(lastSlashIndex + 1);
+}
+
+function toRelatedMaterialItems(value: unknown): unknown[] {
+  if (value == null || value === '') {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+function isRelatedMaterialObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeRelatedMaterialValue(value: unknown): string {
+  if (value == null || Array.isArray(value)) {
+    return '';
+  }
+  return String(value).trim();
+}
+
+function extractRelatedMaterialValue(value: unknown, candidateKeys: string[]): string {
+  if (isRelatedMaterialObject(value)) {
+    for (const key of candidateKeys) {
+      const candidate = normalizeRelatedMaterialValue(_.get(value, key));
+      if (candidate !== '') {
+        return candidate;
+      }
+    }
+    return '';
+  }
+  return normalizeRelatedMaterialValue(value);
+}
+
+function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): NonNullable<FigshareArticlePayload['related_materials']> {
+  const titleItems = toRelatedMaterialItems(titleValue);
+  const identifierItems = toRelatedMaterialItems(identifierValue);
+  const itemCount = Math.max(titleItems.length, identifierItems.length);
+  const relatedMaterials: NonNullable<FigshareArticlePayload['related_materials']> = [];
+
+  for (let index = 0; index < itemCount; index += 1) {
+    const titleSource = titleItems[index];
+    const identifierSource = identifierItems[index];
+    const title = extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
+      || extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys);
+    const identifier = isRelatedMaterialObject(titleSource)
+      ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys)
+        || extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
+      : extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
+        || extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys);
+    if (title !== '' && identifier !== '') {
+      relatedMaterials.push({ title, identifier });
+    }
+  }
+
+  return relatedMaterials;
 }
 
 async function resolveLicense(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel): Promise<unknown> {
@@ -234,13 +291,12 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   }
 
   if (config.metadata.relatedResource) {
-    const relatedTitle = String(await evaluateBinding(config.metadata.relatedResource.title, recordData) ?? '').trim();
-    const relatedIdentifier = String(await evaluateBinding(config.metadata.relatedResource.doi, recordData) ?? '').trim();
-    if (relatedTitle !== '' && relatedIdentifier !== '') {
-      payload.related_materials = [{
-        title: relatedTitle,
-        identifier: relatedIdentifier
-      }];
+    const relatedMaterials = buildRelatedMaterials(
+      await evaluateBinding(config.metadata.relatedResource.title, recordData),
+      await evaluateBinding(config.metadata.relatedResource.doi, recordData)
+    );
+    if (relatedMaterials.length > 0) {
+      payload.related_materials = relatedMaterials;
     }
   }
 
