@@ -1548,6 +1548,12 @@ export namespace Controllers {
     public getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
+      if (!/^[A-Za-z0-9_.-]+$/.test(oid)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid record ID format.' }],
+        });
+      }
       from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe({
         next: (attachments: unknown[]) => {
           return this.sendResp(req, res, { data: attachments });
@@ -1567,6 +1573,12 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
+      if (!/^[A-Za-z0-9_.-]+$/.test(oid) || !/^[A-Za-z0-9_.-]+$/.test(datastreamId)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid record or datastream identifier format.' }],
+        });
+      }
       const currentRec = await firstValueFrom(this.getRecord(oid));
 
       const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec as AnyRecord));

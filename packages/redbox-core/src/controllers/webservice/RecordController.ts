@@ -787,6 +787,12 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const datastreamId = validated.params.datastreamId as string;
+      if (!/^[A-Za-z0-9_.-]+$/.test(oid) || !/^[A-Za-z0-9_.-]+$/.test(datastreamId)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid record or datastream identifier format.' }],
+        });
+      }
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
       try {
         let found: globalThis.Record<string, unknown> | null = null;
@@ -853,6 +859,12 @@ export namespace Controllers {
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      if (!/^[A-Za-z0-9_.-]+$/.test(oid)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid record identifier format.' }],
+        });
+      }
       const self = this;
       const attachmentsDir =
         sails.config.record.attachments.file?.directory ?? sails.config.record.attachments.stageDir;
@@ -1356,6 +1368,16 @@ export namespace Controllers {
           status: 400,
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
+      }
+      if (!/^[A-Za-z0-9_.-]+$/.test(oid)) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid record ID format.' }],
+        });
+      }
+      const record = await this.findRecordOr404(req, res, oid, `No record found for oid: ${oid}`);
+      if (record == null) {
+        return;
       }
       try {
         const attachments = await this.RecordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined });

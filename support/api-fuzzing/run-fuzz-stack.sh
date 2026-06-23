@@ -44,7 +44,7 @@ REDBOX_FUZZ_AUTH_MODE="${REDBOX_FUZZ_AUTH_MODE:-bearer}"
 # synthesise real uploaded files), and RVA imports depend on an upstream service that
 # is not reliable enough for deterministic fuzzing. Set to an empty string to include
 # them.
-REDBOX_FUZZ_EXCLUDE_OPERATIONS="${REDBOX_FUZZ_EXCLUDE_OPERATIONS:-uploadBrandingLogo,uploadRecordDatastreams,importVocabulary}"
+REDBOX_FUZZ_EXCLUDE_OPERATIONS="${REDBOX_FUZZ_EXCLUDE_OPERATIONS:-uploadBrandingLogo,uploadRecordDatastreams,importVocabulary,syncVocabulary}"
 
 # -- Help --
 usage() {
@@ -88,12 +88,19 @@ echo "=========================================="
 echo ""
 
 # -- Step 1: Clean previous fuzz stack --
-echo "[1/7] Cleaning previous fuzz stack..."
+echo "[1/8] Cleaning previous fuzz stack..."
 docker compose -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" down -v --remove-orphans 2>/dev/null || true
 rm -rf "$TMP_DIR"
 
-# -- Step 2: Generate OpenAPI spec --
-echo "[2/7] Generating OpenAPI spec..."
+# -- Step 2: Compile backend package artifacts used by the mounted portal --
+echo "[2/8] Compiling redbox-core..."
+npm run compile:core 2>&1 || {
+    echo "ERROR: redbox-core compilation failed."
+    exit 1
+}
+
+# -- Step 3: Generate OpenAPI spec --
+echo "[3/8] Generating OpenAPI spec..."
 mkdir -p "$OPENAPI_DIR"
 npm run doc:api -- --branding=default --portal=rdmp --out-dir="$OPENAPI_DIR" 2>&1 || {
     echo "ERROR: OpenAPI generation failed."
@@ -102,8 +109,8 @@ npm run doc:api -- --branding=default --portal=rdmp --out-dir="$OPENAPI_DIR" 2>&
 }
 echo "  OpenAPI spec: $OPENAPI_DIR/openapi.json"
 
-# -- Step 3: Create runtime directories and seed files --
-echo "[3/7] Creating runtime directories..."
+# -- Step 4: Create runtime directories and seed files --
+echo "[4/8] Creating runtime directories..."
 mkdir -p "$REPORT_DIR" "$SEED_DIR" "$ATTACHMENTS_DIR" "$EMAIL_DIR"
 
 echo '[]' > "$SEED_DIR/records.json"
@@ -115,8 +122,8 @@ echo '[]' > "$SEED_DIR/harvest-runs.json"
 # Copy schemathesis.toml into the tmp dir so it's available to the container
 cp "$SCRIPT_DIR/schemathesis.toml" "$TMP_DIR/schemathesis.toml"
 
-# -- Step 4: Build fuzz image and launch ephemeral stack --
-echo "[4/7] Building fuzz image and launching ephemeral stack..."
+# -- Step 5: Build fuzz image and launch ephemeral stack --
+echo "[5/8] Building fuzz image and launching ephemeral stack..."
 echo "  Building schemathesis-fuzz image (pinned 4.21.0)..."
 docker compose -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" build schemathesis-fuzz
 echo "  Launching stack services..."
@@ -140,8 +147,8 @@ if [ "$portal_healthy" = false ]; then
     exit 1
 fi
 
-# -- Step 5: Extract seed data --
-echo "[5/7] Extracting seed data from API..."
+# -- Step 6: Extract seed data --
+echo "[6/8] Extracting seed data from API..."
 API_BASE="http://localhost:1500/default/rdmp/api"
 
 echo "  Creating tracked harvest run fixture..."
@@ -207,6 +214,19 @@ print(json.dumps(slugs))
 echo "$VOCAB_SLUGS" > "$SEED_DIR/vocabularies.json"
 echo "$(echo "$VOCAB_SLUGS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
 
+# Users - extract actual database IDs
+echo -n "  Users: "
+USERS_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/users" 2>/dev/null || echo '{}')
+USER_IDS=$(echo "$USERS_RESP" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+items = data.get('records', []) if isinstance(data, dict) else []
+ids = [u.get('id','') for u in items if u.get('id')]
+print(json.dumps(ids))
+" 2>/dev/null || echo '[]')
+echo "$USER_IDS" > "$SEED_DIR/users.json"
+echo "$(echo "$USER_IDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+
 echo "  Seed files written to: $SEED_DIR"
 
 # Fall back to static seeds if API extraction returned nothing
@@ -215,6 +235,12 @@ for sf in records.json vocabularies.json named-queries.json users.json harvest-r
         cp "$SCRIPT_DIR/seeds/$sf" "$SEED_DIR/$sf" 2>/dev/null || true
     fi
 done
+
+# Create a secondary fuzz test user for link operations
+curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
+    -H "Content-Type: application/json" \
+    -X PUT "$API_BASE/users" \
+    --data '{"username":"fuzz-user-001","name":"Fuzz Test User","email":"fuzz@test.local","password":"FuzzP@ss123!","roles":["guest"]}' >/dev/null 2>&1 || true
 
 # Build seeds.dict from final seed files for Schemathesis dictionary injection
 echo "  Generating seeds.dict for parameter generation..."
@@ -274,8 +300,8 @@ for key in sorted(bindings):
     fi
 } >> "$TMP_DIR/schemathesis.toml"
 
-# -- Step 6: Run Schemathesis --
-echo "[6/7] Running Schemathesis ($PROFILE profile)..."
+# -- Step 7: Run Schemathesis --
+echo "[7/8] Running Schemathesis ($PROFILE profile)..."
 echo "  Seed: ${REDBOX_FUZZ_SEED:-<random>}"
 echo ""
 
@@ -297,13 +323,12 @@ ST_ARGS+=(--max-examples="$REDBOX_FUZZ_MAX_EXAMPLES")
 ST_ARGS+=(--phases="examples,coverage,fuzzing,stateful")
 ST_ARGS+=(--checks="all")
 ST_ARGS+=(--exclude-path-regex=".*\\{key\\}\\.\\{keyExt\\}.*")
-# Exclude built-in status_code_conformance; our hooks register a
-# redbox_status_code_conformance check that wraps it with false-positive
-# filtering for endpoint patterns that use coercion or permissive schemas.
+# Exclude selected built-in checks; our hooks register Redbox wrappers that
+# preserve those checks while filtering known harness false positives.
 if [ -n "$REDBOX_FUZZ_EXCLUDE_CHECKS" ]; then
-    ST_ARGS+=(--exclude-checks="status_code_conformance,ensure_resource_availability,${REDBOX_FUZZ_EXCLUDE_CHECKS}")
+    ST_ARGS+=(--exclude-checks="status_code_conformance,negative_data_rejection,ensure_resource_availability,${REDBOX_FUZZ_EXCLUDE_CHECKS}")
 else
-    ST_ARGS+=(--exclude-checks="status_code_conformance,ensure_resource_availability")
+    ST_ARGS+=(--exclude-checks="status_code_conformance,negative_data_rejection,ensure_resource_availability")
 fi
 ST_ARGS+=(--report=junit)
 ST_ARGS+=(--report-dir=/opt/api-fuzzing/reports)
@@ -418,7 +443,7 @@ if [ "$HARNESS_FAILURE" = "true" ]; then
     echo ""
 fi
 
-# -- Step 7: Report and teardown --
+# -- Step 8: Report and teardown --
 echo ""
 echo "=========================================="
 echo " Fuzzing Complete"
@@ -437,7 +462,7 @@ if [ "$REDBOX_FUZZ_KEEP_STACK" = "true" ]; then
     echo "  Teardown: docker compose -p $COMPOSE_PROJECT -f $COMPOSE_FILE down -v --remove-orphans"
 else
     echo ""
-    echo "[7/7] Tearing down ephemeral stack..."
+    echo "[8/8] Tearing down ephemeral stack..."
     docker compose -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" down -v --remove-orphans
     echo "  Stack destroyed."
 fi

@@ -19,7 +19,7 @@ function withDescription<T extends ZodType>(schema: T, description?: string): T 
 
 export const stringField = (description?: string): ApiSchemaField => withDescription(z.string(), description);
 export const nonEmptyStringField = (description?: string): ApiSchemaField =>
-  withOpenApi(z.string().trim().min(1), description ? { description, pattern: '\\S' } : { pattern: '\\S' });
+  withOpenApi(z.string().trim().min(1), description ? { description, pattern: '.*\\S.*' } : { pattern: '.*\\S.*' });
 export const numberField = (description?: string): ApiSchemaField => withDescription(z.number(), description);
 // zod's `.int()` only accepts JS safe integers at runtime; publish the matching bounds so the
 // OpenAPI contract advertises a `maximum`/`minimum` and clients (and fuzzers) don't generate

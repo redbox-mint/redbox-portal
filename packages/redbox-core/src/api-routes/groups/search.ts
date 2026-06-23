@@ -3,6 +3,7 @@ import {
   apiErrorResponseSchema,
   apiObjectActionResponseSchema,
   nonEmptyStringField,
+  patternStringField,
   searchResultsSchema,
   objectField,
   recordSearchQuery,
@@ -40,7 +41,7 @@ export const indexRecordRoute = apiRoute(
   '/:branding/:portal/api/search/index',
   'webservice/SearchController',
   'index',
-  { query: objectField({ oid: nonEmptyStringField() }, ['oid']) },
+  { query: objectField({ oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID') }, ['oid']) },
   {
     tags: ['Search'],
     summary: 'Queue record indexing',

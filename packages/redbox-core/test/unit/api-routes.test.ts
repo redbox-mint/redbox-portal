@@ -60,7 +60,14 @@ import {
 } from '../../src/api-routes/groups/admin';
 import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-routes/groups/appconfig';
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
-import { createRecordRoute, harvestRoute, listRecordsRoute, updateMetaRoute, updateObjectMetaRoute } from '../../src/api-routes/groups/records';
+import {
+  createRecordRoute,
+  harvestRoute,
+  listDatastreamsRoute,
+  listRecordsRoute,
+  updateMetaRoute,
+  updateObjectMetaRoute,
+} from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
 
@@ -1125,6 +1132,34 @@ describe('API routes contract layer', async () => {
     const result = validateApiRequest(request, updateObjectMetaRoute.request);
 
     expect(result.valid).to.equal(true);
+  });
+
+  it('should reject invalid datastream list OID path params', function () {
+    const invalidRequest = {
+      params: { branding: 'default', portal: 'rdmp', oid: 'invalid oid' },
+      query: {},
+      headers: {},
+      body: {},
+    } as unknown as Sails.Req;
+
+    const invalidResult = validateApiRouteRequest(invalidRequest, listDatastreamsRoute);
+
+    expect(invalidResult.valid).to.equal(false);
+    if (invalidResult.valid) {
+      throw new Error('Expected datastream list validation to reject invalid OID');
+    }
+    expect(invalidResult.issues.some((issue) => issue.path === 'params.oid')).to.equal(true);
+
+    const validRequest = {
+      params: { branding: 'default', portal: 'rdmp', oid: 'fuzz-rdmp-001' },
+      query: {},
+      headers: {},
+      body: {},
+    } as unknown as Sails.Req;
+
+    const validResult = validateApiRouteRequest(validRequest, listDatastreamsRoute);
+
+    expect(validResult.valid).to.equal(true);
   });
 
   it('should document object metadata update values as non-null top-level fields', function () {

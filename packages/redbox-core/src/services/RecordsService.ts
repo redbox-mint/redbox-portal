@@ -1124,6 +1124,10 @@ export namespace Services {
       requestContext: { username?: string } | undefined = undefined
     ): Promise<Record<string, unknown>[]> {
       sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
+      const record = await this.getMeta(oid);
+      if (_.isEmpty(record)) {
+        throw new Error(`Record not found for oid: ${oid}`);
+      }
       const datastreams = (await this.datastreamService.listDatastreams(oid, '', requestContext)) as AnyRecord[];
       const attachments: Record<string, unknown>[] = [];
       _.each(datastreams, (datastream: unknown) => {

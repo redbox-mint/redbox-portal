@@ -1,0 +1,22 @@
+meta {
+  name: List Attachments for Missing Datarecord
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/1c9f9b84f148455888abccd831ca394f
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 404", function () {
+      expect(res.getStatus()).to.equal(404);
+  });
+}

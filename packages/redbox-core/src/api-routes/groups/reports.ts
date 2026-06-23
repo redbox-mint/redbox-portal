@@ -85,7 +85,7 @@ export const createReportConfigRoute = apiRoute(
   {
     tags: ['Reports'],
     summary: 'Create report configuration',
-    responses: { 201: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
+    responses: { 201: reportConfigResponse, 400: badRequestResponse, 409: responseField(apiErrorResponseSchema, 'Conflict'), 500: internalServerErrorResponse },
   }
 );
 

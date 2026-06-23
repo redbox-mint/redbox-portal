@@ -285,6 +285,19 @@ describe('RecordsService', function () {
       expect(result).to.be.an('array').that.is.empty;
     });
 
+    it('should reject missing records before listing datastreams', async function () {
+      mockStorageService.getMeta.resolves(null);
+
+      try {
+        await RecordsService.getAttachments('missing-record');
+        throw new Error('Expected getAttachments to reject missing records');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Record not found for oid: missing-record');
+      }
+
+      expect(mockDatastreamService.listDatastreams.called).to.equal(false);
+    });
+
     it('should format datastreams as attachments', async function () {
       mockDatastreamService.listDatastreams.resolves([
         {

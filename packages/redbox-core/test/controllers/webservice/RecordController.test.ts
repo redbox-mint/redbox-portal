@@ -77,6 +77,7 @@ describe('Webservice RecordController body source', () => {
     let originalHarvestRunService: any;
     let recordsService: {
         getMeta: sinon.SinonStub;
+        getAttachments: sinon.SinonStub;
         updateMeta: sinon.SinonStub;
         create: sinon.SinonStub;
     };
@@ -136,6 +137,7 @@ describe('Webservice RecordController body source', () => {
         controller = new Controllers.Record();
         recordsService = {
             getMeta: sinon.stub(),
+            getAttachments: sinon.stub(),
             updateMeta: sinon.stub(),
             create: sinon.stub(),
         };
@@ -431,6 +433,23 @@ describe('Webservice RecordController body source', () => {
             expect(recordsService.create.calledOnce).to.be.true;
             expect(sendRespStub.calledOnce).to.be.true;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+        });
+
+        it('returns not found when listing datastreams for a missing record', async () => {
+            recordsService.getMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'missing-record' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.listDatastreams(req, {} as Sails.Res);
+
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+            expect(recordsService.getAttachments.called).to.equal(false);
         });
     });
 

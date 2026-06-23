@@ -8,7 +8,6 @@ import {
   binaryField,
   datastreamSummarySchema,
   datastreamUploadResponseSchema,
-  datastreamParams,
   datastreamUploadBody,
   deletedRecordListItemSchema,
   oidParams,
@@ -30,6 +29,7 @@ import {
   storageServiceResponseSchema,
   stringField,
   nonEmptyStringField,
+  patternStringField,
   recordTypeNameField,
 } from '../schemas/common';
 
@@ -552,7 +552,10 @@ export const addDataStreamsRoute = apiRoute(
   'webservice/RecordController',
   'addDataStreams',
   {
-    params: oidParams,
+    params: objectField(
+      { branding: stringField('Branding identifier'), portal: stringField('Portal identifier'), oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID') },
+      ['branding', 'portal', 'oid']
+    ),
     body: { required: true, content: { 'multipart/form-data': { schema: datastreamUploadBody } } },
     files: {
       attachmentFields: {
@@ -580,7 +583,10 @@ export const getDataStreamRoute = apiRoute(
   'webservice/RecordController',
   'getDataStream',
   {
-    params: datastreamParams,
+    params: objectField(
+      { branding: stringField('Branding identifier'), portal: stringField('Portal identifier'), oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID'), datastreamId: patternStringField('^[A-Za-z0-9_.-]+$', 'Datastream identifier') },
+      ['branding', 'portal', 'oid', 'datastreamId']
+    ),
     query: recordDownloadQuery,
     legacyParamFallbacks: recordDownloadLegacyFallbacks,
   },
@@ -608,10 +614,16 @@ export const listDatastreamsRoute = apiRoute(
   '/:branding/:portal/api/records/datastreams/:oid',
   'webservice/RecordController',
   'listDatastreams',
-  { params: oidParams },
+  {
+    params: objectField(
+      { branding: stringField('Branding identifier'), portal: stringField('Portal identifier'), oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID') },
+      ['branding', 'portal', 'oid']
+    ),
+  },
   {
     tags: ['Records'],
     summary: 'List datastreams',
+    operationId: 'listDatastreams',
     responses: { 200: responseField(listApiResponseSchema(datastreamSummarySchema), 'Datastream list') },
   }
 );
@@ -622,7 +634,7 @@ export const transitionWorkflowRoute = apiRoute(
   'webservice/RecordController',
   'transitionWorkflow',
   {
-    params: objectField({ targetStep: nonEmptyStringField(), oid: nonEmptyStringField() }, ['targetStep', 'oid']),
+    params: objectField({ targetStep: nonEmptyStringField(), oid: patternStringField('^[A-Za-z0-9_.-]+$', 'Record OID') }, ['targetStep', 'oid']),
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },
