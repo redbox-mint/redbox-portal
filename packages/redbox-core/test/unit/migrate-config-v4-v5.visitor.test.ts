@@ -1083,7 +1083,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const componentConfig = migratedField.component.config as Record<string, unknown>;
     expect(componentConfig.center).to.deep.equal([-24.67, 134.07]);
     expect(componentConfig.zoom).to.equal(5);
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'select']);
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'circle', 'select']);
     const modelConfig = migratedField.model?.config as Record<string, unknown>;
     expect(modelConfig.defaultValue).to.deep.equal({
       type: 'FeatureCollection',
@@ -1118,7 +1118,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
 
     const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'select']);
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select']);
   });
 
   it('omits select tooling when legacy map explicitly disables editing', async function () {
@@ -1149,7 +1149,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
 
     const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon']);
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'circle']);
   });
 
   it('migrates ButtonBarContainer as expected', async function () {

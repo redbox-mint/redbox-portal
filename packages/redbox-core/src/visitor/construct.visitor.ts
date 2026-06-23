@@ -2436,7 +2436,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   private sanitizeMapEnabledModes(rawModes: unknown, source: 'construct' | 'migrate'): MapDrawingMode[] {
-    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'];
     if (!Array.isArray(rawModes)) {
       return fallback;
     }
@@ -2448,6 +2448,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         mode === 'polygon' ||
         mode === 'linestring' ||
         mode === 'rectangle' ||
+        mode === 'circle' ||
         mode === 'select'
       ) {
         validModes.push(mode);
