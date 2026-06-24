@@ -16,7 +16,7 @@ export function escapeHtmlText(value: unknown): string {
  * @param value The encoded string.
  */
 export function decodeBase64(value: string): string {
-  const binString = atob(value);
+  const binString = atob(String(value ?? ""));
   const bytes = Uint8Array.from(binString, (m) => {
     const cp = m.codePointAt(0);
     if (cp === undefined) {
@@ -32,7 +32,7 @@ export function decodeBase64(value: string): string {
  * @param value The text to convert to base64.
  */
 export function encodeBase64(value: string): string {
-  const bytes = new TextEncoder().encode(value);
+  const bytes = new TextEncoder().encode(String(value ?? ""));
   const binString = Array.from(bytes, (byte) =>
     String.fromCodePoint(byte),
   ).join("");

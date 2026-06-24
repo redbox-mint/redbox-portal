@@ -9,7 +9,7 @@
  * @return True if the key is likely natural language and not a translation key.
  */
 export function isLikelyNaturalLanguage(key: string | null | undefined): boolean {
-  const value = (key ?? "").trim();
+  const value = String(key ?? "").trim();
 
   // An empty string is not natural language or translation code.
   if (!value) {
@@ -21,8 +21,14 @@ export function isLikelyNaturalLanguage(key: string | null | undefined): boolean
     return true;
   }
 
-  // Likely a translation code if starts with '@', or contains ':' or contains '_'.
-  if (value.startsWith('@') || value.includes(':') || value.includes('_')) {
+  // Likely a translation code if starts with '@' or contains any of ':', '_', '{', '}'.
+  if (
+    value.startsWith('@') ||
+    value.includes(':') ||
+    value.includes('_') ||
+    value.includes('{') ||
+    value.includes('}')
+  ) {
     return false;
   }
 
@@ -41,7 +47,7 @@ export function isLikelyNaturalLanguage(key: string | null | undefined): boolean
  * @return Object with guessed values for full, first, and last names.
  */
 export function guessNameParts(value: string) : {full: string, first: string, last: string} {
-  let full = (value ?? "").replace(/\s+/g, ' ').trim(),
+  let full = String(value ?? "").replace(/\s+/g, ' ').trim(),
     first = '',
     last= '';
 
