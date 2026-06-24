@@ -81,6 +81,11 @@ export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonat
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
   const compiled = jsonata(expression, options);
 
+  // Register jsonata functions.
+  // The function signatures are used on purpose to restrict the arguments,
+  // so invalid input types are clear instead of hidden.
+  // Callers of the jsonata helper functions must be prepared for possible parse errors and input type errors.
+
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
 
