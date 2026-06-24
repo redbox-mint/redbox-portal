@@ -220,13 +220,16 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
     });
 
-    it('should ignore invalid contentFormat values', async function() {
+    it('should reject invalid contentFormat values', async function() {
       mockI18nTranslation.findOne.resolves(null);
       mockI18nBundle.findOne.resolves(null);
 
-      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'xml' });
-
-      expect(mockI18nTranslation.create.firstCall.args[0]).not.to.have.property('contentFormat');
+      try {
+        await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value', { contentFormat: 'xml' });
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).to.include('Invalid contentFormat');
+      }
     });
   });
 

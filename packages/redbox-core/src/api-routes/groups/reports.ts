@@ -6,22 +6,20 @@ const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 const reportConfigBody = objectField(
   {
-    // Must stay in sync with ReportsService.validateMutableConfig (URL-safe report name).
+    // Constraints below mirror ReportsService.validateMutableConfig; create/update/preview
+    // all run that validator, so the request contract must match it exactly.
     name: patternStringField('^[A-Za-z0-9_-]+$', 'URL-safe report name'),
     title: nonEmptyStringField(),
-    reportSource: nonEmptyStringField(),
-    databaseQuery: objectField({ queryName: nonEmptyStringField() }),
-    solrQuery: z.preprocess(
-      (val) => {
-        if (val == null || Array.isArray(val) || typeof val !== 'object') return null;
-        return val;
-      },
-      objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }).nullable(),
-    ),
+    // Only 'database' is accepted on create/update/preview (403 otherwise).
+    reportSource: z.enum(['database']).openapi({ description: 'Report data source (only database reports are user-editable)' }),
+    // A named query is mandatory for database reports and must reference an existing one.
+    databaseQuery: objectField({ queryName: nonEmptyStringField('Existing named query name') }, ['queryName']),
+    solrQuery: objectField({ baseQuery: nonEmptyStringField(), searchCore: nonEmptyStringField() }).nullable(),
     filter: arrayField(objectField({}, [], 'Filter object', true)),
-    columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)),
+    // Each column requires a non-empty label and property (validator rejects empties).
+    columns: arrayField(objectField({ label: nonEmptyStringField(), property: nonEmptyStringField() }, ['label', 'property'], 'Column object', true)),
   },
-  ['name', 'title', 'reportSource'],
+  ['name', 'title', 'reportSource', 'databaseQuery'],
   'Report configuration payload'
 );
 const reportConfigRequestBody = { required: true, content: { 'application/json': { schema: reportConfigBody } } };

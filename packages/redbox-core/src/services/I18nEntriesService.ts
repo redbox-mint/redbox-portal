@@ -19,6 +19,7 @@
 
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { RBValidationError } from '../model/RBValidationError';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
 import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
@@ -538,7 +539,13 @@ export namespace Services {
     }
 
     private normalizeContentFormat(value: unknown): TranslationContentFormat | undefined {
-      return value === 'html' || value === 'plain' ? value : undefined;
+      if (value === 'html' || value === 'plain') {
+        return value;
+      }
+      if (value === undefined) {
+        return undefined;
+      }
+      throw new RBValidationError({ message: `Invalid contentFormat: "${String(value)}". Must be "plain" or "html".` });
     }
 
 

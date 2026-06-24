@@ -5,6 +5,7 @@ import {
   arrayField,
   booleanField,
   booleanQueryField,
+  contentFormatField,
   nonEmptyStringField,
   patternStringField,
   translationBundleSchema,
@@ -88,6 +89,8 @@ export const getEntryRoute = apiRoute(
   }
 );
 
+const setEntryBodySchema = objectField({ value: nonEmptyStringField(), category: stringField(), description: stringField(), contentFormat: contentFormatField() }, ['value'], 'Translation entry body');
+
 export const setEntryRoute = apiRoute(
   'post',
   '/:branding/:portal/api/i18n/entries/:locale/:namespace/:key',
@@ -99,14 +102,14 @@ export const setEntryRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField({ value: stringField(), category: stringField(), description: stringField() }, ['value']),
-        },
-      },
-    },
-  },
-  {
-    tags: ['Translation'],
-    summary: 'Set translation entry',
+           schema: setEntryBodySchema,
+         },
+       },
+     },
+   },
+   {
+     tags: ['Translation'],
+     summary: 'Set translation entry',
     description: translationKeyTailDescription,
     responses: {
       200: responseField(translationEntrySchema, 'Translation entry saved'),
@@ -140,18 +143,18 @@ export const setDottedEntryRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField({ value: stringField(), category: stringField(), description: stringField() }, ['value']),
-        },
+           schema: setEntryBodySchema,
+         },
+       },
       },
     },
-  },
-  {
-    tags: ['Translation'],
-    summary: 'Set translation entry with dotted key',
-    description: 'Compatibility route for dotted translation keys.',
-    responses: { 200: responseField(translationEntrySchema, 'Translation entry saved') },
-  }
-);
+    {
+      tags: ['Translation'],
+      summary: 'Set translation entry with dotted key',
+     description: 'Compatibility route for dotted translation keys.',
+     responses: { 200: responseField(translationEntrySchema, 'Translation entry saved') },
+   }
+ );
 
 export const deleteEntryRoute = apiRoute(
   'delete',

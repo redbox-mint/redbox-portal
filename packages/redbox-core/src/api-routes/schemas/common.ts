@@ -18,8 +18,13 @@ function withDescription<T extends ZodType>(schema: T, description?: string): T 
 }
 
 export const stringField = (description?: string): ApiSchemaField => withDescription(z.string(), description);
-export const nonEmptyStringField = (description?: string): ApiSchemaField =>
-  withOpenApi(z.string().trim().min(1), description ? { description, pattern: '.*\\S.*' } : { pattern: '.*\\S.*' });
+export const nonEmptyStringField = (description?: string): ApiSchemaField => {
+  const schema = z.string().trim().min(1).refine(
+    (val) => !val.includes('\0'),
+    { message: 'String must not contain null bytes' }
+  );
+  return withOpenApi(schema, description ? { description, pattern: '.*\\S.*' } : { pattern: '.*\\S.*' });
+};
 export const numberField = (description?: string): ApiSchemaField => withDescription(z.number(), description);
 // zod's `.int()` only accepts JS safe integers at runtime; publish the matching bounds so the
 // OpenAPI contract advertises a `maximum`/`minimum` and clients (and fuzzers) don't generate
@@ -40,6 +45,8 @@ export const vocabularyTypeField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['flat', 'tree']), description);
 export const integrationAuditStatusField = (description?: string): ApiSchemaField =>
   withDescription(z.enum(['started', 'success', 'failed']), description);
+export const contentFormatField = (description?: string): ApiSchemaField =>
+  withDescription(z.enum(['plain', 'html']), description || 'Content format');
 export const booleanField = (description?: string): ApiSchemaField => withDescription(z.boolean(), description);
 export const booleanQueryField = (description?: string): ApiSchemaField =>
   withDescription(z.union([z.boolean(), z.enum(['true', 'false'])]).transform(value => value === true || value === 'true'), description);
@@ -78,7 +85,11 @@ export function objectField(
   return description
     ? withOpenApi(
       objectSchema,
-      additionalProperties === true ? { description, additionalProperties: true } : { description }
+      additionalProperties === true
+        ? { description, additionalProperties: true }
+        : additionalProperties === false
+          ? { description, additionalProperties: false }
+          : { description }
     )
     : objectSchema;
 }
@@ -158,10 +169,7 @@ export const recordSearchQuery = objectField({
   type: nonEmptyStringField('Record type'),
   workflow: patternStringField('^[A-Za-z0-9_.-]+$', 'Workflow name'),
   searchStr: patternStringField('^[^\\x00-\\x1F\\x7F]*\\S[^\\x00-\\x1F\\x7F]*$', 'Search string'),
-  core: z.string().regex(/^[A-Za-z0-9_.-]+$/).refine(
-    val => !['__proto__', 'prototype'].includes(val),
-    { message: 'core must not contain prototype-pollution keys' }
-  ).openapi({ description: 'Search core', pattern: '^[A-Za-z0-9_.-]+$' }),
+  core: patternStringField('^(?!__proto__$|prototype$)[A-Za-z0-9_.-]+$', 'Search core'),
   exactNames: z.record(z.string().regex(/^[A-Za-z0-9_.-]+$/), z.string()).openapi({
     description: 'Exact match field values keyed by field name',
   }),
@@ -197,7 +205,7 @@ export const recordUpdateQuery = objectField({
 });
 
 export const recordHarvestQuery = objectField({
-  updateMode: nonEmptyStringField('Harvest update mode'),
+  updateMode: withDescription(z.enum(['create', 'update', 'merge', 'ignore', 'override']), 'Harvest update mode'),
 });
 
 export const recordDownloadQuery = objectField({

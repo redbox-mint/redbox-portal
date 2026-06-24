@@ -242,6 +242,76 @@ curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
     -X PUT "$API_BASE/users" \
     --data '{"username":"fuzz-user-001","name":"Fuzz Test User","email":"fuzz@test.local","password":"FuzzP@ss123!","roles":["guest"]}' >/dev/null 2>&1 || true
 
+# Capture the disposable fuzz user's id. Destructive user operations (API token
+# generate/revoke, account disable/enable, profile update) must target THIS user --
+# never the admin account whose token authenticates the whole run. Otherwise the
+# fuzzer revokes/rotates its own credential mid-run and every later request 401s,
+# which both poisons results and masks real findings. The hook reads fuzz-user.json
+# and falls back to a non-existent id (harmless 404) if capture fails.
+FUZZ_USER_ID=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
+    "$API_BASE/users/find?searchBy=username&query=fuzz-user-001" 2>/dev/null \
+    | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || echo '')
+if [ -n "$FUZZ_USER_ID" ]; then
+    echo "[\"$FUZZ_USER_ID\"]" > "$SEED_DIR/fuzz-user.json"
+else
+    echo '["fuzz-nonexistent-user"]' > "$SEED_DIR/fuzz-user.json"
+fi
+echo "  Fuzz user id: ${FUZZ_USER_ID:-<none>}"
+
+# Seed a named query and a report config so the report-config endpoints can reach
+# their service logic. ReportsService requires databaseQuery.queryName to reference
+# an existing named query, and update/delete-by-name require an existing report; the
+# hook injects "listRDMPRecords"/"rdmpRecords" for these, so create them here.
+NAMED_QUERY_PAYLOAD='{"collectionName":"record","mongoQuery":{},"queryParams":{},"resultObjectMapping":{}}'
+if ! curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
+    -X POST "$API_BASE/named-query" \
+    --data "{\"name\":\"listRDMPRecords\",${NAMED_QUERY_PAYLOAD#\{}" >/dev/null 2>&1; then
+    curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
+        -X PUT "$API_BASE/named-query/listRDMPRecords" \
+        --data "$NAMED_QUERY_PAYLOAD" >/dev/null
+fi
+curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
+    -X POST "$API_BASE/report-config" \
+    --data '{"name":"rdmpRecords","title":"Fuzz RDMP Report","reportSource":"database","databaseQuery":{"queryName":"listRDMPRecords"},"columns":[{"label":"Title","property":"title"}]}' >/dev/null 2>&1 || true
+echo '["listRDMPRecords"]' > "$SEED_DIR/named-queries.json"
+
+# Seed a known vocabulary with stable entries so the vocabulary update/reorder
+# endpoints can reach their logic. {id} is the vocabulary's DB id (not the slug),
+# and reorder requires the entries' DB ids, so capture both after creation and write
+# them to seeds the hook injects (vocabularies.json -> {id}, vocab-entries.json -> reorder).
+curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
+    -X POST "$API_BASE/vocabulary" \
+    --data '{"name":"Fuzz Vocab","slug":"fuzz-vocab","type":"flat","source":"local","entries":[{"id":"01","label":"One","value":"one","order":0},{"id":"02","label":"Two","value":"two","order":1}]}' >/dev/null 2>&1 || true
+FUZZ_VOCAB_ID=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/vocabulary?q=fuzz-vocab" 2>/dev/null \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((r['id'] for r in d.get('records',[]) if r.get('slug')=='fuzz-vocab'), ''))" 2>/dev/null || echo '')
+if [ -n "$FUZZ_VOCAB_ID" ]; then
+    echo "[\"$FUZZ_VOCAB_ID\"]" > "$SEED_DIR/vocabularies.json"
+    curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/vocabulary/$FUZZ_VOCAB_ID" 2>/dev/null \
+        | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps([e['id'] for e in d.get('entries',[])[:2]]))" 2>/dev/null \
+        > "$SEED_DIR/vocab-entries.json" || echo '[]' > "$SEED_DIR/vocab-entries.json"
+else
+    echo '[]' > "$SEED_DIR/vocab-entries.json"
+fi
+echo "  Fuzz vocabulary id: ${FUZZ_VOCAB_ID:-<none>}"
+
+# Create a dedicated second fuzz user used ONLY as the secondary in account-link
+# operations. linkAccounts wipes the secondary's token and converts it to a
+# linked-alias, so it must never be the admin (auth) account or fuzz-user-001
+# (which other destructive user ops target). The primary stays the admin account,
+# which linkAccounts only role-merges -- its token and login remain intact.
+curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
+    -X PUT "$API_BASE/users" \
+    --data '{"username":"fuzz-user-002","name":"Fuzz Link Secondary","email":"fuzz2@test.local","password":"FuzzP@ss123!","roles":["guest"]}' >/dev/null 2>&1 || true
+FUZZ_USER2_ID=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
+    "$API_BASE/users/find?searchBy=username&query=fuzz-user-002" 2>/dev/null \
+    | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || echo '')
+if [ -n "$FUZZ_USER2_ID" ]; then
+    echo "[\"$FUZZ_USER2_ID\"]" > "$SEED_DIR/fuzz-user-2.json"
+else
+    echo '["fuzz-nonexistent-user"]' > "$SEED_DIR/fuzz-user-2.json"
+fi
+echo "  Fuzz link-secondary user id: ${FUZZ_USER2_ID:-<none>}"
+
 # Build seeds.dict from final seed files for Schemathesis dictionary injection
 echo "  Generating seeds.dict for parameter generation..."
 {

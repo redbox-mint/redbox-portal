@@ -638,6 +638,10 @@ export const translationEntrySchema = withOpenApi(
         namespace: z.string().optional(),
         uid: z.string().optional(),
         value: jsonValueSchema,
+        contentFormat: z.enum(['plain', 'html']).nullable().optional(),
+        createdAt: dateTimeSchema.optional(),
+        updatedAt: dateTimeSchema.optional(),
+        deletedAt: dateTimeSchema.nullable().optional(),
     }).passthrough(),
     { description: 'Translation entry' }
 );

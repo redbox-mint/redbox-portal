@@ -313,7 +313,7 @@ export namespace Services {
       }
       const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, normalized.databaseQuery.queryName);
       if (!namedQuery) {
-        throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery.queryName}' not found`);
+        throw new ReportConfigServiceError(404, `Named query '${normalized.databaseQuery.queryName}' not found`);
       }
       for (const column of normalized.columns) {
         if (_.isEmpty(column.label) || _.isEmpty(column.property)) {

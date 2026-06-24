@@ -1611,12 +1611,6 @@ export namespace Controllers {
       if (body != null) {
         try {
           if (!_.isEmpty(body['sourceRunId'])) {
-            if (!_.isEmpty(validated.query.updateMode)) {
-              return this.sendResp(req, res, {
-                status: 400,
-                displayErrors: [{ detail: 'updateMode is not supported for tracked harvest requests.' }],
-              });
-            }
             const trackedResponse = await HarvestRunService.submitChunk(brand, recordTypeModel, body, user);
             return this.sendResp(req, res, { data: trackedResponse });
           }

@@ -300,6 +300,10 @@ export namespace Controllers {
 
         if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('unauthor')) {
           statusCode = 403;
+        } else if (normalizedMessage.includes('both users must exist')) {
+          statusCode = 404;
+        } else if (normalizedMessage.includes('already linked')) {
+          statusCode = 409;
         } else if (
           normalizedMessage.includes('required')
           || normalizedMessage.includes('invalid')
@@ -376,9 +380,16 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: { status: true, message: 'User enabled successfully' }, headers: this.getNoCacheHeaders() });
       } catch (err) {
         sails.log.error(err);
+        const message = (err as Error)?.message ?? '';
+        let statusCode = 500;
+        if (message.includes('linked alias')) {
+          statusCode = 400;
+        } else if (message.includes('User not found')) {
+          statusCode = 404;
+        }
         return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+          status: statusCode,
+          displayErrors: [{ detail: message || 'An error has occurred' }],
           headers: this.getNoCacheHeaders()
         });
       }

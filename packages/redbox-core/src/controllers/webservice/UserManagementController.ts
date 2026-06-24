@@ -109,6 +109,9 @@ export namespace Controllers {
       if (message.includes('already exists') || message.includes('must be unique')) {
         return 409;
       }
+      if (message.includes('linked alias') || message.includes('already linked')) {
+        return 409;
+      }
       if (message.includes('Invalid criteria') || message.includes('not a valid name for an attribute') || message.includes('required') || message.includes('Please assign at least one role') || message.includes('must not contain null bytes')) {
 	        return 400;
 	      }
@@ -711,6 +714,8 @@ export namespace Controllers {
           statusCode = 403;
         } else if (normalizedMessage.includes('both users must exist')) {
           statusCode = 404;
+        } else if (normalizedMessage.includes('already linked')) {
+          statusCode = 409;
         } else if (
           normalizedMessage.includes('required') ||
           normalizedMessage.includes('invalid') ||

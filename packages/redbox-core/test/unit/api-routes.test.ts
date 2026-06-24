@@ -1272,6 +1272,30 @@ describe('API routes contract layer', async () => {
     expect((extracted.body as Record<string, unknown>).finalChunk).to.equal(true);
   });
 
+  it('should reject unsupported harvest update modes', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', recordType: 'rdmp' },
+      query: { updateMode: '00' },
+      headers: { 'content-type': 'application/json' },
+      body: {
+        records: [
+          {
+            harvestId: 'harvest-1',
+            recordRequest: {
+              metadata: {
+                title: 'Harvest fixture',
+              },
+            },
+          },
+        ],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, harvestRoute.request);
+
+    expect(result.valid).to.equal(false);
+  });
+
   it('should reject vocabulary create payloads without slug', async function () {
     const request = {
       params: { branding: 'default', portal: 'rdmp' },
@@ -1394,6 +1418,25 @@ describe('API routes contract layer', async () => {
 
     expect(result.valid).to.equal(true);
     expect((extracted.body as Record<string, unknown>).solrQuery).to.equal(null);
+  });
+
+  it('should reject report config payloads with non-object solr query', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        name: 'bruno-report-config',
+        title: 'Bruno Report Config',
+        reportSource: 'database',
+        databaseQuery: { queryName: 'listRDMPRecords' },
+        solrQuery: [null, null],
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, createReportConfigRoute.request);
+
+    expect(result.valid).to.equal(false);
   });
 
   it('should accept list users requests without search filters', async function () {

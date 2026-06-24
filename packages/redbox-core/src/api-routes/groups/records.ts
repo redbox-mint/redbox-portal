@@ -71,22 +71,22 @@ const createRecordBody = z.union([
 
 const harvestRecordRequestBody = z.object({
   records: z.array(z.object({
-    harvestId: z.string().min(1),
+    harvestId: nonEmptyStringField('Harvest identifier'),
     operation: z.enum(['create', 'update', 'upsert', 'delete']).optional(),
     recordRequest: z.object({}).passthrough().optional(),
   }).strict()).min(1),
-  sourceRunId: nonEmptyStringField('Harvest source run identifier').optional(),
-  sourceName: nonEmptyStringField('Harvest source name').optional(),
+  sourceRunId: nonEmptyStringField('Harvest source run identifier'),
+  sourceName: nonEmptyStringField('Harvest source name'),
   finalChunk: z.boolean().optional(),
   chunk: z.object({
-    index: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+    index: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
     label: z.string().optional(),
-  }).passthrough().optional(),
+  }).passthrough(),
 }).strict().openapi({ description: 'Harvest payload' });
 
 const legacyHarvestRecordRequestBody = z.object({
   records: z.array(z.object({
-    harvest_id: z.string().min(1),
+    harvest_id: nonEmptyStringField('Legacy harvest identifier'),
     metadata: z.object({}).passthrough(),
   }).strict()).min(1),
 }).strict().openapi({ description: 'Legacy harvest payload' });
