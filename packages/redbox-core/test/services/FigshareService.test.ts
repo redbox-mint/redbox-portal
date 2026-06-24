@@ -485,6 +485,45 @@ describe('FigshareService', function () {
     ]);
   });
 
+  it('does not cross-fill scalar related material title and identifier sources', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        relatedResource: {
+          title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
+          doi: { kind: 'path', path: 'metadata.related_identifiers', defaultValue: [] }
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        related_titles: ['Title only', '', 'Related dataset'],
+        related_identifiers: ['', 'https://doi.org/10.1234/identifier-only', 'https://doi.org/10.1234/related']
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.related_materials).to.deep.equal([
+      {
+        title: 'Related dataset',
+        identifier: 'https://doi.org/10.1234/related'
+      }
+    ]);
+  });
+
   it('uses institution account user_id values for resolved Figshare authors', async function () {
     const config = buildFigsharePublishingConfig({
       authors: {

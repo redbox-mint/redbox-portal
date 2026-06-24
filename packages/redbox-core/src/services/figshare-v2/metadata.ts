@@ -164,13 +164,14 @@ function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): N
   for (let index = 0; index < itemCount; index += 1) {
     const titleSource = titleItems[index];
     const identifierSource = identifierItems[index];
-    const title = extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
-      || extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys);
+    const title = isRelatedMaterialObject(titleSource)
+      ? extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
+        || extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys)
+      : extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys);
     const identifier = isRelatedMaterialObject(titleSource)
       ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys)
         || extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
-      : extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
-        || extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys);
+      : extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys);
     if (title !== '' && identifier !== '') {
       relatedMaterials.push({ title, identifier });
     }

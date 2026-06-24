@@ -287,7 +287,7 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: 'GroupComponent',
         config: {
-          hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-2',
+          hostCssClasses: 'rb-form-inline-fields rb-form-contributor-inline rb-form-grid-cols-3',
           componentDefinitions: [
             {
               overrides: { reusableFormName: 'standard-contributor-fields-lookup-only-name-email' },
