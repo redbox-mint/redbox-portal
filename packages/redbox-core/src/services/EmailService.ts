@@ -265,7 +265,8 @@ export namespace Services {
      */
     public runTemplate(template: string, variables: Record<string, unknown>) {
       if (template && template.indexOf('{{') != -1) {
-        return this.getCompiledTemplate(template)(variables);
+        this.ensureHelpersRegistered();
+        return Handlebars.compile(template, { strict: true })(variables);
       }
       return template;
     }
