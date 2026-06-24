@@ -120,8 +120,9 @@ function normalizeCategorySourceCode(value: unknown): string {
   if (rawValue === '') {
     return '';
   }
-  const lastSlashIndex = rawValue.lastIndexOf('/');
-  return lastSlashIndex === -1 ? rawValue : rawValue.slice(lastSlashIndex + 1);
+  const withoutQuery = rawValue.split('?')[0] ?? rawValue;
+  const delimiterIndex = Math.max(withoutQuery.lastIndexOf('/'), withoutQuery.lastIndexOf('#'));
+  return delimiterIndex === -1 ? withoutQuery : withoutQuery.slice(delimiterIndex + 1);
 }
 
 function toRelatedMaterialItems(value: unknown): unknown[] {
@@ -164,14 +165,10 @@ function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): N
   for (let index = 0; index < itemCount; index += 1) {
     const titleSource = titleItems[index];
     const identifierSource = identifierItems[index];
-    const title = isRelatedMaterialObject(titleSource)
-      ? extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
-        || extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys)
-      : extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys);
-    const identifier = isRelatedMaterialObject(titleSource)
-      ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys)
-        || extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
-      : extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys);
+    const title = extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
+      || (isRelatedMaterialObject(identifierSource) ? extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys) : '');
+    const identifier = extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
+      || (isRelatedMaterialObject(titleSource) ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys) : '');
     if (title !== '' && identifier !== '') {
       relatedMaterials.push({ title, identifier });
     }

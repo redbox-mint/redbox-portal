@@ -397,7 +397,10 @@ describe('FigshareService', function () {
         }
       },
       categories: {
-        mappingTable: [{ sourceCode: '300201', figshareCategoryId: 25508 }]
+        mappingTable: [
+          { sourceCode: '300201', figshareCategoryId: 25508 },
+          { sourceCode: '300202', figshareCategoryId: 25509 }
+        ]
       }
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
@@ -412,6 +415,10 @@ describe('FigshareService', function () {
           {
             notation: 'https://linked.data.gov.au/def/anzsrc-for/2020/300201',
             label: '300201 - Agricultural hydrology'
+          },
+          {
+            notation: 'https://linked.data.gov.au/def/anzsrc-for/2020#300202',
+            label: '300202 - Agronomy'
           }
         ],
         license: 'CC-BY'
@@ -425,7 +432,7 @@ describe('FigshareService', function () {
 
     const payload = await buildMetadataPayload(config, record);
 
-    expect(payload.categories).to.deep.equal([25508]);
+    expect(payload.categories).to.deep.equal([25508, 25509]);
   });
 
   it('maps multiple related data publications into Figshare related materials', async function () {
@@ -461,6 +468,57 @@ describe('FigshareService', function () {
           {
             related_title: 'Missing identifier',
             related_url: ''
+          }
+        ]
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.related_materials).to.deep.equal([
+      {
+        title: 'Related dataset one',
+        identifier: 'https://doi.org/10.1234/related-one'
+      },
+      {
+        title: 'Related dataset two',
+        identifier: 'https://doi.org/10.1234/related-two'
+      }
+    ]);
+  });
+
+  it('maps related data publications when only the identifier binding resolves to repeater objects', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        relatedResource: {
+          title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
+          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] }
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        related_data: [
+          {
+            related_title: 'Related dataset one',
+            related_url: 'https://doi.org/10.1234/related-one'
+          },
+          {
+            related_title: 'Related dataset two',
+            related_url: 'https://doi.org/10.1234/related-two'
           }
         ]
       },
