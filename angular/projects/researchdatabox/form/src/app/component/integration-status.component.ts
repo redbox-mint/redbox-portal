@@ -247,17 +247,22 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     return typeof h === 'string' && h ? h : '@integration-status-heading';
   });
 
-  // All roles: only show in-progress, failures, or integrations that went
-  // in-progress during this session (so they stay visible after completing).
+  // Privileged roles see the full integration summary. Researchers only see
+  // in-progress, failures, or integrations that went in-progress during this
+  // session so completed background work is not shown on a fresh load.
   protected readonly displayIntegrations = computed<IntegrationStatusItem[]>(() => {
     const all = this.integrations();
+    if (this.canSeeTechnicalDetails()) {
+      return all;
+    }
     const seen = this.seenInProgress();
     return all.filter(item => this.isInProgress(item) || this.isError(item) || seen.has(item.integrationName));
   });
 
-  // All roles: only render when there are integrations worth showing.
+  // Privileged roles can see the panel empty state; researchers only render
+  // when there is an integration worth showing or a save is waiting for status.
   protected readonly shouldRender = computed<boolean>(() => {
-    return this.waitingForStatus() || this.displayIntegrations().length > 0;
+    return this.canSeeTechnicalDetails() || this.waitingForStatus() || this.displayIntegrations().length > 0;
   });
 
   constructor() {
@@ -289,6 +294,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         this.waitingForStatus.set(true);
         this.rapidPollUntil = Date.now() + this.rapidPollDurationMs;
         this.graceRemaining = 3;
+        this.gracePollActive.set(true);
         this.fetchStatus();
       }
     });
@@ -357,6 +363,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         this.startPolling();
       } else if (this.graceRemaining > 0) {
         this.graceRemaining--;
+        this.gracePollActive.set(true);
         this.startPolling();
       } else {
         this.stopPolling();
