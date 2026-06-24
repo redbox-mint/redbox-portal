@@ -112,14 +112,24 @@ export namespace Services {
       if (error instanceof RBValidationError) {
         throw error;
       }
+      const figshareMessage = this.getFigshareResponseMessage(error);
       throw new RBValidationError({
         message: `${this.msgPrefix()} ${message}`,
         options: { cause: error },
-        displayErrors: this.figshareResponseToRBValidationError(statusCode ?? 500).displayErrors
+        displayErrors: this.figshareResponseToRBValidationError(statusCode ?? 500, undefined, figshareMessage).displayErrors
       });
     }
 
-    private figshareResponseToRBValidationError(statusCode: number, messagePrefix?: string): RBValidationError {
+    private getFigshareResponseMessage(error: unknown): string | undefined {
+      const responseBody = (error as { responseBody?: unknown })?.responseBody;
+      if (responseBody == null || typeof responseBody !== 'object') {
+        return undefined;
+      }
+      const message = (responseBody as { message?: unknown }).message;
+      return typeof message === 'string' && message.trim() !== '' ? message.trim() : undefined;
+    }
+
+    private figshareResponseToRBValidationError(statusCode: number, messagePrefix?: string, figshareMessage?: string): RBValidationError {
       let message: string;
       switch (statusCode) {
         case 403:
@@ -138,7 +148,9 @@ export namespace Services {
           message = 'unknown-error';
           break;
       }
-      const translated = TranslationService.t(message);
+      const translated = figshareMessage != null && statusCode >= 400 && statusCode < 500
+        ? figshareMessage
+        : TranslationService.t(message);
       return new RBValidationError({
         message: `${this.msgPrefix()} ${messagePrefix ?? translated}`,
         displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }]

@@ -5,7 +5,12 @@ import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
+import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
+import { buildMetadataPayload } from '../../src/services/figshare-v2/metadata';
 import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
+import type { RecordModel } from '../../src/services/figshare-v2/types';
+import type { FigshareClient } from '../../src/services/figshare-v2/http';
+import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
 let expect!: Chai.ExpectStatic;
 
@@ -340,10 +345,329 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
   });
 
-  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
-    const record = {
+  it('uses path binding defaults when metadata values are null', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        customFields: [
+          {
+            figshareField: 'Number and size of Dataset',
+            value: { kind: 'path', path: 'metadata.dataset-size', defaultValue: '' }
+          },
+          {
+            figshareField: 'Author Research Institute',
+            value: { kind: 'path', path: 'metadata.research-centres', defaultValue: [] }
+          }
+        ]
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
       redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        'dataset-size': null,
+        'research-centres': null
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.custom_fields).to.deep.equal({
+      'Number and size of Dataset': '',
+      'Author Research Institute': []
+    });
+  });
+
+  it('maps Figshare categories from URI-based source notations', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        categories: {
+          source: { kind: 'path', path: 'metadata.anzsrcFor', defaultValue: [] },
+          mappingStrategy: 'for2020Mapping'
+        }
+      },
+      categories: {
+        mappingTable: [
+          { sourceCode: '300201', figshareCategoryId: 25508 },
+          { sourceCode: '300202', figshareCategoryId: 25509 }
+        ]
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        anzsrcFor: [
+          {
+            notation: 'https://linked.data.gov.au/def/anzsrc-for/2020/300201',
+            label: '300201 - Agricultural hydrology'
+          },
+          {
+            notation: 'https://linked.data.gov.au/def/anzsrc-for/2020#300202',
+            label: '300202 - Agronomy'
+          }
+        ],
+        license: 'CC-BY'
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.categories).to.deep.equal([25508, 25509]);
+  });
+
+  it('maps multiple related data publications into Figshare related materials', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        relatedResource: {
+          title: { kind: 'path', path: 'metadata.related_data', defaultValue: [] },
+          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] }
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        related_data: [
+          {
+            related_title: 'Related dataset one',
+            related_url: 'https://doi.org/10.1234/related-one',
+            related_notes: 'First related data publication'
+          },
+          {
+            related_title: 'Related dataset two',
+            related_url: 'https://doi.org/10.1234/related-two',
+            related_notes: 'Second related data publication'
+          },
+          {
+            related_title: 'Missing identifier',
+            related_url: ''
+          }
+        ]
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.related_materials).to.deep.equal([
+      {
+        title: 'Related dataset one',
+        identifier: 'https://doi.org/10.1234/related-one'
+      },
+      {
+        title: 'Related dataset two',
+        identifier: 'https://doi.org/10.1234/related-two'
+      }
+    ]);
+  });
+
+  it('maps related data publications when only the identifier binding resolves to repeater objects', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        relatedResource: {
+          title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
+          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] }
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        related_data: [
+          {
+            related_title: 'Related dataset one',
+            related_url: 'https://doi.org/10.1234/related-one'
+          },
+          {
+            related_title: 'Related dataset two',
+            related_url: 'https://doi.org/10.1234/related-two'
+          }
+        ]
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.related_materials).to.deep.equal([
+      {
+        title: 'Related dataset one',
+        identifier: 'https://doi.org/10.1234/related-one'
+      },
+      {
+        title: 'Related dataset two',
+        identifier: 'https://doi.org/10.1234/related-two'
+      }
+    ]);
+  });
+
+  it('does not cross-fill scalar related material title and identifier sources', async function () {
+    const config = buildFigsharePublishingConfig({
+      metadata: {
+        relatedResource: {
+          title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
+          doi: { kind: 'path', path: 'metadata.related_identifiers', defaultValue: [] }
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+        related_titles: ['Title only', '', 'Related dataset'],
+        related_identifiers: ['', 'https://doi.org/10.1234/identifier-only', 'https://doi.org/10.1234/related']
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+
+    const payload = await buildMetadataPayload(config, record);
+
+    expect(payload.related_materials).to.deep.equal([
+      {
+        title: 'Related dataset',
+        identifier: 'https://doi.org/10.1234/related'
+      }
+    ]);
+  });
+
+  it('uses institution account user_id values for resolved Figshare authors', async function () {
+    const config = buildFigsharePublishingConfig({
+      authors: {
+        lookup: [
+          { matchBy: 'email', value: { kind: 'path', path: 'email' } }
+        ]
+      },
+      metadata: {
+        license: {
+          source: { kind: 'path', path: 'metadata.license' },
+          matchBy: 'valueExact',
+          required: true
+        }
+      }
+    }) as unknown as FigsharePublishingConfigData;
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: '1',
+        contributor_ci: {
+          name: 'Patricia Hayman',
+          email: 'p.hayman@cqu.edu.au'
+        },
+        contributors: [
+          {
+            name: 'Mark Cottman-Fields',
+            email: 'm.cottmanfields@cqu.edu.au'
+          },
+          {
+            name: 'External Author',
+            email: 'external@example.org'
+          }
+        ]
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const searchInstitutionAccounts: FigshareClient['searchInstitutionAccounts'] = async (payload) => {
+      if (payload.email === 'p.hayman@cqu.edu.au') {
+        return [{ id: 1897685, user_id: 2544547, email: 'p.hayman@cqu.edu.au', first_name: 'Patricia', last_name: 'Hayman' }];
+      }
+      if (payload.email === 'm.cottmanfields@cqu.edu.au') {
+        return [{ id: 3015702, user_id: 4402702, email: 'm.cottmanfields@cqu.edu.au', first_name: 'Mark', last_name: 'Cottman-Fields' }];
+      }
+      return [];
+    };
+    const client: FigshareClient = {
+      createArticle: async () => ({ id: 'unused' }),
+      updateArticle: async () => ({ id: 'unused' }),
+      getArticle: async () => ({ id: 'unused' }),
+      listArticleFiles: async () => [],
+      createArticleFile: async () => ({ location: '' }),
+      getLocation: async () => ({ id: '', upload_url: '' }),
+      uploadFilePart: async () => ({}),
+      completeFileUpload: async () => ({ id: '', name: '' }),
+      deleteArticleFile: async () => ({}),
+      setEmbargo: async () => ({}),
+      clearEmbargo: async () => ({}),
+      publishArticle: async () => ({}),
+      listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
+      searchInstitutionAccounts
+    };
+
+    const payload = await buildMetadataPayload(config, record, client);
+
+    expect(payload.authors).to.deep.equal([
+      { id: 2544547 },
+      { id: 4402702 },
+      { name: 'External Author' }
+    ]);
+  });
+
+  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -351,7 +675,12 @@ describe('FigshareService', function () {
         forCodes: ['0101'],
         license: 'CC-BY',
       },
-    } as any;
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
     sinon.stub(service, 'syncMetadata').rejects(new Error('sync exploded'));
 
     try {
@@ -366,6 +695,42 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
     expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('sync exploded');
+  });
+
+  it('surfaces Figshare response messages for 4xx sync failures', async function () {
+    const record: RecordModel = {
+      redboxOid: 'oid-1',
+      harvestId: '',
+      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metadata: {
+        title: 'Dataset title',
+        description: 'Dataset description',
+        keywords: ['one'],
+        forCodes: ['0101'],
+        license: 'CC-BY',
+      },
+      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      dateCreated: '',
+      lastSaveDate: '',
+      id: ''
+    };
+    const httpError = Object.assign(new Error('Figshare HTTP request failed for post /account/articles'), {
+      statusCode: 400,
+      responseBody: {
+        message: 'Invalid identifier format',
+        code: 'BadRequest'
+      }
+    });
+    sinon.stub(service, 'syncMetadata').rejects(httpError);
+
+    try {
+      await service.syncRecordWithFigshare(record, 'job-1');
+      expect.fail('Expected syncRecordWithFigshare to throw');
+    } catch (error) {
+      expect((error as { displayErrors?: Array<{ detail?: string }> }).displayErrors?.[0]?.detail)
+        .to.equal('Invalid identifier format');
+    }
   });
 
   it('audits publishAfterUploadFilesJob success and failure paths', async function () {
@@ -422,6 +787,18 @@ describe('FigshareService', function () {
       responseBody: { message: 'Invalid embargo' }
     }));
     expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
+  });
+
+  it('extracts created article id from the Figshare Location header', async function () {
+    const article = mapCreateArticleResponse<{ id?: string; location?: string }>({
+      data: {},
+      headers: {
+        location: 'https://api.figsh.com/v2/account/articles/123456'
+      }
+    });
+
+    expect(article.id).to.equal('123456');
+    expect(article.location).to.equal('https://api.figsh.com/v2/account/articles/123456');
   });
 
   it('does not throw from getConfig when the record brand cannot be resolved', function () {
