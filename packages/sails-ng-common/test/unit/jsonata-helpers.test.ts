@@ -174,6 +174,31 @@ describe('JSONata helpers', function () {
       },
       expected: new Error('Attempted to invoke eval'),
     },
+    // guessNameParts
+    {
+      args: {
+        expression: '$guessNameParts("my Name is")',
+        input: null,
+        bindings: undefined,
+      },
+      expected: {full: "my Name is", first: "my", last: "Name is"},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: undefined},
+        bindings: undefined,
+      },
+      expected: {full: "", first: "", last: ""},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: "\tHELLO  "},
+        bindings: undefined,
+      },
+      expected: {full: "HELLO", first: "", last: "HELLO"},
+    },
   ];
   cases.forEach(({args, expected}) => {
     it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {

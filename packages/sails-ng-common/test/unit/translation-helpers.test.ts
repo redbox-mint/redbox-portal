@@ -1,4 +1,4 @@
-import {isLikelyNaturalLanguage} from "../../src";
+import {guessNameParts, isLikelyNaturalLanguage} from "../../src";
 
 describe('Translation helpers', function () {
   let expect: any;
@@ -21,6 +21,25 @@ describe('Translation helpers', function () {
     guessStringTypeCases.forEach(({title, key, expected}) => {
       it(`should ${title}`, async function () {
         expect(isLikelyNaturalLanguage(key)).eql(expected);
+      });
+    });
+  });
+
+  describe('guess name parts', function () {
+    const guessStringTypeCases = [
+      {title: "empty", value: "", expected: {full: "", first: "", last: ""}},
+      {title: "empty", value: "  ", expected: {full: "", first: "", last: ""}},
+      {title: "null is empty", value: null as unknown as string, expected: {full: "", first: "", last: ""}},
+      {title: "undefined is empty", value: undefined as unknown as string, expected: {full: "", first: "", last: ""}},
+
+      {title: "no spaces is last", value: "TheName", expected: {full: "TheName", first: "", last: "TheName"}},
+      {title: "one space is first and last", value: "The    Name", expected: {full: "The Name", first: "The", last: "Name"}},
+      {title: "two sets of whitespace is one word first and two word last", value: " The Name \nagain ", expected: {full: "The Name again", first: "The", last: "Name again"}},
+      {title: "three sets of whitespace is one word first and three word last", value: "\t The Name again  another", expected: {full: "The Name again another", first: "The", last: "Name again another"}},
+    ];
+    guessStringTypeCases.forEach(({title, value, expected}) => {
+      it(`should ${title}`, async function () {
+        expect(guessNameParts(value)).eql(expected);
       });
     });
   });
