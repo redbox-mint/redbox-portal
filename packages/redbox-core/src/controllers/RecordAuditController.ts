@@ -514,8 +514,8 @@ export namespace Controllers {
           return;
         }
 
-        const hasEdit = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
-        if (!hasEdit) {
+        const hasView = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        if (!hasView) {
           return this.sendResp(req, res, {
             status: 403,
             displayErrors: [{ code: 'view-error-no-permissions' }],

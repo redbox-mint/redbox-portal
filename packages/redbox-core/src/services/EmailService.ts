@@ -68,12 +68,14 @@ export namespace Services {
      * @return The compiled template delegate.
      * @private
      */
-    private getCompiledTemplate(source: string): HandlebarsTemplateDelegate {
+    private getCompiledTemplate(templateName: string): HandlebarsTemplateDelegate {
       this.ensureHelpersRegistered();
-      if (!this.compiledTemplates.has(source)) {
-        this.compiledTemplates.set(source, Handlebars.compile(source, { strict: true }));
+      if (!this.compiledTemplates.has(templateName)) {
+        const filePath = sails.config.emailnotification.settings.templateDir + templateName + '.hbs';
+        const source = fs.readFileSync(filePath, 'utf-8') || '';
+        this.compiledTemplates.set(templateName, Handlebars.compile(source, { strict: true }));
       }
-      return this.compiledTemplates.get(source)!;
+      return this.compiledTemplates.get(templateName)!;
     }
 
     /**
@@ -197,11 +199,9 @@ export namespace Services {
      * @param res The response object. Will contain 'status', 'body', might contain 'ex'.
      * @return The response object with 'status', 'body', and maybe 'ex' set.
      */
-    public async buildFromTemplateAsync(template: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
+    public async buildFromTemplateAsync(templateName: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        const readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.hbs', 'utf-8')
-
-        const renderedTemplate = this.getCompiledTemplate((readTemplate || "").toString())(data);
+        const renderedTemplate = this.getCompiledTemplate(templateName)(data);
 
         res['status'] = 200;
         res['body'] = renderedTemplate;

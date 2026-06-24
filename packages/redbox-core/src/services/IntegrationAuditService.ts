@@ -291,6 +291,7 @@ export namespace Services {
           if (!_.isNil(response.details)) {
             sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
           }
+          return;
         }
         this.enqueueNotification(entry);
       } catch (error) {
@@ -790,7 +791,8 @@ export namespace Services {
 
       const rowsByTrace = new Map<string, Record<string, unknown>[]>();
       allRows.forEach(row => {
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace`;
+        const integrationName = this.getString(row['integrationName']) ?? 'unknown';
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace`;
         const existing = rowsByTrace.get(traceId) ?? [];
         existing.push(row);
         rowsByTrace.set(traceId, existing);

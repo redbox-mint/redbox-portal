@@ -283,6 +283,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
           clearTimeout(this.saveStatusTimeout);
           this.saveStatusTimeout = null;
         }
+        this.stopPolling();
         // Rapid-poll: check immediately, then poll after each response
         // for the configured duration before falling back to normal polling.
         this.waitingForStatus.set(true);

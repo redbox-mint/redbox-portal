@@ -81,7 +81,10 @@ export namespace Services {
         }
 
         const integrationName = (data.integrationName || '').toLowerCase();
-        const perIntegration = (brandConfig.perIntegration as Record<string, Record<string, unknown>> | undefined) ?? {};
+        const rawPerIntegration = (brandConfig.perIntegration as Record<string, Record<string, unknown>> | undefined) ?? {};
+        const perIntegration = Object.fromEntries(
+          Object.entries(rawPerIntegration).map(([key, val]) => [key.toLowerCase(), val])
+        );
         const integrationOverride = perIntegration[integrationName] ?? {};
 
         const effectiveConfig: Record<string, unknown> = {
@@ -92,7 +95,7 @@ export namespace Services {
         const statuses = (effectiveConfig.statuses as string[]) ?? ['failed'];
         const recoveryAlerts = (effectiveConfig.recoveryAlerts as boolean) ?? false;
 
-        if (!statuses.includes(data.status)) {
+        if (!(data.status === IntegrationAuditStatus.success && recoveryAlerts) && !statuses.includes(data.status)) {
           sails.log.verbose(`${this.logHeader} Status '${data.status}' not in configured notification list, skipping.`);
           return;
         }
