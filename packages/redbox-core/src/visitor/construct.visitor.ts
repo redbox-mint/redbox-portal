@@ -812,6 +812,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('maxPollAttempts', item.config, config);
     this.sharedProps.setPropOverride('heading', item.config, config);
     this.sharedProps.setPropOverride('technicalDetailRoles', item.config, config);
+    this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
   }
 
   async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {

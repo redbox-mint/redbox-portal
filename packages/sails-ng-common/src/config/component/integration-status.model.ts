@@ -16,6 +16,7 @@ export class IntegrationStatusFieldComponentConfig extends FieldComponentConfig 
     maxPollAttempts = 60;
     heading?: string;
     technicalDetailRoles: string[] = ['Admin', 'Librarians'];
+    hideWhenInactive = false;
 
     constructor() {
         super();

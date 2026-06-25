@@ -21,6 +21,11 @@ export interface IntegrationStatusFieldComponentConfigFrame extends FieldCompone
     maxPollAttempts?: number;
     heading?: string;
     technicalDetailRoles?: string[];
+    // When true, the panel only renders while there is integration activity worth showing
+    // (in-progress or an error/failure), or one observed in-progress this session. This
+    // suppresses the idle/empty "no integration yet" panel for all roles, including the
+    // privileged roles that would otherwise always see it.
+    hideWhenInactive?: boolean;
 }
 
 export interface IntegrationStatusFieldComponentConfigOutline extends IntegrationStatusFieldComponentConfigFrame, FieldComponentConfigOutline {

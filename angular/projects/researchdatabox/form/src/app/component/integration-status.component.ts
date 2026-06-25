@@ -242,6 +242,13 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
     return Array.isArray(val) ? val as string[] : ['Admin', 'Librarians'];
   }
 
+  // When true the idle/empty panel is suppressed for every role: the panel only renders
+  // while there is integration activity worth showing (in-progress or failure), so the
+  // privileged "always visible" summary is gated the same way as the researcher view.
+  private get hideWhenInactive(): boolean {
+    return this.config?.['hideWhenInactive'] === true;
+  }
+
   protected readonly headingText = computed(() => {
     const h = this.config?.['heading'];
     return typeof h === 'string' && h ? h : '@integration-status-heading';
@@ -252,7 +259,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   // session so completed background work is not shown on a fresh load.
   protected readonly displayIntegrations = computed<IntegrationStatusItem[]>(() => {
     const all = this.integrations();
-    if (this.canSeeTechnicalDetails()) {
+    if (this.canSeeTechnicalDetails() && !this.hideWhenInactive) {
       return all;
     }
     const seen = this.seenInProgress();
@@ -261,7 +268,12 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
 
   // Privileged roles can see the panel empty state; researchers only render
   // when there is an integration worth showing or a save is waiting for status.
+  // With hideWhenInactive the privileged always-on is dropped so every role is
+  // gated to active/error integrations (or a pending save).
   protected readonly shouldRender = computed<boolean>(() => {
+    if (this.hideWhenInactive) {
+      return this.waitingForStatus() || this.displayIntegrations().length > 0;
+    }
     return this.canSeeTechnicalDetails() || this.waitingForStatus() || this.displayIntegrations().length > 0;
   });
 

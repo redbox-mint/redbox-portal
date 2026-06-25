@@ -548,6 +548,76 @@ describe('IntegrationStatusComponent', () => {
     expect(component.shouldRender()).toBe(true);
   }));
 
+  it('hideWhenInactive hides the idle synthesized panel for privileged roles', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Admin' }] } } as any));
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'none', startedAt: '', traceId: 'synthetic:doi', synthesized: true,
+        outcome: { state: 'none', severity: 'none', labelKey: '@integration-status-outcome-doi-none' }
+      }]
+    }));
+
+    const inactiveConfig = {
+      name: 'integration_status',
+      component: {
+        class: 'IntegrationStatusComponent' as const,
+        config: { integrationNames: ['doi'], pollIntervalMs: 100, maxPollAttempts: 60, hideWhenInactive: true }
+      }
+    };
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = inactiveConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    component.canSeeTechnicalDetails.set(true);
+    fixture.detectChanges();
+
+    expect(component.displayIntegrations().length).toBe(0);
+    expect(component.shouldRender()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.rb-integration-status')).toBeFalsy();
+  }));
+
+  it('hideWhenInactive still shows in-progress and failed integrations for privileged roles', fakeAsync(() => {
+    const userService = TestBed.inject(UserService);
+    spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Admin' }] } } as any));
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({
+      integrations: [{
+        integrationName: 'doi', status: 'failed', startedAt: new Date().toISOString(), traceId: 't1', message: 'boom',
+        outcome: { state: 'error', severity: 'error', labelKey: '@integration-status-outcome-doi-error' }
+      }]
+    }));
+
+    const inactiveConfig = {
+      name: 'integration_status',
+      component: {
+        class: 'IntegrationStatusComponent' as const,
+        config: { integrationNames: ['doi'], pollIntervalMs: 100, maxPollAttempts: 60, hideWhenInactive: true }
+      }
+    };
+
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = inactiveConfig.component;
+    component.oid.set('test-oid');
+    fixture.detectChanges();
+    component.fetchStatus();
+    tick(0);
+    fixture.detectChanges();
+
+    component.canSeeTechnicalDetails.set(true);
+    fixture.detectChanges();
+
+    expect(component.displayIntegrations().length).toBe(1);
+    expect(component.shouldRender()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.rb-integration-status .badge')).toBeTruthy();
+  }));
+
   it('researcher sees success only after watching it go in-progress', fakeAsync(() => {
     const userService = TestBed.inject(UserService);
     spyOn(userService, 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
