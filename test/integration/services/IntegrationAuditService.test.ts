@@ -538,6 +538,27 @@ describe('The IntegrationAuditService', function () {
       expect(result[0].outcome!.severity).to.equal('in-progress');
     });
 
+    it('doi update started returns updating outcome', async function () {
+      const oid = `outcome-doi-${Date.now()}-updstart`;
+      createdOids.push(oid);
+      const traceId = `trace-${Date.now()}-doiupdstart`;
+
+      await IntegrationAudit.create({
+        redboxOid: oid, brandId: 'default', integrationName: 'doi',
+        integrationAction: 'updateDoi', triggeredBy: 'test', status: 'started',
+        traceId, spanId: `span-${Date.now()}`,
+        startedAt: '2025-01-01T00:00:00.000Z',
+      });
+
+      await waitForAuditCount(oid, 1);
+      const result = await integrationAuditService.getStatusSummaryWithOutcomes({ oid }, {});
+
+      expect(result).to.have.length(1);
+      expect(result[0].outcome!.state).to.equal('updating');
+      expect(result[0].outcome!.severity).to.equal('in-progress');
+      expect(result[0].outcome!.labelKey).to.equal('@integration-status-outcome-doi-updating');
+    });
+
     it('doi failed returns error outcome with help', async function () {
       const oid = `outcome-doi-${Date.now()}-failed`;
       createdOids.push(oid);

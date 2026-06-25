@@ -856,13 +856,23 @@ export namespace Services {
       return lower === 'published' || lower === 'embargoed';
     }
 
+    private isDoiUpdateAction(action?: string): boolean {
+      return action === IntegrationAuditAction.updateDoi
+        || action === IntegrationAuditAction.updateDoiRequest
+        || action === IntegrationAuditAction.updateDoiTriggerSync;
+    }
+
     private mapDoiOutcome(s: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
       const status = s.status;
       const kr = s.keyResult ?? {};
       const event = kr['event'] as string | undefined;
       const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
 
-      if (status === 'started') return this.makeOutcome('doi', 'in-progress', 'in-progress');
+      if (status === 'started') {
+        return this.isDoiUpdateAction(s.integrationAction)
+          ? this.makeOutcome('doi', 'updating', 'in-progress')
+          : this.makeOutcome('doi', 'in-progress', 'in-progress');
+      }
       if (status === 'failed') return this.makeOutcome('doi', 'error', 'error', true);
 
       if (status === 'success') {

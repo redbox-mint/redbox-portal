@@ -1455,6 +1455,7 @@
   "@integration-status-expand": "Expand integrations panel",
   "@integration-status-outcome-doi-none": "No DOI yet",
   "@integration-status-outcome-doi-in-progress": "DOI being created",
+  "@integration-status-outcome-doi-updating": "DOI being updated",
   "@integration-status-outcome-doi-draft-assigned": "Draft DOI assigned",
   "@integration-status-outcome-doi-draft-assigned-help": "Your draft DOI will become active when the record is published.",
   "@integration-status-outcome-doi-published": "DOI active",
