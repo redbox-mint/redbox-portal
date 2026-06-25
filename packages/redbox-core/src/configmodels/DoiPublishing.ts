@@ -689,11 +689,11 @@ const VALIDATION_SCHEMA = {
     }
   },
   properties: {
-    requireUrl: { type: 'boolean', title: 'Require Url', default: true },
-    requirePublisher: { type: 'boolean', title: 'Require Publisher', default: true },
-    requirePublicationYear: { type: 'boolean', title: 'Require Publication Year', default: true },
-    requireCreators: { type: 'boolean', title: 'Require Creators', default: true },
-    requireTitles: { type: 'boolean', title: 'Require Titles', default: true }
+    requireUrl: { type: 'boolean', title: 'Require Url', default: false },
+    requirePublisher: { type: 'boolean', title: 'Require Publisher', default: false },
+    requirePublicationYear: { type: 'boolean', title: 'Require Publication Year', default: false },
+    requireCreators: { type: 'boolean', title: 'Require Creators', default: false },
+    requireTitles: { type: 'boolean', title: 'Require Titles', default: false }
   }
 };
 

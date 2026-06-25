@@ -557,11 +557,14 @@ const defaultDoiPublishingConfig: DoiPublishingConfigData = {
                 extraFields: []
             },
             validation: {
-                requireUrl: true,
-                requirePublisher: true,
-                requirePublicationYear: true,
-                requireCreators: true,
-                requireTitles: true
+                // Defaults are off: form-level validation is the primary gate. When a
+                // flag is enabled, it is only enforced on the findable ('publish')
+                // transition. See doi-v2/payload.ts isFindableEvent.
+                requireUrl: false,
+                requirePublisher: false,
+                requirePublicationYear: false,
+                requireCreators: false,
+                requireTitles: false
             }
         }
     }
