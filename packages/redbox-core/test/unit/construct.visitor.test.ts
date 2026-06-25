@@ -521,6 +521,16 @@ describe("Construct Visitor", async () => {
                             redirectLocation: '/@branding/@portal/dashboard/dataRecord',
                           }
                         }
+                      },
+                      {
+                        name: "cancel_button",
+                        component: {
+                          class: "CancelButtonComponent",
+                          config: {
+                            redirectDelaySeconds: 3,
+                            redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                          }
+                        }
                       }
                     ]
                 }
@@ -536,6 +546,11 @@ describe("Construct Visitor", async () => {
             expect(actual.componentDefinitions?.[1]?.component?.config).to.containSubset({
               closeOnSave: true,
               redirectDelaySeconds: 5,
+              redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+            expect(actual.componentDefinitions?.[2]?.component?.class).to.equal("CancelButtonComponent");
+            expect(actual.componentDefinitions?.[2]?.component?.config).to.containSubset({
+              redirectDelaySeconds: 3,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord',
             });
         });

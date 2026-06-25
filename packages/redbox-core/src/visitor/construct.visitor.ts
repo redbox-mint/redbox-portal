@@ -1215,6 +1215,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
