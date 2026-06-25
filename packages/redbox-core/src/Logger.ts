@@ -14,3 +14,18 @@ export interface ILogger {
   silent: (...args: unknown[]) => void;
   blank: (...args: unknown[]) => void;
 }
+
+export const consoleLogger: ILogger = {
+  silly: (...args: unknown[]): void => console.log(...args),
+  verbose: (...args: unknown[]): void => console.log(...args),
+  trace: (...args: unknown[]): void => console.trace(...args),
+  debug: (...args: unknown[]): void => console.debug(...args),
+  log: (...args: unknown[]): void => console.log(...args),
+  info: (...args: unknown[]): void => console.info(...args),
+  warn: (...args: unknown[]): void => console.warn(...args),
+  error: (...args: unknown[]): void => console.error(...args),
+  crit: (...args: unknown[]): void => console.error(...args),
+  fatal: (...args: unknown[]): void => console.error(...args),
+  silent: (): void => undefined,
+  blank: (): void => console.log(''),
+};

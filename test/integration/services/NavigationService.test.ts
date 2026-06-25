@@ -1,4 +1,4 @@
-declare var sails: any;
+declare var sails: Sails.Application;
 declare var _: any;
 
 describe('NavigationService', function () {
@@ -13,10 +13,10 @@ describe('NavigationService', function () {
   beforeEach(() => {
     navigationService = sails.services.navigationservice;
     originalBrandingAware = sails.config.brandingAware;
-    
+
     // Setup mock brand
     mockBrand = BrandingService.getDefault();
-    
+
     // Setup mock request object
     mockReq = {
       params: { branding: 'default', portal: 'rdmp' },
@@ -48,7 +48,7 @@ describe('NavigationService', function () {
   describe('getDefaultMenuConfig', function () {
     it('should return the default menu configuration', function () {
       const defaultConfig = navigationService.getDefaultMenuConfig();
-      
+
       expect(defaultConfig).to.have.property('items');
       expect(defaultConfig).to.have.property('showSearch', true);
       expect(defaultConfig.items).to.be.an('array');
@@ -59,7 +59,7 @@ describe('NavigationService', function () {
   describe('getDefaultHomePanelConfig', function () {
     it('should return the default home panel configuration', function () {
       const defaultConfig = navigationService.getDefaultHomePanelConfig();
-      
+
       expect(defaultConfig).to.have.property('panels');
       expect(defaultConfig.panels).to.be.an('array');
       expect(defaultConfig.panels.length).to.equal(4); // Plan, Organise, Manage, Publish
@@ -68,7 +68,7 @@ describe('NavigationService', function () {
     it('should have Plan panel with correct structure', function () {
       const defaultConfig = navigationService.getDefaultHomePanelConfig();
       const planPanel = defaultConfig.panels.find(p => p.id === 'plan');
-      
+
       expect(planPanel).to.exist;
       expect(planPanel.titleKey).to.equal('menu-plan');
       expect(planPanel.iconClass).to.equal('icon-checklist icon-3x');
@@ -79,7 +79,7 @@ describe('NavigationService', function () {
     it('should have Organise panel with correct structure', function () {
       const defaultConfig = navigationService.getDefaultHomePanelConfig();
       const organisePanel = defaultConfig.panels.find(p => p.id === 'organise');
-      
+
       expect(organisePanel).to.exist;
       expect(organisePanel.titleKey).to.equal('menu-organise-worspace');
       expect(organisePanel.iconClass).to.equal('fa fa-sitemap fa-3x');
@@ -88,7 +88,7 @@ describe('NavigationService', function () {
     it('should have Manage panel with correct structure', function () {
       const defaultConfig = navigationService.getDefaultHomePanelConfig();
       const managePanel = defaultConfig.panels.find(p => p.id === 'manage');
-      
+
       expect(managePanel).to.exist;
       expect(managePanel.titleKey).to.equal('menu-manage');
       expect(managePanel.iconClass).to.equal('fa fa-laptop fa-3x');
@@ -97,7 +97,7 @@ describe('NavigationService', function () {
     it('should have Publish panel with correct structure', function () {
       const defaultConfig = navigationService.getDefaultHomePanelConfig();
       const publishPanel = defaultConfig.panels.find(p => p.id === 'publish');
-      
+
       expect(publishPanel).to.exist;
       expect(publishPanel.titleKey).to.equal('menu-publish');
       expect(publishPanel.iconClass).to.equal('fa fa-rocket fa-3x');
@@ -119,7 +119,7 @@ describe('NavigationService', function () {
   describe('resolveMenu', function () {
     it('should return resolved menu with items and showSearch', async function () {
       const resolvedMenu = await navigationService.resolveMenu(mockReq);
-      
+
       expect(resolvedMenu).to.have.property('items');
       expect(resolvedMenu).to.have.property('showSearch');
       expect(resolvedMenu.items).to.be.an('array');
@@ -127,7 +127,7 @@ describe('NavigationService', function () {
 
     it('should filter items based on authentication for authenticated users', async function () {
       const resolvedMenu = await navigationService.resolveMenu(mockReq);
-      
+
       // Home item for authenticated users should be present (researcher/home)
       const homeAuthItem = resolvedMenu.items.find(
         item => item.href && item.href.includes('/researcher/home')
@@ -141,9 +141,9 @@ describe('NavigationService', function () {
         isAuthenticated: () => false,
         user: null
       };
-      
+
       const resolvedMenu = await navigationService.resolveMenu(unauthReq);
-      
+
       // Most items require auth, so should be filtered out
       // Only home-anon (requiresAuth: false, hideWhenAuth: true) should show
       const authHomeItem = resolvedMenu.items.find(
@@ -251,16 +251,16 @@ describe('NavigationService', function () {
   describe('resolveHomePanels', function () {
     it('should return resolved home panels', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       expect(resolvedPanels).to.have.property('panels');
       expect(resolvedPanels.panels).to.be.an('array');
     });
 
     it('should resolve panel titles from translation keys', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
-      
+
       // Titles should be translated (not equal to keys)
       for (const panel of resolvedPanels.panels) {
         expect(panel.title).to.be.a('string');
@@ -272,9 +272,9 @@ describe('NavigationService', function () {
 
     it('should resolve panel items with proper URLs', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
-      
+
       for (const panel of resolvedPanels.panels) {
         expect(panel.items).to.be.an('array');
         for (const item of panel.items) {
@@ -288,13 +288,13 @@ describe('NavigationService', function () {
 
     it('should include Plan panel with RDMP items', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       const planPanel = resolvedPanels.panels.find(p => p.id === 'plan');
       expect(planPanel).to.exist;
       expect(planPanel.items.length).to.be.greaterThan(0);
-      
+
       // Should have create RDMP link
-      const createRdmpItem = planPanel.items.find(item => 
+      const createRdmpItem = planPanel.items.find(item =>
         item.href && item.href.includes('/record/rdmp/edit')
       );
       expect(createRdmpItem).to.exist;
@@ -302,13 +302,13 @@ describe('NavigationService', function () {
 
     it('should include Manage panel with data record items', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       const managePanel = resolvedPanels.panels.find(p => p.id === 'manage');
       expect(managePanel).to.exist;
       expect(managePanel.items.length).to.be.greaterThan(0);
-      
+
       // Should have create data record link
-      const createDataRecordItem = managePanel.items.find(item => 
+      const createDataRecordItem = managePanel.items.find(item =>
         item.href && item.href.includes('/record/dataRecord/edit')
       );
       expect(createDataRecordItem).to.exist;
@@ -316,13 +316,13 @@ describe('NavigationService', function () {
 
     it('should include Publish panel with publication items', async function () {
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       const publishPanel = resolvedPanels.panels.find(p => p.id === 'publish');
       expect(publishPanel).to.exist;
       expect(publishPanel.items.length).to.be.greaterThan(0);
-      
+
       // Should have create publication link
-      const createPubItem = publishPanel.items.find(item => 
+      const createPubItem = publishPanel.items.find(item =>
         item.href && item.href.includes('/record/dataPublication/edit')
       );
       expect(createPubItem).to.exist;
@@ -336,9 +336,9 @@ describe('NavigationService', function () {
         path: null,
         isAuthenticated: () => { throw new Error('Test error'); }
       };
-      
+
       const resolvedPanels = await navigationService.resolveHomePanels(badReq);
-      
+
       expect(resolvedPanels).to.have.property('panels');
       expect(resolvedPanels.panels).to.be.an('array');
       expect(resolvedPanels.panels.length).to.equal(0);
@@ -389,11 +389,11 @@ describe('NavigationService', function () {
           ]
         }
       };
-      
+
       sails.config.brandingAware = () => customConfig;
-      
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
-      
+
       expect(resolvedPanels.panels.length).to.equal(1);
       expect(resolvedPanels.panels[0].id).to.equal('custom');
     });
