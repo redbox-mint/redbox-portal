@@ -716,8 +716,13 @@ export namespace Services {
 
       let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) => this.buildTraceRecord(traceId, rows));
       if (!_.isEmpty(params.integrationName)) {
-        const integrationNameFilter = String(params.integrationName).trim().toLowerCase();
-        groupedRows = groupedRows.filter(row => (row.integrationName ?? '').toLowerCase().includes(integrationNameFilter));
+        const integrationNameFilters = String(params.integrationName)
+          .split(',')
+          .map(name => name.trim().toLowerCase())
+          .filter(Boolean);
+        if (integrationNameFilters.length > 0) {
+          groupedRows = groupedRows.filter(row => integrationNameFilters.some(name => (row.integrationName ?? '').toLowerCase().includes(name)));
+        }
       }
       if (!_.isEmpty(params.status)) {
         groupedRows = groupedRows.filter(row => row.status === params.status);

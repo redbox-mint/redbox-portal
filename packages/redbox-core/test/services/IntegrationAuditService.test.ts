@@ -800,6 +800,44 @@ describe('IntegrationAuditService', function () {
     expect(result.rows.map(row => row.traceId)).to.deep.equal(['trace-3', 'trace-1']);
   });
 
+  it('filters traces by comma-separated integration names', async function () {
+    mockStorageService.countIntegrationAudit.resolves(3);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'doi',
+        integrationAction: 'publishDoi',
+        status: 'success',
+        traceId: 'trace-doi',
+        spanId: 'span-doi',
+        startedAt: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        traceId: 'trace-figshare',
+        spanId: 'span-figshare',
+        startedAt: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'rda',
+        integrationAction: 'syncRda',
+        status: 'success',
+        traceId: 'trace-rda',
+        spanId: 'span-rda',
+        startedAt: '2026-03-03T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1', integrationName: 'doi,figshare', page: 1, pageSize: 10 } as any);
+
+    expect(result.total).to.equal(2);
+    expect(result.rows.map(row => row.integrationName).sort()).to.deep.equal(['doi', 'figshare']);
+  });
+
   describe('persistEntry - notification enqueue', function () {
     let mockStorageService: Record<string, sinon.SinonStub>;
     let mockQueueService: Record<string, sinon.SinonStub>;

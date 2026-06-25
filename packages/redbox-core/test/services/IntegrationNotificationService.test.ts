@@ -434,6 +434,44 @@ describe('IntegrationNotificationService', function () {
 
       expect(mockEmailService.buildFromTemplate.calledOnce).to.be.true;
       expect(mockEmailService.sendMessage.calledOnce).to.be.true;
+      const throttleState = mockCacheService.set.firstCall.args[1];
+      expect(throttleState).to.have.property('failedAt');
+      expect(throttleState).to.have.property('expiresAt');
+      expect(Date.parse(throttleState.expiresAt)).to.be.greaterThan(Date.parse(throttleState.failedAt));
+    });
+
+    it('ignores stale persisted throttle state after the configured window', async function () {
+      const cacheKey = `intnotif:brand-1:oid-1:figshare`;
+      mockCacheService.get = sinon.stub().callsFake((key: string) => {
+        if (key === cacheKey) {
+          return of({
+            failedAt: new Date(Date.now() - 301_000).toISOString(),
+            expiresAt: new Date(Date.now() - 1_000).toISOString(),
+          });
+        }
+        return of(null);
+      });
+
+      const job = {
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            brandId: 'brand-1',
+            integrationName: 'figshare',
+            integrationAction: 'syncRecordWithFigshare',
+            status: 'failed',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      await service.dispatch(job);
+
+      expect(mockEmailService.buildFromTemplate.calledOnce).to.be.true;
+      expect(mockEmailService.sendMessage.calledOnce).to.be.true;
+      expect(mockCacheService.set.firstCall.calledWith(cacheKey, null, 0)).to.be.true;
     });
 
     it('does not write throttle state when every channel send fails', async function () {

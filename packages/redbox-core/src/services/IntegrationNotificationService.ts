@@ -32,6 +32,10 @@ export interface IntegrationNotificationChannel {
 }
 
 type AnyRecord = Record<string, unknown>;
+type FailureThrottleState = {
+  failedAt?: string;
+  expiresAt?: string;
+};
 
 export namespace Services {
   export class IntegrationNotificationService extends services.Core.Service {
@@ -116,8 +120,11 @@ export namespace Services {
           }
 
           if (throttle.enabled && existingState != null) {
-            sails.log.verbose(`${this.logHeader} Suppressing repeated failure notification (cache key ${cacheKey}).`);
-            return;
+            if (this.isFailureThrottleActive(existingState, throttle.windowSeconds ?? 300)) {
+              sails.log.verbose(`${this.logHeader} Suppressing repeated failure notification (cache key ${cacheKey}).`);
+              return;
+            }
+            CacheService.set(cacheKey, null, 0);
           }
 
           const recordUrlBase = effectiveConfig.recordUrlBase as string | undefined;
@@ -125,7 +132,12 @@ export namespace Services {
           const delivered = await this.dispatchToChannels(payload, effectiveConfig);
 
           if (delivered) {
-            CacheService.set(cacheKey, { failedAt: new Date().toISOString() }, throttle.windowSeconds ?? 300);
+            const windowSeconds = throttle.windowSeconds ?? 300;
+            const failedAt = new Date();
+            CacheService.set(cacheKey, {
+              failedAt: failedAt.toISOString(),
+              expiresAt: new Date(failedAt.getTime() + windowSeconds * 1000).toISOString(),
+            }, windowSeconds);
           }
         } else if (data.status === IntegrationAuditStatus.success) {
           if (!recoveryAlerts) {
@@ -154,6 +166,24 @@ export namespace Services {
         sails.log.error(`${this.logHeader} Dispatch failed.`);
         sails.log.error(err);
       }
+    }
+
+    private isFailureThrottleActive(state: unknown, windowSeconds: number): boolean {
+      if (!_.isPlainObject(state)) {
+        return state != null;
+      }
+
+      const throttleState = state as FailureThrottleState;
+      if (typeof throttleState.expiresAt === 'string' && throttleState.expiresAt.trim() !== '') {
+        return Date.parse(throttleState.expiresAt) > Date.now();
+      }
+
+      if (typeof throttleState.failedAt === 'string' && throttleState.failedAt.trim() !== '') {
+        const failedAt = Date.parse(throttleState.failedAt);
+        return Number.isFinite(failedAt) && (failedAt + windowSeconds * 1000) > Date.now();
+      }
+
+      return true;
     }
 
     private buildPayload(entry: Partial<IntegrationAuditModel>, kind: 'failure' | 'recovery', recordUrlBase?: string): IntegrationNotificationPayload {
