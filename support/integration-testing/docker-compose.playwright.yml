@@ -2,7 +2,7 @@ networks:
   main:
 
 x-playwright-service: &playwright-service
-  image: mcr.microsoft.com/playwright:v1.60.0-noble
+  image: mcr.microsoft.com/playwright:v1.61.0-noble
   pull_policy: missing
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
@@ -122,7 +122,7 @@ services:
       retries: 30
       start_period: '60s'
   mongodb:
-    image: mongo:7.0.34-jammy
+    image: mongo:7.0.37-jammy
     pull_policy: missing
     ports:
       - '27017:27017'
@@ -156,7 +156,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.6
+    image: quay.io/keycloak/keycloak:26.6.3
     pull_policy: missing
     expose:
       - '8080'

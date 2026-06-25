@@ -15,6 +15,8 @@ import {
 import { evaluateBinding } from './bindings';
 
 const figshareLicenseCache = new Map<string, FigshareLicense[]>();
+const relatedMaterialTitleKeys = ['related_title', 'title', 'name'];
+const relatedMaterialIdentifierKeys = ['related_doi', 'doi', 'related_url', 'url', 'identifier'];
 
 function validationError(message: string): RBValidationError {
   return new RBValidationError({
@@ -80,8 +82,8 @@ async function resolveAuthors(client: FigshareClient, config: FigsharePublishing
       }
       const matches: FigshareInstitutionAccount[] = await client.searchInstitutionAccounts({ [rule.matchBy]: value });
       const firstMatch = matches[0];
-      if (firstMatch?.id != null && firstMatch.id !== '') {
-        resolvedAuthors.push({ id: firstMatch.id });
+      if (firstMatch?.user_id != null && firstMatch.user_id !== '') {
+        resolvedAuthors.push({ id: firstMatch.user_id });
         matched = true;
         break;
       }
@@ -111,6 +113,68 @@ function matchesLicense(matchBy: FigsharePublishingConfigData['metadata']['licen
   }
   const candidate = `${license.url ?? ''} ${license.name} ${license.value ?? ''}`.toLowerCase();
   return candidate.includes(normalized);
+}
+
+function normalizeCategorySourceCode(value: unknown): string {
+  const rawValue = String(value ?? '').trim();
+  if (rawValue === '') {
+    return '';
+  }
+  const withoutQuery = rawValue.split('?')[0] ?? rawValue;
+  const delimiterIndex = Math.max(withoutQuery.lastIndexOf('/'), withoutQuery.lastIndexOf('#'));
+  return delimiterIndex === -1 ? withoutQuery : withoutQuery.slice(delimiterIndex + 1);
+}
+
+function toRelatedMaterialItems(value: unknown): unknown[] {
+  if (value == null || value === '') {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+function isRelatedMaterialObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeRelatedMaterialValue(value: unknown): string {
+  if (value == null || Array.isArray(value)) {
+    return '';
+  }
+  return String(value).trim();
+}
+
+function extractRelatedMaterialValue(value: unknown, candidateKeys: string[]): string {
+  if (isRelatedMaterialObject(value)) {
+    for (const key of candidateKeys) {
+      const candidate = normalizeRelatedMaterialValue(_.get(value, key));
+      if (candidate !== '') {
+        return candidate;
+      }
+    }
+    return '';
+  }
+  return normalizeRelatedMaterialValue(value);
+}
+
+function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): NonNullable<FigshareArticlePayload['related_materials']> {
+  const titleItems = toRelatedMaterialItems(titleValue);
+  const identifierItems = toRelatedMaterialItems(identifierValue);
+  const itemCount = Math.max(titleItems.length, identifierItems.length);
+  const relatedMaterials: NonNullable<FigshareArticlePayload['related_materials']> = [];
+
+  for (let index = 0; index < itemCount; index += 1) {
+    const titleSource = titleItems[index];
+    const identifierSource = identifierItems[index];
+    const title = extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys)
+      || (isRelatedMaterialObject(identifierSource) ? extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys) : '');
+    const identifier = extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
+      || (isRelatedMaterialObject(titleSource) ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys) : '');
+    if (title !== '' && identifier !== '') {
+      relatedMaterials.push({ title, identifier });
+    }
+  }
+
+  return relatedMaterials;
 }
 
 async function resolveLicense(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel): Promise<unknown> {
@@ -193,9 +257,11 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   const categorySource = await evaluateBinding(config.metadata.categories.source, recordData);
   const sourceItems = Array.isArray(categorySource) ? categorySource : categorySource != null ? [categorySource] : [];
   const sourceCodes = sourceItems.filter(Boolean).map((item: unknown) =>
-    typeof item === 'object' && item != null
-      ? String((item as Record<string, unknown>).notation ?? (item as Record<string, unknown>).code ?? '')
-      : String(item)
+    normalizeCategorySourceCode(
+      typeof item === 'object' && item != null
+        ? (item as Record<string, unknown>).notation ?? (item as Record<string, unknown>).code ?? ''
+        : item
+    )
   );
   const mappedCategories = sourceCodes
     .map((sourceCode: string) =>
@@ -223,13 +289,12 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   }
 
   if (config.metadata.relatedResource) {
-    const relatedTitle = String(await evaluateBinding(config.metadata.relatedResource.title, recordData) ?? '').trim();
-    const relatedIdentifier = String(await evaluateBinding(config.metadata.relatedResource.doi, recordData) ?? '').trim();
-    if (relatedTitle !== '' && relatedIdentifier !== '') {
-      payload.related_materials = [{
-        title: relatedTitle,
-        identifier: relatedIdentifier
-      }];
+    const relatedMaterials = buildRelatedMaterials(
+      await evaluateBinding(config.metadata.relatedResource.title, recordData),
+      await evaluateBinding(config.metadata.relatedResource.doi, recordData)
+    );
+    if (relatedMaterials.length > 0) {
+      payload.related_materials = relatedMaterials;
     }
   }
 

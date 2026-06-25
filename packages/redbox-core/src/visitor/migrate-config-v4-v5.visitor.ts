@@ -3282,6 +3282,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       { key: 'polygon', mode: 'polygon' },
       { key: 'polyline', mode: 'linestring' },
       { key: 'rectangle', mode: 'rectangle' },
+      { key: 'circle', mode: 'circle' },
     ];
     for (const { key, mode } of modeMap) {
       const rawModeConfig = draw[key];
@@ -3291,14 +3292,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       enabledModes.push(mode);
     }
 
-    const hasLegacyEditConfig = Object.prototype.hasOwnProperty.call(drawOptions, 'edit');
-    if (hasLegacyEditConfig && drawOptions.edit !== false) {
+    // Enable select/edit tooling by default for migrated maps. OpenLayers/TerraDraw
+    // supports selecting, editing and deleting existing features, so migrated records
+    // should get the Select/Delete tooling unless the legacy config explicitly
+    // disabled editing via `edit: false`.
+    if (drawOptions.edit !== false) {
       enabledModes.push('select');
     }
 
     const deduped = [...new Set(enabledModes)];
     const invalidModes = deduped.filter(
-      mode => !['point', 'polygon', 'linestring', 'rectangle', 'select'].includes(mode)
+      mode => !['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'].includes(mode)
     );
     if (invalidModes.length > 0) {
       this.logger.warn(
@@ -3307,7 +3311,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     return deduped.filter(
       (mode): mode is MapDrawingMode =>
-        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'select'
+        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'circle' || mode === 'select'
     );
   }
 

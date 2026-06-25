@@ -13,7 +13,11 @@ export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
  * @param format The format to use.
  * @param sourceFormat The optional format of the value, if known.
  */
-export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: unknown): string {
+export function luxonFormatDate(
+  value: undefined | null | string | number | Date,
+  format: undefined | null | string,
+  sourceFormat?: null | string
+): string {
   if (value === undefined || value === null || value === '') {
     return '';
   }
@@ -80,7 +84,11 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
 
   // Register a function for formatting date time values.
-  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
+  // First param 'value': string, number, null, object (to allow Date)
+  // Second param 'format': string, null
+  // Third param 'sourceFormat': string, null, optional
+  // Return type: string
+  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
 
   // TODO: consider registering a function for translations
   // TODO: consider replacing regex with google's re2?
