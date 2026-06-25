@@ -19,6 +19,10 @@ export interface IntegrationStatusFieldComponentConfigFrame extends FieldCompone
     integrationNames?: string[];
     pollIntervalMs?: number;
     maxPollAttempts?: number;
+    // Duration (ms) after a save during which the panel rapid-polls for status,
+    // and the interval (ms) between those rapid polls.
+    rapidPollDurationMs?: number;
+    rapidPollIntervalMs?: number;
     heading?: string;
     technicalDetailRoles?: string[];
     // When true, the panel only renders while there is integration activity worth showing

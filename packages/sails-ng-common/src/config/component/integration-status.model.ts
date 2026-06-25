@@ -14,6 +14,8 @@ export class IntegrationStatusFieldComponentConfig extends FieldComponentConfig 
     integrationNames?: string[];
     pollIntervalMs = 5000;
     maxPollAttempts = 60;
+    rapidPollDurationMs = 3000;
+    rapidPollIntervalMs = 100;
     heading?: string;
     technicalDetailRoles: string[] = ['Admin', 'Librarians'];
     hideWhenInactive = false;

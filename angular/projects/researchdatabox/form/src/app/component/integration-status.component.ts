@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal, OnDestroy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { IntegrationStatusComponentName } from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusComponentName, IntegrationStatusFieldComponentConfigOutline } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
 import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationService, UserService } from '@researchdatabox/portal-ng-common';
 
@@ -209,49 +209,43 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   /** When set, rapid-poll at 100ms after each response instead of the normal interval. */
   private rapidPollUntil: number | null = null;
 
-  private get config(): Record<string, unknown> | undefined {
-    return this.componentDefinition?.config as Record<string, unknown> | undefined;
+  private get config(): IntegrationStatusFieldComponentConfigOutline | undefined {
+    return this.componentDefinition?.config as IntegrationStatusFieldComponentConfigOutline | undefined;
   }
 
   private get integrationNames(): string[] | undefined {
-    return this.config?.['integrationNames'] as string[] | undefined;
+    return this.config?.integrationNames;
   }
 
   private get pollIntervalMs(): number {
-    const val = this.config?.['pollIntervalMs'];
-    return typeof val === 'number' && Number.isFinite(val) ? val : 5000;
+    return this.config?.pollIntervalMs ?? 5000;
   }
 
   private get maxPollAttempts(): number {
-    const val = this.config?.['maxPollAttempts'];
-    return typeof val === 'number' && Number.isFinite(val) ? val : 60;
+    return this.config?.maxPollAttempts ?? 60;
   }
 
   private get rapidPollDurationMs(): number {
-    const val = this.config?.['rapidPollDurationMs'];
-    return typeof val === 'number' && Number.isFinite(val) ? val : 3000;
+    return this.config?.rapidPollDurationMs ?? 3000;
   }
 
   private get rapidPollIntervalMs(): number {
-    const val = this.config?.['rapidPollIntervalMs'];
-    return typeof val === 'number' && Number.isFinite(val) ? val : 100;
+    return this.config?.rapidPollIntervalMs ?? 100;
   }
 
   private get technicalDetailRoles(): string[] {
-    const val = this.config?.['technicalDetailRoles'];
-    return Array.isArray(val) ? val as string[] : ['Admin', 'Librarians'];
+    return this.config?.technicalDetailRoles ?? ['Admin', 'Librarians'];
   }
 
   // When true the idle/empty panel is suppressed for every role: the panel only renders
   // while there is integration activity worth showing (in-progress or failure), so the
   // privileged "always visible" summary is gated the same way as the researcher view.
   private get hideWhenInactive(): boolean {
-    return this.config?.['hideWhenInactive'] === true;
+    return this.config?.hideWhenInactive === true;
   }
 
   protected readonly headingText = computed(() => {
-    const h = this.config?.['heading'];
-    return typeof h === 'string' && h ? h : '@integration-status-heading';
+    return this.config?.heading || '@integration-status-heading';
   });
 
   // Privileged roles see the full integration summary. Researchers only see
