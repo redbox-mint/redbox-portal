@@ -869,7 +869,10 @@ export namespace Services {
       const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
 
       if (status === 'started') {
-        return this.isDoiUpdateAction(s.integrationAction)
+        // Treat the run as an update when the audit action says so, or when the
+        // record already has a DOI (a create-style trigger re-running over an
+        // existing DOI is really an update).
+        return (this.isDoiUpdateAction(s.integrationAction) || doiKnown)
           ? this.makeOutcome('doi', 'updating', 'in-progress')
           : this.makeOutcome('doi', 'in-progress', 'in-progress');
       }
