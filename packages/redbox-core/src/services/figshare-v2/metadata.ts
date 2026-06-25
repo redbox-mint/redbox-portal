@@ -319,5 +319,12 @@ export async function syncMetadataPhase(client: FigshareClient, config: Figshare
   if (articleId === '') {
     throw validationError(`Figshare articleId is required for syncMetadataPhase action '${plan.action}'`);
   }
-  return client.updateArticle(articleId, payload);
+  const article = await client.updateArticle(articleId, payload);
+  if (article.id != null && String(article.id).trim() !== '') {
+    return article;
+  }
+  return {
+    ...article,
+    id: articleId
+  };
 }

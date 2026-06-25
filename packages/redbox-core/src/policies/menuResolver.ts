@@ -1,9 +1,3 @@
-declare const NavigationService: {
-    resolveMenu(req: Sails.Req): Promise<unknown>;
-    resolveHomePanels(req: Sails.Req): Promise<unknown>;
-    resolveAdminSidebar(req: Sails.Req): Promise<unknown>;
-};
-
 /**
  * MenuResolver Policy
  *
