@@ -875,8 +875,8 @@ describe('FigshareService', function () {
   });
 
   it('agenda queue targets figshareservice jobs', function () {
-    const publishJob = agendaQueue.jobs.find((job) => job.name === 'Figshare-PublishAfterUpload-Service');
-    const cleanupJob = agendaQueue.jobs.find((job) => job.name === 'Figshare-UploadedFilesCleanup-Service');
+    const publishJob = agendaQueue.jobs['Figshare-PublishAfterUpload-Service'];
+    const cleanupJob = agendaQueue.jobs['Figshare-UploadedFilesCleanup-Service'];
 
     expect(publishJob?.fnName).to.equal('figshareservice.publishAfterUploadFilesJob');
     expect(cleanupJob?.fnName).to.equal('figshareservice.deleteFilesFromRedbox');

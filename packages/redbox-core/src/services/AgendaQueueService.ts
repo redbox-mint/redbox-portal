@@ -39,7 +39,7 @@
 
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
-import type { AgendaJobDefinition, AgendaQueueBackend, AgendaQueueOptions } from '../config/agendaQueue.config';
+import type { AgendaJobConfig, AgendaJobDefinition, AgendaJobsConfig, AgendaQueueBackend, AgendaQueueOptions } from '../config/agendaQueue.config';
 import type { Agenda, Job, JobsQueryOptions, JobsResult } from 'agenda';
 import type { Db } from '@agendajs/mongo-backend';
 
@@ -122,7 +122,7 @@ export namespace Services {
       this.queueInitialized = false;
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
-      const jobs = queueConfig.jobs;
+      const jobs = this.normalizeJobDefinitions(queueConfig.jobs);
       const dbManager = User.getDatastore().manager;
       this.defaultBackend = this.getDefaultBackend(queueOptions);
 
@@ -176,11 +176,23 @@ export namespace Services {
       }
     }
 
+    private normalizeJobDefinitions(jobs: AgendaJobsConfig | AgendaJobDefinition[] | undefined): AgendaJobDefinition[] {
+      if (_.isNil(jobs)) {
+        return [];
+      }
+      if (Array.isArray(jobs)) {
+        return jobs;
+      }
+      return Object.entries(jobs).map(([name, jobConfig]: [string, AgendaJobConfig]) => ({
+        name,
+        ...jobConfig
+      }));
+    }
+
     /*
-     define the jobs... structure is:
-     [
-      {
-         name: "jobName",
+     define the jobs... structure is a map keyed by job name:
+     {
+       "jobName": {
          options: {}, // optional, see https://github.com/agenda/agenda#defining-job-processors
          fnName: "Fully qualified path to service function name", // e.g. "AgendaQueueService.sampleFunctionToDemonstrateHowToDefineAJobFunction"
          // optional, if you want to in-line schedule a job, based on https://github.com/agenda/agenda#creating-jobs
@@ -190,8 +202,8 @@ export namespace Services {
            data: 'sample log string',
            // options: optional, see: https://github.com/agenda/agenda#repeateveryinterval-options
          }
-      }
-     ]
+       }
+     }
      */
     public defineJobs(jobs: AgendaJobDefinition[], ref: AgendaQueue = this): void {
       _.each(jobs, (job: AgendaJobDefinition) => {
