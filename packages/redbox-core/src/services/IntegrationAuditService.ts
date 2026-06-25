@@ -792,7 +792,8 @@ export namespace Services {
       const rowsByTrace = new Map<string, Record<string, unknown>[]>();
       allRows.forEach(row => {
         const integrationName = this.getString(row['integrationName']) ?? 'unknown';
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace`;
+        const fallbackTs = this.getTimestampValue(row as Record<string, unknown>, 'dateCreated', 'createdAt');
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace:${fallbackTs}`;
         const existing = rowsByTrace.get(traceId) ?? [];
         existing.push(row);
         rowsByTrace.set(traceId, existing);
@@ -834,7 +835,7 @@ export namespace Services {
       filteredTraces.forEach(trace => {
         const name = trace.integrationName;
         const existing = grouped.get(name);
-        if (!existing || (this.getRowSortTimestamp({ startedAt: trace.startedAt } as Record<string, unknown>) > this.getRowSortTimestamp({ startedAt: existing.startedAt } as Record<string, unknown>))) {
+        if (!existing || (this.getRowSortTimestamp(trace as unknown as Record<string, unknown>) > this.getRowSortTimestamp(existing as unknown as Record<string, unknown>))) {
           grouped.set(name, trace);
         }
       });
