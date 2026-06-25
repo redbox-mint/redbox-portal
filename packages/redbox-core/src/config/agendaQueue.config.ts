@@ -53,9 +53,7 @@ export interface AgendaJobOptions {
     priority?: 'lowest' | 'low' | 'normal' | 'high' | 'highest' | number;
 }
 
-export interface AgendaJobDefinition {
-    /** Unique job name */
-    name: string;
+export interface AgendaJobConfig {
     /** Function to execute: 'service.method' format */
     fnName: string;
     /** Queue backend override */
@@ -65,6 +63,13 @@ export interface AgendaJobDefinition {
     /** Schedule configuration */
     schedule?: AgendaJobSchedule;
 }
+
+export interface AgendaJobDefinition extends AgendaJobConfig {
+    /** Unique job name */
+    name: string;
+}
+
+export type AgendaJobsConfig = Record<string, AgendaJobConfig>;
 
 export interface AgendaQueueOptions {
     /** Default backend for jobs without an override */
@@ -84,8 +89,8 @@ export interface AgendaQueueOptions {
 export interface AgendaQueueConfig {
     /** Agenda options */
     options?: AgendaQueueOptions;
-    /** Job definitions */
-    jobs: AgendaJobDefinition[];
+    /** Job definitions, keyed by unique job name */
+    jobs: AgendaJobsConfig;
 }
 
 export const agendaQueue: AgendaQueueConfig = {
@@ -95,9 +100,8 @@ export const agendaQueue: AgendaQueueConfig = {
         collection: process.env['sails__agendaQueue_options_collection'] ?? 'agendaJobs',
         processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? '5 seconds',
     },
-    jobs: [
-        {
-            name: 'SolrSearchService-CreateOrUpdateIndex',
+    jobs: {
+        'SolrSearchService-CreateOrUpdateIndex': {
             fnName: 'solrsearchservice.solrAddOrUpdate',
             options: {
                 lockLifetime: 3 * 1000,
@@ -105,8 +109,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'SolrSearchService-DeleteFromIndex',
+        'SolrSearchService-DeleteFromIndex': {
             fnName: 'solrsearchservice.solrDelete',
             options: {
                 lockLifetime: 3 * 1000,
@@ -114,8 +117,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'RecordsService-StoreRecordAudit',
+        'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
             options: {
                 lockLifetime: 30 * 1000,
@@ -123,8 +125,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'IntegrationAuditService-StoreIntegrationAudit',
+        'IntegrationAuditService-StoreIntegrationAudit': {
             fnName: 'integrationauditservice.storeIntegrationAudit',
             options: {
                 lockLifetime: 30 * 1000,
@@ -132,26 +133,22 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'IntegrationNotificationService-Dispatch',
+        'IntegrationNotificationService-Dispatch': {
             fnName: 'integrationnotificationservice.dispatch',
             options: { lockLifetime: 30000, lockLimit: 1, concurrency: 1 }
         },
-        {
-            name: 'RaidMintRetryJob',
+        'RaidMintRetryJob': {
             fnName: 'raidservice.mintRetryJob',
 
         },
-        {
-            name: 'MoveCompletedJobsToHistory',
+        'MoveCompletedJobsToHistory': {
             fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
             schedule: {
                 method: 'every',
                 intervalOrSchedule: '5 minutes'
             }
         },
-        {
-            name: 'Figshare-PublishAfterUpload-Service',
+        'Figshare-PublishAfterUpload-Service': {
             fnName: 'figshareservice.publishAfterUploadFilesJob',
             options: {
                 lockLifetime: 120 * 1000,
@@ -159,8 +156,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'Figshare-UploadedFilesCleanup-Service',
+        'Figshare-UploadedFilesCleanup-Service': {
             fnName: 'figshareservice.deleteFilesFromRedbox',
             options: {
                 lockLifetime: 120 * 1000,
@@ -168,5 +164,5 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         }
-    ]
+    }
 };
