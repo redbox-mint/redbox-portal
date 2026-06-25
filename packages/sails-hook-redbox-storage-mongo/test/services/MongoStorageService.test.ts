@@ -632,14 +632,16 @@ describe('MongoStorageService', function () {
     expect(deleted).to.deep.equal({ items: ['deleted'], totalItems: 2 });
   });
 
+  // Paged find stub that serves the same batch to every export pass: returns the batch on the
+  // first page (skip 0) and an empty terminating batch afterwards. fetchAllRecords resets skip to
+  // 0 on each pass, so both the field-collection pass and the CSV pass receive identical data.
+  const pagedFind = (batch: any[]) =>
+    sandbox.stub().callsFake((_query: any, opts: any) => ({
+      toArray: async () => ((opts.skip ?? 0) === 0 ? batch : []),
+    }));
+
   it('exports plans as csv using streamed records', async function () {
-    const firstBatch = [{ redboxOid: '1', metadata: { title: 'One' } }];
-    const secondBatch: any[] = [];
-    service.recordCol = {
-      find: sandbox.stub().onFirstCall().returns({ toArray: sandbox.stub().resolves(firstBatch) }).onSecondCall().returns({
-        toArray: sandbox.stub().resolves(secondBatch),
-      }),
-    };
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'One' } }]) };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
     const chunks: Buffer[] = [];
@@ -648,6 +650,56 @@ describe('MongoStorageService', function () {
     }
 
     expect(Buffer.concat(chunks).toString('utf8')).to.include('redboxOid');
+    // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
+    // for the empty terminating batch.
+    expect(service.recordCol.find.callCount).to.equal(4);
+  });
+
+  it('includes csv columns from later records that the first record lacks', async function () {
+    service.recordCol = {
+      find: pagedFind([
+        { redboxOid: '1', metadata: { title: 'One' } },
+        { redboxOid: '2', metadata: { title: 'Two', extraField: 'present' } },
+      ]),
+    };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const output = Buffer.concat(chunks).toString('utf8');
+
+    // Header is the union of both records' flattened keys, so the extra column survives.
+    expect(output).to.include('metadata.extraField');
+    expect(output).to.include('present');
+    expect(output).to.include('"1"');
+    expect(output).to.include('"2"');
+  });
+
+  it('produces a header-only csv when there are no records', async function () {
+    service.recordCol = { find: pagedFind([]) };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    expect(Buffer.concat(chunks).toString('utf8')).to.be.a('string');
+  });
+
+  it('errors the export stream when the csv query fails', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().rejects(new Error('mongo query failed')) }),
+    };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    await expectRejects(async () => {
+      for await (const _chunk of exportStream) {
+        // drain
+      }
+    }, 'mongo query failed');
   });
 
   it('exports plans as json and iterates over multiple record pages', async function () {

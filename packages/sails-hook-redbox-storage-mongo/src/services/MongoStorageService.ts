@@ -8,6 +8,7 @@ import { DateTime } from 'luxon';
 import mongodb = require('mongodb');
 import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile } from 'mongodb';
 import stream = require('stream');
+import util = require('util');
 import { Transform, transforms } from 'json2csv';
 import {
   Services as services,
@@ -33,6 +34,7 @@ import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
 
 const { flatten } = transforms;
+const pipeline = util.promisify(stream.pipeline);
 
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
@@ -931,14 +933,42 @@ export namespace Services {
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
       if (format == 'csv') {
-        const opts = { transforms: [flatten()] };
-        const transformOpts = { objectMode: true };
-        const json2csv = new Transform(opts, transformOpts);
-        return stream.Readable.from(this.fetchAllRecords(query, options)).pipe(json2csv);
+        // CSV needs the complete column set before the header row, but streaming json2csv derives
+        // its columns from the first record only, dropping fields that appear in later records.
+        // Stream the export in two passes over Mongo, both bounded to a single page of records in
+        // memory: pass 1 collects the union of flattened column keys, pass 2 streams the CSV with
+        // that full field set so every record's columns are represented.
+        const passThrough = new stream.PassThrough();
+        (async () => {
+          try {
+            const fields = await this.collectCsvFields(query, options);
+            const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
+            await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), json2csv, passThrough);
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Failed to export records as CSV:`);
+            sails.log.error(err);
+            passThrough.destroy(err as Error);
+          }
+        })();
+        return passThrough;
       }
 
       const jsonTransformer = new ExportJSONTransformer(recType, modBefore, modAfter);
       return stream.Readable.from(this.fetchAllRecords(query, options, true)).pipe(jsonTransformer);
+    }
+
+    // First export pass: iterate every matching record and accumulate the union of flattened column
+    // keys (first-seen order) so the CSV header covers every record. A clone of options is used
+    // because fetchAllRecords mutates options.skip while paging.
+    private async collectCsvFields(query, options): Promise<string[]> {
+      const flattener = flatten();
+      const fields = new Set<string>();
+      for await (const record of this.fetchAllRecords(query, { ...options })) {
+        for (const field of Object.keys(flattener(record))) {
+          fields.add(field);
+        }
+      }
+      return [...fields];
     }
 
     protected getRoleNames(roles, brand) {
