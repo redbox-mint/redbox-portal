@@ -28,7 +28,7 @@ export interface IntegrationNotificationPayload {
 
 export interface IntegrationNotificationChannel {
   readonly type: string;
-  send(payload: IntegrationNotificationPayload, ctx: { recipients: string[]; channelConfig: Record<string, unknown> }): Promise<void>;
+  send(payload: IntegrationNotificationPayload, ctx: { recipients: string[]; channelConfig: Record<string, unknown> }): Promise<boolean>;
 }
 
 type AnyRecord = Record<string, unknown>;
@@ -122,9 +122,11 @@ export namespace Services {
 
           const recordUrlBase = effectiveConfig.recordUrlBase as string | undefined;
           const payload = this.buildPayload(data, 'failure', recordUrlBase);
-          await this.dispatchToChannels(payload, effectiveConfig);
+          const delivered = await this.dispatchToChannels(payload, effectiveConfig);
 
-          CacheService.set(cacheKey, { failedAt: new Date().toISOString() }, throttle.windowSeconds ?? 300);
+          if (delivered) {
+            CacheService.set(cacheKey, { failedAt: new Date().toISOString() }, throttle.windowSeconds ?? 300);
+          }
         } else if (data.status === IntegrationAuditStatus.success) {
           if (!recoveryAlerts) {
             return;
@@ -198,15 +200,16 @@ export namespace Services {
       };
     }
 
-    private async dispatchToChannels(payload: IntegrationNotificationPayload, config: Record<string, unknown>): Promise<void> {
+    private async dispatchToChannels(payload: IntegrationNotificationPayload, config: Record<string, unknown>): Promise<boolean> {
       const channels = (config.channels as Array<Record<string, unknown>>) ?? [];
       const defaultRecipients = (config.recipients as string[]) ?? [];
 
       if (channels.length === 0) {
         sails.log.warn(`${this.logHeader} No channels configured, notification not sent.`);
-        return;
+        return false;
       }
 
+      let delivered = false;
       const results = await Promise.allSettled(
         channels.map(async (channelCfg) => {
           if (channelCfg.enabled === false) {
@@ -227,7 +230,10 @@ export namespace Services {
           }
 
           try {
-            await channel.send(payload, { recipients, channelConfig: channelCfg });
+            const sent = await channel.send(payload, { recipients, channelConfig: channelCfg });
+            if (sent) {
+              delivered = true;
+            }
           } catch (err) {
             sails.log.error(`${this.logHeader} Channel '${channelType}' send failed.`);
             sails.log.error(err);
@@ -239,6 +245,8 @@ export namespace Services {
       if (rejected.length > 0) {
         sails.log.error(`${this.logHeader} ${rejected.length} channel(s) failed to send notification.`);
       }
+
+      return delivered;
     }
 
     private _channels: Map<string, IntegrationNotificationChannel> | null = null;
@@ -256,11 +264,11 @@ export namespace Services {
 export class EmailChannel implements IntegrationNotificationChannel {
   readonly type = 'email';
 
-  async send(payload: IntegrationNotificationPayload, ctx: { recipients: string[]; channelConfig: Record<string, unknown> }): Promise<void> {
+  async send(payload: IntegrationNotificationPayload, ctx: { recipients: string[]; channelConfig: Record<string, unknown> }): Promise<boolean> {
     const recipients = ctx.recipients;
     if (recipients.length === 0) {
       sails.log.warn(`EmailChannel:: No recipients, skipping notification.`);
-      return;
+      return false;
     }
 
     const templateName = (ctx.channelConfig?.template as string | undefined)
@@ -276,23 +284,26 @@ export class EmailChannel implements IntegrationNotificationChannel {
     } catch (err) {
       sails.log.error(`EmailChannel:: Failed to build template '${templateName}'.`);
       sails.log.error(err);
-      return;
+      return false;
     }
 
     if (buildResult['status'] !== 200) {
       sails.log.error(`EmailChannel:: Template '${templateName}' returned status ${buildResult['status']}.`);
-      return;
+      return false;
     }
 
     const body = buildResult['body'] as string;
     try {
-      const sendResult = await firstValueFrom(EmailService.sendMessage(recipients.join(','), body, subject));
+      const sendResult = await firstValueFrom(EmailService.sendMessage(recipients.join(','), body, subject)) as { success: boolean; msg: string };
       if (!sendResult.success) {
         sails.log.error(`EmailChannel:: Failed to send email: ${sendResult.msg}`);
+        return false;
       }
+      return true;
     } catch (err) {
       sails.log.error(`EmailChannel:: Email send failed.`);
       sails.log.error(err);
+      return false;
     }
   }
 }

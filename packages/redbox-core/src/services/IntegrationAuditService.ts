@@ -15,7 +15,6 @@ import { StorageService } from '../StorageService';
 
 type AnyRecord = Record<string, unknown>;
 
-
 export type IntegrationAuditContext = {
   redboxOid: string;
   brandId?: string;
@@ -422,6 +421,14 @@ export namespace Services {
       return this.getTimestampValue(row, 'startedAt', 'completedAt', 'dateCreated', 'updatedAt', 'createdAt');
     }
 
+    private getTraceFallbackIdentity(row: Record<string, unknown>, index: number): string {
+      const persistedId = this.getString(row['id']) ?? this.getString(row['_id']) ?? this.getString(row['auditId']);
+      if (typeof persistedId === 'string' && persistedId.trim().length > 0) {
+        return persistedId;
+      }
+      return `row-${index}`;
+    }
+
     private getStatusRank(status: unknown): number {
       switch (this.getString(status)?.toLowerCase()) {
         case IntegrationAuditStatus.failed:
@@ -700,8 +707,8 @@ export namespace Services {
         return { rows: [], total: 0 };
       }
       const traceRows = new Map<string, Record<string, unknown>[]>();
-      allRows.forEach(row => {
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace`;
+      allRows.forEach((row, index) => {
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace:${this.getTraceFallbackIdentity(row, index)}`;
         const existing = traceRows.get(traceId) ?? [];
         existing.push(row);
         traceRows.set(traceId, existing);
@@ -790,10 +797,10 @@ export namespace Services {
       }
 
       const rowsByTrace = new Map<string, Record<string, unknown>[]>();
-      allRows.forEach(row => {
+      allRows.forEach((row, index) => {
         const integrationName = this.getString(row['integrationName']) ?? 'unknown';
         const fallbackTs = this.getTimestampValue(row as Record<string, unknown>, 'dateCreated', 'createdAt');
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace:${fallbackTs}`;
+        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace:${fallbackTs}:${this.getTraceFallbackIdentity(row, index)}`;
         const existing = rowsByTrace.get(traceId) ?? [];
         existing.push(row);
         rowsByTrace.set(traceId, existing);

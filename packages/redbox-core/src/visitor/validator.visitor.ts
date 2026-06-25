@@ -119,10 +119,6 @@ declare const sails: {
     }
 };
 
-declare const DomSanitizerService: {
-    sanitizeWithProfile: (value: string, profile?: string) => string;
-};
-
 /**
  * Visit each form config component and run its validators.
  *

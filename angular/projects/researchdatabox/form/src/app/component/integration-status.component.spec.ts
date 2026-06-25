@@ -112,7 +112,6 @@ describe('IntegrationStatusComponent', () => {
     const eventBus = TestBed.inject(FormComponentEventBus);
 
     component.componentDefinition = componentConfig.component;
-    component.oid.set('test-oid');
     fixture.detectChanges();
 
     eventBus.publish(createFormSaveSuccessEvent({ oid: 'test-oid' }));
@@ -655,4 +654,5 @@ describe('IntegrationStatusComponent', () => {
 
     component.stopPolling();
   }));
+
 });

@@ -1,5 +1,5 @@
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { Services, EmailChannel, IntegrationNotificationPayload } from '../../src/services/IntegrationNotificationService';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
@@ -434,6 +434,31 @@ describe('IntegrationNotificationService', function () {
 
       expect(mockEmailService.buildFromTemplate.calledOnce).to.be.true;
       expect(mockEmailService.sendMessage.calledOnce).to.be.true;
+    });
+
+    it('does not write throttle state when every channel send fails', async function () {
+      mockEmailService.sendMessage = sinon.stub().returns(throwError(() => new Error('smtp down')));
+
+      const job = {
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            brandId: 'brand-1',
+            integrationName: 'figshare',
+            integrationAction: 'syncRecordWithFigshare',
+            status: 'failed',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      await service.dispatch(job);
+
+      expect(mockEmailService.buildFromTemplate.calledOnce).to.be.true;
+      expect(mockEmailService.sendMessage.calledOnce).to.be.true;
+      expect(mockCacheService.set.called).to.be.false;
     });
   });
 

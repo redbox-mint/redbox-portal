@@ -347,6 +347,21 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       this.hasError.set(false);
       this.recordSeenInProgress(response.integrations);
 
+      if (this.waitingForStatus()) {
+        const visibleAfterSave = response.integrations
+          .filter(integration => !integration.synthesized)
+          .map(integration => integration.integrationName);
+        if (visibleAfterSave.length > 0) {
+          this.seenInProgress.update(prev => {
+            const next = new Set(prev);
+            for (const name of visibleAfterSave) {
+              next.add(name);
+            }
+            return next;
+          });
+        }
+      }
+
       // Stop waiting once we have something to show
       if (response.integrations.length > 0) {
         this.waitingForStatus.set(false);

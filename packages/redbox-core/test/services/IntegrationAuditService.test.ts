@@ -610,6 +610,34 @@ describe('IntegrationAuditService', function () {
     expect(result).to.have.length(0);
   });
 
+  it('does not merge trace-less rows that share the same timestamp', async function () {
+    mockStorageService.countIntegrationAudit.resolves(2);
+    mockStorageService.getIntegrationAudit.resolves([
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'failed',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:01.000Z',
+      },
+      {
+        redboxOid: 'oid-1',
+        integrationName: 'figshare',
+        integrationAction: 'syncRecordWithFigshare',
+        status: 'success',
+        startedAt: '2026-03-01T00:00:00.000Z',
+        completedAt: '2026-03-01T00:00:02.000Z',
+      },
+    ]);
+
+    const result = await service.getTraceAuditLog({ oid: 'oid-1' } as any);
+
+    expect(result.total).to.equal(2);
+    expect(result.rows).to.have.length(2);
+    expect(result.rows.map(row => row.status).sort()).to.deep.equal(['failed', 'success']);
+  });
+
   it('extractKeyResult reads doi from responseSummary.data.id (DataCite JSON:API mint shape)', async function () {
     mockStorageService.countIntegrationAudit.resolves(2);
     mockStorageService.getIntegrationAudit.resolves([

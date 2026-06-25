@@ -2,11 +2,10 @@ import { Controllers as controllers } from '../CoreController';
 import { RecordsService } from '../RecordsService';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { FormAttributes } from '../waterline-models';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
 import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
-import type { IntegrationStatusRecordContext, IntegrationStatusSummary } from '../services/IntegrationAuditService';
+import type { IntegrationStatusRecordContext } from '../services/IntegrationAuditService';
 
 type AnyRecord = Record<string, unknown>;
 type AuditPath = Array<string | number>;
@@ -16,23 +15,6 @@ type FormRecordConsistencyChange = {
   original: unknown;
   changed: unknown;
 };
-type IntegrationAuditLogResult = {
-  rows: Array<{
-    id: string;
-    traceId: string;
-    status: string;
-    startedAt: string;
-    completedAt?: string;
-    durationMs?: number;
-    triggeredBy?: string;
-    integrationName?: string;
-    actions: string[];
-    eventCount: number;
-    rootSpanId?: string;
-    events: Array<Record<string, unknown>>;
-  }>;
-  total: number;
-};
 type AuditFieldChange = FormRecordConsistencyChange & {
   pathText: string;
   displayPath: string;
@@ -41,25 +23,6 @@ type AuditFieldChange = FormRecordConsistencyChange & {
 };
 
 const VALID_INTEGRATION_AUDIT_STATUSES = new Set<string>(Object.values(IntegrationAuditStatus));
-
-declare const BrandingService: {
-  getBrand(branding: string): BrandingModel;
-  getDefault(): BrandingModel;
-};
-declare const FormsService: {
-  getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null>;
-};
-declare const FormRecordConsistencyService: {
-  compareRecords(original: unknown, changed: unknown, path?: AuditPath): FormRecordConsistencyChange[];
-};
-declare const IntegrationAuditService: {
-  getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
-  getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]>;
-  getStatusSummaryWithOutcomes(params: IntegrationAuditParams, ctx: IntegrationStatusRecordContext): Promise<IntegrationStatusSummary[]>;
-};
-declare const TranslationService: {
-  t(key: string): string;
-};
 
 export namespace Controllers {
   export class RecordAudit extends controllers.Core.Controller {
@@ -530,11 +493,13 @@ export namespace Controllers {
           params.integrationName = integrationName;
         }
 
+        const brandConfig = sails.config.brandingAware(brand.name);
+        const citationDoiPath = String(_.get(brandConfig, 'doiPublishing.writeBack.citationDoiPath') ?? 'metadata.citation_doi');
+
         // Build record context for outcome derivation.
-        // Brand override of doiPublishing.writeBack.citationDoiPath is resolved from brand config (follow-up).
         const recordContext: IntegrationStatusRecordContext = {
           citationDoi: (() => {
-            const val = _.get(record, 'metadata.citation_doi');
+            const val = _.get(record, citationDoiPath);
             return typeof val === 'string' && val.trim() ? val.trim() : undefined;
           })(),
           workflowStage: (() => {

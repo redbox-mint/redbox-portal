@@ -1,16 +1,7 @@
 import { Controllers as controllers, IntegrationAuditParams, ListAPIResponse } from '../../index';
 import { IntegrationAuditStatus } from '../../model/storage/IntegrationAuditModel';
 
-type IntegrationAuditLogResult = {
-  rows: Record<string, unknown>[];
-  total: number;
-};
-
 const VALID_INTEGRATION_AUDIT_STATUSES = new Set<string>(Object.values(IntegrationAuditStatus));
-
-declare const IntegrationAuditService: {
-  getAuditLog: (params: IntegrationAuditParams) => Promise<IntegrationAuditLogResult>;
-};
 
 export namespace Controllers {
   export class IntegrationAudit extends controllers.Core.Controller {
