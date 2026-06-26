@@ -32,7 +32,8 @@ export async function evaluateBinding(binding: ValueBinding | undefined, record:
   }
 
   if (binding.kind === 'path') {
-    return _.get(record, binding.path, binding.defaultValue);
+    const value = _.get(record, binding.path, binding.defaultValue);
+    return value ?? binding.defaultValue;
   }
 
   if (binding.kind === 'handlebars') {

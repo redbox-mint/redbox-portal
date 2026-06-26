@@ -56,12 +56,13 @@ export class CancelButtonComponent extends ButtonBaseComponent {
     const redirectLocationRaw = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
     const redirectLocationRendered = await this.resolveRedirectLocation(redirectLocationRaw);
     const oid = String(this.getFormComponent.trimmedParams.oid() ?? "").trim();
-    const redirectLocation = this.formComponent.resolveRedirectLocation(redirectLocationRendered ?? '', oid);
+    const redirectLocationCandidate = String(redirectLocationRendered || redirectLocationRaw).trim();
+    const redirectLocation = this.formComponent.resolveRedirectLocation(redirectLocationCandidate, oid).trim();
     this.eventBus.publish(
       createFormRedirectRequestedEvent({
         // if there is a redirectLocation, use that, otherwise go to the previous page.
-        historyDelta: redirectLocationRendered ? undefined : -1,
-        redirectLocation: redirectLocation,
+        historyDelta: redirectLocation ? undefined : -1,
+        redirectLocation: redirectLocation || undefined,
         redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
         sourceId: this.name ?? undefined,
       })

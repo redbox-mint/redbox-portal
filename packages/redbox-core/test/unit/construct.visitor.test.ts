@@ -521,6 +521,16 @@ describe("Construct Visitor", async () => {
                             redirectLocation: '/@branding/@portal/dashboard/dataRecord',
                           }
                         }
+                      },
+                      {
+                        name: "cancel_button",
+                        component: {
+                          class: "CancelButtonComponent",
+                          config: {
+                            redirectDelaySeconds: 3,
+                            redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                          }
+                        }
                       }
                     ]
                 }
@@ -537,6 +547,43 @@ describe("Construct Visitor", async () => {
               closeOnSave: true,
               redirectDelaySeconds: 5,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+            expect(actual.componentDefinitions?.[2]?.component?.class).to.equal("CancelButtonComponent");
+            expect(actual.componentDefinitions?.[2]?.component?.config).to.containSubset({
+              redirectDelaySeconds: 3,
+              redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+        });
+
+        it("should include integration status properties", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                      {
+                        name: "integration_status",
+                        component: {
+                          class: "IntegrationStatusComponent",
+                          config: {
+                            integrationNames: ["doi"],
+                            pollIntervalMs: 5000,
+                            maxPollAttempts: 60,
+                            hideWhenInactive: true,
+                          }
+                        }
+                      }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("IntegrationStatusComponent");
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset({
+              integrationNames: ["doi"],
+              pollIntervalMs: 5000,
+              maxPollAttempts: 60,
+              hideWhenInactive: true,
             });
         });
     });

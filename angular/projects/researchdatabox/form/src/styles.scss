@@ -29,6 +29,38 @@
   vertical-align: middle;
 }
 
+/* Integration status reuses the global ".panel" theme so it matches the other admin
+   panels (e.g. the manage-roles page). Only minor tweaks are layered on top. */
+.rb-integration-status.panel {
+  margin-bottom: 1rem;
+}
+
+.rb-integration-status .rb-int-badge {
+  min-width: 7.5em;
+  justify-content: center;
+}
+
+.rb-integration-status .rb-int-meta {
+  font-size: 0.85rem;
+}
+
+/* Collapse toggle sits in the (branded) panel heading; the global theme already colours
+   .panel-heading .btn, so we only need layout tweaks here. */
+.rb-integration-status .rb-int-collapse {
+  line-height: 1;
+}
+
+.rb-integration-status .rb-int-technical-toggle {
+  border-color: var(--bs-border-color-translucent, rgba(0, 0, 0, 0.08));
+}
+
+/* Dimmed backdrop for in-app modal dialogs.
+   Defined here (external stylesheet) instead of an inline style attribute,
+   because the portal CSP style-src does not allow inline styles. */
+.rb-form-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 .rb-form-host .fa,
 .rb-form-host .fas,
 .rb-form-host .far,

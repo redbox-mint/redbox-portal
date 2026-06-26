@@ -6,13 +6,12 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
   template: `
     @if (dialog()) {
       <div
-        class="modal fade show d-block"
+        class="modal fade show d-block rb-form-modal-overlay"
         tabindex="-1"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirmationDialogTitle"
         aria-describedby="confirmationDialogMessage"
-        style="background-color: rgba(0,0,0,0.5)"
         (keydown.escape)="cancel()"
       >
         <div class="modal-dialog" role="document">

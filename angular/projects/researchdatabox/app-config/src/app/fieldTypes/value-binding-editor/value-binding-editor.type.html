@@ -38,21 +38,19 @@
   <!-- Expanded editor body -->
   @if (!collapsed) {
   <div class="card-body pt-2 pb-3 px-3 border-top">
-    @if (showAdvanced || kind !== 'path') {
     <div class="mb-2">
       <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-kind'">Binding Type</label>
       <select
         class="form-select form-select-sm"
         [attr.id]="fieldKey + '-kind'"
-        [value]="kind"
         (change)="updateField('kind', $any($event.target).value)"
       >
         @for (bindingKind of bindingKinds; track bindingKind) {
-        <option [value]="bindingKind">{{ bindingKind }}</option>
+        <option [value]="bindingKind" [selected]="bindingKind === kind">{{ bindingKind }}</option>
         }
       </select>
     </div>
-    } @if (kind === 'path') {
+    @if (kind === 'path') {
     <div class="mb-2">
       <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-path'">Record Path</label>
       <input
@@ -98,14 +96,6 @@
         (input)="updateField('defaultValue', $any($event.target).value)"
       />
     </div>
-
-    @if (!showAdvanced && kind === 'path') {
-    <div class="text-end mt-1">
-      <button type="button" class="btn btn-link btn-sm text-muted p-0" (click)="toggleAdvanced()">
-        <i class="fa fa-cog me-1"></i>Advanced
-      </button>
-    </div>
-    }
   </div>
   }
 </div>

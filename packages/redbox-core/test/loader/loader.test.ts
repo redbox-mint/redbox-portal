@@ -330,6 +330,63 @@ describe('redbox-loader', function () {
             )).to.be.true;
             expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
         });
+
+        it('should merge agenda queue jobs as a map keyed by name', function () {
+            const merged = redboxLoader.mergeRedboxConfig('agendaQueue', {
+                jobs: {
+                    'IntegrationAuditService-StoreIntegrationAudit': {
+                        fnName: 'integrationauditservice.storeIntegrationAudit',
+                        options: { lockLifetime: 30000 }
+                    },
+                    'MoveCompletedJobsToHistory': {
+                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '5 minutes'
+                        }
+                    }
+                }
+            }, {
+                jobs: {
+                    'MoveCompletedJobsToHistory': {
+                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '5 minutes'
+                        }
+                    },
+                    'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties': {
+                        fnName: 'figshareservice.transitionRecordWorkflowFromFigshareArticlePropertiesJob',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '50 minutes'
+                        }
+                    },
+                    'IntegrationAuditService-StoreIntegrationAudit': {
+                        fnName: 'integrationauditservice.storeIntegrationAudit',
+                        options: { concurrency: 1 }
+                    }
+                }
+            }) as { jobs: Record<string, Record<string, unknown>> };
+
+            const auditJob = merged.jobs['IntegrationAuditService-StoreIntegrationAudit'];
+            const moveHistoryJob = merged.jobs['MoveCompletedJobsToHistory'];
+            expect(Object.keys(merged.jobs)).to.include.members([
+                'IntegrationAuditService-StoreIntegrationAudit',
+                'MoveCompletedJobsToHistory',
+                'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties'
+            ]);
+            expect(auditJob).to.not.have.property('schedule');
+            expect(auditJob?.fnName).to.equal('integrationauditservice.storeIntegrationAudit');
+            expect(auditJob?.options).to.deep.equal({
+                lockLifetime: 30000,
+                concurrency: 1
+            });
+            expect(moveHistoryJob?.schedule).to.deep.equal({
+                method: 'every',
+                intervalOrSchedule: '5 minutes'
+            });
+        });
     });
 
     describe('generateBootstrapShim', function () {

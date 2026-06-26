@@ -25,6 +25,8 @@ import {
   SuggestedValidationSummaryFormComponentDefinitionOutline,
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -115,10 +117,6 @@ declare const sails: {
             }
         }
     }
-};
-
-declare const DomSanitizerService: {
-    sanitizeWithProfile: (value: string, profile?: string) => string;
 };
 
 /**
@@ -258,6 +256,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
+    }
+
+    /* Integration Status */
+
+    async visitIntegrationStatusFieldComponentDefinition(_item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    }
+
+    async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
         await this.acceptFormComponentDefinition(item);
     }
 
@@ -608,7 +615,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
         const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
-        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'];
         const invalidModes = enabledModes.filter(mode => !validModes.includes(mode));
         if (invalidModes.length > 0) {
             configErrors.push({
