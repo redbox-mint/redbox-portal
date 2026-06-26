@@ -971,6 +971,12 @@ describe('Migrate v4 to v5 Visitor', async () => {
   it('defines lookup-only contributor reusable fields with required selection and readonly email', async function () {
     const lookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only'];
     expect(lookupOnlyFields).to.have.length(3);
+    const compactLookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only-name-email'];
+    expect(compactLookupOnlyFields.map(field => field.name)).to.deep.equal([
+      'standard_contributor_field_name',
+      'standard_contributor_field_email',
+      'standard_contributor_field_orcid',
+    ]);
 
     const nameField = lookupOnlyFields[0];
     if (nameField.component?.class === 'ReusableComponent') {

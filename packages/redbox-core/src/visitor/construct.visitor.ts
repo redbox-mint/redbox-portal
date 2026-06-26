@@ -334,6 +334,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusComponentName,
+  IntegrationStatusFieldComponentDefinitionFrame,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
   isTypeFormComponentDefinitionName,
@@ -785,6 +792,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(currentData, IntegrationStatusComponentName)) {
+      throw new Error(
+        `Invalid ${IntegrationStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new IntegrationStatusFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('integrationNames', item.config, config);
+    this.sharedProps.setPropOverride('pollIntervalMs', item.config, config);
+    this.sharedProps.setPropOverride('maxPollAttempts', item.config, config);
+    this.sharedProps.setPropOverride('heading', item.config, config);
+    this.sharedProps.setPropOverride('technicalDetailRoles', item.config, config);
+    this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
   /* Group */
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
@@ -1181,6 +1215,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {

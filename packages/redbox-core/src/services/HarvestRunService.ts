@@ -33,10 +33,6 @@ import '../waterline-models/types';
 
 declare const RecordsService: RecordsServiceContract;
 
-declare const WorkflowStepsService: {
-  get: (recordTypeModel: RecordTypeModel, workflowStage: string) => Observable<unknown>;
-};
-
 type AnyRecord = Record<string, unknown>;
 type RecordTypeWithName = RecordTypeModel & { name?: string };
 type HarvestRunRow = HarvestRunAttributes & { id?: string };

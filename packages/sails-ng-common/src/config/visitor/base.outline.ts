@@ -53,6 +53,10 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '../component/save-status.outline';
 import {
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '../component/integration-status.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
@@ -256,6 +260,12 @@ export interface FormConfigVisitorOutline {
   visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void>;
 
   visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void>;
+
+  /* Integration Status  */
+
+  visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void>;
+
+  visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void>;
 
   /* Cancel Button  */
 

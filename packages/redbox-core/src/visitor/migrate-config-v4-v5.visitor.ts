@@ -179,6 +179,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusComponentName,
+  IntegrationStatusFieldComponentDefinitionFrame,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   CheckboxTreeComponentName,
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
@@ -1172,6 +1179,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new IntegrationStatusFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
