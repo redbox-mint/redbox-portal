@@ -4,7 +4,7 @@ export function evaluate(key, context, extra) {
     key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
 
     // Provide libraries as wrapper functions from extra.
-    const handlebars = typeof extra?.libraries?.handlebars?.template === "function"
+    const handlebars = typeof extra?.libraries?.handlebars === "function"
         ? extra?.libraries?.handlebars
         : () => { throw new Error("Handlebars instance not provided in extra.libraries.handlebars"); };
     const jsonata = typeof extra?.libraries?.jsonata === "function"

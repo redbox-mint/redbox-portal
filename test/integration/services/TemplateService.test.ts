@@ -1,3 +1,9 @@
+import {
+  arrayStartsWithArray,
+  DynamicScriptResponse,
+  DynamicScriptResponseEvaluateExtra
+} from "@researchdatabox/sails-ng-common";
+
 const jsonataHelpers = require("../../../packages/sails-ng-common/dist/src/jsonata-helpers");
 const handlebarsHelpers = require("../../../packages/sails-ng-common/dist/src/handlebars-helpers");
 
@@ -37,7 +43,10 @@ describe('The TemplateService', function () {
     describe('Handlebars template', function () {
         const cases = [
             {
-                args: { template: "Handlebars <b>{{doesWhat}}</b> precompiled!", context: { doesWhat: "testing" } },
+                args: {
+                  template: "Handlebars <b>{{doesWhat}}</b> precompiled!",
+                  context: { doesWhat: "testing" }
+                },
                 expected: "Handlebars <b>testing</b> precompiled!",
             }
         ];
@@ -60,9 +69,14 @@ describe('The TemplateService', function () {
         });
     });
     describe('compile mapping', function () {
-        const extraHandlebars = {libraries: { handlebars: handlebarsHelpers.handlebarsTemplate }};
-        const extraJsonata = {libraries: {jsonata: jsonataHelpers.jsonataDecodeCompile}};
-        const extraHandlebarsAndJsonata = {libraries: { handlebars: handlebarsHelpers.handlebarsTemplate, jsonata: jsonataHelpers.jsonataDecodeCompile}};
+      const extraHandlebars = {libraries: {handlebars: handlebarsHelpers.handlebarsTemplate}};
+      const extraJsonata = {libraries: {jsonata: jsonataHelpers.jsonataDecodeCompile}};
+      const extraHandlebarsAndJsonata = {
+        libraries: {
+          handlebars: handlebarsHelpers.handlebarsTemplate,
+          jsonata: jsonataHelpers.jsonataDecodeCompile
+        }
+      };
         const cases = [
             {
                 args: { inputs: [], contexts: [] },
@@ -146,11 +160,18 @@ describe('The TemplateService', function () {
                 const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
                 const clientString = ejs.render(templateContent, { entries: clientMapping });
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
-                    const clientReady = require(path);
+                    const clientReady = require(path) as DynamicScriptResponse;
                     for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
+                        const input = args.inputs.find(i => arrayStartsWithArray(i.key, context.key));
                         const expectedValue = expected[i];
-                        const extra = context.extra ?? {};
+                        const extra: DynamicScriptResponseEvaluateExtra = context.extra ?? {};
+                        if (input?.kind === "handlebars") {
+                          expect(typeof extra.libraries?.handlebars).to.eql('function');
+                        }
+                        if (input?.kind === "jsonata") {
+                          expect(typeof extra.libraries?.jsonata).to.eql('function');
+                        }
                         try {
                           const result = await clientReady.evaluate(context.key, context.context, extra);
                           expect(result).to.eql(expectedValue);

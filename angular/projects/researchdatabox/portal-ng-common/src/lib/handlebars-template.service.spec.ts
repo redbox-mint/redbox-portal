@@ -111,8 +111,8 @@ describe('HandlebarsTemplateService', () => {
       const mockModule = {
         evaluate: jasmine.createSpy('evaluate').and.callFake((keyParts, context, options) => {
           // Use the Handlebars instance passed from the service (runtime)
-          const hbs = options.libraries.Handlebars;
-          const template = hbs.template(templateSpec);
+          const hbs = options.libraries.handlebars;
+          const template = hbs(templateSpec);
           return template(context);
         }),
       };
