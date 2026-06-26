@@ -21,15 +21,14 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
 import type { ReportDefinition } from '../config/report.config';
-import { NamedQueryConfig } from '../services/NamedQueryService';
+import { NamedQueryConfig } from './NamedQueryService';
 import { ReportModel } from '../model/storage/ReportModel';
 import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { ReportDto, TemplateCompileInput, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import {handlebarsCompile, ReportDto, TemplateCompileInput} from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
-import Handlebars from "handlebars";
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
@@ -106,8 +105,6 @@ export namespace Services {
     searchService!: SearchService;
     // Cache for compiled Handlebars templates (keyed by template string)
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
-    // Flag to track if helpers are registered
-    private helpersRegistered: boolean = false;
 
     protected override _exportedMethods: string[] = [
       'bootstrapData',
@@ -633,25 +630,12 @@ export namespace Services {
     }
 
     /**
-     * Ensure shared Handlebars helpers are registered.
-     */
-    private ensureHelpersRegistered() {
-      if (!this.helpersRegistered) {
-        registerSharedHandlebarsHelpers(Handlebars);
-        this.helpersRegistered = true;
-        sails.log.verbose('ReportsService: Registered shared Handlebars helpers');
-      }
-    }
-
-    /**
      * Get or compile a Handlebars template.
      * Uses a cache to avoid recompiling the same template multiple times.
      */
     private getCompiledTemplate(templateString: string): HandlebarsTemplateDelegate {
-      this.ensureHelpersRegistered();
-
       if (!this.compiledTemplates.has(templateString)) {
-        const compiled = Handlebars.compile(templateString);
+        const compiled = handlebarsCompile(templateString);
         this.compiledTemplates.set(templateString, compiled);
       }
       return this.compiledTemplates.get(templateString)!;
@@ -660,7 +644,7 @@ export namespace Services {
     /**
      * Run a Handlebars template with the provided data context.
      * This replaces the old lodash template execution.
-     * 
+     *
      * @param data The data context for the template
      * @param config Configuration object containing the template string
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
@@ -689,10 +673,10 @@ export namespace Services {
     /**
      * Extract templates from report configuration for pre-compilation.
      * Converts report column templates to TemplateCompileInput format for Handlebars pre-compilation.
-     * 
+     *
      * Key structure: [reportName, 'columns', columnIndex, templateKind]
      * where templateKind is 'render' for UI display or 'export' for CSV export
-     * 
+     *
      * @param brand The branding model
      * @param reportName The name of the report
      * @returns Array of templates ready for compilation

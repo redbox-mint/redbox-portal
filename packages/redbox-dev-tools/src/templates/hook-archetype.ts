@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import Handlebars from 'handlebars';
+import {handlebarsCompile, handlebarsInstance} from "@researchdatabox/sails-ng-common";
 
-Handlebars.registerHelper('json', (value: unknown) => JSON.stringify(value));
+handlebarsInstance().registerHelper('json', (value: unknown) => JSON.stringify(value));
 
 export interface HookArchetypeOptions {
   cwd: string;
@@ -73,7 +73,7 @@ function walkTemplateFiles(dir: string): string[] {
 
 function renderTemplate(sourcePath: string, context: HookTemplateContext): string {
   const templateSource = fs.readFileSync(sourcePath, 'utf8');
-  const template = Handlebars.compile(templateSource, { noEscape: true });
+  const template = handlebarsCompile(templateSource, { noEscape: true });
   return template(context);
 }
 

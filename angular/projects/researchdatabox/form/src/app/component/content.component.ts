@@ -6,7 +6,8 @@ import {
   ContentComponentName,
   ContentFieldComponentConfig,
   FormFieldComponentStatus,
-  guessType
+  guessType,
+  handlebarsTemplate
 } from "@researchdatabox/sails-ng-common";
 import {FormService} from "../form.service";
 
@@ -95,7 +96,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
             workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
             outputFormat: config?.outputFormat,
           };
-          const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
+          const extra = {libraries: {handlebars: handlebarsTemplate}};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
         const initialForm = this.getFormComponent.form;

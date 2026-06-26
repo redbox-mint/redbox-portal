@@ -85,28 +85,6 @@ describe('TemplateService', function () {
       // Call twice to test caching
       TemplateService.buildClientHandlebars('{{name}}');
       TemplateService.buildClientHandlebars('{{other}}');
-
-      // Should not throw, helpers registered once
-      expect(TemplateService.helpersRegistered).to.be.true;
-    });
-  });
-
-  describe('buildServerHandlebars', function () {
-    it('should compile a valid Handlebars template', function () {
-      const template = '{{firstName}} {{lastName}}';
-
-      const result = TemplateService.buildServerHandlebars(template);
-
-      expect(result).to.be.a('function');
-    });
-
-    it('should execute the compiled template', function () {
-      const template = '{{firstName}} {{lastName}}';
-
-      const compiled = TemplateService.buildServerHandlebars(template);
-      const output = compiled({ firstName: 'John', lastName: 'Doe' });
-
-      expect(output).to.equal('John Doe');
     });
   });
 
@@ -167,7 +145,6 @@ describe('TemplateService', function () {
       expect(exported).to.have.property('buildClientMapping');
       expect(exported).to.have.property('buildClientJsonata');
       expect(exported).to.have.property('buildClientHandlebars');
-      expect(exported).to.have.property('buildServerHandlebars');
       expect(exported).to.have.property('buildKeyString');
     });
   });

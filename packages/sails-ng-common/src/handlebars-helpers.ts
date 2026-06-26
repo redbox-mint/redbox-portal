@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { DateTime } from 'luxon';
+import Handlebars from 'handlebars';
 import {
   get as _get,
   isEmpty as _isEmpty,
@@ -28,6 +29,7 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
+import {normaliseVisual} from "./config/names/naming-helpers";
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -269,7 +271,7 @@ function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding:
  * Preset mapping for locale-aware date formatting.
  * Maps preset names to Luxon's built-in format options.
  */
-export const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
+const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
   DATE_SHORT: DateTime.DATE_SHORT,
   DATE_MED: DateTime.DATE_MED,
   DATE_MED_WITH_WEEKDAY: DateTime.DATE_MED_WITH_WEEKDAY,
@@ -740,26 +742,63 @@ export const handlebarsHelperDefinitions = {
 };
 
 /**
- * Type definition for the Handlebars helper functions.
+ * A class to encapsulate the Handlebars registerHelper calls
+ * and ensure they happen exactly once.
  */
-export type HandlebarsHelperDefinitions = typeof handlebarsHelperDefinitions;
+class HandlebarsRegisterHelper {
+  static #isSetupDone:boolean = false;
+  constructor() {
+    if (HandlebarsRegisterHelper.#isSetupDone) {
+      return;
+    }
 
-/**
- * Register all shared helpers with a Handlebars instance.
- *
- * @param Handlebars The Handlebars instance to register helpers on
- */
-export function registerSharedHandlebarsHelpers(Handlebars: {
-  registerHelper: (name: string, fn: (...args: any[]) => any) => void;
-}): void {
-  for (const [name, fn] of Object.entries(handlebarsHelperDefinitions)) {
-    Handlebars.registerHelper(name, fn);
+    for (const [name, fn] of Object.entries(handlebarsHelperDefinitions)) {
+      Handlebars.registerHelper(name, fn);
+    }
+
+    HandlebarsRegisterHelper.#isSetupDone = true;
+  }
+
+  get instance() {
+    return Handlebars;
   }
 }
 
 /**
- * Get the names of all shared helpers.
+ * Register Handlebars helpers for use in dashboard and report templates.
+ * Uses shared helpers from sails-ng-common for consistency between server and client.
  */
-export function getSharedHandlebarsHelperNames(): string[] {
-  return Object.keys(handlebarsHelperDefinitions);
+export function handlebarsInstance() {
+  return new HandlebarsRegisterHelper().instance;
+}
+
+/**
+ * Pre-compile a handlebars template.
+ * @param input The template to compile.
+ * @param options The compile options.
+ */
+export function handlebarsPrecompile(input: unknown, options?: PrecompileOptions): TemplateSpecification {
+  const instance = handlebarsInstance();
+  const value = normaliseVisual(input);
+  return instance.precompile(value, options);
+}
+
+/**
+ * Get a compiled handlebars template.
+ * @param input The template to compile.
+ * @param options The compile options.
+ */
+export function handlebarsCompile(input: unknown, options?: CompileOptions): HandlebarsTemplateDelegate {
+  const instance = handlebarsInstance();
+  const value = normaliseVisual(input);
+  return instance.compile(value, options);
+}
+
+/**
+ * Render a pre-compiled handlebars template.
+ * @param precompilation The pre-compiled template.
+ */
+export function handlebarsTemplate(precompilation: TemplateSpecification): HandlebarsTemplateDelegate {
+  const instance = handlebarsInstance();
+  return instance.template(precompilation);
 }
