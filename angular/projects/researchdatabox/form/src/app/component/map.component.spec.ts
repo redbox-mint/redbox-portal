@@ -24,6 +24,7 @@ describe("MapComponent", () => {
   let fakeSelectModeOptions: unknown[];
   let fakeModeInstances: any[];
   let fakeXYZInstances: any[];
+  let fakeMapInteractions: any[];
 
   function appendOpenLayersCanvas(target: HTMLElement | undefined): void {
     if (!target?.appendChild || target.querySelector("canvas")) {
@@ -101,6 +102,16 @@ describe("MapComponent", () => {
     fakeSelectModeOptions = [];
     fakeModeInstances = [];
     fakeXYZInstances = [];
+    fakeMapInteractions = [
+      {
+        getActive: jasmine.createSpy("getActive").and.returnValue(true),
+        setActive: jasmine.createSpy("setActive")
+      },
+      {
+        getActive: jasmine.createSpy("getActive").and.returnValue(false),
+        setActive: jasmine.createSpy("setActive")
+      }
+    ];
     fakeMapCreatesCanvas = true;
     fakeMapCreatesCanvasOnRenderSync = false;
     fakeMapTarget = undefined;
@@ -121,7 +132,10 @@ describe("MapComponent", () => {
       setTarget: jasmine.createSpy("setTarget"),
       addLayer: jasmine.createSpy("addLayer"),
       removeLayer: jasmine.createSpy("removeLayer"),
-      getView: jasmine.createSpy("getView").and.returnValue(fakeView)
+      getView: jasmine.createSpy("getView").and.returnValue(fakeView),
+      getInteractions: jasmine.createSpy("getInteractions").and.returnValue({
+        getArray: () => fakeMapInteractions
+      })
     };
 
     fakeVectorLayer = {
@@ -896,6 +910,44 @@ describe("MapComponent", () => {
       modeName: "circle",
       options: {drawInteraction: "click-drag"}
     }));
+  });
+
+  it("disables map interactions while click-drag shape modes are active", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["rectangle", "circle", "point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+
+    mapComponent.setDrawMode("point");
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(true);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+
+    mapComponent.setDrawMode("circle");
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
   });
 
   it("does not add select/delete tooling when select mode is disabled", async () => {

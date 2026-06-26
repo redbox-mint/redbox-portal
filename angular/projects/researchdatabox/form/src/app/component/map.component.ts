@@ -13,6 +13,7 @@ import {
 // so a record without a map field never pays the cost of OpenLayers, terra-draw,
 // terra-draw-openlayers-adapter or @tmcw/togeojson.
 import type OLMap from "ol/Map.js";
+import type OLInteraction from "ol/interaction/Interaction.js";
 import type OLView from "ol/View.js";
 import type OLTileLayer from "ol/layer/Tile.js";
 import type OLVectorLayer from "ol/layer/Vector.js";
@@ -452,6 +453,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private featureLayer?: OLVectorLayer<OLVectorSource>;
   private vectorSource?: OLVectorSource;
   private mapDeps?: MapDependencies;
+  private mapInteractionStates = new Map<OLInteraction, boolean>();
   private _destroyed = false;
   private drawInitialisePending = false;
   private drawReadyObserver?: MutationObserver;
@@ -570,6 +572,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.drawReadyObserver?.disconnect();
     this.drawReadyObserver = undefined;
     try {
+      this.restoreMapInteractions();
       this.draw?.stop?.();
     } catch {
       // Ignore best-effort cleanup errors for third-party draw internals.
@@ -626,8 +629,13 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
+    if (disabled) {
+      this.restoreMapInteractions();
+      return;
+    }
     if (!disabled) {
       this.ensureDrawInitialised();
+      this.updateMapInteractionsForActiveDrawMode();
     }
   }
 
@@ -851,6 +859,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+    this.updateMapInteractionsForActiveDrawMode();
   }
 
   public hasFeatures(): boolean {
@@ -1033,6 +1042,44 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return;
     }
     this.draw?.setMode?.(initialMode);
+    this.updateMapInteractionsForActiveDrawMode();
+  }
+
+  private updateMapInteractionsForActiveDrawMode(): void {
+    if (!this.map || !this.isEditMode() || this.isDisabled || !this.activeMode) {
+      this.restoreMapInteractions();
+      return;
+    }
+    if (this.activeMode !== "rectangle" && this.activeMode !== "circle") {
+      this.restoreMapInteractions();
+      return;
+    }
+    this.getMapInteractions().forEach((interaction) => {
+      if (!this.mapInteractionStates.has(interaction)) {
+        this.mapInteractionStates.set(interaction, interaction.getActive?.() ?? true);
+      }
+      interaction.setActive?.(false);
+    });
+  }
+
+  private restoreMapInteractions(): void {
+    this.mapInteractionStates.forEach((wasActive, interaction) => {
+      interaction.setActive?.(wasActive);
+    });
+    this.mapInteractionStates.clear();
+  }
+
+  private getMapInteractions(): OLInteraction[] {
+    const interactions = this.map?.getInteractions?.();
+    const interactionArray = Array.isArray(interactions)
+      ? interactions
+      : interactions?.getArray?.();
+    if (!Array.isArray(interactionArray)) {
+      return [];
+    }
+    return interactionArray.filter(
+      (interaction): interaction is OLInteraction => typeof interaction?.setActive === "function"
+    );
   }
 
   private normalizeFeatureCollection(value: unknown): MapModelValueType {
