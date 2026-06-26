@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
-const { PassThrough, Readable } = require('stream');
+const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
