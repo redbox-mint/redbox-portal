@@ -6,7 +6,7 @@ import {
   downloadRecsRoute,
 } from '../../index';
 import { default as util } from 'util';
-import { default as stream } from 'stream';
+import { default as stream } from 'node:stream';
 
 const pipeline = util.promisify(stream.pipeline);
 /**

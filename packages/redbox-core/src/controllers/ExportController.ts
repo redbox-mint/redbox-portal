@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { default as util } from 'util';
-import { default as stream } from 'stream';
+import { default as stream } from 'node:stream';
 const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
