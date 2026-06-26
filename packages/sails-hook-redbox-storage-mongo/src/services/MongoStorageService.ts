@@ -941,7 +941,20 @@ export namespace Services {
         const passThrough = new stream.PassThrough();
         (async () => {
           try {
-            const fields = await this.collectCsvFields(query, options);
+            // The client (e.g. the HTTP response) can disconnect mid-export; once the returned
+            // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
+            // bail out when it is no longer writable.
+            const isCancelled = () => passThrough.destroyed;
+            const fields = await this.collectCsvFields(query, options, isCancelled);
+            if (isCancelled()) {
+              return;
+            }
+            if (_.isEmpty(fields)) {
+              // No matching records means no columns to derive a header from; emit an empty file
+              // deterministically rather than relying on json2csv's empty-fields behaviour.
+              passThrough.end();
+              return;
+            }
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), json2csv, passThrough);
           } catch (err) {
@@ -960,10 +973,15 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
       for await (const record of this.fetchAllRecords(query, { ...options })) {
+        // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
+        // scanning every matching record.
+        if (isCancelled()) {
+          break;
+        }
         for (const field of Object.keys(flattener(record))) {
           fields.add(field);
         }
