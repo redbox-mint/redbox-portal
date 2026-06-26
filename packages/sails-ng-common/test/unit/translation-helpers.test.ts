@@ -10,18 +10,24 @@ describe('Translation helpers', function () {
 
   describe('guess string type', function () {
     const guessStringTypeCases = [
-      {title: "empty is false", key: "", expected: false},
-      {title: "null is false", key: null, expected: false},
-      {title: "undefined is false", key: undefined as unknown as string, expected: false},
-      {title: "number as string is false", key: 2 as unknown as string, expected: false},
-      {title: "bool as string is false", key: false as unknown as string, expected: false},
-      {title: "array as string is false", key: ["hi"] as unknown as string, expected: false},
-      {title: "obj as string is true", key: {hi: 2} as unknown as string, expected: true},
-      {title: "start with @ and norm is i18n", key: " @dmpt-foaf:fundedBy_vivo:Grant-help ", expected: false},
-      {title: "start with capital is nat lang", key: " Dmpt-foaf:fundedBy_vivo:Grant-help ", expected: true},
-      {title: "space makes nat lang", key: " @dmpt-foaf:fundedBy_vivo: Grant-help ", expected: true},
-      {title: "alpha and dash is not nat lang", key: "workspace-name", expected: false},
-      {title: "alpha and underscore is not nat lang", key: "workspace_name", expected: false},
+      {title: "empty is not natural language", key: "", expected: false},
+      {title: "null is not natural language", key: null, expected: false},
+      {title: "undefined is not natural language", key: undefined as unknown as string, expected: false},
+      {title: "number as string is not natural language", key: 2 as unknown as string, expected: false},
+      {title: "bool as string is not natural language", key: false as unknown as string, expected: false},
+      {title: "array as string is not natural language", key: ["hi"] as unknown as string, expected: false},
+      {title: "obj as string is not natural language", key: {hi: 2} as unknown as string, expected: false},
+      {title: "start with @ and norm is translation key", key: " @dmpt-foaf:fundedBy_vivo:Grant-help ", expected: false},
+      {title: "alpha and dash is translation key", key: "workspace-name", expected: false},
+      {title: "alpha and underscore is translation key", key: "workspace_name", expected: false},
+      {title: "no space and one left curly bracket is translation key", key: "test{", expected: false},
+      {title: "no space and one right curly bracket is translation key", key: "test}", expected: false},
+      {title: "left double curly brackets are translation key", key: "Test {{", expected: false},
+      {title: "right double curly brackets are translation key", key: "Test }}", expected: false},
+
+      {title: "start with capital is natural language", key: " Dmpt-foaf:fundedBy_vivo:Grant-help ", expected: true},
+      {title: "start with @ and space makes natural language", key: " @dmpt-foaf:fundedBy_vivo: Grant-help ", expected: true},
+      {title: "space and one right curly bracket is natural language", key: "test }", expected: true},
     ];
     guessStringTypeCases.forEach(({title, key, expected}) => {
       it(`expects ${title}`, async function () {

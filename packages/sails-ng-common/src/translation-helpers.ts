@@ -11,21 +11,32 @@
 export function isLikelyNaturalLanguage(key: string | null | undefined): boolean {
   const value = String(key ?? "").trim();
 
-  // An empty string is not natural language or translation code.
-  if (!value) {
+  const containsSpace = value.includes(' ');
+  const startsCapitalLetter = value.length > 0 ? value[0].toLowerCase() !== value[0] : false;
+
+  // An empty string is not natural language.
+  // Treat default conversion of object to string as not natural language.
+  // Likely a translation code if contains '{{' or '}}'.
+  // Likely a translation code if starts with '@' and no spaces and does not start with a capital letter.
+  // Likely a translation code if contains '_' and no spaces and does not start with a capital letter.
+  if (
+    !value ||
+    value.includes('[object Object]') ||
+    value.includes('{{') || value.includes('}}') ||
+    (value.startsWith('@') && !containsSpace && !startsCapitalLetter) ||
+    (value.includes('_') && !containsSpace && !startsCapitalLetter)
+  ) {
     return false;
   }
 
   // Likely natural language if contains a space or starts with a capital letter.
-  if (value.includes(' ') || (value[0].toLowerCase() !== value[0])) {
+  if (containsSpace || startsCapitalLetter) {
     return true;
   }
 
-  // Likely a translation code if starts with '@' or contains any of ':', '_', '{', '}'.
+  // Likely a translation code if contains any of ':', '{', '}'.
   if (
-    value.startsWith('@') ||
     value.includes(':') ||
-    value.includes('_') ||
     value.includes('{') ||
     value.includes('}')
   ) {
