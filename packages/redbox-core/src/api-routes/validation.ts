@@ -1,4 +1,4 @@
-import { ZodIssue, ZodTypeAny } from 'zod';
+import { ZodIssue, ZodType } from 'zod';
 
 import { ApiFileConstraint, ApiRequestDefinition, ApiRouteDefinition } from './types';
 import { getRequestFiles, isRecord } from './helpers';
@@ -34,7 +34,7 @@ function formatIssuePath(path: (string | number)[]): string {
 
 function addZodIssues(prefix: string, issues: ZodIssue[], output: ApiValidationIssue[]): void {
   for (const issue of issues) {
-    const path = formatIssuePath(issue.path);
+    const path = formatIssuePath(issue.path as (string | number)[]);
     output.push({
       path: path ? `${prefix}.${path}` : prefix,
       message: issue.message,
@@ -46,7 +46,7 @@ function validateSource(
   req: Sails.Req,
   request: ApiRequestDefinition,
   source: 'params' | 'query' | 'headers' | 'body',
-  schema: ZodTypeAny | undefined,
+  schema: ZodType | undefined,
   prefix: string,
   issues: ApiValidationIssue[]
 ): void {

@@ -9,16 +9,6 @@ import { GridFSBucket, MongoClient, ObjectId } from 'mongodb';
  * - putLogo({branding, portal, fileBuf, contentType}) -> storage key `${branding}/${portal}/images/logo.(ext)`
  */
 
-declare const DomSanitizerService: {
-  sanitize: (svg: string) => {
-    safe: boolean;
-    sanitized: string;
-    errors: string[];
-    warnings: string[];
-    info: { originalBytes: number; sanitizedBytes: number };
-  };
-};
-
 export namespace Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {

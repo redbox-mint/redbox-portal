@@ -572,6 +572,21 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Extract a property from each item in an array using dot notation.
+   * Replaces lodash usage like: _.map(creators, c => c.email).
+   * Returns an empty array for non-array input. Combine with {{join}} to
+   * build a delimited string, e.g. {{join (pluck creators "email") ","}}.
+   *
+   * @example {{join (pluck record.metadata.creators "email") ","}}
+   */
+  pluck: function (arr: unknown, path: string): unknown[] {
+    if (!_isArray(arr)) {
+      return [];
+    }
+    return arr.map((item) => _get(item, path, ''));
+  },
+
+  /**
    * Return part of a string using slice semantics.
    *
    * @example {{substring notation 0 6}}

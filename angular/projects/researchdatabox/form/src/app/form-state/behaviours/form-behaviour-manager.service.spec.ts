@@ -78,6 +78,9 @@ describe('FormBehaviourManager', () => {
       getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
         evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
       }),
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
+      }),
       getQuerySource: () => ({
         queryOrigSource: [],
         querySource: [],
@@ -144,6 +147,9 @@ describe('FormBehaviourManager', () => {
       getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
         evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
       }),
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
+      }),
       getQuerySource: () => ({ queryOrigSource: [], querySource: [], jsonPointerSource: {} }),
       requestParams: () => ({}),
     } as any;
@@ -199,6 +205,9 @@ describe('FormBehaviourManager', () => {
         },
       },
       getFormCompiledItems: jasmine.createSpy('getFormCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo(true),
+      }),
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.resolveTo({
         evaluate: jasmine.createSpy('evaluate').and.resolveTo(true),
       }),
       getQuerySource: () => ({ queryOrigSource: [], querySource: [], jsonPointerSource: {} }),

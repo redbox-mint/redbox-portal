@@ -1,5 +1,5 @@
-import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions} from "@researchdatabox/portal-ng-common";
+import { AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject } from "@angular/core";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions, TranslationService } from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
   MapDrawingMode,
@@ -10,69 +10,131 @@ import {
 } from "@researchdatabox/sails-ng-common";
 // Type-only imports keep these libraries out of the eager bundle.
 // The runtime modules are loaded on demand by `loadMapDependencies()` below
-// so a record without a map field never pays the cost of leaflet, terra-draw,
-// terra-draw-leaflet-adapter or @tmcw/togeojson.
-import type * as L from "leaflet";
+// so a record without a map field never pays the cost of OpenLayers, terra-draw,
+// terra-draw-openlayers-adapter or @tmcw/togeojson.
+import type OLMap from "ol/Map.js";
+import type OLView from "ol/View.js";
+import type OLTileLayer from "ol/layer/Tile.js";
+import type OLVectorLayer from "ol/layer/Vector.js";
+import type OLVectorSource from "ol/source/Vector.js";
+import type OLXYZ from "ol/source/XYZ.js";
+import type OLGeoJSON from "ol/format/GeoJSON.js";
+import type OLFeature from "ol/Feature.js";
+import type OLCircle from "ol/style/Circle.js";
+import type OLFill from "ol/style/Fill.js";
+import type OLIcon from "ol/style/Icon.js";
+import type OLStroke from "ol/style/Stroke.js";
+import type OLStyle from "ol/style/Style.js";
 import type * as TerraDrawLibrary from "terra-draw";
-import type * as TerraDrawLeafletAdapterLibrary from "terra-draw-leaflet-adapter";
-import type {kml as ParseKmlToGeoJson} from "@tmcw/togeojson";
-import {FormComponent} from "../form.component";
-
-const mapMarkerIconPath = "assets/leaflet/marker-icon.png";
-const mapMarkerIconRetinaPath = "assets/leaflet/marker-icon-2x.png";
-const mapMarkerShadowPath = "assets/leaflet/marker-shadow.png";
+import type * as TerraDrawOpenLayersAdapterLibrary from "terra-draw-openlayers-adapter";
+import type { kml as ParseKmlToGeoJson } from "@tmcw/togeojson";
+import { FormComponent } from "../form.component";
+import { ConfirmationDialogService } from "../confirmation-dialog.service";
 
 export interface MapDependencies {
-  L: typeof L;
+  Map: typeof OLMap;
+  View: typeof OLView;
+  TileLayer: typeof OLTileLayer;
+  VectorLayer: typeof OLVectorLayer;
+  XYZ: typeof OLXYZ;
+  VectorSource: typeof OLVectorSource;
+  GeoJSON: typeof OLGeoJSON;
+  fromLonLat: (coordinate: [number, number]) => number[];
+  toLonLat: (coordinate: [number, number]) => number[];
+  getUserProjection: () => any;
+  extentIsEmpty: (extent: any) => boolean;
+  Feature: typeof OLFeature;
+  Fill: typeof OLFill;
+  Stroke: typeof OLStroke;
+  Circle: typeof OLCircle;
+  Style: typeof OLStyle;
+  Icon: typeof OLIcon;
+  Projection: any;
   terraDraw: typeof TerraDrawLibrary;
-  terraDrawLeafletAdapter: typeof TerraDrawLeafletAdapterLibrary;
+  terraDrawOpenLayersAdapter: typeof TerraDrawOpenLayersAdapterLibrary;
   parseKmlToGeoJson: typeof ParseKmlToGeoJson;
 }
 
 let mapDependenciesPromise: Promise<MapDependencies> | undefined;
-let leafletIconDefaultsApplied = false;
 
-/**
- * Lazily resolve all runtime map dependencies as a single split chunk.
- *
- * Calling more than once returns the same promise so concurrent map fields on
- * the same form share one network/cache hit. The leaflet default-icon merge
- * runs once on first resolve so subsequent map instances see the correct icon
- * paths.
- */
 function loadMapDependencies(): Promise<MapDependencies> {
   if (!mapDependenciesPromise) {
-    mapDependenciesPromise = (async () => {
-      // webpackChunkName lets the lazy chunk show up with a stable filename.
-      const [leafletMod, terraDrawMod, terraDrawAdapterMod, toGeoJsonMod] = await Promise.all([
-        import(/* webpackChunkName: "leaflet" */ "leaflet"),
+    mapDependenciesPromise = (async (): Promise<MapDependencies> => {
+      const [
+        olMapMod,
+        olViewMod,
+        olTileLayerMod,
+        olVectorLayerMod,
+        olXyzMod,
+        olVectorSourceMod,
+        olGeoJsonMod,
+        olProjMod,
+        olExtentMod,
+        olFeatureMod,
+        olFillMod,
+        olStrokeMod,
+        olCircleMod,
+        olStyleMod,
+        olIconMod,
+        terraDrawMod,
+        terraDrawAdapterMod,
+        toGeoJsonMod,
+      ] = await Promise.all([
+        import(/* webpackChunkName: "ol-map" */ "ol/Map.js"),
+        import(/* webpackChunkName: "ol-view" */ "ol/View.js"),
+        import(/* webpackChunkName: "ol-layer-tile" */ "ol/layer/Tile.js"),
+        import(/* webpackChunkName: "ol-layer-vector" */ "ol/layer/Vector.js"),
+        import(/* webpackChunkName: "ol-source-xyz" */ "ol/source/XYZ.js"),
+        import(/* webpackChunkName: "ol-source-vector" */ "ol/source/Vector.js"),
+        import(/* webpackChunkName: "ol-format-geojson" */ "ol/format/GeoJSON.js"),
+        import(/* webpackChunkName: "ol-proj" */ "ol/proj.js"),
+        import(/* webpackChunkName: "ol-extent" */ "ol/extent.js"),
+        import(/* webpackChunkName: "ol-feature" */ "ol/Feature.js"),
+        import(/* webpackChunkName: "ol-fill" */ "ol/style/Fill.js"),
+        import(/* webpackChunkName: "ol-stroke" */ "ol/style/Stroke.js"),
+        import(/* webpackChunkName: "ol-circle" */ "ol/style/Circle.js"),
+        import(/* webpackChunkName: "ol-style" */ "ol/style/Style.js"),
+        import(/* webpackChunkName: "ol-icon" */ "ol/style/Icon.js"),
         import(/* webpackChunkName: "terra-draw" */ "terra-draw"),
-        import(/* webpackChunkName: "terra-draw-leaflet-adapter" */ "terra-draw-leaflet-adapter"),
+        import(/* webpackChunkName: "terra-draw-openlayers-adapter" */ "terra-draw-openlayers-adapter"),
         import(/* webpackChunkName: "togeojson" */ "@tmcw/togeojson"),
       ]);
-      // Some bundlers wrap CommonJS namespaces in a `default` field. Unwrap if present.
-      const leaflet = ((leafletMod as { default?: typeof L }).default ?? leafletMod) as typeof L;
-      if (!leafletIconDefaultsApplied) {
-        leaflet.Icon.Default.mergeOptions({
-          iconUrl: mapMarkerIconPath,
-          iconRetinaUrl: mapMarkerIconRetinaPath,
-          shadowUrl: mapMarkerShadowPath
-        });
-        leafletIconDefaultsApplied = true;
-      }
+
+      const unwrap = <T>(mod: unknown): T =>
+        ((mod as { default?: T }).default ?? mod) as T;
+
+      const projMod = olProjMod as typeof import("ol/proj.js");
+      const extentMod = olExtentMod as typeof import("ol/extent.js");
+
       return {
-        L: leaflet,
+        Map: unwrap<typeof OLMap>(olMapMod),
+        View: unwrap<typeof OLView>(olViewMod),
+        TileLayer: unwrap<typeof OLTileLayer>(olTileLayerMod),
+        VectorLayer: unwrap<typeof OLVectorLayer>(olVectorLayerMod),
+        XYZ: unwrap<typeof OLXYZ>(olXyzMod),
+        VectorSource: unwrap<typeof OLVectorSource>(olVectorSourceMod),
+        GeoJSON: unwrap<typeof OLGeoJSON>(olGeoJsonMod),
+        fromLonLat: projMod.fromLonLat,
+        toLonLat: projMod.toLonLat,
+        getUserProjection: projMod.getUserProjection,
+        extentIsEmpty: extentMod.isEmpty,
+        Feature: unwrap<typeof OLFeature>(olFeatureMod),
+        Fill: unwrap<typeof OLFill>(olFillMod),
+        Stroke: unwrap<typeof OLStroke>(olStrokeMod),
+        Circle: unwrap<typeof OLCircle>(olCircleMod),
+        Style: unwrap<typeof OLStyle>(olStyleMod),
+        Icon: unwrap<typeof OLIcon>(olIconMod),
+        Projection: projMod.Projection,
         terraDraw: terraDrawMod as typeof TerraDrawLibrary,
-        terraDrawLeafletAdapter: terraDrawAdapterMod as typeof TerraDrawLeafletAdapterLibrary,
+        terraDrawOpenLayersAdapter: terraDrawAdapterMod as typeof TerraDrawOpenLayersAdapterLibrary,
         parseKmlToGeoJson: (toGeoJsonMod as { kml: typeof ParseKmlToGeoJson }).kml,
       };
     })();
-    // Drop the cached promise on failure so a retry can re-fetch the chunk.
     mapDependenciesPromise.catch(() => {
       mapDependenciesPromise = undefined;
     });
   }
-  return mapDependenciesPromise;
+  return mapDependenciesPromise!;
 }
 
 export const MAP_DEPENDENCIES_LOADER = new InjectionToken<() => Promise<MapDependencies>>("MAP_DEPENDENCIES_LOADER", {
@@ -92,11 +154,46 @@ interface TerraDrawDependencies {
   PolygonMode?: new (...args: unknown[]) => unknown;
   LineStringMode?: new (...args: unknown[]) => unknown;
   RectangleMode?: new (...args: unknown[]) => unknown;
+  CircleMode?: new (...args: unknown[]) => unknown;
   SelectMode?: new (...args: unknown[]) => unknown;
 }
 
+type TerraDrawModeName = Exclude<MapDrawingMode, "select">;
+
+type TerraDrawSelectModeOptions = {
+  allowManualDeselection: boolean;
+  allowManualSelection: boolean;
+  flags: Record<string, {
+    feature: {
+      draggable: boolean;
+      coordinates?: {
+        draggable: boolean;
+        midpoints: boolean | { draggable: boolean };
+        deletable: boolean;
+      };
+    };
+  }>;
+  pointerDistance: number;
+};
+
 export class MapModel extends FormFieldModel<MapModelValueType> {
   protected override logName = MapModelName;
+}
+
+function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
+  if (!url.includes("{s}")) {
+    return url;
+  }
+  const rawSubs = typeof subdomains === "string"
+    ? subdomains.split("")
+    : Array.isArray(subdomains)
+      ? subdomains.map((subdomain) => String(subdomain))
+      : [];
+  const subs = rawSubs.length > 0 ? rawSubs : ["a", "b", "c"];
+  if (subs.length === 1) {
+    return url.replace("{s}", subs[0]);
+  }
+  return subs.map((s) => url.replace("{s}", s));
 }
 
 @Component({
@@ -110,14 +207,73 @@ export class MapModel extends FormFieldModel<MapModelValueType> {
           @if (isEditMode() && showDrawToolbar) {
             <div class="rb-map-toolbar">
               @for (mode of toolbarModes; track mode) {
+                @let modeHelpId = 'rb-map-mode-help-' + mode;
                 <button
                   type="button"
                   class="btn btn-light btn-sm rb-map-mode-btn"
                   [class.active]="activeMode === mode"
-                  (click)="setDrawMode(mode)"
+                  (click)="setDrawMode(mode); $any($event.currentTarget).blur()"
                   [disabled]="isDisabled"
+                  [attr.title]="modeLabels[mode]"
+                  [attr.aria-label]="modeLabels[mode]"
+                  [attr.aria-describedby]="modeHelpId"
                 >
-                  {{ modeLabels[mode] }}
+                  <i [class]="modeIconClasses[mode]" aria-hidden="true"></i>
+                  <span class="visually-hidden">{{ modeLabels[mode] }}</span>
+                  <span class="visually-hidden" [id]="modeHelpId">{{ translatedModeHelpText[mode] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText[mode]"></span>
+                </button>
+              }
+              @if (canSelectFeatures && hasFeatures()) {
+                @let selectHelpId = 'rb-map-mode-help-select';
+                <button
+                  type="button"
+                  class="btn btn-light btn-sm rb-map-mode-btn rb-map-select-btn"
+                  [class.active]="activeMode === 'select'"
+                  (click)="setDrawMode('select'); $any($event.currentTarget).blur()"
+                  [disabled]="isDisabled"
+                  [attr.title]="modeLabels['select']"
+                  [attr.aria-label]="modeLabels['select']"
+                  [attr.aria-describedby]="selectHelpId"
+                >
+                  <i [class]="modeIconClasses['select']" aria-hidden="true"></i>
+                  <span class="visually-hidden">{{ modeLabels['select'] }}</span>
+                  <span class="visually-hidden" [id]="selectHelpId">{{ translatedModeHelpText['select'] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText['select']"></span>
+                </button>
+              }
+              @if (canDeleteSelectedFeatures && selectedFeatureIds.size > 0) {
+                @let deleteHelpId = 'rb-map-delete-help';
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm rb-map-delete-btn"
+                  (click)="deleteSelectedFeatures(); $any($event.currentTarget).blur()"
+                  [disabled]="isDisabled"
+                  title="Delete selected"
+                  aria-label="Delete selected"
+                  [attr.aria-describedby]="deleteHelpId"
+                >
+                  <i class="fa fa-trash" aria-hidden="true"></i>
+                  <span class="visually-hidden">Delete selected</span>
+                  <span class="visually-hidden" [id]="deleteHelpId">{{ deleteSelectedHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="deleteSelectedHelpText"></span>
+                </button>
+              }
+              @if (hasFeatures()) {
+                @let clearHelpId = 'rb-map-clear-help';
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm rb-map-clear-btn"
+                  (click)="onClearAllClicked(); $any($event.currentTarget).blur()"
+                  [disabled]="isDisabled"
+                  title="Clear All"
+                  aria-label="Clear All"
+                  [attr.aria-describedby]="clearHelpId"
+                >
+                  <i class="fa fa-times-circle" aria-hidden="true"></i>
+                  <span class="visually-hidden">Clear All</span>
+                  <span class="visually-hidden" [id]="clearHelpId">{{ clearAllHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="clearAllHelpText"></span>
                 </button>
               }
             </div>
@@ -173,23 +329,104 @@ export class MapModel extends FormFieldModel<MapModelValueType> {
       right: 0.75rem;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0;
       z-index: 800;
       pointer-events: auto;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      border-radius: 0.25rem;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
     }
 
-    .rb-map-mode-btn {
-      min-width: 7rem;
-      text-align: left;
-      border-color: #b7c5d5;
+    .rb-map-mode-btn,
+    .rb-map-delete-btn,
+    .rb-map-clear-btn {
+      position: relative;
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 0;
       background: #fff;
+      color: #333;
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    .rb-map-toolbar .btn + .btn {
+      border-top: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    .rb-map-mode-btn:hover,
+    .rb-map-delete-btn:hover,
+    .rb-map-clear-btn:hover {
+      background: #f4f4f4;
+      color: #111;
     }
 
     .rb-map-mode-btn.active {
-      border-color: #0d6efd;
       background: #e9f2ff;
       color: #0b5ed7;
-      font-weight: 600;
+    }
+
+    .rb-map-select-btn {
+      margin-top: 0.35rem;
+    }
+
+    .rb-map-delete-btn,
+    .rb-map-clear-btn {
+      color: #333;
+    }
+
+    .rb-map-delete-btn:hover,
+    .rb-map-clear-btn:hover {
+      color: #8a1f11;
+    }
+
+    .rb-map-help-popover {
+      position: absolute;
+      top: 50%;
+      right: calc(100% + 0.5rem);
+      transform: translateY(-50%);
+      display: none;
+      width: max-content;
+      max-width: 16rem;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 0.25rem;
+      background: #fff;
+      color: #212529;
+      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+      font-size: 0.8125rem;
+      line-height: 1.25;
+      text-align: left;
+      white-space: normal;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .rb-map-help-popover::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
+      border-width: 0.35rem 0 0.35rem 0.35rem;
+      border-style: solid;
+      border-color: transparent transparent transparent #fff;
+    }
+
+    .rb-map-help-popover::before {
+      content: attr(data-help);
+    }
+
+    .rb-map-mode-btn:hover .rb-map-help-popover,
+    .rb-map-delete-btn:hover .rb-map-help-popover,
+    .rb-map-clear-btn:hover .rb-map-help-popover {
+      display: block;
     }
   `],
   standalone: false
@@ -197,9 +434,11 @@ export class MapModel extends FormFieldModel<MapModelValueType> {
 export class MapComponent extends FormFieldBaseComponent<MapModelValueType> implements AfterViewInit, OnDestroy {
   protected override logName = MapComponentName;
   private readonly loadMapDependencies = inject(MAP_DEPENDENCIES_LOADER);
+  private readonly translationService = inject(TranslationService);
+  private readonly confirmationDialogService = inject(ConfirmationDialogService);
 
   @Input() public override model?: MapModel;
-  @ViewChild("mapHost", {static: false}) private mapHost?: ElementRef<HTMLDivElement>;
+  @ViewChild("mapHost", { static: false }) private mapHost?: ElementRef<HTMLDivElement>;
 
   public mapHeight = "450px";
   public enableImport = true;
@@ -208,28 +447,60 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public importDataString = "";
   public importError = "";
 
-  private map?: L.Map;
+  private map?: OLMap;
   private draw?: any;
-  private featureLayer?: L.GeoJSON;
-  // Resolved on first ngAfterViewInit; held as an instance ref so render/import
-  // helpers can use leaflet etc. without re-awaiting the shared module promise.
+  private featureLayer?: OLVectorLayer<OLVectorSource>;
+  private vectorSource?: OLVectorSource;
   private mapDeps?: MapDependencies;
   private _destroyed = false;
+  private drawInitialisePending = false;
+  private drawReadyObserver?: MutationObserver;
   private visibilityObserver?: IntersectionObserver;
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
   private tileLayers: MapTileLayerConfig[] = [];
-  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
   public activeMode?: MapDrawingMode;
   public showDrawToolbar = false;
+  public canSelectFeatures = false;
+  public canDeleteSelectedFeatures = true;
+  public selectedFeatureIds = new Set<string | number>();
   public readonly modeLabels: Record<MapDrawingMode, string> = {
     point: "Point",
     polygon: "Polygon",
     linestring: "Line",
     rectangle: "Rectangle",
+    circle: "Circle",
     select: "Select/Edit"
   };
+  public readonly modeIconClasses: Record<MapDrawingMode, string> = {
+    point: "fa fa-map-marker",
+    polygon: "fa fa-object-ungroup",
+    linestring: "fa fa-minus",
+    rectangle: "fa fa-square",
+    circle: "fa fa-circle",
+    select: "fa fa-mouse-pointer"
+  };
+  private readonly modeHelpTextKeys: Record<MapDrawingMode, string> = {
+    point: "@map-toolbar-point-help",
+    polygon: "@map-toolbar-polygon-help",
+    linestring: "@map-toolbar-linestring-help",
+    rectangle: "@map-toolbar-rectangle-help",
+    circle: "@map-toolbar-circle-help",
+    select: "@map-toolbar-select-help"
+  };
+  private readonly modeHelpTextFallbacks: Record<MapDrawingMode, string> = {
+    point: "Add a point marker to the map.",
+    polygon: "Draw a polygon by clicking each corner, then finish the shape.",
+    linestring: "Draw a line by clicking each point along the path.",
+    rectangle: "Draw a rectangle by clicking and dragging on the map.",
+    circle: "Draw a circle by clicking and dragging on the map.",
+    select: "Select or edit existing map features."
+  };
+  public translatedModeHelpText: Record<MapDrawingMode, string> = { ...this.modeHelpTextFallbacks };
+  public deleteSelectedHelpText = "Delete the selected map feature.";
+  public clearAllHelpText = "Clear all points, lines, and shapes from the map.";
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -244,19 +515,38 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.tileLayers = Array.isArray(cfg.tileLayers) ? cfg.tileLayers : [];
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
-      : ["point", "polygon", "linestring", "rectangle", "select"];
-    this.toolbarModes = [...this.enabledModes];
-    this.activeMode = this.toolbarModes.find((mode) => mode !== "select") ?? this.toolbarModes[0];
-    this.showDrawToolbar = this.toolbarModes.length > 0;
+      : ["point", "polygon", "linestring", "rectangle", "circle", "select"];
+    this.canSelectFeatures = this.enabledModes.includes("select");
+    this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
+    this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
+    this.activeMode = this.toolbarModes[0] ?? (this.canSelectFeatures ? "select" : undefined);
+    this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
-    this.coordinatesHelp = String(cfg.coordinatesHelp ?? "");
+    const coordinatesHelp = String(cfg.coordinatesHelp ?? "");
+    this.coordinatesHelp = coordinatesHelp ? this.translateText(coordinatesHelp, coordinatesHelp) : "";
+    this.translatedModeHelpText = this.translateModeHelpText();
+    this.deleteSelectedHelpText = this.translateText("@map-toolbar-delete-selected-help", "Delete the selected map feature.");
+    this.clearAllHelpText = this.translateText("@map-toolbar-clear-all-help", "Clear all points, lines, and shapes from the map.");
+  }
+
+  private translateModeHelpText(): Record<MapDrawingMode, string> {
+    return {
+      point: this.translateText(this.modeHelpTextKeys.point, this.modeHelpTextFallbacks.point),
+      polygon: this.translateText(this.modeHelpTextKeys.polygon, this.modeHelpTextFallbacks.polygon),
+      linestring: this.translateText(this.modeHelpTextKeys.linestring, this.modeHelpTextFallbacks.linestring),
+      rectangle: this.translateText(this.modeHelpTextKeys.rectangle, this.modeHelpTextFallbacks.rectangle),
+      circle: this.translateText(this.modeHelpTextKeys.circle, this.modeHelpTextFallbacks.circle),
+      select: this.translateText(this.modeHelpTextKeys.select, this.modeHelpTextFallbacks.select)
+    };
+  }
+
+  private translateText(key: string, fallback: string): string {
+    const translated = this.translationService.t(key);
+    return translated && translated !== key ? String(translated) : fallback;
   }
 
   override ngAfterViewInit(): void {
     super.ngAfterViewInit();
-    // Kick off lazy load of the map runtime. The component remains in the
-    // eager Angular bundle (registered as a form component) but the leaflet/
-    // terra-draw chunks only download when a record actually has a map field.
     void this.loadMapDependencies()
       .then((deps) => {
         if (this._destroyed) {
@@ -277,6 +567,8 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this._destroyed = true;
     this.visibilityObserver?.disconnect();
     this.visibilityObserver = undefined;
+    this.drawReadyObserver?.disconnect();
+    this.drawReadyObserver = undefined;
     try {
       this.draw?.stop?.();
     } catch {
@@ -284,9 +576,12 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     this.draw = undefined;
     if (this.map) {
-      this.map.remove();
+      this.map.setTarget(undefined);
       this.map = undefined;
     }
+    this.featureLayer = undefined;
+    this.vectorSource = undefined;
+    this.selectedFeatureIds.clear();
   }
 
   public onImportClicked(): void {
@@ -301,6 +596,34 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.invalidateMap();
   }
 
+  public async onClearAllClicked(): Promise<void> {
+    if (this.isDisabled || !this.hasFeatures()) {
+      return;
+    }
+    const confirmed = await this.confirmationDialogService.confirm({
+      title: "Clear map features",
+      message: "Clear all map features?",
+      confirmLabel: "Clear All",
+      cancelLabel: "Cancel",
+      confirmButtonClass: "btn btn-danger"
+    });
+    if (!confirmed) {
+      return;
+    }
+    const emptyValue = emptyFeatureCollection();
+    try {
+      this.draw?.clear?.();
+    } catch (error) {
+      this.loggerService.warn(`${this.logName}: failed to clear map draw state.`, error);
+    }
+    this.selectedFeatureIds.clear();
+    this.updateModelValue(emptyValue);
+    if (!this.isEditMode()) {
+      this.renderReadonlyLayer(emptyValue);
+    }
+    this.invalidateMap();
+  }
+
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
     if (!disabled) {
@@ -312,23 +635,60 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.mapHost?.nativeElement || this.map || !this.mapDeps) {
       return;
     }
-    const {L: leaflet} = this.mapDeps;
+    const deps = this.mapDeps;
+
     const tileLayerConfig = this.tileLayers[0] ?? {
       name: "OpenStreetMap",
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      options: {maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"}
+      options: { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }
     };
-    const tileLayer = leaflet.tileLayer(tileLayerConfig.url, (tileLayerConfig.options ?? {}) as L.TileLayerOptions);
 
-    this.map = leaflet.map(this.mapHost.nativeElement, {
-      center: this.center,
-      zoom: this.zoom,
-      layers: [tileLayer]
+    const tileOptions: Record<string, unknown> = {};
+    const rawOptions = (tileLayerConfig.options ?? {}) as Record<string, unknown>;
+    if (rawOptions["attribution"]) {
+      tileOptions["attributions"] = [rawOptions["attribution"]];
+    }
+    if (rawOptions["maxZoom"] != null) {
+      tileOptions["maxZoom"] = rawOptions["maxZoom"];
+    }
+    if (rawOptions["minZoom"] != null) {
+      tileOptions["minZoom"] = rawOptions["minZoom"];
+    }
+    if (rawOptions["crossOrigin"] != null) {
+      tileOptions["crossOrigin"] = rawOptions["crossOrigin"];
+    }
+    if (rawOptions["wrapX"] != null) {
+      tileOptions["wrapX"] = rawOptions["wrapX"];
+    }
+    if (rawOptions["tileSize"] != null) {
+      tileOptions["tileSize"] = rawOptions["tileSize"];
+    }
+
+    const resolvedUrl = expandTileUrl(tileLayerConfig.url, rawOptions["subdomains"]);
+    if (Array.isArray(resolvedUrl)) {
+      tileOptions["urls"] = resolvedUrl;
+    } else {
+      tileOptions["url"] = resolvedUrl;
+    }
+
+    const tileLayer = new deps.TileLayer({
+      source: new deps.XYZ(tileOptions as any)
+    });
+
+    const olView = new deps.View({
+      center: deps.fromLonLat([this.center[1], this.center[0]]),
+      zoom: this.zoom
+    });
+
+    this.map = new deps.Map({
+      target: this.mapHost.nativeElement,
+      layers: [tileLayer],
+      view: olView
     });
 
     const startingValue = this.currentModelValue();
     if (this.isEditMode()) {
-      this.ensureDrawInitialised();
+      this.scheduleDrawInitialisation();
     } else {
       this.renderReadonlyLayer(startingValue);
     }
@@ -341,13 +701,67 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (this.draw || !this.map || !this.mapDeps || !this.isEditMode()) {
       return;
     }
-    this.featureLayer?.removeFrom(this.map);
-    this.featureLayer = undefined;
+    if (!this.hasOpenLayersEventElement()) {
+      this.waitForOpenLayersEventElement();
+      return;
+    }
+    this.drawReadyObserver?.disconnect();
+    this.drawReadyObserver = undefined;
+    this.removeFeatureLayer();
     this.initialiseDraw();
     const startingValue = this.currentModelValue();
     if (startingValue.features.length > 0) {
       this.pushFeaturesToDraw(startingValue.features);
     }
+  }
+
+  private scheduleDrawInitialisation(): void {
+    if (this.drawInitialisePending || this._destroyed) {
+      return;
+    }
+    this.drawInitialisePending = true;
+    globalThis.requestAnimationFrame(() => {
+      this.drawInitialisePending = false;
+      this.ensureDrawInitialised();
+    });
+  }
+
+  private waitForOpenLayersEventElement(): void {
+    const eventContainer = this.getOpenLayersEventContainer();
+    if (!eventContainer || this.drawReadyObserver || typeof MutationObserver === "undefined") {
+      return;
+    }
+    this.map?.updateSize();
+    try {
+      (this.map as any)?.renderSync?.();
+    } catch (err) {
+      console.warn("OpenLayers renderSync() failed; falling back to MutationObserver for draw initialisation", err);
+    }
+    if (this.hasOpenLayersEventElement()) {
+      this.ensureDrawInitialised();
+      return;
+    }
+    this.drawReadyObserver = new MutationObserver(() => {
+      if (this.hasOpenLayersEventElement()) {
+        this.drawReadyObserver?.disconnect();
+        this.drawReadyObserver = undefined;
+        this.ensureDrawInitialised();
+      }
+    });
+    this.drawReadyObserver.observe(eventContainer, { childList: true, subtree: true });
+  }
+
+  private hasOpenLayersEventElement(): boolean {
+    const eventContainer = this.getOpenLayersEventContainer();
+    if (!eventContainer) {
+      return false;
+    }
+    return eventContainer.querySelector("canvas") != null;
+  }
+
+  private getOpenLayersEventContainer(): HTMLElement | undefined {
+    const viewport = (this.map as any)?.getViewport?.() as HTMLElement | undefined;
+    return viewport ?? this.mapHost?.nativeElement;
   }
 
   private initialiseDraw(): void {
@@ -363,11 +777,29 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       const PolygonMode = deps.PolygonMode;
       const LineStringMode = deps.LineStringMode;
       const RectangleMode = deps.RectangleMode;
+      const CircleMode = deps.CircleMode;
       const SelectMode = deps.SelectMode;
       if (!TerraDrawCtor || !AdapterCtor) {
         return;
       }
-      const adapter = new AdapterCtor({map: this.map, lib: this.mapDeps.L});
+
+      const openLayersLib = {
+        Icon: this.mapDeps.Icon,
+        Fill: this.mapDeps.Fill,
+        Feature: this.mapDeps.Feature,
+        GeoJSON: this.mapDeps.GeoJSON,
+        Style: this.mapDeps.Style,
+        Circle: this.mapDeps.Circle,
+        VectorLayer: this.mapDeps.VectorLayer,
+        VectorSource: this.mapDeps.VectorSource,
+        Stroke: this.mapDeps.Stroke,
+        Projection: this.mapDeps.Projection,
+        getUserProjection: this.mapDeps.getUserProjection,
+        fromLonLat: this.mapDeps.fromLonLat,
+        toLonLat: this.mapDeps.toLonLat,
+      };
+
+      const adapter = new AdapterCtor({ map: this.map, lib: openLayersLib });
       const modes: unknown[] = [];
       if (this.enabledModes.includes("point") && PointMode) {
         modes.push(new PointMode());
@@ -379,10 +811,13 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         modes.push(new LineStringMode());
       }
       if (this.enabledModes.includes("rectangle") && RectangleMode) {
-        modes.push(new RectangleMode({drawInteraction: "click-drag"}));
+        modes.push(new RectangleMode({ drawInteraction: "click-drag" }));
+      }
+      if (this.enabledModes.includes("circle") && CircleMode) {
+        modes.push(new CircleMode({ drawInteraction: "click-drag" }));
       }
       if (this.enabledModes.includes("select") && SelectMode) {
-        modes.push(new SelectMode());
+        modes.push(new SelectMode(this.buildSelectModeOptions()));
       }
       if (modes.length === 0) {
         return;
@@ -394,9 +829,16 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
       this.draw.start?.();
       this.setInitialDrawMode();
-      this.draw.on?.("change", () => {
+      this.draw.on?.("change", (changes?: { deletedIds?: unknown[] }) => {
+        this.removeDeletedSelections(changes?.deletedIds);
         const value = this.readValueFromDraw();
         this.updateModelValue(value);
+      });
+      this.draw.on?.("select", (id: string | number) => {
+        this.selectedFeatureIds.add(id);
+      });
+      this.draw.on?.("deselect", (id: string | number) => {
+        this.selectedFeatureIds.delete(id);
       });
     } catch (error) {
       this.loggerService.warn(`${this.logName}: failed to initialise TerraDraw, map will render without edit tooling.`, error);
@@ -404,11 +846,70 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   public setDrawMode(mode: MapDrawingMode): void {
-    if (!this.draw || !this.toolbarModes.includes(mode)) {
+    if (!this.draw || !this.enabledModes.includes(mode)) {
       return;
     }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+  }
+
+  public hasFeatures(): boolean {
+    return this.currentModelValue().features.length > 0;
+  }
+
+  public deleteSelectedFeatures(): void {
+    if (!this.draw || this.selectedFeatureIds.size === 0 || this.isDisabled) {
+      return;
+    }
+    const ids = Array.from(this.selectedFeatureIds);
+    try {
+      this.draw.removeFeatures?.(ids);
+      this.selectedFeatureIds.clear();
+      this.resetActiveDrawModeAfterDelete();
+    } catch (error) {
+      this.loggerService.warn(`${this.logName}: failed to delete selected map features.`, error);
+    }
+  }
+
+  private resetActiveDrawModeAfterDelete(): void {
+    if (!this.draw || !this.activeMode) {
+      return;
+    }
+    this.draw.setMode?.(this.activeMode);
+  }
+
+  private buildSelectModeOptions(): TerraDrawSelectModeOptions {
+    const drawableModes = this.enabledModes.filter((mode): mode is TerraDrawModeName => mode !== "select");
+    const flags: TerraDrawSelectModeOptions["flags"] = {};
+    drawableModes.forEach((mode) => {
+      flags[mode] = {
+        feature: {
+          draggable: true,
+          coordinates: {
+            draggable: true,
+            midpoints: { draggable: true },
+            deletable: true
+          }
+        }
+      };
+    });
+    return {
+      allowManualDeselection: true,
+      allowManualSelection: true,
+      flags,
+      pointerDistance: 30
+    };
+  }
+
+  private removeDeletedSelections(deletedIds: unknown[] | undefined): void {
+    if (!Array.isArray(deletedIds)) {
+      return;
+    }
+    deletedIds.forEach((id) => {
+      if (typeof id === "string" || typeof id === "number") {
+        this.selectedFeatureIds.delete(id);
+      }
+    });
   }
 
   private getTerraDrawDependencies(): TerraDrawDependencies {
@@ -416,15 +917,28 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return {};
     }
     const terraDraw = this.mapDeps.terraDraw as any;
-    const terraDrawLeafletAdapter = this.mapDeps.terraDrawLeafletAdapter as any;
+    const terraDrawAdapter = this.mapDeps.terraDrawOpenLayersAdapter as any;
     return {
       TerraDrawCtor: terraDraw.TerraDraw,
-      AdapterCtor: terraDrawLeafletAdapter.TerraDrawLeafletAdapter,
+      AdapterCtor: terraDrawAdapter.TerraDrawOpenLayersAdapter,
       PointMode: terraDraw.TerraDrawPointMode,
       PolygonMode: terraDraw.TerraDrawPolygonMode,
       LineStringMode: terraDraw.TerraDrawLineStringMode,
       RectangleMode: terraDraw.TerraDrawRectangleMode,
+      CircleMode: terraDraw.TerraDrawCircleMode,
       SelectMode: terraDraw.TerraDrawSelectMode
+    };
+  }
+
+  private createVectorSourceFromFeatureCollection(value: MapModelValueType): { source: OLVectorSource; features: any[] } {
+    const geoJsonFormat = new this.mapDeps!.GeoJSON();
+    const features = geoJsonFormat.readFeatures(value as any, {
+      dataProjection: "EPSG:4326",
+      featureProjection: "EPSG:3857"
+    });
+    return {
+      source: new this.mapDeps!.VectorSource({ features }),
+      features
     };
   }
 
@@ -432,10 +946,22 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.map || !this.mapDeps) {
       return;
     }
-    this.featureLayer?.removeFrom(this.map);
-    this.featureLayer = this.mapDeps.L.geoJSON(value as any);
-    this.featureLayer.addTo(this.map);
-    this.fitToLayerBounds(this.featureLayer);
+    this.removeFeatureLayer();
+    const { source } = this.createVectorSourceFromFeatureCollection(value);
+    this.vectorSource = source;
+    this.featureLayer = new this.mapDeps.VectorLayer({
+      source: this.vectorSource
+    });
+    this.map.addLayer(this.featureLayer);
+    this.fitToLayerBounds();
+  }
+
+  private removeFeatureLayer(): void {
+    if (this.featureLayer && this.map) {
+      this.map.removeLayer(this.featureLayer);
+    }
+    this.featureLayer = undefined;
+    this.vectorSource = undefined;
   }
 
   private renderValue(value: MapModelValueType, updateModel: boolean): void {
@@ -458,7 +984,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     if (!this.draw) {
       const currentValue = this.currentModelValue();
-      this.renderReadonlyLayer({...currentValue, features: [...currentValue.features, ...features as any[]]});
+      this.renderReadonlyLayer({ ...currentValue, features: [...currentValue.features, ...features as any[]] });
       return;
     }
     try {
@@ -477,7 +1003,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return this.normalizeFeatureCollection(snapshot);
     }
     if (Array.isArray(snapshot)) {
-      return this.normalizeFeatureCollection({type: "FeatureCollection", features: snapshot});
+      return this.normalizeFeatureCollection({ type: "FeatureCollection", features: snapshot });
     }
     return this.currentModelValue();
   }
@@ -513,14 +1039,40 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!value || typeof value !== "object") {
       return emptyFeatureCollection();
     }
-    const source = value as {type?: unknown; features?: unknown};
-    if (source.type !== "FeatureCollection" || !Array.isArray(source.features)) {
-      return emptyFeatureCollection();
+    const source = value as { type?: unknown; features?: unknown };
+    if (source.type === "FeatureCollection" && Array.isArray(source.features)) {
+      return {
+        type: "FeatureCollection",
+        features: source.features as MapModelValueType["features"]
+      };
     }
-    return {
-      type: "FeatureCollection",
-      features: source.features as MapModelValueType["features"]
-    };
+    if (source.type === "Feature") {
+      return {
+        type: "FeatureCollection",
+        features: [source as MapModelValueType["features"][number]]
+      };
+    }
+    if (this.isGeoJsonGeometry(source.type)) {
+      return {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: source as GeoJSON.Geometry
+        }]
+      };
+    }
+    return emptyFeatureCollection();
+  }
+
+  private isGeoJsonGeometry(type: unknown): type is GeoJSON.Geometry["type"] {
+    return type === "Point" ||
+      type === "MultiPoint" ||
+      type === "LineString" ||
+      type === "MultiLineString" ||
+      type === "Polygon" ||
+      type === "MultiPolygon" ||
+      type === "GeometryCollection";
   }
 
   private parseImport(value: string): MapModelValueType | null {
@@ -536,6 +1088,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
           return null;
         }
         const xmlDoc = new DOMParser().parseFromString(trimmed, "text/xml");
+        if (xmlDoc.querySelector("parsererror")) {
+          throw new Error("Invalid XML");
+        }
         const converted = this.mapDeps.parseKmlToGeoJson(xmlDoc);
         return this.normalizeFeatureCollection(converted);
       }
@@ -562,7 +1117,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       if (entries[0]?.isIntersecting) {
         this.invalidateMap();
       }
-    }, {threshold: 0.1});
+    }, { threshold: 0.1 });
     this.visibilityObserver.observe(this.mapHost.nativeElement);
   }
 
@@ -571,26 +1126,26 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return;
     }
     globalThis.requestAnimationFrame?.(() => {
-      this.map?.invalidateSize();
-      if (this.featureLayer) {
-        this.fitToLayerBounds(this.featureLayer);
+      this.map?.updateSize();
+      if (this.vectorSource) {
+        this.fitToLayerBounds();
       }
     });
     globalThis.setTimeout(() => {
-      this.map?.invalidateSize();
-      if (this.featureLayer) {
-        this.fitToLayerBounds(this.featureLayer);
+      this.map?.updateSize();
+      if (this.vectorSource) {
+        this.fitToLayerBounds();
       }
     }, 0);
   }
 
-  private fitToLayerBounds(layer: L.FeatureGroup | L.GeoJSON): void {
-    if (!this.map) {
+  private fitToLayerBounds(): void {
+    if (!this.map || !this.vectorSource || !this.mapDeps) {
       return;
     }
-    const bounds = layer.getBounds();
-    if (bounds.isValid()) {
-      this.map.fitBounds(bounds, {padding: [12, 12]});
+    const extent = this.vectorSource.getExtent();
+    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+      this.map.getView().fit(extent, { padding: [12, 12, 12, 12] });
     }
   }
 

@@ -15,6 +15,7 @@ import { TabComponent, TabComponentLayout, TabContentComponent } from './compone
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
+import { IntegrationStatusComponent } from './component/integration-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -66,6 +67,7 @@ import {
   RepeatableComponentName,
   SaveButtonComponentName,
   SaveStatusComponentName,
+  IntegrationStatusComponentName,
   TextAreaComponentName,
   ContentComponentName,
   SimpleInputComponentName,
@@ -115,6 +117,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [GroupFieldComponentName]: GroupFieldComponent,
   [SaveButtonComponentName]: SaveButtonComponent,
   [SaveStatusComponentName]: SaveStatusComponent,
+  [IntegrationStatusComponentName]: IntegrationStatusComponent,
   [TextAreaComponentName]: TextAreaComponent,
   [ContentComponentName]: ContentComponent,
   [SimpleInputComponentName]: SimpleInputComponent,
