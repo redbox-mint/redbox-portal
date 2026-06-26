@@ -466,7 +466,8 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/sails-ng-common
-            npm run pretest
+            npm run test:compile
+            npm run test:prepare
             npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
               npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
       - run:
