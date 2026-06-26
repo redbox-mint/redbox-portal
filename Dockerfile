@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:24.16.0-bookworm AS base
+FROM node:26.4.0-bookworm AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -63,7 +63,7 @@ RUN npm prune --omit=dev \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
 
-FROM node:24.16.0-bookworm-slim AS runtime
+FROM node:26.4.0-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
