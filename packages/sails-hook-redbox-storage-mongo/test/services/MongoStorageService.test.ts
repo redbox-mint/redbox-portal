@@ -640,6 +640,11 @@ describe('MongoStorageService', function () {
       toArray: async () => ((opts.skip ?? 0) === 0 ? batch : []),
     }));
 
+  const pagedFindPages = (pagesBySkip: Record<number, any[]>) =>
+    sandbox.stub().callsFake((_query: any, opts: any) => ({
+      toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
+    }));
+
   it('exports plans as csv using streamed records', async function () {
     service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'One' } }]) };
 
@@ -655,12 +660,15 @@ describe('MongoStorageService', function () {
     expect(service.recordCol.find.callCount).to.equal(4);
   });
 
-  it('includes csv columns from later records that the first record lacks', async function () {
+  it('includes csv columns from later result pages that the first record lacks', async function () {
     service.recordCol = {
-      find: pagedFind([
-        { redboxOid: '1', metadata: { title: 'One' } },
-        { redboxOid: '2', metadata: { title: 'Two', extraField: 'present' } },
-      ]),
+      find: pagedFindPages({
+        0: [
+          { redboxOid: '1', metadata: { title: 'One' } },
+          { redboxOid: '2', metadata: { title: 'Two' } },
+        ],
+        2: [{ redboxOid: '3', metadata: { title: 'Three', extraField: 'present' } }],
+      }),
     };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
@@ -670,11 +678,13 @@ describe('MongoStorageService', function () {
     }
     const output = Buffer.concat(chunks).toString('utf8');
 
-    // Header is the union of both records' flattened keys, so the extra column survives.
+    // Header is the union of every paged record's flattened keys, so the second-page column survives.
     expect(output).to.include('metadata.extraField');
     expect(output).to.include('present');
     expect(output).to.include('"1"');
-    expect(output).to.include('"2"');
+    expect(output).to.include('"3"');
+    // Two export passes, each reading skip 0, skip 2, then the empty terminating page at skip 4.
+    expect(service.recordCol.find.callCount).to.equal(6);
   });
 
   it('produces an empty csv and skips the second pass when there are no records', async function () {
