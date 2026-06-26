@@ -24,10 +24,8 @@ import { firstValueFrom } from 'rxjs';
 import { promises as fs } from 'fs';
 import path from 'node:path';
 import { createWriteStream } from 'fs';
-import { promisify } from 'util';
-import * as stream from 'node:stream';
-const finished = promisify(stream.finished);
 import * as mime from 'mime-types';
+import {finished} from "node:stream/promises";
 const { Collector, generateArcpId } = require('oni-ocfl');
 const { languageProfileURI } = require('language-data-commons-vocabs');
 

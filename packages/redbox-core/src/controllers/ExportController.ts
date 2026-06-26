@@ -17,9 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { default as util } from 'util';
-import { default as stream } from 'node:stream';
-const pipeline = util.promisify(stream.pipeline);
+import {pipeline} from 'node:stream/promises';
 /**
  * Package that contains all Controllers.
  */
