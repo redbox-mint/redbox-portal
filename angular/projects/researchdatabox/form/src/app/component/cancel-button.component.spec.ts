@@ -160,4 +160,67 @@ describe('CancelButtonComponent', () => {
       sub.unsubscribe();
     }
   });
+
+  it('should use configured redirect instead of browser history when template rendering returns blank', async () => {
+    const redirectLocationTemplate = '/@branding/@portal/dashboard/dataRecord';
+    const redirectLocationResolved = '/brand-1/portal-1/dashboard/dataRecord';
+    const dynamicAssetOptions: DynamicAssetOptions = {
+      entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-123',
+        callable: (keyString) => {
+          if (keyString === 'componentDefinitions__1__component__config__redirectLocation') {
+            return '';
+          }
+          throw new Error(`Unknown key: ${keyString}`);
+        },
+      }]
+    };
+    const formConfigRedirect = structuredClone(formConfig);
+    const cancelButtonComp = formConfigRedirect.componentDefinitions[1].component;
+    if (!isTypeFieldDefinitionName<CancelButtonFieldComponentDefinitionFrame>(cancelButtonComp, CancelButtonComponentName)) {
+      throw new Error(`Expected ${CancelButtonComponentName}, got ${JSON.stringify(cancelButtonComp)}`);
+    }
+    if (cancelButtonComp.config) {
+      cancelButtonComp.config.redirectLocation = redirectLocationTemplate;
+      cancelButtonComp.config.redirectDelaySeconds = 0;
+    }
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(
+      formConfigRedirect, {oid: 'oid-123', editMode: true} as any, undefined, dynamicAssetOptions);
+    if (formComponent.formDefMap) {
+      if (!formComponent.formDefMap.formConfigMeta){
+        formComponent.formDefMap.formConfigMeta = {};
+      }
+      if (!formComponent.formDefMap.formConfigMeta['contextVariables']){
+        formComponent.formDefMap.formConfigMeta['contextVariables'] = {};
+      }
+      const contextVariables = formComponent.formDefMap.formConfigMeta['contextVariables'] as Record<string, unknown>;
+      contextVariables['@branding'] = 'brand-1';
+      contextVariables['@portal'] = 'portal-1';
+    }
+
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus
+      .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
+      .subscribe(e => events.push(e));
+
+    try {
+      const location = fixture.debugElement.injector.get(Location);
+      const changeLocationHrefSpy = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+      const locationHistoryGoSpy = spyOn(location, 'historyGo').and.stub();
+
+      const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      button.click();
+      await fixture.whenStable();
+
+      expect(changeLocationHrefSpy).toHaveBeenCalledWith(redirectLocationResolved);
+      expect(locationHistoryGoSpy).not.toHaveBeenCalled();
+      expect(events.length).toEqual(1);
+      expect(events[0].historyDelta).toEqual(undefined);
+      expect(events[0].redirectLocation).toBe(redirectLocationResolved);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
 });

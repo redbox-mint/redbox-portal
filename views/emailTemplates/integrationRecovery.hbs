@@ -1,0 +1,34 @@
+<h2>{{title}}</h2>
+
+<p><strong>Summary:</strong> {{summary}}</p>
+
+{{#if recordUrl}}
+<p><strong>Record:</strong> <a href="{{recordUrl}}">{{redboxOid}}</a></p>
+{{else}}
+<p><strong>Record OID:</strong> {{redboxOid}}</p>
+{{/if}}
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr><td><strong>Integration</strong></td><td>{{integrationName}}</td></tr>
+  <tr><td><strong>Action</strong></td><td>{{integrationAction}}</td></tr>
+  <tr><td><strong>Status</strong></td><td>{{status}}</td></tr>
+  {{#if triggeredBy}}
+  <tr><td><strong>Triggered By</strong></td><td>{{triggeredBy}}</td></tr>
+  {{/if}}
+  {{#if message}}
+  <tr><td><strong>Message</strong></td><td>{{message}}</td></tr>
+  {{/if}}
+  <tr><td><strong>Trace ID</strong></td><td>{{traceId}}</td></tr>
+  <tr><td><strong>Span ID</strong></td><td>{{spanId}}</td></tr>
+  <tr><td><strong>Started At</strong></td><td>{{startedAt}}</td></tr>
+  {{#if completedAt}}
+  <tr><td><strong>Completed At</strong></td><td>{{completedAt}}</td></tr>
+  {{/if}}
+  {{#if (isDefined durationMs)}}
+  <tr><td><strong>Duration (ms)</strong></td><td>{{durationMs}}</td></tr>
+  {{/if}}
+  <tr><td><strong>Timestamp</strong></td><td>{{timestamp}}</td></tr>
+</table>
+
+<p>Kind regards</p>
+<p>ReDBox Team</p>

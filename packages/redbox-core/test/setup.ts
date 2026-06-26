@@ -15,6 +15,16 @@ import type { Services as _UsersServiceTypes } from '../src/services/UsersServic
 import type { Services as _WorkflowStepsServiceTypes } from '../src/services/WorkflowStepsService';
 import type { Services as _DashboardConfigServiceTypes } from '../src/services/DashboardConfigService';
 import type { Services as _DashboardTypesServiceTypes } from '../src/services/DashboardTypesService';
+import type { Services as _RolesServiceTypes } from '../src/services/RolesService';
+import type { Services as _CacheServiceTypes } from '../src/services/CacheService';
+import type { Services as _EmailServiceTypes } from '../src/services/EmailService';
+import type { Services as _AgendaQueueServiceTypes } from '../src/services/AgendaQueueService';
+import type { Services as _IntegrationAuditServiceTypes } from '../src/services/IntegrationAuditService';
+import type { Services as _DomSanitizerServiceTypes } from '../src/services/DomSanitizerService';
+import type { Services as _FormsServiceTypes } from '../src/services/FormsService';
+import type { Services as _FormRecordConsistencyServiceTypes } from '../src/services/FormRecordConsistencyService';
+import type { Services as _TranslationServiceTypes } from '../src/services/TranslationService';
+import type { Services as _NavigationServiceTypes } from '../src/services/NavigationService';
 
 /**
  * Test setup file that runs before all tests.

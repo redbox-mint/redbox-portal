@@ -179,6 +179,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusComponentName,
+  IntegrationStatusFieldComponentDefinitionFrame,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   CheckboxTreeComponentName,
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
@@ -1172,6 +1179,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new IntegrationStatusFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -3263,6 +3282,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       { key: 'polygon', mode: 'polygon' },
       { key: 'polyline', mode: 'linestring' },
       { key: 'rectangle', mode: 'rectangle' },
+      { key: 'circle', mode: 'circle' },
     ];
     for (const { key, mode } of modeMap) {
       const rawModeConfig = draw[key];
@@ -3282,7 +3302,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const deduped = [...new Set(enabledModes)];
     const invalidModes = deduped.filter(
-      mode => !['point', 'polygon', 'linestring', 'rectangle', 'select'].includes(mode)
+      mode => !['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'].includes(mode)
     );
     if (invalidModes.length > 0) {
       this.logger.warn(
@@ -3291,7 +3311,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     return deduped.filter(
       (mode): mode is MapDrawingMode =>
-        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'select'
+        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'circle' || mode === 'select'
     );
   }
 

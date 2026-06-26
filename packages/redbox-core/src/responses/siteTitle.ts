@@ -1,7 +1,3 @@
-declare const TranslationService: {
-    t: (key: string) => string;
-};
-
 export interface TranslationLookup {
     t?: (key: string) => unknown;
 }
