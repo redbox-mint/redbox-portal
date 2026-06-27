@@ -85,6 +85,18 @@ export * from './decorator';
 export * from './decorators';
 
 export {
+  compareHookPrecedence,
+  discoverRedboxHookPackages,
+  getHookPrecedenceOrder,
+  getHookProcessingOrder,
+  readHookLoadPriority,
+} from './hooks/hookDiscovery';
+export type {
+  RedboxHookDiscoveryOptions,
+  RedboxHookOrderConfig,
+  RedboxHookPackageMetadata,
+} from './hooks/hookDiscovery';
+export {
   discoverRedboxHookResources,
   getHookAssetRoots,
   getHookViewRoots,

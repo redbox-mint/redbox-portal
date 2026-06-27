@@ -73,9 +73,9 @@ describe('hookResources', function () {
     const resources = discoverRedboxHookResources(appPath);
 
     expect(resources.map(resource => resource.name)).to.deep.equal([
-      'redbox-hook-alpha',
-      'redbox-hook-beta',
       'redbox-hook-dev-only',
+      'redbox-hook-beta',
+      'redbox-hook-alpha',
     ]);
   });
 
@@ -102,6 +102,35 @@ describe('hookResources', function () {
     const resolved = resolveHookViewFile(appPath, 'default/default/homepage');
 
     expect(resolved?.absolutePath).to.equal(path.join(betaRoot, 'views', 'default', 'default', 'homepage.ejs'));
+  });
+
+  it('resolves hookLoadPriority entries ahead of unlisted hooks', function () {
+    writeJson(path.join(appPath, 'package.json'), {
+      hookLoadPriority: ['redbox-hook-alpha'],
+      dependencies: {
+        'redbox-hook-alpha': '1.0.0',
+        'redbox-hook-beta': '1.0.0',
+      },
+    });
+    const alphaRoot = createHook('redbox-hook-alpha', { isHook: true }, ['views', 'assets']);
+    const betaRoot = createHook('redbox-hook-beta', { isHook: true }, ['views', 'assets']);
+    writeFile(path.join(alphaRoot, 'views', 'default', 'default', 'homepage.ejs'), 'alpha');
+    writeFile(path.join(betaRoot, 'views', 'default', 'default', 'homepage.ejs'), 'beta');
+    writeFile(path.join(alphaRoot, 'assets', 'styles', 'client-branding.css'), 'alpha');
+    writeFile(path.join(betaRoot, 'assets', 'styles', 'client-branding.css'), 'beta');
+
+    expect(getHookViewRoots(appPath)).to.deep.equal([
+      path.join(alphaRoot, 'views'),
+      path.join(betaRoot, 'views'),
+    ]);
+    expect(getHookAssetRoots(appPath)).to.deep.equal([
+      path.join(alphaRoot, 'assets'),
+      path.join(betaRoot, 'assets'),
+    ]);
+    expect(resolveHookViewFile(appPath, 'default/default/homepage')?.absolutePath)
+      .to.equal(path.join(alphaRoot, 'views', 'default', 'default', 'homepage.ejs'));
+    expect(resolveHookAssetFile(appPath, 'styles/client-branding.css')?.absolutePath)
+      .to.equal(path.join(alphaRoot, 'assets', 'styles', 'client-branding.css'));
   });
 
   it('resolves assets and rejects traversal paths', function () {

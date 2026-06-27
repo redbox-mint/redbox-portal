@@ -1,10 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import { getHookPrecedenceOrder } from './hookDiscovery';
 
 export interface RedboxHookResource {
   name: string;
   rootPath: string;
   packageJsonPath: string;
+  listedPriorityIndex?: number;
   viewsPath?: string;
   assetsPath?: string;
 }
@@ -20,60 +22,12 @@ export interface ResolveHookFileOptions {
   roots?: string[];
 }
 
-type PackageJson = {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  sails?: Record<string, unknown>;
-};
-
-const hookResourceCache = new Map<string, RedboxHookResource[]>();
-
-const hookCapabilityFlags = [
-  'hasModels',
-  'hasPolicies',
-  'hasServices',
-  'hasControllers',
-  'hasWebserviceControllers',
-  'hasBootstrap',
-  'hasConfig',
-  'hasFormConfigs',
-  'hasMigrations',
-  'hasApiRoutes',
-];
-
-function readJsonFile<T>(filePath: string): T | null {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
-  } catch {
-    return null;
-  }
-}
-
-function isRedboxHookPackage(packageJson: PackageJson): boolean {
-  const sailsConfig = packageJson.sails;
-  if (!sailsConfig || typeof sailsConfig !== 'object') {
-    return false;
-  }
-  if (sailsConfig.isHook === true) {
-    return true;
-  }
-  return hookCapabilityFlags.some(flag => sailsConfig[flag] === true);
-}
-
 function safeDirPath(dirPath: string): string | undefined {
   try {
     const stat = fs.statSync(dirPath);
     return stat.isDirectory() ? dirPath : undefined;
   } catch {
     return undefined;
-  }
-}
-
-function resolveDependencyPackageJson(appPath: string, dependencyName: string): string | null {
-  try {
-    return require.resolve(`${dependencyName}/package.json`, { paths: [appPath] }) as string;
-  } catch {
-    return null;
   }
 }
 
@@ -163,35 +117,9 @@ function resolveFileFromRoots(roots: string[], resourcePath: string, extension: 
 
 export function discoverRedboxHookResources(appPath: string): RedboxHookResource[] {
   const resolvedAppPath = path.resolve(appPath);
-  const cached = hookResourceCache.get(resolvedAppPath);
-  if (cached) {
-    return cached;
-  }
-
-  const appPackageJson = readJsonFile<PackageJson>(path.join(resolvedAppPath, 'package.json'));
-  if (!appPackageJson) {
-    hookResourceCache.set(resolvedAppPath, []);
-    return [];
-  }
-
-  const dependencies = {
-    ...(appPackageJson.dependencies ?? {}),
-    ...(appPackageJson.devDependencies ?? {}),
-  };
-
   const resources: RedboxHookResource[] = [];
-  for (const dependencyName of Object.keys(dependencies).sort()) {
-    const packageJsonPath = resolveDependencyPackageJson(resolvedAppPath, dependencyName);
-    if (!packageJsonPath) {
-      continue;
-    }
-
-    const dependencyPackageJson = readJsonFile<PackageJson>(packageJsonPath);
-    if (!dependencyPackageJson || !isRedboxHookPackage(dependencyPackageJson)) {
-      continue;
-    }
-
-    const hookRootPath = path.dirname(packageJsonPath);
+  for (const hookPackage of getHookPrecedenceOrder(resolvedAppPath)) {
+    const hookRootPath = hookPackage.rootPath;
     const viewsPath = safeDirPath(path.join(hookRootPath, 'views'));
     const assetsPath = safeDirPath(path.join(hookRootPath, 'assets'));
     if (!viewsPath && !assetsPath) {
@@ -199,30 +127,28 @@ export function discoverRedboxHookResources(appPath: string): RedboxHookResource
     }
 
     resources.push({
-      name: dependencyName,
+      name: hookPackage.name,
       rootPath: hookRootPath,
-      packageJsonPath,
+      packageJsonPath: hookPackage.packageJsonPath,
+      ...(typeof hookPackage.listedPriorityIndex === 'number' ? { listedPriorityIndex: hookPackage.listedPriorityIndex } : {}),
       viewsPath,
       assetsPath,
     });
   }
 
-  hookResourceCache.set(resolvedAppPath, resources);
   return resources;
 }
 
 export function getHookViewRoots(appPath: string): string[] {
   return discoverRedboxHookResources(appPath)
     .filter(resource => resource.viewsPath)
-    .map(resource => resource.viewsPath as string)
-    .reverse();
+    .map(resource => resource.viewsPath as string);
 }
 
 export function getHookAssetRoots(appPath: string): string[] {
   return discoverRedboxHookResources(appPath)
     .filter(resource => resource.assetsPath)
-    .map(resource => resource.assetsPath as string)
-    .reverse();
+    .map(resource => resource.assetsPath as string);
 }
 
 export function resolveHookViewFile(
