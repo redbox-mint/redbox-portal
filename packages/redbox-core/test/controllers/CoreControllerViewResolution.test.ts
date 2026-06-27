@@ -1,9 +1,12 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 import * as sinon from 'sinon';
+
+const require = createRequire(import.meta.url);
 
 describe('CoreController hook view resolution', function () {
   let appPath: string;
@@ -55,6 +58,7 @@ describe('CoreController hook view resolution', function () {
     class TestController extends Controllers.Core.Controller { }
 
     originalSails = (global as { sails?: unknown }).sails;
+    originalUnderscore = (global as { _?: unknown })._;
     appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-core-controller-')));
     writeJson(path.join(appPath, 'package.json'), {
       dependencies: {
@@ -82,10 +86,12 @@ describe('CoreController hook view resolution', function () {
     controller = new TestController();
   });
 
+  let originalUnderscore: unknown;
+
   afterEach(function () {
     fs.rmSync(appPath, { recursive: true, force: true });
     (global as { sails?: unknown }).sails = originalSails;
-    delete (global as { _?: unknown })._;
+    (global as { _?: unknown })._ = originalUnderscore;
     sinon.restore();
   });
 

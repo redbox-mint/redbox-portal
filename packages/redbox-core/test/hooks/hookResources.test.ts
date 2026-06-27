@@ -1,10 +1,17 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 
+const require = createRequire(import.meta.url);
+
 describe('hookResources', function () {
+  before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
+
   let appPath: string;
   let discoverRedboxHookResources: typeof import('../../src/hooks/hookResources').discoverRedboxHookResources;
   let getHookAssetRoots: typeof import('../../src/hooks/hookResources').getHookAssetRoots;

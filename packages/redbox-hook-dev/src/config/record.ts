@@ -10,8 +10,6 @@ export const record: Partial<RecordConfig> = {
     baseUrl: {
         redbox: "http://redbox:9000/redbox",
         mint: 'https://demo.redboxresearchdata.com.au/mint',
-        published: 'https://redboxresearchdata.com.au/published',
-        reviewerEmail: 'notifications-reviewer@dev.local',
     },
     contextVariables: {
         '@referrer_rdmp': {

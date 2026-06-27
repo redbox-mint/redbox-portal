@@ -237,7 +237,7 @@ describe('redbox-loader', function () {
             await redboxLoader.generateFormConfigShims(formConfigDir, {});
 
             const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("default-1.0-draft");
+            expect(content).to.include("generated-view-only");
         });
 
         it('should use hook-only registry when LOAD_DEFAULT_FORMS=false', async function () {

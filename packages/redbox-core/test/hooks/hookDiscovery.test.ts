@@ -1,8 +1,11 @@
 let expect: Chai.ExpectStatic;
 import fs from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 import sinon from 'sinon';
+
+const require = createRequire(import.meta.url);
 
 describe('hookDiscovery', function () {
   before(async function () {

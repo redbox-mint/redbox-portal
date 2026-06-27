@@ -1,9 +1,12 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 import * as sinon from 'sinon';
+
+const require = createRequire(import.meta.url);
 
 describe('hook static assets middleware', function () {
   let appPath: string;

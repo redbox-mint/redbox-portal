@@ -12,7 +12,6 @@ import type {
     BrandingConfigurationDefaultsConfig,
 } from '@researchdatabox/redbox-core';
 import { createDefaultBinding, type DoiPublishingConfigData } from '@researchdatabox/redbox-core';
-import { record } from './record';
 
 const demoMenuConfig: BrandingMenuConfig = {
     items: [
@@ -146,6 +145,7 @@ const demoHomePanelsConfig: BrandingHomePanelsConfig = {
 };
 
 const DEFAULT_DOI_PREFIX = '';
+const DEFAULT_PUBLICATION_LANDING_BASE_URL = 'https://redboxresearchdata.com.au/published';
 const DEFAULT_DOI_CITATION_URL_PATH = 'metadata.citation_url';
 const DEFAULT_DOI_CITATION_DOI_PATH = 'metadata.citation_doi';
 const DEFAULT_DOI_GENERATED_CITATION_PATH = 'metadata.citation_generated';
@@ -160,7 +160,7 @@ const demoDoiPublishingConfig: Partial<DoiPublishingConfigData> = {
                 prefix: createDefaultBinding('', DEFAULT_DOI_PREFIX),
                 url: {
                     kind: 'jsonata',
-                    expression: `'${record.baseUrl?.published ?? 'https://redboxresearchdata.com.au/published'}/' & oid`
+                    expression: `'${DEFAULT_PUBLICATION_LANDING_BASE_URL}/' & oid`
                 },
                 publicationYear: {
                     kind: 'jsonata',
