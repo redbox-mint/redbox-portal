@@ -15,9 +15,7 @@ RUN --mount=type=cache,target=/root/.npm \
   && npm run compile \
   && cd /opt/redbox-portal \
   && npm install --legacy-peer-deps --ignore-scripts /opt/{{packageName}} \
-  && mkdir -p /opt/redbox-portal/views /opt/redbox-portal/assets /opt/redbox-portal/language-defaults \
-  && if [ -d /opt/{{packageName}}/views ]; then cp -a /opt/{{packageName}}/views/. /opt/redbox-portal/views/; fi \
-  && if [ -d /opt/{{packageName}}/assets ]; then cp -a /opt/{{packageName}}/assets/. /opt/redbox-portal/assets/; fi \
+  && mkdir -p /opt/redbox-portal/language-defaults \
   && if [ -d /opt/{{packageName}}/language-defaults ]; then cp -a /opt/{{packageName}}/language-defaults/. /opt/redbox-portal/language-defaults/; fi
 
 FROM ${REDBOX_BASE_IMAGE} AS {{packageName}}
