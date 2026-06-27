@@ -9,6 +9,7 @@ import { validateHandlebarsTemplate } from '../../src/services/oni-v2/bindings';
 import { mapDatasetFields, validateMappedDataset } from '../../src/services/oni-v2/mapping';
 import { resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
+import type { StorageDiskLike } from '../../src/services/oni-v2/types';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
@@ -389,6 +390,43 @@ describe('OniService', function () {
 
     await store.move('/ocfl/object', '/ocfl/new-object');
 
+    expect(disk.move.callCount).to.equal(2);
+    expect(disk.move.firstCall.args).to.deep.equal(['ocfl/test/object/a.txt', 'ocfl/test/new-object/a.txt']);
+    expect(disk.move.secondCall.args).to.deep.equal([
+      'ocfl/test/object/nested/b.txt',
+      'ocfl/test/new-object/nested/b.txt',
+    ]);
+  });
+
+  it('moves every OCFL directory entry across paginated Flydrive listings', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    const disk = {
+      exists: sinon.stub().resolves(false),
+      listAll: sinon.stub(),
+      move: sinon.stub().resolves(),
+    };
+    disk.listAll.onFirstCall().resolves({
+      paginationToken: 'next-page',
+      objects: [{ key: 'ocfl/test/object/a.txt' }],
+    });
+    disk.listAll.onSecondCall().resolves({
+      objects: [{ key: 'ocfl/test/object/nested/b.txt' }],
+    });
+    const store = new Store({
+      disk: disk as unknown as StorageDiskLike,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    await store.move('/ocfl/object', '/ocfl/new-object');
+
+    expect(disk.listAll.callCount).to.equal(2);
+    expect(disk.listAll.firstCall.args).to.deep.equal(['ocfl/test/object/', { recursive: true }]);
+    expect(disk.listAll.secondCall.args).to.deep.equal([
+      'ocfl/test/object/',
+      { recursive: true, paginationToken: 'next-page' },
+    ]);
     expect(disk.move.callCount).to.equal(2);
     expect(disk.move.firstCall.args).to.deep.equal(['ocfl/test/object/a.txt', 'ocfl/test/new-object/a.txt']);
     expect(disk.move.secondCall.args).to.deep.equal([

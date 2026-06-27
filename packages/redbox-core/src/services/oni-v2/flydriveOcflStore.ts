@@ -24,6 +24,21 @@ type DiskEntry = {
   lastModified?: Date;
 };
 
+async function listDiskEntries(
+  disk: StorageDiskLike,
+  prefix: string,
+  options: { recursive: boolean }
+): Promise<unknown[]> {
+  const entries: unknown[] = [];
+  let paginationToken: string | undefined;
+  do {
+    const listing = await disk.listAll(prefix, paginationToken ? { ...options, paginationToken } : options);
+    entries.push(...listing.objects);
+    paginationToken = listing.paginationToken;
+  } while (paginationToken);
+  return entries;
+}
+
 function normalizePrefix(prefix = ''): string {
   return String(prefix).replace(/^\/+|\/+$/g, '');
 }
@@ -255,9 +270,9 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       const keyOptions = { preserveEquals: this.keyEncoding === 'raw' };
       const prefix = this.keyFor(filePath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
-      const listing = await this.disk.listAll(directoryPrefix, { recursive: false });
+      const entries = await listDiskEntries(this.disk, directoryPrefix, { recursive: false });
       const names = new Set<string>();
-      for (const item of listing.objects) {
+      for (const item of entries) {
         const key = getEntryKey(item);
         if (!key) {
           continue;
@@ -285,9 +300,9 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       const keyOptions = { preserveEquals: this.keyEncoding === 'raw' };
       const prefix = this.keyFor(dirPath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
-      const listing = await this.disk.listAll(directoryPrefix, { recursive });
+      const entries = await listDiskEntries(this.disk, directoryPrefix, { recursive });
       async function* iterator() {
-        for (const item of listing.objects) {
+        for (const item of entries) {
           const key = getEntryKey(item);
           if (!key || key.endsWith('/')) {
             continue;
@@ -319,8 +334,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       }
 
       const directoryPrefix = sourceKey ? `${sourceKey.replace(/\/+$/, '')}/` : '';
-      const listing = await this.disk.listAll(directoryPrefix, { recursive: true });
-      const items = [...listing.objects];
+      const items = await listDiskEntries(this.disk, directoryPrefix, { recursive: true });
       if (items.length === 0) {
         throw toError('ENOENT', source);
       }
