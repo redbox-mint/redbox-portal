@@ -11,4 +11,4 @@ const { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');
 const _researchdatabox_sails_hook_redbox_storage_mongo_config = require('@researchdatabox/sails-hook-redbox-storage-mongo').registerRedboxConfig();
 const redbox_hook_dev_config = require('redbox-hook-dev').registerRedboxConfig();
 
-module.exports.recordtype = mergeRedboxConfig('recordtype', Config.recordtype || {}, _researchdatabox_sails_hook_redbox_storage_mongo_config['recordtype'] || {});
+module.exports.recordtype = mergeRedboxConfig('recordtype', Config.recordtype || {}, _researchdatabox_sails_hook_redbox_storage_mongo_config['recordtype'] || {}, redbox_hook_dev_config['recordtype'] || {});

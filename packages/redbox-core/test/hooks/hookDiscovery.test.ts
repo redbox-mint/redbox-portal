@@ -1,11 +1,14 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import sinon from 'sinon';
 
 describe('hookDiscovery', function () {
+  before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
   let appPath: string;
   let discoverRedboxHookPackages: typeof import('../../src/hooks/hookDiscovery').discoverRedboxHookPackages;
   let getHookPrecedenceOrder: typeof import('../../src/hooks/hookDiscovery').getHookPrecedenceOrder;

@@ -12,6 +12,7 @@ import type {
     BrandingConfigurationDefaultsConfig,
 } from '@researchdatabox/redbox-core';
 import { createDefaultBinding, type DoiPublishingConfigData } from '@researchdatabox/redbox-core';
+import { record } from './record';
 
 const demoMenuConfig: BrandingMenuConfig = {
     items: [
@@ -159,7 +160,7 @@ const demoDoiPublishingConfig: Partial<DoiPublishingConfigData> = {
                 prefix: createDefaultBinding('', DEFAULT_DOI_PREFIX),
                 url: {
                     kind: 'jsonata',
-                    expression: `'https://redboxresearchdata.com.au/published/' & oid`
+                    expression: `'${record.baseUrl?.published ?? 'https://redboxresearchdata.com.au/published'}/' & oid`
                 },
                 publicationYear: {
                     kind: 'jsonata',

@@ -31,7 +31,6 @@ export const routes: RoutesConfig = {
     'GET /csrfToken': { action: 'security/grant-csrf-token' },
 
     // Home routes (demo hook overrides to /default/rdmp/home)
-    '/': '/default/default/home',
     '/:branding/:portal/home': {
         controller: 'RenderViewController',
         action: 'render',

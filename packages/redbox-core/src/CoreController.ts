@@ -286,6 +286,9 @@ export namespace Controllers.Core {
 
     private resolveLayoutFile(branding: string, portal: string): ResolvedViewFile | null {
       const candidates = [
+        `${branding}/${portal}/${this._layoutRelativePath}${this._layout}`,
+        `default/${portal}/${this._layoutRelativePath}${this._layout}`,
+        `default/default/${this._layoutRelativePath}${this._layout}`,
         `${branding}/${portal}/layout/layout`,
         `default/${portal}/layout`,
         'default/default/layout',

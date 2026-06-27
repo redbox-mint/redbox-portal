@@ -183,7 +183,7 @@ export function discoverRedboxHookPackages(
     cached?.packageJsonContent === packageJsonContent
     && cached.dependencySignature === dependencySignature
   ) {
-    return cached.hooks;
+    return [...cached.hooks];
   }
 
   const hookLoadPriority = normalizeHookLoadPriority(appPackageJson.hookLoadPriority);
@@ -221,7 +221,7 @@ export function discoverRedboxHookPackages(
 
   const orderedHooks = hooks.sort(compareHookPrecedence);
   hookDiscoveryCache.set(resolvedAppPath, { packageJsonContent, dependencySignature, hooks: orderedHooks });
-  return orderedHooks;
+  return [...orderedHooks];
 }
 
 export function getHookPrecedenceOrder(appPath: string): RedboxHookPackageMetadata[] {

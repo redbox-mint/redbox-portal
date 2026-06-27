@@ -397,13 +397,13 @@ export function resolveHookStaticAssetPath(appPath: string, requestUrl: string):
 
     const publicBasePath = path.resolve(appPath, '.tmp', 'public');
     for (const candidate of Array.from(new Set(candidates))) {
-        const resolvedAsset = resolveHookAssetFile(appPath, candidate);
-        if (resolvedAsset) {
-            return resolvedAsset.absolutePath;
-        }
         const coreAssetPath = resolvePublicAssetPath(publicBasePath, candidate);
         if (coreAssetPath && fs.existsSync(coreAssetPath)) {
             return null;
+        }
+        const resolvedAsset = resolveHookAssetFile(appPath, candidate);
+        if (resolvedAsset) {
+            return resolvedAsset.absolutePath;
         }
     }
 

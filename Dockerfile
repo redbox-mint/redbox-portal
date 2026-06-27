@@ -93,6 +93,7 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
+RUN rm -rf packages/redbox-hook-dev
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
@@ -173,6 +174,7 @@ USER node
 # redbox-loader discovers it (it was pruned from node_modules for `runtime`).
 FROM runtime AS test
 USER root
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node
