@@ -521,7 +521,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.canSelectFeatures = this.enabledModes.includes("select");
     this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
     this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
-    this.activeMode = this.toolbarModes[0] ?? (this.canSelectFeatures ? "select" : undefined);
+    // Default to no active drawing mode so the map starts in pan mode (terra-draw's
+    // built-in "static" mode) instead of dropping markers on click-drag. The user
+    // explicitly selects a drawing tool from the toolbar when they want to draw.
+    this.activeMode = undefined;
     this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
     const coordinatesHelp = String(cfg.coordinatesHelp ?? "");
@@ -595,8 +598,16 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.importError = "";
     this.importDataString = "";
     const merged = this.mergeCollections(this.currentModelValue(), importedValue);
-    this.renderValue(merged, true);
+    let valueToFit = merged;
+    if (this.isEditMode()) {
+      this.pushFeaturesToDraw(importedValue.features);
+      valueToFit = this.draw ? this.readValueFromDraw() : merged;
+      this.updateModelValue(valueToFit);
+    } else {
+      this.renderValue(merged, true);
+    }
     this.invalidateMap();
+    this.scheduleFitToFeatureCollectionBounds(valueToFit);
   }
 
   public async onClearAllClicked(): Promise<void> {
@@ -857,8 +868,19 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.draw || !this.enabledModes.includes(mode)) {
       return;
     }
+    // Clicking the already-active tool toggles it off, returning the map to pan mode.
+    if (this.activeMode === mode) {
+      this.clearDrawMode();
+      return;
+    }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+    this.updateMapInteractionsForActiveDrawMode();
+  }
+
+  private clearDrawMode(): void {
+    this.activeMode = undefined;
+    this.draw?.setMode?.("static");
     this.updateMapInteractionsForActiveDrawMode();
   }
 
@@ -1039,6 +1061,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private setInitialDrawMode(): void {
     const initialMode = this.activeMode;
     if (!initialMode) {
+      // No tool selected: keep terra-draw in its "static" mode so the map pans on
+      // click-drag rather than drawing features.
+      this.draw?.setMode?.("static");
+      this.updateMapInteractionsForActiveDrawMode();
       return;
     }
     this.draw?.setMode?.(initialMode);
@@ -1090,26 +1116,158 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (source.type === "FeatureCollection" && Array.isArray(source.features)) {
       return {
         type: "FeatureCollection",
-        features: source.features as MapModelValueType["features"]
+        features: this.normalizeGeoJsonFeatures(source.features)
       };
     }
     if (source.type === "Feature") {
       return {
         type: "FeatureCollection",
-        features: [source as MapModelValueType["features"][number]]
+        features: this.normalizeGeoJsonFeature(source)
       };
     }
     if (this.isGeoJsonGeometry(source.type)) {
       return {
         type: "FeatureCollection",
-        features: [{
-          type: "Feature",
-          properties: {},
-          geometry: source as GeoJSON.Geometry
-        }]
+        features: this.featuresFromGeometry(source as GeoJSON.Geometry, {}, undefined)
       };
     }
     return emptyFeatureCollection();
+  }
+
+  private normalizeGeoJsonFeatures(features: unknown[]): MapModelValueType["features"] {
+    return features.flatMap((feature) => this.normalizeGeoJsonFeature(feature));
+  }
+
+  private normalizeGeoJsonFeature(feature: unknown): MapModelValueType["features"] {
+    if (!feature || typeof feature !== "object") {
+      return [];
+    }
+    const source = feature as {
+      id?: string | number;
+      type?: unknown;
+      properties?: unknown;
+      geometry?: unknown;
+    };
+    if (source.type !== "Feature" || !source.geometry || typeof source.geometry !== "object") {
+      return [];
+    }
+    const geometry = source.geometry as { type?: unknown };
+    if (!this.isGeoJsonGeometry(geometry.type)) {
+      return [];
+    }
+    const properties = source.properties && typeof source.properties === "object"
+      ? source.properties as Record<string, unknown>
+      : {};
+    return this.featuresFromGeometry(geometry as GeoJSON.Geometry, properties, source.id);
+  }
+
+  private featuresFromGeometry(
+    geometry: GeoJSON.Geometry,
+    properties: Record<string, unknown>,
+    id: string | number | undefined
+  ): MapModelValueType["features"] {
+    switch (geometry.type) {
+      case "Point": {
+        const coordinates = this.normalizePosition(geometry.coordinates);
+        return coordinates ? [this.createDrawFeature({ type: "Point", coordinates }, properties, id)] : [];
+      }
+      case "LineString": {
+        const coordinates = this.normalizeLineStringCoordinates(geometry.coordinates);
+        return coordinates.length > 0 ? [this.createDrawFeature({ type: "LineString", coordinates }, properties, id)] : [];
+      }
+      case "Polygon": {
+        const coordinates = this.normalizePolygonCoordinates(geometry.coordinates);
+        return coordinates.length > 0 ? [this.createDrawFeature({ type: "Polygon", coordinates }, properties, id)] : [];
+      }
+      case "MultiPoint":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const position = this.normalizePosition(coordinates);
+          return position ? [this.createDrawFeature({ type: "Point", coordinates: position }, properties, undefined)] : [];
+        });
+      case "MultiLineString":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const lineStringCoordinates = this.normalizeLineStringCoordinates(coordinates);
+          return lineStringCoordinates.length > 0
+            ? [this.createDrawFeature({ type: "LineString", coordinates: lineStringCoordinates }, properties, undefined)]
+            : [];
+        });
+      case "MultiPolygon":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const polygonCoordinates = this.normalizePolygonCoordinates(coordinates);
+          return polygonCoordinates.length > 0
+            ? [this.createDrawFeature({ type: "Polygon", coordinates: polygonCoordinates }, properties, undefined)]
+            : [];
+        });
+      case "GeometryCollection":
+        return geometry.geometries.flatMap((childGeometry) =>
+          this.featuresFromGeometry(childGeometry, properties, undefined)
+        );
+      default:
+        return [];
+    }
+  }
+
+  private normalizePosition(position: GeoJSON.Position): [number, number] | null {
+    if (!Array.isArray(position) || position.length < 2) {
+      return null;
+    }
+    const [longitude, latitude] = position;
+    if (typeof longitude !== "number" || typeof latitude !== "number") {
+      return null;
+    }
+    return [longitude, latitude];
+  }
+
+  private normalizeLineStringCoordinates(coordinates: GeoJSON.Position[]): [number, number][] {
+    return coordinates.flatMap((position) => {
+      const normalized = this.normalizePosition(position);
+      return normalized ? [normalized] : [];
+    });
+  }
+
+  private normalizePolygonCoordinates(coordinates: GeoJSON.Position[][]): [number, number][][] {
+    return coordinates.flatMap((ring) => {
+      const normalizedRing = this.normalizeLineStringCoordinates(ring);
+      return normalizedRing.length > 0 ? [normalizedRing] : [];
+    });
+  }
+
+  private createDrawFeature(
+    geometry: GeoJSON.Point | GeoJSON.LineString | GeoJSON.Polygon,
+    properties: Record<string, unknown>,
+    id: string | number | undefined
+  ): MapModelValueType["features"][number] {
+    return {
+      id: this.isValidTerraDrawFeatureId(id) ? id : this.createFeatureId(),
+      type: "Feature",
+      properties: {
+        ...properties,
+        mode: properties["mode"] ?? this.modeForGeometry(geometry.type)
+      },
+      geometry
+    } as MapModelValueType["features"][number];
+  }
+
+  private isValidTerraDrawFeatureId(id: unknown): id is string {
+    return typeof id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  }
+
+  private createFeatureId(): string {
+    return globalThis.crypto?.randomUUID?.() ??
+      "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+        (Number(character) ^ globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(character) / 4).toString(16)
+      );
+  }
+
+  private modeForGeometry(type: GeoJSON.Point["type"] | GeoJSON.LineString["type"] | GeoJSON.Polygon["type"]): TerraDrawModeName {
+    if (type === "Point") {
+      return "point";
+    }
+    if (type === "LineString") {
+      return "linestring";
+    }
+    return "polygon";
   }
 
   private isGeoJsonGeometry(type: unknown): type is GeoJSON.Geometry["type"] {
@@ -1139,10 +1297,20 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
           throw new Error("Invalid XML");
         }
         const converted = this.mapDeps.parseKmlToGeoJson(xmlDoc);
-        return this.normalizeFeatureCollection(converted);
+        const normalized = this.normalizeFeatureCollection(converted);
+        if (normalized.features.length === 0) {
+          this.importError = "Entered text does not contain any supported map features";
+          return null;
+        }
+        return normalized;
       }
       const parsed = JSON.parse(trimmed);
-      return this.normalizeFeatureCollection(parsed);
+      const normalized = this.normalizeFeatureCollection(parsed);
+      if (normalized.features.length === 0) {
+        this.importError = "Entered text does not contain any supported map features";
+        return null;
+      }
+      return normalized;
     } catch {
       this.importError = "Entered text is not valid KML or GeoJSON";
       return null;
@@ -1193,6 +1361,25 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     const extent = this.vectorSource.getExtent();
     if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
       this.map.getView().fit(extent, { padding: [12, 12, 12, 12] });
+    }
+  }
+
+  private scheduleFitToFeatureCollectionBounds(value: MapModelValueType): void {
+    if (!this.map || !this.mapDeps || value.features.length === 0) {
+      return;
+    }
+    globalThis.requestAnimationFrame?.(() => this.fitToFeatureCollectionBounds(value));
+    globalThis.setTimeout(() => this.fitToFeatureCollectionBounds(value), 0);
+  }
+
+  private fitToFeatureCollectionBounds(value: MapModelValueType): void {
+    if (!this.map || !this.mapDeps || value.features.length === 0) {
+      return;
+    }
+    const { source } = this.createVectorSourceFromFeatureCollection(value);
+    const extent = source.getExtent();
+    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+      this.map.getView().fit(extent, { padding: [24, 24, 24, 24] });
     }
   }
 
