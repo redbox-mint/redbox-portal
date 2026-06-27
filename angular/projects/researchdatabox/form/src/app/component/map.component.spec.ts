@@ -1141,6 +1141,11 @@ describe("MapComponent", () => {
     const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
 
+    // No tool is selected by default, so map interactions stay enabled for panning.
+    expect(fakeMapInteractions[0].setActive).not.toHaveBeenCalled();
+    expect(fakeMapInteractions[1].setActive).not.toHaveBeenCalled();
+
+    mapComponent.setDrawMode("rectangle");
     expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
     expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
 

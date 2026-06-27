@@ -521,7 +521,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.canSelectFeatures = this.enabledModes.includes("select");
     this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
     this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
-    this.activeMode = this.toolbarModes[0] ?? (this.canSelectFeatures ? "select" : undefined);
+    // Default to no active drawing mode so the map starts in pan mode (terra-draw's
+    // built-in "static" mode) instead of dropping markers on click-drag. The user
+    // explicitly selects a drawing tool from the toolbar when they want to draw.
+    this.activeMode = undefined;
     this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
     const coordinatesHelp = String(cfg.coordinatesHelp ?? "");
@@ -865,8 +868,19 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.draw || !this.enabledModes.includes(mode)) {
       return;
     }
+    // Clicking the already-active tool toggles it off, returning the map to pan mode.
+    if (this.activeMode === mode) {
+      this.clearDrawMode();
+      return;
+    }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+    this.updateMapInteractionsForActiveDrawMode();
+  }
+
+  private clearDrawMode(): void {
+    this.activeMode = undefined;
+    this.draw?.setMode?.("static");
     this.updateMapInteractionsForActiveDrawMode();
   }
 
@@ -1047,6 +1061,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private setInitialDrawMode(): void {
     const initialMode = this.activeMode;
     if (!initialMode) {
+      // No tool selected: keep terra-draw in its "static" mode so the map pans on
+      // click-drag rather than drawing features.
+      this.draw?.setMode?.("static");
+      this.updateMapInteractionsForActiveDrawMode();
       return;
     }
     this.draw?.setMode?.(initialMode);
