@@ -68,7 +68,6 @@ export * from './autoreload.config';
 export * from './custom.config';
 export * from './dynamicconfig.config';
 export * from './dashboardtype.config';
-export * from './datapubs.config';
 export * from './workspacetype.config';
 export * from './lognamespace.config';
 export * from './redboxToCkan.config';
@@ -144,7 +143,6 @@ import { autoreload, AutoreloadConfig } from './autoreload.config';
 import { custom, CustomConfig } from './custom.config';
 import { dynamicconfig, DynamicConfigConfig } from './dynamicconfig.config';
 import { dashboardtype, DashboardTypeConfig } from './dashboardtype.config';
-import { datapubs, DataPubsConfig } from './datapubs.config';
 import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
 import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
 import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
@@ -250,7 +248,6 @@ export interface SailsConfig {
     custom: CustomConfig;
     dynamicconfig: DynamicConfigConfig;
     dashboardtype: DashboardTypeConfig;
-    datapubs: DataPubsConfig;
     workspacetype: WorkspaceTypeConfig;
     lognamespace: LogNamespaceConfig;
     redboxToCkan: RedboxToCkanConfig;
@@ -335,7 +332,6 @@ export const Config = {
     custom,
     dynamicconfig,
     dashboardtype,
-    datapubs,
     workspacetype,
     lognamespace,
     redboxToCkan,

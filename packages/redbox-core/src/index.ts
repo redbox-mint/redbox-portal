@@ -92,6 +92,7 @@ export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';
 export * from './configmodels/FigsharePublishing';
+export * from './configmodels/OniPublishing';
 export {
   DoiPublishing,
   DOI_PUBLISHING_SCHEMA,

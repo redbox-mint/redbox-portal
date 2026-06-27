@@ -1,6 +1,7 @@
 export enum IntegrationAuditName {
   figshare = 'figshare',
   doi = 'doi',
+  oni = 'oni',
 }
 
 export enum IntegrationAuditAction {
@@ -19,6 +20,9 @@ export enum IntegrationAuditAction {
   publishDoiTrigger = 'publishDoiTrigger',
   publishDoiTriggerSync = 'publishDoiTriggerSync',
   updateDoiTriggerSync = 'updateDoiTriggerSync',
+  publishOniDataset = 'publishOniDataset',
+  buildOniRoCrate = 'buildOniRoCrate',
+  writeOniOcflObject = 'writeOniOcflObject',
 }
 
 export enum IntegrationAuditStatus {

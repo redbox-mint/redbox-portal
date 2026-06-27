@@ -42,4 +42,14 @@ describe('brandingConfigurationDefaults', function () {
     expect(await evaluateBinding(profile.metadata.publicationYear, context as never)).to.equal('2024');
     expect(await evaluateBinding(profile.writeBack.citationString, context as never)).to.equal('Smith, Jane; Doe, John (2024): Test Title. Test Publisher. {ID_WILL_BE_HERE}');
   });
+
+  it('exposes a canonical oniPublishing default for runtime use', function () {
+    const oniPublishing = brandingConfigurationDefaults.oniPublishing;
+
+    expect(oniPublishing).to.exist;
+    expect(oniPublishing?.enabled).to.equal(true);
+    expect(oniPublishing?.defaultSite).to.equal('public');
+    expect(oniPublishing?.sites.public.storage.driver).to.equal('flydrive');
+    expect(oniPublishing?.writeBack.citationUrlPath).to.equal('metadata.citation_url');
+  });
 });

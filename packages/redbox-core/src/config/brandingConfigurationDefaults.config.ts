@@ -6,6 +6,7 @@
  */
 
 import { createDefaultBinding, type DoiPublishingConfigData } from '../configmodels/DoiPublishing';
+import { OniPublishing, type OniPublishingConfigData } from '../configmodels/OniPublishing';
 
 export interface BrandAuthLocalConfig {
     usernameField: string;
@@ -145,6 +146,7 @@ export interface BrandingConfigurationDefaultsConfig {
     adminSidebar: BrandingAdminSidebarConfig;
     doiPublishing?: DoiPublishingConfigData;
     figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
+    oniPublishing?: OniPublishingConfigData;
 }
 
 /**
@@ -397,7 +399,8 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
                 { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
                 { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' }
+                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
+                { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
             ]
         },
         {
@@ -579,5 +582,6 @@ export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefault
     menu: defaultMenuConfig,
     homePanels: defaultHomePanelsConfig,
     adminSidebar: defaultAdminSidebarConfig,
-    doiPublishing: defaultDoiPublishingConfig
+    doiPublishing: defaultDoiPublishingConfig,
+    oniPublishing: new OniPublishing()
 };

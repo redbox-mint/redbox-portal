@@ -4,6 +4,7 @@ import { MenuConfig, MENU_CONFIG_SCHEMA } from './MenuConfig';
 import { HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA } from './HomePanelConfig';
 import { AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA } from './AdminSidebarConfig';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from './FigsharePublishing';
+import { OniPublishing, ONI_PUBLISHING_SCHEMA } from './OniPublishing';
 import {
   DoiPublishing,
   DOI_PUBLISHING_SCHEMA,
@@ -36,6 +37,7 @@ export type ConfigModelKey =
     | 'homePanels'
     | 'adminSidebar'
     | 'figsharePublishing'
+    | 'oniPublishing'
     | 'doiPublishing'
     | 'dashboardTableConfig'
     | 'integrationNotification';
@@ -84,6 +86,13 @@ export class ConfigModels {
             schema: FIGSHARE_PUBLISHING_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/FigsharePublishing.ts'),
             secretFields: ['connection.token']
+        }],
+        ['oniPublishing', {
+            modelName: 'OniPublishing',
+            title: 'Oni Publishing',
+            class: OniPublishing,
+            schema: ONI_PUBLISHING_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/OniPublishing.ts')
         }],
         ['doiPublishing', {
             modelName: 'DoiPublishing',
