@@ -55,10 +55,8 @@
     "sails": "1.5.17",
     "sinon": "22.0.0",
     "serialize-javascript": "7.0.5",
-    "stream": "0.0.3",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3",
-    "util": "0.12.5"
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",

@@ -7,8 +7,8 @@ import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
 import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile } from 'mongodb';
-import stream = require('stream');
-import util = require('util');
+import stream = require('node:stream');
+import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
   Services as services,
@@ -34,7 +34,6 @@ import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
 
 const { flatten } = transforms;
-const pipeline = util.promisify(stream.pipeline);
 
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
