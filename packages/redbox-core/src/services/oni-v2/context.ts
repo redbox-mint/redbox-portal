@@ -15,7 +15,7 @@ export function createRunContext(
     brandId,
     brandName: getBrandName(record),
     siteName,
-    correlationId: jobId ?? `${oid}:${siteName}:${Date.now()}`,
+    correlationId: jobId ?? `${oid}:${siteName}`,
     triggerSource,
   };
 }

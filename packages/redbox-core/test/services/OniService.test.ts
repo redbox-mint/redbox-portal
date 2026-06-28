@@ -1,13 +1,14 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
+import { finished } from 'node:stream/promises';
 import { Services } from '../../src/services/OniService';
 import { OniPublishing } from '../../src/configmodels/OniPublishing';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
-import { buildOniRoCrate, getSelectedAttachments } from '../../src/services/oni-v2/crate';
+import { buildOniRoCrate, getPerson, getSelectedAttachments } from '../../src/services/oni-v2/crate';
 import { validateHandlebarsTemplate } from '../../src/services/oni-v2/bindings';
-import { mapDatasetFields, validateMappedDataset } from '../../src/services/oni-v2/mapping';
-import { resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
+import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../../src/services/oni-v2/mapping';
+import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
 import type { StorageDiskLike } from '../../src/services/oni-v2/types';
 import { RBValidationError } from '../../src/model/RBValidationError';
@@ -40,13 +41,6 @@ describe('OniService', function () {
         },
       },
     };
-    oniPublishing.metadata.subjects = ['anzsrc_for'];
-    oniPublishing.metadata.funders = ['foaf_fundedBy'];
-    oniPublishing.metadata.defaultIriPrefs.about = {
-      anzsrc_for: 'https://linked.data.gov.au/def/anzsrc-for/2020/',
-    };
-    oniPublishing.metadata.defaultIriPrefs.funder = 'https://ror.org/';
-
     const mockSails = createMockSails();
     mockSails.config.brandingConfigurationDefaults = { oniPublishing };
     mockSails.config.brandingAware = sinon.stub().withArgs('default').returns({ oniPublishing });
@@ -113,8 +107,25 @@ describe('OniService', function () {
           { type: 'attachment', selected: true, fileId: 'file-1', name: 'data.csv' },
           { type: 'attachment', selected: false, fileId: 'file-2', name: 'skip.csv' },
         ],
-        anzsrc_for: [{ notation: '0601', name: 'Biochemistry' }],
-        foaf_fundedBy: [{ dc_identifier: ['03yrm5c26'], dc_title: 'Example Funder' }],
+        related_publications: [
+          {
+            related_title: 'Related Publication',
+            related_url: 'https://doi.org/10.1234/related-publication',
+            related_notes: 'Publication note',
+          },
+        ],
+        related_data: [
+          {
+            related_title: 'Related Dataset',
+            related_url: 'https://doi.org/10.1234/related-dataset',
+            related_notes: '',
+          },
+          { related_title: '', related_url: '', related_notes: '' },
+        ],
+        'dc:subject_anzsrc:for': [{ notation: '0601', name: 'Biochemistry' }, {}],
+        'dc:subject_anzsrc:seo': [{ notation: '9608', name: 'Flora, Fauna and Biodiversity' }, {}],
+        'foaf:fundedBy_foaf:Agent': [{ dc_identifier: ['03yrm5c26'], dc_title: 'Example Funder' }, {}],
+        'foaf:fundedBy_vivo:Grant': [{ dc_identifier: ['grant-1'], dc_title: 'Example Grant' }, {}],
       },
       metaMetadata: {
         brandId: 'brand-1',
@@ -162,6 +173,7 @@ describe('OniService', function () {
     });
 
     expect(result.datasetUrl).to.equal('https://data.example.edu/pub-1');
+    expect(oniPublishing.metadata.jsonldFilename).to.equal('ro-crate-metadata.json');
     expect(record.metadata.citation_url).to.equal(undefined);
     expect(record.metadata.citation_doi).to.equal('https://doi.org/10.1234/{ID_WILL_BE_HERE}');
     expect(result.attachments).to.have.lengthOf(1);
@@ -169,6 +181,25 @@ describe('OniService', function () {
     expect(result.crateJson['@graph']).to.be.an('array');
     expect(JSON.stringify(result.crateJson)).to.include('Dataset Title');
     expect(JSON.stringify(result.crateJson)).to.include('Example Funder');
+    const graph = result.crateJson['@graph'] as Array<Record<string, unknown>>;
+    const graphIds = graph.map(entry => entry['@id']);
+    const root = graph.find(entry => entry['@id'] === result.rootId)!;
+    const descriptor = graph.find(entry => entry['@id'] === 'ro-crate-metadata.json')!;
+    const historyCreate = graph.find(entry => entry['@id'] === 'history1')!;
+    const creatorPeople = graph.filter(entry => entry.email === 'creator@example.edu');
+    expect(descriptor.about).to.deep.equal({ '@id': result.rootId });
+    expect(historyCreate.agent).to.deep.equal({ '@id': 'https://orcid.org/0000-0001-2345-6789' });
+    expect(creatorPeople).to.have.lengthOf(1);
+    expect(root.funder).to.deep.equal([{ '@id': '_:funder/03yrm5c26' }, { '@id': '_:funder/grant-1' }]);
+    expect(root.about).to.deep.equal([{ '@id': '_:FOR/0601' }, { '@id': '_:SEO/9608' }]);
+    expect(root.publications).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-publication' }]);
+    expect(root.data).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-dataset' }]);
+    expect(graph.some(entry => entry['@id'] === '_:FOR/0601' && entry.url === '_:FOR/0601')).to.equal(true);
+    expect(graph.some(entry => entry['@id'] === '_:SEO/9608' && entry.url === '_:SEO/9608')).to.equal(true);
+    expect(graph.some(entry => entry['@id'] === 'https://doi.org/10.1234/related-publication')).to.equal(true);
+    expect(graphIds).to.not.include('_:funder/');
+    expect(graphIds).to.not.include('_:FOR/');
+    expect(graphIds).to.not.include('_:SEO/');
   });
 
   it('maps path, handlebars and jsonata root dataset fields', async function () {
@@ -217,6 +248,46 @@ describe('OniService', function () {
     expect(root.author).to.deep.equal([{ '@id': 'https://orcid.org/0000-0001-2345-6789' }]);
   });
 
+  it('wraps a single graph entity object when itemMode is array', async function () {
+    const rootDataset: Record<string, unknown> = {};
+    const entities = await mapGraphEntities(
+      [
+        {
+          sourcePath: 'metadata.creators',
+          itemMode: 'array',
+          id: { kind: 'path', path: 'item.email' },
+          type: { kind: 'path', path: 'context.personType' },
+          fields: [{ property: 'name', value: { kind: 'path', path: 'item.text_full_name' } }],
+          linkToDataset: { property: 'author' },
+        },
+      ],
+      {
+        metadata: {
+          creators: {
+            email: 'single@example.edu',
+            text_full_name: 'Single Creator',
+          },
+        },
+        context: { personType: 'Person' },
+      },
+      rootDataset
+    );
+
+    expect(entities).to.deep.equal([{ '@id': 'single@example.edu', '@type': 'Person', name: 'Single Creator' }]);
+    expect(rootDataset.author).to.deep.equal([{ '@id': 'single@example.edu' }]);
+  });
+
+  it('falls back past empty person identifiers', function () {
+    expect(
+      getPerson({ orcid: '', email: 'fallback@example.edu', text_full_name: 'Fallback Person' }, 'Person')
+    ).to.deep.include({
+      '@id': 'fallback@example.edu',
+      '@type': 'Person',
+      name: 'Fallback Person',
+      email: 'fallback@example.edu',
+    });
+  });
+
   it('omits empty mapped values by default and supports array modes explicitly', async function () {
     const mapped = await mapDatasetFields(
       [
@@ -247,6 +318,29 @@ describe('OniService', function () {
     expect(getSelectedAttachments(record, oniPublishing)).to.deep.equal([]);
   });
 
+  it('accepts legacy truthy selected attachment flags', function () {
+    const record = publicationRecord();
+    record.metadata.dataLocations = [
+      { type: 'attachment', selected: 'on', fileId: 'file-1', name: 'data.csv' },
+      { type: 'attachment', selected: '1', fileId: 'file-2', name: 'other.csv' },
+      { type: 'attachment', selected: 'no', fileId: 'file-3', name: 'skip.csv' },
+    ];
+
+    expect(getSelectedAttachments(record, oniPublishing).map(attachment => attachment.fileId)).to.deep.equal([
+      'file-1',
+      'file-2',
+    ]);
+  });
+
+  it('resolves brand ids to brand names for Oni config lookup', function () {
+    (global as unknown as { BrandingService: unknown }).BrandingService = {
+      getBrandById: sinon.stub().returns(undefined),
+      getBrand: sinon.stub().withArgs('brand-2').returns({ id: 'brand-2', name: 'configured-brand' }),
+    };
+
+    expect(getBrandName({ metadata: {}, metaMetadata: { brandId: 'brand-2' } })).to.equal('configured-brand');
+  });
+
   it('skips publishing when trigger condition is not met', async function () {
     const serviceInternals = service as unknown as Record<string, (...args: unknown[]) => unknown>;
     const runStub = sinon.stub(serviceInternals, 'runPublishDataset');
@@ -261,6 +355,8 @@ describe('OniService', function () {
   });
 
   it('runs publish workflow, audits it, and persists with the record brand', async function () {
+    const record = publicationRecord();
+    record.metadata.publication_error = 'Data publication failed with error: Error previous failure';
     const repository = {
       ensureStorageRoot: sinon.stub().resolves(),
       ensureRootCollection: sinon.stub().resolves(),
@@ -281,7 +377,7 @@ describe('OniService', function () {
 
     await service.exportDataset(
       'pub-1',
-      publicationRecord(),
+      record,
       { site: 'test-site', forceRun: true },
       { email: 'approver@example.edu' }
     );
@@ -299,7 +395,9 @@ describe('OniService', function () {
       .updateMeta;
     expect(updateMeta.calledOnce).to.equal(true);
     expect(updateMeta.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
-    expect(updateMeta.firstCall.args[4]).to.equal(false);
+    expect(updateMeta.firstCall.args[2].metadata.citation_url).to.equal('https://data.example.edu/pub-1');
+    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.equal(undefined);
+    expect(updateMeta.firstCall.args[4]).to.equal(true);
     expect(updateMeta.firstCall.args[5]).to.equal(false);
   });
 
@@ -370,6 +468,90 @@ describe('OniService', function () {
       entries.push(entry.path);
     }
     expect(entries).to.deep.equal(['inventory.json.sha512=', 'inventory.json.sha512%3D']);
+  });
+
+  it('maps Flydrive missing-file read errors to ENOENT', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    const missingError = new Error('Object was not found') as NodeJS.ErrnoException;
+    missingError.code = 'E_OBJECT_NOT_FOUND';
+    const store = new Store({
+      disk: {
+        getBytes: sinon.stub().rejects(missingError),
+      } as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    try {
+      await store.readFile('/ocfl/missing.txt');
+      throw new Error('Expected readFile to throw');
+    } catch (error) {
+      expect((error as NodeJS.ErrnoException).code).to.equal('ENOENT');
+    }
+  });
+
+  it('waits for Flydrive write stream uploads before invoking the end callback', function (done) {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    let finishUpload: (() => void) | undefined;
+    const disk = {
+      putStream: sinon.stub().returns(
+        new Promise<void>(resolve => {
+          finishUpload = resolve;
+        })
+      ),
+    };
+    const store = new Store({
+      disk: disk as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    store
+      .createWriteStream('/ocfl/object/file.txt')
+      .then(stream => {
+        let callbackCalled = false;
+        stream.end('content', () => {
+          callbackCalled = true;
+          done();
+        });
+        setImmediate(() => {
+          expect(callbackCalled).to.equal(false);
+          finishUpload?.();
+        });
+      })
+      .catch(done);
+  });
+
+  it('waits for Flydrive write stream uploads before finishing the stream', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    let finishUpload: (() => void) | undefined;
+    const disk = {
+      putStream: sinon.stub().returns(
+        new Promise<void>(resolve => {
+          finishUpload = resolve;
+        })
+      ),
+    };
+    const store = new Store({
+      disk: disk as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+    const stream = await store.createWriteStream('/ocfl/object/file.txt');
+    let finishedStream = false;
+
+    const finishedPromise = finished(stream).then(() => {
+      finishedStream = true;
+    });
+    stream.end('content');
+    await new Promise(resolve => setImmediate(resolve));
+    expect(finishedStream).to.equal(false);
+    finishUpload?.();
+    await finishedPromise;
+    expect(finishedStream).to.equal(true);
   });
 
   it('moves OCFL directories through the Flydrive disk abstraction', async function () {

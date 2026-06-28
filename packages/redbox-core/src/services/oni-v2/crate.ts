@@ -10,13 +10,8 @@ import type {
   OniRecordModel,
   OniUserModel,
 } from './types';
-import type { OniMetadataConfig, OniPublishingConfigData } from '../../configmodels/OniPublishing';
-import {
-  buildMappingContext,
-  mapDatasetFields,
-  mapGraphEntities,
-  validateMappedDataset,
-} from './mapping';
+import type { OniPublishingConfigData } from '../../configmodels/OniPublishing';
+import { buildMappingContext, mapDatasetFields, mapGraphEntities, validateMappedDataset } from './mapping';
 
 type WktParserHelperModule = {
   default?: WktParserHelperApi;
@@ -55,6 +50,7 @@ export function applyCitationWriteBack(
   datasetUrl: string
 ): void {
   _.set(record, config.writeBack.citationUrlPath, datasetUrl);
+  _.unset(record, config.writeBack.publicationErrorPath);
   const existingDoi = String(_.get(record, config.writeBack.citationDoiPath) ?? '');
   if (existingDoi !== '') {
     _.set(
@@ -81,11 +77,13 @@ function normalizeBoolean(value: unknown): boolean {
   if (typeof value === 'boolean') {
     return value;
   }
-  return (
-    String(value ?? '')
-      .trim()
-      .toLowerCase() === 'true'
-  );
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase();
+  return ['true', '1', 'yes', 'y', 'on'].includes(normalized);
 }
 
 function safeLogicalPath(value: string): string {
@@ -135,7 +133,9 @@ export function getSelectedAttachments(record: OniRecordModel, config: OniPublis
 }
 
 export function getPerson(rbPerson: AnyRecord, type: string): AnyRecord | undefined {
-  const id = rbPerson.orcid ?? rbPerson.email ?? rbPerson.text_full_name ?? rbPerson.name;
+  const id = [rbPerson.orcid, rbPerson.email, rbPerson.text_full_name, rbPerson.name].find(
+    value => String(value ?? '').trim() !== ''
+  );
   if (!id) {
     return undefined;
   }
@@ -268,22 +268,36 @@ async function getSpatialCoverage(metadata: AnyRecord, extraContext: AnyRecord):
   );
 }
 
-function addHistory(graph: AnyRecord[], rootDataset: AnyRecord, creator: OniUserModel, approver: OniUserModel): void {
+function normalizeEmail(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function findPersonForUser(graph: AnyRecord[], rootDataset: AnyRecord, user: OniUserModel): AnyRecord | undefined {
   const people = _.concat((rootDataset.author as AnyRecord[]) ?? [], (rootDataset.contributor as AnyRecord[]) ?? []);
-  let creatorPerson = _.find(people, (entry: AnyRecord) => entry?.email === creator.email) as AnyRecord | undefined;
+  const userEmail = normalizeEmail(user.email);
+  const candidateRefs = _.compact(
+    people.map((entry: AnyRecord) => {
+      if (userEmail !== '' && normalizeEmail(entry?.email) === userEmail) {
+        return entry;
+      }
+      const refId = String(entry?.['@id'] ?? '').trim();
+      return refId === '' ? undefined : graph.find(graphEntry => graphEntry?.['@id'] === refId);
+    })
+  ) as AnyRecord[];
+  const byEmail = candidateRefs.find(entry => normalizeEmail(entry?.email) === userEmail);
+  if (byEmail) {
+    return byEmail;
+  }
+  return candidateRefs.find(entry => String(entry?.['@type'] ?? '') === 'Person');
+}
+
+function addHistory(graph: AnyRecord[], rootDataset: AnyRecord, creator: OniUserModel, approver: OniUserModel): void {
+  let creatorPerson = findPersonForUser(graph, rootDataset, creator);
   const sameUserByEmail =
-    String(creator.email ?? '')
-      .trim()
-      .toLowerCase() !== '' &&
-    String(creator.email ?? '')
-      .trim()
-      .toLowerCase() ===
-      String(approver.email ?? '')
-        .trim()
-        .toLowerCase();
-  let approverPerson = sameUserByEmail
-    ? creatorPerson
-    : (_.find(people, (entry: AnyRecord) => entry?.email === approver.email) as AnyRecord | undefined);
+    normalizeEmail(creator.email) !== '' && normalizeEmail(creator.email) === normalizeEmail(approver.email);
+  let approverPerson = sameUserByEmail ? creatorPerson : findPersonForUser(graph, rootDataset, approver);
   if (!creatorPerson) {
     creatorPerson = getPerson(creator, 'Person');
     if (creatorPerson) {
@@ -394,7 +408,11 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     ...mappedRootDataset,
     ...systemRootDatasetFields,
   };
-  const mappedGraphEntities = await mapGraphEntities(input.config.mapping?.graphEntities ?? [], mappingContext, rootDataset);
+  const mappedGraphEntities = await mapGraphEntities(
+    input.config.mapping?.graphEntities ?? [],
+    mappingContext,
+    rootDataset
+  );
 
   const contributor = metadata.contributor_data_manager as AnyRecord | undefined;
   if (contributor != null) {
@@ -436,17 +454,5 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
       '@context': _.isEmpty(extraContext) ? RO_CRATE_CONTEXT : [RO_CRATE_CONTEXT, extraContext],
       '@graph': graph,
     },
-  };
-}
-
-export function getMetadataConfigFilenames(config: OniMetadataConfig): {
-  jsonldFilename: string;
-  htmlFilename: string;
-  datapubJson: string;
-} {
-  return {
-    jsonldFilename: config.jsonldFilename,
-    htmlFilename: config.htmlFilename,
-    datapubJson: config.datapubJson,
   };
 }

@@ -53,10 +53,8 @@ function getStorageDriver(storageConfig: unknown): string {
 }
 
 async function importOcflModule(): Promise<OcflModuleLike> {
-  const importModule = new Function('moduleName', 'return import(moduleName)') as (
-    moduleName: string
-  ) => Promise<unknown>;
-  const imported = await importModule('@ocfl/ocfl');
+  const moduleName = '@ocfl/ocfl';
+  const imported = await import(moduleName);
   const moduleRecord = imported as Record<string, unknown>;
   const candidate = (moduleRecord.default ?? imported) as Record<string, unknown>;
   if (typeof candidate.Ocfl !== 'function' || typeof candidate.OcflStore !== 'function') {
@@ -65,11 +63,24 @@ async function importOcflModule(): Promise<OcflModuleLike> {
   return candidate as unknown as OcflModuleLike;
 }
 
+function isInvalidStorageRootError(error: unknown): boolean {
+  return asError(error).message.toLowerCase().includes('invalid storage root');
+}
+
+function isMissingObjectError(error: unknown): boolean {
+  const err = error as NodeJS.ErrnoException;
+  const code = String(err.code ?? '').toUpperCase();
+  const message = asError(error).message.toLowerCase();
+  return (
+    code === 'ENOENT' || code.includes('NOT_FOUND') || message.includes('not found') || message.includes('no such file')
+  );
+}
+
 async function ensureStorageRoot(storage: OcflStorageLike): Promise<void> {
   try {
     await storage.load();
   } catch (error) {
-    if (asError(error).message !== 'Invalid storage root') {
+    if (!isInvalidStorageRootError(error)) {
       throw error;
     }
     await storage.create();
@@ -153,9 +164,17 @@ class FlydriveOniRepository implements OniOcflRepository {
     await ensureStorageRoot(await this.getStorage());
   }
 
-  async ensureRootCollection(config: ResolvedOniPublishingConfigData): Promise<void> {
+  async ensureRootCollection(config: ResolvedOniPublishingConfigData, _site?: OniPublishingSiteConfig): Promise<void> {
     const storage = await this.getStorage();
     const rootCollectionObject = storage.object(config.rootCollection.rootCollectionId);
+    try {
+      await rootCollectionObject.load();
+      return;
+    } catch (error) {
+      if (!isMissingObjectError(error)) {
+        throw error;
+      }
+    }
     const crateJson = JSON.stringify(createRootCollectionCrate(config), null, 2);
     await rootCollectionObject.update(async transaction => {
       await transaction.write(config.metadata.jsonldFilename, crateJson, 'utf8');

@@ -158,7 +158,7 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
   };
   metadata: OniMetadataConfig = {
     htmlFilename: 'ro-crate-preview.html',
-    jsonldFilename: 'ro-crate-metadata.jsonld',
+    jsonldFilename: 'ro-crate-metadata.json',
     datapubJson: 'datapub.json',
     identifierNamespace: 'public_ocfl',
     renderScript: '',
@@ -263,24 +263,139 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
         linkToDataset: { property: 'author' },
       },
       {
-        sourcePath: 'metadata.foaf_fundedBy',
+        sourcePath: 'metadata.related_publications',
         itemMode: 'array',
-        id: { kind: 'handlebars', template: '{{context.funderIriPrefix}}{{item.dc_identifier.[0]}}' },
+        id: { kind: 'path', path: 'item.related_url' },
+        type: { kind: 'path', path: 'context.relatedPublicationType', defaultValue: 'ScholarlyArticle' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.related_title' } },
+          { property: 'identifier', value: { kind: 'path', path: 'item.related_url' } },
+          { property: 'description', value: { kind: 'path', path: 'item.related_notes' } },
+        ],
+        linkToDataset: { property: 'publications' },
+      },
+      {
+        sourcePath: 'metadata.related_websites',
+        itemMode: 'array',
+        id: { kind: 'path', path: 'item.related_url' },
+        type: { kind: 'path', path: 'context.relatedWebsiteType', defaultValue: 'WebSite' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.related_title' } },
+          { property: 'identifier', value: { kind: 'path', path: 'item.related_url' } },
+          { property: 'description', value: { kind: 'path', path: 'item.related_notes' } },
+        ],
+        linkToDataset: { property: 'websites' },
+      },
+      {
+        sourcePath: 'metadata.related_metadata',
+        itemMode: 'array',
+        id: { kind: 'path', path: 'item.related_url' },
+        type: { kind: 'path', path: 'context.relatedMetadataType', defaultValue: 'CreativeWork' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.related_title' } },
+          { property: 'identifier', value: { kind: 'path', path: 'item.related_url' } },
+          { property: 'description', value: { kind: 'path', path: 'item.related_notes' } },
+        ],
+        linkToDataset: { property: 'metadata' },
+      },
+      {
+        sourcePath: 'metadata.related_data',
+        itemMode: 'array',
+        id: { kind: 'path', path: 'item.related_url' },
+        type: { kind: 'path', path: 'context.relatedDataType', defaultValue: 'Dataset' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.related_title' } },
+          { property: 'identifier', value: { kind: 'path', path: 'item.related_url' } },
+          { property: 'description', value: { kind: 'path', path: 'item.related_notes' } },
+        ],
+        linkToDataset: { property: 'data' },
+      },
+      {
+        sourcePath: 'metadata.related_services',
+        itemMode: 'array',
+        id: { kind: 'path', path: 'item.related_url' },
+        type: { kind: 'path', path: 'context.relatedServiceType', defaultValue: 'CreativeWork' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.related_title' } },
+          { property: 'identifier', value: { kind: 'path', path: 'item.related_url' } },
+          { property: 'description', value: { kind: 'path', path: 'item.related_notes' } },
+        ],
+        linkToDataset: { property: 'services' },
+      },
+      {
+        sourcePath: 'metadata.foaf:fundedBy_foaf:Agent',
+        itemMode: 'array',
+        id: {
+          kind: 'jsonata',
+          expression: '($id := $trim($string(item.dc_identifier[0])); $id ? context.funderIriPrefix & $id : "")',
+        },
         type: { kind: 'path', path: 'context.organizationType', defaultValue: 'Organization' },
         fields: [
           { property: 'name', value: { kind: 'path', path: 'item.dc_title' } },
-          { property: 'identifier', value: { kind: 'handlebars', template: '{{context.funderIriPrefix}}{{item.dc_identifier.[0]}}' } },
+          {
+            property: 'identifier',
+            value: { kind: 'handlebars', template: '{{context.funderIriPrefix}}{{item.dc_identifier.[0]}}' },
+          },
         ],
         linkToDataset: { property: 'funder' },
       },
       {
-        sourcePath: 'metadata.anzsrc_for',
+        sourcePath: 'metadata.foaf:fundedBy_vivo:Grant',
         itemMode: 'array',
-        id: { kind: 'handlebars', template: '{{context.aboutIriPrefix}}{{item.notation}}' },
+        id: {
+          kind: 'jsonata',
+          expression: '($id := $trim($string(item.dc_identifier[0])); $id ? context.funderIriPrefix & $id : "")',
+        },
+        type: { kind: 'path', path: 'context.organizationType', defaultValue: 'Organization' },
+        fields: [
+          { property: 'name', value: { kind: 'path', path: 'item.dc_title' } },
+          {
+            property: 'identifier',
+            value: { kind: 'handlebars', template: '{{context.funderIriPrefix}}{{item.dc_identifier.[0]}}' },
+          },
+        ],
+        linkToDataset: { property: 'funder' },
+      },
+      {
+        sourcePath: 'metadata.dc:subject_anzsrc:for',
+        itemMode: 'array',
+        id: {
+          kind: 'jsonata',
+          expression:
+            '($notation := $trim($string(item.notation)); $notation ? context.aboutForIriPrefix & $notation : "")',
+        },
         type: { kind: 'path', path: 'context.structuredValueType', defaultValue: 'StructuredValue' },
         fields: [
-          { property: 'url', value: { kind: 'handlebars', template: '{{context.aboutIriPrefix}}{{item.notation}}' } },
-          { property: 'identifier', value: { kind: 'handlebars', template: '{{context.aboutIriPrefix}}{{item.notation}}' } },
+          {
+            property: 'url',
+            value: { kind: 'handlebars', template: '{{context.aboutForIriPrefix}}{{item.notation}}' },
+          },
+          {
+            property: 'identifier',
+            value: { kind: 'handlebars', template: '{{context.aboutForIriPrefix}}{{item.notation}}' },
+          },
+          { property: 'name', value: { kind: 'path', path: 'item.name' } },
+        ],
+        linkToDataset: { property: 'about' },
+      },
+      {
+        sourcePath: 'metadata.dc:subject_anzsrc:seo',
+        itemMode: 'array',
+        id: {
+          kind: 'jsonata',
+          expression:
+            '($notation := $trim($string(item.notation)); $notation ? context.aboutSeoIriPrefix & $notation : "")',
+        },
+        type: { kind: 'path', path: 'context.structuredValueType', defaultValue: 'StructuredValue' },
+        fields: [
+          {
+            property: 'url',
+            value: { kind: 'handlebars', template: '{{context.aboutSeoIriPrefix}}{{item.notation}}' },
+          },
+          {
+            property: 'identifier',
+            value: { kind: 'handlebars', template: '{{context.aboutSeoIriPrefix}}{{item.notation}}' },
+          },
           { property: 'name', value: { kind: 'path', path: 'item.name' } },
         ],
         linkToDataset: { property: 'about' },

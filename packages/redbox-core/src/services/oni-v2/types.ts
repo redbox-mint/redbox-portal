@@ -79,7 +79,7 @@ export interface OniPublishResult extends OniCrateBuildResult {
 
 export interface OniOcflRepository {
   ensureStorageRoot(): Promise<void>;
-  ensureRootCollection(config: ResolvedOniPublishingConfigData, site: OniPublishingSiteConfig): Promise<void>;
+  ensureRootCollection(config: ResolvedOniPublishingConfigData, site?: OniPublishingSiteConfig): Promise<void>;
   writeDatasetObject(crate: OniCrateBuildResult, input: OniPublishInput): Promise<void>;
 }
 

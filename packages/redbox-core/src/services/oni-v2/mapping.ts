@@ -40,7 +40,14 @@ export function buildMappingContext(input: OniCrateBuildInput, derived: OniMappi
       organizationType: 'Organization',
       structuredValueType: 'StructuredValue',
       funderIriPrefix: input.config.metadata.defaultIriPrefs.funder,
-      aboutIriPrefix: input.config.metadata.defaultIriPrefs.about.anzsrc_for ?? '',
+      aboutForIriPrefix:
+        input.config.metadata.defaultIriPrefs.about['dc:subject_anzsrc:for'] ??
+        input.config.metadata.defaultIriPrefs.about.anzsrc_for ??
+        '',
+      aboutSeoIriPrefix:
+        input.config.metadata.defaultIriPrefs.about['dc:subject_anzsrc:seo'] ??
+        input.config.metadata.defaultIriPrefs.about.anzsrc_seo ??
+        '',
     },
   };
 }
@@ -72,7 +79,11 @@ export async function mapDatasetFields(mappings: OniDatasetFieldMapping[], conte
   return output;
 }
 
-export function applyDatasetLink(rootDataset: AnyRecord, entity: AnyRecord, linkToDataset: OniGraphEntityMapping['linkToDataset']): void {
+export function applyDatasetLink(
+  rootDataset: AnyRecord,
+  entity: AnyRecord,
+  linkToDataset: OniGraphEntityMapping['linkToDataset']
+): void {
   if (!linkToDataset) {
     return;
   }
@@ -82,7 +93,11 @@ export function applyDatasetLink(rootDataset: AnyRecord, entity: AnyRecord, link
     return;
   }
   const existing = rootDataset[linkToDataset.property];
-  rootDataset[linkToDataset.property] = Array.isArray(existing) ? [...existing, reference] : existing ? [existing, reference] : [reference];
+  rootDataset[linkToDataset.property] = Array.isArray(existing)
+    ? [...existing, reference]
+    : existing
+      ? [existing, reference]
+      : [reference];
 }
 
 async function mapGraphEntity(mapping: OniGraphEntityMapping, context: AnyRecord): Promise<AnyRecord | undefined> {
@@ -109,13 +124,8 @@ export async function mapGraphEntities(
   const entities: AnyRecord[] = [];
   for (const mapping of mappings) {
     const source = mapping.sourcePath ? _.get(context, mapping.sourcePath) : undefined;
-    const items = mapping.sourcePath == null
-      ? [undefined]
-      : Array.isArray(source)
-        ? source
-        : mapping.itemMode === 'array'
-          ? []
-          : [source];
+    const items =
+      mapping.sourcePath == null ? [undefined] : Array.isArray(source) ? source : source == null ? [] : [source];
     for (const [index, item] of items.entries()) {
       const entity = await mapGraphEntity(mapping, { ...context, item, index });
       if (!entity) {

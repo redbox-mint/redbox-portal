@@ -1,4 +1,4 @@
-import { PassThrough, Readable } from 'node:stream';
+import { PassThrough, Readable, Writable } from 'node:stream';
 import { posix as pathPosix, relative } from 'node:path';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { StorageDiskLike } from './types';
@@ -190,9 +190,26 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
 
     async createWriteStream(filePath: string): Promise<NodeJS.WritableStream> {
       const key = this.keyFor(filePath);
-      const stream = new PassThrough();
-      this.disk.putStream(key, stream).catch(error => stream.destroy(error));
-      return stream;
+      const uploadStream = new PassThrough();
+      const upload = this.disk.putStream(key, uploadStream);
+      const writable = new Writable({
+        write(chunk: unknown, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+          uploadStream.write(chunk, encoding, callback);
+        },
+        final(callback: (error?: Error | null) => void) {
+          uploadStream.end();
+          upload.then(
+            () => callback(),
+            error => callback(error instanceof Error ? error : new Error(String(error)))
+          );
+        },
+        destroy(error: Error | null, callback: (error?: Error | null) => void) {
+          uploadStream.destroy(error ?? undefined);
+          callback(error);
+        },
+      });
+      upload.catch(error => writable.destroy(error instanceof Error ? error : new Error(String(error))));
+      return writable;
     }
 
     async createReadable(filePath: string): Promise<NodeJS.ReadableStream> {
@@ -214,8 +231,16 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
         }
         return await this.disk.getBytes(key);
       } catch (error) {
-        const code = String((error as NodeJS.ErrnoException).code ?? '');
-        if (code.includes('E_CANNOT_READ_FILE')) {
+        const code = String((error as NodeJS.ErrnoException).code ?? '').toUpperCase();
+        const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+        if (
+          code === 'ENOENT' ||
+          code.includes('CANNOT_READ_FILE') ||
+          code.includes('NOT_FOUND') ||
+          message.includes('no such file') ||
+          message.includes('not found') ||
+          message.includes('cannot read file')
+        ) {
           throw toError('ENOENT', filePath);
         }
         throw error;

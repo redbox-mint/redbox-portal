@@ -111,7 +111,7 @@ export namespace Services {
 
     private async persistRecord(oid: string, record: OniRecordModel, user: OniUserModel): Promise<void> {
       const brand = getBrand(record);
-      await RecordsService.updateMeta(brand, oid, record as AnyRecord, user as AnyRecord, false, false);
+      await RecordsService.updateMeta(brand, oid, record as AnyRecord, user as AnyRecord, true, false);
     }
 
     private async recordPublicationError(

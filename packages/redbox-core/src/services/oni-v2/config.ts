@@ -63,7 +63,8 @@ export function getBrandName(record?: OniRecordModel): string {
   }
   const brandByName = typeof brandingService.getBrand === 'function' ? brandingService.getBrand(rawBrand) : undefined;
   if (brandByName != null) {
-    return rawBrand;
+    const resolvedName = String((brandByName as { name?: unknown }).name ?? '').trim();
+    return resolvedName === '' ? rawBrand : resolvedName;
   }
   sails.log.warn(`OniService - unable to resolve brand id or name '${rawBrand}'; using default branding config lookup`);
   return rawBrand;
