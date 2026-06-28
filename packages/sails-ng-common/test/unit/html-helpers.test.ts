@@ -9,6 +9,12 @@ describe('HTML helpers', function () {
   });
 
   const cases = [
+    {value: null as unknown as string, encoded: ''},
+    {value: undefined as unknown as string, encoded: ''},
+    {value: 0 as unknown as string, encoded: 'MA=='},
+    {value: false as unknown as string, encoded: 'ZmFsc2U='},
+    {value: ["hi"] as unknown as string, encoded: 'aGk='},
+    {value: {hi: 2} as unknown as string, encoded: 'W29iamVjdCBPYmplY3Rd'},
     {value: 'Renée', encoded: 'UmVuw6ll'},
     {value: '日本語', encoded: '5pel5pys6Kqe'},
     {value: '👋 hello', encoded: '8J+RiyBoZWxsbw=='},
@@ -21,7 +27,7 @@ describe('HTML helpers', function () {
       expect(actualEncoded).to.eql(encoded);
 
       const actualDecoded = decodeBase64(actualEncoded);
-      expect(actualDecoded).to.eql(value);
+      expect(actualDecoded).to.eql(String(value ?? ""));
     });
   });
 });
