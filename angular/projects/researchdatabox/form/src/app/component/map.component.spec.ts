@@ -836,6 +836,63 @@ describe("MapComponent", () => {
     expect(fakeMap.updateSize).toHaveBeenCalled();
   });
 
+  it("shows saved features read-only when edit draw ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fakeDraw.addFeatures).not.toHaveBeenCalled();
+      expect(fakeGeoJSONReadFeatures).toHaveBeenCalledWith(
+        jasmine.objectContaining({features: jasmine.arrayContaining([
+          jasmine.objectContaining({id: "feature-1"})
+        ])}),
+        {dataProjection: "EPSG:4326", featureProjection: "EPSG:3857"}
+      );
+      expect((fixture.nativeElement.textContent ?? "").includes("Saved map features cannot be loaded for editing")).toBeTrue();
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
+  });
+
   it("initialises draw tooling when a disabled map is enabled after map load", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",

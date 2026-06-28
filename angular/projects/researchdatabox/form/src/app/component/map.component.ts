@@ -280,6 +280,9 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
             </div>
           }
         </div>
+        @if (mapError) {
+          <div class="text-danger small mt-2 rb-map-error">{{ mapError }}</div>
+        }
         @if (isEditMode() && enableImport) {
           <div class="rb-map-import mt-2">
             <label class="form-label">{{ importLabel }}</label>
@@ -447,6 +450,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public importLabel = "Enter KML or GeoJSON";
   public importDataString = "";
   public importError = "";
+  public mapError = "";
 
   private map?: OLMap;
   private draw?: any;
@@ -503,6 +507,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public translatedModeHelpText: Record<MapDrawingMode, string> = { ...this.modeHelpTextFallbacks };
   public deleteSelectedHelpText = "Delete the selected map feature.";
   public clearAllHelpText = "Clear all points, lines, and shapes from the map.";
+  private readonly featureIdUnavailableError = "Saved map features cannot be loaded for editing because this browser does not provide the crypto API required to generate map feature IDs.";
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -705,11 +710,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       view: olView
     });
 
-    const startingValue = this.currentModelValue();
     if (this.isEditMode()) {
       this.scheduleDrawInitialisation();
     } else {
-      this.renderReadonlyLayer(startingValue);
+      this.renderReadonlyLayer(this.currentReadonlyValue());
     }
 
     this.installVisibilityObserver();
@@ -728,9 +732,14 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.drawReadyObserver = undefined;
     this.removeFeatureLayer();
     this.initialiseDraw();
-    const startingValue = this.currentModelValue();
-    if (startingValue.features.length > 0) {
-      this.pushFeaturesToDraw(startingValue.features);
+    try {
+      const startingValue = this.currentModelValue();
+      if (startingValue.features.length > 0) {
+        this.pushFeaturesToDraw(startingValue.features);
+      }
+      this.mapError = "";
+    } catch (error) {
+      this.handleInitialFeatureLoadError(error);
     }
   }
 
@@ -885,7 +894,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   public hasFeatures(): boolean {
-    return this.currentModelValue().features.length > 0;
+    try {
+      return this.currentModelValue().features.length > 0;
+    } catch {
+      return (this.currentRawFeatureCollection()?.features.length ?? 0) > 0;
+    }
   }
 
   public deleteSelectedFeatures(): void {
@@ -961,7 +974,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     };
   }
 
-  private createVectorSourceFromFeatureCollection(value: MapModelValueType): { source: OLVectorSource; features: any[] } {
+  private createVectorSourceFromFeatureCollection(value: MapModelValueType | GeoJSON.FeatureCollection): { source: OLVectorSource; features: any[] } {
     const geoJsonFormat = new this.mapDeps!.GeoJSON();
     const features = geoJsonFormat.readFeatures(value as any, {
       dataProjection: "EPSG:4326",
@@ -973,7 +986,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     };
   }
 
-  private renderReadonlyLayer(value: MapModelValueType): void {
+  private renderReadonlyLayer(value: MapModelValueType | GeoJSON.FeatureCollection): void {
     if (!this.map || !this.mapDeps) {
       return;
     }
@@ -1056,6 +1069,42 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return modelValue;
     }
     return controlValue;
+  }
+
+  private currentReadonlyValue(): MapModelValueType | GeoJSON.FeatureCollection {
+    return this.currentRawFeatureCollection() ?? this.currentModelValue();
+  }
+
+  private currentRawFeatureCollection(): GeoJSON.FeatureCollection | undefined {
+    const controlValue = this.asRawFeatureCollection(this.formControl.value);
+    if (controlValue?.features.length) {
+      return controlValue;
+    }
+    const modelValue = this.asRawFeatureCollection(this.model?.getValue());
+    if (modelValue?.features.length) {
+      return modelValue;
+    }
+    return controlValue ?? modelValue;
+  }
+
+  private asRawFeatureCollection(value: unknown): GeoJSON.FeatureCollection | undefined {
+    if (!value || typeof value !== "object") {
+      return undefined;
+    }
+    const source = value as { type?: unknown; features?: unknown };
+    if (source.type !== "FeatureCollection" || !Array.isArray(source.features)) {
+      return undefined;
+    }
+    return source as GeoJSON.FeatureCollection;
+  }
+
+  private handleInitialFeatureLoadError(error: unknown): void {
+    this.mapError = this.featureIdUnavailableError;
+    this.loggerService.warn(`${this.logName}: failed to load saved map features into draw state.`, error);
+    const rawValue = this.currentRawFeatureCollection();
+    if (rawValue) {
+      this.renderReadonlyLayer(rawValue);
+    }
   }
 
   private setInitialDrawMode(): void {
