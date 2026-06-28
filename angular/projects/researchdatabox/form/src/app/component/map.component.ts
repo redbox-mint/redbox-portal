@@ -1242,7 +1242,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       type: "Feature",
       properties: {
         ...properties,
-        mode: properties["mode"] ?? this.modeForGeometry(geometry.type)
+        mode: this.modeForGeometry(geometry.type)
       },
       geometry
     } as MapModelValueType["features"][number];
@@ -1254,10 +1254,15 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private createFeatureId(): string {
-    return globalThis.crypto?.randomUUID?.() ??
-      "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
-        (Number(character) ^ globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(character) / 4).toString(16)
-      );
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
+    if (!globalThis.crypto?.getRandomValues) {
+      throw new Error("Unable to generate map feature id: crypto API is unavailable");
+    }
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+      (Number(character) ^ globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(character) / 4).toString(16)
+    );
   }
 
   private modeForGeometry(type: GeoJSON.Point["type"] | GeoJSON.LineString["type"] | GeoJSON.Polygon["type"]): TerraDrawModeName {

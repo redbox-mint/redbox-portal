@@ -640,7 +640,7 @@ describe("MapComponent", () => {
         type: "MultiPoint",
         coordinates: [[153.02, -27.47], [146.82, -19.25]]
       },
-      properties: {name: "Queensland sites"}
+      properties: {name: "Queensland sites", mode: "polygon"}
     });
     textarea.dispatchEvent(new Event("input"));
     fixture.detectChanges();
@@ -653,6 +653,43 @@ describe("MapComponent", () => {
     expect((modelValue?.features ?? []).length).toBe(2);
     expect(modelValue.features.map((feature: any) => feature.geometry.type)).toEqual(["Point", "Point"]);
     expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id) && feature.properties.mode === "point")).toBeTrue();
+  });
+
+  it("throws a controlled error when map feature ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      expect(() => (mapComponent as any).createFeatureId()).toThrowError("Unable to generate map feature id: crypto API is unavailable");
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
   });
 
   it("renders translated coordinates help text", async () => {
