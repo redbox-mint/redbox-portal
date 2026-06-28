@@ -189,6 +189,9 @@ describe('DoiService', function() {
     });
 
     it('should include the partial DOI request body in failure audits when payload validation fails', async function() {
+      // Required-field validation only runs for findable ('publish') events, and the
+      // require* flags default to off, so enable the title check explicitly here.
+      mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication.validation.requireTitles = true;
       const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
@@ -199,7 +202,7 @@ describe('DoiService', function() {
 
       let thrown: unknown;
       try {
-        await service.publishDoi('oid1', record, 'draft');
+        await service.publishDoi('oid1', record, 'publish');
       } catch (error) {
         thrown = error;
       }
@@ -208,7 +211,7 @@ describe('DoiService', function() {
       expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.be.false;
       expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
       const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
-      expect(auditDetails.requestSummary.event).to.equal('draft');
+      expect(auditDetails.requestSummary.event).to.equal('publish');
       expect(auditDetails.requestSummary.action).to.equal('create');
       expect(auditDetails.requestSummary.requestBody.data.type).to.equal('dois');
       expect(auditDetails.requestSummary.requestBody.data.attributes.publisher).to.equal('My Publisher');
