@@ -23,6 +23,7 @@ type IDisk = StorageManagerServices.IDisk;
 
 const LINK_FILE_CREATE_RETRY_COUNT = 3;
 const FIGSHARE_UPLOAD_PENDING_STATUS = 'created';
+const DEFAULT_FIGSHARE_STAGING_DISK = 'figshare-staging';
 
 function getRecordOid(record: RecordModel): string {
   return record.redboxOid ?? record.id ?? '';
@@ -75,6 +76,9 @@ function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   try {
     return StorageManagerService.disk(diskName);
   } catch (error) {
+    if (diskName !== DEFAULT_FIGSHARE_STAGING_DISK) {
+      throw error;
+    }
     // A deployment that overrides storage.disks may not register the default
     // 'figshare-staging' disk. Fall back to the configured staging disk rather
     // than failing the upload before staging starts.

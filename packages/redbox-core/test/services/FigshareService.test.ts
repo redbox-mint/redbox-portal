@@ -1880,7 +1880,7 @@ describe('FigshareService', function () {
       expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
     });
 
-    it('falls back to the configured staging disk when the named disk is not registered', async function () {
+    it('falls back to the configured staging disk when the built-in Figshare disk is not registered', async function () {
       const fakeDisk = makeFakeDisk();
       (global as any).StorageManagerService = {
         disk: sinon.stub().throws(new Error("disk 'figshare-staging' is not registered")),
@@ -1898,6 +1898,32 @@ describe('FigshareService', function () {
       expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
       expect(fakeDisk.calls.put).to.have.lengthOf(1);
       expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(true);
+    });
+
+    it('fails fast when a custom Figshare staging disk is not registered', async function () {
+      const fakeDisk = makeFakeDisk();
+      const diskError = new Error("disk 'custom-figshare-staging' is not registered");
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().throws(diskError),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      installDatastreamStub(Buffer.from('abcdefgh'), 8);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig({ staging: { disk: 'custom-figshare-staging' } });
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      let error: Error | undefined;
+      try {
+        await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      expect(error).to.equal(diskError);
+      expect((global as any).StorageManagerService.disk.calledWith('custom-figshare-staging')).to.equal(true);
+      expect((global as any).StorageManagerService.stagingDisk.called).to.equal(false);
+      expect(fakeDisk.calls.put).to.deep.equal([]);
+      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(false);
     });
 
     it('does not touch StorageManager in fixture mode', async function () {
