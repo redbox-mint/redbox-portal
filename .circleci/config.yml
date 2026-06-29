@@ -146,18 +146,6 @@ jobs:
           command: |
             chmod +x dockerhub_deploy.sh
             ./dockerhub_deploy.sh
-      - run:
-          name: Upload container to Nexus
-          command: |
-            echo $CIRCLE_BRANCH
-            npm pack
-            PACKAGE_VERSION=$(cat package.json \
-            | grep version \
-            | head -1 \
-            | awk -F: '{ print $2 }' \
-            | sed 's/[", \t]//g')
-            RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-            curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
   generate-docs:
     machine:
       image: ubuntu-2004:current
