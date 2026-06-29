@@ -204,7 +204,7 @@ describe('FigshareService', function () {
       updateMeta: sinon.stub().resolves({ success: true })
     };
     (global as any).UsersService = {
-      getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) })
+      getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }) })
     };
     (global as any).IntegrationAuditService = {
       startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({ startedAt: '2025-01-01T00:00:00.000Z', ...opts })),
