@@ -50,7 +50,7 @@ import { DateTime } from 'luxon';
 
 import { isObservable } from 'rxjs';
 
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import {
