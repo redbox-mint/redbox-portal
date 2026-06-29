@@ -68,7 +68,6 @@ x-rbportal-service: &rbportal-service
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     - '../../package.json:/opt/redbox-portal/package.json:ro'
     - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
-    - '../../packages/redbox-hook-dev:/opt/redbox-portal/packages/redbox-hook-dev:ro'
   stop_grace_period: 30m
   healthcheck:
     test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
