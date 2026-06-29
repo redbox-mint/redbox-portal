@@ -370,21 +370,15 @@ describe('FigshareService', function () {
       updateMeta: sinon.stub().resolves({ success: true }),
     };
     (global as any).UsersService = {
-      getUserWithUsername: sinon
-        .stub()
-        .returns({
-          toPromise: sinon
-            .stub()
-            .resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }),
-        }),
+      getUserWithUsername: sinon.stub().returns({
+        toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }),
+      }),
     };
     (global as any).IntegrationAuditService = {
-      startAudit: sinon
-        .stub()
-        .callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({
-          startedAt: '2025-01-01T00:00:00.000Z',
-          ...opts,
-        })),
+      startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({
+        startedAt: '2025-01-01T00:00:00.000Z',
+        ...opts,
+      })),
       completeAudit: sinon.stub(),
       failAudit: sinon.stub(),
     };
@@ -1659,6 +1653,10 @@ describe('FigshareService', function () {
   });
 
   describe('syncAssetsPhase (live upload)', function () {
+    // Staging keys carry a per-attempt random UUID segment, e.g.
+    // `figshare/article-1-oid-1-file-1-<uuid>/file.txt`.
+    const STAGING_KEY_PATTERN = /^figshare\/article-1-oid-1-file-1-[0-9a-f-]{36}\/file\.txt$/;
+
     it('stages attachments through StorageManager and uploads ordered Figshare parts', async function () {
       const fakeDisk = makeFakeDisk();
       (global as any).StorageManagerService = {
@@ -1681,7 +1679,8 @@ describe('FigshareService', function () {
 
       const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, syncState);
 
-      const stagingKey = 'figshare/article-1-oid-1-file-1/file.txt';
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
       expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
       expect(getDatastreamStub.calledWith('oid-1', 'file-1')).to.equal(true);
       expect(fakeDisk.calls.put).to.deep.equal([{ key: stagingKey, options: { contentLength: payload.length } }]);
@@ -1765,7 +1764,8 @@ describe('FigshareService', function () {
 
       await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
 
-      const stagingKey = 'figshare/article-1-oid-1-file-1/file.txt';
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
       expect(fakeDisk.calls.deleted).to.deep.equal([]);
       expect(fakeDisk.store.get(stagingKey)?.toString()).to.equal('abcdefgh');
     });
@@ -1790,7 +1790,8 @@ describe('FigshareService', function () {
         error = err as Error;
       }
 
-      const stagingKey = 'figshare/article-1-oid-1-file-1/file.txt';
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
       expect(error?.message).to.equal('part upload failed');
       expect(fakeDisk.calls.deleted).to.deep.equal([stagingKey]);
       expect(fakeDisk.store.has(stagingKey)).to.equal(false);
@@ -1877,6 +1878,26 @@ describe('FigshareService', function () {
 
       expect((global as any).StorageManagerService.disk.called).to.equal(false);
       expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+    });
+
+    it('falls back to the configured staging disk when the named disk is not registered', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().throws(new Error("disk 'figshare-staging' is not registered")),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
+      expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+      expect(fakeDisk.calls.put).to.have.lengthOf(1);
+      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(true);
     });
 
     it('does not touch StorageManager in fixture mode', async function () {

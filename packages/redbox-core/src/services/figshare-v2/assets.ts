@@ -1,5 +1,6 @@
 import path from 'path';
 import _ from 'lodash';
+import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
@@ -68,7 +69,21 @@ function sanitizePathComponent(value: string): string {
 
 function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   const diskName = config.assets.staging.disk?.trim();
-  return diskName ? StorageManagerService.disk(diskName) : StorageManagerService.stagingDisk();
+  if (!diskName) {
+    return StorageManagerService.stagingDisk();
+  }
+  try {
+    return StorageManagerService.disk(diskName);
+  } catch (error) {
+    // A deployment that overrides storage.disks may not register the default
+    // 'figshare-staging' disk. Fall back to the configured staging disk rather
+    // than failing the upload before staging starts.
+    sails.log.warn(
+      `FigService - staging disk '${diskName}' is not registered; falling back to the default staging disk`,
+      error
+    );
+    return StorageManagerService.stagingDisk();
+  }
 }
 
 function buildStagingKey(
@@ -88,7 +103,10 @@ function buildStagingKey(
   if (safeFileName === '.' || safeFileName === '..') {
     throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
   }
-  const dir = `${sanitizePathComponent(articleId)}-${sanitizePathComponent(oid)}-${sanitizePathComponent(fileId)}`;
+  // Append a per-attempt random segment so concurrent or retried uploads of the
+  // same attachment never share a staging key (which would let one attempt
+  // overwrite or delete the object another attempt is still streaming).
+  const dir = `${sanitizePathComponent(articleId)}-${sanitizePathComponent(oid)}-${sanitizePathComponent(fileId)}-${randomUUID()}`;
   return `${prefix}/${dir}/${safeFileName}`;
 }
 
@@ -203,7 +221,10 @@ async function uploadAttachment(
     uploadSucceeded = true;
     return uploadedFile as unknown as FigshareFile;
   } finally {
-    const shouldDelete = !uploadSucceeded || config.assets.staging.cleanupPolicy === 'deleteAfterSuccess';
+    // Stored configs may omit cleanupPolicy; default to delete-after-success so
+    // staged objects are not retained on the staging disk indefinitely.
+    const cleanupPolicy = config.assets.staging.cleanupPolicy ?? 'deleteAfterSuccess';
+    const shouldDelete = !uploadSucceeded || cleanupPolicy === 'deleteAfterSuccess';
     if (shouldDelete) {
       await disk
         .delete(stagingKey)
