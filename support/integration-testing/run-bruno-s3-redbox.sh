@@ -5,7 +5,7 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
-npm install --ignore-scripts --strict-peer-deps
+bash /opt/redbox-portal/support/integration-testing/install-redbox-dependencies-if-writable.sh
 npm --prefix packages/redbox-core exec -- tsc --noEmitOnError false || true
 
 mkdir -p /opt/redbox-portal/coverage/bruno-s3
