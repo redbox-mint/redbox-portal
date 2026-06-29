@@ -197,9 +197,18 @@ export interface FigsharePublishingConfigData {
     enableLinkFiles: boolean;
     dedupeStrategy: 'sourceId' | 'nameAndMd5' | 'url';
     staging: {
+      /**
+       * StorageManager disk name used to stage attachments before upload.
+       * Resolved via StorageManagerService.disk(name). Defaults to 'figshare-staging'.
+       */
+      disk?: string;
+      /** Key prefix for staged objects on the disk. Default: 'figshare/'. */
+      keyPrefix?: string;
+      /** @deprecated fs-only; ignored once staging runs through StorageManagerService. */
       tempDir?: string;
-      cleanupPolicy: 'deleteAfterSuccess' | 'retainForRetry';
+      /** @deprecated fs-only pre-flight guard; the disk surfaces its own capacity errors. */
       diskSpaceThresholdBytes: number;
+      cleanupPolicy: 'deleteAfterSuccess' | 'retainForRetry';
     };
   };
   embargo: {
@@ -235,7 +244,7 @@ function createDefaultBinding(path: string, defaultValue?: unknown): ValueBindin
   return {
     kind: 'path',
     path,
-    defaultValue
+    defaultValue,
   };
 }
 
@@ -251,15 +260,15 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       metadataMs: 30000,
       uploadInitMs: 30000,
       uploadPartMs: 120000,
-      publishMs: 60000
+      publishMs: 60000,
     },
     retry: {
       maxAttempts: 3,
       baseDelayMs: 500,
       maxDelayMs: 4000,
       retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
-      retryOnMethods: ['get', 'put', 'delete']
-    }
+      retryOnMethods: ['get', 'put', 'delete'],
+    },
   };
 
   article = {
@@ -271,8 +280,8 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     curationLock: {
       enabled: false,
       statusField: '',
-      targetValue: 'public'
-    }
+      targetValue: 'public',
+    },
   };
 
   record = {
@@ -282,13 +291,13 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     statusPath: 'metadata.figshareStatus',
     errorPath: 'metadata.figshareError',
     syncStatePath: 'metadata.figshareSyncState',
-    allFilesUploadedPath: ''
+    allFilesUploadedPath: '',
   };
 
   selection = {
     attachmentMode: 'selectedOnly' as 'selectedOnly' | 'all',
     urlMode: 'selectedOnly' as 'selectedOnly' | 'all',
-    selectedFlagPath: 'selected'
+    selectedFlagPath: 'selected',
   };
 
   authors = {
@@ -298,21 +307,21 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       'metadata.contributor_data_manager',
       'metadata.dataOwner',
       'metadata.chiefInvestigator',
-      'metadata.contributors'
+      'metadata.contributors',
     ],
     uniqueBy: 'email' as 'email' | 'orcid' | 'username' | 'none',
     externalNameField: 'text_full_name',
     maxInlineAuthors: 50,
     emailTransform: {
       prefix: '',
-      domainOverride: ''
+      domainOverride: '',
     },
     lookup: [
       {
         matchBy: 'email' as const,
-        value: createDefaultBinding('email')
-      }
-    ]
+        value: createDefaultBinding('email'),
+      },
+    ],
   };
 
   metadata = {
@@ -323,23 +332,23 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     license: {
       source: createDefaultBinding('metadata.license'),
       matchBy: 'urlContains' as 'urlContains' | 'nameExact' | 'valueExact',
-      required: true
+      required: true,
     },
     categories: {
       source: createDefaultBinding('metadata.forCodes', []),
-      mappingStrategy: 'for2020Mapping' as const
+      mappingStrategy: 'for2020Mapping' as const,
     },
     relatedResource: {
       title: createDefaultBinding('metadata.title', ''),
-      doi: createDefaultBinding('metadata.doi', '')
+      doi: createDefaultBinding('metadata.doi', ''),
     },
-    customFields: []
+    customFields: [],
   };
 
   categories = {
     strategy: 'for2020Mapping' as const,
     mappingTable: [] as Array<{ sourceCode: string; figshareCategoryId: number }>,
-    allowUnmapped: false
+    allowUnmapped: false,
   };
 
   assets = {
@@ -347,10 +356,12 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     enableLinkFiles: true,
     dedupeStrategy: 'sourceId' as 'sourceId' | 'nameAndMd5' | 'url',
     staging: {
+      disk: 'figshare-staging',
+      keyPrefix: 'figshare/',
       tempDir: '',
       cleanupPolicy: 'deleteAfterSuccess' as 'deleteAfterSuccess' | 'retainForRetry',
-      diskSpaceThresholdBytes: 1073741824
-    }
+      diskSpaceThresholdBytes: 1073741824,
+    },
   };
 
   embargo = {
@@ -360,13 +371,13 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       accessRights: createDefaultBinding('metadata.accessRights', ''),
       fullEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
       fileEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
-      reason: createDefaultBinding('metadata.embargoReason')
-    }
+      reason: createDefaultBinding('metadata.embargoReason'),
+    },
   };
 
   queue = {
     publishAfterUploadDelay: 'in 2 minutes',
-    uploadedFilesCleanupDelay: 'in 5 minutes'
+    uploadedFilesCleanupDelay: 'in 5 minutes',
   };
 
   workflow = {
@@ -379,14 +390,14 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       figshareTargetFieldKey: '',
       figshareTargetFieldValue: '',
       username: '',
-      userType: ''
-    }
+      userType: '',
+    },
   };
 
   writeBack = {
     articleId: 'metadata.figshare_article_id',
     articleUrls: ['metadata.figshare_article_location'],
-    extraFields: [] as WriteBackBinding[]
+    extraFields: [] as WriteBackBinding[],
   };
 
   public static getFieldOrder(): string[] {
@@ -403,7 +414,7 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
       'embargo',
       'queue',
       'workflow',
-      'writeBack'
+      'writeBack',
     ];
   }
 }
@@ -411,17 +422,17 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
 const VALUE_BINDING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
-      type: 'value-binding-editor'
-    }
-  }
+      type: 'value-binding-editor',
+    },
+  },
 };
 
 const CATEGORY_MAPPING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
-      type: 'figshare-category-mapping-editor'
-    }
-  }
+      type: 'figshare-category-mapping-editor',
+    },
+  },
 };
 
 const VALUE_BINDING_SCHEMA = {
@@ -432,26 +443,26 @@ const VALUE_BINDING_SCHEMA = {
       type: 'string',
       title: 'Binding Type',
       enum: ['path', 'handlebars', 'jsonata'],
-      default: 'path'
+      default: 'path',
     },
     path: {
       type: 'string',
-      title: 'Record Path'
+      title: 'Record Path',
     },
     template: {
       type: 'string',
-      title: 'Handlebars Template'
+      title: 'Handlebars Template',
     },
     expression: {
       type: 'string',
-      title: 'JSONata Expression'
+      title: 'JSONata Expression',
     },
     defaultValue: {
-      title: 'Default Value'
-    }
+      title: 'Default Value',
+    },
   },
   required: ['kind'],
-  ...VALUE_BINDING_EDITOR_WIDGET
+  ...VALUE_BINDING_EDITOR_WIDGET,
 };
 
 export const FIGSHARE_PUBLISHING_SCHEMA = {
@@ -460,7 +471,7 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
     enabled: {
       type: 'boolean',
       title: 'Enabled',
-      default: false
+      default: false,
     },
     connection: {
       type: 'object',
@@ -471,7 +482,8 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         token: {
           type: 'string',
           title: 'API Token',
-          description: 'Do not commit raw API tokens. Prefer an environment variable reference such as $FIGSHARE_TOKEN or the deployment secret manager.'
+          description:
+            'Do not commit raw API tokens. Prefer an environment variable reference such as $FIGSHARE_TOKEN or the deployment secret manager.',
         },
         timeoutMs: { type: 'integer', title: 'Request Timeout (ms)', default: 30000 },
         operationTimeouts: {
@@ -481,8 +493,8 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             metadataMs: { type: 'integer', title: 'Metadata Timeout (ms)', default: 30000 },
             uploadInitMs: { type: 'integer', title: 'Upload Init Timeout (ms)', default: 30000 },
             uploadPartMs: { type: 'integer', title: 'Upload Part Timeout (ms)', default: 120000 },
-            publishMs: { type: 'integer', title: 'Publish Timeout (ms)', default: 60000 }
-          }
+            publishMs: { type: 'integer', title: 'Publish Timeout (ms)', default: 60000 },
+          },
         },
         retry: {
           type: 'object',
@@ -495,17 +507,17 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               type: 'array',
               title: 'Retry On Status Codes',
               items: { type: 'integer' },
-              default: [408, 429, 500, 502, 503, 504]
+              default: [408, 429, 500, 502, 503, 504],
             },
             retryOnMethods: {
               type: 'array',
               title: 'Retry On Methods',
               items: { type: 'string' },
-              default: ['get', 'put', 'delete']
-            }
-          }
-        }
-      }
+              default: ['get', 'put', 'delete'],
+            },
+          },
+        },
+      },
     },
     article: {
       type: 'object',
@@ -514,15 +526,26 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         itemType: {
           type: 'string',
           title: 'Item Type',
-          enum: ['dataset', 'fileset', 'figure', 'media', 'poster', 'paper', 'presentation', 'thesis', 'code', 'metadata'],
-          default: 'dataset'
+          enum: [
+            'dataset',
+            'fileset',
+            'figure',
+            'media',
+            'poster',
+            'paper',
+            'presentation',
+            'thesis',
+            'code',
+            'metadata',
+          ],
+          default: 'dataset',
         },
         groupId: { type: 'integer', title: 'Group ID' },
         publishMode: {
           type: 'string',
           title: 'Publish Mode',
           enum: ['immediate', 'afterUploadsComplete', 'manual'],
-          default: 'afterUploadsComplete'
+          default: 'afterUploadsComplete',
         },
         republishOnMetadataChange: { type: 'boolean', title: 'Republish On Metadata Change', default: true },
         republishOnAssetChange: { type: 'boolean', title: 'Republish On Asset Change', default: true },
@@ -532,10 +555,10 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           properties: {
             enabled: { type: 'boolean', title: 'Enabled', default: false },
             statusField: { type: 'string', title: 'Status Field', default: '' },
-            targetValue: { type: 'string', title: 'Target Value', default: 'public' }
-          }
-        }
-      }
+            targetValue: { type: 'string', title: 'Target Value', default: 'public' },
+          },
+        },
+      },
     },
     record: {
       type: 'object',
@@ -546,14 +569,14 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'array',
           title: 'Article URL Paths',
           items: { type: 'string' },
-          default: ['metadata.figshare_article_location']
+          default: ['metadata.figshare_article_location'],
         },
         dataLocationsPath: { type: 'string', title: 'Data Locations Path', default: 'metadata.dataLocations' },
         statusPath: { type: 'string', title: 'Status Path', default: 'metadata.figshareStatus' },
         errorPath: { type: 'string', title: 'Error Path', default: 'metadata.figshareError' },
         syncStatePath: { type: 'string', title: 'Sync State Path', default: 'metadata.figshareSyncState' },
-        allFilesUploadedPath: { type: 'string', title: 'All Files Uploaded Path', default: '' }
-      }
+        allFilesUploadedPath: { type: 'string', title: 'All Files Uploaded Path', default: '' },
+      },
     },
     selection: {
       type: 'object',
@@ -563,16 +586,16 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'string',
           title: 'Attachment Mode',
           enum: ['selectedOnly', 'all'],
-          default: 'selectedOnly'
+          default: 'selectedOnly',
         },
         urlMode: {
           type: 'string',
           title: 'URL Mode',
           enum: ['selectedOnly', 'all'],
-          default: 'selectedOnly'
+          default: 'selectedOnly',
         },
-        selectedFlagPath: { type: 'string', title: 'Selected Flag Path', default: 'selected' }
-      }
+        selectedFlagPath: { type: 'string', title: 'Selected Flag Path', default: 'selected' },
+      },
     },
     authors: {
       type: 'object',
@@ -582,13 +605,13 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'string',
           title: 'Source Strategy',
           enum: ['defaultRedboxContributors'],
-          default: 'defaultRedboxContributors'
+          default: 'defaultRedboxContributors',
         },
         uniqueBy: {
           type: 'string',
           title: 'Unique By',
           enum: ['email', 'orcid', 'username', 'none'],
-          default: 'email'
+          default: 'email',
         },
         externalNameField: { type: 'string', title: 'External Name Field', default: 'text_full_name' },
         maxInlineAuthors: { type: 'integer', title: 'Max Inline Authors', default: 50 },
@@ -601,11 +624,11 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               matchBy: {
                 type: 'string',
                 title: 'Match By',
-                enum: ['email', 'orcid', 'username']
+                enum: ['email', 'orcid', 'username'],
               },
-              value: VALUE_BINDING_SCHEMA
-            }
-          }
+              value: VALUE_BINDING_SCHEMA,
+            },
+          },
         },
         contributorPaths: {
           type: 'array',
@@ -616,18 +639,18 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             'metadata.contributor_data_manager',
             'metadata.dataOwner',
             'metadata.chiefInvestigator',
-            'metadata.contributors'
-          ]
+            'metadata.contributors',
+          ],
         },
         emailTransform: {
           type: 'object',
           title: 'Email Transform',
           properties: {
             prefix: { type: 'string', title: 'Prefix', default: '' },
-            domainOverride: { type: 'string', title: 'Domain Override', default: '' }
-          }
-        }
-      }
+            domainOverride: { type: 'string', title: 'Domain Override', default: '' },
+          },
+        },
+      },
     },
     metadata: {
       type: 'object',
@@ -646,10 +669,10 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               type: 'string',
               title: 'Match By',
               enum: ['urlContains', 'nameExact', 'valueExact'],
-              default: 'urlContains'
+              default: 'urlContains',
             },
-            required: { type: 'boolean', title: 'Required', default: true }
-          }
+            required: { type: 'boolean', title: 'Required', default: true },
+          },
         },
         categories: {
           type: 'object',
@@ -660,17 +683,17 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               type: 'string',
               title: 'Mapping Strategy',
               enum: ['for2020Mapping'],
-              default: 'for2020Mapping'
-            }
-          }
+              default: 'for2020Mapping',
+            },
+          },
         },
         relatedResource: {
           type: 'object',
           title: 'Related Resource',
           properties: {
             title: VALUE_BINDING_SCHEMA,
-            doi: VALUE_BINDING_SCHEMA
-          }
+            doi: VALUE_BINDING_SCHEMA,
+          },
         },
         customFields: {
           type: 'array',
@@ -689,19 +712,19 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
                     type: {
                       type: 'string',
                       title: 'Type',
-                      enum: ['maxLength', 'url', 'doi', 'required']
+                      enum: ['maxLength', 'url', 'doi', 'required'],
                     },
                     value: {
                       type: 'integer',
-                      title: 'Value'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      title: 'Value',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     categories: {
       type: 'object',
@@ -711,7 +734,7 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'string',
           title: 'Strategy',
           enum: ['for2020Mapping'],
-          default: 'for2020Mapping'
+          default: 'for2020Mapping',
         },
         mappingTable: {
           type: 'array',
@@ -720,13 +743,13 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             type: 'object',
             properties: {
               sourceCode: { type: 'string', title: 'Source Code' },
-              figshareCategoryId: { type: 'integer', title: 'Figshare Category ID' }
-            }
+              figshareCategoryId: { type: 'integer', title: 'Figshare Category ID' },
+            },
           },
-          ...CATEGORY_MAPPING_EDITOR_WIDGET
+          ...CATEGORY_MAPPING_EDITOR_WIDGET,
         },
-        allowUnmapped: { type: 'boolean', title: 'Allow Unmapped Categories', default: false }
-      }
+        allowUnmapped: { type: 'boolean', title: 'Allow Unmapped Categories', default: false },
+      },
     },
     assets: {
       type: 'object',
@@ -738,23 +761,32 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'string',
           title: 'Dedupe Strategy',
           enum: ['sourceId', 'nameAndMd5', 'url'],
-          default: 'sourceId'
+          default: 'sourceId',
         },
         staging: {
           type: 'object',
           title: 'Staging',
           properties: {
+            disk: { type: 'string', title: 'Storage Disk', default: 'figshare-staging' },
+            keyPrefix: { type: 'string', title: 'Storage Key Prefix', default: 'figshare/' },
             tempDir: { type: 'string', title: 'Temp Directory' },
             cleanupPolicy: {
               type: 'string',
               title: 'Cleanup Policy',
               enum: ['deleteAfterSuccess', 'retainForRetry'],
-              default: 'deleteAfterSuccess'
+              default: 'deleteAfterSuccess',
             },
-            diskSpaceThresholdBytes: { type: 'integer', title: 'Disk Space Threshold Bytes', default: 1073741824 }
-          }
-        }
-      }
+            diskSpaceThresholdBytes: {
+              type: 'integer',
+              title: 'Disk Space Threshold Bytes (deprecated, no-op)',
+              deprecated: true,
+              description:
+                'Deprecated and ignored. Staging now runs through StorageManagerService, which surfaces its own capacity errors; this value no longer acts as a pre-flight disk-space guard. Retained only for compatibility with stored configs.',
+              default: 1073741824,
+            },
+          },
+        },
+      },
     },
     embargo: {
       type: 'object',
@@ -764,7 +796,7 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'string',
           title: 'Mode',
           enum: ['none', 'recordDriven'],
-          default: 'recordDriven'
+          default: 'recordDriven',
         },
         forceSync: { type: 'boolean', title: 'Force Sync', default: false },
         accessRights: {
@@ -774,18 +806,18 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             accessRights: VALUE_BINDING_SCHEMA,
             fullEmbargoUntil: VALUE_BINDING_SCHEMA,
             fileEmbargoUntil: VALUE_BINDING_SCHEMA,
-            reason: VALUE_BINDING_SCHEMA
-          }
-        }
-      }
+            reason: VALUE_BINDING_SCHEMA,
+          },
+        },
+      },
     },
     queue: {
       type: 'object',
       title: 'Queue',
       properties: {
         publishAfterUploadDelay: { type: 'string', title: 'Publish After Upload Delay', default: 'in 2 minutes' },
-        uploadedFilesCleanupDelay: { type: 'string', title: 'Uploaded Files Cleanup Delay', default: 'in 5 minutes' }
-      }
+        uploadedFilesCleanupDelay: { type: 'string', title: 'Uploaded Files Cleanup Delay', default: 'in 5 minutes' },
+      },
     },
     workflow: {
       type: 'object',
@@ -800,15 +832,15 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               when: {
                 type: 'string',
                 title: 'When',
-                enum: ['published', 'republished', 'embargoUpdated', 'awaitingUploadCompletion']
+                enum: ['published', 'republished', 'embargoUpdated', 'awaitingUploadCompletion'],
               },
               targetWorkflowStageName: { type: 'string', title: 'Target Workflow Stage Name' },
               targetWorkflowStageLabel: { type: 'string', title: 'Target Workflow Stage Label' },
               targetForm: { type: 'string', title: 'Target Form' },
               ifArticleField: { type: 'string', title: 'Article Field' },
-              equals: { title: 'Equals' }
-            }
-          }
+              equals: { title: 'Equals' },
+            },
+          },
         },
         transitionJob: {
           type: 'object',
@@ -821,10 +853,10 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
             figshareTargetFieldKey: { type: 'string', title: 'Figshare Target Field Key', default: '' },
             figshareTargetFieldValue: { type: 'string', title: 'Figshare Target Field Value', default: '' },
             username: { type: 'string', title: 'Username', default: '' },
-            userType: { type: 'string', title: 'User Type', default: '' }
-          }
-        }
-      }
+            userType: { type: 'string', title: 'User Type', default: '' },
+          },
+        },
+      },
     },
     writeBack: {
       type: 'object',
@@ -835,7 +867,7 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           type: 'array',
           title: 'Article URL Target Paths',
           items: { type: 'string' },
-          default: ['metadata.figshare_article_location']
+          default: ['metadata.figshare_article_location'],
         },
         extraFields: {
           type: 'array',
@@ -846,14 +878,14 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               from: {
                 type: 'string',
                 title: 'From',
-                enum: ['article', 'publishResult', 'assetSyncResult']
+                enum: ['article', 'publishResult', 'assetSyncResult'],
               },
               sourcePath: { type: 'string', title: 'Source Path' },
-              targetPath: { type: 'string', title: 'Target Path' }
-            }
-          }
-        }
-      }
-    }
-  }
+              targetPath: { type: 'string', title: 'Target Path' },
+            },
+          },
+        },
+      },
+    },
+  },
 };
