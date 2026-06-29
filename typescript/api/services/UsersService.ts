@@ -1037,11 +1037,12 @@ export module Services {
         return Observable.of(null).toPromise();
       }
       let auditEvent = {};
-      if (!_.isEmpty(user.password)) {
-        delete user.password;
+      let userClone = _.cloneDeep(user);
+      if (!_.isEmpty(userClone.password)) {
+        delete userClone.password;
       }
-      user.additionalAttributes = this.stringifyObject(user.additionalAttributes)
-      auditEvent['user'] = user
+      userClone.additionalAttributes = this.stringifyObject(userClone.additionalAttributes)
+      auditEvent['user'] = userClone
       auditEvent['action'] = action;
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
