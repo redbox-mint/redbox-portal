@@ -56,6 +56,22 @@ RUN npm run webpack
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
  && support/build/api-descriptors/generateAPIDescriptors.sh
 
+RUN cp -a node_modules /tmp/test-node_modules \
+ && mkdir -p /tmp/test-package-node-modules/packages \
+ && for package_path in \
+      packages/agenda-sqs-backend \
+      packages/raido \
+      packages/rva-registry \
+      packages/sails-ng-common \
+      packages/redbox-core \
+      packages/sails-hook-redbox-storage-mongo \
+      packages/redbox-hook-dev; do \
+      if [ -d "$package_path/node_modules" ]; then \
+        mkdir -p "/tmp/test-package-node-modules/$package_path"; \
+        cp -a "$package_path/node_modules" "/tmp/test-package-node-modules/$package_path/node_modules"; \
+      fi; \
+    done
+
 RUN npm prune --omit=dev \
  && npm cache clean --force \
  && rm -rf \
@@ -175,6 +191,8 @@ USER node
 FROM runtime AS test
 USER root
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+COPY --from=builder --chown=node:node /tmp/test-node_modules ./node_modules
+COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node
