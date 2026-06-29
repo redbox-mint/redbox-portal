@@ -17,6 +17,8 @@ import {
   TypeaheadInputModelName,
   TypeaheadInputModelValueType,
   TypeaheadOption,
+  TypeaheadSourceType,
+  TypeaheadValueMode,
 } from '@researchdatabox/sails-ng-common';
 import { TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { defer, from, Observable } from 'rxjs';
@@ -105,7 +107,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
-  private sourceType: 'static' | 'vocabulary' | 'namedQuery' | 'external' | 'service' = 'static';
+  private sourceType: TypeaheadSourceType = 'static';
   private queryId = '';
   private serviceId = '';
   private vocabRef = '';
@@ -113,7 +115,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private resultArrayProperty = '';
   private labelField = 'label';
   private valueField = 'value';
-  private valueMode: 'value' | 'optionObject' = 'value';
+  private valueMode: TypeaheadValueMode = 'value';
   private cacheResults = true;
   private historicalVocabMode: HistoricalVocabMode = 'hide';
   private hasHistoricalOrUnknownModelValue = false;

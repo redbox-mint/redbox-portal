@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audit Failure Notification - Implementation Deviations</title>
+</head>
+<body>
+  <h1>Integration Failure Notifications — Implementation Deviations</h1>
+
+  <h2>1. Cache TTL for failure state</h2>
+  <p><strong>Plan:</strong> Set the cache TTL to <code>windowSeconds</code> <em>or longer</em> to keep recovery state.</p>
+  <p><strong>Implementation:</strong> TTL is set exactly to <code>throttle.windowSeconds</code> (default 300). If a success occurs after the throttle window expires, the failure state will have been evicted and no recovery alert will be sent. This is the simplest interpretation; users can extend the window to keep state longer if recovery alerts are needed.</p>
+
+  <h2>2. Slack/Webhook channel stubs</h2>
+  <p><strong>Plan:</strong> Define <code>Slack</code> and <code>Webhook</code> adapter stubs/types but mark deferred.</p>
+  <p><strong>Implementation:</strong> No stub classes were created. The channel registry (<code>getChannel</code>) only maps <code>'email'</code>; unknown types are logged and skipped. Adding Slack/Webhook channels requires writing a class implementing <code>IntegrationNotificationChannel</code> and registering it in the <code>Map</code>, which matches the "pluggable" intent.</p>
+</body>
+</html>

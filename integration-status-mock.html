@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Integration Status Component — UI Mock</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<style>
+  body { background: #f5f5f5; padding: 2rem; max-width: 800px; margin: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  h5 { color: #333; margin-bottom: 1.5rem; }
+  .rb-integration-status { margin-bottom: 2rem; }
+  .rb-integration-status .list-group-item { padding-top: .6rem; padding-bottom: .6rem; }
+  .rb-integration-status .rb-int-badge { min-width: 7.5em; text-align: center; }
+  .rb-integration-status .rb-int-meta { font-size: .85rem; }
+  .demo-label { margin: 2rem 0 .75rem; font-size: .8rem; text-transform: uppercase; color: #999; font-weight: 600; letter-spacing: 0.5px; }
+  .demo-desc { margin-bottom: .75rem; font-size: .9rem; color: #666; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h5>IntegrationStatusComponent — UI Reference Implementation</h5>
+<p style="color: #888; font-size: 0.9rem;">Markup and classes match the ReDBox portal: Bootstrap 5, Font Awesome 4, and form component conventions. This component renders one row per integration with status, timestamps, and optional key results (e.g., minted DOI).</p>
+
+<p class="demo-label">State 1: In progress (polling active)</p>
+<p class="demo-desc">Shows when an integration job is queued or running. The widget displays a spinner in the header and badge.</p>
+<div class="rb-integration-status card" role="region" aria-live="polite" aria-label="Integration status">
+  <div class="card-header py-2 d-flex align-items-center">
+    <i class="fa fa-plug me-2" aria-hidden="true"></i>
+    <span class="fw-semibold">Integrations</span>
+    <span class="ms-auto text-muted rb-int-meta">
+      <i class="fa fa-refresh fa-spin" aria-hidden="true"></i> Checking status…
+    </span>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item d-flex align-items-center gap-3">
+      <span class="badge text-bg-info rb-int-badge" role="status">
+        <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i> In progress
+      </span>
+      <div>
+        <span class="fw-semibold d-block">DOI (DataCite)</span>
+        <span class="text-muted rb-int-meta d-block">Started 11 Jun 2026, 10:42</span>
+      </div>
+    </li>
+  </ul>
+</div>
+
+<p class="demo-label">State 2: Success with key result</p>
+<p class="demo-desc">Shown after an integration completes successfully. Displays duration and a key result (e.g., the minted DOI as a link).</p>
+<div class="rb-integration-status card" role="region" aria-live="polite" aria-label="Integration status">
+  <div class="card-header py-2 d-flex align-items-center">
+    <i class="fa fa-plug me-2" aria-hidden="true"></i>
+    <span class="fw-semibold">Integrations</span>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item">
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge text-bg-success rb-int-badge" role="status">
+          <i class="fa fa-check fa-fw" aria-hidden="true"></i> Success
+        </span>
+        <div>
+          <span class="fw-semibold d-block">DOI (DataCite)</span>
+          <span class="text-muted rb-int-meta d-block">Completed 11 Jun 2026, 10:42 (in 2.3s)</span>
+        </div>
+      </div>
+      <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
+        <strong>Draft DOI minted:</strong>
+        <a href="https://doi.org/10.25903/abc-123-456" target="_blank" rel="noopener noreferrer" class="ms-2">10.25903/abc-123-456 <i class="fa fa-external-link fa-fw" aria-hidden="true"></i></a>
+      </div>
+    </li>
+  </ul>
+</div>
+
+<p class="demo-label">State 3: Failed (with sanitized message)</p>
+<p class="demo-desc">Shows when an integration fails. The message is human-readable and sanitized—no raw error details or HTTP status codes (those remain admin-only in the audit log). The record save itself succeeded.</p>
+<div class="rb-integration-status card" role="region" aria-live="assertive" aria-label="Integration status">
+  <div class="card-header py-2 d-flex align-items-center">
+    <i class="fa fa-plug me-2" aria-hidden="true"></i>
+    <span class="fw-semibold">Integrations</span>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item">
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge text-bg-danger rb-int-badge" role="alert">
+          <i class="fa fa-exclamation-triangle fa-fw" aria-hidden="true"></i> Failed
+        </span>
+        <div>
+          <span class="fw-semibold d-block">DOI (DataCite)</span>
+          <span class="text-muted rb-int-meta d-block">Failed 11 Jun 2026, 10:42</span>
+        </div>
+      </div>
+      <div class="rb-int-meta mt-2 ms-1 ps-3 border-start border-danger text-danger">
+        <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
+        The DataCite service could not be reached. Your record has been saved; contact an administrator if this persists.
+      </div>
+    </li>
+  </ul>
+</div>
+
+<p class="demo-label">State 4: Multiple integrations, mixed states</p>
+<p class="demo-desc">When multiple integrations are configured (e.g. DOI + Figshare), they each appear as a separate row. Shows the real-world case where one completes while another is in progress.</p>
+<div class="rb-integration-status card" role="region" aria-live="polite" aria-label="Integration status">
+  <div class="card-header py-2 d-flex align-items-center">
+    <i class="fa fa-plug me-2" aria-hidden="true"></i>
+    <span class="fw-semibold">Integrations</span>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item d-flex align-items-center gap-3">
+      <span class="badge text-bg-success rb-int-badge">
+        <i class="fa fa-check fa-fw" aria-hidden="true"></i> Success
+      </span>
+      <div>
+        <span class="fw-semibold d-block">DOI (DataCite)</span>
+        <span class="text-muted rb-int-meta d-block">Completed 11 Jun 2026, 10:42</span>
+      </div>
+    </li>
+    <li class="list-group-item d-flex align-items-center gap-3">
+      <span class="badge text-bg-info rb-int-badge">
+        <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i> In progress
+      </span>
+      <div>
+        <span class="fw-semibold d-block">Figshare</span>
+        <span class="text-muted rb-int-meta d-block">Started 11 Jun 2026, 10:43</span>
+      </div>
+    </li>
+  </ul>
+</div>
+
+<p class="demo-label">State 5: No integration activity yet (empty state)</p>
+<p class="demo-desc">When a record is created or no integrations have run yet. The component may also hide entirely in create mode (before record is saved and has an OID).</p>
+<div class="rb-integration-status card" role="region" aria-label="Integration status">
+  <div class="card-header py-2 d-flex align-items-center">
+    <i class="fa fa-plug me-2" aria-hidden="true"></i>
+    <span class="fw-semibold">Integrations</span>
+  </div>
+  <div class="card-body py-2">
+    <p class="text-muted rb-int-meta mb-0">
+      <i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>
+      No integration activity recorded for this record yet.
+    </p>
+  </div>
+</div>
+
+<hr style="margin: 3rem 0;">
+
+<h6 style="color: #333;">Component mapping</h6>
+<table class="table table-sm table-bordered" style="font-size: 0.9rem;">
+  <thead class="table-light">
+    <tr>
+      <th>Element</th>
+      <th>i18n key / source</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Card header "Integrations"</td>
+      <td><code>@integration-status-heading</code></td>
+      <td>Configurable via component config</td>
+    </tr>
+    <tr>
+      <td>Badge text "In progress" / "Success" / "Failed"</td>
+      <td><code>@integration-status-started</code><br/><code>@integration-status-success</code><br/><code>@integration-status-failed</code></td>
+      <td>Based on integration status from API</td>
+    </tr>
+    <tr>
+      <td>Integration name "DOI (DataCite)" / "Figshare"</td>
+      <td><code>@integration-status-name-doi</code><br/><code>@integration-status-name-figshare</code></td>
+      <td>i18n + parenthetical subtext</td>
+    </tr>
+    <tr>
+      <td>Timestamp "Started 11 Jun 2026, 10:42"</td>
+      <td>API response <code>startedAt</code> (ISO 8601)</td>
+      <td>Formatted via Angular date pipe</td>
+    </tr>
+    <tr>
+      <td>Duration "(in 2.3s)"</td>
+      <td>API response <code>durationMs</code></td>
+      <td>Shown only on success/failed if available</td>
+    </tr>
+    <tr>
+      <td>Message "The DataCite service…"</td>
+      <td>API response <code>message</code></td>
+      <td>Sanitized, no raw error details</td>
+    </tr>
+    <tr>
+      <td>Key result "DOI minted: 10.25903/…"</td>
+      <td>API response <code>keyResult.doi</code></td>
+      <td>Rendered as a link to https://doi.org/10.x/y</td>
+    </tr>
+    <tr>
+      <td>Empty state text</td>
+      <td><code>@integration-status-empty</code></td>
+      <td>Shown when no integrations have run</td>
+    </tr>
+    <tr>
+      <td>Header spinner (while polling)</td>
+      <td>Dynamic</td>
+      <td>Visible only while any integration is 'started'</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr style="margin: 3rem 0;">
+
+<h6 style="color: #333;">Behavior notes</h6>
+<ul style="font-size: 0.9rem; color: #555;">
+  <li><strong>On form load:</strong> Component fetches integration status once (if record has an OID).</li>
+  <li><strong>After save success:</strong> Refreshes status after ~1.5s delay (audits are queued; gives agenda time to write the initial 'started' entry).</li>
+  <li><strong>Polling:</strong> While any integration is 'started', polls every <code>pollIntervalMs</code> (default 5000ms) up to <code>maxPollAttempts</code> times (default 60 attempts). Stops when all are terminal or limit reached.</li>
+  <li><strong>Access control:</strong> Only users with edit access to the record see the widget. Admin-only detail (errorDetail, requestSummary, responseSummary) remains on the admin audit tab.</li>
+  <li><strong>In create mode:</strong> Component hides itself (no OID yet). Becomes visible after first save.</li>
+  <li><strong>ARIA live region:</strong> Set to <code>polite</code> for updates, <code>assertive</code> for errors, so screen readers announce status changes.</li>
+</ul>
+
+</body>
+</html>

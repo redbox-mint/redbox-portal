@@ -1,0 +1,314 @@
+{
+    "_id" : ObjectId("6a2f7aed0edc5cc5c7406650"),
+    "branding" : ObjectId("5fff5e6acd8e3e21f88e2a62"),
+    "configKey" : "doiPublishing",
+    "configData" : {
+        "enabled" : true,
+        "defaultProfile" : "dataPublication",
+        "connection" : {
+            "baseUrl" : "https://api.test.datacite.org",
+            "username" : "JCU.REPO",
+            "password" : "xxxxxxx",
+            "timeoutMs" : NumberInt(30000),
+            "retry" : {
+                "maxAttempts" : NumberInt(3),
+                "baseDelayMs" : NumberInt(500),
+                "maxDelayMs" : NumberInt(4000),
+                "retryOnStatusCodes" : [
+                    NumberInt(408),
+                    NumberInt(429),
+                    NumberInt(500),
+                    NumberInt(502),
+                    NumberInt(503),
+                    NumberInt(504)
+                ],
+                "retryOnMethods" : [
+                    "get",
+                    "put",
+                    "patch",
+                    "delete"
+                ]
+            }
+        },
+        "operations" : {
+            "createEvent" : "publish",
+            "updateEvent" : "publish",
+            "allowDeleteDraft" : true,
+            "allowStateChange" : true
+        },
+        "profiles" : {
+            "dataPublication" : {
+                "enabled" : true,
+                "label" : "Data Publication",
+                "metadata" : {
+                    "prefix" : {
+                        "kind" : "path",
+                        "defaultValue" : "10.80405"
+                    },
+                    "url" : {
+                        "kind" : "jsonata",
+                        "path" : "'https://researchdata-uat.jcu.edu.au/published/' & oid"
+                    },
+                    "publicationYear" : {
+                        "kind" : "jsonata",
+                        "expression" : "record.metadata.citation_publication_date ? $substring(record.metadata.citation_publication_date, 0, 4) : $substring(now, 0, 4)"
+                    },
+                    "publisher" : {
+                        "kind" : "path",
+                        "path" : "record.metadata.citation_publisher"
+                    },
+                    "sizes" : {
+                        "kind" : "path",
+                        "path" : "record.metadata.collectionCapacity"
+                    },
+                    "creators" : [
+                        {
+                            "sourcePath" : "metadata.creators",
+                            "itemMode" : "array",
+                            "name" : {
+                                "kind" : "jsonata",
+                                "expression" : "item.text_full_name ? item.text_full_name : item.family_name & ', ' & item.given_name"
+                            },
+                            "nameType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Personal"
+                            },
+                            "givenName" : {
+                                "kind" : "path",
+                                "path" : "item.given_name"
+                            },
+                            "familyName" : {
+                                "kind" : "path",
+                                "path" : "item.family_name"
+                            },
+                            "nameIdentifiers" : [
+                                {
+                                    "nameIdentifier" : {
+                                        "kind" : "jsonata",
+                                        "expression" : "item.orcid ? 'http://orcid.org/' & item.orcid : ''"
+                                    },
+                                    "nameIdentifierScheme" : {
+                                        "kind" : "path",
+                                        "defaultValue" : "ORCID"
+                                    },
+                                    "schemeUri" : {
+                                        "kind" : "path",
+                                        "defaultValue" : "https://orcid.org"
+                                    }
+                                }
+                            ],
+                            "affiliations" : [
+
+                            ]
+                        }
+                    ],
+                    "titles" : [
+                        {
+                            "title" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.citation_title"
+                            },
+                            "titleType" : {
+                                "kind" : "path"
+                            },
+                            "lang" : {
+                                "kind" : "path"
+                            }
+                        }
+                    ],
+                    "subjects" : [
+
+                    ],
+                    "contributors" : [
+
+                    ],
+                    "dates" : [
+                        {
+                            "date" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.embargoUntil"
+                            },
+                            "dateType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Available"
+                            },
+                            "dateInformation" : {
+                                "kind" : "path"
+                            }
+                        },
+                        {
+                            "date" : {
+                                "kind" : "path",
+                                "path" : "record.dateCreated"
+                            },
+                            "dateType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Created"
+                            },
+                            "dateInformation" : {
+                                "kind" : "path"
+                            }
+                        },
+                        {
+                            "date" : {
+                                "kind" : "path",
+                                "path" : "record.dateUpdated"
+                            },
+                            "dateType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Updated"
+                            },
+                            "dateInformation" : {
+                                "kind" : "path"
+                            }
+                        },
+                        {
+                            "date" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.startDate"
+                            },
+                            "dateType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Other"
+                            },
+                            "dateInformation" : {
+                                "kind" : "path",
+                                "defaultValue" : "Start Date"
+                            }
+                        },
+                        {
+                            "date" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.endDate"
+                            },
+                            "dateType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Other"
+                            },
+                            "dateInformation" : {
+                                "kind" : "path",
+                                "defaultValue" : "End Date"
+                            }
+                        }
+                    ],
+                    "alternateIdentifiers" : [
+
+                    ],
+                    "relatedIdentifiers" : [
+
+                    ],
+                    "rightsList" : [
+                        {
+                            "rightsUri" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.license_identifier"
+                            },
+                            "rights" : {
+                                "kind" : "path"
+                            },
+                            "rightsIdentifier" : {
+                                "kind" : "path"
+                            },
+                            "rightsIdentifierScheme" : {
+                                "kind" : "path"
+                            },
+                            "schemeUri" : {
+                                "kind" : "path"
+                            },
+                            "lang" : {
+                                "kind" : "path"
+                            }
+                        }
+                    ],
+                    "descriptions" : [
+                        {
+                            "description" : {
+                                "kind" : "path",
+                                "path" : "record.metadata.description2"
+                            },
+                            "descriptionType" : {
+                                "kind" : "path",
+                                "defaultValue" : "Abstract"
+                            },
+                            "lang" : {
+                                "kind" : "path"
+                            }
+                        }
+                    ],
+                    "geoLocations" : [
+
+                    ],
+                    "fundingReferences" : [
+
+                    ],
+                    "relatedItems" : [
+
+                    ],
+                    "types" : {
+                        "resourceTypeGeneral" : {
+                            "kind" : "path",
+                            "defaultValue" : "Dataset"
+                        },
+                        "resourceType" : {
+                            "kind" : "path",
+                            "defaultValue" : "Dataset"
+                        },
+                        "ris" : {
+                            "kind" : "path",
+                            "defaultValue" : "DATA"
+                        },
+                        "bibtex" : {
+                            "kind" : "path",
+                            "defaultValue" : "misc"
+                        },
+                        "citeproc" : {
+                            "kind" : "path",
+                            "defaultValue" : "dataset"
+                        },
+                        "schemaOrg" : {
+                            "kind" : "path",
+                            "defaultValue" : "Dataset"
+                        }
+                    },
+                    "doi" : {
+                        "kind" : "path",
+                        "path" : "metadata.citation_doi"
+                    },
+                    "contentUrl" : {
+                        "kind" : "path"
+                    },
+                    "language" : {
+                        "kind" : "path"
+                    },
+                    "version" : {
+                        "kind" : "path"
+                    },
+                    "formats" : {
+                        "kind" : "path"
+                    }
+                },
+                "writeBack" : {
+                    "citationUrlPath" : "metadata.citation_url",
+                    "citationDoiPath" : "metadata.citation_doi",
+                    "generatedCitationPath" : "metadata.citation_generated",
+                    "citationString" : {
+                        "kind" : "jsonata",
+                        "expression" : "(record.metadata.creators ? $join(record.metadata.creators[$exists(family_name) or $exists(given_name)].((family_name ? family_name : \"\") & \", \" & (given_name ? given_name : \"\")), \"; \") : \"\") & \" (\" & $substring(record.metadata.citation_publication_date ? record.metadata.citation_publication_date : now, 0, 4) & \"): \" & record.metadata.citation_title & \". \" & record.metadata.citation_publisher & \". \" & (record.metadata.citation_doi = null ? \"{ID_WILL_BE_HERE}\" : \"https://doi.org/\" & record.metadata.citation_doi)"
+                    },
+                    "extraFields" : [
+
+                    ]
+                },
+                "validation" : {
+                    "requireUrl" : true,
+                    "requirePublisher" : true,
+                    "requirePublicationYear" : true,
+                    "requireCreators" : true,
+                    "requireTitles" : true
+                }
+            }
+        }
+    },
+    "createdAt" : "2026-06-15T04:09:17.340Z",
+    "updatedAt" : "2026-06-15T04:10:12.387Z"
+}
