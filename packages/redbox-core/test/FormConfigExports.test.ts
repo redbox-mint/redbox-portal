@@ -6,5 +6,6 @@ describe('FormConfigExports', function () {
   it('should expose default form config', function () {
     expect(FormConfigExports).to.be.an('object');
     expect(FormConfigExports).to.have.property('generated-view-only');
+    expect(FormConfigExports).not.to.have.property('default-1.0-draft');
   });
 });
