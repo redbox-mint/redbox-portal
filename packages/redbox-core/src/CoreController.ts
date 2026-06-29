@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
-import { ILogger } from './Logger';
+import {consoleLogger, ILogger} from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import {
   BuildResponseType,
@@ -11,6 +11,7 @@ import {
   RBValidationError,
   ErrorResponseItemV2,
 } from "./model";
+import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 
 
 
@@ -76,22 +77,7 @@ export namespace Controllers.Core {
     private _logger: ILogger | null = null;
 
     private getFallbackLogger(): ILogger {
-      const log = (...args: unknown[]): void => console.log(...args);
-      const noop = (): void => undefined;
-      return {
-        silly: log,
-        verbose: log,
-        trace: (...args: unknown[]): void => console.trace(...args),
-        debug: (...args: unknown[]): void => console.debug(...args),
-        log: (...args: unknown[]): void => console.log(...args),
-        info: (...args: unknown[]): void => console.info(...args),
-        warn: (...args: unknown[]): void => console.warn(...args),
-        error: (...args: unknown[]): void => console.error(...args),
-        crit: (...args: unknown[]): void => console.error(...args),
-        fatal: (...args: unknown[]): void => console.error(...args),
-        silent: noop,
-        blank: (): void => console.log(''),
-      };
+      return consoleLogger;
     }
 
     /**
@@ -338,11 +324,8 @@ export namespace Controllers.Core {
       const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
       mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
 
-      this.logger.debug("resolvedView");
-      this.logger.debug(resolvedView);
-      // this.logger.debug("mergedLocal");
-      // this.logger.debug(mergedLocal);
-
+      // TODO: there is too much data in these view details - are individual properties interesting?
+      // this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
 
       res.view(resolvedView, mergedLocal);
     }
@@ -537,17 +520,19 @@ export namespace Controllers.Core {
         meta = {},
         prehydrate = undefined,
         v1 = null,
+        chronicle = {},
       } = buildResponse ?? {};
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
 
       // Collect and process the errors recursively
       const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
-      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
       status = this.resolveResponseStatus(status, collectedDisplayErrors);
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
+
+      this.updateChronicle(req, chronicle, collectedErrors);
 
       // Delegate full version-specific responses (success + errors) to wrapper handlers.
       if (apiVersion === ApiVersion.VERSION_1_0) {
@@ -580,7 +565,13 @@ export namespace Controllers.Core {
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
-    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
+    protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
+      const rc = RequestChronicleHelper.fromReq(sails.log, req);
+      rc?.addInfo(info ?? {});
+      (errors ?? []).forEach(error => rc?.addError(error));
+    }
+
+    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
@@ -590,6 +581,9 @@ export namespace Controllers.Core {
         sails.log.error(`Collected error in sendResp:`, error);
       }
 
+      const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
+      const displayErrorsMsg = `display ${collectedDisplayErrors.length} ${collectedDisplayErrors.length === 1 ? 'error' : 'errors'}`;
+      sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
       return { collectedErrors, collectedDisplayErrors };
     }
 
@@ -845,6 +839,43 @@ export namespace Controllers.Core {
 
     private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
       res.set(this.getNoCacheHeaders());
+    }
+
+    /**
+     * Parse a floating point number from a value.
+     * @param value The value to parse.
+     * @param defaultValue The default if the value cannot be parsed.
+     * @param min The optional minimum value.
+     * @param max The optional maximum value.
+     * @return The parsed number, or default if parsing failed, constrained between min and max if supplied.
+     * @protected
+     */
+    protected getNumber(value?: unknown, defaultValue?: number, min?: number, max?: number): number | undefined {
+      let result: number | null = null;
+      if (value !== null && value !== undefined && typeof value === 'number' && Number.isFinite(value)) {
+        result = value;
+      }
+
+      const parsed = Number.parseFloat(value?.toString() ?? "");
+      if (result === null && parsed !== null && parsed !== undefined && typeof parsed === 'number' && Number.isFinite(parsed)) {
+        result = parsed;
+      }
+
+      if (result === null && defaultValue !== null && defaultValue !== undefined && typeof defaultValue === 'number' && Number.isFinite(defaultValue)) {
+        result = defaultValue;
+      }
+
+      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(result)) {
+        return undefined;
+      }
+
+      if (min !== null && min !== undefined && Number.isFinite(min)) {
+        result = Math.max(result, min);
+      }
+      if (max !== null && max !== undefined && Number.isFinite(max)) {
+        result = Math.min(result, max);
+      }
+      return Number.isFinite(result) ? result : undefined;
     }
   }
 }

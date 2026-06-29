@@ -109,15 +109,7 @@ import {
 import { DataValueFormConfigVisitor } from "./data-value.visitor";
 
 
-declare const sails: {
-    config?: {
-        record?: {
-            form?: {
-                htmlSanitizationMode?: 'sanitize' | 'reject';
-            }
-        }
-    }
-};
+declare const sails: Sails.Application;
 
 /**
  * Visit each form config component and run its validators.

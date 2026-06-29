@@ -1,8 +1,14 @@
 // Adapted from https://git.f3l.de/ttomasini/sails-types/raw/branch/master/sails.d.ts
 import express = require('express');
-import type { SailsConfig } from './config';
-import type { ApiRouteDefinition } from './api-routes/types';
-import type { ValidatedApiRouteRequest } from './api-routes/validation';
+import type {SailsConfig} from './config';
+import type {ApiRouteDefinition} from './api-routes/types';
+import type {ValidatedApiRouteRequest} from './api-routes/validation';
+import {RequestChronicleHelper} from "./utilities/RequestChronicle";
+
+// passport import type is to be able to access 'Express.AuthenticatedRequest' from '@types/passport'.
+// oxlint-disable-next-line eslint/no-unused-vars
+import type * as passportType from 'passport';
+
 
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
@@ -29,7 +35,13 @@ declare global {
     export interface ConfigObject extends SailsConfig {
       // Sails runtime config keys not covered by SailsConfig
       keepResponseErrors?: boolean;
-      hooks: globalThis.Record<string, unknown>;
+      hooks: {
+        http?: {
+          server?: unknown;
+          [key: string]: unknown;
+        };
+        [key: string]: unknown;
+      };
       [key: string]: unknown;
     }
 
@@ -79,6 +91,15 @@ declare global {
       on(event: string, cb: (...args: unknown[]) => void): void;
       emit(event: string, ...args: unknown[]): void;
       getDatastore(name?: string): Datastore;
+      hooks: {
+        http?: {
+          server?: {
+            [key: string]: unknown;
+          };
+          [key: string]: unknown;
+        };
+        [key: string]: unknown;
+      };
     }
 
     export interface Hook {
@@ -213,7 +234,12 @@ declare global {
     export interface NextFunction extends express.NextFunction { }
 
     export interface ReqOptions {
-      locals?: globalThis.Record<string, unknown>;
+      locals?: {
+        branding?: string;
+        portal?: string;
+        [key: string]: unknown;
+      };
+      requestChronicleHelper?: RequestChronicleHelper;
       [key: string]: unknown;
     }
 

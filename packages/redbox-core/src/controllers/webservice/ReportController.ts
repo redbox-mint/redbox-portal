@@ -41,12 +41,12 @@ export namespace Controllers {
         const { query } = validated;
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const queryName = query.queryName as string;
+        this.updateChronicle(req, {namedQueryName: queryName});
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         if (!namedQuery) {
-          const errorResponse = new APIErrorResponse('Named query not found');
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            displayErrors: [{ detail: "Named query not found" }],
             headers: this.getNoCacheHeaders(),
           });
         }
@@ -59,24 +59,26 @@ export namespace Controllers {
         if (!_.isEmpty(query.rows)) {
           rows = _.toNumber(query.rows);
         }
+        this.updateChronicle(req, {namedQueryPagingStart: start, namedQueryPagingRows: rows});
         if (rows > 100) {
-          const errorResponse = new APIErrorResponse('Rows must not be greater than 100');
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+            displayErrors: [{ detail: "Rows must not be greater than 100" }],
             headers: this.getNoCacheHeaders(),
           });
         }
         const paramMap = _.clone(query);
         const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
-        sails.log.verbose(`NamedQueryService response: ${JSON.stringify(response)}`);
-        return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
+        this.updateChronicle(req, {namedQueryResponse: response});
+        return this.sendResp(req, res, {
+          data: response,
+          status: 200,
+          headers: this.getNoCacheHeaders(),
+        });
       } catch (error: unknown) {
-        sails.log.error(`executeNamedQuery error: ${error}`);
-        const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          errors: [error],
           headers: this.getNoCacheHeaders(),
         });
       }

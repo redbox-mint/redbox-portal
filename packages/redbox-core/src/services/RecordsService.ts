@@ -115,10 +115,6 @@ export namespace Services {
       return recordObj;
     }
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     private getBootstrapDataPath(): string {
       const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
       return path.resolve(String(configuredPath), 'records');
@@ -456,7 +452,7 @@ export namespace Services {
           createResponse.success = false;
           createResponse.message = RBValidationError.displayMessage({
             t: TranslationService,
-            errors: [this.asError(err)],
+            errors: [err],
             defaultMessage: failedMessage,
           });
           return createResponse;
@@ -541,7 +537,7 @@ export namespace Services {
             createResponse.success = false;
             createResponse.message = RBValidationError.displayMessage({
               t: TranslationService,
-              errors: [this.asError(err)],
+              errors: [err],
               defaultMessage: failedMessage,
             });
             const metadata = { postSaveSyncWarning: 'true' };
@@ -577,7 +573,7 @@ export namespace Services {
               createResponse.success = false;
               createResponse.message = RBValidationError.displayMessage({
                 t: TranslationService,
-                errors: [this.asError(tErr)],
+                errors: [tErr],
                 defaultMessage: failedMessage,
               });
               return createResponse;
@@ -687,7 +683,7 @@ export namespace Services {
             preTriggerResponse.success = false;
             preTriggerResponse.message = RBValidationError.displayMessage({
               t: TranslationService,
-              errors: [this.asError(err)],
+              errors: [err],
               defaultMessage: failedMessage,
             });
             return preTriggerResponse;
@@ -711,7 +707,7 @@ export namespace Services {
           updateResponse.success = false;
           updateResponse.message = RBValidationError.displayMessage({
             t: TranslationService,
-            errors: [this.asError(err)],
+            errors: [err],
             defaultMessage: failedMessage,
           });
           return updateResponse;
@@ -797,7 +793,7 @@ export namespace Services {
             updateResponse.success = false;
             updateResponse.message = RBValidationError.displayMessage({
               t: TranslationService,
-              errors: [this.asError(err)],
+              errors: [err],
               defaultMessage: failedMessage,
             });
             const metadataRes = { postSaveSyncWarning: 'true' };
@@ -843,7 +839,7 @@ export namespace Services {
               updateResponse.success = false;
               updateResponse.message = RBValidationError.displayMessage({
                 t: TranslationService,
-                errors: [this.asError(tErr)],
+                errors: [tErr],
                 defaultMessage: failedMessage,
               });
               return updateResponse;
@@ -1018,7 +1014,7 @@ export namespace Services {
         preTriggerResponse.success = false;
         preTriggerResponse.message = RBValidationError.displayMessage({
           t: TranslationService,
-          errors: [this.asError(err)],
+          errors: [err],
           defaultMessage: failedMessage,
         });
         return preTriggerResponse;
@@ -1048,7 +1044,7 @@ export namespace Services {
           response.success = false;
           response.message = RBValidationError.displayMessage({
             t: TranslationService,
-            errors: [this.asError(err)],
+            errors: [err],
             defaultMessage: failedMessage,
           });
           const metadata = { postSaveSyncWarning: 'true' };
@@ -1760,7 +1756,7 @@ export namespace Services {
         responseObj.success = false;
         responseObj.message = RBValidationError.displayMessage({
           t: TranslationService,
-          errors: [this.asError(err)],
+          errors: [err],
           defaultMessage: 'Failed to transition record workflow, please check server logs.',
         });
         responseObj.metadata = { postSaveSyncWarning: 'true' };

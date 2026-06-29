@@ -29,7 +29,7 @@ export interface BuildResponseType {
    * These will be logged.
    * They are not included in the response.
    */
-  errors?: Error[];
+  errors?: (Error | unknown)[];
   /**
    * Structured detail errors.
    * These are included in the response.
@@ -47,4 +47,8 @@ export interface BuildResponseType {
    * Optional additive payload for v2 responses.
    */
   prehydrate?: unknown;
+  /**
+   * Arbitrary data to add to the request chronicle.
+   */
+  chronicle?: Record<string, unknown>;
 }
