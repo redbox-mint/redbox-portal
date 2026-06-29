@@ -377,7 +377,8 @@ export namespace Services {
       }
 
       const currentRec = await RecordsService.getMeta(oid) as RecordModel;
-      const brand = BrandingService.getBrand(currentRec.metaMetadata?.brandId ?? 'default');
+      const brandId = currentRec.metaMetadata?.brandId;
+      const brand = (brandId ? BrandingService.getBrandById(brandId) : null) ?? BrandingService.getDefault();
       const userRoles = user.roles ?? [];
       const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles as unknown as Record<string, unknown>[], currentRec as unknown as Record<string, unknown>);
       if (!hasEditAccess) {
@@ -800,7 +801,12 @@ export namespace Services {
         const user = await UsersService.getUserWithUsername(username).toPromise();
 
         if (!user || !user?.username || user?.type !== userType) {
-          sails.log.error(`FigService - cannot run job because could not find user with username '${username}' and type '${userType}' user:`, user);
+          sails.log.error(`FigService - cannot run job because could not find user with username '${username}' and type '${userType}'`, { type: user?.type });
+          return;
+        }
+
+        if (!user?.roles || !Array.isArray(user.roles) || user.roles.length === 0) {
+          sails.log.error(`FigService - cannot run job because user '${username}' has no roles assigned`);
           return;
         }
 
