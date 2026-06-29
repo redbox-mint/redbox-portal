@@ -3,12 +3,8 @@ import {
   BrandingModel,
   Controllers as controllers,
   getValidatedApiRequest,
-  downloadRecsRoute,
 } from '../../index';
-import { default as util } from 'util';
-import { default as stream } from 'stream';
-
-const pipeline = util.promisify(stream.pipeline);
+import { pipeline } from 'node:stream/promises';
 /**
  * Package that contains all Controllers.
  */
