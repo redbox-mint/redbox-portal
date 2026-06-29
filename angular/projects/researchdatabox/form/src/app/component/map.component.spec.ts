@@ -6,6 +6,7 @@ import {MAP_DEPENDENCIES_LOADER, MapComponent} from "./map.component";
 import {ConfirmationDialogService} from "../confirmation-dialog.service";
 
 describe("MapComponent", () => {
+  const uuidV4Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   let fakeMap: any;
   let fakeDraw: any;
   let drawFeatures: unknown[];
@@ -14,6 +15,7 @@ describe("MapComponent", () => {
   let fakeVectorLayer: any;
   let fakeVectorSource: any;
   let fakeGeoJSONFormat: any;
+  let fakeGeoJSONReadFeatures: jasmine.Spy;
   let fakeFromLonLat: jasmine.Spy;
   let fakeIsEmpty: jasmine.Spy;
   let fakeMapCreatesCanvas: boolean;
@@ -147,9 +149,10 @@ describe("MapComponent", () => {
       getExtent: jasmine.createSpy("getExtent").and.returnValue([0, 0, 1, 1])
     };
 
-    fakeGeoJSONFormat = jasmine.createSpy("GeoJSONFormat").and.callFake(() => ({
-      readFeatures: jasmine.createSpy("readFeatures").and.returnValue([])
-    }));
+    fakeGeoJSONReadFeatures = jasmine.createSpy("readFeatures").and.returnValue([]);
+    fakeGeoJSONFormat = function FakeGeoJSONFormat(this: any) {
+      this.readFeatures = fakeGeoJSONReadFeatures;
+    };
 
     fakeDraw = {
       start: jasmine.createSpy("start"),
@@ -160,7 +163,7 @@ describe("MapComponent", () => {
       }),
       setMode: jasmine.createSpy("setMode"),
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
-        drawFeatures.push(...features);
+        drawFeatures.push(...features.filter((feature: any) => feature?.id != null && feature?.properties?.mode));
       }),
       clear: jasmine.createSpy("clear").and.callFake(() => {
         drawFeatures = [];
@@ -234,8 +237,37 @@ describe("MapComponent", () => {
         features: [
           {
             type: "Feature",
-            geometry: {type: "Point", coordinates: [146.82, -19.25]},
-            properties: {name: "Townsville"}
+            geometry: {type: "Point", coordinates: [-122.681944, 45.52, 0]},
+            properties: {name: "Portland"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [-43.196389, -22.908333, 0]},
+            properties: {name: "Rio de Janeiro"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [28.976018, 41.01224, 0]},
+            properties: {name: "Istanbul"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [-21.933333, 64.133333, 0]},
+            properties: {name: "Reykjavik"}
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [-122.681944, 45.52, 0],
+                [-43.196389, -22.908333, 0],
+                [28.976018, 41.01224, 0],
+                [-21.933333, 64.133333, 0],
+                [-122.681944, 45.52, 0]
+              ]]
+            },
+            properties: {name: "Simple Polygon"}
           }
         ]
       })
@@ -336,6 +368,65 @@ describe("MapComponent", () => {
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect(modelValue?.type).toBe("FeatureCollection");
     expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].id).toMatch(uuidV4Pattern);
+    expect(modelValue.features[0].properties.mode).toBe("point");
+  });
+
+  it("appends imported GeoJSON without duplicating existing draw features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    fakeDraw.addFeatures.calls.reset();
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {type: "Point", coordinates: [153.02, -27.47]},
+      properties: {name: "Brisbane"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
+      jasmine.objectContaining({
+        properties: jasmine.objectContaining({name: "Brisbane", mode: "point"})
+      })
+    ]);
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue.features.map((feature: any) => feature.properties.name)).toEqual(["Melbourne", "Brisbane"]);
+    expect(modelValue.features[1].id).toMatch(uuidV4Pattern);
   });
 
   it("imports a single GeoJSON feature snippet", async () => {
@@ -378,6 +469,7 @@ describe("MapComponent", () => {
     expect(modelValue?.type).toBe("FeatureCollection");
     expect((modelValue?.features ?? []).length).toBe(1);
     expect(modelValue.features[0].properties.name).toBe("Townsville");
+    expect(modelValue.features[0].properties.mode).toBe("point");
   });
 
   it("imports a raw GeoJSON geometry snippet", async () => {
@@ -418,6 +510,7 @@ describe("MapComponent", () => {
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect((modelValue?.features ?? []).length).toBe(1);
     expect(modelValue.features[0].geometry.type).toBe("Point");
+    expect(modelValue.features[0].properties.mode).toBe("point");
   });
 
   it("imports KML and updates form model value", async () => {
@@ -443,8 +536,51 @@ describe("MapComponent", () => {
     };
 
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    fakeView.fit.calls.reset();
     const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
-    textarea.value = "<kml><Placemark><Point><coordinates>146.82,-19.25</coordinates></Point></Placemark></kml>";
+    textarea.value = `<?xml version="1.0" encoding="utf-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Portland</name>
+      <Point>
+        <coordinates>-122.681944,45.52,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Rio de Janeiro</name>
+      <Point>
+        <coordinates>-43.196389,-22.908333,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Istanbul</name>
+      <Point>
+        <coordinates>28.976018,41.01224,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Reykjavik</name>
+      <Point>
+        <coordinates>-21.933333,64.133333,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Simple Polygon</name>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>-122.681944,45.52,0
+            -43.196389,-22.908333,0
+            28.976018,41.01224,0
+            -21.933333,64.133333,0
+            -122.681944,45.52,0</coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>`;
     textarea.dispatchEvent(new Event("input"));
     fixture.detectChanges();
 
@@ -453,8 +589,107 @@ describe("MapComponent", () => {
     await fixture.whenStable();
 
     const modelValue = (formComponent as any).form.value?.map_coverage;
-    expect((modelValue?.features ?? []).length).toBe(1);
-    expect(modelValue.features[0].properties.name).toBe("Townsville");
+    expect((modelValue?.features ?? []).length).toBe(5);
+    expect(modelValue.features.map((feature: any) => feature.properties.name)).toEqual([
+      "Portland",
+      "Rio de Janeiro",
+      "Istanbul",
+      "Reykjavik",
+      "Simple Polygon"
+    ]);
+    expect(modelValue.features.map((feature: any) => feature.properties.mode)).toEqual([
+      "point",
+      "point",
+      "point",
+      "point",
+      "polygon"
+    ]);
+    expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id))).toBeTrue();
+    expect(modelValue.features[0].geometry.coordinates).toEqual([-122.681944, 45.52]);
+    expect(modelValue.features[4].geometry.coordinates[0][0]).toEqual([-122.681944, 45.52]);
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], { padding: [24, 24, 24, 24] });
+  });
+
+  it("expands GeoJSON multi-geometries into draw-compatible features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {
+        type: "MultiPoint",
+        coordinates: [[153.02, -27.47], [146.82, -19.25]]
+      },
+      properties: {name: "Queensland sites", mode: "polygon"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(2);
+    expect(modelValue.features.map((feature: any) => feature.geometry.type)).toEqual(["Point", "Point"]);
+    expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id) && feature.properties.mode === "point")).toBeTrue();
+  });
+
+  it("throws a controlled error when map feature ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      expect(() => (mapComponent as any).createFeatureId()).toThrowError("Unable to generate map feature id: crypto API is unavailable");
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
   });
 
   it("renders translated coordinates help text", async () => {
@@ -590,14 +825,72 @@ describe("MapComponent", () => {
 
     await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
-      {
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
         geometry: {type: "Point", coordinates: [144.96, -37.81]},
-        properties: {name: "Melbourne"}
-      }
+        properties: jasmine.objectContaining({name: "Melbourne", mode: "point"})
+      })
     ]);
     expect(drawFeatures.length).toBe(1);
     expect(fakeMap.updateSize).toHaveBeenCalled();
+  });
+
+  it("shows saved features read-only when edit draw ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fakeDraw.addFeatures).not.toHaveBeenCalled();
+      expect(fakeGeoJSONReadFeatures).toHaveBeenCalledWith(
+        jasmine.objectContaining({features: jasmine.arrayContaining([
+          jasmine.objectContaining({id: "feature-1"})
+        ])}),
+        {dataProjection: "EPSG:4326", featureProjection: "EPSG:3857"}
+      );
+      expect((fixture.nativeElement.textContent ?? "").includes("Saved map features cannot be loaded for editing")).toBeTrue();
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
   });
 
   it("initialises draw tooling when a disabled map is enabled after map load", async () => {
@@ -706,7 +999,11 @@ describe("MapComponent", () => {
     selectButton.click();
     fixture.detectChanges();
 
-    drawListeners["select"]?.forEach((listener) => listener("feature-1"));
+    const selectedFeatureId = (drawFeatures[0] as any).id;
+    const remainingFeatureId = (drawFeatures[1] as any).id;
+    expect(selectedFeatureId).toMatch(uuidV4Pattern);
+    expect(remainingFeatureId).toMatch(uuidV4Pattern);
+    drawListeners["select"]?.forEach((listener) => listener(selectedFeatureId));
     fixture.detectChanges();
     const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
     expect(deleteButton).not.toBeNull();
@@ -716,13 +1013,13 @@ describe("MapComponent", () => {
     deleteButton.click();
     fixture.detectChanges();
 
-    expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith(["feature-1"]);
+    expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith([selectedFeatureId]);
     expect(setValueSpy).toHaveBeenCalledTimes(1);
     expect(fakeDraw.setMode).toHaveBeenCalledWith("select");
     expect(mapComponent.activeMode).toBe("select");
     expect(mapComponent.selectedFeatureIds.size).toBe(0);
     const modelValue = (formComponent as any).form.value?.map_coverage;
-    expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual(["feature-2"]);
+    expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual([remainingFeatureId]);
   });
 
   it("clears all map features after confirmation", async () => {
@@ -938,6 +1235,11 @@ describe("MapComponent", () => {
     const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
 
+    // No tool is selected by default, so map interactions stay enabled for panning.
+    expect(fakeMapInteractions[0].setActive).not.toHaveBeenCalled();
+    expect(fakeMapInteractions[1].setActive).not.toHaveBeenCalled();
+
+    mapComponent.setDrawMode("rectangle");
     expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
     expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
 
