@@ -507,7 +507,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public translatedModeHelpText: Record<MapDrawingMode, string> = { ...this.modeHelpTextFallbacks };
   public deleteSelectedHelpText = "Delete the selected map feature.";
   public clearAllHelpText = "Clear all points, lines, and shapes from the map.";
-  private readonly featureIdUnavailableError = "Saved map features cannot be loaded for editing because this browser does not provide the crypto API required to generate map feature IDs.";
+  // Modern browsers provide the crypto API, so users should only see this on unusual or unsupported clients.
+  private readonly featureIdUnavailableError = "Saved map features cannot be loaded for editing because this browser does not provide "
+    + "the crypto API required to generate map feature IDs. Please contact your administrator for assistance.";
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
