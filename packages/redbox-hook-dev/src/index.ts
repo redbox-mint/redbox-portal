@@ -12,6 +12,7 @@ import { record } from './config/record';
 import { routes } from './config/routes';
 import { views } from './config/views';
 import { jsonld } from './config/jsonld';
+import { FormConfigExports } from './form-config';
 
 export {};
 
@@ -44,10 +45,10 @@ const hook = defineRedboxHook({
     };
   },
   registerRedboxFormConfigs(): Record<string, FormConfigFrame> {
-    return require('./form-config').FormConfigExports as Record<string, FormConfigFrame>;
+    return FormConfigExports;
   },
   additionalExports: {
-    FormConfigExports: require('./form-config').FormConfigExports,
+    FormConfigExports,
   },
 });
 
