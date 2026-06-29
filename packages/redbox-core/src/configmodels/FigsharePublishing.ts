@@ -776,7 +776,14 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
               enum: ['deleteAfterSuccess', 'retainForRetry'],
               default: 'deleteAfterSuccess',
             },
-            diskSpaceThresholdBytes: { type: 'integer', title: 'Disk Space Threshold Bytes', default: 1073741824 },
+            diskSpaceThresholdBytes: {
+              type: 'integer',
+              title: 'Disk Space Threshold Bytes (deprecated, no-op)',
+              deprecated: true,
+              description:
+                'Deprecated and ignored. Staging now runs through StorageManagerService, which surfaces its own capacity errors; this value no longer acts as a pre-flight disk-space guard. Retained only for compatibility with stored configs.',
+              default: 1073741824,
+            },
           },
         },
       },

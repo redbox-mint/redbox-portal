@@ -100,12 +100,15 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       enableHostedFiles: true,
       enableLinkFiles: true,
       dedupeStrategy: 'sourceId',
+      ...(overrides.assets as Record<string, unknown> | undefined),
+      // Deep-merge staging last so a partial `assets` override (or a partial
+      // `assets.staging` override) cannot erase defaults like disk/keyPrefix.
       staging: {
+        ...((config.assets as Record<string, unknown>).staging as Record<string, unknown>),
         cleanupPolicy: 'deleteAfterSuccess',
         diskSpaceThresholdBytes: 1000,
         ...((overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined),
       },
-      ...(overrides.assets as Record<string, unknown> | undefined),
     },
     embargo: {
       ...(config.embargo as Record<string, unknown>),
@@ -123,7 +126,11 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     workflow: {
       ...(config.workflow as Record<string, unknown>),
       transitionRules: [],
+      ...(overrides.workflow as Record<string, unknown> | undefined),
+      // Deep-merge transitionJob last so a partial `workflow` override (or a partial
+      // `workflow.transitionJob` override) cannot erase the other transitionJob settings.
       transitionJob: {
+        ...((config.workflow as Record<string, unknown>).transitionJob as Record<string, unknown>),
         enabled: false,
         namedQuery: '',
         targetStep: '',
@@ -136,7 +143,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
           | Record<string, unknown>
           | undefined),
       },
-      ...(overrides.workflow as Record<string, unknown> | undefined),
     },
     writeBack: {
       ...(config.writeBack as Record<string, unknown>),
@@ -1693,6 +1699,56 @@ describe('FigshareService', function () {
       expect(fakeDisk.store.has(stagingKey)).to.equal(false);
       expect(result.uploadedAttachments).to.have.lengthOf(1);
       expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(1);
+    });
+
+    it('streams Figshare part content without buffering each full part before upload', async function () {
+      const fakeDisk = makeFakeDisk();
+      let stagedSourceReads = 0;
+      fakeDisk.disk.getStream = async (key: string) => {
+        const buffer = fakeDisk.store.get(key);
+        if (buffer == null) {
+          throw new Error(`Missing fake disk key ${key}`);
+        }
+        const stagedBuffer = buffer;
+
+        async function* chunks() {
+          for (let offset = 0; offset < stagedBuffer.length; offset += 2) {
+            stagedSourceReads += 1;
+            yield stagedBuffer.subarray(offset, offset + 2);
+          }
+        }
+
+        return Readable.from(chunks());
+      };
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const uploadedParts: Buffer[] = [];
+      const readsAtUploadStart: number[] = [];
+      const client = buildAssetClient(
+        [
+          { partNo: 1, startOffset: 0, endOffset: 3 },
+          { partNo: 2, startOffset: 4, endOffset: 7 },
+        ],
+        uploadedParts
+      );
+      (client.uploadFilePart as sinon.SinonStub).callsFake(
+        async (_uploadUrl: string, _partNo: number, stream: Readable) => {
+          readsAtUploadStart.push(stagedSourceReads);
+          uploadedParts.push(await streamToBuffer(stream));
+          return {};
+        }
+      );
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect(readsAtUploadStart[0]).to.equal(0);
+      expect(uploadedParts.map(part => part.toString())).to.deep.equal(['abcd', 'efgh']);
     });
 
     it('retains the staged object after success when retainForRetry is configured', async function () {

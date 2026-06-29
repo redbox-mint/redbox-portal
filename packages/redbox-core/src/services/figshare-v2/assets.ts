@@ -83,6 +83,11 @@ function buildStagingKey(
   if (safeFileName === '') {
     throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
   }
+  // basename() can still yield the reserved '.'/'..' segments, which would point the
+  // staging key at the directory itself or escape it on an fs-backed disk.
+  if (safeFileName === '.' || safeFileName === '..') {
+    throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
+  }
   const dir = `${sanitizePathComponent(articleId)}-${sanitizePathComponent(oid)}-${sanitizePathComponent(fileId)}`;
   return `${prefix}/${dir}/${safeFileName}`;
 }
@@ -109,27 +114,29 @@ async function* readPartsSequentially(
       throw validationError(`Figshare upload part ${part.partNo} starts at ${part.startOffset}; expected ${consumed}`);
     }
 
-    const chunks: Buffer[] = [];
-    let need = partSize;
-    while (need > 0) {
-      if (carry.length === 0) {
-        const { value, done } = await iterator.next();
-        if (done === true) {
-          throw validationError(
-            `Staged object truncated at offset ${consumed}; expected more bytes for part ${part.partNo}`
-          );
+    async function* partStream(): AsyncGenerator<Buffer> {
+      let need = partSize;
+      while (need > 0) {
+        if (carry.length === 0) {
+          const { value, done } = await iterator.next();
+          if (done === true) {
+            throw validationError(
+              `Staged object truncated at offset ${consumed}; expected more bytes for part ${part.partNo}`
+            );
+          }
+          carry = Buffer.isBuffer(value) ? value : Buffer.from(value);
         }
-        carry = Buffer.isBuffer(value) ? value : Buffer.from(value);
-      }
 
-      const take = Math.min(need, carry.length);
-      chunks.push(carry.subarray(0, take));
-      carry = carry.subarray(take);
-      need -= take;
-      consumed += take;
+        const take = Math.min(need, carry.length);
+        const chunk = carry.subarray(0, take);
+        carry = carry.subarray(take);
+        need -= take;
+        consumed += take;
+        yield chunk;
+      }
     }
 
-    yield { partNo: part.partNo, stream: Readable.from(chunks) };
+    yield { partNo: part.partNo, stream: Readable.from(partStream()) };
   }
 }
 
