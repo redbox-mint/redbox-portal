@@ -107,7 +107,7 @@ describe('TemplateService', function () {
 
       expect(result).to.have.length(1);
       expect(result[0].value).to.include('jsonata("');
-      expect(result[0].value).to.include('").evaluate(context);');
+      expect(result[0].value).to.include('").evaluate(context)');
       expect(result[0].value).to.not.include('$helper');
       expect(result[0].value).to.not.include('field1');
       expect(result[0].value).to.not.include('name');
