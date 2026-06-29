@@ -196,7 +196,9 @@ describe('FigshareService', function () {
       getAppConfigurationForBrand: appConfigByBrandStub
     }));
     (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' })
+      getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' }),
+      getBrandById: sinon.stub().returns(undefined),
+      getDefault: sinon.stub().returns({ id: 'default-id', name: 'default' })
     };
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
@@ -204,7 +206,7 @@ describe('FigshareService', function () {
       updateMeta: sinon.stub().resolves({ success: true })
     };
     (global as any).UsersService = {
-      getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) })
+      getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }) })
     };
     (global as any).IntegrationAuditService = {
       startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({ startedAt: '2025-01-01T00:00:00.000Z', ...opts })),
@@ -1092,6 +1094,35 @@ describe('FigshareService', function () {
     expect((service as any).isCurationLocked(record, { status: 'draft' })).to.equal(false);
   });
 
+  it('falls back to brand name when workflow transition brand id lookup does not resolve', async function () {
+    const namedBrand = { id: 'named-brand-id', name: 'named-brand' };
+    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
+    (global as any).BrandingService.getBrand = sinon.stub().withArgs('named-brand').returns(namedBrand);
+    (global as any).RecordsService.getMeta.resolves({
+      oid: 'oid-1',
+      metadata: { title: 'Dataset title' },
+      metaMetadata: { brandId: 'named-brand', type: 'dataset' }
+    });
+    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true });
+    sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
+
+    await (service as any).transitionWorkflowForRecord(
+      { metaMetadata: { brandId: 'named-brand' } },
+      { username: 'figshare-job-user', roles: [{ name: 'admin' }] },
+      'oid-1',
+      'article-1',
+      'published',
+      'status',
+      'public'
+    );
+
+    expect((global as any).BrandingService.getBrandById.calledWith('named-brand')).to.equal(true);
+    expect((global as any).BrandingService.getBrand.calledWith('named-brand')).to.equal(true);
+    expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+  });
+
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {
     getConfigStub.callsFake(() => buildFigsharePublishingConfig({
       record: {
@@ -1130,6 +1161,46 @@ describe('FigshareService', function () {
     expect(transitionStub.calledOnce).to.be.true;
     expect(transitionStub.firstCall.args[2]).to.equal('oid-1');
     expect(transitionStub.firstCall.args[3]).to.equal('v2-path-id');
+  });
+
+  it('processes workflow transition records when the publishing user has no roles', async function () {
+    getConfigStub.callsFake(() => buildFigsharePublishingConfig({
+      record: {
+        articleIdPath: 'metadata.v2.articleId',
+        articleUrlPaths: ['metadata.figshare_article_location'],
+        dataLocationsPath: 'metadata.dataLocations',
+        statusPath: 'metadata.figshareStatus',
+        errorPath: 'metadata.figshareError',
+        syncStatePath: 'metadata.figshareSyncState',
+        allFilesUploadedPath: ''
+      },
+      workflow: {
+        transitionRules: [],
+        transitionJob: {
+          enabled: true,
+          namedQuery: 'v2-transition',
+          targetStep: 'published',
+          paramMap: {},
+          figshareTargetFieldKey: 'status',
+          figshareTargetFieldValue: 'public',
+          username: 'figshare-job-user',
+          userType: 'admin'
+        }
+      }
+    }) as any);
+    (global as any).UsersService.getUserWithUsername = sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) });
+    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
+    (global as any).RecordsService.getMeta.resolves({
+      oid: 'oid-1',
+      metadata: { v2: { articleId: 'v2-path-id' } },
+      metaMetadata: { brandId: 'default', type: 'dataset' }
+    });
+    const transitionStub = sinon.stub(service as any, 'transitionWorkflowForRecord').resolves();
+
+    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+
+    expect(transitionStub.calledOnce).to.equal(true);
+    expect(transitionStub.firstCall.args[1].roles).to.deep.equal([]);
   });
 
   it('audits per-record workflow transition failures', async function () {
