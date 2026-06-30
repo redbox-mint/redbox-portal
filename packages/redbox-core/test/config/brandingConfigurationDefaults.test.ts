@@ -6,6 +6,18 @@ describe('brandingConfigurationDefaults', function () {
     ({ expect } = await import('chai'));
   });
 
+  it('keeps the core menu to home and admin only', function () {
+    expect(brandingConfigurationDefaults.menu?.items.map(item => item.id)).to.deep.equal([
+      'home-auth',
+      'admin',
+      'home-anon',
+    ]);
+  });
+
+  it('does not provide core home panels', function () {
+    expect(brandingConfigurationDefaults.homePanels).to.deep.equal({ panels: [] });
+  });
+
   it('exposes a canonical doiPublishing default for runtime use', async function () {
     const doiPublishing = brandingConfigurationDefaults.doiPublishing;
 

@@ -101,6 +101,63 @@ describe('redbox-loader', function () {
         });
     });
 
+    describe('mergeRedboxConfig', function () {
+        it('replaces brandingConfigurationDefaults arrays from hook config', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                'brandingConfigurationDefaults',
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'admin',
+                                labelKey: 'menu-admin',
+                                href: '/admin',
+                                requiredRoles: ['Admin'],
+                            },
+                        ],
+                    },
+                    homePanels: { panels: [] },
+                },
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'plan',
+                                labelKey: 'menu-plan-nav',
+                                href: '#',
+                                children: [
+                                    { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+                                ],
+                            },
+                        ],
+                    },
+                    homePanels: {
+                        panels: [
+                            {
+                                id: 'plan',
+                                titleKey: 'menu-plan',
+                                iconClass: 'icon-checklist icon-3x',
+                                columnClass: 'col-md-3 homepanel',
+                                items: [],
+                            },
+                        ],
+                    },
+                }
+            );
+
+            const brandingDefaults = merged as {
+                menu: { items: Array<{ id: string; requiredRoles?: string[] }> };
+                homePanels: { panels: Array<{ id: string }> };
+            };
+
+            expect(brandingDefaults.menu.items.map(item => item.id)).to.deep.equal(['home-auth', 'plan']);
+            expect(brandingDefaults.menu.items[1]).to.not.have.property('requiredRoles');
+            expect(brandingDefaults.homePanels.panels.map(panel => panel.id)).to.deep.equal(['plan']);
+        });
+    });
+
     describe('shouldRegenerateShims', function () {
         it('should return true if NODE_ENV is not production', async function () {
             process.env.NODE_ENV = 'development';

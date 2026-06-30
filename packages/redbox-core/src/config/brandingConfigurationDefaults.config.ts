@@ -215,8 +215,8 @@ const defaultBrandAuthConfig: BrandAuthConfig = {
 };
 
 /**
- * Default menu configuration that mirrors the current static menu structure.
- * This can be overridden per-brand via the admin UI or environment config.
+ * Minimal default menu configuration. Demo and portal-specific navigation is
+ * supplied by hooks or per-brand configuration.
  */
 const defaultMenuConfig: BrandingMenuConfig = {
     items: [
@@ -225,57 +225,6 @@ const defaultMenuConfig: BrandingMenuConfig = {
             labelKey: 'menu-home',
             href: '/researcher/home',
             requiresAuth: true
-        },
-        {
-            id: 'plan',
-            labelKey: 'menu-plan-nav',
-            href: '#',
-            requiresAuth: true,
-            children: [
-                { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
-                { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
-                {
-                    id: 'plan-advice',
-                    labelKey: 'get-advice',
-                    href: '/getAdvice',
-                    visibleWhenTranslationExists: true
-                }
-            ]
-        },
-        {
-            id: 'org',
-            labelKey: 'menu-organisation-nav',
-            href: '#',
-            requiresAuth: true,
-            children: [
-                { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
-                {
-                    id: 'org-services',
-                    labelKey: 'workspace-services-list',
-                    href: '/availableServicesList',
-                    visibleWhenTranslationExists: true
-                }
-            ]
-        },
-        {
-            id: 'manage',
-            labelKey: 'menu-manage-nav',
-            href: '#',
-            requiresAuth: true,
-            children: [
-                { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
-                { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
-            ]
-        },
-        {
-            id: 'publish',
-            labelKey: 'menu-publish-nav',
-            href: '#',
-            requiresAuth: true,
-            children: [
-                { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
-                { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
-            ]
         },
         {
             id: 'admin',
@@ -296,61 +245,11 @@ const defaultMenuConfig: BrandingMenuConfig = {
 };
 
 /**
- * Default home panel configuration that mirrors the current static researcher home page.
- * This can be overridden per-brand via the admin UI or environment config.
+ * Core has no default home panels. Demo and portal-specific home panels are
+ * supplied by hooks or per-brand configuration.
  */
 const defaultHomePanelsConfig: BrandingHomePanelsConfig = {
-    panels: [
-        {
-            id: 'plan',
-            titleKey: 'menu-plan',
-            iconClass: 'icon-checklist icon-3x',
-            columnClass: 'col-md-3 homepanel',
-            items: [
-                { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
-                { id: 'plan-dashboard', labelKey: 'edit-dashboard-rdmp', href: '/dashboard/rdmp' },
-                {
-                    id: 'plan-advice',
-                    labelKey: 'get-advice',
-                    href: '/getAdvice'
-                }
-            ]
-        },
-        {
-            id: 'organise',
-            titleKey: 'menu-organise-worspace',
-            iconClass: 'fa fa-sitemap fa-3x',
-            columnClass: 'col-md-3 homepanel',
-            items: [
-                { id: 'org-workspaces', labelKey: 'workspaces-dashboard', href: '/workspaces/list' },
-                {
-                    id: 'org-services',
-                    labelKey: 'workspace-services-list',
-                    href: '/availableServicesList'
-                }
-            ]
-        },
-        {
-            id: 'manage',
-            titleKey: 'menu-manage',
-            iconClass: 'fa fa-laptop fa-3x',
-            columnClass: 'col-md-3 homepanel',
-            items: [
-                { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
-                { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
-            ]
-        },
-        {
-            id: 'publish',
-            titleKey: 'menu-publish',
-            iconClass: 'fa fa-rocket fa-3x',
-            columnClass: 'col-md-3 homepanel',
-            items: [
-                { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
-                { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
-            ]
-        }
-    ]
+    panels: []
 };
 
 /**

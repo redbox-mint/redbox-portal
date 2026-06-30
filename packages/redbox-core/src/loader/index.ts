@@ -177,6 +177,14 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
     if (name === 'agendaQueue') {
         return mergeAgendaQueueConfig(...configs);
     }
+    if (name === 'brandingConfigurationDefaults') {
+        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
+            if (Array.isArray(srcValue)) {
+                return srcValue;
+            }
+            return undefined;
+        }) as RedboxConfigMap;
+    }
     return _.merge({}, ...configs) as RedboxConfigMap;
 }
 
