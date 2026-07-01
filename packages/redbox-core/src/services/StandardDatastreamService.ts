@@ -18,6 +18,10 @@ type PrimaryObjectCheck = {
   via: 'exists' | 'metadata' | 'missing';
   error?: string;
 };
+type TusPartPrefixSelection = {
+  prefix?: string;
+  partKeys: string[];
+};
 type AttachmentMetadataServiceContract = {
   upsert: (row: AttachmentMetadataInput) => Promise<void>;
   findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
@@ -330,6 +334,9 @@ export namespace Services {
         await primaryDisk.getMetaData(destKey);
         return { available: true, via: 'metadata' };
       } catch (err) {
+        // This is only a primary-availability probe. A missing object is expected
+        // before staging/TUS promotion; callers decide whether absence is fatal
+        // after checking staging and TUS parts.
         if (!this.isStorageNotFoundError(err)) {
           this.logger.warn(`${this.logHeader} primary object metadata check failed for ${destKey}`, err);
         }
@@ -445,16 +452,30 @@ export namespace Services {
     }
 
     private async listTusPartKeys(stagingDisk: IDisk, fileId: string): Promise<string[]> {
-      const partKeys: string[] = [];
+      return (await this.selectTusPartPrefix(stagingDisk, fileId)).partKeys;
+    }
+
+    private async selectTusPartPrefix(stagingDisk: IDisk, fileId: string): Promise<TusPartPrefixSelection> {
+      const populatedPrefixes: TusPartPrefixSelection[] = [];
       for (const prefix of this.tusPartPrefixes(fileId)) {
         const listed = await stagingDisk.listAll(prefix, { recursive: true });
-        partKeys.push(
-          ...Array.from(listed.objects)
+        const partKeys = _.uniq(
+          Array.from(listed.objects)
             .map((object) => this.listedObjectKey(object))
             .filter((key): key is string => typeof key === 'string' && key.length > 0)
+        ).sort((left, right) => left.localeCompare(right));
+        if (partKeys.length) {
+          populatedPrefixes.push({ prefix, partKeys });
+        }
+      }
+      if (populatedPrefixes.length > 1) {
+        throw new Error(
+          `Ambiguous TUS upload parts for fileId '${fileId}': found parts in ${populatedPrefixes
+            .map((selection) => `'${selection.prefix}'`)
+            .join(', ')}`
         );
       }
-      return _.uniq(partKeys).sort((left, right) => left.localeCompare(right));
+      return populatedPrefixes[0] ?? { partKeys: [] };
     }
 
     private listedObjectKey(object: unknown): string | undefined {

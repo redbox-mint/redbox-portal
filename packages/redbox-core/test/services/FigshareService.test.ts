@@ -6,6 +6,7 @@ import { agendaQueue } from '../../src/config/agendaQueue.config';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
+import { createRunContext } from '../../src/services/figshare-v2/context';
 import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
 import { buildMetadataPayload, syncMetadataPhase } from '../../src/services/figshare-v2/metadata';
 import { syncAssetsPhase } from '../../src/services/figshare-v2/assets';
@@ -423,6 +424,26 @@ describe('FigshareService', function () {
     expect(exports).to.have.property('publishAfterUploadFilesJob');
     expect(exports).to.have.property('transitionRecordWorkflowFromFigshareArticlePropertiesJob');
     expect(exports).to.have.property('syncRecordWithFigshare');
+  });
+
+  it('infers record oid from the full job id prefix when record fields are empty', function () {
+    const context = createRunContext(
+      { redboxOid: '', id: '', oid: '', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      ' rdmp-1_0.test:publish-job '
+    );
+
+    expect(context.recordOid).to.equal('rdmp-1_0.test');
+  });
+
+  it('keeps record oid field precedence over the job id fallback', function () {
+    const context = createRunContext(
+      { redboxOid: 'record-oid', id: 'id-oid', oid: 'legacy-oid', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      'job-id:publish-job'
+    );
+
+    expect(context.recordOid).to.equal('record-oid');
   });
 
   it('honours triggerCondition before Figshare lifecycle sync', async function () {

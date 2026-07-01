@@ -8,7 +8,7 @@ function inferRecordOid(record: RecordModel, jobId?: string): string {
   if (fromRecord) {
     return fromRecord;
   }
-  const fromJobId = String(jobId ?? '').match(/^([A-Za-z0-9]+):/)?.[1] ?? '';
+  const fromJobId = String(jobId ?? '').match(/^([^:]+):/)?.[1] ?? '';
   return fromJobId.trim();
 }
 
