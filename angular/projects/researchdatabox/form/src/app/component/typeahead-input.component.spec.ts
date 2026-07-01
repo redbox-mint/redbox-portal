@@ -203,12 +203,94 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         input.value = "Custom Person";
         input.dispatchEvent(new Event("input"));
         input.dispatchEvent(new Event("blur"));
         await fixture.whenStable();
 
         expect((formComponent as any).form.value?.person_lookup).toBeNull();
+        // Free text must not linger in the display when selection is required.
+        expect(component.displayControl.value).toBe("");
+    });
+
+    it("restores the last selected option when free text is entered and selection is required", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: true,
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        // Confirm a valid lookup selection first.
+        component.onSelect({
+            item: { label: "Jane Doe", value: "jane", sourceType: "static" }
+        } as TypeaheadMatch);
+        expect(component.displayControl.value).toBe("Jane Doe");
+
+        // Then overwrite it with free text and blur.
+        component.displayControl.setValue("Custom Person");
+        component.onBlur();
+
+        // The free text is discarded and the confirmed selection is restored.
+        expect(component.displayControl.value).toBe("Jane Doe");
+        expect((formComponent as any).form.get("person_lookup")?.value).toEqual({
+            label: "Jane Doe",
+            value: "jane",
+            sourceType: "static"
+        });
+    });
+
+    it("restores a pre-populated value when free text is entered and selection is required", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            requireSelection: true,
+                            staticOptions: [{ label: "Jane Doe", value: "Jane Doe" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: { value: "Jane Doe" }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        expect(component.displayControl.value).toBe("Jane Doe");
+
+        // Overwrite the pre-populated value with free text and blur.
+        component.displayControl.setValue("Custom Person");
+        component.onBlur();
+
+        expect(component.displayControl.value).toBe("Jane Doe");
+        expect((formComponent as any).form.get("person_lookup")?.value).toBe("Jane Doe");
     });
 
     it("marks the control dirty when a suggestion is selected", async () => {
