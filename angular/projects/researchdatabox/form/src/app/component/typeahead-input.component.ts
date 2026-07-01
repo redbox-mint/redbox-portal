@@ -121,6 +121,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
   private programmaticDisplayUpdate = false;
+  private lastConfirmedDisplayValue = '';
   private modelSubscriptionInitialised = false;
   private autoDisplaySyncInFlight: boolean = false;
   private lastAutoDisplaySyncSignature = '';
@@ -241,9 +242,17 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     const text = String(this.displayControl.value ?? '').trim();
     if (!text) {
       this.setModelValue(null);
+      this.lastConfirmedDisplayValue = '';
       return;
     }
     if (!this.allowFreeText) {
+      // requireSelection: free text is not permitted. Discard whatever was typed
+      // and restore the last confirmed lookup selection, clearing the model when
+      // no selection has ever been made.
+      this.setDisplayValue(this.lastConfirmedDisplayValue);
+      if (!this.lastConfirmedDisplayValue) {
+        this.setModelValue(null);
+      }
       return;
     }
     this.setModelFromFreeText(text);
@@ -485,6 +494,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.programmaticDisplayUpdate = true;
     this.displayControl.setValue(value, { emitEvent: false });
     this.programmaticDisplayUpdate = false;
+    this.lastConfirmedDisplayValue = value;
   }
 
   private setModelValue(value: TypeaheadInputModelValueType): void {
