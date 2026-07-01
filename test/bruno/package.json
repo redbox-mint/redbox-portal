@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@usebruno/cli": "3.4.2",
+    "@usebruno/cli": "3.5.0",
     "cheerio": "1.2.0",
     "ws": "8.21.0"
   },
