@@ -197,6 +197,11 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+
+      - store_artifacts:
+          path: /home/circleci/project/coverage/bruno-general/lcov.info
+          destination: bruno-general
+
   test-bruno-oidc:
     machine:
       image: ubuntu-2204:current
@@ -425,7 +430,8 @@ jobs:
           command: >-
             npm run compile:sails-ng-common:prod
             && source support/build/compileProductionAngular.sh portal-ng-common
-            && cd .. && source support/build/compileProductionAngular.sh portal-ng-form-custom
+            && cd ..
+            && source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
           <<: *installCodecov
       - run:
@@ -445,6 +451,11 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+
+      - store_artifacts:
+          path: /home/circleci/project/angular/projects/researchdatabox/form/coverage/coverage-final.json
+          destination: angular-form
+
   test-sails-ng-common:
     machine:
       image: ubuntu-2204:current
@@ -516,6 +527,11 @@ jobs:
           when: always
       - store_test_results:
           path: packages/redbox-core/support/junit
+
+      - store_artifacts:
+          path: /home/circleci/project/packages/redbox-core/coverage/redbox-core/lcov.info
+          destination: mocha-core
+
   test-agenda-sqs-backend:
     docker:
       - image: 'cimg/node:24.16.0'
