@@ -4,19 +4,16 @@ import { RecordContextVariableConfig } from '../config/record.config';
 type ContextVariablesConfigMap = Record<string, RecordContextVariableConfig>;
 
 export class ContextVariableUtils {
-  public static evaluateContextVariables(req: Sails.Req, _recordData: unknown): Record<string, string> {
+  public static evaluateContextVariables(req: Sails.Req, recordData: unknown): Record<string, string> {
     const result: Record<string, string> = {};
     const contextVariablesConfig = _get(sails, 'config.record.contextVariables', {}) as ContextVariablesConfigMap;
     for (const [fieldKey, fieldConfig] of Object.entries(contextVariablesConfig)) {
-      if (!fieldConfig || fieldConfig.source !== 'request') {
-        if (fieldConfig?.source && fieldConfig.source !== 'request') {
-          sails.log.warn(`Unsupported context variable source for ${fieldKey}: ${fieldConfig.source}`);
-        }
+      if (!fieldConfig) {
         continue;
       }
 
       try {
-        const rawValue = this.resolveFromRequest(req, fieldConfig);
+        const rawValue = this.resolveValue(req, recordData, fieldConfig);
         result[fieldKey] = this.sanitizeContextVariableValue(rawValue);
       } catch (error) {
         const errorType = error instanceof Error ? error.name : 'UnknownError';
@@ -25,6 +22,28 @@ export class ContextVariableUtils {
       }
     }
     return result;
+  }
+
+  private static resolveValue(req: Sails.Req, recordData: unknown, config: RecordContextVariableConfig): unknown {
+    if (config.source === 'request') {
+      return this.resolveFromRequest(req, config);
+    }
+    if (config.source === 'metadata') {
+      return this.resolveFromRecord(recordData, config, 'metadata');
+    }
+    if (config.source === 'record') {
+      return this.resolveFromRecord(recordData, config);
+    }
+    return '';
+  }
+
+  private static resolveFromRecord(recordData: unknown, config: RecordContextVariableConfig, basePath?: string): unknown {
+    const field = String(config.field ?? '').trim();
+    if (!field) {
+      return '';
+    }
+    const path = basePath ? `${basePath}.${field}` : field;
+    return _get(recordData, path);
   }
 
   private static resolveFromRequest(req: Sails.Req, config: RecordContextVariableConfig): unknown {

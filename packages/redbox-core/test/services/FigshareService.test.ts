@@ -1700,6 +1700,61 @@ describe('FigshareService', function () {
       expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(1);
     });
 
+    it('sanitizes the internal staging filename without changing the Figshare filename', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'rdmp (2).pdf', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(/^figshare\/article-1-oid-1-file-1-[0-9a-f-]{36}\/rdmp-2\.pdf$/);
+      expect((client.createArticleFile as sinon.SinonStub).firstCall.args[1]).to.deep.equal({
+        name: 'rdmp (2).pdf',
+        size: payload.length,
+      });
+      expect(fakeDisk.calls.deleted).to.deep.equal([stagingKey]);
+    });
+
+    it('promotes local datastreams even when Figshare already has a same-named file', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const getDatastreamStub = installDatastreamStub(Buffer.from('abcdefgh'), 8);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      (client.listArticleFiles as sinon.SinonStub).resolves([
+        {
+          id: 'existing-figshare-file',
+          article_id: 'article-1',
+          name: 'file.txt',
+          status: 'available',
+          size: 8,
+        },
+      ]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+      const syncState: any = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, syncState);
+
+      expect(getDatastreamStub.calledOnceWithExactly('oid-1', 'file-1')).to.equal(true);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect(fakeDisk.calls.put).to.deep.equal([]);
+      expect(result.uploadedAttachments).to.have.lengthOf(1);
+      expect(result.uploadedAttachments[0].id).to.equal('existing-figshare-file');
+      expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(0);
+      expect(syncState.partialProgress?.uploadedAttachmentCount).to.equal(1);
+    });
+
     it('streams Figshare part content without buffering each full part before upload', async function () {
       const fakeDisk = makeFakeDisk();
       let stagedSourceReads = 0;

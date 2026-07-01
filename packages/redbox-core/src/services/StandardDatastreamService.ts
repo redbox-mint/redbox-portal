@@ -13,6 +13,11 @@ import type { Services as AttachmentMetadataServices } from './AttachmentMetadat
 type IDisk = StorageManagerServices.IDisk;
 type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
 type AttachmentMetadataInput = AttachmentMetadataServices.AttachmentMetadataInput;
+type PrimaryObjectCheck = {
+  available: boolean;
+  via: 'exists' | 'metadata' | 'missing';
+  error?: string;
+};
 type AttachmentMetadataServiceContract = {
   upsert: (row: AttachmentMetadataInput) => Promise<void>;
   findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
@@ -265,20 +270,28 @@ export namespace Services {
 
       const storageError = err as {
         code?: string;
+        name?: string;
         status?: number;
         statusCode?: number;
+        $metadata?: { httpStatusCode?: number };
         message?: string;
+        cause?: unknown;
       };
       const message = storageError.message?.toLowerCase() ?? '';
+      const code = storageError.code?.toLowerCase() ?? '';
+      const name = storageError.name?.toLowerCase() ?? '';
+      const statusCode = storageError.status ?? storageError.statusCode ?? storageError.$metadata?.httpStatusCode;
 
-      return storageError.code === 'ENOENT'
-        || storageError.code === 'NoSuchKey'
-        || storageError.status === 404
-        || storageError.statusCode === 404
+      return code === 'enoent'
+        || code === 'nosuchkey'
+        || name === 'notfound'
+        || name === 'notfoundexception'
+        || statusCode === 404
         || message.includes('not found')
         || message.includes('no such')
         || message.includes('does not exist')
-        || message.includes('enoent');
+        || message.includes('enoent')
+        || (!!storageError.cause && this.isStorageNotFoundError(storageError.cause));
     }
 
     private isStorageAlreadyExistsError(err: unknown): boolean {
@@ -299,6 +312,33 @@ export namespace Services {
         || storageError.statusCode === 409
         || message.includes('already exists')
         || message.includes('eexist');
+    }
+
+    private describeStorageError(err: unknown): string {
+      if (err instanceof Error) {
+        return err.message;
+      }
+      return String(err);
+    }
+
+    private async checkPrimaryObject(primaryDisk: IDisk, destKey: string): Promise<PrimaryObjectCheck> {
+      if (await primaryDisk.exists(destKey)) {
+        return { available: true, via: 'exists' };
+      }
+
+      try {
+        await primaryDisk.getMetaData(destKey);
+        return { available: true, via: 'metadata' };
+      } catch (err) {
+        if (!this.isStorageNotFoundError(err)) {
+          this.logger.warn(`${this.logHeader} primary object metadata check failed for ${destKey}`, err);
+        }
+        return {
+          available: false,
+          via: 'missing',
+          error: this.describeStorageError(err),
+        };
+      }
     }
 
     private async promoteFromStagingOnce(oid: string, fileId: string, destKey: string): Promise<boolean> {
@@ -323,15 +363,16 @@ export namespace Services {
       const stagingDisk = StorageManagerService.stagingDisk();
       const primaryDisk = StorageManagerService.primaryDisk();
 
-      if (await primaryDisk.exists(destKey)) {
-        this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Already present: ${destKey}`);
+      const primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
+      if (primaryCheck.available) {
+        this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Already present: ${destKey} via ${primaryCheck.via}`);
         return true;
       }
 
       const existsInStaging = await stagingDisk.exists(fileId);
       if (!existsInStaging) {
         return await this.promoteTusPartsFromStaging(stagingDisk, primaryDisk, fileId, destKey)
-          || primaryDisk.exists(destKey);
+          || (await this.checkPrimaryObject(primaryDisk, destKey)).available;
       }
 
       const metadata = await stagingDisk.getMetaData(fileId);
@@ -341,7 +382,7 @@ export namespace Services {
         await this.putStagedObject(primaryDisk, destKey, stagingDisk, fileId, readable, metadata.contentLength);
       } catch (err) {
         readable.destroy();
-        if (!this.isStorageAlreadyExistsError(err) || !(await primaryDisk.exists(destKey))) {
+        if (!this.isStorageAlreadyExistsError(err) || !(await this.checkPrimaryObject(primaryDisk, destKey)).available) {
           throw err;
         }
       }
@@ -382,12 +423,18 @@ export namespace Services {
       const readable = Readable.from(this.streamDiskObjects(stagingDisk, partKeys));
       try {
         await primaryDisk.putStream(destKey, readable, { contentLength });
-        await stagingDisk.deleteAll(this.tusPartsPrefix(fileId));
-        await stagingDisk.delete(this.tusInfoKey(fileId)).catch((err) => {
-          if (!this.isStorageNotFoundError(err)) {
-            throw err;
-          }
-        });
+        for (const prefix of this.tusBasePrefixes(fileId)) {
+          await stagingDisk.deleteAll(this.tusPartsPrefix(prefix)).catch((err) => {
+            if (!this.isStorageNotFoundError(err)) {
+              throw err;
+            }
+          });
+          await stagingDisk.delete(this.tusInfoKey(prefix)).catch((err) => {
+            if (!this.isStorageNotFoundError(err)) {
+              throw err;
+            }
+          });
+        }
       } catch (err) {
         readable.destroy();
         throw err;
@@ -398,11 +445,16 @@ export namespace Services {
     }
 
     private async listTusPartKeys(stagingDisk: IDisk, fileId: string): Promise<string[]> {
-      const listed = await stagingDisk.listAll(this.tusPartsPrefix(fileId), { recursive: true });
-      return Array.from(listed.objects)
-        .map((object) => this.listedObjectKey(object))
-        .filter((key): key is string => typeof key === 'string' && key.length > 0)
-        .sort((left, right) => left.localeCompare(right));
+      const partKeys: string[] = [];
+      for (const prefix of this.tusPartPrefixes(fileId)) {
+        const listed = await stagingDisk.listAll(prefix, { recursive: true });
+        partKeys.push(
+          ...Array.from(listed.objects)
+            .map((object) => this.listedObjectKey(object))
+            .filter((key): key is string => typeof key === 'string' && key.length > 0)
+        );
+      }
+      return _.uniq(partKeys).sort((left, right) => left.localeCompare(right));
     }
 
     private listedObjectKey(object: unknown): string | undefined {
@@ -428,12 +480,20 @@ export namespace Services {
       return total;
     }
 
-    private tusPartsPrefix(fileId: string): string {
-      return `.tus/${fileId}/parts/`;
+    private tusBasePrefixes(fileId: string): string[] {
+      return [`.tus/${fileId}`, `tus/${fileId}`];
     }
 
-    private tusInfoKey(fileId: string): string {
-      return `.tus/${fileId}/info.json`;
+    private tusPartPrefixes(fileId: string): string[] {
+      return this.tusBasePrefixes(fileId).map((prefix) => this.tusPartsPrefix(prefix));
+    }
+
+    private tusPartsPrefix(tusBasePrefix: string): string {
+      return `${tusBasePrefix}/parts/`;
+    }
+
+    private tusInfoKey(tusBasePrefix: string): string {
+      return `${tusBasePrefix}/info.json`;
     }
 
     private async *streamDiskObjects(stagingDisk: IDisk, keys: string[]): AsyncGenerator<Buffer> {
@@ -595,9 +655,22 @@ export namespace Services {
 
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
+        let primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
+        if (primaryCheck.available) {
+          this.logger.verbose(`${this.logHeader} addDatastream() -> Already present: ${destKey} via ${primaryCheck.via}`);
+          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+          return { success: true, key: destKey };
+        }
         const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
         if (!promotedTusParts) {
-          throw new Error(`Attachment not found in staging: ${fileId}`);
+          primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
+          throw new Error(
+            `Attachment not found in staging: ${fileId}. Checked staged object '${fileId}' and TUS part prefixes: ${this
+              .tusPartPrefixes(fileId)
+              .join(', ')}. Primary object '${destKey}' available=${primaryCheck.available} via=${primaryCheck.via}${
+              primaryCheck.error ? ` error=${primaryCheck.error}` : ''
+            }`
+          );
         }
         await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
         this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);

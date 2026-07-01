@@ -235,6 +235,8 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
 
       const ds = new Datastream({ fileId: 'missing-file' });
       try {
@@ -243,6 +245,67 @@ describe('StandardDatastreamService', function () {
       } catch (err: any) {
         expect(err.message).to.include('Attachment not found in staging');
       }
+    });
+
+    it('should treat wrapped S3 not found metadata errors as a missing primary object', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      const wrappedNotFound = Object.assign(new Error('Unable to retrieve metadata: UnknownError'), {
+        cause: Object.assign(new Error('UnknownError'), { name: 'NotFound' }),
+      });
+      mockPrimaryDisk.getMetaData.rejects(wrappedNotFound);
+
+      const ds = new Datastream({ fileId: 'missing-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Attachment not found in staging');
+      }
+
+      expect(mockSails.log.warn.called).to.be.false;
+    });
+
+    it('should treat an already-promoted primary object as a successful add', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.withArgs('attachments/oid-123/already-promoted-file').resolves(true);
+
+      const ds = new Datastream({ fileId: 'already-promoted-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/already-promoted-file' });
+      expect(mockStagingDisk.getStream.called).to.be.false;
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.delete.called).to.be.false;
+    });
+
+    it('should treat primary metadata as proof of an already-promoted object', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.withArgs('attachments/oid-123/metadata-visible-file').resolves(false);
+      mockPrimaryDisk.getMetaData.withArgs('attachments/oid-123/metadata-visible-file').resolves({
+        contentType: 'text/plain',
+        contentLength: 373,
+        etag: 'metadata-etag',
+        lastModified: new Date(),
+      });
+
+      const ds = new Datastream({ fileId: 'metadata-visible-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/metadata-visible-file' });
+      expect(mockPrimaryDisk.getMetaData.calledWith('attachments/oid-123/metadata-visible-file')).to.be.true;
+      expect(mockStagingDisk.getStream.called).to.be.false;
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.delete.called).to.be.false;
     });
   });
 
@@ -353,6 +416,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
 
       try {
         await service.getDatastream('oid-123', 'missing-file');
@@ -368,6 +432,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
 
       const result = await service.getDatastream('oid-123', 'file-123');
@@ -385,6 +450,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockPrimaryDisk.putStream.rejects(new Error('primary promotion failed'));
 
       try {
@@ -418,6 +484,7 @@ describe('StandardDatastreamService', function () {
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.putStream.callsFake(() => new Promise<void>((resolve) => {
         resolvePromotion = resolve;
@@ -447,6 +514,7 @@ describe('StandardDatastreamService', function () {
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.putStream.rejects(new Error('already exists'));
 
@@ -462,6 +530,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockStagingDisk.delete.rejects(new Error('ENOENT'));
 
