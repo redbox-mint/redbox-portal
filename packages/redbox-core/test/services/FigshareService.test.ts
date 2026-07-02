@@ -1,4 +1,5 @@
 import * as sinon from 'sinon';
+import { Readable } from 'node:stream';
 import { Services } from '../../src/services/FigshareService';
 import { ServiceExports } from '../../src/services';
 import { agendaQueue } from '../../src/config/agendaQueue.config';
@@ -7,6 +8,7 @@ import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } f
 import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
 import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
 import { buildMetadataPayload, syncMetadataPhase } from '../../src/services/figshare-v2/metadata';
+import { syncAssetsPhase } from '../../src/services/figshare-v2/assets';
 import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
@@ -26,14 +28,20 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     ...overrides,
     enabled: overrides.enabled ?? true,
     connection: {
-      ...config.connection as Record<string, unknown>,
+      ...(config.connection as Record<string, unknown>),
       baseUrl: 'https://api.figshare.com',
       frontEndUrl: 'https://figshare.com',
       token: 'token',
       timeoutMs: 1000,
       operationTimeouts: { metadataMs: 1000, uploadInitMs: 1000, uploadPartMs: 1000, publishMs: 1000 },
-      retry: { maxAttempts: 1, baseDelayMs: 1, maxDelayMs: 1, retryOnStatusCodes: [], retryOnMethods: ['get', 'put', 'delete'] },
-      ...(overrides.connection as Record<string, unknown> | undefined)
+      retry: {
+        maxAttempts: 1,
+        baseDelayMs: 1,
+        maxDelayMs: 1,
+        retryOnStatusCodes: [],
+        retryOnMethods: ['get', 'put', 'delete'],
+      },
+      ...(overrides.connection as Record<string, unknown> | undefined),
     },
     article: {
       ...(config.article as Record<string, unknown>),
@@ -41,7 +49,7 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       publishMode: 'manual',
       republishOnMetadataChange: true,
       republishOnAssetChange: true,
-      ...(overrides.article as Record<string, unknown> | undefined)
+      ...(overrides.article as Record<string, unknown> | undefined),
     },
     record: {
       ...(config.record as Record<string, unknown>),
@@ -52,14 +60,14 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       errorPath: 'metadata.figshareError',
       syncStatePath: 'metadata.figshareSyncState',
       allFilesUploadedPath: '',
-      ...(overrides.record as Record<string, unknown> | undefined)
+      ...(overrides.record as Record<string, unknown> | undefined),
     },
     selection: {
       ...(config.selection as Record<string, unknown>),
       attachmentMode: 'selectedOnly',
       urlMode: 'selectedOnly',
       selectedFlagPath: 'selected',
-      ...(overrides.selection as Record<string, unknown> | undefined)
+      ...(overrides.selection as Record<string, unknown> | undefined),
     },
     authors: {
       ...(config.authors as Record<string, unknown>),
@@ -68,7 +76,7 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       externalNameField: 'text_full_name',
       maxInlineAuthors: 10,
       lookup: [],
-      ...(overrides.authors as Record<string, unknown> | undefined)
+      ...(overrides.authors as Record<string, unknown> | undefined),
     },
     metadata: {
       ...(config.metadata as Record<string, unknown>),
@@ -78,40 +86,51 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       license: { source: { kind: 'path', path: 'metadata.license' }, matchBy: 'urlContains', required: true },
       categories: { source: { kind: 'path', path: 'metadata.forCodes' }, mappingStrategy: 'for2020Mapping' },
       customFields: [],
-      ...(overrides.metadata as Record<string, unknown> | undefined)
+      ...(overrides.metadata as Record<string, unknown> | undefined),
     },
     categories: {
       ...(config.categories as Record<string, unknown>),
       strategy: 'for2020Mapping',
       mappingTable: [{ sourceCode: '0101', figshareCategoryId: 10 }],
       allowUnmapped: true,
-      ...(overrides.categories as Record<string, unknown> | undefined)
+      ...(overrides.categories as Record<string, unknown> | undefined),
     },
     assets: {
       ...(config.assets as Record<string, unknown>),
       enableHostedFiles: true,
       enableLinkFiles: true,
       dedupeStrategy: 'sourceId',
-      staging: { cleanupPolicy: 'deleteAfterSuccess', diskSpaceThresholdBytes: 1000, ...(overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined },
-      ...(overrides.assets as Record<string, unknown> | undefined)
+      ...(overrides.assets as Record<string, unknown> | undefined),
+      // Deep-merge staging last so a partial `assets` override (or a partial
+      // `assets.staging` override) cannot erase defaults like disk/keyPrefix.
+      staging: {
+        ...((config.assets as Record<string, unknown>).staging as Record<string, unknown>),
+        cleanupPolicy: 'deleteAfterSuccess',
+        diskSpaceThresholdBytes: 1000,
+        ...((overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined),
+      },
     },
     embargo: {
       ...(config.embargo as Record<string, unknown>),
       mode: 'recordDriven',
       forceSync: true,
       accessRights: { accessRights: { kind: 'path', path: 'metadata.accessRights' } },
-      ...(overrides.embargo as Record<string, unknown> | undefined)
+      ...(overrides.embargo as Record<string, unknown> | undefined),
     },
     queue: {
       ...(config.queue as Record<string, unknown>),
       publishAfterUploadDelay: 'in 2 minutes',
       uploadedFilesCleanupDelay: 'in 5 minutes',
-      ...(overrides.queue as Record<string, unknown> | undefined)
+      ...(overrides.queue as Record<string, unknown> | undefined),
     },
     workflow: {
       ...(config.workflow as Record<string, unknown>),
       transitionRules: [],
+      ...(overrides.workflow as Record<string, unknown> | undefined),
+      // Deep-merge transitionJob last so a partial `workflow` override (or a partial
+      // `workflow.transitionJob` override) cannot erase the other transitionJob settings.
       transitionJob: {
+        ...((config.workflow as Record<string, unknown>).transitionJob as Record<string, unknown>),
         enabled: false,
         namedQuery: '',
         targetStep: '',
@@ -120,17 +139,18 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
         figshareTargetFieldValue: '',
         username: '',
         userType: '',
-        ...((overrides.workflow as Record<string, unknown> | undefined)?.transitionJob as Record<string, unknown> | undefined)
+        ...((overrides.workflow as Record<string, unknown> | undefined)?.transitionJob as
+          | Record<string, unknown>
+          | undefined),
       },
-      ...(overrides.workflow as Record<string, unknown> | undefined)
     },
     writeBack: {
       ...(config.writeBack as Record<string, unknown>),
       articleId: 'metadata.figshare_article_id',
       articleUrls: ['metadata.figshare_article_location'],
       extraFields: [],
-      ...(overrides.writeBack as Record<string, unknown> | undefined)
-    }
+      ...(overrides.writeBack as Record<string, unknown> | undefined),
+    },
   };
 }
 
@@ -141,13 +161,157 @@ function buildFigshareDevConfig(overrides: Record<string, unknown> = {}) {
     fixtures: {
       article: {
         id: 'fixture-123',
-        url: 'https://figshare.com/articles/fixture-123'
+        url: 'https://figshare.com/articles/fixture-123',
       },
       licenses: [{ value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }],
       categories: [{ id: 10, title: 'Category 10' }],
-      articleFiles: []
+      articleFiles: [],
     },
-    ...overrides
+    ...overrides,
+  };
+}
+
+function makeFakeDisk() {
+  const store = new Map<string, Buffer>();
+  const calls = {
+    put: [] as Array<{ key: string; options?: Record<string, unknown> }>,
+    deleted: [] as string[],
+  };
+  const disk = {
+    async putStream(key: string, stream: Readable, options?: Record<string, unknown>) {
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      store.set(key, Buffer.concat(chunks));
+      calls.put.push({ key, options });
+    },
+    async getMetaData(key: string) {
+      const buffer = store.get(key);
+      if (buffer == null) {
+        throw new Error(`Missing fake disk key ${key}`);
+      }
+      return { contentLength: buffer.length, etag: 'fake-etag', lastModified: new Date('2026-01-01T00:00:00.000Z') };
+    },
+    async getStream(key: string) {
+      const buffer = store.get(key);
+      if (buffer == null) {
+        throw new Error(`Missing fake disk key ${key}`);
+      }
+      return Readable.from([buffer]);
+    },
+    async delete(key: string) {
+      store.delete(key);
+      calls.deleted.push(key);
+    },
+    async exists(key: string) {
+      return store.has(key);
+    },
+  };
+  return { disk, store, calls };
+}
+
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+function buildLiveAssetConfig(overrides: Record<string, unknown> = {}) {
+  const base = buildFigsharePublishingConfig() as unknown as FigsharePublishingConfigData & Record<string, unknown>;
+  return {
+    ...base,
+    runtime: { mode: 'live' },
+    assets: {
+      ...base.assets,
+      staging: {
+        disk: 'figshare-staging',
+        keyPrefix: 'figshare/',
+        tempDir: '',
+        cleanupPolicy: 'deleteAfterSuccess',
+        diskSpaceThresholdBytes: 1000,
+        ...(overrides as { staging?: Record<string, unknown> }).staging,
+      },
+    },
+  } as any;
+}
+
+function buildAssetRecord(dataLocations: any[]): RecordModel {
+  return {
+    redboxOid: 'oid-1',
+    harvestId: '',
+    metaMetadata: {
+      brandId: 'default',
+      createdBy: 'admin',
+      type: 'dataPublication',
+      searchCore: 'default',
+      form: 'dataPublication-1.0-review',
+      attachmentFields: [],
+    },
+    metadata: { dataLocations },
+    workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+    authorization: {
+      view: [],
+      edit: [],
+      editRoles: [],
+      viewRoles: [],
+      editPending: [],
+      viewPending: [],
+      stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+    },
+    dateCreated: '',
+    lastSaveDate: '',
+    id: '',
+  };
+}
+
+function installDatastreamStub(buffer: Buffer, size?: number) {
+  (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
+  (global as any).sails.services.datastreamservice = {
+    getDatastream: sinon.stub().resolves({
+      readstream: Readable.from([buffer]),
+      ...(size === undefined ? {} : { size }),
+    }),
+  };
+  return (global as any).sails.services.datastreamservice.getDatastream as sinon.SinonStub;
+}
+
+function buildAssetClient(
+  parts: Array<{ partNo: number; startOffset: number; endOffset: number }>,
+  uploadedParts: Buffer[] = []
+): FigshareClient {
+  const uploadUrl = 'https://upload.figshare.test/file-1';
+  return {
+    createArticle: async () => ({ id: 'unused' }),
+    updateArticle: async () => ({ id: 'unused' }),
+    getArticle: async () => ({ id: 'unused' }),
+    listArticleFiles: sinon.stub().resolves([]) as any,
+    createArticleFile: sinon.stub().resolves({ location: 'https://api.figshare.test/file-1' }) as any,
+    getLocation: sinon.stub().callsFake(async (location: string) => {
+      if (location === uploadUrl) {
+        return { parts };
+      }
+      return {
+        id: 'figshare-file-1',
+        name: 'file.txt',
+        upload_url: uploadUrl,
+        status: 'available',
+        download_url: 'https://figshare.test/file.txt',
+      };
+    }) as any,
+    uploadFilePart: sinon.stub().callsFake(async (_uploadUrl: string, _partNo: number, stream: Readable) => {
+      uploadedParts.push(await streamToBuffer(stream));
+      return {};
+    }) as any,
+    completeFileUpload: sinon.stub().resolves({}) as any,
+    deleteArticleFile: sinon.stub().resolves({}) as any,
+    setEmbargo: async () => ({}),
+    clearEmbargo: async () => ({}),
+    publishArticle: async () => ({}),
+    listLicenses: async () => [],
+    searchInstitutionAccounts: async () => [],
   };
 }
 
@@ -170,14 +334,14 @@ describe('FigshareService', function () {
         silly: sinon.stub(),
         blank: sinon.stub(),
         log: sinon.stub(),
-        silent: sinon.stub()
-      }
+        silent: sinon.stub(),
+      },
     });
     mockSails.config.queue = { serviceName: 'queueservice' };
     mockSails.config.figshareDev = buildFigshareDevConfig();
     const mockQueueService = {
       now: sinon.stub(),
-      schedule: sinon.stub()
+      schedule: sinon.stub(),
     };
     mockSails.services.queueservice = mockQueueService;
 
@@ -188,45 +352,54 @@ describe('FigshareService', function () {
       figsharePublishing: buildFigsharePublishingConfig({
         queue: {
           publishAfterUploadDelay: brand === 'brand-immediate' ? 'immediate' : 'in 2 minutes',
-          uploadedFilesCleanupDelay: brand === 'brand-immediate' ? 'immediate' : 'in 5 minutes'
-        }
-      })
+          uploadedFilesCleanupDelay: brand === 'brand-immediate' ? 'immediate' : 'in 5 minutes',
+        },
+      }),
     }));
     sinon.stub(ServiceExports, 'AppConfigService').get(() => ({
-      getAppConfigurationForBrand: appConfigByBrandStub
+      getAppConfigurationForBrand: appConfigByBrandStub,
     }));
     (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' })
+      getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' }),
+      getBrandById: sinon.stub().returns(undefined),
+      getDefault: sinon.stub().returns({ id: 'default-id', name: 'default' }),
     };
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
-      updateMeta: sinon.stub().resolves({ success: true })
+      updateMeta: sinon.stub().resolves({ success: true }),
     };
     (global as any).UsersService = {
-      getUserWithUsername: sinon.stub().returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) })
+      getUserWithUsername: sinon.stub().returns({
+        toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }),
+      }),
     };
     (global as any).IntegrationAuditService = {
-      startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({ startedAt: '2025-01-01T00:00:00.000Z', ...opts })),
+      startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({
+        startedAt: '2025-01-01T00:00:00.000Z',
+        ...opts,
+      })),
       completeAudit: sinon.stub(),
       failAudit: sinon.stub(),
     };
     (global as any).TranslationService = {
-      t: sinon.stub().returnsArg(0)
+      t: sinon.stub().returnsArg(0),
     };
     (global as any).NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
-      performNamedQueryFromConfigResults: sinon.stub().resolves([])
+      performNamedQueryFromConfigResults: sinon.stub().resolves([]),
     };
     (global as any).RecordTypesService = {
-      get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) })
+      get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) }),
     };
     (global as any).WorkflowStepsService = {
-      get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) })
+      get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) }),
     };
 
     service = new Services.FigshareService();
-    getConfigStub = sinon.stub(service, 'getConfig').callsFake((record?: any) => resolveFigsharePublishingConfig(record));
+    getConfigStub = sinon
+      .stub(service, 'getConfig')
+      .callsFake((record?: any) => resolveFigsharePublishingConfig(record));
   });
 
   afterEach(function () {
@@ -255,37 +428,78 @@ describe('FigshareService', function () {
   it('honours triggerCondition before Figshare lifecycle sync', async function () {
     const options = {
       triggerCondition:
-        '<%= _.isEqual(record.workflow.stage, "queued") && _.isEqual(_.get(record, "metadata.dataset-will-be-published"), "yes") %>'
+        '<%= _.isEqual(record.workflow.stage, "queued") && _.isEqual(_.get(record, "metadata.dataset-will-be-published"), "yes") %>',
     };
     const draftRecord = {
       redboxOid: 'oid-draft',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-draft', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-draft',
+        attachmentFields: [],
+      },
       workflow: { stage: 'draft', stageLabel: 'Draft' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       metadata: {
         title: 'Draft dataset',
-        'dataset-will-be-published': 'yes'
+        'dataset-will-be-published': 'yes',
       },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
     const queuedRecord = {
       redboxOid: 'oid-queued',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       metadata: {
         title: 'Queued dataset',
-        'dataset-will-be-published': 'yes'
+        'dataset-will-be-published': 'yes',
       },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
-    const user = { id: 'user-1', username: 'user-1', type: 'admin', name: 'User One', email: 'user-1@example.org', lastLogin: new Date(), additionalAttributes: {}, loginDisabled: false, workspaceApps: [], roles: [] };
+    const user = {
+      id: 'user-1',
+      username: 'user-1',
+      type: 'admin',
+      name: 'User One',
+      email: 'user-1@example.org',
+      lastLogin: new Date(),
+      additionalAttributes: {},
+      loginDisabled: false,
+      workspaceApps: [],
+      roles: [],
+    };
     const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(queuedRecord);
 
     const skipped = service.createUpdateFigshareArticle('oid-draft', draftRecord, options, user);
@@ -305,18 +519,44 @@ describe('FigshareService', function () {
     const record = {
       redboxOid: 'oid-no-condition',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       metadata: {
         title: 'Queued dataset',
-        'dataset-will-be-published': 'yes'
+        'dataset-will-be-published': 'yes',
       },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
-    const user = { id: 'user-1', username: 'user-1', type: 'admin', name: 'User One', email: 'user-1@example.org', lastLogin: new Date(), additionalAttributes: {}, loginDisabled: false, workspaceApps: [], roles: [] };
+    const user = {
+      id: 'user-1',
+      username: 'user-1',
+      type: 'admin',
+      name: 'User One',
+      email: 'user-1@example.org',
+      lastLogin: new Date(),
+      additionalAttributes: {},
+      loginDisabled: false,
+      workspaceApps: [],
+      roles: [],
+    };
     const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(record);
 
     const synced = await service.createUpdateFigshareArticle('oid-no-condition', record, {}, user);
@@ -335,8 +575,8 @@ describe('FigshareService', function () {
         description: 'Dataset description',
         keywords: ['one'],
         forCodes: ['0101'],
-        license: 'CC-BY'
-      }
+        license: 'CC-BY',
+      },
     } as any;
 
     const result = await service.syncRecordWithFigshare(record, 'job-1');
@@ -352,19 +592,26 @@ describe('FigshareService', function () {
         customFields: [
           {
             figshareField: 'Number and size of Dataset',
-            value: { kind: 'path', path: 'metadata.dataset-size', defaultValue: '' }
+            value: { kind: 'path', path: 'metadata.dataset-size', defaultValue: '' },
           },
           {
             figshareField: 'Author Research Institute',
-            value: { kind: 'path', path: 'metadata.research-centres', defaultValue: [] }
-          }
-        ]
-      }
+            value: { kind: 'path', path: 'metadata.research-centres', defaultValue: [] },
+          },
+        ],
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -372,20 +619,28 @@ describe('FigshareService', function () {
         forCodes: ['0101'],
         license: 'CC-BY',
         'dataset-size': null,
-        'research-centres': null
+        'research-centres': null,
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
 
     const payload = await buildMetadataPayload(config, record);
 
     expect(payload.custom_fields).to.deep.equal({
       'Number and size of Dataset': '',
-      'Author Research Institute': []
+      'Author Research Institute': [],
     });
   });
 
@@ -394,20 +649,27 @@ describe('FigshareService', function () {
       metadata: {
         categories: {
           source: { kind: 'path', path: 'metadata.anzsrcFor', defaultValue: [] },
-          mappingStrategy: 'for2020Mapping'
-        }
+          mappingStrategy: 'for2020Mapping',
+        },
       },
       categories: {
         mappingTable: [
           { sourceCode: '300201', figshareCategoryId: 25508 },
-          { sourceCode: '300202', figshareCategoryId: 25509 }
-        ]
-      }
+          { sourceCode: '300202', figshareCategoryId: 25509 },
+        ],
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -415,20 +677,28 @@ describe('FigshareService', function () {
         anzsrcFor: [
           {
             notation: 'https://linked.data.gov.au/def/anzsrc-for/2020/300201',
-            label: '300201 - Agricultural hydrology'
+            label: '300201 - Agricultural hydrology',
           },
           {
             notation: 'https://linked.data.gov.au/def/anzsrc-for/2020#300202',
-            label: '300202 - Agronomy'
-          }
+            label: '300202 - Agronomy',
+          },
         ],
-        license: 'CC-BY'
+        license: 'CC-BY',
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
 
     const payload = await buildMetadataPayload(config, record);
@@ -441,14 +711,21 @@ describe('FigshareService', function () {
       metadata: {
         relatedResource: {
           title: { kind: 'path', path: 'metadata.related_data', defaultValue: [] },
-          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] }
-        }
-      }
+          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] },
+        },
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -459,24 +736,32 @@ describe('FigshareService', function () {
           {
             related_title: 'Related dataset one',
             related_url: 'https://doi.org/10.1234/related-one',
-            related_notes: 'First related data publication'
+            related_notes: 'First related data publication',
           },
           {
             related_title: 'Related dataset two',
             related_url: 'https://doi.org/10.1234/related-two',
-            related_notes: 'Second related data publication'
+            related_notes: 'Second related data publication',
           },
           {
             related_title: 'Missing identifier',
-            related_url: ''
-          }
-        ]
+            related_url: '',
+          },
+        ],
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
 
     const payload = await buildMetadataPayload(config, record);
@@ -484,12 +769,12 @@ describe('FigshareService', function () {
     expect(payload.related_materials).to.deep.equal([
       {
         title: 'Related dataset one',
-        identifier: 'https://doi.org/10.1234/related-one'
+        identifier: 'https://doi.org/10.1234/related-one',
       },
       {
         title: 'Related dataset two',
-        identifier: 'https://doi.org/10.1234/related-two'
-      }
+        identifier: 'https://doi.org/10.1234/related-two',
+      },
     ]);
   });
 
@@ -498,14 +783,21 @@ describe('FigshareService', function () {
       metadata: {
         relatedResource: {
           title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
-          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] }
-        }
-      }
+          doi: { kind: 'path', path: 'metadata.related_data', defaultValue: [] },
+        },
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -515,19 +807,27 @@ describe('FigshareService', function () {
         related_data: [
           {
             related_title: 'Related dataset one',
-            related_url: 'https://doi.org/10.1234/related-one'
+            related_url: 'https://doi.org/10.1234/related-one',
           },
           {
             related_title: 'Related dataset two',
-            related_url: 'https://doi.org/10.1234/related-two'
-          }
-        ]
+            related_url: 'https://doi.org/10.1234/related-two',
+          },
+        ],
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
 
     const payload = await buildMetadataPayload(config, record);
@@ -535,12 +835,12 @@ describe('FigshareService', function () {
     expect(payload.related_materials).to.deep.equal([
       {
         title: 'Related dataset one',
-        identifier: 'https://doi.org/10.1234/related-one'
+        identifier: 'https://doi.org/10.1234/related-one',
       },
       {
         title: 'Related dataset two',
-        identifier: 'https://doi.org/10.1234/related-two'
-      }
+        identifier: 'https://doi.org/10.1234/related-two',
+      },
     ]);
   });
 
@@ -549,14 +849,21 @@ describe('FigshareService', function () {
       metadata: {
         relatedResource: {
           title: { kind: 'path', path: 'metadata.related_titles', defaultValue: [] },
-          doi: { kind: 'path', path: 'metadata.related_identifiers', defaultValue: [] }
-        }
-      }
+          doi: { kind: 'path', path: 'metadata.related_identifiers', defaultValue: [] },
+        },
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -564,13 +871,21 @@ describe('FigshareService', function () {
         forCodes: ['0101'],
         license: 'CC-BY',
         related_titles: ['Title only', '', 'Related dataset'],
-        related_identifiers: ['', 'https://doi.org/10.1234/identifier-only', 'https://doi.org/10.1234/related']
+        related_identifiers: ['', 'https://doi.org/10.1234/identifier-only', 'https://doi.org/10.1234/related'],
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
 
     const payload = await buildMetadataPayload(config, record);
@@ -578,30 +893,35 @@ describe('FigshareService', function () {
     expect(payload.related_materials).to.deep.equal([
       {
         title: 'Related dataset',
-        identifier: 'https://doi.org/10.1234/related'
-      }
+        identifier: 'https://doi.org/10.1234/related',
+      },
     ]);
   });
 
   it('uses institution account user_id values for resolved Figshare authors', async function () {
     const config = buildFigsharePublishingConfig({
       authors: {
-        lookup: [
-          { matchBy: 'email', value: { kind: 'path', path: 'email' } }
-        ]
+        lookup: [{ matchBy: 'email', value: { kind: 'path', path: 'email' } }],
       },
       metadata: {
         license: {
           source: { kind: 'path', path: 'metadata.license' },
           matchBy: 'valueExact',
-          required: true
-        }
-      }
+          required: true,
+        },
+      },
     }) as unknown as FigsharePublishingConfigData;
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -610,31 +930,49 @@ describe('FigshareService', function () {
         license: '1',
         contributor_ci: {
           name: 'Patricia Hayman',
-          email: 'p.hayman@cqu.edu.au'
+          email: 'p.hayman@cqu.edu.au',
         },
         contributors: [
           {
             name: 'Mark Cottman-Fields',
-            email: 'm.cottmanfields@cqu.edu.au'
+            email: 'm.cottmanfields@cqu.edu.au',
           },
           {
             name: 'External Author',
-            email: 'external@example.org'
-          }
-        ]
+            email: 'external@example.org',
+          },
+        ],
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
-    const searchInstitutionAccounts: FigshareClient['searchInstitutionAccounts'] = async (payload) => {
+    const searchInstitutionAccounts: FigshareClient['searchInstitutionAccounts'] = async payload => {
       if (payload.email === 'p.hayman@cqu.edu.au') {
-        return [{ id: 1897685, user_id: 2544547, email: 'p.hayman@cqu.edu.au', first_name: 'Patricia', last_name: 'Hayman' }];
+        return [
+          { id: 1897685, user_id: 2544547, email: 'p.hayman@cqu.edu.au', first_name: 'Patricia', last_name: 'Hayman' },
+        ];
       }
       if (payload.email === 'm.cottmanfields@cqu.edu.au') {
-        return [{ id: 3015702, user_id: 4402702, email: 'm.cottmanfields@cqu.edu.au', first_name: 'Mark', last_name: 'Cottman-Fields' }];
+        return [
+          {
+            id: 3015702,
+            user_id: 4402702,
+            email: 'm.cottmanfields@cqu.edu.au',
+            first_name: 'Mark',
+            last_name: 'Cottman-Fields',
+          },
+        ];
       }
       return [];
     };
@@ -652,23 +990,26 @@ describe('FigshareService', function () {
       clearEmbargo: async () => ({}),
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
-      searchInstitutionAccounts
+      searchInstitutionAccounts,
     };
 
     const payload = await buildMetadataPayload(config, record, client);
 
-    expect(payload.authors).to.deep.equal([
-      { id: 2544547 },
-      { id: 4402702 },
-      { name: 'External Author' }
-    ]);
+    expect(payload.authors).to.deep.equal([{ id: 2544547 }, { id: 4402702 }, { name: 'External Author' }]);
   });
 
   it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -677,10 +1018,18 @@ describe('FigshareService', function () {
         license: 'CC-BY',
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
     sinon.stub(service, 'syncMetadata').rejects(new Error('sync exploded'));
 
@@ -702,7 +1051,14 @@ describe('FigshareService', function () {
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -711,17 +1067,25 @@ describe('FigshareService', function () {
         license: 'CC-BY',
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
     const httpError = Object.assign(new Error('Figshare HTTP request failed for post /account/articles'), {
       statusCode: 400,
       responseBody: {
         message: 'Invalid identifier format',
-        code: 'BadRequest'
-      }
+        code: 'BadRequest',
+      },
     });
     sinon.stub(service, 'syncMetadata').rejects(httpError);
 
@@ -729,8 +1093,9 @@ describe('FigshareService', function () {
       await service.syncRecordWithFigshare(record, 'job-1');
       expect.fail('Expected syncRecordWithFigshare to throw');
     } catch (error) {
-      expect((error as { displayErrors?: Array<{ detail?: string }> }).displayErrors?.[0]?.detail)
-        .to.equal('Invalid identifier format');
+      expect((error as { displayErrors?: Array<{ detail?: string }> }).displayErrors?.[0]?.detail).to.equal(
+        'Invalid identifier format'
+      );
     }
   });
 
@@ -746,7 +1111,9 @@ describe('FigshareService', function () {
     };
     sinon.stub(service, 'makeClient').returns(client as any);
     sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
-    sinon.stub(service, 'writeBack').returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
+    sinon
+      .stub(service, 'writeBack')
+      .returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
     sinon.stub(service, 'persistSyncRecord').resolves();
     sinon.stub(service, 'queueDeleteFiles');
 
@@ -760,7 +1127,7 @@ describe('FigshareService', function () {
     client.publishArticle.rejects(new Error('publish failed'));
     try {
       await service.publishAfterUploadFilesJob({
-      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
+        attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
       } as any);
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
@@ -783,7 +1150,9 @@ describe('FigshareService', function () {
     };
     sinon.stub(service, 'makeClient').returns(client as any);
     sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
-    sinon.stub(service, 'writeBack').returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
+    sinon
+      .stub(service, 'writeBack')
+      .returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
     sinon.stub(service, 'persistSyncRecord').resolves(false);
     const queueDeleteStub = sinon.stub(service, 'queueDeleteFiles');
 
@@ -799,8 +1168,9 @@ describe('FigshareService', function () {
     expect(queueDeleteStub.called).to.equal(false);
     expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message)
-      .to.equal("Failed to persist Figshare publish state for record 'oid-1'.");
+    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal(
+      "Failed to persist Figshare publish state for record 'oid-1'."
+    );
   });
 
   it('keeps publishAfterUploadFilesJob audit in progress when uploads are still running', async function () {
@@ -810,10 +1180,12 @@ describe('FigshareService', function () {
       metadata: {},
     });
     sinon.stub(service, 'makeClient').returns({} as any);
-    sinon.stub(service as any, 'ensureNoFileUploadInProgress').rejects(new RBValidationError({
-      message: 'uploads still running',
-      displayErrors: [{ title: 'uploads still running', detail: 'uploads still running' }]
-    }));
+    sinon.stub(service as any, 'ensureNoFileUploadInProgress').rejects(
+      new RBValidationError({
+        message: 'uploads still running',
+        displayErrors: [{ title: 'uploads still running', detail: 'uploads still running' }],
+      })
+    );
     const queuePublishStub = sinon.stub(service, 'queuePublishAfterUploadFiles');
 
     await service.publishAfterUploadFilesJob({
@@ -867,7 +1239,7 @@ describe('FigshareService', function () {
   it('includes non-object HTTP response bodies in error summaries', function () {
     const error = Object.assign(new Error('Figshare HTTP request failed'), {
       statusCode: 401,
-      responseBody: 'Unauthorized'
+      responseBody: 'Unauthorized',
     });
 
     const summary = (service as any).summarizeError(error);
@@ -876,10 +1248,12 @@ describe('FigshareService', function () {
     expect(summary.responseSummary.rawResponseBody).to.equal('Unauthorized');
     expect(summary.responseSummary.message).to.equal('Figshare HTTP request failed');
 
-    const objectBodySummary = (service as any).summarizeError(Object.assign(new Error('boom'), {
-      statusCode: 422,
-      responseBody: { message: 'Invalid embargo' }
-    }));
+    const objectBodySummary = (service as any).summarizeError(
+      Object.assign(new Error('boom'), {
+        statusCode: 422,
+        responseBody: { message: 'Invalid embargo' },
+      })
+    );
     expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
   });
 
@@ -887,8 +1261,8 @@ describe('FigshareService', function () {
     const article = mapCreateArticleResponse<{ id?: string; location?: string }>({
       data: {},
       headers: {
-        location: 'https://api.figsh.com/v2/account/articles/123456'
-      }
+        location: 'https://api.figsh.com/v2/account/articles/123456',
+      },
     });
 
     expect(article.id).to.equal('123456');
@@ -900,7 +1274,14 @@ describe('FigshareService', function () {
     const record: RecordModel = {
       redboxOid: 'oid-1',
       harvestId: '',
-      metaMetadata: { brandId: 'default', createdBy: 'admin', type: 'dataPublication', searchCore: 'default', form: 'dataPublication-1.0-review', attachmentFields: [] },
+      metaMetadata: {
+        brandId: 'default',
+        createdBy: 'admin',
+        type: 'dataPublication',
+        searchCore: 'default',
+        form: 'dataPublication-1.0-review',
+        attachmentFields: [],
+      },
       metadata: {
         title: 'Dataset title',
         description: 'Dataset description',
@@ -909,14 +1290,22 @@ describe('FigshareService', function () {
         license: 'CC-BY',
       },
       workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [], stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } },
+      authorization: {
+        view: [],
+        edit: [],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+      },
       dateCreated: '',
       lastSaveDate: '',
-      id: ''
+      id: '',
     };
     const client: FigshareClient = {
       createArticle: async () => ({ id: 'unused' }),
-      updateArticle: async () => ({ status: 'draft' } as any),
+      updateArticle: async () => ({ status: 'draft' }) as any,
       getArticle: async () => ({ id: 'unused' }),
       listArticleFiles: async () => [],
       createArticleFile: async () => ({ location: '' }),
@@ -928,14 +1317,14 @@ describe('FigshareService', function () {
       clearEmbargo: async () => ({}),
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
-      searchInstitutionAccounts: async () => []
+      searchInstitutionAccounts: async () => [],
     };
 
     const article = await syncMetadataPhase(client, config, record, {
       action: 'update',
       articleId: '11389474',
       sameJob: false,
-      syncState: { status: 'syncing' }
+      syncState: { status: 'syncing' },
     });
 
     expect(article.id).to.equal('11389474');
@@ -947,7 +1336,7 @@ describe('FigshareService', function () {
     (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
 
     const resolved = service.getConfig({
-      metaMetadata: { brandId: 'ghost-brand' }
+      metaMetadata: { brandId: 'ghost-brand' },
     } as any);
 
     // Unknown brands keep the graceful fallback contract: config still resolves via the
@@ -960,7 +1349,7 @@ describe('FigshareService', function () {
   it('resolves live mode when figshareDev is disabled', function () {
     (global as any).sails.config.figshareDev = { enabled: false, mode: 'fixture' };
     const resolved = service.getConfig({
-      metaMetadata: { brandId: 'default' }
+      metaMetadata: { brandId: 'default' },
     } as any);
 
     expect(resolved?.runtime.mode).to.equal('live');
@@ -970,12 +1359,12 @@ describe('FigshareService', function () {
     (global as any).sails.config.environment = 'development';
     (global as any).sails.config.figshareDev = buildFigshareDevConfig({
       fixtures: {
-        article: { id: 'fixture-dev' }
-      }
+        article: { id: 'fixture-dev' },
+      },
     });
 
     const resolved = service.getConfig({
-      metaMetadata: { brandId: 'default' }
+      metaMetadata: { brandId: 'default' },
     } as any);
 
     expect(resolved?.runtime.mode).to.equal('fixture');
@@ -987,7 +1376,7 @@ describe('FigshareService', function () {
     (global as any).sails.config.figshareDev = buildFigshareDevConfig();
 
     const resolved = service.getConfig({
-      metaMetadata: { brandId: 'default' }
+      metaMetadata: { brandId: 'default' },
     } as any);
 
     expect(resolved?.runtime.mode).to.equal('live');
@@ -1000,15 +1389,15 @@ describe('FigshareService', function () {
         testing: {
           mode: 'fixture',
           fixtures: {
-            article: { id: 'legacy-fixture' }
-          }
-        }
-      }
+            article: { id: 'legacy-fixture' },
+          },
+        },
+      },
     }));
     (global as any).sails.config.figshareDev = { enabled: false, mode: 'live' };
 
     const resolved = service.getConfig({
-      metaMetadata: { brandId: 'default' }
+      metaMetadata: { brandId: 'default' },
     } as any);
 
     expect(resolved?.runtime.mode).to.equal('live');
@@ -1024,7 +1413,7 @@ describe('FigshareService', function () {
   });
 
   it('uses figsharePublishing queue delays when scheduling jobs', function () {
-    const scheduleStub = ((global as any).sails.services.queueservice.schedule as sinon.SinonStub);
+    const scheduleStub = (global as any).sails.services.queueservice.schedule as sinon.SinonStub;
 
     service.queuePublishAfterUploadFiles('oid-1', 'article-1', {} as any, 'default');
     service.queueDeleteFiles('oid-1', {} as any, 'default', 'article-1');
@@ -1034,7 +1423,7 @@ describe('FigshareService', function () {
   });
 
   it('uses immediate queue execution when configured', function () {
-    const nowStub = ((global as any).sails.services.queueservice.now as sinon.SinonStub);
+    const nowStub = (global as any).sails.services.queueservice.now as sinon.SinonStub;
 
     service.queuePublishAfterUploadFiles('oid-1', 'article-1', {} as any, 'brand-immediate');
     service.queueDeleteFiles('oid-1', {} as any, 'brand-immediate', 'article-1');
@@ -1043,27 +1432,32 @@ describe('FigshareService', function () {
   });
 
   it('writes the all-files-uploaded flag from figsharePublishing record config', async function () {
-    getConfigStub.callsFake(() => buildFigsharePublishingConfig({
-      record: {
-        articleIdPath: 'metadata.figshare_article_id',
-        articleUrlPaths: ['metadata.figshare_article_location'],
-        dataLocationsPath: 'metadata.dataLocations',
-        statusPath: 'metadata.figshareStatus',
-        errorPath: 'metadata.figshareError',
-        syncStatePath: 'metadata.figshareSyncState',
-        allFilesUploadedPath: 'metadata.figshare_all_files_uploaded'
-      }
-    }) as any);
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          record: {
+            articleIdPath: 'metadata.figshare_article_id',
+            articleUrlPaths: ['metadata.figshare_article_location'],
+            dataLocationsPath: 'metadata.dataLocations',
+            statusPath: 'metadata.figshareStatus',
+            errorPath: 'metadata.figshareError',
+            syncStatePath: 'metadata.figshareSyncState',
+            allFilesUploadedPath: 'metadata.figshare_all_files_uploaded',
+          },
+        }) as any
+    );
 
-    sinon.stub(service as any, 'getArticleFiles').resolves([{ name: 'file-1.txt', download_url: 'https://files.example/file-1.txt' }]);
+    sinon
+      .stub(service as any, 'getArticleFiles')
+      .resolves([{ name: 'file-1.txt', download_url: 'https://files.example/file-1.txt' }]);
     sinon.stub(service as any, 'makeClient').returns({});
 
     const record: any = {
       redboxOid: 'oid-1',
       metaMetadata: { brandId: 'default' },
       metadata: {
-        dataLocations: [{ type: 'attachment', fileId: 'file-1', name: 'file-1.txt', selected: true }]
-      }
+        dataLocations: [{ type: 'attachment', fileId: 'file-1', name: 'file-1.txt', selected: true }],
+      },
     };
 
     const result = await (service as any).cleanupUploadedFiles(record, 'article-1');
@@ -1072,56 +1466,91 @@ describe('FigshareService', function () {
 
   it('uses only article.curationLock when checking curation lock state', function () {
     const record: any = {
-      metaMetadata: { brandId: 'default' }
+      metaMetadata: { brandId: 'default' },
     };
-    getConfigStub.callsFake(() => buildFigsharePublishingConfig({
-      article: {
-        itemType: 'dataset',
-        publishMode: 'manual',
-        republishOnMetadataChange: true,
-        republishOnAssetChange: true,
-        curationLock: {
-          enabled: true,
-          statusField: 'status',
-          targetValue: 'public'
-        }
-      }
-    }) as any);
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          article: {
+            itemType: 'dataset',
+            publishMode: 'manual',
+            republishOnMetadataChange: true,
+            republishOnAssetChange: true,
+            curationLock: {
+              enabled: true,
+              statusField: 'status',
+              targetValue: 'public',
+            },
+          },
+        }) as any
+    );
 
     expect((service as any).isCurationLocked(record, { status: 'public' })).to.equal(true);
     expect((service as any).isCurationLocked(record, { status: 'draft' })).to.equal(false);
   });
 
+  it('falls back to brand name when workflow transition brand id lookup does not resolve', async function () {
+    const namedBrand = { id: 'named-brand-id', name: 'named-brand' };
+    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
+    (global as any).BrandingService.getBrand = sinon.stub().withArgs('named-brand').returns(namedBrand);
+    (global as any).RecordsService.getMeta.resolves({
+      oid: 'oid-1',
+      metadata: { title: 'Dataset title' },
+      metaMetadata: { brandId: 'named-brand', type: 'dataset' },
+    });
+    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true });
+    sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
+
+    await (service as any).transitionWorkflowForRecord(
+      { metaMetadata: { brandId: 'named-brand' } },
+      { username: 'figshare-job-user', roles: [{ name: 'admin' }] },
+      'oid-1',
+      'article-1',
+      'published',
+      'status',
+      'public'
+    );
+
+    expect((global as any).BrandingService.getBrandById.calledWith('named-brand')).to.equal(true);
+    expect((global as any).BrandingService.getBrand.calledWith('named-brand')).to.equal(true);
+    expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+  });
+
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {
-    getConfigStub.callsFake(() => buildFigsharePublishingConfig({
-      record: {
-        articleIdPath: 'metadata.v2.articleId',
-        articleUrlPaths: ['metadata.figshare_article_location'],
-        dataLocationsPath: 'metadata.dataLocations',
-        statusPath: 'metadata.figshareStatus',
-        errorPath: 'metadata.figshareError',
-        syncStatePath: 'metadata.figshareSyncState',
-        allFilesUploadedPath: ''
-      },
-      workflow: {
-        transitionRules: [],
-        transitionJob: {
-          enabled: true,
-          namedQuery: 'v2-transition',
-          targetStep: 'published',
-          paramMap: {},
-          figshareTargetFieldKey: 'status',
-          figshareTargetFieldValue: 'public',
-          username: 'figshare-job-user',
-          userType: 'admin'
-        }
-      }
-    }) as any);
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          record: {
+            articleIdPath: 'metadata.v2.articleId',
+            articleUrlPaths: ['metadata.figshare_article_location'],
+            dataLocationsPath: 'metadata.dataLocations',
+            statusPath: 'metadata.figshareStatus',
+            errorPath: 'metadata.figshareError',
+            syncStatePath: 'metadata.figshareSyncState',
+            allFilesUploadedPath: '',
+          },
+          workflow: {
+            transitionRules: [],
+            transitionJob: {
+              enabled: true,
+              namedQuery: 'v2-transition',
+              targetStep: 'published',
+              paramMap: {},
+              figshareTargetFieldKey: 'status',
+              figshareTargetFieldValue: 'public',
+              username: 'figshare-job-user',
+              userType: 'admin',
+            },
+          },
+        }) as any
+    );
     (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
     (global as any).RecordsService.getMeta.resolves({
       oid: 'oid-1',
       metadata: { v2: { articleId: 'v2-path-id' } },
-      metaMetadata: { brandId: 'default', type: 'dataset' }
+      metaMetadata: { brandId: 'default', type: 'dataset' },
     });
     const transitionStub = sinon.stub(service as any, 'transitionWorkflowForRecord').resolves();
 
@@ -1132,46 +1561,396 @@ describe('FigshareService', function () {
     expect(transitionStub.firstCall.args[3]).to.equal('v2-path-id');
   });
 
-  it('audits per-record workflow transition failures', async function () {
-    getConfigStub.callsFake(() => buildFigsharePublishingConfig({
-      record: {
-        articleIdPath: 'metadata.v2.articleId',
-        articleUrlPaths: ['metadata.figshare_article_location'],
-        dataLocationsPath: 'metadata.dataLocations',
-        statusPath: 'metadata.figshareStatus',
-        errorPath: 'metadata.figshareError',
-        syncStatePath: 'metadata.figshareSyncState',
-        allFilesUploadedPath: ''
-      },
-      workflow: {
-        transitionRules: [],
-        transitionJob: {
-          enabled: true,
-          namedQuery: 'v2-transition',
-          targetStep: 'published',
-          paramMap: {},
-          figshareTargetFieldKey: 'status',
-          figshareTargetFieldValue: 'public',
-          username: 'figshare-job-user',
-          userType: 'admin'
-        }
-      }
-    }) as any);
+  it('processes workflow transition records when the publishing user has no roles', async function () {
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          record: {
+            articleIdPath: 'metadata.v2.articleId',
+            articleUrlPaths: ['metadata.figshare_article_location'],
+            dataLocationsPath: 'metadata.dataLocations',
+            statusPath: 'metadata.figshareStatus',
+            errorPath: 'metadata.figshareError',
+            syncStatePath: 'metadata.figshareSyncState',
+            allFilesUploadedPath: '',
+          },
+          workflow: {
+            transitionRules: [],
+            transitionJob: {
+              enabled: true,
+              namedQuery: 'v2-transition',
+              targetStep: 'published',
+              paramMap: {},
+              figshareTargetFieldKey: 'status',
+              figshareTargetFieldValue: 'public',
+              username: 'figshare-job-user',
+              userType: 'admin',
+            },
+          },
+        }) as any
+    );
+    (global as any).UsersService.getUserWithUsername = sinon
+      .stub()
+      .returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) });
     (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
     (global as any).RecordsService.getMeta.resolves({
       oid: 'oid-1',
       metadata: { v2: { articleId: 'v2-path-id' } },
-      metaMetadata: { brandId: 'default', type: 'dataset' }
+      metaMetadata: { brandId: 'default', type: 'dataset' },
+    });
+    const transitionStub = sinon.stub(service as any, 'transitionWorkflowForRecord').resolves();
+
+    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+
+    expect(transitionStub.calledOnce).to.equal(true);
+    expect(transitionStub.firstCall.args[1].roles).to.deep.equal([]);
+  });
+
+  it('audits per-record workflow transition failures', async function () {
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          record: {
+            articleIdPath: 'metadata.v2.articleId',
+            articleUrlPaths: ['metadata.figshare_article_location'],
+            dataLocationsPath: 'metadata.dataLocations',
+            statusPath: 'metadata.figshareStatus',
+            errorPath: 'metadata.figshareError',
+            syncStatePath: 'metadata.figshareSyncState',
+            allFilesUploadedPath: '',
+          },
+          workflow: {
+            transitionRules: [],
+            transitionJob: {
+              enabled: true,
+              namedQuery: 'v2-transition',
+              targetStep: 'published',
+              paramMap: {},
+              figshareTargetFieldKey: 'status',
+              figshareTargetFieldValue: 'public',
+              username: 'figshare-job-user',
+              userType: 'admin',
+            },
+          },
+        }) as any
+    );
+    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
+    (global as any).RecordsService.getMeta.resolves({
+      oid: 'oid-1',
+      metadata: { v2: { articleId: 'v2-path-id' } },
+      metaMetadata: { brandId: 'default', type: 'dataset' },
     });
     sinon.stub(service as any, 'transitionWorkflowForRecord').rejects(new Error('transition failed'));
 
     await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
 
-    expect((global as any).IntegrationAuditService.startAudit.firstCall.args[1])
-      .to.equal('transitionRecordWorkflowFromFigshareArticlePropertiesJob');
+    expect((global as any).IntegrationAuditService.startAudit.firstCall.args[1]).to.equal(
+      'transitionRecordWorkflowFromFigshareArticlePropertiesJob'
+    );
     expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
     expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('transition failed');
+  });
+
+  describe('syncAssetsPhase (live upload)', function () {
+    // Staging keys carry a per-attempt random UUID segment, e.g.
+    // `figshare/article-1-oid-1-file-1-<uuid>/file.txt`.
+    const STAGING_KEY_PATTERN = /^figshare\/article-1-oid-1-file-1-[0-9a-f-]{36}\/file\.txt$/;
+
+    it('stages attachments through StorageManager and uploads ordered Figshare parts', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      const getDatastreamStub = installDatastreamStub(payload, payload.length);
+      const uploadedParts: Buffer[] = [];
+      const client = buildAssetClient(
+        [
+          { partNo: 1, startOffset: 0, endOffset: 3 },
+          { partNo: 2, startOffset: 4, endOffset: 7 },
+        ],
+        uploadedParts
+      );
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+      const syncState: any = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, syncState);
+
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
+      expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
+      expect(getDatastreamStub.calledWith('oid-1', 'file-1')).to.equal(true);
+      expect(fakeDisk.calls.put).to.deep.equal([{ key: stagingKey, options: { contentLength: payload.length } }]);
+      expect((client.createArticleFile as sinon.SinonStub).firstCall.args[1]).to.deep.equal({
+        name: 'file.txt',
+        size: payload.length,
+      });
+      expect((client.uploadFilePart as sinon.SinonStub).getCall(0).args[1]).to.equal(1);
+      expect((client.uploadFilePart as sinon.SinonStub).getCall(1).args[1]).to.equal(2);
+      expect(uploadedParts.map(part => part.toString())).to.deep.equal(['abcd', 'efgh']);
+      expect((client.completeFileUpload as sinon.SinonStub).calledWith('article-1', 'figshare-file-1', {})).to.equal(
+        true
+      );
+      expect(fakeDisk.calls.deleted).to.deep.equal([stagingKey]);
+      expect(fakeDisk.store.has(stagingKey)).to.equal(false);
+      expect(result.uploadedAttachments).to.have.lengthOf(1);
+      expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(1);
+    });
+
+    it('streams Figshare part content without buffering each full part before upload', async function () {
+      const fakeDisk = makeFakeDisk();
+      let stagedSourceReads = 0;
+      fakeDisk.disk.getStream = async (key: string) => {
+        const buffer = fakeDisk.store.get(key);
+        if (buffer == null) {
+          throw new Error(`Missing fake disk key ${key}`);
+        }
+        const stagedBuffer = buffer;
+
+        async function* chunks() {
+          for (let offset = 0; offset < stagedBuffer.length; offset += 2) {
+            stagedSourceReads += 1;
+            yield stagedBuffer.subarray(offset, offset + 2);
+          }
+        }
+
+        return Readable.from(chunks());
+      };
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const uploadedParts: Buffer[] = [];
+      const readsAtUploadStart: number[] = [];
+      const client = buildAssetClient(
+        [
+          { partNo: 1, startOffset: 0, endOffset: 3 },
+          { partNo: 2, startOffset: 4, endOffset: 7 },
+        ],
+        uploadedParts
+      );
+      (client.uploadFilePart as sinon.SinonStub).callsFake(
+        async (_uploadUrl: string, _partNo: number, stream: Readable) => {
+          readsAtUploadStart.push(stagedSourceReads);
+          uploadedParts.push(await streamToBuffer(stream));
+          return {};
+        }
+      );
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect(readsAtUploadStart[0]).to.equal(0);
+      expect(uploadedParts.map(part => part.toString())).to.deep.equal(['abcd', 'efgh']);
+    });
+
+    it('retains the staged object after success when retainForRetry is configured', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig({ staging: { cleanupPolicy: 'retainForRetry' } });
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
+      expect(fakeDisk.calls.deleted).to.deep.equal([]);
+      expect(fakeDisk.store.get(stagingKey)?.toString()).to.equal('abcdefgh');
+    });
+
+    it('deletes the staged object when a part upload fails regardless of cleanup policy', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      (client.uploadFilePart as sinon.SinonStub).rejects(new Error('part upload failed'));
+      const config = buildLiveAssetConfig({ staging: { cleanupPolicy: 'retainForRetry' } });
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      let error: Error | undefined;
+      try {
+        await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(STAGING_KEY_PATTERN);
+      expect(error?.message).to.equal('part upload failed');
+      expect(fakeDisk.calls.deleted).to.deep.equal([stagingKey]);
+      expect(fakeDisk.store.has(stagingKey)).to.equal(false);
+    });
+
+    it('uses metadata size when the source size is unknown', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect(fakeDisk.calls.put[0].options).to.deep.equal({});
+      expect((client.createArticleFile as sinon.SinonStub).firstCall.args[1]).to.deep.equal({
+        name: 'file.txt',
+        size: payload.length,
+      });
+    });
+
+    it('preserves uneven part boundaries and reports truncated staged objects', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefghij');
+      installDatastreamStub(payload, payload.length);
+      const uploadedParts: Buffer[] = [];
+      const client = buildAssetClient(
+        [
+          { partNo: 1, startOffset: 0, endOffset: 6 },
+          { partNo: 2, startOffset: 7, endOffset: 9 },
+        ],
+        uploadedParts
+      );
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect(Buffer.concat(uploadedParts).equals(payload)).to.equal(true);
+      expect(uploadedParts.map(part => part.toString())).to.deep.equal(['abcdefg', 'hij']);
+
+      const truncatedDisk = makeFakeDisk();
+      truncatedDisk.disk.getStream = async () => Readable.from([Buffer.from('abc')]);
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(truncatedDisk.disk),
+        stagingDisk: sinon.stub().returns(truncatedDisk.disk),
+      };
+      installDatastreamStub(payload, payload.length);
+      const truncatedClient = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+
+      let error: Error | undefined;
+      try {
+        await syncAssetsPhase(truncatedClient, config, record, { id: 'article-1' }, { status: 'syncing' });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect(error?.message).to.contain('Staged object truncated');
+    });
+
+    it('falls back to the configured staging disk when no Figshare disk is named', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig({ staging: { disk: '' } });
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect((global as any).StorageManagerService.disk.called).to.equal(false);
+      expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+    });
+
+    it('falls back to the configured staging disk when the built-in Figshare disk is not registered', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().throws(new Error("disk 'figshare-staging' is not registered")),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
+      expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+      expect(fakeDisk.calls.put).to.have.lengthOf(1);
+      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(true);
+    });
+
+    it('fails fast when a custom Figshare staging disk is not registered', async function () {
+      const fakeDisk = makeFakeDisk();
+      const diskError = new Error("disk 'custom-figshare-staging' is not registered");
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().throws(diskError),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      installDatastreamStub(Buffer.from('abcdefgh'), 8);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig({ staging: { disk: 'custom-figshare-staging' } });
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      let error: Error | undefined;
+      try {
+        await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      expect(error).to.equal(diskError);
+      expect((global as any).StorageManagerService.disk.calledWith('custom-figshare-staging')).to.equal(true);
+      expect((global as any).StorageManagerService.stagingDisk.called).to.equal(false);
+      expect(fakeDisk.calls.put).to.deep.equal([]);
+      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('does not touch StorageManager in fixture mode', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      installDatastreamStub(Buffer.from('abcdefgh'), 8);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+        article: {
+          ...buildLiveAssetConfig().article,
+          publishMode: 'afterUploadsComplete',
+        },
+      } as any;
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      expect((global as any).StorageManagerService.disk.called).to.equal(false);
+      expect((global as any).StorageManagerService.stagingDisk.called).to.equal(false);
+      expect((global as any).sails.services.datastreamservice.getDatastream.called).to.equal(false);
+      expect(result.uploadedAttachments[0].id).to.equal('fixture-attachment-1');
+    });
   });
 
   it('figsharePublishing defaults include queue and transition job fields', function () {
@@ -1179,11 +1958,15 @@ describe('FigshareService', function () {
     expect(config.queue.publishAfterUploadDelay).to.equal('in 2 minutes');
     expect(config.queue.uploadedFilesCleanupDelay).to.equal('in 5 minutes');
     expect(config.record.allFilesUploadedPath).to.equal('');
+    expect(config.assets.staging.disk).to.equal('figshare-staging');
+    expect(config.assets.staging.keyPrefix).to.equal('figshare/');
     expect(config.workflow.transitionJob.enabled).to.equal(false);
     expect(config.workflow.transitionJob.namedQuery).to.equal('');
 
     const schema = FIGSHARE_PUBLISHING_SCHEMA as Record<string, any>;
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
+    expect(schema.properties.assets.properties.staging.properties.disk.default).to.equal('figshare-staging');
+    expect(schema.properties.assets.properties.staging.properties.keyPrefix.default).to.equal('figshare/');
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
     expect(schema.properties.testing).to.equal(undefined);
   });
@@ -1203,16 +1986,20 @@ describe('Figshare record field helpers', function () {
     const record: Record<string, unknown> = {};
 
     expect(getRecordField(record as any, 'metadata..title')).to.equal(undefined);
-    expect(() => setRecordField(record as any, 'metadata..title', 'Title')).to.throw("Invalid record field path");
+    expect(() => setRecordField(record as any, 'metadata..title', 'Title')).to.throw('Invalid record field path');
   });
 
   it('should reject prototype-polluting path segments', function () {
     const record: Record<string, unknown> = {};
 
     expect(getRecordField(record as any, '__proto__.polluted')).to.equal(undefined);
-    expect(() => setRecordField(record as any, '__proto__.polluted', true)).to.throw("Invalid record field path");
-    expect(() => setRecordField(record as any, 'constructor.prototype.polluted', true)).to.throw("Invalid record field path");
-    expect(() => setRecordField(record as any, 'metadata.prototype.polluted', true)).to.throw("Invalid record field path");
+    expect(() => setRecordField(record as any, '__proto__.polluted', true)).to.throw('Invalid record field path');
+    expect(() => setRecordField(record as any, 'constructor.prototype.polluted', true)).to.throw(
+      'Invalid record field path'
+    );
+    expect(() => setRecordField(record as any, 'metadata.prototype.polluted', true)).to.throw(
+      'Invalid record field path'
+    );
     expect(({} as Record<string, unknown>).polluted).to.equal(undefined);
   });
 });
