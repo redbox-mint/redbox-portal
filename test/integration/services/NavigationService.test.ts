@@ -257,6 +257,10 @@ describe('NavigationService', function () {
     });
 
     it('should resolve panel titles from translation keys', async function () {
+      sails.config.brandingAware = () => ({
+        homePanels: navigationService.getDefaultHomePanelConfig()
+      });
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
       
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
@@ -271,6 +275,10 @@ describe('NavigationService', function () {
     });
 
     it('should resolve panel items with proper URLs', async function () {
+      sails.config.brandingAware = () => ({
+        homePanels: navigationService.getDefaultHomePanelConfig()
+      });
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
       
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
@@ -287,6 +295,10 @@ describe('NavigationService', function () {
     });
 
     it('should include Plan panel with RDMP items', async function () {
+      sails.config.brandingAware = () => ({
+        homePanels: navigationService.getDefaultHomePanelConfig()
+      });
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
       
       const planPanel = resolvedPanels.panels.find(p => p.id === 'plan');
@@ -301,6 +313,10 @@ describe('NavigationService', function () {
     });
 
     it('should include Manage panel with data record items', async function () {
+      sails.config.brandingAware = () => ({
+        homePanels: navigationService.getDefaultHomePanelConfig()
+      });
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
       
       const managePanel = resolvedPanels.panels.find(p => p.id === 'manage');
@@ -315,6 +331,10 @@ describe('NavigationService', function () {
     });
 
     it('should include Publish panel with publication items', async function () {
+      sails.config.brandingAware = () => ({
+        homePanels: navigationService.getDefaultHomePanelConfig()
+      });
+
       const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
       
       const publishPanel = resolvedPanels.panels.find(p => p.id === 'publish');
@@ -541,6 +561,10 @@ describe('NavigationService', function () {
         expect(homeItem.href).to.include('/default/rdmp');
       });
       it('should handle dropdown menus with children', async function () {
+        sails.config.brandingAware = () => ({
+          menu: navigationService.getDefaultMenuConfig()
+        });
+
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
         // Find an item with children (dropdown)
         const dropdownItem = resolvedMenu.items.find((item: any) => item.children && item.children.length > 0);
@@ -592,6 +616,10 @@ describe('NavigationService', function () {
         expect(homeItem.active).to.equal(true);
       });
       it('should bubble active state to parent dropdown', async function () {
+        sails.config.brandingAware = () => ({
+          menu: navigationService.getDefaultMenuConfig()
+        });
+
         // Set path to match a child item (e.g., dashboard/rdmp)
         mockReq.path = '/default/rdmp/dashboard/rdmp';
         const resolvedMenu = await navigationService.resolveMenu(mockReq);
