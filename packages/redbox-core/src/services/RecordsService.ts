@@ -88,6 +88,25 @@ export namespace Services {
       this.logHeader = 'RecordsService::';
     }
 
+    private describeError(error: unknown, depth = 0): string {
+      if (depth >= 5) {
+        return '[cause chain truncated]';
+      }
+      if (error instanceof Error) {
+        const cause = (error as Error & { cause?: unknown }).cause;
+        const causeMessage = cause == null ? '' : `; cause=${this.describeError(cause, depth + 1)}`;
+        return `${error.name}: ${error.message}${causeMessage}`;
+      }
+      if (typeof error === 'string') {
+        return error;
+      }
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return String(error);
+      }
+    }
+
     private asArray(value: unknown): string[] | undefined {
       if (Array.isArray(value)) {
         return value as string[];
@@ -1946,21 +1965,22 @@ export namespace Services {
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
           if (Array.isArray(reqs) && reqs.length > 0) {
-            sails.log.verbose(`Updating data streams...`);
+            this.logger.verbose(`Updating data streams...`);
             return from(reqs);
           }
-          sails.log.verbose(`No datastreams to update...`);
+          this.logger.verbose(`No datastreams to update...`);
           return of(null);
         }),
         concatMap((promise: Promise<unknown> | null) => {
           if (promise) {
-            sails.log.verbose(`Update datastream request is...`);
-            sails.log.verbose(JSON.stringify(promise));
+            this.logger.verbose(`Update datastream request is...`);
+            this.logger.verbose(JSON.stringify(promise));
             return from(promise).pipe(
               catchError((e: unknown) => {
-                sails.log.verbose(`Error in updating stream::::`);
-                sails.log.verbose(JSON.stringify(e));
-                return throwError(new Error(TranslationService.t('attachment-upload-error')));
+                const detail = this.describeError(e);
+                this.logger.verbose(`Error in updating stream::::`);
+                this.logger.verbose(detail);
+                return throwError(() => new Error(`${TranslationService.t('attachment-upload-error')}: ${detail}`));
               })
             );
           }
@@ -1968,8 +1988,8 @@ export namespace Services {
         }),
         concatMap(updateResp => {
           if (updateResp) {
-            sails.log.verbose(`Got response from update datastream request...`);
-            sails.log.verbose(JSON.stringify(updateResp));
+            this.logger.verbose(`Got response from update datastream request...`);
+            this.logger.verbose(JSON.stringify(updateResp));
           }
           return of(updateResp);
         }),

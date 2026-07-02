@@ -41,6 +41,10 @@ RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
+# redbox-hook-dev is a devDependency that supplies the demo record types/forms.
+# Build its dist so the optional `test` image (below) can load it. It is pruned
+# from node_modules for the pristine runtime image.
+RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts && npm run build
 
 RUN npx tsc --project tsconfig.json
 
@@ -52,6 +56,22 @@ RUN npm run webpack
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
  && support/build/api-descriptors/generateAPIDescriptors.sh
 
+RUN cp -a node_modules /tmp/test-node_modules \
+ && mkdir -p /tmp/test-package-node-modules/packages \
+ && for package_path in \
+      packages/agenda-sqs-backend \
+      packages/raido \
+      packages/rva-registry \
+      packages/sails-ng-common \
+      packages/redbox-core \
+      packages/sails-hook-redbox-storage-mongo \
+      packages/redbox-hook-dev; do \
+      if [ -d "$package_path/node_modules" ]; then \
+        mkdir -p "/tmp/test-package-node-modules/$package_path"; \
+        cp -a "$package_path/node_modules" "/tmp/test-package-node-modules/$package_path/node_modules"; \
+      fi; \
+    done
+
 RUN npm prune --omit=dev \
  && npm cache clean --force \
  && rm -rf \
@@ -59,6 +79,7 @@ RUN npm prune --omit=dev \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
     packages/rva-registry/node_modules \
+    packages/redbox-hook-dev/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
@@ -85,10 +106,10 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
-COPY --from=builder --chown=node:node /opt/redbox-portal/form-config ./form-config
 COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
+RUN rm -rf packages/redbox-hook-dev
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
@@ -160,5 +181,21 @@ RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
 USER node
 
-# Keep the vanilla runtime image as the default build target.
+# Optional test/demo image: layers the development hook (redbox-hook-dev: demo
+# record types, workflows, dashboards and forms) on top of the otherwise pristine
+# runtime. Built with `--target test` and used by the integration test suites.
+# The vanilla runtime image never includes it, so published/client images stay
+# pristine. The hook's dist was built in the builder stage and copied in via the
+# packages/ directory; here we only re-link it into node_modules so the
+# redbox-loader discovers it (it was pruned from node_modules for `runtime`).
+FROM runtime AS test
+USER root
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+COPY --from=builder --chown=node:node /tmp/test-node_modules ./node_modules
+COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages
+RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
+ && chown -h node:node node_modules/redbox-hook-dev
+USER node
+
+# Keep the vanilla (pristine) runtime image as the default build target.
 FROM runtime

@@ -5,6 +5,7 @@ import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
+import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import type { RedboxMigration } from './MigrationRunner';
 
 export type { RedboxMigration } from './MigrationRunner';
@@ -176,6 +177,14 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
     if (name === 'agendaQueue') {
         return mergeAgendaQueueConfig(...configs);
     }
+    if (name === 'brandingConfigurationDefaults') {
+        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
+            if (Array.isArray(srcValue)) {
+                return srcValue;
+            }
+            return undefined;
+        }) as RedboxConfigMap;
+    }
     return _.merge({}, ...configs) as RedboxConfigMap;
 }
 
@@ -313,50 +322,17 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
     const hookWebserviceControllers: Record<string, HookControllerRegistration> = {};
     const hookFormConfigs: Record<string, HookModuleRegistration> = {};
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hooks', message);
-        return {
-            hookModels,
-            hookPolicies,
-            hookBootstraps,
-            hookMigrations,
-            hookApiRoutes,
-            hookServices,
-            hookControllers,
-            hookWebserviceControllers,
-            hookFormConfigs,
-        };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as {
+            const depPackageJson = { sails: hookPackage.sails } as {
                 sails?: {
                     hasModels?: boolean;
                     hasPolicies?: boolean;
@@ -954,40 +930,17 @@ export async function generateFormConfigShims(
 export async function findAndRegisterHookConfigs(appPath: string): Promise<HookConfigRegistrations> {
     const hookConfigs: HookConfigRegistration[] = [];
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hook configs', message);
-        return { hookConfigs };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as { sails?: { hasConfig?: boolean } };
+            const depPackageJson = { sails: hookPackage.sails } as { sails?: { hasConfig?: boolean } };
 
             if (depPackageJson.sails?.hasConfig === true) {
                 log.verbose(`Found hook with config: ${depName}`);
@@ -1040,7 +993,7 @@ export async function generateConfigShims(
             const mergeStatement =
                 hookMerges.length > 0 ? `mergeRedboxConfig('${name}', ${mergeArgs.join(', ')})` : `Config.${name}`;
 
-            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (alphabetical order)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
+            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (root hookLoadPriority precedence; unlisted hooks use package-name fallback)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
             const written = await writeFileIfChanged(filePath, content);
             if (written) {
                 generated++;

@@ -1295,6 +1295,7 @@
   "@validator-error-pattern": "Value does not match the pattern: {{description}}.",
   "@validator-error-different-values": "The {{controlCount}} field(s) must have different values.",
   "@validator-error-orcid": "Please enter a valid ORCID identifier in the format: 0000-0000-0000-0000.",
+  "@validator-error-url": "Please enter a valid URL.",
   "@rich-text-editor-source-toggle-rich-text": "Rich Text",
   "@rich-text-editor-source-toggle-markdown": "Markdown",
   "@rich-text-editor-source-toggle-html": "HTML",

@@ -88,7 +88,7 @@ export const record: RecordConfig = {
     },
     baseUrl: {
         redbox: "http://localhost:9000/redbox",
-        mint: "https://demo.redboxresearchdata.com.au/mint"
+        mint: ""
     },
     maxUploadSize: 1073741824,
     mongodbDisk: '/attachments',
@@ -144,13 +144,6 @@ export const record: RecordConfig = {
             source: 'request',
             type: 'user',
             field: 'username'
-        },
-        '@referrer_rdmp': {
-            source: 'request',
-            type: 'header',
-            field: 'referrer',
-            parseUrl: true,
-            searchParams: 'rdmp'
         },
         '@metadata': {
             source: 'metadata'
