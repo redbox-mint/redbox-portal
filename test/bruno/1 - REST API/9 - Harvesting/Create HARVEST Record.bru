@@ -17,8 +17,11 @@ headers {
 
 script:pre-request {
   // Generate a unique harvestId per run to avoid collisions with previous data
-  var hid = 'h' + Date.now().toString().slice(-8);
+  var unique = Date.now().toString().slice(-10);
+  var hid = 'h' + unique;
   bru.setEnvVar('harvestId', hid);
+  bru.setEnvVar('harvestSourceRunId', 'source-run-' + unique);
+  bru.setEnvVar('harvestSourceName', 'source-' + unique);
 }
 
 body:json {
@@ -57,7 +60,14 @@ body:json {
                 }
             }
         }
-    ]
+    ],
+    "sourceRunId": "{{harvestSourceRunId}}",
+    "sourceName": "{{harvestSourceName}}",
+    "finalChunk": true,
+    "chunk": {
+      "index": 0,
+      "label": "create-harvest-record"
+    }
   }
 }
 
@@ -67,19 +77,21 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Test oid exists", function () {
-        var jsonData = res.getBody();
-        expect(jsonData[0]).to.have.property('oid');
+  test("Test harvest run exists", function () {
+        var body = res.getBody();
+        expect(body).to.have.property('run');
+        expect(body.run).to.have.property('sourceRunId', bru.getEnvVar('harvestSourceRunId'));
+        expect(body.run).to.have.property('sourceName', bru.getEnvVar('harvestSourceName'));
   });
   
-  test("Test harvestId exists and value is as expected", function () {
-    var jsonData = res.getBody();
-    var expectedId = bru.getEnvVar('harvestId');
-    expect(jsonData[0]).to.have.property('harvestId');
-    expect(jsonData[0]).to.have.property('message');
-    expect(jsonData[0].harvestId).to.equal(expectedId);
-    // Allow for either creation or update depending on prior test runs
-    expect(['Record created successfully','Record updated successfully']).to.include(jsonData[0].message);
+  test("Test harvest chunk summary is as expected", function () {
+    var body = res.getBody();
+    expect(body).to.have.property('chunk');
+    expect(body.chunk).to.have.property('sourceRunId', bru.getEnvVar('harvestSourceRunId'));
+    expect(body.chunk).to.have.property('recordCount', 1);
+    expect(body.chunk).to.have.property('totalProcessed', 1);
+    expect(body.chunk).to.have.property('created', 1);
+    expect(body.chunk).to.have.property('failed', 0);
   });
   
 }
