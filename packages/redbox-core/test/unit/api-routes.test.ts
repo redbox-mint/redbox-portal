@@ -46,7 +46,7 @@ import { getFormRoute, listFormsRoute } from '../../src/api-routes/groups/forms'
 import { sendNotificationRoute } from '../../src/api-routes/groups/notifications';
 import { createReportConfigRoute, executeNamedQueryRoute } from '../../src/api-routes/groups/reports';
 import { updateNamedQueryRoute } from '../../src/api-routes/groups/named-query';
-import { setBundleRoute } from '../../src/api-routes/groups/translation';
+import { setBundleRoute, setEntryRoute } from '../../src/api-routes/groups/translation';
 import { createVocabularyRoute, updateVocabularyRoute } from '../../src/api-routes/groups/vocabulary';
 import { VocabularyWLDef } from '../../src/waterline-models/Vocabulary';
 import { createUserRoute, listUsersRoute, updateUserRoute } from '../../src/api-routes/groups/users';
@@ -1234,6 +1234,27 @@ describe('API routes contract layer', async () => {
     expect((extracted.body as Record<string, unknown>)['hello-world']).to.equal('Hello World');
     expect(extracted.query.splitToEntries).to.equal(true);
     expect(extracted.query.overwriteEntries).to.equal(true);
+  });
+
+  it('should accept translation entry updates without an explicit contentFormat', async function () {
+    const request = {
+      params: { branding: 'default', portal: 'rdmp', locale: 'ar', namespace: 'translation', key: 'hello-world' },
+      query: {},
+      headers: { 'content-type': 'application/json' },
+      body: {
+        value: 'Hello World',
+        category: 'test',
+        description: 'Greeting updated',
+      },
+    } as unknown as Sails.Req;
+
+    const result = validateApiRequest(request, setEntryRoute.request);
+    const extracted = extractApiRequest(request, setEntryRoute.request);
+
+    expect(result.valid).to.equal(true);
+    expect((extracted.body as Record<string, unknown>).value).to.equal('Hello World');
+    expect((extracted.body as Record<string, unknown>).category).to.equal('test');
+    expect((extracted.body as Record<string, unknown>).description).to.equal('Greeting updated');
   });
 
   it('should accept tracked harvest request payloads', async function () {

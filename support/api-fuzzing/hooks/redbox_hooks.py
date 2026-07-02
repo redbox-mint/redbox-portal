@@ -27,29 +27,33 @@ _FALSE_POSITIVE_PATTERNS = [
     "/api/users",
     "/api/i18n/bundles/",
     "/api/mint/harvest/",
+    # Branding rollback requires pre-existing brand versions, which no bootstrap
+    # fixture creates. Every positive case returns 404 because there is nothing
+    # to roll back to — treat as a known limitation rather than missing test data.
+    "/api/branding/rollback/",
 ]
 
 _DEFAULT_PATH_PARAMETER_EXAMPLES = {
-    "/api/records/permissions/edit/": {"oid": "fuzz-rdmp-001"},
-    "/api/records/permissions/editRole/": {"oid": "fuzz-rdmp-001"},
-    "/api/records/permissions/view/": {"oid": "fuzz-rdmp-001"},
-    "/api/records/permissions/viewRole/": {"oid": "fuzz-rdmp-001"},
-    "/api/records/datastreams/": {"oid": "fuzz-rdmp-001", "datastreamId": "metadata.json"},
-    "/api/deletedrecords/": {"oid": "fuzz-rdmp-001"},
-    "/api/dashboard-config/merged/": {"recordType": "rdmp", "workflowStage": "draft"},
-    "/api/dashboard-config/merged-view/": {"viewName": "consolidated", "stepName": "consolidated"},
-    "/api/dashboard-config/merged-type/": {"dashboardType": "table"},
-    "/api/harvest-runs/": {"id": "fuzz-harvest-run"},
-    "/api/i18n/entries/": {"locale": "en", "namespace": "translation", "key": "menu-dashboard-config", "keyExt": "json"},
-    "/api/branding/rollback/": {"versionId": "1"},
-    "/api/report-config/": {"name": "rdmpRecords"},
-    "/api/vocabulary/": {"id": "anzsrc-for"},
-    # NEVER inject the admin id here: /api/users/{id}/disable would disable the
-    # API token's own account and 401 the rest of the run. Default to a
-    # non-existent id; _path_param_examples overrides with the disposable fuzz user.
-    "/api/users/": {"id": "fuzz-nonexistent-user"},
-    "/api/records/harvest/": {"recordType": "rdmp"},
-    "/api/mint/harvest/": {"recordType": "rdmp"},
+        "/api/records/permissions/edit/": {"oid": "fuzz-rdmp-001"},
+        "/api/records/permissions/editRole/": {"oid": "fuzz-rdmp-001"},
+        "/api/records/permissions/view/": {"oid": "fuzz-rdmp-001"},
+        "/api/records/permissions/viewRole/": {"oid": "fuzz-rdmp-001"},
+        "/api/records/datastreams/": {"oid": "fuzz-rdmp-001", "datastreamId": "metadata.json"},
+        "/api/deletedrecords/": {"oid": "fuzz-rdmp-001"},
+        "/api/dashboard-config/merged/": {"recordType": "rdmp", "workflowStage": "draft"},
+        "/api/dashboard-config/merged-view/": {"viewName": "consolidated", "stepName": "consolidated"},
+        "/api/dashboard-config/merged-type/": {"dashboardType": "rdmp"},
+        "/api/harvest-runs/": {"id": "fuzz-harvest-run"},
+        "/api/i18n/entries/": {"locale": "en", "namespace": "translation", "key": "menu-dashboard-config", "keyExt": "json"},
+        "/api/branding/rollback/": {"versionId": "1"},
+        "/api/report-config/": {"name": "rdmpRecords"},
+        "/api/vocabulary/": {"id": "anzsrc-for"},
+        # NEVER inject the admin id here: /api/users/{id}/disable would disable the
+        # API token's own account and 401 the rest of the run. Default to a
+        # non-existent id; _path_param_examples overrides with the disposable fuzz user.
+        "/api/users/": {"id": "fuzz-nonexistent-user"},
+        "/api/records/harvest/": {"recordType": "rdmp"},
+        "/api/mint/harvest/": {"recordType": "rdmp"},
 }
 
 _QUERY_PARAMETER_EXAMPLES = {
@@ -249,6 +253,27 @@ def _strip_null_bytes(value):
     return value
 
 
+def _needs_body_defaults(case):
+    """Check if an endpoint needs a default body dict even when body is None/non-dict."""
+    path = getattr(case, "path", "") or ""
+    method = (getattr(case, "method", "") or "").upper()
+    if path.endswith("/api/users") and method == "PUT":
+        return True
+    if path.endswith("/api/users") and method == "POST":
+        return True
+    if "/api/users/link" in path and method == "POST":
+        return True
+    if "/api/report-config" in path and method in ("POST", "PUT"):
+        return True
+    if "/sync" in path and method == "POST" and "/api/vocabulary/" in path:
+        return True
+    if "/reorder" in path and method == "PUT" and "/api/vocabulary/" in path:
+        return True
+    if "/api/vocabulary/" in path and method == "PUT" and not any(sub in path for sub in ["/sync", "/reorder"]):
+        return True
+    return False
+
+
 def _inject_body_defaults(case, body):
     """Inject required body fields for schema-strict endpoints.
 
@@ -268,6 +293,27 @@ def _inject_body_defaults(case, body):
     if "/api/users/link" in path and method == "POST":
         body["primaryUserId"] = _seed_value("users.json", "admin")
         body["secondaryUserId"] = _seed_value("fuzz-user-2.json", "fuzz-nonexistent-user")
+        if "linkType" not in body:
+            body["linkType"] = "merge"
+        if "mergeRoles" not in body:
+            body["mergeRoles"] = True
+
+    # Vocabulary update (PUT /{id}) requires at minimum the existing fields.
+    if "/api/vocabulary/" in path and not any(sub in path for sub in ["/sync", "/reorder"]) and method == "PUT":
+        if not body.get("name"):
+            body["name"] = "Fuzz Vocab"
+        if not body.get("slug"):
+            body["slug"] = "fuzz-vocab"
+        if not body.get("type"):
+            body["type"] = "flat"
+        if not body.get("source"):
+            body["source"] = "local"
+        if "entries" not in body or not body["entries"]:
+            entry_ids = _seed_list("vocab-entries.json")
+            if len(entry_ids) >= 2:
+                body["entries"] = [{"id": entry_ids[0], "order": 0}, {"id": entry_ids[1], "order": 1}]
+            else:
+                body["entries"] = [{"id": "01", "order": 0}, {"id": "02", "order": 1}]
 
     # Vocabulary sync
     if "/sync" in path and method == "POST" and "/api/vocabulary/" in path:
@@ -292,8 +338,11 @@ def _inject_body_defaults(case, body):
     if "/api/report-config" in path and method in ("POST", "PUT"):
         # updateReportConfig (PUT /{name}) rejects a body whose name differs from the
         # path segment ("Report name cannot be changed"); the seeded report the path
-        # example targets is "rdmpRecords". Create (POST) just needs any URL-safe name.
+        # example targets is "rdmpRecords". Preview must reference an existing report;
+        # create just needs any URL-safe name.
         if method == "PUT":
+            body["name"] = "rdmpRecords"
+        elif "/preview" in path:
             body["name"] = "rdmpRecords"
         elif not body.get("name"):
             body["name"] = "fuzzReport"
@@ -302,8 +351,21 @@ def _inject_body_defaults(case, body):
         body["reportSource"] = "database"
         body["databaseQuery"] = {"queryName": "listRDMPRecords"}
 
-    # Users create (PUT = createUser)
+    # Users create (PUT = createUser). Schema requires username, name, email,
+    # password, roles with additionalProperties: false. Generated bodies often
+    # omit required string fields, causing validation-failure 400s that trigger
+    # MISSING_TEST_DATA or VALIDATION_MISMATCH. Only inject missing required
+    # fields; do NOT add fields outside the schema (e.g. branding) since the
+    # API enforces additionalProperties: false.
     if path.endswith("/api/users") and method == "PUT":
+        if not body.get("username"):
+            body["username"] = "fuzz-gen-user"
+        if not body.get("name"):
+            body["name"] = "Fuzz Generated User"
+        if not body.get("email"):
+            body["email"] = "fuzzgen@test.local"
+        if not body.get("password"):
+            body["password"] = "FuzzP@ss123!"
         if "roles" not in body or not body["roles"]:
             body["roles"] = ["guest"]
 
@@ -326,24 +388,26 @@ def _path_param_examples(case):
         return {"oid": _seed_value("records.json", "fuzz-rdmp-001")}
 
     dynamic_examples = {
-        # NOTE: the bare "/api/records/permissions/" entry also matches the
-        # edit/editRole/view/viewRole sub-paths (they all take only {oid}), so it
-        # doubles as the example source for those. Keep it after the sub-path
-        # entries for readability; all inject the same seeded record OID.
-        "/api/records/permissions/edit/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
-        "/api/records/permissions/editRole/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
-        "/api/records/permissions/view/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
-        "/api/records/permissions/viewRole/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
+        # All permissions sub-routes need the storage OID (MongoDB _id), not the
+        # redboxOid. The seed extraction in run-fuzz-stack.sh captures _id values
+        # into storage-oids.json; if it stays empty, we intentionally do not
+        # substitute redboxOid values because that causes spurious 404s.
+        "/api/records/permissions/edit/": {"oid": _seed_value("storage-oids.json", "fuzz-rdmp-001")},
+        "/api/records/permissions/editRole/": {"oid": _seed_value("storage-oids.json", "fuzz-rdmp-001")},
+        "/api/records/permissions/view/": {"oid": _seed_value("storage-oids.json", "fuzz-rdmp-001")},
+        "/api/records/permissions/viewRole/": {"oid": _seed_value("storage-oids.json", "fuzz-rdmp-001")},
         # Bare GET /api/records/permissions/{oid} requires the real storage OID
-        # (the redboxOid 404s); without this entry positive cases hit random OIDs
-        # and Schemathesis reports MISSING_TEST_DATA.
-        "/api/records/permissions/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
+        # (the redboxOid 404s).
+        "/api/records/permissions/": {"oid": _seed_value("storage-oids.json", "fuzz-rdmp-001")},
         # GET /api/records/audit/{oid} likewise needs a real record OID.
         "/api/records/audit/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/records/datastreams/": {"oid": _seed_value("records.json", "fuzz-rdmp-001"), "datastreamId": "metadata.json"},
         "/api/deletedrecords/": {"oid": _seed_value("records.json", "fuzz-rdmp-001")},
         "/api/harvest-runs/": {"id": _seed_value("harvest-runs.json", "fuzz-harvest-run")},
         "/api/vocabulary/": {"id": _seed_value("vocabularies.json", "anzsrc-for")},
+        # Report config {name} lookups use the seed file (populated during seed
+        # extraction after creating rdmpRecords) with rdmpRecords fallback.
+        "/api/report-config/": {"name": _seed_value("report-configs.json", "rdmpRecords")},
         # /api/users/{id}/{disable,enable,audit,links} -> disposable fuzz user, so
         # account disable never targets the admin account that authenticates the run.
         "/api/users/": {"id": _seed_value("fuzz-user.json", "fuzz-nonexistent-user")},
@@ -419,15 +483,18 @@ def _transform_positive_request(case):
     never reach the wire. Here the mutated case is what gets serialised.
     """
     body = getattr(case, "body", None)
-    if isinstance(body, (dict, list, str)):
-        try:
+    try:
+        if _needs_body_defaults(case) and not isinstance(body, dict):
+            body = {}
+        if isinstance(body, (dict, list, str)):
             body = _strip_null_bytes(body)
             if "/api/records/objectmetadata/" in (getattr(case, "path", "") or ""):
                 body = _replace_empty_object_keys(body)
-            body = _inject_body_defaults(case, body)
+            if isinstance(body, dict):
+                body = _inject_body_defaults(case, body)
             case.body = body
-        except Exception:  # pragma: no cover - defensive; never block a request
-            pass
+    except Exception:  # pragma: no cover - defensive; never block a request
+        pass
     query = getattr(case, "query", None)
     if isinstance(query, (dict, list, str)):
         try:

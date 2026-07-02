@@ -62,7 +62,7 @@ export const patternStringField = (pattern: string, description?: string): ApiSc
 export const dateTimeStringField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string().datetime({ offset: true }), { description, format: 'date-time' });
 export const emailStringField = (description?: string): ApiSchemaField =>
-  patternStringField('^[A-Za-z][A-Za-z0-9._%+-]*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)+[A-Za-z]{2,}$', description);
+  patternStringField('^(?:[A-Za-z0-9][A-Za-z0-9._%+-]*[A-Za-z0-9]|[A-Za-z0-9])@(?:[A-Za-z0-9-]*[A-Za-z][A-Za-z0-9-]*\\.)+[A-Za-z]{2,}$', description);
 
 export function objectField(
   properties: Record<string, ApiSchemaField>,

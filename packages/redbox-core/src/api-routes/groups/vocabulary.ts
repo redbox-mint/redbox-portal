@@ -17,11 +17,7 @@ import {
   vocabularyTreeNodeSchema,
 } from '../schemas/common';
 
-const vocabularyNamePattern = '^(?=.*\\S)[A-Za-z0-9_ -]+$';
-const vocabularyNameField = z.string().regex(new RegExp(vocabularyNamePattern)).openapi({
-  description: 'Vocabulary name',
-  pattern: vocabularyNamePattern,
-});
+const vocabularyNameField = nonEmptyStringField('Vocabulary name');
 const vocabularySlugField = patternStringField('^[A-Za-z0-9][A-Za-z0-9_-]*$', 'Vocabulary slug');
 
 const vocabularyEntryInputSchema = objectField(
@@ -160,16 +156,17 @@ export const updateVocabularyRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField(
-            {
-              name: vocabularyNameField,
-              slug: vocabularySlugField,
-              type: vocabularyTypeField('Vocabulary type'),
-            },
-            [],
-            'Vocabulary payload',
-            true
-          ),
+            schema: objectField(
+              {
+                name: vocabularyNameField,
+                slug: vocabularySlugField,
+                type: vocabularyTypeField('Vocabulary type'),
+                entries: arrayField(vocabularyEntryInputSchema, 'Vocabulary entries'),
+              },
+              [],
+              'Vocabulary payload',
+              true
+            ),
         },
       },
     },

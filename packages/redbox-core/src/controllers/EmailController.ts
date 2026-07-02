@@ -26,6 +26,13 @@ export namespace Controllers {
             this.emailService = sails.services.emailservice as unknown as Services.Email;
         }
 
+        private normalizeEmailList(value: unknown): string {
+            if (Array.isArray(value)) {
+                return (value as string[]).join(', ');
+            }
+            return (value as string) ?? '';
+        }
+
         private sendTemplateRenderError(req: Sails.Req, res: Sails.Res) {
             return this.sendResp(req, res, {
                 status: 500,
@@ -77,9 +84,9 @@ export namespace Controllers {
             const options = {
                 format: body.format,
                 from: body.from,
-                to: body.to,
-                cc: body.cc,
-                bcc: body.bcc,
+                to: this.normalizeEmailList(body.to),
+                cc: body.cc != null ? this.normalizeEmailList(body.cc) : undefined,
+                bcc: body.bcc != null ? this.normalizeEmailList(body.bcc) : undefined,
                 subject: body.subject,
                 template: body.template,
             };

@@ -114,10 +114,14 @@ echo "[4/8] Creating runtime directories..."
 mkdir -p "$REPORT_DIR" "$SEED_DIR" "$ATTACHMENTS_DIR" "$EMAIL_DIR"
 
 echo '[]' > "$SEED_DIR/records.json"
+echo '[]' > "$SEED_DIR/storage-oids.json"
 echo '[]' > "$SEED_DIR/users.json"
 echo '[]' > "$SEED_DIR/vocabularies.json"
 echo '[]' > "$SEED_DIR/named-queries.json"
 echo '[]' > "$SEED_DIR/harvest-runs.json"
+echo '[]' > "$SEED_DIR/vocab-entries.json"
+echo '[]' > "$SEED_DIR/dashboard-configs.json"
+echo '[]' > "$SEED_DIR/report-configs.json"
 
 # Copy schemathesis.toml into the tmp dir so it's available to the container
 cp "$SCRIPT_DIR/schemathesis.toml" "$TMP_DIR/schemathesis.toml"
@@ -191,28 +195,103 @@ echo "$HARVEST_RUN_IDS" > "$SEED_DIR/harvest-runs.json"
 # Records
 echo -n "  Records: "
 RECORDS_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/records/list" 2>/dev/null || echo '[]')
-RECORD_OIDS=$(echo "$RECORDS_RESP" | python3 -c "
+RECORD_EXTRACT=$(echo "$RECORDS_RESP" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('data', data.get('records', []))
-oids = [r.get('redboxOid') or r.get('oid') or r.get('id') or r.get('_id','') for r in items if r.get('redboxOid') or r.get('oid') or r.get('id')]
-print(json.dumps(oids))
-" 2>/dev/null || echo '[]')
+oids = []
+storage_oids = []
+for r in items:
+    oid = r.get('redboxOid') or r.get('oid') or ''
+    if oid:
+        oids.append(oid)
+    sid = r.get('_id') or r.get('id') or ''
+    if sid and sid != oid:
+        storage_oids.append(sid)
+# Prefer storage OID, fall back to redboxOid for the main records seed
+combined = list(dict.fromkeys(storage_oids + oids))
+print(json.dumps({'oids': oids, 'storage_oids': storage_oids, 'combined': combined}))
+" 2>/dev/null || echo '{"oids":[],"storage_oids":[],"combined":[]}')
+echo "$RECORD_EXTRACT" > "$TMP_DIR/record-extract.json"
+RECORD_OIDS=$(echo "$RECORD_EXTRACT" | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('oids',[])))" 2>/dev/null || echo '[]')
+RECORD_STORAGE_OIDS=$(echo "$RECORD_EXTRACT" | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('storage_oids',[])))" 2>/dev/null || echo '[]')
 echo "$RECORD_OIDS" > "$SEED_DIR/records.json"
-echo "$(echo "$RECORD_OIDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+echo "$RECORD_STORAGE_OIDS" > "$SEED_DIR/storage-oids.json"
+echo "$(echo "$RECORD_OIDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))') public, $(echo "$RECORD_STORAGE_OIDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))') storage"
+
+# Extract storage OIDs via objectmetadata endpoint (returns full doc including
+# MongoDB _id).  The permissions endpoints (edit/editRole/view/viewRole) route
+# on the storage OID (_id), not the redboxOid.  The records/list response may
+# not expose _id fields, so we query each bootstrap record by its known
+# redboxOid to get the real storage OID.
+# Dynamic: iterate over all extracted record OIDs, not just hardcoded ones.
+# Retry: bootstrap records may not be fully loaded on first attempt.
+echo -n "  Storage OIDs (objectmetadata): "
+STORAGE_OIDS="[]"
+KNOWN_OIDS=$(python3 -c "
+import json
+try:
+    with open('$SEED_DIR/records.json') as f:
+        oids = json.load(f)
+    if oids:
+        print(' '.join(oids))
+    else:
+        print('fuzz-rdmp-001 fuzz-dp-001')
+except:
+    print('fuzz-rdmp-001 fuzz-dp-001')
+" 2>/dev/null || echo 'fuzz-rdmp-001 fuzz-dp-001')
+for RBOID in $KNOWN_OIDS; do
+    for RETRY in 1 2 3; do
+        META_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
+            "$API_BASE/records/objectmetadata/$RBOID" 2>/dev/null || echo '{}')
+        META_ID=$(echo "$META_RESP" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+_id = d.get('_id', '')
+print(_id)
+" 2>/dev/null || echo '')
+        if [ -n "$META_ID" ]; then
+            break
+        fi
+        sleep 2
+    done
+    if [ -n "$META_ID" ]; then
+        STORAGE_OIDS=$(echo "$STORAGE_OIDS" | python3 -c "
+import json, sys
+ids = json.load(sys.stdin)
+if '$META_ID' not in ids:
+    ids.append('$META_ID')
+print(json.dumps(ids))
+" 2>/dev/null || echo '[]')
+    fi
+done
+if [ "$(echo "$STORAGE_OIDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)" -gt 0 ]; then
+    echo "$STORAGE_OIDS" > "$SEED_DIR/storage-oids.json"
+    echo "$(echo "$STORAGE_OIDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0) extracted from metadata"
+else
+    echo "falling back to records.json"
+fi
 
 # Vocabularies
 echo -n "  Vocabularies: "
 VOCAB_RESP=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/vocabulary" 2>/dev/null || echo '{}')
-VOCAB_SLUGS=$(echo "$VOCAB_RESP" | python3 -c "
+VOCAB_IDS=$(echo "$VOCAB_RESP" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('data', data.get('vocabularies', []))
-slugs = [v.get('slug','') for v in items if v.get('slug')]
-print(json.dumps(slugs))
+all_ids = []
+for v in items:
+    # Prefer _id (storage OID) for routes that resolve by DB id
+    if v.get('id'):
+        all_ids.append(v['id'])
+    if v.get('_id') and v['_id'] not in all_ids:
+        all_ids.append(v['_id'])
+    if v.get('slug') and v['slug'] not in all_ids:
+        all_ids.append(v['slug'])
+print(json.dumps(all_ids))
 " 2>/dev/null || echo '[]')
-echo "$VOCAB_SLUGS" > "$SEED_DIR/vocabularies.json"
-echo "$(echo "$VOCAB_SLUGS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+echo "$VOCAB_IDS" > "$SEED_DIR/vocabularies.json"
+echo "$(echo "$VOCAB_IDS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
 
 # Users - extract actual database IDs
 echo -n "  Users: "
@@ -235,6 +314,28 @@ for sf in records.json vocabularies.json named-queries.json users.json harvest-r
         cp "$SCRIPT_DIR/seeds/$sf" "$SEED_DIR/$sf" 2>/dev/null || true
     fi
 done
+
+# Storage OIDs must come from the objectmetadata lookup. Do not fall back to
+# records.json here: permissions routes resolve against the storage _id, not the
+# public redboxOid, and mixing the two causes spurious 404s.
+if [ "$(python3 -c "import json; print(len(json.load(open('$SEED_DIR/storage-oids.json'))))" 2>/dev/null || echo 0)" -eq 0 ]; then
+    echo "WARNING: no storage OIDs were captured; permissions routes may 404 until objectmetadata extraction succeeds."
+fi
+
+# Dashboard configs: fall back to static seed (empty)
+if [ "$(python3 -c "import json; print(len(json.load(open('$SEED_DIR/dashboard-configs.json'))))" 2>/dev/null || echo 0)" -eq 0 ]; then
+    cp "$SCRIPT_DIR/seeds/dashboard-configs.json" "$SEED_DIR/dashboard-configs.json" 2>/dev/null || true
+fi
+
+# Vocab entries: fall back to static seed (empty)
+if [ "$(python3 -c "import json; print(len(json.load(open('$SEED_DIR/vocab-entries.json'))))" 2>/dev/null || echo 0)" -eq 0 ]; then
+    cp "$SCRIPT_DIR/seeds/vocab-entries.json" "$SEED_DIR/vocab-entries.json" 2>/dev/null || true
+fi
+
+# Report configs: fall back to static seed
+if [ "$(python3 -c "import json; print(len(json.load(open('$SEED_DIR/report-configs.json'))))" 2>/dev/null || echo 0)" -eq 0 ]; then
+    cp "$SCRIPT_DIR/seeds/report-configs.json" "$SEED_DIR/report-configs.json" 2>/dev/null || true
+fi
 
 # Create a secondary fuzz test user for link operations
 curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" \
@@ -262,7 +363,7 @@ echo "  Fuzz user id: ${FUZZ_USER_ID:-<none>}"
 # their service logic. ReportsService requires databaseQuery.queryName to reference
 # an existing named query, and update/delete-by-name require an existing report; the
 # hook injects "listRDMPRecords"/"rdmpRecords" for these, so create them here.
-NAMED_QUERY_PAYLOAD='{"collectionName":"record","mongoQuery":{},"queryParams":{},"resultObjectMapping":{}}'
+NAMED_QUERY_PAYLOAD='{"collectionName":"record","brandIdFieldPath":"metaMetadata.brandId","resultObjectMapping":{"oid":"{{record.redboxOid}}","title":"{{record.metadata.title}}","description":"{{record.metadata.description}}","dateCreated":"{{record.dateCreated}}","dateModified":"{{record.lastSaveDate}}"},"mongoQuery":{"metaMetadata.type":"rdmp"},"sort":[{"lastSaveDate":"DESC"}],"queryParams":{"title":{"type":"string","path":"metadata.title","queryType":"contains","whenUndefined":"ignore"},"dateCreatedBefore":{"type":"string","path":"dateCreated","queryType":"<=","whenUndefined":"ignore"},"dateCreatedAfter":{"type":"string","path":"dateCreated","queryType":">=","whenUndefined":"ignore"}}}'
 if ! curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/json" \
     -X POST "$API_BASE/named-query" \
     --data "{\"name\":\"listRDMPRecords\",${NAMED_QUERY_PAYLOAD#\{}" >/dev/null 2>&1; then
@@ -274,6 +375,7 @@ curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/js
     -X POST "$API_BASE/report-config" \
     --data '{"name":"rdmpRecords","title":"Fuzz RDMP Report","reportSource":"database","databaseQuery":{"queryName":"listRDMPRecords"},"columns":[{"label":"Title","property":"title"}]}' >/dev/null 2>&1 || true
 echo '["listRDMPRecords"]' > "$SEED_DIR/named-queries.json"
+echo '["rdmpRecords"]' > "$SEED_DIR/report-configs.json"
 
 # Seed a known vocabulary with stable entries so the vocabulary update/reorder
 # endpoints can reach their logic. {id} is the vocabulary's DB id (not the slug),
@@ -285,9 +387,20 @@ curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" -H "Content-Type: application/js
 FUZZ_VOCAB_ID=$(curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/vocabulary?q=fuzz-vocab" 2>/dev/null \
     | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((r['id'] for r in d.get('records',[]) if r.get('slug')=='fuzz-vocab'), ''))" 2>/dev/null || echo '')
 if [ -n "$FUZZ_VOCAB_ID" ]; then
-    echo "[\"$FUZZ_VOCAB_ID\"]" > "$SEED_DIR/vocabularies.json"
+    # MERGE the fuzz vocab ID into existing list (do NOT overwrite, which would
+    # drop bootstrap vocabulary _id/slug entries that GET /vocabulary/{id} needs).
+    EXISTING_VOCAB_IDS=$(python3 -c "
+import json
+with open('$SEED_DIR/vocabularies.json') as f:
+    ids = json.load(f)
+fuzz_id = '$FUZZ_VOCAB_ID'
+if fuzz_id and fuzz_id not in ids:
+    ids.insert(0, fuzz_id)
+print(json.dumps(ids))
+" 2>/dev/null || echo "[\"$FUZZ_VOCAB_ID\"]")
+    echo "$EXISTING_VOCAB_IDS" > "$SEED_DIR/vocabularies.json"
     curl -sf -H "Authorization: Bearer $FUZZ_TOKEN" "$API_BASE/vocabulary/$FUZZ_VOCAB_ID" 2>/dev/null \
-        | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps([e['id'] for e in d.get('entries',[])[:2]]))" 2>/dev/null \
+        | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps([e.get('_id') or e.get('id') or '' for e in (d.get('entries') or [])[:2]]))" 2>/dev/null \
         > "$SEED_DIR/vocab-entries.json" || echo '[]' > "$SEED_DIR/vocab-entries.json"
 else
     echo '[]' > "$SEED_DIR/vocab-entries.json"
@@ -318,7 +431,7 @@ echo "  Generating seeds.dict for parameter generation..."
     echo "# ReDBox fuzz seeds - known entity IDs"
     python3 -c "
 import json, sys
-for f in ['records.json', 'vocabularies.json', 'named-queries.json', 'users.json', 'harvest-runs.json']:
+for f in ['records.json', 'storage-oids.json', 'vocabularies.json', 'named-queries.json', 'report-configs.json', 'users.json', 'harvest-runs.json', 'vocab-entries.json']:
     try:
         with open('$SEED_DIR/' + f) as fh:
             for item in json.load(fh):

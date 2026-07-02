@@ -21,24 +21,36 @@ const localeField = patternStringField('^[a-z]{2}(-[A-Z]{2})?$');
 
 const translationParams = objectField(
   {
+    branding: stringField('Branding identifier'),
+    portal: stringField('Portal identifier'),
     locale: localeField,
     namespace: patternStringField('^[A-Za-z0-9_-]+$'),
     key: patternStringField('^[A-Za-z0-9_-]+$', translationKeyTailDescription),
   },
-  ['locale', 'namespace', 'key']
+  ['branding', 'portal', 'locale', 'namespace', 'key']
 );
 
 const dottedTranslationParams = objectField(
   {
+    branding: stringField('Branding identifier'),
+    portal: stringField('Portal identifier'),
     locale: localeField,
     namespace: patternStringField('^[A-Za-z0-9_-]+$'),
     key: patternStringField('^[A-Za-z0-9_-]+$', translationKeyTailDescription),
     keyExt: patternStringField('^[A-Za-z0-9_.-]+$', 'Translation key suffix after the first dot.'),
   },
-  ['locale', 'namespace', 'key', 'keyExt']
+  ['branding', 'portal', 'locale', 'namespace', 'key', 'keyExt']
 );
 
-const bundleParams = objectField({ locale: localeField, namespace: patternStringField('^[A-Za-z0-9_-]+$') }, ['locale', 'namespace']);
+const bundleParams = objectField(
+  {
+    branding: stringField('Branding identifier'),
+    portal: stringField('Portal identifier'),
+    locale: localeField,
+    namespace: patternStringField('^[A-Za-z0-9_-]+$'),
+  },
+  ['branding', 'portal', 'locale', 'namespace']
+);
 const setBundleEnvelopeBody = objectField(
   {
     data: objectField({}, [], 'Bundle payload', true),
@@ -63,11 +75,17 @@ export const listEntriesRoute = apiRoute(
   '/:branding/:portal/api/i18n/entries',
   'webservice/TranslationController',
   'listEntries',
-  { query: objectField({
-    locale: patternStringField('^[A-Za-z0-9_-]+$'),
-    namespace: patternStringField('^[A-Za-z0-9_-]+$'),
-    keyPrefix: patternStringField('^[A-Za-z0-9_/-]+$'),
-  }) },
+  {
+    params: objectField(
+      { branding: stringField('Branding identifier'), portal: stringField('Portal identifier') },
+      ['branding', 'portal']
+    ),
+    query: objectField({
+      locale: patternStringField('^[A-Za-z0-9_-]+$'),
+      namespace: patternStringField('^[A-Za-z0-9_-]+$'),
+      keyPrefix: patternStringField('^[A-Za-z0-9_/-]+$'),
+    }),
+  },
   {
     tags: ['Translation'],
     summary: 'List translation entries',
@@ -89,7 +107,11 @@ export const getEntryRoute = apiRoute(
   }
 );
 
-const setEntryBodySchema = objectField({ value: nonEmptyStringField(), category: stringField(), description: stringField(), contentFormat: contentFormatField() }, ['value'], 'Translation entry body');
+const setEntryBodySchema = objectField(
+  { value: nonEmptyStringField(), category: stringField(), description: stringField(), contentFormat: contentFormatField() },
+  ['value'],
+  'Translation entry body'
+);
 
 export const setEntryRoute = apiRoute(
   'post',
