@@ -474,6 +474,175 @@ describe("Validator", async () => {
     });
   });
 
+  describe("url", async () => {
+    // Helper to build the expected error for the url validator, mirroring the params it emits.
+    const urlError = (
+      actual: unknown,
+      opts: {
+        schemes?: string[];
+        allowAbsolute?: boolean;
+        allowRelative?: boolean;
+        description?: string;
+      } = {},
+    ): FormValidatorErrors => ({
+      url: {
+        message: "@validator-error-url",
+        params: {
+          description: opts.description ?? "",
+          schemes: opts.schemes ?? ["http", "https"],
+          allowAbsolute: opts.allowAbsolute ?? true,
+          allowRelative: opts.allowRelative ?? false,
+          actual,
+        },
+      },
+    });
+
+    const cases: TestCase[] =
+      [
+        {
+          title: "url - expect pass (absolute https)",
+          args: {
+            value: "https://example.org/path?q=1#frag", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (absolute http)",
+          args: {
+            value: "http://example.org", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (trims surrounding whitespace)",
+          args: {
+            value: "  https://example.org  ", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (empty)",
+          args: {
+            value: "", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (null)",
+          args: {
+            value: null, definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (whitespace only treated as empty)",
+          args: {
+            value: "   ", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect failure (not a url)",
+          args: {
+            value: "not a url", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { description: "an absolute http(s) URL" } },
+          },
+          expected: urlError("not a url", { description: "an absolute http(s) URL" }),
+        },
+        {
+          title: "url - expect failure (disallowed scheme)",
+          args: {
+            value: "ftp://example.org/file", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: urlError("ftp://example.org/file"),
+        },
+        {
+          title: "url - expect failure (javascript scheme)",
+          args: {
+            value: "javascript:alert(1)", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: urlError("javascript:alert(1)"),
+        },
+        {
+          title: "url - expect pass (custom scheme allowed)",
+          args: {
+            value: "ftp://example.org/file", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { schemes: ["ftp"] } },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect failure (relative not allowed by default)",
+          args: {
+            value: "/path/to/page", definition: formValidatorsSharedDefinitions,
+            block: { class: "url" },
+          },
+          expected: urlError("/path/to/page"),
+        },
+        {
+          title: "url - expect pass (relative allowed)",
+          args: {
+            value: "/path/to/page?q=1", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { allowRelative: true } },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect pass (relative allowed, absolute still allowed)",
+          args: {
+            value: "https://example.org", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { allowRelative: true } },
+          },
+          expected: null,
+        },
+        {
+          title: "url - expect failure (protocol-relative rejected even when relative allowed)",
+          args: {
+            value: "//evil.example.org/x", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { allowRelative: true } },
+          },
+          expected: urlError("//evil.example.org/x", { allowRelative: true }),
+        },
+        {
+          title: "url - expect failure (absolute rejected when only relative allowed)",
+          args: {
+            value: "https://example.org", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { allowAbsolute: false, allowRelative: true } },
+          },
+          expected: urlError("https://example.org", { allowAbsolute: false, allowRelative: true }),
+        },
+        {
+          title: "url - expect failure (requireTld rejects host without a dot)",
+          args: {
+            value: "http://localhost:3000/x", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { requireTld: true } },
+          },
+          expected: urlError("http://localhost:3000/x"),
+        },
+        {
+          title: "url - expect pass (requireTld accepts host with a dot)",
+          args: {
+            value: "http://example.org/x", definition: formValidatorsSharedDefinitions,
+            block: { class: "url", config: { requireTld: true } },
+          },
+          expected: null,
+        },
+      ];
+    cases.forEach(({ title, args, expected }) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({ title, args, expected });
+      });
+    });
+  });
+
   describe("jsonata-expression", async () => {
     const expression = "$ = 45";
     async function jsonataEvaluateCustomFunc(value: unknown) {

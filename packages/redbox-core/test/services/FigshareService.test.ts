@@ -1,19 +1,21 @@
 import * as sinon from 'sinon';
 import { Readable } from 'node:stream';
-import { Services } from '../../src/services/FigshareService';
-import { ServiceExports } from '../../src/services';
-import { agendaQueue } from '../../src/config/agendaQueue.config';
-import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
-import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
-import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
-import { buildMetadataPayload, syncMetadataPhase } from '../../src/services/figshare-v2/metadata';
-import { syncAssetsPhase } from '../../src/services/figshare-v2/assets';
-import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
-import { RBValidationError } from '../../src/model/RBValidationError';
+import { createRequire } from 'node:module';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
+
+const testRequire = createRequire(import.meta.url);
+const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
+const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
+const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
+const { resolveFigsharePublishingConfig } = testRequire('../../src/services/figshare-v2/config');
+const { createRunContext } = testRequire('../../src/services/figshare-v2/context');
+const { mapCreateArticleResponse } = testRequire('../../src/services/figshare-v2/http');
+const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/services/figshare-v2/metadata');
+const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
+const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
+const { RBValidationError } = testRequire('../../src/model/RBValidationError');
 
 let expect!: Chai.ExpectStatic;
 
@@ -316,7 +318,8 @@ function buildAssetClient(
 }
 
 describe('FigshareService', function () {
-  let service: InstanceType<typeof Services.FigshareService>;
+  let service: any;
+  let ServiceExports: typeof import('../../src/services').ServiceExports;
   let getConfigStub: sinon.SinonStub;
   let appConfigByBrandStub: sinon.SinonStub;
 
@@ -347,6 +350,8 @@ describe('FigshareService', function () {
 
     setupServiceTestGlobals(mockSails);
     (global as any).AgendaQueueService = mockQueueService;
+    const { Services } = testRequire('../../src/services/FigshareService');
+    ({ ServiceExports } = testRequire('../../src/services'));
 
     appConfigByBrandStub = sinon.stub().callsFake((brand: string) => ({
       figsharePublishing: buildFigsharePublishingConfig({
@@ -423,6 +428,26 @@ describe('FigshareService', function () {
     expect(exports).to.have.property('publishAfterUploadFilesJob');
     expect(exports).to.have.property('transitionRecordWorkflowFromFigshareArticlePropertiesJob');
     expect(exports).to.have.property('syncRecordWithFigshare');
+  });
+
+  it('infers record oid from the full job id prefix when record fields are empty', function () {
+    const context = createRunContext(
+      { redboxOid: '', id: '', oid: '', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      ' rdmp-1_0.test:publish-job '
+    );
+
+    expect(context.recordOid).to.equal('rdmp-1_0.test');
+  });
+
+  it('keeps record oid field precedence over the job id fallback', function () {
+    const context = createRunContext(
+      { redboxOid: 'record-oid', id: 'id-oid', oid: 'legacy-oid', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      'job-id:publish-job'
+    );
+
+    expect(context.recordOid).to.equal('record-oid');
   });
 
   it('honours triggerCondition before Figshare lifecycle sync', async function () {
@@ -1698,6 +1723,95 @@ describe('FigshareService', function () {
       expect(fakeDisk.store.has(stagingKey)).to.equal(false);
       expect(result.uploadedAttachments).to.have.lengthOf(1);
       expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(1);
+    });
+
+    it('sanitizes the internal staging filename without changing the Figshare filename', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const payload = Buffer.from('abcdefgh');
+      installDatastreamStub(payload, payload.length);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'rdmp (2).pdf', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+
+      const stagingKey = fakeDisk.calls.put[0].key;
+      expect(stagingKey).to.match(/^figshare\/article-1-oid-1-file-1-[0-9a-f-]{36}\/rdmp-2\.pdf$/);
+      expect((client.createArticleFile as sinon.SinonStub).firstCall.args[1]).to.deep.equal({
+        name: 'rdmp (2).pdf',
+        size: payload.length,
+      });
+      expect(fakeDisk.calls.deleted).to.deep.equal([stagingKey]);
+    });
+
+    it('promotes local datastreams even when Figshare already has a same-named file', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const getDatastreamStub = installDatastreamStub(Buffer.from('abcdefgh'), 8);
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      (client.listArticleFiles as sinon.SinonStub).resolves([
+        {
+          id: 'existing-figshare-file',
+          article_id: 'article-1',
+          name: 'file.txt',
+          status: 'available',
+          size: 8,
+        },
+      ]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+      const syncState: any = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, syncState);
+
+      expect(getDatastreamStub.calledOnceWithExactly('oid-1', 'file-1')).to.equal(true);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect(fakeDisk.calls.put).to.deep.equal([]);
+      expect(result.uploadedAttachments).to.have.lengthOf(1);
+      expect(result.uploadedAttachments[0].id).to.equal('existing-figshare-file');
+      expect(syncState.partialProgress?.uploadedAttachmentCountThisRun).to.equal(0);
+      expect(syncState.partialProgress?.uploadedAttachmentCount).to.equal(1);
+    });
+
+    it('removes the temporary destroy error handler when an ensured datastream emits finish', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const readstream = new Readable({ read() { /* intentionally empty */ }, emitClose: false });
+      (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
+      (global as any).sails.services.datastreamservice = {
+        getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
+      };
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      (client.listArticleFiles as sinon.SinonStub).resolves([
+        {
+          id: 'existing-figshare-file',
+          article_id: 'article-1',
+          name: 'file.txt',
+          status: 'available',
+          size: 8,
+        },
+      ]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+      expect(readstream.listenerCount('error')).to.equal(1);
+
+      readstream.emit('finish');
+
+      expect(readstream.listenerCount('error')).to.equal(0);
+      expect(readstream.listenerCount('finish')).to.equal(0);
+      expect(readstream.listenerCount('close')).to.equal(0);
     });
 
     it('streams Figshare part content without buffering each full part before upload', async function () {

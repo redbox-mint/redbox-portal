@@ -51,7 +51,54 @@ describe('ContextVariableUtils', () => {
     expect(result['@branding']).to.equal('default');
     expect(result['@oid']).to.equal('x&lt;y&gt;');
     expect(result['@referrer_rdmp']).to.equal('&lt;unsafe&gt;');
-    expect(result).to.not.have.property('@record');
+    expect(result['@record']).to.equal('');
+    expect((globalThis as any).sails.log.warn.called).to.equal(false);
+  });
+
+  it('evaluates record and metadata backed context variables', () => {
+    (globalThis as any).sails.config.record.contextVariables = {
+      '@title': { source: 'metadata', field: 'title' },
+      '@stage': { source: 'record', field: 'workflow.stage' },
+      '@metadata': { source: 'metadata' },
+      '@record': { source: 'record' }
+    };
+    const req = {
+      headers: {},
+      get: sinon.stub(),
+      param: sinon.stub()
+    } as unknown as Sails.Req;
+
+    const result = ContextVariableUtils.evaluateContextVariables(req, {
+      metadata: { title: '<Dataset>' },
+      workflow: { stage: 'queued' }
+    });
+
+    expect(result['@title']).to.equal('&lt;Dataset&gt;');
+    expect(result['@stage']).to.equal('queued');
+    expect(result['@metadata']).to.equal('');
+    expect(result['@record']).to.equal('');
+    expect((globalThis as any).sails.log.warn.called).to.equal(false);
+  });
+
+  it('warns when a context variable source is not supported', () => {
+    (globalThis as any).sails.config.record.contextVariables = {
+      '@bad_source': { source: 'Record', field: 'workflow.stage' } as any
+    };
+    const req = {
+      headers: {},
+      get: sinon.stub(),
+      param: sinon.stub()
+    } as unknown as Sails.Req;
+
+    const result = ContextVariableUtils.evaluateContextVariables(req, {
+      workflow: { stage: 'queued' }
+    });
+
+    expect(result['@bad_source']).to.equal('');
+    expect((globalThis as any).sails.log.warn.calledOnce).to.equal(true);
+    expect((globalThis as any).sails.log.warn.firstCall.args[0]).to.equal(
+      'Unsupported context variable source for @bad_source: Record'
+    );
   });
 
   it('returns empty value and warns on malformed URL parsing without leaking raw values', () => {

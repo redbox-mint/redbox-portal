@@ -26,9 +26,5 @@ export const views: ViewsConfig = {
     extension: 'ejs',
     layout: 'default/default/layout',
     partials: false,
-    noCache: [
-        '/default/rdmp/researcher/home',
-        '/default/rdmp/home',
-        '/',
-    ],
+    noCache: ['/'],
 };

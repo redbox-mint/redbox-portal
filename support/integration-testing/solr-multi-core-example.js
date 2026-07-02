@@ -9,5 +9,6 @@
  */
 const { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');
 const _researchdatabox_sails_hook_redbox_storage_mongo_config = require('@researchdatabox/sails-hook-redbox-storage-mongo').registerRedboxConfig();
+const redbox_hook_dev_config = require('redbox-hook-dev').registerRedboxConfig();
 
-module.exports.solr = mergeRedboxConfig('solr', Config.solr || {}, _researchdatabox_sails_hook_redbox_storage_mongo_config['solr'] || {});
+module.exports.solr = mergeRedboxConfig('solr', Config.solr || {}, _researchdatabox_sails_hook_redbox_storage_mongo_config['solr'] || {}, redbox_hook_dev_config['solr'] || {});

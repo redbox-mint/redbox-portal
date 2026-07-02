@@ -8,7 +8,8 @@
   **/ 
   superPartial=function(value, branding, portal, fromTemplate=false) { 
     var partialLocation=value; //Resolve the actual location of the partial 
-    partialLocation=ViewUtilsService.resolvePartialPath(value, branding, portal, templateDirectoryLocation, fromTemplate); 
+    var partialBaseLocation=templateDirectoryLocation;
+    partialLocation=ViewUtilsService.resolvePartialPath(value, branding, portal, partialBaseLocation, fromTemplate); 
     return partial(partialLocation); 
   } 
   

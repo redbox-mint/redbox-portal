@@ -2,6 +2,7 @@ import path from 'path';
 import _ from 'lodash';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
+import type { ILogger } from '../../Logger';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
@@ -64,8 +65,31 @@ async function getAttachmentStream(oid: string, fileId: string): Promise<Datastr
   return response;
 }
 
+async function ensureAttachmentDatastream(oid: string, fileId: string): Promise<void> {
+  const response = await getAttachmentStream(oid, fileId);
+  const stream = response.readstream as Readable | undefined;
+  if (typeof stream?.destroy === 'function') {
+    const ignoreDestroyError = () => undefined;
+    const removeDestroyErrorHandler = () => {
+      stream.off('error', ignoreDestroyError);
+      stream.off('close', removeDestroyErrorHandler);
+      stream.off('finish', removeDestroyErrorHandler);
+    };
+    stream.once('error', ignoreDestroyError);
+    stream.once('close', removeDestroyErrorHandler);
+    stream.once('finish', removeDestroyErrorHandler);
+    stream.destroy();
+  }
+}
+
 function sanitizePathComponent(value: string): string {
-  return value.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'item';
+  return (
+    value
+      .replace(/[^A-Za-z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/-\./g, '.')
+      .replace(/^-+|-+$/g, '') || 'item'
+  );
 }
 
 function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
@@ -95,23 +119,30 @@ function buildStagingKey(
   articleId: string,
   oid: string,
   fileId: string,
-  fileName: string
+  fileName: string,
+  logger?: ILogger
 ): string {
   const prefix = (config.assets.staging.keyPrefix ?? 'figshare/').replace(/^\/+|\/+$/g, '') || 'figshare';
-  const safeFileName = path.basename(fileName).trim();
-  if (safeFileName === '') {
+  const originalFileName = path.basename(fileName).trim();
+  if (originalFileName === '') {
     throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
   }
   // basename() can still yield the reserved '.'/'..' segments, which would point the
   // staging key at the directory itself or escape it on an fs-backed disk.
-  if (safeFileName === '.' || safeFileName === '..') {
+  if (originalFileName === '.' || originalFileName === '..') {
     throw validationError(`Attachment '${fileName}' does not contain a valid file name`);
+  }
+  const storageFileName = sanitizePathComponent(originalFileName);
+  if (storageFileName !== originalFileName) {
+    logger?.verbose(
+      `FigService - sanitized staging filename '${originalFileName}' to '${storageFileName}' for attachment '${fileId}'`
+    );
   }
   // Append a per-attempt random segment so concurrent or retried uploads of the
   // same attachment never share a staging key (which would let one attempt
   // overwrite or delete the object another attempt is still streaming).
   const dir = `${sanitizePathComponent(articleId)}-${sanitizePathComponent(oid)}-${sanitizePathComponent(fileId)}-${randomUUID()}`;
-  return `${prefix}/${dir}/${safeFileName}`;
+  return `${prefix}/${dir}/${storageFileName}`;
 }
 
 async function stageAttachmentToDisk(disk: IDisk, key: string, response: DatastreamResponse): Promise<number> {
@@ -189,7 +220,8 @@ async function uploadAttachment(
   config: FigsharePublishingConfigData,
   articleId: string,
   oid: string,
-  attachment: DataLocationEntry
+  attachment: DataLocationEntry,
+  logger?: ILogger
 ): Promise<FigshareFile> {
   const fileId = attachment.fileId ?? '';
   const fileName = attachment.name ?? '';
@@ -198,7 +230,7 @@ async function uploadAttachment(
   }
 
   const disk = getStagingDisk(config);
-  const stagingKey = buildStagingKey(config, articleId, oid, fileId, fileName);
+  const stagingKey = buildStagingKey(config, articleId, oid, fileId, fileName, logger);
   const datastream = await getAttachmentStream(oid, fileId);
 
   let uploadSucceeded = false;
@@ -320,7 +352,8 @@ export async function syncAssetsPhase(
   config: ResolvedFigsharePublishingConfigData,
   record: RecordModel,
   article: FigshareArticle,
-  syncState: FigshareSyncState
+  syncState: FigshareSyncState,
+  logger?: ILogger
 ): Promise<AssetSyncResult> {
   const selectedDataLocations = getSelectedDataLocations(config, record);
   const selectedAttachments = selectedDataLocations.filter(entry => entry.type === 'attachment');
@@ -371,10 +404,11 @@ export async function syncAssetsPhase(
       const fileName = attachment.name ?? '';
       const alreadyUploaded = currentFiles.find(entry => entry.name === fileName);
       if (alreadyUploaded != null) {
+        await ensureAttachmentDatastream(oid, attachment.fileId ?? '');
         uploadedAttachments.push(alreadyUploaded);
         continue;
       }
-      uploadedAttachments.push(await uploadAttachment(client, config, articleId, oid, attachment));
+      uploadedAttachments.push(await uploadAttachment(client, config, articleId, oid, attachment, logger));
       uploadedAttachmentCountThisRun += 1;
     }
   }

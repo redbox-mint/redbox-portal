@@ -17,8 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { existsSync } from 'fs';
+import path from 'path';
 import { Services as services } from '../CoreService';
+import { resolveHookViewFile } from '../hooks/hookResources';
+import type { ResolvedHookFile } from '../hooks/hookResources';
 
 
 export namespace Services {
@@ -33,6 +35,29 @@ export namespace Services {
       'displayValue',
       'resolvePartialPath'
     ];
+
+    private getCoreViewRoot(): string {
+      return path.resolve(sails.config.appPath, 'views');
+    }
+
+    private resolveCoreViewFile(viewPath: string): ResolvedHookFile | null {
+      return resolveHookViewFile(sails.config.appPath, viewPath, {
+        roots: [this.getCoreViewRoot()],
+        extension: '.ejs',
+      });
+    }
+
+    private resolveViewCandidate(viewPath: string): ResolvedHookFile | null {
+      return resolveHookViewFile(sails.config.appPath, viewPath)
+        ?? this.resolveCoreViewFile(viewPath);
+    }
+
+    private resolveTemplateDirectory(templatePath: string): string {
+      const resolvedTemplatePath = path.resolve(templatePath);
+      return path.extname(path.basename(resolvedTemplatePath))
+        ? path.dirname(resolvedTemplatePath)
+        : resolvedTemplatePath;
+    }
 
     /**
      * Extracts a display value from the request locals using a dot-notation path.
@@ -74,58 +99,24 @@ export namespace Services {
       branding: string,
       portal: string,
       templatePath: string,
-      fromTemplate: boolean = false
+      _fromTemplate: boolean = false
     ): string {
-      let partialLocation = value;
-      const viewsDir = sails.config.appPath + "/views";
-      const masterTemplateLocation = templatePath.substring(viewsDir.length, templatePath.length);
-      const splitUrl = masterTemplateLocation.split('/');
+      const candidates = [
+        `${branding}/${portal}/${value}`,
+        `default/${portal}/${value}`,
+        `default/default/${value}`,
+      ];
 
-      if (splitUrl.length > 2) {
-        // Try branding + portal specific path
-        let locationToTest = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + value;
-        sails.log.debug("testing :" + locationToTest);
-        if (existsSync(locationToTest)) {
-          partialLocation = branding + "/" + portal + "/" + value;
+      for (const candidate of candidates) {
+        const resolvedPartial = this.resolveViewCandidate(candidate);
+        if (resolvedPartial) {
+          const templateDirectory = this.resolveTemplateDirectory(templatePath);
+          const relativePartialPath = path.relative(templateDirectory, resolvedPartial.absolutePath);
+          return relativePartialPath.replace(/\\/g, '/');
         }
-
-        // Try default branding + specific portal path
-        if (partialLocation === value) {
-          locationToTest = sails.config.appPath + "/views/default/" + portal + "/" + value;
-          sails.log.debug("testing :" + locationToTest);
-          if (existsSync(locationToTest)) {
-            partialLocation = "default/" + portal + "/" + value;
-          }
-        }
-
-        // Try default branding + default portal path
-        if (partialLocation === value) {
-          locationToTest = sails.config.appPath + "/views/default/default/" + value;
-          sails.log.debug("testing :" + locationToTest);
-          if (existsSync(locationToTest)) {
-            partialLocation = "default/default/" + value;
-          }
-        }
-
-        // Add relative path prefixes if a location was found
-        if (partialLocation !== value) {
-          if (!fromTemplate) {
-            const numberOfLevels = splitUrl.length - 2;
-            for (let i = 0; i < numberOfLevels; i++) {
-              partialLocation = "../" + partialLocation;
-            }
-          } else {
-            const numberOfLevels = 2;
-            for (let i = 0; i < numberOfLevels; i++) {
-              partialLocation = "../" + partialLocation;
-            }
-          }
-        }
-
-        return partialLocation;
       }
 
-      return partialLocation;
+      return value;
     }
   }
 }

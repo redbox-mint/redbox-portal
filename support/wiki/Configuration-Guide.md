@@ -78,7 +78,7 @@ module.exports.registerRedboxConfig = function() {
 };
 ```
 
-Hook configurations are merged with core defaults in alphabetical order by package name.
+Hook configurations are merged with core defaults using the installation's root `package.json` `hookLoadPriority` list when present. The first hook listed has the highest precedence, so config shims process lower-precedence hooks first and the first listed hook wins conflicting values. Hooks not listed in `hookLoadPriority` are processed before listed hooks and keep the previous deterministic package-name fallback behavior.
 
 ## Environment variables
 
