@@ -469,13 +469,43 @@ export namespace Services {
         }
       }
       if (populatedPrefixes.length > 1) {
-        throw new Error(
-          `Ambiguous TUS upload parts for fileId '${fileId}': found parts in ${populatedPrefixes
-            .map((selection) => `'${selection.prefix}'`)
-            .join(', ')}`
+        const [firstSelection, ...otherSelections] = populatedPrefixes;
+        const firstSignature = await this.tusPartSelectionSignature(stagingDisk, firstSelection);
+        const allEquivalent = (
+          await Promise.all(
+            otherSelections.map(async (selection) =>
+              _.isEqual(firstSignature, await this.tusPartSelectionSignature(stagingDisk, selection))
+            )
+          )
+        ).every(Boolean);
+        if (!allEquivalent) {
+          throw new Error(
+            `Ambiguous TUS upload parts for fileId '${fileId}': found parts in ${populatedPrefixes
+              .map((selection) => `'${selection.prefix}'`)
+              .join(', ')}`
+          );
+        }
+        this.logger.verbose(
+          `${this.logHeader} selectTusPartPrefix() -> Equivalent TUS part prefixes found for ${fileId}; using '${firstSelection.prefix}'`
         );
+        return firstSelection;
       }
       return populatedPrefixes[0] ?? { partKeys: [] };
+    }
+
+    private async tusPartSelectionSignature(stagingDisk: IDisk, selection: TusPartPrefixSelection): Promise<string[]> {
+      const signature = [];
+      for (const partKey of selection.partKeys) {
+        const metadata = await stagingDisk.getMetaData(partKey);
+        signature.push(`${this.tusPartRelativeKey(partKey)}:${metadata.contentLength}`);
+      }
+      return signature.sort((left, right) => left.localeCompare(right));
+    }
+
+    private tusPartRelativeKey(partKey: string): string {
+      const partsMarker = '/parts/';
+      const partsMarkerIndex = partKey.indexOf(partsMarker);
+      return partsMarkerIndex >= 0 ? partKey.substring(partsMarkerIndex + partsMarker.length) : partKey;
     }
 
     private listedObjectKey(object: unknown): string | undefined {

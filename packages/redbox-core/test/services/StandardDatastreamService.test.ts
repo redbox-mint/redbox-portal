@@ -328,6 +328,71 @@ describe('StandardDatastreamService', function () {
       expect(mockPrimaryDisk.putStream.called).to.be.false;
       expect(mockStagingDisk.delete.called).to.be.false;
     });
+
+    it('should promote TUS parts when legacy and current prefixes contain equivalent parts', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.listAll.callsFake((prefix: string) => {
+        if (prefix === '.tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/00000000000000000000' }] });
+        }
+        if (prefix === 'tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/00000000000000000000' }] });
+        }
+        return Promise.resolve({ objects: [] });
+      });
+      mockStagingDisk.getMetaData.callsFake((key: string) => {
+        if (key.endsWith('/parts/00000000000000000000')) {
+          return Promise.resolve({ contentLength: 9 });
+        }
+        return Promise.reject(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      });
+      mockStagingDisk.getStream.callsFake(() => Readable.from(Buffer.from('test-data')));
+      mockPrimaryDisk.putStream.callsFake(async (_key: string, stream: Readable) => {
+        for await (const _chunk of stream) {
+          // Consume the lazy stream so part reads happen in the test.
+        }
+      });
+
+      const ds = new Datastream({ fileId: 'tus-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/tus-file' });
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/tus-file');
+      expect(mockStagingDisk.getStream.calledOnceWithExactly('tus/tus-file/parts/00000000000000000000')).to.be.true;
+    });
+
+    it('should reject TUS parts when legacy and current prefixes contain different parts', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.listAll.callsFake((prefix: string) => {
+        if (prefix === '.tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: '.tus/tus-file/parts/0' }] });
+        }
+        if (prefix === 'tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/1' }] });
+        }
+        return Promise.resolve({ objects: [] });
+      });
+      mockStagingDisk.getMetaData.resolves({ contentLength: 9 });
+
+      const ds = new Datastream({ fileId: 'tus-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Ambiguous TUS upload parts');
+      }
+    });
   });
 
   describe('addDatastreams', function () {
