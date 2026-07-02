@@ -1297,6 +1297,9 @@ export namespace Controllers {
       sails.log.verbose(`Have attach Id: ${attachId}`);
       this.initTusServer();
       const method = _.toLower(req.method);
+      this.logger.verbose(
+        `TUS attachment request method=${method} oid=${oid} attachId=${attachId} contentLength=${String(req.headers['content-length'] ?? '')} uploadOffset=${String(req.headers['upload-offset'] ?? '')} uploadLength=${String(req.headers['upload-length'] ?? '')} contentType=${String(req.headers['content-type'] ?? '')}`
+      );
 
       const brandPortalPrefix = BrandingService.getBrandAndPortalPath(req);
       const defaultAttachmentPrefix = `${brandPortalPrefix}/record/${oid}`;

@@ -218,7 +218,7 @@ export namespace Services {
 
       const syncState = this.getSyncState(config, rm);
       const client = this.makeClient(config, rm, syncState.correlationId, 'syncAssets');
-      return syncAssetsPhase(client, config, rm, article, syncState);
+      return syncAssetsPhase(client, config, rm, article, syncState, this.logger);
     }
 
     public async syncEmbargo(record: RecordModel, articleId: string): Promise<Record<string, unknown>> {
