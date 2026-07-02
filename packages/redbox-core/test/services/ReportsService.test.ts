@@ -274,7 +274,7 @@ describe('ReportsService', function() {
         await ReportsService.createConfig(brand, { ...databaseConfig, databaseQuery: { queryName: 'missingQuery' } });
         expect.fail('Expected missing named query to throw');
       } catch (error: any) {
-        expect(error.status).to.equal(400);
+        expect(error.status).to.equal(404);
         expect(error.message).to.include("Named query 'missingQuery' not found");
       }
 

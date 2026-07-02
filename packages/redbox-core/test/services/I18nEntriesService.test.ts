@@ -234,13 +234,14 @@ describe('I18nEntriesService', function() {
   });
 
   describe('deleteEntry', function() {
-    it('should destroy entry and update bundle', async function() {
-      mockI18nTranslation.destroyOne.resolves({ id: 'deleted' });
+    it('should soft delete entry and update bundle', async function() {
+      mockI18nTranslation.findOne.resolves({ id: 'translation-1' });
       mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: { key: 'value' } });
       
       await I18nEntriesService.deleteEntry('brand-1', 'en', 'ns', 'key');
       
-      expect(mockI18nTranslation.destroyOne.called).to.be.true;
+      expect(mockI18nTranslation.updateOne.calledWith({ id: 'translation-1' })).to.be.true;
+      expect(mockI18nTranslation.destroyOne.called).to.be.false;
       expect(mockI18nBundle.updateOne.called).to.be.true;
     });
   });

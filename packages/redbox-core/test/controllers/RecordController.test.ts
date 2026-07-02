@@ -307,7 +307,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect((global as any).WorkflowStepsService.getAllForRecordType.called).to.be.false;
   });
 
-  it('returns 400 when record type is invalid', async () => {
+  it('returns 404 when record type is invalid', async () => {
     const req = {
       param: sinon.stub().returns('dataset'),
       session: { branding: 'default' },
@@ -322,7 +322,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect((global as any).RecordTypesService.get.calledWith(sinon.match({ id: 'brand-1' }), 'dataset')).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.equal({
-      status: 400,
+      status: 404,
       displayErrors: [{ detail: 'Record Type provided is not valid' }],
     });
     expect((global as any).WorkflowStepsService.getAllForRecordType.called).to.be.false;

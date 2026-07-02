@@ -366,6 +366,10 @@ describe('VocabularyService', () => {
       .onFirstCall().returns({ fetch: createFetchParent })
       .onSecondCall().returns({ fetch: createFetchChild }) as unknown as VocabularyEntryModelStub['create'];
 
+    g.VocabularyEntry.find = sinon.stub().returns({
+      limit: sinon.stub().resolves([])
+    }) as unknown as VocabularyEntryModelStub['find'];
+
     g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
       if (criteria.id === 'db-parent') {
         return { id: 'db-parent', vocabulary: 'v1', parent: null };

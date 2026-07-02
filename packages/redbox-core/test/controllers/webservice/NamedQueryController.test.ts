@@ -273,7 +273,7 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
   });
 
-  it('returns 400 when update attempts to change the name', async () => {
+  it('ignores body name changes during update', async () => {
     const param = sinon.stub();
     param.withArgs('name').returns('query-1');
     const req = {
@@ -286,10 +286,11 @@ describe('Webservice NamedQueryController', () => {
 
     await controller.updateQuery(req, res);
 
-    expect((global as any).NamedQueryService.update.called).to.be.false;
+    expect((global as any).NamedQueryService.update.calledOnce).to.be.true;
+    expect((global as any).NamedQueryService.update.firstCall.args[1]).to.equal('query-1');
+    expect((global as any).NamedQueryService.update.firstCall.args[2]).to.not.have.property('name');
     expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.detail).to.equal('Named query name cannot be changed');
+    expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('query-1');
   });
 
   it('maps not found errors to 404 on update', async () => {

@@ -514,7 +514,7 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
-        it('rejects tracked harvest requests that also specify updateMode', async () => {
+        it('ignores compatibility updateMode for tracked harvest requests', async () => {
             const req = makeThrowingRequest({
                 params: { recordType: 'dataset' },
                 query: { updateMode: 'merge' },
@@ -530,8 +530,8 @@ describe('Webservice RecordController body source', () => {
 
             await controller.harvest(req, {} as Sails.Res);
 
-            expect((global as any).HarvestRunService.submitChunk.called).to.be.false;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+            expect((global as any).HarvestRunService.submitChunk.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.data).to.exist;
         });
 
         it('uses req.apiRequest body in legacyHarvest', async () => {

@@ -135,7 +135,7 @@ describe('Webservice SearchController', () => {
             expect(apiRespondStub.called).to.be.true;
         });
 
-        it('should map Solr query parser failures to conflict instead of bad request', async () => {
+        it('should map Solr query parser failures to server error', async () => {
             const req = makeReq({
                 session: { branding: 'default' } as Sails.Req['session'],
                 user: { username: 'tester', roles: [] },
@@ -153,7 +153,7 @@ describe('Webservice SearchController', () => {
             await controller.search(req, res);
 
             expect(sendRespStub.calledOnce).to.be.true;
-            expect(sendRespStub.firstCall.args[2].status).to.equal(409);
+            expect(sendRespStub.firstCall.args[2].status).to.equal(500);
         });
     });
 });
