@@ -14,6 +14,7 @@ log = logging.getLogger("redbox-hooks")
 
 OID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
 INVALID_OID_SENTINEL = "invalid*oid"
+TRANSLATION_ENTRY_BODY_KEYS = {"value", "category", "description", "contentFormat"}
 
 
 # Known false-positive endpoint patterns for status_code_conformance.
@@ -161,15 +162,22 @@ def _is_default_positive_negative_translation_entry_case(case) -> bool:
     if path_parameters.get("key") != "menu-dashboard-config":
         return False
 
-    # Regardless of the test-phase description (positive or negative), if the
-    # body explicitly contains a contentFormat that is a valid enum value, the
-    # mutation did not actually produce invalid data for this field — treat as
-    # false positive.  Only match on explicit valid values ("plain"/"html"),
-    # NOT on absent/None, so that mutations on other fields (e.g. value) that
-    # the API incorrectly accepts are still surfaced as failures.
     body = getattr(case, "body", None)
-    content_format = (body or {}).get("contentFormat") if isinstance(body, dict) else None
-    if content_format in {"plain", "html"}:
+
+    # The entry-update schema only requires a non-empty string `value`; the
+    # remaining fields are optional metadata with ordinary string / enum types.
+    # Schemathesis can classify optional-field removals as negative coverage
+    # mutations, but these are still schema-valid request shapes that the API
+    # accepts.
+    if (
+        isinstance(body, dict)
+        and "value" in body
+        and set(body.keys()).issubset(TRANSLATION_ENTRY_BODY_KEYS)
+        and isinstance(body.get("value"), str)
+        and len(body.get("value")) > 0
+        and all(isinstance(body.get(key), str) for key in ("category", "description") if key in body)
+        and ("contentFormat" not in body or body.get("contentFormat") in {"plain", "html"})
+    ):
         return True
 
     meta = getattr(case, "meta", None) or getattr(case, "_meta", None)
