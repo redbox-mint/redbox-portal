@@ -5,8 +5,8 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
-# Install dependencies for running
-npm install --ignore-scripts --strict-peer-deps
+# Install dependencies when running against a mounted writable checkout.
+bash /opt/redbox-portal/support/integration-testing/install-redbox-dependencies-if-writable.sh
 
 # Remove the output from any previous tests
 rm -rf /opt/redbox-portal/coverage/bruno-oidc/* || true

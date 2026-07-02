@@ -195,6 +195,17 @@ async function mapRelatedItems(
   return results;
 }
 
+/**
+ * DataCite only enforces the mandatory metadata properties (creators, titles,
+ * publisher, publicationYear, resourceTypeGeneral) and the landing-page url when a
+ * DOI is moved into the findable state, which is reached via the 'publish' event.
+ * Drafts (and other transitions) accept incomplete metadata, so the required-field
+ * pre-flight checks are only applied for findable publishes.
+ */
+function isFindableEvent(event: string): boolean {
+  return event === 'publish';
+}
+
 function validatePublicationYear(publicationYear: string | undefined, errors: string[]) {
   if (publicationYear == null) {
     return;
@@ -299,27 +310,31 @@ export async function buildDoiPayload(
   };
 
   const errors: string[] = [];
-  if (profile.validation.requireTitles && titles.length === 0) {
-    errors.push('title-required');
-  }
-  if (profile.validation.requirePublisher && publisher == null) {
-    errors.push('publisher-required');
-  }
-  if (profile.validation.requireCreators && creators.length === 0) {
-    errors.push('creators-required');
-  }
-  if (profile.validation.requirePublicationYear && publicationYear == null) {
-    errors.push('publication-year-required');
-  }
-  if (profile.validation.requireUrl && url == null) {
-    errors.push('url-required');
+  // Required-field (presence) checks only apply when the DOI is being made findable.
+  // The format checks below always run, but only flag values that are actually present.
+  if (isFindableEvent(event)) {
+    if (profile.validation.requireTitles && titles.length === 0) {
+      errors.push('title-required');
+    }
+    if (profile.validation.requirePublisher && publisher == null) {
+      errors.push('publisher-required');
+    }
+    if (profile.validation.requireCreators && creators.length === 0) {
+      errors.push('creators-required');
+    }
+    if (profile.validation.requirePublicationYear && publicationYear == null) {
+      errors.push('publication-year-required');
+    }
+    if (profile.validation.requireUrl && url == null) {
+      errors.push('url-required');
+    }
+    if (asTrimmedString(types.resourceTypeGeneral) == null) {
+      errors.push('general-resource-type-required');
+    }
   }
   validatePublicationYear(publicationYear, errors);
   validateUrl(url, errors);
   validateDates(dates, errors);
-  if (asTrimmedString(types.resourceTypeGeneral) == null) {
-    errors.push('general-resource-type-required');
-  }
   if (errors.length > 0) {
     const error = new RBValidationError({
       message: `Could not build DOI payload for oid ${oid}: ${errors.join(', ')}`,

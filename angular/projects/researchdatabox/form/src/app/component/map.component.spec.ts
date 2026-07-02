@@ -1,9 +1,12 @@
 import {TestBed} from "@angular/core/testing";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {TranslationService} from "@researchdatabox/portal-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {MAP_DEPENDENCIES_LOADER, MapComponent} from "./map.component";
+import {ConfirmationDialogService} from "../confirmation-dialog.service";
 
 describe("MapComponent", () => {
+  const uuidV4Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   let fakeMap: any;
   let fakeDraw: any;
   let drawFeatures: unknown[];
@@ -12,6 +15,7 @@ describe("MapComponent", () => {
   let fakeVectorLayer: any;
   let fakeVectorSource: any;
   let fakeGeoJSONFormat: any;
+  let fakeGeoJSONReadFeatures: jasmine.Spy;
   let fakeFromLonLat: jasmine.Spy;
   let fakeIsEmpty: jasmine.Spy;
   let fakeMapCreatesCanvas: boolean;
@@ -20,7 +24,9 @@ describe("MapComponent", () => {
   let fakeAdapterCtor: jasmine.Spy;
   let drawListeners: Record<string, Function[]>;
   let fakeSelectModeOptions: unknown[];
+  let fakeModeInstances: any[];
   let fakeXYZInstances: any[];
+  let fakeMapInteractions: any[];
 
   function appendOpenLayersCanvas(target: HTMLElement | undefined): void {
     if (!target?.appendChild || target.querySelector("canvas")) {
@@ -84,11 +90,30 @@ describe("MapComponent", () => {
     return this;
   }
 
+  function getToolbarButtons(fixture: any): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[];
+  }
+
+  function getButtonLabel(button: HTMLButtonElement): string {
+    return button.getAttribute("aria-label") ?? "";
+  }
+
   beforeEach(async () => {
     drawFeatures = [];
     drawListeners = {};
     fakeSelectModeOptions = [];
+    fakeModeInstances = [];
     fakeXYZInstances = [];
+    fakeMapInteractions = [
+      {
+        getActive: jasmine.createSpy("getActive").and.returnValue(true),
+        setActive: jasmine.createSpy("setActive")
+      },
+      {
+        getActive: jasmine.createSpy("getActive").and.returnValue(false),
+        setActive: jasmine.createSpy("setActive")
+      }
+    ];
     fakeMapCreatesCanvas = true;
     fakeMapCreatesCanvasOnRenderSync = false;
     fakeMapTarget = undefined;
@@ -109,7 +134,10 @@ describe("MapComponent", () => {
       setTarget: jasmine.createSpy("setTarget"),
       addLayer: jasmine.createSpy("addLayer"),
       removeLayer: jasmine.createSpy("removeLayer"),
-      getView: jasmine.createSpy("getView").and.returnValue(fakeView)
+      getView: jasmine.createSpy("getView").and.returnValue(fakeView),
+      getInteractions: jasmine.createSpy("getInteractions").and.returnValue({
+        getArray: () => fakeMapInteractions
+      })
     };
 
     fakeVectorLayer = {
@@ -121,9 +149,10 @@ describe("MapComponent", () => {
       getExtent: jasmine.createSpy("getExtent").and.returnValue([0, 0, 1, 1])
     };
 
-    fakeGeoJSONFormat = jasmine.createSpy("GeoJSONFormat").and.callFake(() => ({
-      readFeatures: jasmine.createSpy("readFeatures").and.returnValue([])
-    }));
+    fakeGeoJSONReadFeatures = jasmine.createSpy("readFeatures").and.returnValue([]);
+    fakeGeoJSONFormat = function FakeGeoJSONFormat(this: any) {
+      this.readFeatures = fakeGeoJSONReadFeatures;
+    };
 
     fakeDraw = {
       start: jasmine.createSpy("start"),
@@ -134,7 +163,11 @@ describe("MapComponent", () => {
       }),
       setMode: jasmine.createSpy("setMode"),
       addFeatures: jasmine.createSpy("addFeatures").and.callFake((features: unknown[]) => {
-        drawFeatures.push(...features);
+        drawFeatures.push(...features.filter((feature: any) => feature?.id != null && feature?.properties?.mode));
+      }),
+      clear: jasmine.createSpy("clear").and.callFake(() => {
+        drawFeatures = [];
+        drawListeners["change"]?.forEach((listener) => listener({}));
       }),
       removeFeatures: jasmine.createSpy("removeFeatures").and.callFake((ids: unknown[]) => {
         drawFeatures = drawFeatures.filter((feature: any) => !ids.includes(feature.id));
@@ -154,12 +187,18 @@ describe("MapComponent", () => {
       fakeAdapterCtor();
       return {};
     }
-    function FakeModeCtor(this: unknown) {
-      return {};
+    function fakeModeCtor(modeName: string) {
+      return function FakeModeCtor(this: unknown, options?: unknown) {
+        const mode = {modeName, options};
+        fakeModeInstances.push(mode);
+        return mode;
+      };
     }
     function FakeSelectModeCtor(this: unknown, options: unknown) {
+      const mode = {modeName: "select", options};
       fakeSelectModeOptions.push(options);
-      return {};
+      fakeModeInstances.push(mode);
+      return mode;
     }
 
     const mapDependencies = {
@@ -183,16 +222,55 @@ describe("MapComponent", () => {
       Projection: function FakeProjection() {} as any,
       terraDraw: {
         TerraDraw: FakeTerraDrawCtor,
-        TerraDrawPointMode: FakeModeCtor,
-        TerraDrawPolygonMode: FakeModeCtor,
-        TerraDrawLineStringMode: FakeModeCtor,
-        TerraDrawRectangleMode: FakeModeCtor,
+        TerraDrawPointMode: fakeModeCtor("point"),
+        TerraDrawPolygonMode: fakeModeCtor("polygon"),
+        TerraDrawLineStringMode: fakeModeCtor("linestring"),
+        TerraDrawRectangleMode: fakeModeCtor("rectangle"),
+        TerraDrawCircleMode: fakeModeCtor("circle"),
         TerraDrawSelectMode: FakeSelectModeCtor
       },
       terraDrawOpenLayersAdapter: {
         TerraDrawOpenLayersAdapter: fakeAdapterCtor
       },
-      parseKmlToGeoJson: () => ({type: "FeatureCollection", features: []})
+      parseKmlToGeoJson: () => ({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [-122.681944, 45.52, 0]},
+            properties: {name: "Portland"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [-43.196389, -22.908333, 0]},
+            properties: {name: "Rio de Janeiro"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [28.976018, 41.01224, 0]},
+            properties: {name: "Istanbul"}
+          },
+          {
+            type: "Feature",
+            geometry: {type: "Point", coordinates: [-21.933333, 64.133333, 0]},
+            properties: {name: "Reykjavik"}
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [-122.681944, 45.52, 0],
+                [-43.196389, -22.908333, 0],
+                [28.976018, 41.01224, 0],
+                [-21.933333, 64.133333, 0],
+                [-122.681944, 45.52, 0]
+              ]]
+            },
+            properties: {name: "Simple Polygon"}
+          }
+        ]
+      })
     } as any;
 
     await createTestbedModule({
@@ -212,6 +290,38 @@ describe("MapComponent", () => {
     const fixture = TestBed.createComponent(MapComponent);
     const component = fixture.componentInstance;
     expect(component).toBeDefined();
+  });
+
+  it("exposes toolbar help text to assistive technology", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const pointButton = fixture.nativeElement.querySelector(".rb-map-mode-btn") as HTMLButtonElement;
+    const helpId = pointButton.getAttribute("aria-describedby");
+    expect(helpId).toBe("rb-map-mode-help-point");
+    expect(fixture.nativeElement.querySelector(`#${helpId}`)?.textContent).toContain("Add a point marker to the map.");
   });
 
   it("imports GeoJSON and updates form model value", async () => {
@@ -258,6 +368,366 @@ describe("MapComponent", () => {
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect(modelValue?.type).toBe("FeatureCollection");
     expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].id).toMatch(uuidV4Pattern);
+    expect(modelValue.features[0].properties.mode).toBe("point");
+  });
+
+  it("appends imported GeoJSON without duplicating existing draw features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    fakeDraw.addFeatures.calls.reset();
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {type: "Point", coordinates: [153.02, -27.47]},
+      properties: {name: "Brisbane"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
+      jasmine.objectContaining({
+        properties: jasmine.objectContaining({name: "Brisbane", mode: "point"})
+      })
+    ]);
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue.features.map((feature: any) => feature.properties.name)).toEqual(["Melbourne", "Brisbane"]);
+    expect(modelValue.features[1].id).toMatch(uuidV4Pattern);
+  });
+
+  it("imports a single GeoJSON feature snippet", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {type: "Point", coordinates: [146.82, -19.25]},
+      properties: {name: "Townsville"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue?.type).toBe("FeatureCollection");
+    expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].properties.name).toBe("Townsville");
+    expect(modelValue.features[0].properties.mode).toBe("point");
+  });
+
+  it("imports a raw GeoJSON geometry snippet", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Point",
+      coordinates: [146.82, -19.25]
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(1);
+    expect(modelValue.features[0].geometry.type).toBe("Point");
+    expect(modelValue.features[0].properties.mode).toBe("point");
+  });
+
+  it("imports KML and updates form model value", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    fakeView.fit.calls.reset();
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = `<?xml version="1.0" encoding="utf-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Portland</name>
+      <Point>
+        <coordinates>-122.681944,45.52,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Rio de Janeiro</name>
+      <Point>
+        <coordinates>-43.196389,-22.908333,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Istanbul</name>
+      <Point>
+        <coordinates>28.976018,41.01224,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Reykjavik</name>
+      <Point>
+        <coordinates>-21.933333,64.133333,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Simple Polygon</name>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>-122.681944,45.52,0
+            -43.196389,-22.908333,0
+            28.976018,41.01224,0
+            -21.933333,64.133333,0
+            -122.681944,45.52,0</coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>`;
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(5);
+    expect(modelValue.features.map((feature: any) => feature.properties.name)).toEqual([
+      "Portland",
+      "Rio de Janeiro",
+      "Istanbul",
+      "Reykjavik",
+      "Simple Polygon"
+    ]);
+    expect(modelValue.features.map((feature: any) => feature.properties.mode)).toEqual([
+      "point",
+      "point",
+      "point",
+      "point",
+      "polygon"
+    ]);
+    expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id))).toBeTrue();
+    expect(modelValue.features[0].geometry.coordinates).toEqual([-122.681944, 45.52]);
+    expect(modelValue.features[4].geometry.coordinates[0][0]).toEqual([-122.681944, 45.52]);
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], { padding: [24, 24, 24, 24] });
+  });
+
+  it("expands GeoJSON multi-geometries into draw-compatible features", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "Feature",
+      geometry: {
+        type: "MultiPoint",
+        coordinates: [[153.02, -27.47], [146.82, -19.25]]
+      },
+      properties: {name: "Queensland sites", mode: "polygon"}
+    });
+    textarea.dispatchEvent(new Event("input"));
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+    importButton.click();
+    await fixture.whenStable();
+
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect((modelValue?.features ?? []).length).toBe(2);
+    expect(modelValue.features.map((feature: any) => feature.geometry.type)).toEqual(["Point", "Point"]);
+    expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id) && feature.properties.mode === "point")).toBeTrue();
+  });
+
+  it("throws a controlled error when map feature ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      expect(() => (mapComponent as any).createFeatureId()).toThrowError("Unable to generate map feature id: crypto API is unavailable");
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
+  });
+
+  it("renders translated coordinates help text", async () => {
+    const translationService = TestBed.inject(TranslationService as any) as any;
+    spyOn(translationService, "t").and.callFake((key: string) => {
+      if (key === "@dataPublication-geospatial-coordinates-help") {
+        return "Enter or paste translated KML or GeoJSON help.";
+      }
+      return key;
+    });
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              coordinatesHelp: "@dataPublication-geospatial-coordinates-help"
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Enter or paste translated KML or GeoJSON help.");
+    expect(fixture.nativeElement.textContent).not.toContain("@dataPublication-geospatial-coordinates-help");
   });
 
   it("shows invalid import error for malformed payload", async () => {
@@ -355,14 +825,72 @@ describe("MapComponent", () => {
 
     await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
-      {
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
         geometry: {type: "Point", coordinates: [144.96, -37.81]},
-        properties: {name: "Melbourne"}
-      }
+        properties: jasmine.objectContaining({name: "Melbourne", mode: "point"})
+      })
     ]);
     expect(drawFeatures.length).toBe(1);
     expect(fakeMap.updateSize).toHaveBeenCalled();
+  });
+
+  it("shows saved features read-only when edit draw ids cannot be generated", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fakeDraw.addFeatures).not.toHaveBeenCalled();
+      expect(fakeGeoJSONReadFeatures).toHaveBeenCalledWith(
+        jasmine.objectContaining({features: jasmine.arrayContaining([
+          jasmine.objectContaining({id: "feature-1"})
+        ])}),
+        {dataProjection: "EPSG:4326", featureProjection: "EPSG:3857"}
+      );
+      expect((fixture.nativeElement.textContent ?? "").includes("Saved map features cannot be loaded for editing")).toBeTrue();
+    } finally {
+      if (cryptoDescriptor) {
+        Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      }
+    }
   });
 
   it("initialises draw tooling when a disabled map is enabled after map load", async () => {
@@ -408,7 +936,7 @@ describe("MapComponent", () => {
     expect(enabledModeButtons.length).toBeGreaterThan(0);
     expect(enabledModeButtons.every((button) => !button.disabled)).toBeTrue();
 
-    const polygonButton = enabledModeButtons.find((button) => button.textContent?.trim() === "Polygon") as HTMLButtonElement;
+    const polygonButton = enabledModeButtons.find((button) => getButtonLabel(button) === "Polygon") as HTMLButtonElement;
     polygonButton.click();
     fixture.detectChanges();
 
@@ -460,19 +988,22 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(modeButtonText).toContain("Point");
-    expect(modeButtonText).toContain("Select/Edit");
+    const modeButtons = getToolbarButtons(fixture);
+    const modeButtonLabels = modeButtons.map(getButtonLabel);
+    expect(modeButtonLabels).toContain("Point");
+    expect(modeButtonLabels).toContain("Select/Edit");
 
     // Delete button stays hidden until a feature is selected.
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
-    const selectButton = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .find((button) => button.textContent?.trim() === "Select/Edit") as HTMLButtonElement;
+    const selectButton = modeButtons.find((button) => getButtonLabel(button) === "Select/Edit") as HTMLButtonElement;
     selectButton.click();
     fixture.detectChanges();
 
-    drawListeners["select"]?.forEach((listener) => listener("feature-1"));
+    const selectedFeatureId = (drawFeatures[0] as any).id;
+    const remainingFeatureId = (drawFeatures[1] as any).id;
+    expect(selectedFeatureId).toMatch(uuidV4Pattern);
+    expect(remainingFeatureId).toMatch(uuidV4Pattern);
+    drawListeners["select"]?.forEach((listener) => listener(selectedFeatureId));
     fixture.detectChanges();
     const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
     expect(deleteButton).not.toBeNull();
@@ -482,13 +1013,71 @@ describe("MapComponent", () => {
     deleteButton.click();
     fixture.detectChanges();
 
-    expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith(["feature-1"]);
+    expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith([selectedFeatureId]);
     expect(setValueSpy).toHaveBeenCalledTimes(1);
     expect(fakeDraw.setMode).toHaveBeenCalledWith("select");
     expect(mapComponent.activeMode).toBe("select");
     expect(mapComponent.selectedFeatureIds.size).toBe(0);
     const modelValue = (formComponent as any).form.value?.map_coverage;
-    expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual(["feature-2"]);
+    expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual([remainingFeatureId]);
+  });
+
+  it("clears all map features after confirmation", async () => {
+    const confirmationDialogService = TestBed.inject(ConfirmationDialogService);
+    const confirmSpy = spyOn(confirmationDialogService, "confirm").and.resolveTo(true);
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    id: "feature-1",
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {name: "Melbourne", mode: "point"}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const clearButton = fixture.nativeElement.querySelector(".rb-map-clear-btn") as HTMLButtonElement;
+    expect(clearButton).not.toBeNull();
+    clearButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(confirmSpy).toHaveBeenCalledWith({
+      title: "Clear map features",
+      message: "Clear all map features?",
+      confirmLabel: "Clear All",
+      cancelLabel: "Cancel",
+      confirmButtonClass: "btn btn-danger"
+    });
+    expect(fakeDraw.clear).toHaveBeenCalled();
+    const modelValue = (formComponent as any).form.value?.map_coverage;
+    expect(modelValue).toEqual({type: "FeatureCollection", features: []});
+    expect(fixture.nativeElement.querySelector(".rb-map-clear-btn")).toBeNull();
   });
 
   it("hides the select button until the map has features", async () => {
@@ -519,9 +1108,8 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const initialModeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(initialModeButtonText).toEqual(["Point"]);
+    const initialModeButtons = getToolbarButtons(fixture);
+    expect(initialModeButtons.map(getButtonLabel)).toEqual(["Point"]);
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
 
     mapComponent.formControl.setValue({
@@ -537,9 +1125,7 @@ describe("MapComponent", () => {
     });
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
-    expect(modeButtonText).toContain("Select/Edit");
+    expect(getToolbarButtons(fixture).map(getButtonLabel)).toContain("Select/Edit");
   });
 
   it("configures select mode so drawn rectangles can be manually selected", async () => {
@@ -587,6 +1173,85 @@ describe("MapComponent", () => {
     }));
   });
 
+  it("includes circle draw mode in default draw tooling", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const modeButtonText = getToolbarButtons(fixture).map(getButtonLabel);
+    const circleMode = fakeModeInstances.find((mode) => mode.modeName === "circle");
+
+    expect(modeButtonText).toContain("Circle");
+    expect(circleMode).toEqual(jasmine.objectContaining({
+      modeName: "circle",
+      options: {drawInteraction: "click-drag"}
+    }));
+  });
+
+  it("disables map interactions while click-drag shape modes are active", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              enabledModes: ["rectangle", "circle", "point", "select"]
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    // No tool is selected by default, so map interactions stay enabled for panning.
+    expect(fakeMapInteractions[0].setActive).not.toHaveBeenCalled();
+    expect(fakeMapInteractions[1].setActive).not.toHaveBeenCalled();
+
+    mapComponent.setDrawMode("rectangle");
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+
+    mapComponent.setDrawMode("point");
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(true);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+
+    mapComponent.setDrawMode("circle");
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+  });
+
   it("does not add select/delete tooling when select mode is disabled", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",
@@ -614,8 +1279,7 @@ describe("MapComponent", () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const modeButtonText = (Array.from(fixture.nativeElement.querySelectorAll(".rb-map-mode-btn")) as HTMLButtonElement[])
-      .map((button: HTMLButtonElement) => button.textContent?.trim());
+    const modeButtonText = getToolbarButtons(fixture).map(getButtonLabel);
     expect(modeButtonText).toEqual(["Point"]);
     expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
     expect(fakeSelectModeOptions.length).toBe(0);

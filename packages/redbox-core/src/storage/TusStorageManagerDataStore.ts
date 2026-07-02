@@ -55,6 +55,9 @@ export class TusStorageManagerDataStore extends DataStore {
     const storedUpload = this.toStoredUpload(file);
     await this.writeUploadInfo(file.id, storedUpload);
     file.storage = { type: 'storage-manager', path: this.finalKey(file.id) };
+    this.logger?.verbose(
+      `TusStorageManagerDataStore: create id='${file.id}' size=${file.size ?? 'deferred'} offset=${file.offset} infoKey='${this.infoKey(file.id)}' finalKey='${this.finalKey(file.id)}'`
+    );
     return file;
   }
 
@@ -69,9 +72,15 @@ export class TusStorageManagerDataStore extends DataStore {
   public override async write(readable: Readable, id: string, offset: number): Promise<number> {
     const collected = await this.readStream(readable);
     this.validateWriteInputs(offset, collected.length);
+    this.logger?.verbose(
+      `TusStorageManagerDataStore: write received id='${id}' requestOffset=${offset} bytes=${collected.length}`
+    );
 
     return this.withUploadLock(id, async () => {
       const upload = await this.readStoredUpload(id);
+      this.logger?.verbose(
+        `TusStorageManagerDataStore: write state id='${id}' storedOffset=${upload.offset} size=${upload.size ?? 'deferred'}`
+      );
       if (upload.offset !== offset) {
         throw ERRORS.INVALID_OFFSET;
       }
@@ -86,9 +95,15 @@ export class TusStorageManagerDataStore extends DataStore {
 
       const partKey = this.partKey(id, offset);
       try {
+        this.logger?.verbose(
+          `TusStorageManagerDataStore: writing part id='${id}' partKey='${partKey}' bytes=${collected.length}`
+        );
         await this.disk.put(partKey, collected, { contentLength: collected.length });
         upload.offset = newOffset;
         await this.writeUploadInfo(id, upload);
+        this.logger?.verbose(
+          `TusStorageManagerDataStore: wrote part id='${id}' newOffset=${newOffset} infoKey='${this.infoKey(id)}'`
+        );
       } catch (error) {
         this.logger?.error(`TusStorageManagerDataStore: failed writing upload '${id}'`, error);
         throw ERRORS.FILE_WRITE_ERROR;
@@ -96,6 +111,9 @@ export class TusStorageManagerDataStore extends DataStore {
 
       if (upload.size !== undefined && newOffset === upload.size) {
         try {
+          this.logger?.verbose(
+            `TusStorageManagerDataStore: upload complete id='${id}' size=${upload.size}; materializing to '${this.finalKey(id)}'`
+          );
           await this.materializeUpload(id, upload, { deleteParts: true });
         } catch (error) {
           upload.offset = offset;
@@ -127,6 +145,9 @@ export class TusStorageManagerDataStore extends DataStore {
     const upload = await this.readStoredUpload(id);
     upload.size = uploadLength;
     await this.writeUploadInfo(id, upload);
+    this.logger?.verbose(
+      `TusStorageManagerDataStore: declareUploadLength id='${id}' uploadLength=${uploadLength} offset=${upload.offset}`
+    );
 
     if (upload.offset === uploadLength) {
       await this.materializeUpload(id, upload, { deleteParts: true });
@@ -223,12 +244,24 @@ export class TusStorageManagerDataStore extends DataStore {
 
   private async materializeUpload(id: string, upload: TusStoredUpload, options: { deleteParts: boolean }): Promise<void> {
     const partKeys = await this.listPartKeys(id);
+    this.logger?.verbose(
+      `TusStorageManagerDataStore: materialize id='${id}' partCount=${partKeys.length} partsPrefix='${this.partsPrefix(id)}' finalKey='${this.finalKey(id)}' contentLength=${upload.offset}`
+    );
+    if (!partKeys.length && upload.offset > 0) {
+      throw new Error(`No TUS parts found for '${id}' while materializing ${upload.offset} bytes`);
+    }
     const composed = Readable.from(this.streamPartsSequential(partKeys));
 
     try {
       await this.disk.putStream(this.finalKey(id), composed, { contentLength: upload.offset });
+      this.logger?.verbose(
+        `TusStorageManagerDataStore: materialized id='${id}' finalKey='${this.finalKey(id)}' contentLength=${upload.offset}`
+      );
       if (options.deleteParts) {
         await this.disk.deleteAll(this.partsPrefix(id));
+        this.logger?.verbose(
+          `TusStorageManagerDataStore: deleted parts id='${id}' partsPrefix='${this.partsPrefix(id)}'`
+        );
       }
     } catch (error) {
       this.logger?.error(`TusStorageManagerDataStore: failed composing upload '${id}'`, error);

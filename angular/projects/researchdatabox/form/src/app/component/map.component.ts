@@ -1,5 +1,5 @@
-import {AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject} from "@angular/core";
-import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions} from "@researchdatabox/portal-ng-common";
+import { AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject } from "@angular/core";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions, TranslationService } from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
   MapDrawingMode,
@@ -13,6 +13,7 @@ import {
 // so a record without a map field never pays the cost of OpenLayers, terra-draw,
 // terra-draw-openlayers-adapter or @tmcw/togeojson.
 import type OLMap from "ol/Map.js";
+import type OLInteraction from "ol/interaction/Interaction.js";
 import type OLView from "ol/View.js";
 import type OLTileLayer from "ol/layer/Tile.js";
 import type OLVectorLayer from "ol/layer/Vector.js";
@@ -27,8 +28,9 @@ import type OLStroke from "ol/style/Stroke.js";
 import type OLStyle from "ol/style/Style.js";
 import type * as TerraDrawLibrary from "terra-draw";
 import type * as TerraDrawOpenLayersAdapterLibrary from "terra-draw-openlayers-adapter";
-import type {kml as ParseKmlToGeoJson} from "@tmcw/togeojson";
-import {FormComponent} from "../form.component";
+import type { kml as ParseKmlToGeoJson } from "@tmcw/togeojson";
+import { FormComponent } from "../form.component";
+import { ConfirmationDialogService } from "../confirmation-dialog.service";
 
 export interface MapDependencies {
   Map: typeof OLMap;
@@ -153,6 +155,7 @@ interface TerraDrawDependencies {
   PolygonMode?: new (...args: unknown[]) => unknown;
   LineStringMode?: new (...args: unknown[]) => unknown;
   RectangleMode?: new (...args: unknown[]) => unknown;
+  CircleMode?: new (...args: unknown[]) => unknown;
   SelectMode?: new (...args: unknown[]) => unknown;
 }
 
@@ -166,7 +169,7 @@ type TerraDrawSelectModeOptions = {
       draggable: boolean;
       coordinates?: {
         draggable: boolean;
-        midpoints: boolean | {draggable: boolean};
+        midpoints: boolean | { draggable: boolean };
         deletable: boolean;
       };
     };
@@ -205,40 +208,81 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
           @if (isEditMode() && showDrawToolbar) {
             <div class="rb-map-toolbar">
               @for (mode of toolbarModes; track mode) {
+                @let modeHelpId = 'rb-map-mode-help-' + mode;
                 <button
                   type="button"
                   class="btn btn-light btn-sm rb-map-mode-btn"
                   [class.active]="activeMode === mode"
-                  (click)="setDrawMode(mode)"
+                  (click)="setDrawMode(mode); $any($event.currentTarget).blur()"
                   [disabled]="isDisabled"
+                  [attr.title]="modeLabels[mode]"
+                  [attr.aria-label]="modeLabels[mode]"
+                  [attr.aria-describedby]="modeHelpId"
                 >
-                  {{ modeLabels[mode] }}
+                  <i [class]="modeIconClasses[mode]" aria-hidden="true"></i>
+                  <span class="visually-hidden">{{ modeLabels[mode] }}</span>
+                  <span class="visually-hidden" [id]="modeHelpId">{{ translatedModeHelpText[mode] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText[mode]"></span>
                 </button>
               }
               @if (canSelectFeatures && hasFeatures()) {
+                @let selectHelpId = 'rb-map-mode-help-select';
                 <button
                   type="button"
                   class="btn btn-light btn-sm rb-map-mode-btn rb-map-select-btn"
                   [class.active]="activeMode === 'select'"
-                  (click)="setDrawMode('select')"
+                  (click)="setDrawMode('select'); $any($event.currentTarget).blur()"
                   [disabled]="isDisabled"
+                  [attr.title]="modeLabels['select']"
+                  [attr.aria-label]="modeLabels['select']"
+                  [attr.aria-describedby]="selectHelpId"
                 >
-                  {{ modeLabels['select'] }}
+                  <i [class]="modeIconClasses['select']" aria-hidden="true"></i>
+                  <span class="visually-hidden">{{ modeLabels['select'] }}</span>
+                  <span class="visually-hidden" [id]="selectHelpId">{{ translatedModeHelpText['select'] }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="translatedModeHelpText['select']"></span>
                 </button>
               }
               @if (canDeleteSelectedFeatures && selectedFeatureIds.size > 0) {
+                @let deleteHelpId = 'rb-map-delete-help';
                 <button
                   type="button"
                   class="btn btn-outline-danger btn-sm rb-map-delete-btn"
-                  (click)="deleteSelectedFeatures()"
+                  (click)="deleteSelectedFeatures(); $any($event.currentTarget).blur()"
                   [disabled]="isDisabled"
+                  title="Delete selected"
+                  aria-label="Delete selected"
+                  [attr.aria-describedby]="deleteHelpId"
                 >
-                  Delete selected
+                  <i class="fa fa-trash" aria-hidden="true"></i>
+                  <span class="visually-hidden">Delete selected</span>
+                  <span class="visually-hidden" [id]="deleteHelpId">{{ deleteSelectedHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="deleteSelectedHelpText"></span>
+                </button>
+              }
+              @if (hasFeatures()) {
+                @let clearHelpId = 'rb-map-clear-help';
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm rb-map-clear-btn"
+                  (click)="onClearAllClicked(); $any($event.currentTarget).blur()"
+                  [disabled]="isDisabled"
+                  title="Clear All"
+                  aria-label="Clear All"
+                  [attr.aria-describedby]="clearHelpId"
+                >
+                  <i class="fa fa-times-circle" aria-hidden="true"></i>
+                  <span class="visually-hidden">Clear All</span>
+                  <span class="visually-hidden" [id]="clearHelpId">{{ clearAllHelpText }}</span>
+                  <span class="rb-map-help-popover" role="tooltip" aria-hidden="true" [attr.data-help]="clearAllHelpText"></span>
                 </button>
               }
             </div>
           }
         </div>
+        @if (mapError) {
+          <div class="text-danger small mt-2 rb-map-error">{{ mapError }}</div>
+        }
         @if (isEditMode() && enableImport) {
           <div class="rb-map-import mt-2">
             <label class="form-label">{{ importLabel }}</label>
@@ -289,23 +333,104 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
       right: 0.75rem;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0;
       z-index: 800;
       pointer-events: auto;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      border-radius: 0.25rem;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
     }
 
-    .rb-map-mode-btn {
-      min-width: 7rem;
-      text-align: left;
-      border-color: #b7c5d5;
+    .rb-map-mode-btn,
+    .rb-map-delete-btn,
+    .rb-map-clear-btn {
+      position: relative;
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 0;
       background: #fff;
+      color: #333;
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    .rb-map-toolbar .btn + .btn {
+      border-top: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    .rb-map-mode-btn:hover,
+    .rb-map-delete-btn:hover,
+    .rb-map-clear-btn:hover {
+      background: #f4f4f4;
+      color: #111;
     }
 
     .rb-map-mode-btn.active {
-      border-color: #0d6efd;
       background: #e9f2ff;
       color: #0b5ed7;
-      font-weight: 600;
+    }
+
+    .rb-map-select-btn {
+      margin-top: 0.35rem;
+    }
+
+    .rb-map-delete-btn,
+    .rb-map-clear-btn {
+      color: #333;
+    }
+
+    .rb-map-delete-btn:hover,
+    .rb-map-clear-btn:hover {
+      color: #8a1f11;
+    }
+
+    .rb-map-help-popover {
+      position: absolute;
+      top: 50%;
+      right: calc(100% + 0.5rem);
+      transform: translateY(-50%);
+      display: none;
+      width: max-content;
+      max-width: 16rem;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 0.25rem;
+      background: #fff;
+      color: #212529;
+      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+      font-size: 0.8125rem;
+      line-height: 1.25;
+      text-align: left;
+      white-space: normal;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .rb-map-help-popover::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
+      border-width: 0.35rem 0 0.35rem 0.35rem;
+      border-style: solid;
+      border-color: transparent transparent transparent #fff;
+    }
+
+    .rb-map-help-popover::before {
+      content: attr(data-help);
+    }
+
+    .rb-map-mode-btn:hover .rb-map-help-popover,
+    .rb-map-delete-btn:hover .rb-map-help-popover,
+    .rb-map-clear-btn:hover .rb-map-help-popover {
+      display: block;
     }
   `],
   standalone: false
@@ -313,9 +438,11 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
 export class MapComponent extends FormFieldBaseComponent<MapModelValueType> implements AfterViewInit, OnDestroy {
   protected override logName = MapComponentName;
   private readonly loadMapDependencies = inject(MAP_DEPENDENCIES_LOADER);
+  private readonly translationService = inject(TranslationService);
+  private readonly confirmationDialogService = inject(ConfirmationDialogService);
 
   @Input() public override model?: MapModel;
-  @ViewChild("mapHost", {static: false}) private mapHost?: ElementRef<HTMLDivElement>;
+  @ViewChild("mapHost", { static: false }) private mapHost?: ElementRef<HTMLDivElement>;
 
   public mapHeight = "450px";
   public enableImport = true;
@@ -323,12 +450,14 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public importLabel = "Enter KML or GeoJSON";
   public importDataString = "";
   public importError = "";
+  public mapError = "";
 
   private map?: OLMap;
   private draw?: any;
   private featureLayer?: OLVectorLayer<OLVectorSource>;
   private vectorSource?: OLVectorSource;
   private mapDeps?: MapDependencies;
+  private mapInteractionStates = new Map<OLInteraction, boolean>();
   private _destroyed = false;
   private drawInitialisePending = false;
   private drawReadyObserver?: MutationObserver;
@@ -336,7 +465,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
   private tileLayers: MapTileLayerConfig[] = [];
-  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "select"];
+  private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
   public activeMode?: MapDrawingMode;
   public showDrawToolbar = false;
@@ -348,8 +477,39 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     polygon: "Polygon",
     linestring: "Line",
     rectangle: "Rectangle",
+    circle: "Circle",
     select: "Select/Edit"
   };
+  public readonly modeIconClasses: Record<MapDrawingMode, string> = {
+    point: "fa fa-map-marker",
+    polygon: "fa fa-object-ungroup",
+    linestring: "fa fa-minus",
+    rectangle: "fa fa-square",
+    circle: "fa fa-circle",
+    select: "fa fa-mouse-pointer"
+  };
+  private readonly modeHelpTextKeys: Record<MapDrawingMode, string> = {
+    point: "@map-toolbar-point-help",
+    polygon: "@map-toolbar-polygon-help",
+    linestring: "@map-toolbar-linestring-help",
+    rectangle: "@map-toolbar-rectangle-help",
+    circle: "@map-toolbar-circle-help",
+    select: "@map-toolbar-select-help"
+  };
+  private readonly modeHelpTextFallbacks: Record<MapDrawingMode, string> = {
+    point: "Add a point marker to the map.",
+    polygon: "Draw a polygon by clicking each corner, then finish the shape.",
+    linestring: "Draw a line by clicking each point along the path.",
+    rectangle: "Draw a rectangle by clicking and dragging on the map.",
+    circle: "Draw a circle by clicking and dragging on the map.",
+    select: "Select or edit existing map features."
+  };
+  public translatedModeHelpText: Record<MapDrawingMode, string> = { ...this.modeHelpTextFallbacks };
+  public deleteSelectedHelpText = "Delete the selected map feature.";
+  public clearAllHelpText = "Clear all points, lines, and shapes from the map.";
+  // Modern browsers provide the crypto API, so users should only see this on unusual or unsupported clients.
+  private readonly featureIdUnavailableError = "Saved map features cannot be loaded for editing because this browser does not provide "
+    + "the crypto API required to generate map feature IDs. Please contact your administrator for assistance.";
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -364,14 +524,37 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.tileLayers = Array.isArray(cfg.tileLayers) ? cfg.tileLayers : [];
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
-      : ["point", "polygon", "linestring", "rectangle", "select"];
+      : ["point", "polygon", "linestring", "rectangle", "circle", "select"];
     this.canSelectFeatures = this.enabledModes.includes("select");
     this.canDeleteSelectedFeatures = this.enabledModes.includes("select");
     this.toolbarModes = this.enabledModes.filter((mode) => mode !== "select");
-    this.activeMode = this.toolbarModes[0] ?? (this.canSelectFeatures ? "select" : undefined);
+    // Default to no active drawing mode so the map starts in pan mode (terra-draw's
+    // built-in "static" mode) instead of dropping markers on click-drag. The user
+    // explicitly selects a drawing tool from the toolbar when they want to draw.
+    this.activeMode = undefined;
     this.showDrawToolbar = this.enabledModes.length > 0;
     this.enableImport = cfg.enableImport ?? true;
-    this.coordinatesHelp = String(cfg.coordinatesHelp ?? "");
+    const coordinatesHelp = String(cfg.coordinatesHelp ?? "");
+    this.coordinatesHelp = coordinatesHelp ? this.translateText(coordinatesHelp, coordinatesHelp) : "";
+    this.translatedModeHelpText = this.translateModeHelpText();
+    this.deleteSelectedHelpText = this.translateText("@map-toolbar-delete-selected-help", "Delete the selected map feature.");
+    this.clearAllHelpText = this.translateText("@map-toolbar-clear-all-help", "Clear all points, lines, and shapes from the map.");
+  }
+
+  private translateModeHelpText(): Record<MapDrawingMode, string> {
+    return {
+      point: this.translateText(this.modeHelpTextKeys.point, this.modeHelpTextFallbacks.point),
+      polygon: this.translateText(this.modeHelpTextKeys.polygon, this.modeHelpTextFallbacks.polygon),
+      linestring: this.translateText(this.modeHelpTextKeys.linestring, this.modeHelpTextFallbacks.linestring),
+      rectangle: this.translateText(this.modeHelpTextKeys.rectangle, this.modeHelpTextFallbacks.rectangle),
+      circle: this.translateText(this.modeHelpTextKeys.circle, this.modeHelpTextFallbacks.circle),
+      select: this.translateText(this.modeHelpTextKeys.select, this.modeHelpTextFallbacks.select)
+    };
+  }
+
+  private translateText(key: string, fallback: string): string {
+    const translated = this.translationService.t(key);
+    return translated && translated !== key ? String(translated) : fallback;
   }
 
   override ngAfterViewInit(): void {
@@ -399,6 +582,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.drawReadyObserver?.disconnect();
     this.drawReadyObserver = undefined;
     try {
+      this.restoreMapInteractions();
       this.draw?.stop?.();
     } catch {
       // Ignore best-effort cleanup errors for third-party draw internals.
@@ -421,14 +605,55 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.importError = "";
     this.importDataString = "";
     const merged = this.mergeCollections(this.currentModelValue(), importedValue);
-    this.renderValue(merged, true);
+    let valueToFit = merged;
+    if (this.isEditMode()) {
+      this.pushFeaturesToDraw(importedValue.features);
+      valueToFit = this.draw ? this.readValueFromDraw() : merged;
+      this.updateModelValue(valueToFit);
+    } else {
+      this.renderValue(merged, true);
+    }
+    this.invalidateMap();
+    this.scheduleFitToFeatureCollectionBounds(valueToFit);
+  }
+
+  public async onClearAllClicked(): Promise<void> {
+    if (this.isDisabled || !this.hasFeatures()) {
+      return;
+    }
+    const confirmed = await this.confirmationDialogService.confirm({
+      title: "Clear map features",
+      message: "Clear all map features?",
+      confirmLabel: "Clear All",
+      cancelLabel: "Cancel",
+      confirmButtonClass: "btn btn-danger"
+    });
+    if (!confirmed) {
+      return;
+    }
+    const emptyValue = emptyFeatureCollection();
+    try {
+      this.draw?.clear?.();
+    } catch (error) {
+      this.loggerService.warn(`${this.logName}: failed to clear map draw state.`, error);
+    }
+    this.selectedFeatureIds.clear();
+    this.updateModelValue(emptyValue);
+    if (!this.isEditMode()) {
+      this.renderReadonlyLayer(emptyValue);
+    }
     this.invalidateMap();
   }
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
+    if (disabled) {
+      this.restoreMapInteractions();
+      return;
+    }
     if (!disabled) {
       this.ensureDrawInitialised();
+      this.updateMapInteractionsForActiveDrawMode();
     }
   }
 
@@ -441,7 +666,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     const tileLayerConfig = this.tileLayers[0] ?? {
       name: "OpenStreetMap",
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      options: {maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"}
+      options: { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }
     };
 
     const tileOptions: Record<string, unknown> = {};
@@ -487,11 +712,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       view: olView
     });
 
-    const startingValue = this.currentModelValue();
     if (this.isEditMode()) {
       this.scheduleDrawInitialisation();
     } else {
-      this.renderReadonlyLayer(startingValue);
+      this.renderReadonlyLayer(this.currentReadonlyValue());
     }
 
     this.installVisibilityObserver();
@@ -510,9 +734,14 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.drawReadyObserver = undefined;
     this.removeFeatureLayer();
     this.initialiseDraw();
-    const startingValue = this.currentModelValue();
-    if (startingValue.features.length > 0) {
-      this.pushFeaturesToDraw(startingValue.features);
+    try {
+      const startingValue = this.currentModelValue();
+      if (startingValue.features.length > 0) {
+        this.pushFeaturesToDraw(startingValue.features);
+      }
+      this.mapError = "";
+    } catch (error) {
+      this.handleInitialFeatureLoadError(error);
     }
   }
 
@@ -549,7 +778,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         this.ensureDrawInitialised();
       }
     });
-    this.drawReadyObserver.observe(eventContainer, {childList: true, subtree: true});
+    this.drawReadyObserver.observe(eventContainer, { childList: true, subtree: true });
   }
 
   private hasOpenLayersEventElement(): boolean {
@@ -578,6 +807,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       const PolygonMode = deps.PolygonMode;
       const LineStringMode = deps.LineStringMode;
       const RectangleMode = deps.RectangleMode;
+      const CircleMode = deps.CircleMode;
       const SelectMode = deps.SelectMode;
       if (!TerraDrawCtor || !AdapterCtor) {
         return;
@@ -599,7 +829,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         toLonLat: this.mapDeps.toLonLat,
       };
 
-      const adapter = new AdapterCtor({map: this.map, lib: openLayersLib});
+      const adapter = new AdapterCtor({ map: this.map, lib: openLayersLib });
       const modes: unknown[] = [];
       if (this.enabledModes.includes("point") && PointMode) {
         modes.push(new PointMode());
@@ -611,7 +841,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         modes.push(new LineStringMode());
       }
       if (this.enabledModes.includes("rectangle") && RectangleMode) {
-        modes.push(new RectangleMode({drawInteraction: "click-drag"}));
+        modes.push(new RectangleMode({ drawInteraction: "click-drag" }));
+      }
+      if (this.enabledModes.includes("circle") && CircleMode) {
+        modes.push(new CircleMode({ drawInteraction: "click-drag" }));
       }
       if (this.enabledModes.includes("select") && SelectMode) {
         modes.push(new SelectMode(this.buildSelectModeOptions()));
@@ -626,7 +859,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
       this.draw.start?.();
       this.setInitialDrawMode();
-      this.draw.on?.("change", (changes?: {deletedIds?: unknown[]}) => {
+      this.draw.on?.("change", (changes?: { deletedIds?: unknown[] }) => {
         this.removeDeletedSelections(changes?.deletedIds);
         const value = this.readValueFromDraw();
         this.updateModelValue(value);
@@ -646,12 +879,28 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.draw || !this.enabledModes.includes(mode)) {
       return;
     }
+    // Clicking the already-active tool toggles it off, returning the map to pan mode.
+    if (this.activeMode === mode) {
+      this.clearDrawMode();
+      return;
+    }
     this.draw.setMode?.(mode);
     this.activeMode = mode;
+    this.updateMapInteractionsForActiveDrawMode();
+  }
+
+  private clearDrawMode(): void {
+    this.activeMode = undefined;
+    this.draw?.setMode?.("static");
+    this.updateMapInteractionsForActiveDrawMode();
   }
 
   public hasFeatures(): boolean {
-    return this.currentModelValue().features.length > 0;
+    try {
+      return this.currentModelValue().features.length > 0;
+    } catch {
+      return (this.currentRawFeatureCollection()?.features.length ?? 0) > 0;
+    }
   }
 
   public deleteSelectedFeatures(): void {
@@ -684,7 +933,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
           draggable: true,
           coordinates: {
             draggable: true,
-            midpoints: {draggable: true},
+            midpoints: { draggable: true },
             deletable: true
           }
         }
@@ -722,28 +971,29 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       PolygonMode: terraDraw.TerraDrawPolygonMode,
       LineStringMode: terraDraw.TerraDrawLineStringMode,
       RectangleMode: terraDraw.TerraDrawRectangleMode,
+      CircleMode: terraDraw.TerraDrawCircleMode,
       SelectMode: terraDraw.TerraDrawSelectMode
     };
   }
 
-  private createVectorSourceFromFeatureCollection(value: MapModelValueType): {source: OLVectorSource; features: any[]} {
+  private createVectorSourceFromFeatureCollection(value: MapModelValueType | GeoJSON.FeatureCollection): { source: OLVectorSource; features: any[] } {
     const geoJsonFormat = new this.mapDeps!.GeoJSON();
     const features = geoJsonFormat.readFeatures(value as any, {
       dataProjection: "EPSG:4326",
       featureProjection: "EPSG:3857"
     });
     return {
-      source: new this.mapDeps!.VectorSource({features}),
+      source: new this.mapDeps!.VectorSource({ features }),
       features
     };
   }
 
-  private renderReadonlyLayer(value: MapModelValueType): void {
+  private renderReadonlyLayer(value: MapModelValueType | GeoJSON.FeatureCollection): void {
     if (!this.map || !this.mapDeps) {
       return;
     }
     this.removeFeatureLayer();
-    const {source} = this.createVectorSourceFromFeatureCollection(value);
+    const { source } = this.createVectorSourceFromFeatureCollection(value);
     this.vectorSource = source;
     this.featureLayer = new this.mapDeps.VectorLayer({
       source: this.vectorSource
@@ -780,7 +1030,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     if (!this.draw) {
       const currentValue = this.currentModelValue();
-      this.renderReadonlyLayer({...currentValue, features: [...currentValue.features, ...features as any[]]});
+      this.renderReadonlyLayer({ ...currentValue, features: [...currentValue.features, ...features as any[]] });
       return;
     }
     try {
@@ -799,7 +1049,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return this.normalizeFeatureCollection(snapshot);
     }
     if (Array.isArray(snapshot)) {
-      return this.normalizeFeatureCollection({type: "FeatureCollection", features: snapshot});
+      return this.normalizeFeatureCollection({ type: "FeatureCollection", features: snapshot });
     }
     return this.currentModelValue();
   }
@@ -823,26 +1073,267 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     return controlValue;
   }
 
+  private currentReadonlyValue(): MapModelValueType | GeoJSON.FeatureCollection {
+    return this.currentRawFeatureCollection() ?? this.currentModelValue();
+  }
+
+  private currentRawFeatureCollection(): GeoJSON.FeatureCollection | undefined {
+    const controlValue = this.asRawFeatureCollection(this.formControl.value);
+    if (controlValue?.features.length) {
+      return controlValue;
+    }
+    const modelValue = this.asRawFeatureCollection(this.model?.getValue());
+    if (modelValue?.features.length) {
+      return modelValue;
+    }
+    return controlValue ?? modelValue;
+  }
+
+  private asRawFeatureCollection(value: unknown): GeoJSON.FeatureCollection | undefined {
+    if (!value || typeof value !== "object") {
+      return undefined;
+    }
+    const source = value as { type?: unknown; features?: unknown };
+    if (source.type !== "FeatureCollection" || !Array.isArray(source.features)) {
+      return undefined;
+    }
+    return source as GeoJSON.FeatureCollection;
+  }
+
+  private handleInitialFeatureLoadError(error: unknown): void {
+    this.mapError = this.featureIdUnavailableError;
+    this.loggerService.warn(`${this.logName}: failed to load saved map features into draw state.`, error);
+    const rawValue = this.currentRawFeatureCollection();
+    if (rawValue) {
+      this.renderReadonlyLayer(rawValue);
+    }
+  }
+
   private setInitialDrawMode(): void {
     const initialMode = this.activeMode;
     if (!initialMode) {
+      // No tool selected: keep terra-draw in its "static" mode so the map pans on
+      // click-drag rather than drawing features.
+      this.draw?.setMode?.("static");
+      this.updateMapInteractionsForActiveDrawMode();
       return;
     }
     this.draw?.setMode?.(initialMode);
+    this.updateMapInteractionsForActiveDrawMode();
+  }
+
+  private updateMapInteractionsForActiveDrawMode(): void {
+    if (!this.map || !this.isEditMode() || this.isDisabled || !this.activeMode) {
+      this.restoreMapInteractions();
+      return;
+    }
+    if (this.activeMode !== "rectangle" && this.activeMode !== "circle") {
+      this.restoreMapInteractions();
+      return;
+    }
+    this.getMapInteractions().forEach((interaction) => {
+      if (!this.mapInteractionStates.has(interaction)) {
+        this.mapInteractionStates.set(interaction, interaction.getActive?.() ?? true);
+      }
+      interaction.setActive?.(false);
+    });
+  }
+
+  private restoreMapInteractions(): void {
+    this.mapInteractionStates.forEach((wasActive, interaction) => {
+      interaction.setActive?.(wasActive);
+    });
+    this.mapInteractionStates.clear();
+  }
+
+  private getMapInteractions(): OLInteraction[] {
+    const interactions = this.map?.getInteractions?.();
+    const interactionArray = Array.isArray(interactions)
+      ? interactions
+      : interactions?.getArray?.();
+    if (!Array.isArray(interactionArray)) {
+      return [];
+    }
+    return interactionArray.filter(
+      (interaction): interaction is OLInteraction => typeof interaction?.setActive === "function"
+    );
   }
 
   private normalizeFeatureCollection(value: unknown): MapModelValueType {
     if (!value || typeof value !== "object") {
       return emptyFeatureCollection();
     }
-    const source = value as {type?: unknown; features?: unknown};
-    if (source.type !== "FeatureCollection" || !Array.isArray(source.features)) {
-      return emptyFeatureCollection();
+    const source = value as { type?: unknown; features?: unknown };
+    if (source.type === "FeatureCollection" && Array.isArray(source.features)) {
+      return {
+        type: "FeatureCollection",
+        features: this.normalizeGeoJsonFeatures(source.features)
+      };
     }
-    return {
-      type: "FeatureCollection",
-      features: source.features as MapModelValueType["features"]
+    if (source.type === "Feature") {
+      return {
+        type: "FeatureCollection",
+        features: this.normalizeGeoJsonFeature(source)
+      };
+    }
+    if (this.isGeoJsonGeometry(source.type)) {
+      return {
+        type: "FeatureCollection",
+        features: this.featuresFromGeometry(source as GeoJSON.Geometry, {}, undefined)
+      };
+    }
+    return emptyFeatureCollection();
+  }
+
+  private normalizeGeoJsonFeatures(features: unknown[]): MapModelValueType["features"] {
+    return features.flatMap((feature) => this.normalizeGeoJsonFeature(feature));
+  }
+
+  private normalizeGeoJsonFeature(feature: unknown): MapModelValueType["features"] {
+    if (!feature || typeof feature !== "object") {
+      return [];
+    }
+    const source = feature as {
+      id?: string | number;
+      type?: unknown;
+      properties?: unknown;
+      geometry?: unknown;
     };
+    if (source.type !== "Feature" || !source.geometry || typeof source.geometry !== "object") {
+      return [];
+    }
+    const geometry = source.geometry as { type?: unknown };
+    if (!this.isGeoJsonGeometry(geometry.type)) {
+      return [];
+    }
+    const properties = source.properties && typeof source.properties === "object"
+      ? source.properties as Record<string, unknown>
+      : {};
+    return this.featuresFromGeometry(geometry as GeoJSON.Geometry, properties, source.id);
+  }
+
+  private featuresFromGeometry(
+    geometry: GeoJSON.Geometry,
+    properties: Record<string, unknown>,
+    id: string | number | undefined
+  ): MapModelValueType["features"] {
+    switch (geometry.type) {
+      case "Point": {
+        const coordinates = this.normalizePosition(geometry.coordinates);
+        return coordinates ? [this.createDrawFeature({ type: "Point", coordinates }, properties, id)] : [];
+      }
+      case "LineString": {
+        const coordinates = this.normalizeLineStringCoordinates(geometry.coordinates);
+        return coordinates.length > 0 ? [this.createDrawFeature({ type: "LineString", coordinates }, properties, id)] : [];
+      }
+      case "Polygon": {
+        const coordinates = this.normalizePolygonCoordinates(geometry.coordinates);
+        return coordinates.length > 0 ? [this.createDrawFeature({ type: "Polygon", coordinates }, properties, id)] : [];
+      }
+      case "MultiPoint":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const position = this.normalizePosition(coordinates);
+          return position ? [this.createDrawFeature({ type: "Point", coordinates: position }, properties, undefined)] : [];
+        });
+      case "MultiLineString":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const lineStringCoordinates = this.normalizeLineStringCoordinates(coordinates);
+          return lineStringCoordinates.length > 0
+            ? [this.createDrawFeature({ type: "LineString", coordinates: lineStringCoordinates }, properties, undefined)]
+            : [];
+        });
+      case "MultiPolygon":
+        return geometry.coordinates.flatMap((coordinates) => {
+          const polygonCoordinates = this.normalizePolygonCoordinates(coordinates);
+          return polygonCoordinates.length > 0
+            ? [this.createDrawFeature({ type: "Polygon", coordinates: polygonCoordinates }, properties, undefined)]
+            : [];
+        });
+      case "GeometryCollection":
+        return geometry.geometries.flatMap((childGeometry) =>
+          this.featuresFromGeometry(childGeometry, properties, undefined)
+        );
+      default:
+        return [];
+    }
+  }
+
+  private normalizePosition(position: GeoJSON.Position): [number, number] | null {
+    if (!Array.isArray(position) || position.length < 2) {
+      return null;
+    }
+    const [longitude, latitude] = position;
+    if (typeof longitude !== "number" || typeof latitude !== "number") {
+      return null;
+    }
+    return [longitude, latitude];
+  }
+
+  private normalizeLineStringCoordinates(coordinates: GeoJSON.Position[]): [number, number][] {
+    return coordinates.flatMap((position) => {
+      const normalized = this.normalizePosition(position);
+      return normalized ? [normalized] : [];
+    });
+  }
+
+  private normalizePolygonCoordinates(coordinates: GeoJSON.Position[][]): [number, number][][] {
+    return coordinates.flatMap((ring) => {
+      const normalizedRing = this.normalizeLineStringCoordinates(ring);
+      return normalizedRing.length > 0 ? [normalizedRing] : [];
+    });
+  }
+
+  private createDrawFeature(
+    geometry: GeoJSON.Point | GeoJSON.LineString | GeoJSON.Polygon,
+    properties: Record<string, unknown>,
+    id: string | number | undefined
+  ): MapModelValueType["features"][number] {
+    return {
+      id: this.isValidTerraDrawFeatureId(id) ? id : this.createFeatureId(),
+      type: "Feature",
+      properties: {
+        ...properties,
+        mode: this.modeForGeometry(geometry.type)
+      },
+      geometry
+    } as MapModelValueType["features"][number];
+  }
+
+  private isValidTerraDrawFeatureId(id: unknown): id is string {
+    return typeof id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  }
+
+  private createFeatureId(): string {
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
+    if (!globalThis.crypto?.getRandomValues) {
+      throw new Error("Unable to generate map feature id: crypto API is unavailable");
+    }
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+      (Number(character) ^ globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(character) / 4).toString(16)
+    );
+  }
+
+  private modeForGeometry(type: GeoJSON.Point["type"] | GeoJSON.LineString["type"] | GeoJSON.Polygon["type"]): TerraDrawModeName {
+    if (type === "Point") {
+      return "point";
+    }
+    if (type === "LineString") {
+      return "linestring";
+    }
+    return "polygon";
+  }
+
+  private isGeoJsonGeometry(type: unknown): type is GeoJSON.Geometry["type"] {
+    return type === "Point" ||
+      type === "MultiPoint" ||
+      type === "LineString" ||
+      type === "MultiLineString" ||
+      type === "Polygon" ||
+      type === "MultiPolygon" ||
+      type === "GeometryCollection";
   }
 
   private parseImport(value: string): MapModelValueType | null {
@@ -858,11 +1349,24 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
           return null;
         }
         const xmlDoc = new DOMParser().parseFromString(trimmed, "text/xml");
+        if (xmlDoc.querySelector("parsererror")) {
+          throw new Error("Invalid XML");
+        }
         const converted = this.mapDeps.parseKmlToGeoJson(xmlDoc);
-        return this.normalizeFeatureCollection(converted);
+        const normalized = this.normalizeFeatureCollection(converted);
+        if (normalized.features.length === 0) {
+          this.importError = "Entered text does not contain any supported map features";
+          return null;
+        }
+        return normalized;
       }
       const parsed = JSON.parse(trimmed);
-      return this.normalizeFeatureCollection(parsed);
+      const normalized = this.normalizeFeatureCollection(parsed);
+      if (normalized.features.length === 0) {
+        this.importError = "Entered text does not contain any supported map features";
+        return null;
+      }
+      return normalized;
     } catch {
       this.importError = "Entered text is not valid KML or GeoJSON";
       return null;
@@ -884,7 +1388,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       if (entries[0]?.isIntersecting) {
         this.invalidateMap();
       }
-    }, {threshold: 0.1});
+    }, { threshold: 0.1 });
     this.visibilityObserver.observe(this.mapHost.nativeElement);
   }
 
@@ -912,7 +1416,26 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     const extent = this.vectorSource.getExtent();
     if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
-      this.map.getView().fit(extent, {padding: [12, 12, 12, 12]});
+      this.map.getView().fit(extent, { padding: [12, 12, 12, 12] });
+    }
+  }
+
+  private scheduleFitToFeatureCollectionBounds(value: MapModelValueType): void {
+    if (!this.map || !this.mapDeps || value.features.length === 0) {
+      return;
+    }
+    globalThis.requestAnimationFrame?.(() => this.fitToFeatureCollectionBounds(value));
+    globalThis.setTimeout(() => this.fitToFeatureCollectionBounds(value), 0);
+  }
+
+  private fitToFeatureCollectionBounds(value: MapModelValueType): void {
+    if (!this.map || !this.mapDeps || value.features.length === 0) {
+      return;
+    }
+    const { source } = this.createVectorSourceFromFeatureCollection(value);
+    const extent = source.getExtent();
+    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+      this.map.getView().fit(extent, { padding: [24, 24, 24, 24] });
     }
   }
 

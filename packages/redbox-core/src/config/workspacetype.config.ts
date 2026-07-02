@@ -26,12 +26,11 @@ export interface WorkspaceTypeConfig {
     [workspaceTypeName: string]: WorkspaceTypeDefinition;
 }
 
-export const workspacetype: WorkspaceTypeConfig = {
-    'existing-locations': {
-        name: 'existing-locations',
-        label: '@existing-locations-label',
-        subtitle: '@existing-locations-label',
-        description: '@existing-locations-description',
-        logo: '/images/blank.png'
-    }
-};
+/**
+ * Default workspace types are no longer shipped in core.
+ *
+ * The demo "existing-locations" workspace type now lives in the redbox-hook-dev
+ * package and is merged into sails.config.workspacetype by the loader when that
+ * hook is installed. Core ships pristine.
+ */
+export const workspacetype: WorkspaceTypeConfig = {};

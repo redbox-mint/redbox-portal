@@ -174,6 +174,18 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('describeError', function () {
+    it('should truncate circular cause chains', function () {
+      const error = Object.assign(new Error('upload failed'), { name: 'UploadError' }) as Error & { cause?: unknown };
+      error.cause = error;
+
+      const result = RecordsService.describeError(error);
+
+      expect(result).to.include('UploadError: upload failed');
+      expect(result).to.include('[cause chain truncated]');
+    });
+  });
+
   describe('getStorageService', function () {
     it('should use configured storage service', function () {
       RecordsService.getStorageService();

@@ -407,4 +407,82 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
       };
     },
   },
+  // Validates a URL using the WHATWG URL parser. By default only absolute http(s) URLs pass.
+  // Configuration options (all optional):
+  // - schemes: string[]      allowed schemes for absolute URLs (default ["http", "https"]).
+  //                          An empty array allows any scheme.
+  // - allowAbsolute: boolean accept absolute URLs, e.g. "https://example.org/x" (default true).
+  // - allowRelative: boolean accept relative references, e.g. "/path", "page?q=1", "../x"
+  //                          (default false). Protocol-relative values ("//host/x") are rejected.
+  // - requireTld: boolean    when accepting an absolute URL, require the host to contain a dot,
+  //                          e.g. reject "http://localhost" (default false).
+  // - description: string    included in the error params for custom messaging.
+  {
+    class: "url",
+    message: "@validator-error-url",
+    create: (config) => {
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, "description", "");
+      const allowAbsolute = formValidatorGetDefinitionBoolean(config, "allowAbsolute", true);
+      const allowRelative = formValidatorGetDefinitionBoolean(config, "allowRelative", false);
+      const requireTld = formValidatorGetDefinitionBoolean(config, "requireTld", false);
+      const schemes = formValidatorGetDefinitionArray(config, "schemes", ["http", "https"])
+        .map((scheme) => (scheme?.toString() ?? "").trim().toLowerCase().replace(/:$/, ""))
+        .filter((scheme) => scheme.length > 0);
+      return (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const candidate = control.value.toString().trim();
+        if (candidate.length === 0) {
+          return null; // treat whitespace-only values as empty/optional
+        }
+
+        const buildError = () => formValidatorBuildError(config, {
+          description: optionDescriptionValue,
+          schemes,
+          allowAbsolute,
+          allowRelative,
+          actual: control.value,
+        });
+
+        // Try to parse as an absolute URL first. A successful parse means the value has a scheme.
+        let absolute: URL | null = null;
+        try {
+          absolute = new URL(candidate);
+        } catch {
+          absolute = null;
+        }
+
+        if (absolute) {
+          if (!allowAbsolute) {
+            return buildError();
+          }
+          const scheme = absolute.protocol.replace(/:$/, "").toLowerCase();
+          if (schemes.length > 0 && !schemes.includes(scheme)) {
+            return buildError();
+          }
+          if (requireTld && !absolute.hostname.includes(".")) {
+            return buildError();
+          }
+          return null;
+        }
+
+        // Not absolute, so treat it as a relative reference.
+        if (!allowRelative) {
+          return buildError();
+        }
+        // Protocol-relative values resolve to an arbitrary host, escaping the relative scope.
+        if (candidate.startsWith("//")) {
+          return buildError();
+        }
+        try {
+          // Resolving against a base only throws for malformed relative references.
+          new URL(candidate, "http://relative.invalid/");
+        } catch {
+          return buildError();
+        }
+        return null;
+      };
+    },
+  },
 ];

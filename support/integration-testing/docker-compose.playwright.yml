@@ -2,7 +2,7 @@ networks:
   main:
 
 x-playwright-service: &playwright-service
-  image: mcr.microsoft.com/playwright:v1.61.0-noble
+  image: mcr.microsoft.com/playwright:v1.61.1-noble
   pull_policy: missing
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
@@ -66,6 +66,8 @@ x-rbportal-service: &rbportal-service
     - '../../.tmp/attachments:/attachments'
     - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
+    - '../../package.json:/opt/redbox-portal/package.json:ro'
+    - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
   stop_grace_period: 30m
   healthcheck:
     test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']

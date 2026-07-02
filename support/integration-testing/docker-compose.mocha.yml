@@ -35,20 +35,20 @@ x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
   pull_policy: 'missing'
   volumes:
-    - "../../test:/opt/redbox-portal/test"
-    - "../../support:/opt/redbox-portal/support"
-    - "../../typescript:/opt/redbox-portal/typescript"
-    - "../../coverage/mocha:/tmp/coverage/mocha"
-    - "../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha"
-    - "../../.tmp/attachments:/attachments"
-    - "../../tsconfig.json:/opt/redbox-portal/tsconfig.json"
-    - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
-    - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
-    - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
-    - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+    - '../../test:/opt/redbox-portal/test'
+    - '../../support:/opt/redbox-portal/support'
+    - '../../typescript:/opt/redbox-portal/typescript'
+    - '../../coverage/mocha:/tmp/coverage/mocha'
+    - '../../.tmp/junit/backend-mocha:/opt/redbox-portal/.tmp/junit/backend-mocha'
+    - '../../.tmp/attachments:/attachments'
+    - '../../tsconfig.json:/opt/redbox-portal/tsconfig.json'
+    - './recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js'
+    - './solr-multi-core-example.js:/opt/redbox-portal/config/solr.js'
+    - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
+    - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   depends_on: *rbportal-depends
   expose:
-    - "1500"
+    - '1500'
   environment: *rbportal-env
   networks:
     main:
@@ -63,17 +63,17 @@ services:
   redboxportal:
     <<: *rbportal-service
     profiles: [portal]
-    user: "${UID:-1000}:${GID:-1000}"
+    user: '${UID:-1000}:${GID:-1000}'
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
     ports: []
     volumes:
-      - "../../:/opt/redbox-portal:delegated"
-      - "../../.tmp/attachments:/attachments"
-      - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
-      - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
-      - "../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+      - '../../:/opt/redbox-portal:delegated'
+      - '../../.tmp/attachments:/attachments'
+      - './recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js'
+      - './solr-multi-core-example.js:/opt/redbox-portal/config/solr.js'
+      - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   mongodb:
     image: mongo:latest
     pull_policy: 'always'
@@ -82,7 +82,7 @@ services:
         aliases:
           - mongodb
     healthcheck:
-      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      test: ['CMD-SHELL', 'echo ''db.runCommand("ping").ok'' | mongosh']
       interval: '10s'
       timeout: '5s'
       retries: 10
@@ -91,19 +91,19 @@ services:
     image: solr:latest
     pull_policy: 'always'
     expose:
-      - "8983"
+      - '8983'
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      test: ['CMD-SHELL', 'curl http://localhost:8983']
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     volumes:
-      - "./solr.in.sh:/etc/default/solr.in.sh"
+      - './solr.in.sh:/etc/default/solr.in.sh'
     networks:
       main:
-       aliases:
-         - solr
+        aliases:
+          - solr
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
@@ -112,19 +112,19 @@ services:
     image: quay.io/keycloak/keycloak:26.6.3
     pull_policy: 'always'
     expose:
-      - "8080"
+      - '8080'
     healthcheck:
-      test: ["CMD-SHELL", "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
+      test: ['CMD-SHELL', "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
       interval: '10s'
       timeout: '5s'
       retries: 10
       start_period: '30s'
     volumes:
-      - "./keycloakdb/import:/opt/keycloak/data/import:ro"
+      - './keycloakdb/import:/opt/keycloak/data/import:ro'
     networks:
       main:
-       aliases:
-         - keycloak
+        aliases:
+          - keycloak
     command:
       - start-dev
       - --import-realm

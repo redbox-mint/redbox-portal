@@ -329,7 +329,7 @@ describe('AgendaQueueService', function () {
       };
       (global as any).sails.config.agendaQueue = {
         options: { collection: 'agendaJobs' },
-        jobs: []
+        jobs: {}
       };
 
       await service.moveCompletedJobsToHistory({} as any);
@@ -351,10 +351,10 @@ describe('AgendaQueueService', function () {
                 region: 'ap-southeast-2'
               }
             },
-            jobs: [
-              { name: 'default-job', fnName: 'testservice.defaultJob' },
-              { name: 'override-job', fnName: 'testservice.overrideJob', backend: 'mongodb' }
-            ]
+            jobs: {
+              'default-job': { fnName: 'testservice.defaultJob' },
+              'override-job': { fnName: 'testservice.overrideJob', backend: 'mongodb' }
+            }
           }
         },
         services: {
@@ -394,9 +394,9 @@ describe('AgendaQueueService', function () {
                 region: 'ap-southeast-2'
               }
             },
-            jobs: [
-              { name: 'sqs-job', fnName: 'testservice.process' }
-            ]
+            jobs: {
+              'sqs-job': { fnName: 'testservice.process' }
+            }
           }
         },
         services: {
@@ -427,9 +427,8 @@ describe('AgendaQueueService', function () {
               backend: 'mongodb',
               collection: 'agendaJobs'
             },
-            jobs: [
-              {
-                name: 'history-job',
+            jobs: {
+              'history-job': {
                 fnName: 'testservice.process',
                 backend: 'mongodb',
                 schedule: {
@@ -437,7 +436,7 @@ describe('AgendaQueueService', function () {
                   intervalOrSchedule: '5 minutes'
                 }
               }
-            ]
+            }
           }
         },
         services: {
@@ -468,16 +467,15 @@ describe('AgendaQueueService', function () {
                 region: 'ap-southeast-2'
               }
             },
-            jobs: [
-              {
-                name: 'sqs-recurring-job',
+            jobs: {
+              'sqs-recurring-job': {
                 fnName: 'testservice.process',
                 schedule: {
                   method: 'every',
                   intervalOrSchedule: '5 minutes'
                 }
               }
-            ]
+            }
           }
         },
         services: {

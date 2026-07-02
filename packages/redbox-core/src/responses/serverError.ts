@@ -1,5 +1,6 @@
 import { resolveSiteTitle } from './siteTitle';
 import { buildErrorEnvelope } from './errorEnvelope';
+import { inspect } from 'node:util';
 
 /**
  * Returns true when the supplied value already matches a documented error
@@ -34,6 +35,7 @@ function toServerErrorEnvelope(req: Sails.Req, data: unknown): unknown {
             : 'Internal server error';
     return buildErrorEnvelope(req, [{ detail }]);
 }
+
 
 declare module 'express-serve-static-core' {
     interface Response {
@@ -87,7 +89,7 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
     let viewData = data;
     if (!(viewData instanceof Error) && 'object' == typeof viewData) {
         try {
-            viewData = require('util').inspect(data, { depth: null });
+            viewData = inspect(data, { depth: null });
         }
         catch (_e) {
             viewData = undefined;
