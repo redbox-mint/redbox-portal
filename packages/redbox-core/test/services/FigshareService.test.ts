@@ -1,20 +1,21 @@
 import * as sinon from 'sinon';
 import { Readable } from 'node:stream';
-import { Services } from '../../src/services/FigshareService';
-import { ServiceExports } from '../../src/services';
-import { agendaQueue } from '../../src/config/agendaQueue.config';
-import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from '../../src/configmodels/FigsharePublishing';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
-import { resolveFigsharePublishingConfig } from '../../src/services/figshare-v2/config';
-import { createRunContext } from '../../src/services/figshare-v2/context';
-import { mapCreateArticleResponse } from '../../src/services/figshare-v2/http';
-import { buildMetadataPayload, syncMetadataPhase } from '../../src/services/figshare-v2/metadata';
-import { syncAssetsPhase } from '../../src/services/figshare-v2/assets';
-import { getRecordField, setRecordField } from '../../src/services/figshare-v2/types';
-import { RBValidationError } from '../../src/model/RBValidationError';
+import { createRequire } from 'node:module';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
+
+const testRequire = createRequire(import.meta.url);
+const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
+const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
+const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
+const { resolveFigsharePublishingConfig } = testRequire('../../src/services/figshare-v2/config');
+const { createRunContext } = testRequire('../../src/services/figshare-v2/context');
+const { mapCreateArticleResponse } = testRequire('../../src/services/figshare-v2/http');
+const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/services/figshare-v2/metadata');
+const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
+const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
+const { RBValidationError } = testRequire('../../src/model/RBValidationError');
 
 let expect!: Chai.ExpectStatic;
 
@@ -317,7 +318,8 @@ function buildAssetClient(
 }
 
 describe('FigshareService', function () {
-  let service: InstanceType<typeof Services.FigshareService>;
+  let service: any;
+  let ServiceExports: typeof import('../../src/services').ServiceExports;
   let getConfigStub: sinon.SinonStub;
   let appConfigByBrandStub: sinon.SinonStub;
 
@@ -348,6 +350,8 @@ describe('FigshareService', function () {
 
     setupServiceTestGlobals(mockSails);
     (global as any).AgendaQueueService = mockQueueService;
+    const { Services } = testRequire('../../src/services/FigshareService');
+    ({ ServiceExports } = testRequire('../../src/services'));
 
     appConfigByBrandStub = sinon.stub().callsFake((brand: string) => ({
       figsharePublishing: buildFigsharePublishingConfig({
