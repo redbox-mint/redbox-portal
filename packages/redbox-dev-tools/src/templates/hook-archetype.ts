@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {handlebarsCompile, handlebarsInstance} from "@researchdatabox/sails-ng-common";
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
-handlebarsInstance().registerHelper('json', (value: unknown) => JSON.stringify(value));
 
 export interface HookArchetypeOptions {
   cwd: string;
