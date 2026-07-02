@@ -1,7 +1,14 @@
-import { handlebarsHelperDefinitions, escapeHtmlText } from '../../src';
+import {
+  handlebarsHelperDefinitions,
+  escapeHtmlText,
+  handlebarsInstance,
+  handlebarsPrecompile,
+  handlebarsCompile,
+  handlebarsTemplate
+} from '../../src';
 
-describe('Shared Handlebars Helpers', function () {
-    let expect: any;
+describe('Shared Handlebars Helpers', async function () {
+    let expect: Chai.ExpectStatic;
 
     before(async function () {
         const chai = await import('chai');
@@ -459,5 +466,32 @@ describe('Shared Handlebars Helpers', function () {
             expect(result).to.contain('nested');
             expect(result).to.contain('<li>two</li>');
         });
+    });
+
+    describe('wrapper functions', async function () {
+      it('should return the same instance', function () {
+        const one = handlebarsInstance();
+        const two = handlebarsInstance();
+
+        expect(one).to.eql(two);
+      });
+      it('should precompile a template and render it', function () {
+        const precompiled = handlebarsPrecompile('{{renderMetadataValue content}}');
+        const precompiledString = precompiled.toString();
+        expect(precompiled).to.contain('\"renderMetadataValue\"');
+        expect(precompiled).to.contain('\"content\"');
+        expect(precompiled).to.contain("{\"compiler\":");
+
+        let precompiledEval = {};
+        eval(`precompiledEval = ${precompiledString}`);
+        const compiled = handlebarsTemplate(precompiledEval);
+        const result = compiled({content: ["one", "two"]});
+        expect(result).to.eql('&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;');
+      });
+      it('should compile a template to a function', function () {
+        const compiled = handlebarsCompile('{{renderMetadataValue content}}');
+        const result = compiled({content: ["one", "two"]}, {allowCallsToHelperMissing: false});
+        expect(result).to.eql('&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;');
+      });
     });
 });
