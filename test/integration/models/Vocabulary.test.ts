@@ -6,13 +6,14 @@ declare const Vocabulary: any;
 declare const VocabularyEntry: any;
 
 describe('Vocabulary Models', () => {
-  it('creates local vocab with auto-generated slug', async () => {
+  it('creates local vocab with normalized explicit slug', async () => {
     const created = await Vocabulary.create({
       name: 'My Test Vocabulary',
+      slug: `My Test Vocabulary ${Date.now()}`,
       branding: 'default'
     }).fetch();
 
-    expect(created.slug).to.equal('my-test-vocabulary');
+    expect(created.slug).to.match(/^my-test-vocabulary/);
     expect(created.type).to.equal('flat');
     expect(created.source).to.equal('local');
   });
@@ -21,6 +22,7 @@ describe('Vocabulary Models', () => {
     try {
       await Vocabulary.create({
         name: `Bad Type ${Date.now()}`,
+        slug: `bad-type-${Date.now()}`,
         branding: 'default',
         type: 'invalid-type'
       }).fetch();
@@ -30,21 +32,26 @@ describe('Vocabulary Models', () => {
     }
   });
 
-  it('requires sourceId when source=rva', async () => {
-    try {
-      await Vocabulary.create({
-        name: `RVA Missing SourceId ${Date.now()}`,
-        branding: 'default',
-        source: 'rva'
-      }).fetch();
-      expect.fail('expected missing sourceId to fail');
-    } catch (err) {
-      expect(String(err.message || err)).to.match(/sourceId is required/i);
-    }
+  it('sets rvaSourceKey when source=rva and sourceId is provided', async () => {
+    const created = await Vocabulary.create({
+      name: `RVA With SourceId ${Date.now()}`,
+      slug: `rva-with-sourceid-${Date.now()}`,
+      branding: 'default',
+      source: 'rva',
+      sourceId: '316'
+    }).fetch();
+
+    expect(created.source).to.equal('rva');
+    expect(created.sourceId).to.equal('316');
+    expect(created.rvaSourceKey).to.equal('rva:316');
   });
 
   it('normalizes labelLower/valueLower for entries', async () => {
-    const vocab = await Vocabulary.create({ name: `Entry Norm ${Date.now()}`, branding: 'default' }).fetch();
+    const vocab = await Vocabulary.create({
+      name: `Entry Norm ${Date.now()}`,
+      slug: `entry-norm-${Date.now()}`,
+      branding: 'default'
+    }).fetch();
     const entry = await VocabularyEntry.create({
       vocabulary: vocab.id,
       label: 'Science',

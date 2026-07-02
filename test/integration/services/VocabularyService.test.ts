@@ -8,6 +8,7 @@ describe('VocabularyService integration', function () {
     try {
       const vocabulary = await Vocabulary.create({
         name: `Service Tree ${Date.now()}`,
+        slug: `service-tree-${Date.now()}`,
         branding: 'default',
         type: 'tree',
         source: 'local'
@@ -25,7 +26,7 @@ describe('VocabularyService integration', function () {
       await VocabularyEntry.create({
         vocabulary: vocabulary.id,
         label: 'Child',
-        value: '',
+        value: 'child',
         parent: parent.id,
         order: 1
       }).fetch();
@@ -65,6 +66,7 @@ describe('VocabularyService integration', function () {
     try {
       const vocabulary = await Vocabulary.create({
         name: `Service Expand Path ${Date.now()}`,
+        slug: `service-expand-path-${Date.now()}`,
         branding: 'default',
         type: 'tree',
         source: 'local'

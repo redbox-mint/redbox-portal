@@ -138,7 +138,7 @@ describe('ReportsService report configuration integration', function () {
       await ReportsService.createConfig(brand, createConfig({ databaseQuery: { queryName: 'does-not-exist' } }));
       expect.fail('Expected missing named query to throw');
     } catch (error: any) {
-      expect(error.status).to.equal(400);
+      expect(error.status).to.equal(404);
       expect(error.message).to.include("Named query 'does-not-exist' not found");
     }
 
