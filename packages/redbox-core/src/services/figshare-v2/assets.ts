@@ -70,9 +70,14 @@ async function ensureAttachmentDatastream(oid: string, fileId: string): Promise<
   const stream = response.readstream as Readable | undefined;
   if (typeof stream?.destroy === 'function') {
     const ignoreDestroyError = () => undefined;
-    const removeDestroyErrorHandler = () => stream.off('error', ignoreDestroyError);
+    const removeDestroyErrorHandler = () => {
+      stream.off('error', ignoreDestroyError);
+      stream.off('close', removeDestroyErrorHandler);
+      stream.off('finish', removeDestroyErrorHandler);
+    };
     stream.once('error', ignoreDestroyError);
     stream.once('close', removeDestroyErrorHandler);
+    stream.once('finish', removeDestroyErrorHandler);
     stream.destroy();
   }
 }

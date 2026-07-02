@@ -13,7 +13,7 @@ export class ContextVariableUtils {
       }
 
       try {
-        const rawValue = this.resolveValue(req, recordData, fieldConfig);
+        const rawValue = this.resolveValue(req, recordData, fieldKey, fieldConfig);
         result[fieldKey] = this.sanitizeContextVariableValue(rawValue);
       } catch (error) {
         const errorType = error instanceof Error ? error.name : 'UnknownError';
@@ -24,7 +24,7 @@ export class ContextVariableUtils {
     return result;
   }
 
-  private static resolveValue(req: Sails.Req, recordData: unknown, config: RecordContextVariableConfig): unknown {
+  private static resolveValue(req: Sails.Req, recordData: unknown, fieldKey: string, config: RecordContextVariableConfig): unknown {
     if (config.source === 'request') {
       return this.resolveFromRequest(req, config);
     }
@@ -34,6 +34,7 @@ export class ContextVariableUtils {
     if (config.source === 'record') {
       return this.resolveFromRecord(recordData, config);
     }
+    sails.log.warn(`Unsupported context variable source for ${fieldKey}: ${String((config as { source?: unknown }).source ?? '')}`);
     return '';
   }
 

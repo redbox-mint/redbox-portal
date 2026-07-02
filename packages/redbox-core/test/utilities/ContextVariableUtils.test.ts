@@ -80,6 +80,27 @@ describe('ContextVariableUtils', () => {
     expect((globalThis as any).sails.log.warn.called).to.equal(false);
   });
 
+  it('warns when a context variable source is not supported', () => {
+    (globalThis as any).sails.config.record.contextVariables = {
+      '@bad_source': { source: 'Record', field: 'workflow.stage' } as any
+    };
+    const req = {
+      headers: {},
+      get: sinon.stub(),
+      param: sinon.stub()
+    } as unknown as Sails.Req;
+
+    const result = ContextVariableUtils.evaluateContextVariables(req, {
+      workflow: { stage: 'queued' }
+    });
+
+    expect(result['@bad_source']).to.equal('');
+    expect((globalThis as any).sails.log.warn.calledOnce).to.equal(true);
+    expect((globalThis as any).sails.log.warn.firstCall.args[0]).to.equal(
+      'Unsupported context variable source for @bad_source: Record'
+    );
+  });
+
   it('returns empty value and warns on malformed URL parsing without leaking raw values', () => {
     (globalThis as any).sails.config.record.contextVariables = {
       '@referrer_rdmp': {

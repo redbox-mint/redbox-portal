@@ -267,7 +267,7 @@ export namespace Services {
       };
     }
 
-    private isStorageNotFoundError(err: unknown): boolean {
+    private isStorageNotFoundError(err: unknown, depth = 0): boolean {
       if (!err || typeof err !== 'object') {
         return false;
       }
@@ -295,7 +295,7 @@ export namespace Services {
         || message.includes('no such')
         || message.includes('does not exist')
         || message.includes('enoent')
-        || (!!storageError.cause && this.isStorageNotFoundError(storageError.cause));
+        || (depth < 5 && !!storageError.cause && this.isStorageNotFoundError(storageError.cause, depth + 1));
     }
 
     private isStorageAlreadyExistsError(err: unknown): boolean {
@@ -679,6 +679,10 @@ export namespace Services {
         let primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
         if (primaryCheck.available) {
           this.logger.verbose(`${this.logHeader} addDatastream() -> Already present: ${destKey} via ${primaryCheck.via}`);
+          // This idempotent repair path confirms that a previous promotion already
+          // made the file durable. Recording upload access again is intentional:
+          // downstream audit can see both the physical promotion and the later
+          // metadata-update acceptance that completed the retried workflow.
           await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
           return { success: true, key: destKey };
         }

@@ -1776,6 +1776,40 @@ describe('FigshareService', function () {
       expect(syncState.partialProgress?.uploadedAttachmentCount).to.equal(1);
     });
 
+    it('removes the temporary destroy error handler when an ensured datastream emits finish', async function () {
+      const fakeDisk = makeFakeDisk();
+      (global as any).StorageManagerService = {
+        disk: sinon.stub().returns(fakeDisk.disk),
+        stagingDisk: sinon.stub().returns(fakeDisk.disk),
+      };
+      const readstream = new Readable({ read() { /* intentionally empty */ }, emitClose: false });
+      (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
+      (global as any).sails.services.datastreamservice = {
+        getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
+      };
+      const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
+      (client.listArticleFiles as sinon.SinonStub).resolves([
+        {
+          id: 'existing-figshare-file',
+          article_id: 'article-1',
+          name: 'file.txt',
+          status: 'available',
+          size: 8,
+        },
+      ]);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true }]);
+
+      await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
+      expect(readstream.listenerCount('error')).to.equal(1);
+
+      readstream.emit('finish');
+
+      expect(readstream.listenerCount('error')).to.equal(0);
+      expect(readstream.listenerCount('finish')).to.equal(0);
+      expect(readstream.listenerCount('close')).to.equal(0);
+    });
+
     it('streams Figshare part content without buffering each full part before upload', async function () {
       const fakeDisk = makeFakeDisk();
       let stagedSourceReads = 0;

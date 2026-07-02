@@ -269,6 +269,27 @@ describe('StandardDatastreamService', function () {
       expect(mockSails.log.warn.called).to.be.false;
     });
 
+    it('should bound recursive storage not found checks for circular cause chains', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      const circularError = Object.assign(new Error('wrapped storage failure'), { name: 'StorageError' }) as Error & { cause?: unknown };
+      circularError.cause = circularError;
+      mockPrimaryDisk.getMetaData.rejects(circularError);
+
+      const ds = new Datastream({ fileId: 'missing-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Attachment not found in staging');
+      }
+
+      expect(mockSails.log.warn.called).to.be.true;
+    });
+
     it('should treat an already-promoted primary object as a successful add', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
