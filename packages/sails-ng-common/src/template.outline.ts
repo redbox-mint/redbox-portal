@@ -54,7 +54,9 @@ export type DynamicScriptResponseEvaluateContext = unknown;
 /**
  * Provide the template library evaluator functions.
  */
-export type DynamicScriptResponseEvaluateExtra = { jsonata?: unknown, libraries?: Record<string, unknown> };
+export type DynamicScriptResponseEvaluateExtra = {
+  libraries?: { jsonata?: Function, handlebars?: Function, [key: string]: unknown }
+};
 /**
  * The result of evaluating the template.
  */

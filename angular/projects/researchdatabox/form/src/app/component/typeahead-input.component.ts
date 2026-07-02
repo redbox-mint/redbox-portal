@@ -10,6 +10,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {
   DynamicScriptResponse,
+  handlebarsTemplate,
   HistoricalVocabMode,
   TypeaheadInputComponentName,
   TypeaheadInputFieldComponentConfig,
@@ -581,7 +582,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         value: option.value,
         sourceType: option.sourceType,
       };
-      const extra = { libraries: this.handlebarsTemplateService.getLibraries() };
+      const extra = { libraries: {handlebars: handlebarsTemplate} };
       const rendered = this.compiledItems?.evaluate(this.labelTemplatePath, context, extra);
       const output = String(rendered ?? '').trim();
       return output || option.label;

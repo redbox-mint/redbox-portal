@@ -1,13 +1,13 @@
 import { Component, HostListener, Injector, Input, inject } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
-    DynamicScriptResponse,
-    PDFListComponentName,
-    PDFListFieldComponentConfig,
-    PDFListFieldComponentConfigOutline,
-    PDFListModelName,
-    PDFListModelValueType,
-    RecordAttachment
+  DynamicScriptResponse, handlebarsTemplate,
+  PDFListComponentName,
+  PDFListFieldComponentConfig,
+  PDFListFieldComponentConfigOutline,
+  PDFListModelName,
+  PDFListModelValueType,
+  RecordAttachment
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { FormService } from "../form.service";
@@ -268,7 +268,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
                     index,
                     versionLabel,
                 },
-                { libraries: this.handlebarsTemplateService.getLibraries() }
+                { libraries: {handlebars: handlebarsTemplate} }
             );
             const output = String(rendered ?? "").trim();
             return output || fallbackFileName;
