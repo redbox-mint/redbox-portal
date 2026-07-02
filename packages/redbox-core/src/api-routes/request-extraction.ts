@@ -1,7 +1,7 @@
 import { ZodType } from 'zod';
 
 import { ApiRequestDefinition, ApiRequestSource } from './types';
-import { coerceValueForSchema, getObjectSchemaShape, getRequestFiles, isPassthroughObjectSchema, isRecord } from './helpers';
+import { coerceValueForSchema, getObjectSchemaShape, getRequestFiles, isRecord } from './helpers';
 
 export interface ApiRequestExtraction {
   params: Record<string, unknown>;

@@ -191,13 +191,13 @@ export const reorderVocabularyRoute = apiRoute(
         'application/json': {
           schema: objectField(
             {
-              entries: (arrayField(
+              entries: z.array(
                 objectField(
                   { id: patternStringField('^[A-Za-z0-9_.-]+$', 'Vocabulary entry id'), order: nonNegativeIntegerField('Entry order') },
                   ['id', 'order'],
                   'Vocabulary entry order item'
                 )
-              ) as z.ZodArray<any>).min(1),
+              ).min(1),
             },
             ['entries'],
             'Reorder payload'

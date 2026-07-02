@@ -1,5 +1,5 @@
 import { apiRoute } from '../route-factory';
-import { anyField, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
+import { anyField, nonEmptyStringField, objectField, patternStringField, responseField } from '../schemas/common';
 
 const dashboardConfigResponse = responseField(
   objectField({ data: anyField('Dashboard configuration data') }, ['data'], 'Dashboard configuration response', true),

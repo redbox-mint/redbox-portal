@@ -2,13 +2,11 @@ import { apiRoute } from '../route-factory';
 import {
   apiErrorResponseSchema,
   apiObjectActionResponseSchema,
-  nonEmptyStringField,
   patternStringField,
   searchResultsSchema,
   objectField,
   recordSearchQuery,
   responseField,
-  stringField,
 } from '../schemas/common';
 import { normalizeSearchQuery } from './search-query';
 

@@ -13,7 +13,7 @@ declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
  * based on their roles and the path rules defined for the brand.
  */
 function isApiRequest(req: Sails.Req): boolean {
-    return /\/[^\/]+\/[^\/]+\/api\//.test(req.path);
+    return /\/[^/]+\/[^/]+\/api\//.test(req.path);
 }
 
 export function checkAuth(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {

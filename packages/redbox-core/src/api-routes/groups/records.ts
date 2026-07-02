@@ -4,7 +4,6 @@ import {
   arrayField,
   apiErrorResponseSchema,
   apiHarvestResponseSchema,
-  anyField,
   binaryField,
   datastreamSummarySchema,
   datastreamUploadResponseSchema,

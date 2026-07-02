@@ -1,6 +1,6 @@
 import { apiRoute } from '../route-factory';
 import { z } from '../zod-openapi';
-import { anyField, apiErrorResponseSchema, arrayField, genericObjectSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
+import { anyField, apiErrorResponseSchema, arrayField, genericObjectSchema, objectField, patternStringField, responseField, stringField } from '../schemas/common';
 
 const namedQueryDataResponse = responseField(anyField('Named query response data'), 'Named query response');
 const namedQueryListResponse = responseField(arrayField(genericObjectSchema), 'Named query definitions');

@@ -8,7 +8,7 @@
  * returns a 401 JSON response instead of silently proceeding.
  */
 function isContractApiRequest(req: Sails.Req): boolean {
-    return /\/[^\/]+\/[^\/]+\/api\//.test(req.path);
+    return /\/[^/]+\/[^/]+\/api\//.test(req.path);
 }
 
 export function isWebServiceAuthenticated(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {

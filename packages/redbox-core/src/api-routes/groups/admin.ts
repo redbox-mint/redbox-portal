@@ -1,5 +1,5 @@
 import { apiRoute } from '../route-factory';
-import { apiErrorResponseSchema, appConfigValueSchema, apiActionResponseSchema, nonEmptyStringField, objectField, patternStringField, responseField, stringField } from '../schemas/common';
+import { apiErrorResponseSchema, appConfigValueSchema, apiActionResponseSchema, objectField, patternStringField, responseField } from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const notFoundResponse = responseField(apiErrorResponseSchema, 'Not found');
