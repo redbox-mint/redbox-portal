@@ -88,10 +88,13 @@ export namespace Services {
       this.logHeader = 'RecordsService::';
     }
 
-    private describeError(error: unknown): string {
+    private describeError(error: unknown, depth = 0): string {
+      if (depth >= 5) {
+        return '[cause chain truncated]';
+      }
       if (error instanceof Error) {
         const cause = (error as Error & { cause?: unknown }).cause;
-        const causeMessage = cause == null ? '' : `; cause=${this.describeError(cause)}`;
+        const causeMessage = cause == null ? '' : `; cause=${this.describeError(cause, depth + 1)}`;
         return `${error.name}: ${error.message}${causeMessage}`;
       }
       if (typeof error === 'string') {
