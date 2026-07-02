@@ -306,6 +306,24 @@ describe('StandardDatastreamService', function () {
       expect(mockStagingDisk.delete.called).to.be.false;
     });
 
+    it('should succeed when a concurrent promotion completes during the TUS parts attempt', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      // First primary check loses the race; the re-check after the TUS attempt wins.
+      mockPrimaryDisk.exists.onFirstCall().resolves(false);
+      mockPrimaryDisk.exists.onSecondCall().resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+
+      const ds = new Datastream({ fileId: 'raced-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/raced-file' });
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.getStream.called).to.be.false;
+    });
+
     it('should treat primary metadata as proof of an already-promoted object', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();

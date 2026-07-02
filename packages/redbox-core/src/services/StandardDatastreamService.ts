@@ -718,7 +718,16 @@ export namespace Services {
         }
         const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
         if (!promotedTusParts) {
+          // Re-check primary: a concurrent request may have promoted the file
+          // after the initial check but before/while the TUS attempt ran.
           primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
+          if (primaryCheck.available) {
+            this.logger.verbose(
+              `${this.logHeader} addDatastream() -> Promoted concurrently: ${destKey} via ${primaryCheck.via}`
+            );
+            await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+            return { success: true, key: destKey };
+          }
           throw new Error(
             `Attachment not found in staging: ${fileId}. Checked staged object '${fileId}' and TUS part prefixes: ${this
               .tusPartPrefixes(fileId)
