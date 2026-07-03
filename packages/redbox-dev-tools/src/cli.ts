@@ -25,7 +25,7 @@ const program = new Command();
 const forbiddenHookDeps = ['axios', 'rxjs', 'lodash', 'mocha', 'chai', 'ts-node', 'typescript'];
 const allowedSharedHookDeps: Record<'dependencies' | 'devDependencies' | 'peerDependencies', Set<string>> = {
   dependencies: new Set<string>(),
-  devDependencies: new Set(['@researchdatabox/redbox-dev-tools']),
+  devDependencies: new Set(['@researchdatabox/redbox-core', '@researchdatabox/redbox-dev-tools']),
   peerDependencies: new Set(['@researchdatabox/redbox-core']),
 };
 
@@ -66,6 +66,7 @@ function migrateHookDependencyContract(pkg: any): any {
   }
 
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] = nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+  nextPkg.devDependencies['@researchdatabox/redbox-core'] = nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
   nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
 
   return nextPkg;

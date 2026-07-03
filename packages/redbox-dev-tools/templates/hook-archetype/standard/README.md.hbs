@@ -1,13 +1,11 @@
 # {{packageName}}
 
-A generated ReDBox hook archetype.
+A generated ReDBox client hook archetype.
 
-This project keeps its dependency declarations intentionally small:
-
-- `@researchdatabox/redbox-core` is the ReDBox runtime compatibility contract
-- `@researchdatabox/redbox-dev-tools` provides the shared compile and unit-test toolchain
-- direct `dependencies` are reserved for hook-owned runtime libraries only
-- the generated package versions assume `redbox-core` and `redbox-dev-tools` are installed from npm, not from a sibling `redbox-portal` checkout
+This project is shaped for migrating v4 client customisation hooks to the
+current ReDBox hook contract. It includes TypeScript registrations for config,
+form configs, services, controllers, and migrations, plus Docker-backed
+development and Mocha integration harnesses.
 
 ## Development
 
@@ -19,21 +17,41 @@ npm run test:unit
 
 Local installs intentionally allow lifecycle scripts so native modules and other postinstall hooks can run. Use `npm install --ignore-scripts` only in controlled CI or container contexts where that trade-off is deliberate.
 
-For the docker-backed portal harness:
+For the image-backed portal harness:
 
 ```bash
 npm run dev:run:build
 npm run dev:run
 ```
 
-The development compose stack expects a locally trusted CA certificate at `support/development/certs/dev-ca.pem` and mounts it with `NODE_EXTRA_CA_CERTS`. Generate that certificate with your local CA tooling, for example `mkcert -CAROOT`, before starting the stack.
+To test against a local `redbox-portal` checkout, set `REDBOX_PORTAL_PATH` in
+`support/development/core-mount.env` and run:
+
+```bash
+npm run dev:run:core
+```
+
+The helper script resolves relative paths from this hook root, validates the
+portal checkout, installs missing dependencies, compiles the hook, compiles the
+portal server packages, and writes the resolved path to
+`support/development/.tmp/core-mount.env` for Docker Compose.
+
+## Dependency Contract
+
+- `@researchdatabox/redbox-core` is the runtime compatibility contract
+- `@researchdatabox/redbox-dev-tools` provides the shared compile and unit-test toolchain
+- direct `dependencies` are reserved for hook-owned runtime libraries only
+- shared packages such as `axios`, `rxjs`, `lodash`, `mocha`, `chai`, `ts-node`, and `typescript` should not be pinned directly here
 
 ## Structure
 
 - `src/index.ts`: hook entrypoint using `defineRedboxHook()`
 - `src/api/controllers`: hook controllers
 - `src/api/services`: hook services
-- `src/config`: configuration and reusable form definition helpers
+- `src/config`: configuration and reusable form definition helpers registered through `registerRedboxConfig()`
 - `src/form-config`: form config exports
+- `src/migrations`: synchronous hook migration registry
+- `support/bootstrap-data`: bootstrap data copied into the portal image/harness
+- `assets`, `views`, and `language-defaults`: client customisation material copied or resolved by the hook runtime
 - `test/unit`: fast hook-local TypeScript tests
 - `test/integration`: portal integration tests

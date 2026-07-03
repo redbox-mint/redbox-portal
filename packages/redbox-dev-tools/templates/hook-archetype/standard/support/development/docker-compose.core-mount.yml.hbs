@@ -1,0 +1,37 @@
+networks:
+  main:
+
+services:
+  rbportal:
+    environment:
+      - sails_angularDev=true
+    volumes:
+      - "../../:/opt/redbox-portal/node_modules/{{packageName}}"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/app.js:/opt/redbox-portal/app.js:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/agenda-sqs-backend:/opt/redbox-portal/packages/agenda-sqs-backend:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/raido:/opt/redbox-portal/packages/raido:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/packages/redbox-core:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-dev-tools:/opt/redbox-portal/packages/redbox-dev-tools:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/rva-registry:/opt/redbox-portal/packages/rva-registry:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-hook-redbox-storage-mongo:/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/views:/opt/redbox-portal/views:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/agenda-sqs-backend:/opt/redbox-portal/node_modules/@researchdatabox/agenda-sqs-backend:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/raido:/opt/redbox-portal/node_modules/@researchdatabox/raido-openapi-generated-node:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core-types:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-dev-tools:/opt/redbox-portal/node_modules/@researchdatabox/redbox-dev-tools:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/rva-registry:/opt/redbox-portal/node_modules/@researchdatabox/rva-registry-openapi-generated-node:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-hook-redbox-storage-mongo:/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-ng-common:/opt/redbox-portal/node_modules/@researchdatabox/sails-ng-common:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/agenda-sqs-backend:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/agenda-sqs-backend:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/raido:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/raido-openapi-generated-node:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/redbox-core:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-core:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/redbox-core-types:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/redbox-dev-tools:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/redbox-dev-tools:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/rva-registry:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/rva-registry-openapi-generated-node:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-hook-redbox-storage-mongo:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/sails-hook-redbox-storage-mongo:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/packages/sails-ng-common:/opt/redbox-portal/node_modules/{{packageName}}/node_modules/@researchdatabox/sails-ng-common:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/assets/angular:/opt/redbox-portal/assets/angular:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/assets/angular:/opt/redbox-portal/.tmp/public/angular:delegated"
+      - "${REDBOX_PORTAL_PATH:?Run dev:run:core:prepare first}/.tmp/public/default/default/js:/opt/redbox-portal/.tmp/public/default/default/js:delegated"
