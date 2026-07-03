@@ -1,12 +1,12 @@
 export function evaluate(key, context, extra) {
 
-    // normalise the key the same way as the server
+    // Normalise the key the same way as the server.
     key = (key ?? [])?.map(i => i?.toString()?.normalize("NFKC"))?.join('__');
 
-    // Provide libraries from context
-    const Handlebars = typeof extra?.libraries?.Handlebars?.template === "function"
-        ? extra?.libraries?.Handlebars
-        : () => { throw new Error("Handlebars instance not provided in extra.libraries.Handlebars"); };
+    // Provide libraries as wrapper functions from extra.
+    const handlebars = typeof extra?.libraries?.handlebars === "function"
+        ? extra?.libraries?.handlebars
+        : () => { throw new Error("Handlebars instance not provided in extra.libraries.handlebars"); };
     const jsonata = typeof extra?.libraries?.jsonata === "function"
         ? extra?.libraries?.jsonata
         : () => { throw new Error("JSONata instance not provided in extra.libraries.jsonata"); };

@@ -22,11 +22,11 @@ import {
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
-import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
-import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import { type TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 
 export namespace Services {
@@ -47,33 +47,19 @@ export namespace Services {
       'runTemplate',
     ];
 
-    private helpersRegistered: boolean = false;
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
     /**
-     * Register the shared Handlebars helpers once per service lifecycle.
-     * @private
-     */
-    private ensureHelpersRegistered() {
-      if (!this.helpersRegistered) {
-        registerSharedHandlebarsHelpers(Handlebars);
-        this.helpersRegistered = true;
-        sails.log.verbose('EmailService: Registered shared Handlebars helpers');
-      }
-    }
-
-    /**
      * Compile (and cache) a Handlebars template from its source string.
-     * @param source The Handlebars template source.
+     * @param templateName The Handlebars template source.
      * @return The compiled template delegate.
      * @private
      */
     private getCompiledTemplate(templateName: string): HandlebarsTemplateDelegate {
-      this.ensureHelpersRegistered();
       if (!this.compiledTemplates.has(templateName)) {
         const filePath = sails.config.emailnotification.settings.templateDir + templateName + '.hbs';
         const source = fs.readFileSync(filePath, 'utf-8') || '';
-        this.compiledTemplates.set(templateName, Handlebars.compile(source, { strict: true }));
+        this.compiledTemplates.set(templateName, handlebarsCompile(source, { strict: true }));
       }
       return this.compiledTemplates.get(templateName)!;
     }
@@ -194,7 +180,7 @@ export namespace Services {
      * Build Email Body from a Handlebars Template.
      * Templates are defined in sails config.
      *
-     * @param template The file name without extension.
+     * @param templateName The file name without extension.
      * @param data The variables to use when rendering the template.
      * @param res The response object. Will contain 'status', 'body', might contain 'ex'.
      * @return The response object with 'status', 'body', and maybe 'ex' set.
@@ -264,9 +250,9 @@ export namespace Services {
      * @protected
      */
     public runTemplate(template: string, variables: Record<string, unknown>) {
-      if (template && template.indexOf('{{') != -1) {
-        this.ensureHelpersRegistered();
-        return Handlebars.compile(template, { strict: true })(variables);
+      if (template && template.indexOf('{{') !== -1) {
+        const compiled = handlebarsCompile(template, { strict: true })
+        return compiled(variables);
       }
       return template;
     }
