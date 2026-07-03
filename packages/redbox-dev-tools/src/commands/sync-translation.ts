@@ -8,7 +8,7 @@ type MetaEntryValue = {
   description?: string
   contentFormat?: "plain" | "html",
 };
-type MetaEntries = Record<MetaEntryKey, MetaEntryValue>;
+export type MetaEntries = Record<MetaEntryKey, MetaEntryValue>;
 
 export function registerSyncTranslationCommand(program: Command): void {
   program
@@ -99,13 +99,11 @@ export function registerSyncTranslationCommand(program: Command): void {
         const metaMerged: MetaEntries = {};
         for (const [locale, localeTranslation] of Object.entries(translationMerged)) {
           const entriesLocale = entriesData.filter(e => e.locale === locale);
-          for (const [key, metaItem] of Object.entries(langDefaultsMetaData)) {
+          for (const key of Object.keys(localeTranslation)) {
             const entriesItems = entriesLocale.filter(e => e.key === key);
-            if (entriesItems.length > 1) {
-              throw new Error(`More than one entry for ${key}`);
-            }
             const entriesItem = entriesItems.length > 0 ? entriesItems[0] : undefined;
             const translationItem = localeTranslation[key];
+            const metaItem = langDefaultsMetaData[key];
 
             const newItem = {
               category: (entriesItem?.category || metaItem?.category) ?? undefined,
