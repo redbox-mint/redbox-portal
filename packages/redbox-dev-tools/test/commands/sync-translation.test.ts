@@ -11,7 +11,7 @@ const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.j
   : path.resolve(__dirname, '..', '..', '..');
 const testRoot = path.join(packageRoot, 'test');
 
-describe('sync-translation command', async () => {
+describe('sync-translation command', () => {
   let tempRoot: string;
   let inputOriginalPath: string;
   let inputTargetPath: string;
@@ -113,27 +113,96 @@ describe('sync-translation command', async () => {
     const targetTranslation = readJsonFile(targetEnTranslationFile);
     const targetMeta = readJsonFile(targetMetaFile);
 
-    const tempTranslation = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
-    const tempMeta = readJsonFile(tempMetaFile) as Record<string, unknown>;
+    const tempEnTranslationData = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
+    const tempMetaData = readJsonFile(tempMetaFile) as Record<string, unknown>;
 
-    expect(targetTranslation).to.eql(tempTranslation);
-    expect(targetMeta).to.eql(tempMeta);
+    expect(targetTranslation).to.eql(tempEnTranslationData);
+    expect(targetMeta).to.eql(tempMetaData);
 
-    expect(tempTranslation["@name-test1"]).to.eql("Name 1");
-    expect(tempTranslation["@name-test2"]).to.eql("Name 2");
-    expect(tempTranslation["@name-test3"]).to.eql("Name 3");
+    expect(Object.keys(tempEnTranslationData)).to.have.length(3);
+    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1");
+    expect(tempEnTranslationData["@name-test2"]).to.eql("Name 2");
+    expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
 
-    expect(tempMeta["@name-test1"]).to.eql({
+    expect(Object.keys(tempMetaData)).to.have.length(3);
+    expect(tempMetaData["@name-test1"]).to.eql({
       "category": "name",
       "description": "Name for test 1.",
       "contentFormat": "plain"
     });
-    expect(tempMeta["@name-test2"]).to.eql({
+    expect(tempMetaData["@name-test2"]).to.eql({
       "category": "name",
       "description": "Name for test 2.",
       "contentFormat": "plain"
     });
-    expect(tempMeta["@name-test3"]).to.eql({
+    expect(tempMetaData["@name-test3"]).to.eql({
+      "description": "Name for test 3."
+    });
+
+  });
+
+  it('does not write files in dry run', async () => {
+    const program = buildProgram();
+
+    // known paths
+    const originalEnTranslationFile = path.resolve(inputOriginalPath, 'en', 'translation.json');
+    const originalMetaFile = path.resolve(inputOriginalPath, 'meta.json');
+    const originalHttpEntriesFile = path.resolve(inputOriginalPath, 'http-entries.json');
+    const originalHttpTranslationFile = path.resolve(inputOriginalPath, 'http-translation.json');
+
+    const tempLangDefaultsDir = path.join(tempRoot, 'language-defaults');
+    const tempEnDir = path.join(tempLangDefaultsDir, 'en');
+    const tempEnTranslationFile = path.join(tempLangDefaultsDir, 'en', 'translation.json');
+    const tempMetaFile = path.join(tempLangDefaultsDir, 'meta.json');
+
+    const originalEnTranslationData = readJsonFile(originalEnTranslationFile);
+    const originalMetaData = readJsonFile(originalMetaFile);
+
+    // create temp dir and files
+    fs.mkdirSync(tempEnDir, {recursive: true});
+    fs.writeFileSync(tempEnTranslationFile, JSON.stringify(originalEnTranslationData), 'utf8');
+    fs.writeFileSync(tempMetaFile, JSON.stringify(originalMetaData), 'utf8');
+
+    // stub the fetch api
+    setFetchStub([
+      {
+        // i18n/entries
+        body: readJsonFile(originalHttpEntriesFile) as unknown[],
+      },
+      {
+        // locales/en/translation.json
+        body: readJsonFile(originalHttpTranslationFile) as Record<string, unknown>,
+      },
+    ]);
+
+    await program.parseAsync(
+      [
+        'node', 'redbox-dev-tools',
+        'sync-translation',
+        '--dry-run',
+        '--api-base', 'https://localhost',
+        '--language-defaults', tempLangDefaultsDir
+      ],
+      {from: 'node'}
+    );
+
+    const tempEnTranslationData = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
+    const tempMetaData = readJsonFile(tempMetaFile) as Record<string, unknown>;
+
+    expect(originalEnTranslationData).to.eql(tempEnTranslationData);
+    expect(originalMetaData).to.eql(tempMetaData);
+
+    expect(Object.keys(tempEnTranslationData)).to.have.length(2);
+    expect(tempEnTranslationData["@name-test1"]).to.eql("");
+    expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
+
+    expect(Object.keys(tempMetaData)).to.have.length(2);
+    expect(tempMetaData["@name-test1"]).to.eql({
+      "category": "name",
+      "description": "Name for test 1.",
+      "contentFormat": "plain"
+    });
+    expect(tempMetaData["@name-test3"]).to.eql({
       "description": "Name for test 3."
     });
 
