@@ -43,6 +43,14 @@ describe('cli smoke test', function () {
     expect(result.stdout).to.contain('generate|g');
   });
 
+  it('should print the package version', () => {
+    const result = runCli(['--version']);
+    const pkg = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
+
+    expect(result.status).to.equal(0, result.stderr);
+    expect(result.stdout.trim()).to.equal(pkg.version);
+  });
+
   it('should dispatch to a subcommand action', () => {
     const result = runCli(['completion', 'bash']);
     expect(result.status).to.equal(0, result.stderr);

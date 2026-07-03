@@ -21,6 +21,7 @@ import {
 } from './cli-parsers';
 
 const program = new Command();
+const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
 // List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
 const forbiddenHookDeps = ['axios', 'rxjs', 'lodash', 'mocha', 'chai', 'ts-node', 'typescript'];
 const allowedSharedHookDeps: Record<'dependencies' | 'devDependencies' | 'peerDependencies', Set<string>> = {
@@ -98,7 +99,7 @@ function findForbiddenHookDeps(pkg: any): string[] {
 program
   .name('redbox-dev-tools')
   .description('CLI for ReDBox hook development and code generation')
-  .version('1.0.0')
+  .version(packageJson.version ?? '0.0.0')
   .option('--root <path>', 'ReDBox repo root directory (required for generators)')
   .option('--core-types-root <path>', 'Override core-types package root')
   .option('--angular-root <path>', 'Override angular projects root')
