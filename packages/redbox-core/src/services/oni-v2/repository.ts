@@ -11,6 +11,7 @@ import {
   StorageManagerLike,
 } from './types';
 import { createStorageManagerOcflStoreClass } from './flydriveOcflStore';
+import { createRootCollectionCrate } from './crate';
 
 function asError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
@@ -86,29 +87,6 @@ async function ensureStorageRoot(storage: OcflStorageLike): Promise<void> {
     await storage.create();
     await storage.load();
   }
-}
-
-function createRootCollectionCrate(config: ResolvedOniPublishingConfigData): Record<string, unknown> {
-  const root = config.rootCollection;
-  return {
-    '@context': 'https://w3id.org/ro/crate/1.1/context',
-    '@graph': [
-      {
-        '@id': config.metadata.jsonldFilename,
-        '@type': 'CreativeWork',
-        about: { '@id': root.rootCollectionId },
-        conformsTo: { '@id': 'https://w3id.org/ro/crate/1.1' },
-      },
-      {
-        '@id': root.rootCollectionId,
-        '@type': root.dsType,
-        identifier: root.targetRepoColId,
-        name: root.targetRepoColName,
-        description: root.targetRepoColDescription,
-        license: root.defaultLicense,
-      },
-    ],
-  };
 }
 
 class FlydriveOniRepository implements OniOcflRepository {

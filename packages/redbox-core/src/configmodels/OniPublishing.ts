@@ -25,11 +25,6 @@ export interface OniOrganizationConfig {
   name: string;
 }
 
-export interface OniRelatedWorkConfig {
-  field: string;
-  type: string;
-}
-
 export interface OniDefaultIriPrefs {
   about: Record<string, string>;
   spatialCoverage: string;
@@ -77,15 +72,8 @@ export interface OniDatasetMappingConfig {
 }
 
 export interface OniMetadataConfig {
-  htmlFilename: string;
   jsonldFilename: string;
-  datapubJson: string;
-  identifierNamespace: string;
-  renderScript: string;
   organization: OniOrganizationConfig;
-  relatedWorks: OniRelatedWorkConfig[];
-  funders: string[];
-  subjects: string[];
   defaultIriPrefs: OniDefaultIriPrefs;
 }
 
@@ -157,26 +145,13 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
     },
   };
   metadata: OniMetadataConfig = {
-    htmlFilename: 'ro-crate-preview.html',
     jsonldFilename: 'ro-crate-metadata.json',
-    datapubJson: 'datapub.json',
-    identifierNamespace: 'public_ocfl',
-    renderScript: '',
     organization: {
       '@id': 'https://www.redboxresearchdata.com.au',
       '@type': 'Organization',
       identifier: 'https://www.redboxresearchdata.com.au',
       name: 'ReDBox Research Data',
     },
-    relatedWorks: [
-      { field: 'publications', type: 'ScholarlyArticle' },
-      { field: 'websites', type: 'WebSite' },
-      { field: 'metadata', type: 'CreativeWork' },
-      { field: 'data', type: 'Dataset' },
-      { field: 'services', type: 'CreativeWork' },
-    ],
-    funders: ['foaf:fundedBy_foaf:Agent', 'foaf:fundedBy_vivo:Grant'],
-    subjects: ['dc:subject_anzsrc:for', 'dc:subject_anzsrc:seo'],
     defaultIriPrefs: {
       about: {
         'dc:subject_anzsrc:for': '_:FOR/',

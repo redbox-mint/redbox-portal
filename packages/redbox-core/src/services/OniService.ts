@@ -9,7 +9,7 @@ import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
-import { getBrand, resolveOniPublishingConfig, resolveOniSite } from './oni-v2/config';
+import { getBrand, getRequestedOniSiteName, resolveOniPublishingConfig, resolveOniSite } from './oni-v2/config';
 import { createRunContext } from './oni-v2/context';
 import { applyCitationWriteBack, applyPublicationError } from './oni-v2/crate';
 import { createOniRepository } from './oni-v2/repository';
@@ -159,8 +159,10 @@ export namespace Services {
         return recordObj;
       }
 
-      const { siteName, site } = resolveOniSite(config, optionsObj);
-      const userObj = this.ensureUser(user, oid, siteName);
+      let siteName = getRequestedOniSiteName(config, optionsObj);
+      if (siteName === '') {
+        siteName = 'unresolved';
+      }
       const runContext = createRunContext(
         recordObj,
         oid,
@@ -171,14 +173,18 @@ export namespace Services {
       let auditCtx: IntegrationAuditContext | null = null;
       auditCtx = startOniAudit(oid, IntegrationAuditAction.publishOniDataset, runContext, {
         site: siteName,
-        storageDriver: site.storage.driver,
         triggerSource: runContext.triggerSource,
       });
 
       let result: OniPublishResult;
+      let userObj: OniUserModel | null = null;
       try {
+        userObj = this.ensureUser(user, oid, siteName);
+        const resolvedSite = resolveOniSite(config, optionsObj);
+        siteName = resolvedSite.siteName;
+        runContext.siteName = siteName;
         const creator = await this.resolveCreator(recordObj, oid, siteName);
-        const repository = this.createRepository(config, site);
+        const repository = this.createRepository(config, resolvedSite.site);
         result = await this.runPublishDataset(
           { oid, record: recordObj, options: optionsObj, user: userObj, creator },
           config,
@@ -188,11 +194,13 @@ export namespace Services {
         );
       } catch (error) {
         const err = this.asError(error);
-        try {
-          await this.recordPublicationError(oid, recordObj, userObj, err);
-        } catch (persistError) {
-          sails.log.error(`${this.logHeader} failed to persist Oni publication error for '${oid}'`);
-          sails.log.error(persistError);
+        if (userObj != null) {
+          try {
+            await this.recordPublicationError(oid, recordObj, userObj, err);
+          } catch (persistError) {
+            sails.log.error(`${this.logHeader} failed to persist Oni publication error for '${oid}'`);
+            sails.log.error(persistError);
+          }
         }
         failOniAudit(auditCtx, error, {
           message: 'Oni dataset publish failed.',
@@ -201,6 +209,9 @@ export namespace Services {
         throw this.toValidationError(error, oid, siteName, 'Error publishing dataset to Oni OCFL');
       }
 
+      if (userObj == null) {
+        throw new Error(`Oni publish completed without a resolved user for '${oid}'`);
+      }
       applyCitationWriteBack(recordObj, config, result.datasetUrl);
       try {
         await this.persistRecord(oid, recordObj, userObj);

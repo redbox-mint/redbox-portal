@@ -3,6 +3,7 @@ import Handlebars from 'handlebars';
 import { jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import type { OniValueBinding } from '../../configmodels/OniPublishing';
 import type { AnyRecord } from './types';
+import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
 
 let handlebarsHelpersRegistered = false;
 
@@ -14,25 +15,7 @@ function ensureHandlebarsHelpersRegistered(): void {
 }
 
 export function validateHandlebarsTemplate(template: string): void {
-  const allowedHelpers = new Set(['default', 'join', 'lower', 'upper', 'trim', 'formatDate']);
-  const tagPattern = /{{{?\s*([#/!>]?)\s*([A-Za-z_][A-Za-z0-9_]*)?/g;
-  let match: RegExpExecArray | null;
-  while ((match = tagPattern.exec(template)) != null) {
-    const sigil = match[1];
-    const token = match[2];
-    if (sigil === '!' || sigil === '>' || !token) {
-      continue;
-    }
-    if (sigil === '#') {
-      throw new Error(`Unsupported Handlebars block helper '${token}' in Oni binding`);
-    }
-    const afterToken = template.slice(tagPattern.lastIndex).trimStart();
-    const isSimpleLookup = afterToken.startsWith('}}') || afterToken.startsWith('}}}') || afterToken.startsWith('.');
-    if (isSimpleLookup || allowedHelpers.has(token)) {
-      continue;
-    }
-    throw new Error(`Unsupported Handlebars helper '${token}' in Oni binding`);
-  }
+  validateSafeHandlebarsTemplate(template, 'Oni');
 }
 
 export async function evaluateBinding(binding: OniValueBinding | undefined, context: AnyRecord): Promise<unknown> {

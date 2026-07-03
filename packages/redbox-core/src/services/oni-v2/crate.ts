@@ -11,7 +11,14 @@ import type {
   OniUserModel,
 } from './types';
 import type { OniPublishingConfigData } from '../../configmodels/OniPublishing';
-import { buildMappingContext, mapDatasetFields, mapGraphEntities, validateMappedDataset } from './mapping';
+import { RBValidationError } from '../../model/RBValidationError';
+import {
+  applyDatasetLink,
+  buildMappingContext,
+  mapDatasetFields,
+  mapGraphEntities,
+  validateMappedDataset,
+} from './mapping';
 
 type WktParserHelperModule = {
   default?: WktParserHelperApi;
@@ -22,8 +29,8 @@ type WktParserHelperApi = {
   geojsonToWkt?: (input: unknown) => string;
 };
 
-const RO_CRATE_CONTEXT = 'https://w3id.org/ro/crate/1.1/context';
-const RO_CRATE_PROFILE = 'https://w3id.org/ro/crate/1.1';
+export const RO_CRATE_CONTEXT = 'https://w3id.org/ro/crate/1.1/context';
+export const RO_CRATE_PROFILE = 'https://w3id.org/ro/crate/1.1';
 let wktParserHelper: WktParserHelperApi | null = null;
 
 export function generateArcpId(namespace: string, id: string): string {
@@ -147,19 +154,6 @@ export function getPerson(rbPerson: AnyRecord, type: string): AnyRecord | undefi
     familyName: rbPerson.familyName ?? rbPerson.family_name,
     email: rbPerson.email,
   };
-}
-
-export function getCreators(metadata: AnyRecord, organization: unknown): AnyRecord[] {
-  const creatorList = Array.isArray(metadata.creators) ? (metadata.creators as AnyRecord[]) : [];
-  return _.compact(
-    creatorList.map(creator => {
-      const person = getPerson(creator, 'Person');
-      if (person) {
-        person.affiliation = organization;
-      }
-      return person;
-    })
-  ) as AnyRecord[];
 }
 
 export function getLicense(metadata: AnyRecord, config: OniPublishingConfigData): AnyRecord[] {
@@ -335,7 +329,7 @@ function addHistory(graph: AnyRecord[], rootDataset: AnyRecord, creator: OniUser
   });
 }
 
-function createRootCollectionEntity(config: OniPublishingConfigData): AnyRecord {
+export function createRootCollectionEntity(config: OniPublishingConfigData): AnyRecord {
   return {
     '@id': config.rootCollection.rootCollectionId,
     '@type': config.rootCollection.dsType,
@@ -343,6 +337,21 @@ function createRootCollectionEntity(config: OniPublishingConfigData): AnyRecord 
     name: config.rootCollection.targetRepoColName,
     description: config.rootCollection.targetRepoColDescription,
     license: config.rootCollection.defaultLicense,
+  };
+}
+
+export function createRootCollectionCrate(config: OniPublishingConfigData): AnyRecord {
+  return {
+    '@context': RO_CRATE_CONTEXT,
+    '@graph': [
+      {
+        '@id': config.metadata.jsonldFilename,
+        '@type': 'CreativeWork',
+        about: { '@id': config.rootCollection.rootCollectionId },
+        conformsTo: { '@id': RO_CRATE_PROFILE },
+      },
+      createRootCollectionEntity(config),
+    ],
   };
 }
 
@@ -355,14 +364,91 @@ function createFileEntities(attachments: OniAttachment[]): AnyRecord[] {
   }));
 }
 
+function isRecordValue(value: unknown): value is AnyRecord {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getDatasetReferences(rootDataset: AnyRecord, property: string): AnyRecord[] {
+  const value = rootDataset[property];
+  if (Array.isArray(value)) {
+    return value.filter(isRecordValue);
+  }
+  return isRecordValue(value) ? [value] : [];
+}
+
+function findGraphEntity(graph: AnyRecord[], id: string): AnyRecord | undefined {
+  return graph.find(entry => String(entry['@id'] ?? '') === id);
+}
+
+function upsertGraphEntity(graph: AnyRecord[], entity: AnyRecord): AnyRecord {
+  const id = String(entity['@id'] ?? '').trim();
+  if (id !== '') {
+    const existing = findGraphEntity(graph, id);
+    if (existing) {
+      Object.assign(existing, entity);
+      return existing;
+    }
+  }
+  graph.push(entity);
+  return entity;
+}
+
+function toReference(entity: AnyRecord): AnyRecord {
+  return { '@id': entity['@id'] };
+}
+
+function addContributorContactPoint(graph: AnyRecord[], rootDataset: AnyRecord, contributor: AnyRecord): void {
+  const contactPoint = getPerson(contributor, 'ContactPoint');
+  if (!contactPoint) {
+    return;
+  }
+
+  contactPoint.contactType = 'Data Manager';
+  contactPoint.identifier = contactPoint['@id'];
+  const contactEmail = String(contactPoint.email ?? '').trim();
+  if (contactEmail !== '') {
+    contactPoint['@id'] = `mailto:${contactEmail}`;
+  }
+
+  const contactPointEntity = upsertGraphEntity(graph, contactPoint);
+  const contactPointReference = toReference(contactPointEntity);
+  const contactIdentifier = String(contactPoint.identifier ?? '').trim();
+  const authorReference = getDatasetReferences(rootDataset, 'author').find(
+    entry => String(entry['@id'] ?? '') === contactIdentifier
+  );
+  const authorEntity = authorReference ? findGraphEntity(graph, String(authorReference['@id'] ?? '')) : undefined;
+  if (authorEntity) {
+    authorEntity.contactPoint = contactPointReference;
+    return;
+  }
+
+  const contactPerson = getPerson(contributor, 'Person');
+  if (contactPerson) {
+    const contactPersonEntity = upsertGraphEntity(graph, {
+      ...contactPerson,
+      contactPoint: contactPointReference,
+    });
+    applyDatasetLink(rootDataset, contactPersonEntity, { property: 'contributor' });
+  }
+}
+
 export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCrateBuildResult> {
   const metadata = input.record.metadata ?? {};
   const metaMetadata = input.record.metaMetadata ?? {};
   const dataRecordOid = getDataRecordOid(input.record, input.config);
   if (dataRecordOid === '') {
-    throw new Error(
-      `Could not find data record oid at '${input.config.selection.dataRecordOidPath}' for publication '${input.oid}'`
-    );
+    const message = `Could not find data record oid at '${input.config.selection.dataRecordOidPath}' for publication '${input.oid}'`;
+    throw new RBValidationError({
+      message,
+      displayErrors: [
+        {
+          code: 'oni-data-record-oid-missing',
+          title: 'Oni data record OID is missing',
+          detail: message,
+          meta: { oid: input.oid, path: input.config.selection.dataRecordOidPath },
+        },
+      ],
+    });
   }
 
   const datasetUrl = buildDatasetUrl(input.config, input.site.publicUrl, input.site.useCleanUrl, input.oid);
@@ -414,30 +500,9 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     rootDataset
   );
 
-  const contributor = metadata.contributor_data_manager as AnyRecord | undefined;
-  if (contributor != null) {
-    const contactPoint = getPerson(contributor, 'ContactPoint');
-    if (contactPoint) {
-      contactPoint.contactType = 'Data Manager';
-      contactPoint.identifier = contactPoint['@id'];
-      const contactEmail = String(contactPoint.email ?? '').trim();
-      if (contactEmail !== '') {
-        contactPoint['@id'] = `mailto:${contactEmail}`;
-      }
-      const author = _.find(
-        rootDataset.author as AnyRecord[],
-        (entry: AnyRecord) => entry['@id'] === contactPoint.identifier
-      );
-      if (author) {
-        author.contactPoint = contactPoint;
-      } else {
-        const contactPerson = getPerson(contributor, 'Person');
-        if (contactPerson) {
-          contactPerson.contactPoint = contactPoint;
-          rootDataset.contributor = [contactPerson];
-        }
-      }
-    }
+  const contributor = metadata.contributor_data_manager;
+  if (isRecordValue(contributor)) {
+    addContributorContactPoint(mappedGraphEntities, rootDataset, contributor);
   }
 
   graph.push(...mappedGraphEntities, rootDataset, ...fileEntities);

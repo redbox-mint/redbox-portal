@@ -10,6 +10,7 @@ import { validateHandlebarsTemplate } from '../../src/services/oni-v2/bindings';
 import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../../src/services/oni-v2/mapping';
 import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
+import { runPublishDatasetProgram } from '../../src/services/oni-v2/runtime';
 import type { StorageDiskLike } from '../../src/services/oni-v2/types';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
@@ -194,12 +195,67 @@ describe('OniService', function () {
     expect(root.about).to.deep.equal([{ '@id': '_:FOR/0601' }, { '@id': '_:SEO/9608' }]);
     expect(root.publications).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-publication' }]);
     expect(root.data).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-dataset' }]);
+    expect(root.contributor).to.deep.equal([{ '@id': 'manager@example.edu' }]);
+    const dataManager = graph.find(entry => entry['@id'] === 'manager@example.edu')!;
+    const contactPoint = graph.find(entry => entry['@id'] === 'mailto:manager@example.edu')!;
+    expect(dataManager.contactPoint).to.deep.equal({ '@id': 'mailto:manager@example.edu' });
+    expect(contactPoint).to.deep.include({
+      '@type': 'ContactPoint',
+      contactType: 'Data Manager',
+      identifier: 'manager@example.edu',
+      email: 'manager@example.edu',
+    });
     expect(graph.some(entry => entry['@id'] === '_:FOR/0601' && entry.url === '_:FOR/0601')).to.equal(true);
     expect(graph.some(entry => entry['@id'] === '_:SEO/9608' && entry.url === '_:SEO/9608')).to.equal(true);
     expect(graph.some(entry => entry['@id'] === 'https://doi.org/10.1234/related-publication')).to.equal(true);
     expect(graphIds).to.not.include('_:funder/');
     expect(graphIds).to.not.include('_:FOR/');
     expect(graphIds).to.not.include('_:SEO/');
+  });
+
+  it('attaches contributor contact points to graph entities instead of dataset references', async function () {
+    const record = publicationRecord();
+    record.metadata.contributor_data_manager = record.metadata.creators[0];
+    const result = await buildOniRoCrate({
+      config: oniPublishing,
+      site: oniPublishing.sites['test-site'],
+      siteName: 'test-site',
+      oid: 'pub-1',
+      record,
+      creator: { email: 'creator@example.edu', text_full_name: 'Creator User' },
+      approver: { email: 'approver@example.edu', text_full_name: 'Approver User' },
+    });
+    const graph = result.crateJson['@graph'] as Array<Record<string, unknown>>;
+    const root = graph.find(entry => entry['@id'] === result.rootId)!;
+    const authorEntity = graph.find(entry => entry['@id'] === 'https://orcid.org/0000-0001-2345-6789')!;
+
+    expect(root.author).to.deep.equal([{ '@id': 'https://orcid.org/0000-0001-2345-6789' }]);
+    expect((root.author as Array<Record<string, unknown>>)[0].contactPoint).to.equal(undefined);
+    expect(authorEntity.contactPoint).to.deep.equal({ '@id': 'mailto:creator@example.edu' });
+    expect(
+      graph.some(entry => entry['@id'] === 'mailto:creator@example.edu' && entry['@type'] === 'ContactPoint')
+    ).to.equal(true);
+  });
+
+  it('honours mapping context overrides for configured IRI prefixes', async function () {
+    oniPublishing.mapping.context = { funderIriPrefix: 'https://funders.example/' };
+    const result = await buildOniRoCrate({
+      config: oniPublishing,
+      site: oniPublishing.sites['test-site'],
+      siteName: 'test-site',
+      oid: 'pub-1',
+      record: publicationRecord(),
+      creator: { email: 'creator@example.edu', text_full_name: 'Creator User' },
+      approver: { email: 'approver@example.edu', text_full_name: 'Approver User' },
+    });
+    const graph = result.crateJson['@graph'] as Array<Record<string, unknown>>;
+    const root = graph.find(entry => entry['@id'] === result.rootId)!;
+
+    expect(root.funder).to.deep.equal([
+      { '@id': 'https://funders.example/03yrm5c26' },
+      { '@id': 'https://funders.example/grant-1' },
+    ]);
+    expect(graph.some(entry => entry['@id'] === 'https://funders.example/03yrm5c26')).to.equal(true);
   });
 
   it('maps path, handlebars and jsonata root dataset fields', async function () {
@@ -223,6 +279,42 @@ describe('OniService', function () {
     expect(() => validateHandlebarsTemplate('{{#each metadata.creators}}{{text_full_name}}{{/each}}')).to.throw(
       "Unsupported Handlebars block helper 'each' in Oni binding"
     );
+  });
+
+  it('preserves RBValidationError identity from Oni Effect runtime failures', async function () {
+    const record = publicationRecord();
+    delete record.metadata.dataRecord;
+    const repository = {
+      ensureStorageRoot: sinon.stub().resolves(),
+      ensureRootCollection: sinon.stub().resolves(),
+      writeDatasetObject: sinon.stub().resolves(),
+    };
+
+    try {
+      await runPublishDatasetProgram(
+        {
+          oid: 'pub-1',
+          record,
+          options: { site: 'test-site' },
+          user: { email: 'approver@example.edu' },
+          creator: { email: 'creator@example.edu' },
+        },
+        oniPublishing,
+        {
+          recordOid: 'pub-1',
+          brandId: 'brand-1',
+          brandName: 'default',
+          siteName: 'test-site',
+          correlationId: 'corr-1',
+          triggerSource: 'test',
+        },
+        repository
+      );
+      expect.fail('Expected runPublishDatasetProgram to throw');
+    } catch (error) {
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect((error as RBValidationError).displayErrors[0].code).to.equal('oni-data-record-oid-missing');
+    }
   });
 
   it('iterates graph entity source arrays and keeps system root fields protected', async function () {
@@ -401,6 +493,36 @@ describe('OniService', function () {
     expect(updateMeta.firstCall.args[5]).to.equal(false);
   });
 
+  it('audits and writes publication errors when the requested Oni site is unknown', async function () {
+    const record = publicationRecord();
+
+    try {
+      await service.exportDataset(
+        'pub-1',
+        record,
+        { site: 'missing-site', forceRun: true },
+        { email: 'approver@example.edu' }
+      );
+      expect.fail('Expected exportDataset to throw');
+    } catch (error) {
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect((error as RBValidationError).displayErrors[0].code).to.equal('oni-site-unknown');
+    }
+
+    const auditService = (
+      global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub; failAudit: sinon.SinonStub } }
+    ).IntegrationAuditService;
+    const updateMeta = (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService
+      .updateMeta;
+    expect(auditService.startAudit.calledOnce).to.equal(true);
+    expect(auditService.failAudit.calledOnce).to.equal(true);
+    expect(auditService.failAudit.firstCall.args[2].responseSummary.displayErrors[0].code).to.equal('oni-site-unknown');
+    expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.contain(
+      "Unknown Oni publishing site 'missing-site'"
+    );
+  });
+
   it('maps OCFL paths onto Flydrive disk keys', function () {
     const Store = createStorageManagerOcflStoreClass(class {});
     const store = new Store({
@@ -489,6 +611,95 @@ describe('OniService', function () {
     } catch (error) {
       expect((error as NodeJS.ErrnoException).code).to.equal('ENOENT');
     }
+  });
+
+  it('handles primitive and null Flydrive read errors without replacing them with TypeError', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    const primitiveStore = new Store({
+      disk: {
+        getBytes: sinon.stub().callsFake(() => Promise.reject('Object was not found')),
+      } as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+    const nullStore = new Store({
+      disk: {
+        getBytes: sinon.stub().callsFake(() => Promise.reject(null)),
+      } as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    try {
+      await primitiveStore.readFile('/ocfl/missing.txt');
+      throw new Error('Expected primitiveStore.readFile to throw');
+    } catch (error) {
+      expect((error as NodeJS.ErrnoException).code).to.equal('ENOENT');
+    }
+
+    let thrown: unknown = undefined;
+    try {
+      await nullStore.readFile('/ocfl/null-error.txt');
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).to.equal(null);
+  });
+
+  it('stats Flydrive files with a single metadata lookup', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    const disk = {
+      exists: sinon.stub().resolves(true),
+      getMetaData: sinon.stub().resolves({
+        contentLength: 42,
+        lastModified: new Date('2024-01-01T00:00:00.000Z'),
+      }),
+    };
+    const store = new Store({
+      disk: disk as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    const stat = await store.stat('/ocfl/object/file.txt');
+
+    expect(stat.isFile()).to.equal(true);
+    expect(stat.size).to.equal(42);
+    expect(disk.getMetaData.calledOnceWith('ocfl/test/object/file.txt')).to.equal(true);
+    expect(disk.exists.called).to.equal(false);
+  });
+
+  it('uses directory listing entry types in opendir without per-entry stats', async function () {
+    const Store = createStorageManagerOcflStoreClass(class {});
+    const disk = {
+      listAll: sinon.stub().resolves({
+        objects: [{ key: 'ocfl/test/object/file.txt' }, { key: 'ocfl/test/object/nested/child.txt' }],
+      }),
+      getMetaData: sinon.stub().resolves({ contentLength: 0 }),
+    };
+    const store = new Store({
+      disk: disk as any,
+      root: '/ocfl',
+      workspace: '/ocfl-work',
+      prefix: 'ocfl/test',
+    });
+
+    const dir = await store.opendir('/ocfl/object');
+    const fileEntry = await dir.read();
+    const directoryEntry = await dir.read();
+    const end = await dir.read();
+
+    expect(fileEntry?.name).to.equal('file.txt');
+    expect(fileEntry?.isFile()).to.equal(true);
+    expect(fileEntry?.isDirectory()).to.equal(false);
+    expect(directoryEntry?.name).to.equal('nested');
+    expect(directoryEntry?.isFile()).to.equal(false);
+    expect(directoryEntry?.isDirectory()).to.equal(true);
+    expect(end).to.equal(null);
+    expect(disk.getMetaData.called).to.equal(false);
   });
 
   it('waits for Flydrive write stream uploads before invoking the end callback', function (done) {

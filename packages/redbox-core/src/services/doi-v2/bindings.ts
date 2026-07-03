@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import Handlebars from 'handlebars';
-import {jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers} from '@researchdatabox/sails-ng-common';
+import { jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
 import type { ValueBinding } from '../../configmodels/DoiPublishing';
 import type { DoiBindingContext, DoiBindingIterationContext } from './types';
+import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
 
 let handlebarsHelpersRegistered = false;
 
@@ -14,25 +15,7 @@ function ensureHandlebarsHelpersRegistered(): void {
 }
 
 export function validateHandlebarsTemplate(template: string): void {
-  const allowedHelpers = new Set(['default', 'join', 'lower', 'upper', 'trim', 'formatDate']);
-  const tagPattern = /{{{?\s*([#/!>]?)\s*([A-Za-z_][A-Za-z0-9_]*)?/g;
-  let match: RegExpExecArray | null;
-  while ((match = tagPattern.exec(template)) != null) {
-    const sigil = match[1];
-    const token = match[2];
-    if (sigil === '!' || sigil === '>' || !token) {
-      continue;
-    }
-    if (sigil === '#') {
-      throw new Error(`Unsupported Handlebars block helper '${token}' in DOI binding`);
-    }
-    const afterToken = template.slice(tagPattern.lastIndex).trimStart();
-    const isSimpleLookup = afterToken.startsWith('}}') || afterToken.startsWith('}}}') || afterToken.startsWith('.');
-    if (isSimpleLookup || allowedHelpers.has(token)) {
-      continue;
-    }
-    throw new Error(`Unsupported Handlebars helper '${token}' in DOI binding`);
-  }
+  validateSafeHandlebarsTemplate(template, 'DOI');
 }
 
 export async function evaluateBinding(
@@ -79,5 +62,7 @@ export function asObjectArray(value: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.filter((item): item is Record<string, unknown> => item != null && typeof item === 'object' && !Array.isArray(item));
+  return value.filter(
+    (item): item is Record<string, unknown> => item != null && typeof item === 'object' && !Array.isArray(item)
+  );
 }

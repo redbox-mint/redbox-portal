@@ -5,6 +5,7 @@ import {
   type OniPublishingSiteConfig,
 } from '../../configmodels/OniPublishing';
 import { BrandingModel } from '../../model/storage/BrandingModel';
+import { RBValidationError } from '../../model/RBValidationError';
 import type { OniRecordModel, ResolvedOniPublishingConfigData } from './types';
 
 type BrandConfigRecord = Record<string, unknown> & {
@@ -99,20 +100,56 @@ export function resolveOniPublishingConfig(record?: OniRecordModel): ResolvedOni
   return resolved;
 }
 
+export function getRequestedOniSiteName(
+  config: ResolvedOniPublishingConfigData,
+  options: Record<string, unknown> = {}
+): string {
+  return String(options.site ?? config.defaultSite ?? '').trim();
+}
+
 export function resolveOniSite(
   config: ResolvedOniPublishingConfigData,
   options: Record<string, unknown> = {}
 ): { siteName: string; site: OniPublishingSiteConfig } {
-  const requestedSite = String(options.site ?? config.defaultSite ?? '').trim();
+  const requestedSite = getRequestedOniSiteName(config, options);
   if (requestedSite === '') {
-    throw new Error('Cannot resolve Oni publishing site: options.site and oniPublishing.defaultSite are both empty');
+    throw new RBValidationError({
+      message: 'Cannot resolve Oni publishing site: options.site and oniPublishing.defaultSite are both empty',
+      displayErrors: [
+        {
+          code: 'oni-site-missing',
+          title: 'Oni publishing site is not configured',
+          detail: 'Cannot resolve Oni publishing site: options.site and oniPublishing.defaultSite are both empty',
+        },
+      ],
+    });
   }
   const site = config.sites[requestedSite];
   if (site == null) {
-    throw new Error(`Unknown Oni publishing site '${requestedSite}'`);
+    throw new RBValidationError({
+      message: `Unknown Oni publishing site '${requestedSite}'`,
+      displayErrors: [
+        {
+          code: 'oni-site-unknown',
+          title: 'Unknown Oni publishing site',
+          detail: `Unknown Oni publishing site '${requestedSite}'`,
+          meta: { site: requestedSite },
+        },
+      ],
+    });
   }
   if (site.enabled !== true) {
-    throw new Error(`Oni publishing site '${requestedSite}' is disabled`);
+    throw new RBValidationError({
+      message: `Oni publishing site '${requestedSite}' is disabled`,
+      displayErrors: [
+        {
+          code: 'oni-site-disabled',
+          title: 'Oni publishing site is disabled',
+          detail: `Oni publishing site '${requestedSite}' is disabled`,
+          meta: { site: requestedSite },
+        },
+      ],
+    });
   }
   return { siteName: requestedSite, site };
 }

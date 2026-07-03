@@ -1,6 +1,5 @@
-import { PassThrough, Readable, Writable } from 'node:stream';
+import { PassThrough, Writable } from 'node:stream';
 import { posix as pathPosix, relative } from 'node:path';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { StorageDiskLike } from './types';
 
 type OcflStoreConstructor = new (options: Record<string, unknown>) => object;
@@ -22,6 +21,12 @@ type DiskEntry = {
   contentLength?: number;
   etag?: string;
   lastModified?: Date;
+};
+
+type DirectoryEntryInfo = {
+  name: string;
+  isFile: boolean;
+  isDirectory: boolean;
 };
 
 async function listDiskEntries(
@@ -82,16 +87,6 @@ function toError(code: string, filePath: string): NodeJS.ErrnoException {
   return error;
 }
 
-function toNodeReadable(data: unknown): NodeJS.ReadableStream {
-  if (data != null && typeof data === 'object' && typeof (data as { pipe?: unknown }).pipe === 'function') {
-    return data as NodeJS.ReadableStream;
-  }
-  if (data != null && typeof data === 'object' && typeof (data as { getReader?: unknown }).getReader === 'function') {
-    return Readable.fromWeb(data as NodeReadableStream);
-  }
-  return data == null ? Readable.from([]) : Readable.from([data as Uint8Array | string]);
-}
-
 function isDiskEntry(value: unknown): value is DiskEntry {
   return value != null && typeof value === 'object';
 }
@@ -101,6 +96,20 @@ function getEntryKey(value: unknown): string {
     return '';
   }
   return String(value.key ?? value.prefix ?? '');
+}
+
+function isMissingDiskError(error: unknown): boolean {
+  const code =
+    error != null && typeof error === 'object' ? String((error as NodeJS.ErrnoException).code ?? '').toUpperCase() : '';
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    code === 'ENOENT' ||
+    code.includes('CANNOT_READ_FILE') ||
+    code.includes('NOT_FOUND') ||
+    message.includes('no such file') ||
+    message.includes('not found') ||
+    message.includes('cannot read file')
+  );
 }
 
 export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstructor) {
@@ -141,10 +150,6 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       return withPrefix(this.prefix, normalizeKey(filePath, keyOptions), keyOptions);
     }
 
-    baseKeyFor(filePath: string): string {
-      return this.keyFor(filePath).replace(/^.*?\//, '');
-    }
-
     async stat(filePath: string): Promise<{
       size: number;
       mtime: Date;
@@ -155,7 +160,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       isDirectory: () => boolean;
     }> {
       const key = this.keyFor(filePath);
-      if (await this.disk.exists(key)) {
+      try {
         const meta = await this.disk.getMetaData(key);
         const lastModified = meta.lastModified ?? new Date();
         return {
@@ -167,16 +172,20 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
           isFile: () => true,
           isDirectory: () => false,
         };
+      } catch (error) {
+        if (!isMissingDiskError(error)) {
+          throw error;
+        }
       }
 
-      const dirEntries = await this.readdir(filePath).catch(() => []);
-      if (dirEntries.length > 0) {
+      if (await this.hasDirectoryEntries(filePath)) {
+        const now = new Date();
         return {
           size: 0,
-          mtime: new Date(),
-          atime: new Date(),
-          ctime: new Date(),
-          birthtime: new Date(),
+          mtime: now,
+          atime: now,
+          ctime: now,
+          birthtime: now,
           isFile: () => false,
           isDirectory: () => true,
         };
@@ -231,16 +240,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
         }
         return await this.disk.getBytes(key);
       } catch (error) {
-        const code = String((error as NodeJS.ErrnoException).code ?? '').toUpperCase();
-        const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-        if (
-          code === 'ENOENT' ||
-          code.includes('CANNOT_READ_FILE') ||
-          code.includes('NOT_FOUND') ||
-          message.includes('no such file') ||
-          message.includes('not found') ||
-          message.includes('cannot read file')
-        ) {
+        if (isMissingDiskError(error)) {
           throw toError('ENOENT', filePath);
         }
         throw error;
@@ -269,46 +269,70 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       read: () => Promise<{ name: string; isDirectory: () => boolean; isFile: () => boolean } | null>;
       close: () => Promise<void>;
     }> {
-      const entries = await this.readdir(filePath);
+      const entries = await this.readDirectoryEntries(filePath);
       let index = 0;
-      const store = this;
       return {
         path: filePath,
         async read() {
-          const name = entries[index++];
-          if (!name) {
+          const entry = entries[index++];
+          if (!entry) {
             return null;
           }
-          const entryPath = pathPosix.join(filePath, name);
-          const stat = await store.stat(entryPath).catch(() => null);
           return {
-            name,
-            isDirectory: () => stat?.isDirectory() ?? false,
-            isFile: () => stat?.isFile() ?? false,
+            name: entry.name,
+            isDirectory: () => entry.isDirectory,
+            isFile: () => entry.isFile,
           };
         },
         async close() {},
       };
     }
 
-    async readdir(filePath: string): Promise<string[]> {
+    async hasDirectoryEntries(filePath: string): Promise<boolean> {
+      const prefix = this.keyFor(filePath);
+      const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
+      const listing = await this.disk.listAll(directoryPrefix, { recursive: false });
+      for (const item of listing.objects) {
+        if (getEntryKey(item)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    async readDirectoryEntries(filePath: string): Promise<DirectoryEntryInfo[]> {
       const keyOptions = { preserveEquals: this.keyEncoding === 'raw' };
       const prefix = this.keyFor(filePath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
       const entries = await listDiskEntries(this.disk, directoryPrefix, { recursive: false });
-      const names = new Set<string>();
+      const names = new Map<string, DirectoryEntryInfo>();
       for (const item of entries) {
         const key = getEntryKey(item);
         if (!key) {
           continue;
         }
         const rel = key.startsWith(directoryPrefix) ? key.slice(directoryPrefix.length) : key;
-        const name = decodeKey(rel, keyOptions).split('/')[0];
-        if (name) {
-          names.add(name);
+        const decodedRel = decodeKey(rel, keyOptions);
+        const slashIndex = decodedRel.indexOf('/');
+        const name = slashIndex === -1 ? decodedRel : decodedRel.slice(0, slashIndex);
+        if (!name) {
+          continue;
         }
+        const diskEntry = isDiskEntry(item) ? item : {};
+        const isDirectory = diskEntry.isDirectory === true || decodedRel.endsWith('/') || slashIndex !== -1;
+        const isFile = diskEntry.isFile === true || !isDirectory;
+        const existing = names.get(name);
+        names.set(name, {
+          name,
+          isDirectory: (existing?.isDirectory ?? false) || isDirectory,
+          isFile: (existing?.isFile ?? false) || isFile,
+        });
       }
-      return [...names];
+      return [...names.values()];
+    }
+
+    async readdir(filePath: string): Promise<string[]> {
+      return (await this.readDirectoryEntries(filePath)).map(entry => entry.name);
     }
 
     async list(
@@ -385,8 +409,4 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       await this.disk.deleteAll(key ? `${key}/` : '');
     }
   };
-}
-
-export function streamFromValue(data: string | Uint8Array | NodeJS.ReadableStream): NodeJS.ReadableStream {
-  return toNodeReadable(data);
 }

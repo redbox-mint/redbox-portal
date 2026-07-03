@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { buildOniRoCrate } from './crate';
 import { completeOniAudit, failOniAudit, startOniAudit } from './audit';
+import { runEffectProgram } from '../integration-v2/runtime';
 
 export const OniConfigTag = Context.GenericTag<ResolvedOniPublishingConfigData>('redbox/OniConfig');
 export const OniRunContextTag = Context.GenericTag<OniRunContext>('redbox/OniRunContext');
@@ -125,5 +126,5 @@ export async function runPublishDatasetProgram(
     };
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext, repository)));
 
-  return Effect.runPromise(program);
+  return runEffectProgram(program);
 }

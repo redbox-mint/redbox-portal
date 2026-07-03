@@ -35,7 +35,6 @@ export function buildMappingContext(input: OniCrateBuildInput, derived: OniMappi
     spatialCoverage: derived.spatialCoverage,
     temporalCoverage: derived.temporalCoverage,
     context: {
-      ...(input.config.mapping?.context ?? {}),
       personType: 'Person',
       organizationType: 'Organization',
       structuredValueType: 'StructuredValue',
@@ -48,6 +47,7 @@ export function buildMappingContext(input: OniCrateBuildInput, derived: OniMappi
         input.config.metadata.defaultIriPrefs.about['dc:subject_anzsrc:seo'] ??
         input.config.metadata.defaultIriPrefs.about.anzsrc_seo ??
         '',
+      ...(input.config.mapping?.context ?? {}),
     },
   };
 }
