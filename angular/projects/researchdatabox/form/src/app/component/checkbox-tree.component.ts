@@ -7,7 +7,7 @@ import {
   CheckboxTreeModelName,
   CheckboxTreeModelValueType,
   CheckboxTreeNode,
-  CheckboxTreeSelectedItem, DynamicScriptResponse
+  CheckboxTreeSelectedItem, DynamicScriptResponse, handlebarsTemplate
 } from "@researchdatabox/sails-ng-common";
 import { FormComponent } from "../form.component";
 import { VocabTreeService, VocabTreeApiNode } from "../service/vocab-tree.service";
@@ -574,7 +574,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         notation,
         identifier: notation
       };
-      const extra = { libraries: this.handlebarsTemplateService.getLibraries() };
+      const extra = { libraries: {handlebars: handlebarsTemplate} };
       const rendered = this.compiledItems.evaluate(this.labelTemplatePath, context, extra);
       const output = String(rendered ?? "").trim();
       return output || node.label;

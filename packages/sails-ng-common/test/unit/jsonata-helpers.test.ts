@@ -167,12 +167,45 @@ describe('JSONata helpers', function () {
     },
     {
       args: {
-        // should not allow JSONata eval to run dynamic expressions on the server side
+        // should not allow JSONata eval to run dynamic expressions
         expression: '$eval("1+a", {"a": 2})',
         input: null,
         bindings: undefined,
       },
       expected: new Error('Attempted to invoke eval'),
+    },
+    // guessNameParts
+    {
+      args: {
+        expression: '$guessNameParts("my Name is")',
+        input: null,
+        bindings: undefined,
+      },
+      expected: {full: "my Name is", first: "my", last: "Name is"},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: undefined},
+        bindings: undefined,
+      },
+      expected: {full: "", first: "", last: ""},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: "\tHELLO  "},
+        bindings: undefined,
+      },
+      expected: {full: "HELLO", first: "", last: "HELLO"},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(["My Name"])',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error("Argument 1 of function \"guessNameParts\" does not match function signature"),
     },
   ];
   cases.forEach(({args, expected}) => {

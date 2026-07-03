@@ -84,6 +84,30 @@ export * from './model';
 export * from './decorator';
 export * from './decorators';
 
+export {
+  compareHookPrecedence,
+  discoverRedboxHookPackages,
+  getHookPrecedenceOrder,
+  getHookProcessingOrder,
+  readHookLoadPriority,
+} from './hooks/hookDiscovery';
+export type {
+  RedboxHookDiscoveryOptions,
+  RedboxHookOrderConfig,
+  RedboxHookPackageMetadata,
+} from './hooks/hookDiscovery';
+export {
+  discoverRedboxHookResources,
+  getHookAssetRoots,
+  getHookViewRoots,
+  resolveHookAssetFile,
+  resolveHookViewFile,
+} from './hooks/hookResources';
+export type {
+  RedboxHookResource,
+  ResolvedHookFile,
+} from './hooks/hookResources';
+
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 

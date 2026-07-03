@@ -13,6 +13,13 @@ async function createHookModule(sandboxDir: string, packageName: string, package
     await fsPromises.mkdir(moduleDir, { recursive: true });
     await fsPromises.writeFile(path.join(moduleDir, 'package.json'), JSON.stringify(packageJson, null, 2));
     await fsPromises.writeFile(path.join(moduleDir, 'index.js'), indexJs);
+    for (const request of [`${packageName}/package.json`, packageName]) {
+        try {
+            delete require.cache[require.resolve(request, { paths: [sandboxDir] })];
+        } catch {
+            // Ignore unresolved cache entries for freshly created test modules.
+        }
+    }
 }
 
 describe('redbox-loader', function () {
@@ -91,6 +98,63 @@ describe('redbox-loader', function () {
 
             const stat = await fsPromises.stat(file);
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
+        });
+    });
+
+    describe('mergeRedboxConfig', function () {
+        it('replaces brandingConfigurationDefaults arrays from hook config', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                'brandingConfigurationDefaults',
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'admin',
+                                labelKey: 'menu-admin',
+                                href: '/admin',
+                                requiredRoles: ['Admin'],
+                            },
+                        ],
+                    },
+                    homePanels: { panels: [] },
+                },
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'plan',
+                                labelKey: 'menu-plan-nav',
+                                href: '#',
+                                children: [
+                                    { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+                                ],
+                            },
+                        ],
+                    },
+                    homePanels: {
+                        panels: [
+                            {
+                                id: 'plan',
+                                titleKey: 'menu-plan',
+                                iconClass: 'icon-checklist icon-3x',
+                                columnClass: 'col-md-3 homepanel',
+                                items: [],
+                            },
+                        ],
+                    },
+                }
+            );
+
+            const brandingDefaults = merged as {
+                menu: { items: Array<{ id: string; requiredRoles?: string[] }> };
+                homePanels: { panels: Array<{ id: string }> };
+            };
+
+            expect(brandingDefaults.menu.items.map(item => item.id)).to.deep.equal(['home-auth', 'plan']);
+            expect(brandingDefaults.menu.items[1]).to.not.have.property('requiredRoles');
+            expect(brandingDefaults.homePanels.panels.map(panel => panel.id)).to.deep.equal(['plan']);
         });
     });
 
@@ -230,7 +294,7 @@ describe('redbox-loader', function () {
             await redboxLoader.generateFormConfigShims(formConfigDir, {});
 
             const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("default-1.0-draft");
+            expect(content).to.include("generated-view-only");
         });
 
         it('should use hook-only registry when LOAD_DEFAULT_FORMS=false', async function () {
@@ -613,6 +677,201 @@ describe('redbox-loader', function () {
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
 
             expect(result.hookApiRoutes).to.deep.equal([{ name: packageName, module: packageName }]);
+        });
+
+        it('should resolve hook registry collisions using root hookLoadPriority', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: {
+                        hasModels: true,
+                        hasServices: true,
+                        hasControllers: true,
+                        hasFormConfigs: true,
+                    },
+                },
+                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
+                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
+                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: {
+                        hasModels: true,
+                        hasServices: true,
+                        hasControllers: true,
+                        hasFormConfigs: true,
+                    },
+                },
+                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
+                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
+                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookModels.SharedModel.module).to.equal('redbox-hook-alpha');
+            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-alpha');
+            expect(result.hookControllers.SharedController.module).to.equal('redbox-hook-alpha');
+            expect(result.hookFormConfigs.sharedForm.module).to.equal('redbox-hook-alpha');
+        });
+
+        it('should preserve alphabetically-later-wins registry behavior without hookLoadPriority', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasServices: true },
+                },
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasServices: true },
+                },
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-zeta');
+        });
+
+        it('should return hook config registrations in processing order', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasConfig: true },
+                },
+                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'alpha' } }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasConfig: true },
+                },
+                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'zeta' } }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
+
+            expect(result.hookConfigs.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+        });
+
+        it('should return bootstrap, api route, and migration registrations in processing order', async function () {
+            const indexJs = `module.exports.registerRedboxBootstrap = function() { return async function() {}; };
+                module.exports.registerHookApiRoutes = function() { return []; };
+                module.exports.registerRedboxMigrations = function() { return []; };`;
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
+                },
+                indexJs
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
+                },
+                indexJs
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookBootstraps.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+            expect(result.hookApiRoutes.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+            expect(result.hookMigrations.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
         });
     });
 

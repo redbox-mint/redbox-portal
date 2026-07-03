@@ -1,6 +1,8 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
 import {decodeBase64, encodeBase64} from "./html-helpers";
+import {normaliseVisual} from "./config/names/naming-helpers";
+import {guessNameParts} from "./translation-helpers";
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
@@ -52,6 +54,7 @@ export function luxonFormatDate(
  * @param expression The jsonata expression string.
  */
 export function jsonataExpressionEncode(expression: string): string {
+  expression = normaliseVisual(expression);
   return encodeBase64(expression);
 }
 
@@ -78,7 +81,13 @@ export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonat
  * @return compiled JSONata expression object
  */
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  expression = normaliseVisual(expression);
   const compiled = jsonata(expression, options);
+
+  // Register jsonata functions.
+  // The function signatures are used on purpose to restrict the arguments,
+  // so invalid input types are clear instead of hidden.
+  // Callers of the jsonata helper functions must be prepared for possible parse errors and input type errors.
 
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
@@ -89,6 +98,11 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   // Third param 'sourceFormat': string, null, optional
   // Return type: string
   compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
+
+  // Register a function for guessing name parts.
+  // First param 'value': string, null
+  // Return type: object
+  compiled.registerFunction('guessNameParts', guessNameParts, '<(sl):o>');
 
   // TODO: consider registering a function for translations
   // TODO: consider replacing regex with google's re2?

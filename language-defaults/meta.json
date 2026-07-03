@@ -6029,6 +6029,11 @@
     "description":  "Error message for a failed orcid validator",
     "contentFormat":  "plain"
   },
+  "@validator-error-url": {
+    "category":  "validator",
+    "description":  "Error message for a failed url validator",
+    "contentFormat":  "plain"
+  },
   "@lookup-placeholder-party": {
     "category": "lookup",
     "description": "Placeholder text in lookup field for party records",
