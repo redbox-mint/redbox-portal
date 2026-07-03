@@ -116,6 +116,19 @@ async function mapGraphEntity(mapping: OniGraphEntityMapping, context: AnyRecord
   return entity;
 }
 
+function getGraphEntityItems(mapping: OniGraphEntityMapping, source: unknown): unknown[] {
+  if (mapping.sourcePath == null) {
+    return [undefined];
+  }
+  if (source == null) {
+    return [];
+  }
+  if (mapping.itemMode === 'single') {
+    return [source];
+  }
+  return Array.isArray(source) ? source : [source];
+}
+
 export async function mapGraphEntities(
   mappings: OniGraphEntityMapping[],
   context: AnyRecord,
@@ -124,8 +137,7 @@ export async function mapGraphEntities(
   const entities: AnyRecord[] = [];
   for (const mapping of mappings) {
     const source = mapping.sourcePath ? _.get(context, mapping.sourcePath) : undefined;
-    const items =
-      mapping.sourcePath == null ? [undefined] : Array.isArray(source) ? source : source == null ? [] : [source];
+    const items = getGraphEntityItems(mapping, source);
     for (const [index, item] of items.entries()) {
       const entity = await mapGraphEntity(mapping, { ...context, item, index });
       if (!entity) {

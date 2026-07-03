@@ -11,6 +11,7 @@ import type { OniRecordModel, ResolvedOniPublishingConfigData } from './types';
 type BrandConfigRecord = Record<string, unknown> & {
   oniPublishing?: Partial<OniPublishingConfigData>;
 };
+const APP_CONFIG_PRESENT_KEYS_SYMBOL = Symbol.for('redbox.appConfig.presentKeys');
 
 function mergeOniPublishingConfig(
   defaultConfig?: Partial<OniPublishingConfigData>,
@@ -44,6 +45,11 @@ function getAppConfigurationForBrand(brandName: string): BrandConfigRecord | und
     return defaults as unknown as BrandConfigRecord;
   }
   return undefined;
+}
+
+function hasStoredAppConfigKey(config: BrandConfigRecord | undefined, key: string): boolean {
+  const presentKeys = config == null ? undefined : (config as Record<PropertyKey, unknown>)[APP_CONFIG_PRESENT_KEYS_SYMBOL];
+  return presentKeys instanceof Set ? presentKeys.has(key) : true;
 }
 
 function resolveBrandId(record?: OniRecordModel): string {
@@ -82,8 +88,13 @@ export function getBrand(record?: OniRecordModel): BrandingModel {
 
 export function resolveOniPublishingConfig(record?: OniRecordModel): ResolvedOniPublishingConfigData | null {
   const brandName = getBrandName(record);
-  const defaultRawConfig = getAppConfigurationForBrand('default')?.oniPublishing;
-  const brandRawConfig = brandName === 'default' ? undefined : getAppConfigurationForBrand(brandName)?.oniPublishing;
+  const defaultAppConfig = getAppConfigurationForBrand('default');
+  const brandAppConfig = brandName === 'default' ? undefined : getAppConfigurationForBrand(brandName);
+  const defaultRawConfig = defaultAppConfig?.oniPublishing;
+  const brandRawConfig =
+    brandAppConfig != null && hasStoredAppConfigKey(brandAppConfig, 'oniPublishing')
+      ? brandAppConfig.oniPublishing
+      : undefined;
   if (
     (defaultRawConfig == null || typeof defaultRawConfig !== 'object') &&
     (brandRawConfig == null || typeof brandRawConfig !== 'object')

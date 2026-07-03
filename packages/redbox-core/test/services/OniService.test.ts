@@ -77,6 +77,7 @@ describe('OniService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
+    delete (global as unknown as { AppConfigService?: unknown }).AppConfigService;
     delete (global as unknown as { BrandingService?: unknown }).BrandingService;
     delete (global as unknown as { UsersService?: unknown }).UsersService;
     delete (global as unknown as { RecordsService?: unknown }).RecordsService;
@@ -146,6 +147,36 @@ describe('OniService', function () {
     expect(config).to.not.equal(null);
     expect(config?.defaultSite).to.equal('test-site');
     expect(config?.sites['test-site'].storage.driver).to.equal('flydrive');
+  });
+
+  it('ignores synthesized non-default oniPublishing config when merging default-brand overrides', function () {
+    const defaultOniPublishing = { ...oniPublishing, enabled: false };
+    const generatedBrandConfig = { oniPublishing: new OniPublishing() };
+    Object.defineProperty(generatedBrandConfig, Symbol.for('redbox.appConfig.presentKeys'), {
+      value: new Set<string>(),
+      enumerable: false,
+    });
+
+    (global as unknown as { BrandingService: unknown }).BrandingService = {
+      getBrandById: sinon.stub().withArgs('brand-2').returns({ id: 'brand-2', name: 'faculty' }),
+      getBrand: sinon.stub().callsFake((name: string) => ({ id: name === 'faculty' ? 'brand-2' : 'brand-1', name })),
+    };
+    (global as unknown as { AppConfigService: unknown }).AppConfigService = {
+      getAppConfigurationForBrand: sinon.stub().callsFake((name: string) => {
+        if (name === 'default') {
+          return { oniPublishing: defaultOniPublishing };
+        }
+        if (name === 'faculty') {
+          return generatedBrandConfig;
+        }
+        return undefined;
+      }),
+    };
+
+    const record = publicationRecord();
+    record.metaMetadata.brandId = 'brand-2';
+
+    expect(resolveOniPublishingConfig(record)).to.equal(null);
   });
 
   it('throws when oniPublishing app-config is missing', function () {
@@ -367,6 +398,44 @@ describe('OniService', function () {
 
     expect(entities).to.deep.equal([{ '@id': 'single@example.edu', '@type': 'Person', name: 'Single Creator' }]);
     expect(rootDataset.author).to.deep.equal([{ '@id': 'single@example.edu' }]);
+  });
+
+  it('maps an array source as one graph entity when itemMode is single', async function () {
+    const rootDataset: Record<string, unknown> = {};
+    const entities = await mapGraphEntities(
+      [
+        {
+          sourcePath: 'metadata.creators',
+          itemMode: 'single',
+          id: { kind: 'handlebars', template: 'creator-list' },
+          type: { kind: 'path', path: 'context.structuredValueType' },
+          fields: [{ property: 'value', value: { kind: 'path', path: 'item' } }],
+          linkToDataset: { property: 'creatorSummary', mode: 'set' },
+        },
+      ],
+      {
+        metadata: {
+          creators: [
+            { email: 'first@example.edu', text_full_name: 'First Creator' },
+            { email: 'second@example.edu', text_full_name: 'Second Creator' },
+          ],
+        },
+        context: { structuredValueType: 'StructuredValue' },
+      },
+      rootDataset
+    );
+
+    expect(entities).to.deep.equal([
+      {
+        '@id': 'creator-list',
+        '@type': 'StructuredValue',
+        value: [
+          { email: 'first@example.edu', text_full_name: 'First Creator' },
+          { email: 'second@example.edu', text_full_name: 'Second Creator' },
+        ],
+      },
+    ]);
+    expect(rootDataset.creatorSummary).to.deep.equal({ '@id': 'creator-list' });
   });
 
   it('falls back past empty person identifiers', function () {
