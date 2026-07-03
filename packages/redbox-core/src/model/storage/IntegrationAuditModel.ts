@@ -6,6 +6,8 @@ export enum IntegrationAuditName {
 export enum IntegrationAuditAction {
   syncRecordWithFigshare = 'syncRecordWithFigshare',
   publishAfterUploadFilesJob = 'publishAfterUploadFilesJob',
+  cleanupUploadedFilesJob = 'cleanupUploadedFilesJob',
+  transitionRecordWorkflowFromFigshareArticlePropertiesJob = 'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
   publishDoi = 'publishDoi',
   createDoiRequest = 'createDoiRequest',
   updateDoi = 'updateDoi',

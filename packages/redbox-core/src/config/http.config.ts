@@ -17,6 +17,7 @@ import { redboxSession as redboxSessionConfigValue } from './redboxSession.confi
 import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
+import { resolveHookAssetFile } from '../hooks/hookResources';
 import {requestChronicle} from "../middleware/requestChronicle";
 import {RequestChronicleHelper} from "../utilities/RequestChronicle";
 import {consoleLogger} from "../Logger";
@@ -50,6 +51,7 @@ export interface HttpMiddlewareConfig {
     poweredBy?: MiddlewareFunction;
     redirectNoCacheHeaders?: MiddlewareFunction;
     cacheControl?: MiddlewareFunction;
+    hookStaticAssets?: MiddlewareFunction;
     cookieParser?: RequestHandler;
     router?: RequestHandler;
     www?: RequestHandler;
@@ -338,6 +340,48 @@ export function resolvePublicAssetPath(basePublicDir: string, ...segments: strin
     return resolvedPath;
 }
 
+export function resolveHookStaticAssetPath(appPath: string, requestUrl: string): string | null {
+    const requestPath = String(requestUrl ?? '').split('?')[0];
+    if (!requestPath || !isStaticAssetPath(requestPath)) {
+        return null;
+    }
+
+    const splitUrl = requestPath.split('/');
+    const candidates: string[] = [];
+
+    if (splitUrl.length > 3) {
+        const branding = sanitizeStaticSegment(splitUrl[1]);
+        const portal = sanitizeStaticSegment(splitUrl[2]);
+        const resourceLocation = sanitizeStaticResourcePath(splitUrl.slice(3).join('/'));
+        if (branding && portal && resourceLocation) {
+            candidates.push(
+                `${branding}/${portal}/${resourceLocation}`,
+                `default/${portal}/${resourceLocation}`,
+                `default/default/${resourceLocation}`
+            );
+        }
+    }
+
+    const directResourceLocation = sanitizeStaticResourcePath(splitUrl.slice(1).join('/'));
+    if (directResourceLocation) {
+        candidates.push(directResourceLocation);
+    }
+
+    const publicBasePath = path.resolve(appPath, '.tmp', 'public');
+    for (const candidate of Array.from(new Set(candidates))) {
+        const coreAssetPath = resolvePublicAssetPath(publicBasePath, candidate);
+        if (coreAssetPath && fs.existsSync(coreAssetPath)) {
+            return null;
+        }
+        const resolvedAsset = resolveHookAssetFile(appPath, candidate);
+        if (resolvedAsset) {
+            return resolvedAsset.absolutePath;
+        }
+    }
+
+    return null;
+}
+
 function decodeStaticPathPart(value: string): string | null {
     try {
         return decodeURIComponent(value);
@@ -547,6 +591,18 @@ export const http: HttpConfig = {
             }
         },
 
+        hookStaticAssets: function (req: Request, res: Response, next: NextFunction) {
+            const hookAssetPath = resolveHookStaticAssetPath(sails.config.appPath, req.url);
+            if (!hookAssetPath) {
+                return next();
+            }
+            return res.sendFile(hookAssetPath, (err?: Error) => {
+                if (err) {
+                    return next(err);
+                }
+            });
+        },
+
         brandingAndPortalAwareStaticRouter: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const extendedReq = req;
             const existsSync = fs.existsSync;
@@ -625,6 +681,7 @@ export const http: HttpConfig = {
             'poweredBy',
             'router',
             'translate',
+            'hookStaticAssets',
             'brandingAndPortalAwareStaticRouter',
             'www',
             'favicon',

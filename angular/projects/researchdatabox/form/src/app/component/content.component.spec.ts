@@ -1,10 +1,9 @@
-import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
-import Handlebars from "handlebars";
 
 
 
@@ -13,9 +12,7 @@ describe('ContentComponent', () => {
   let translationService: any;
   let lastTemplateContext: any;
   let dynamicAssetOptions: DynamicAssetOptions
-  const mockHandlebarsTemplateService = {
-    getLibraries: () => ({ Handlebars })
-  };
+  const mockHandlebarsTemplateService = {};
 
   beforeEach(async () => {
     lastTemplateContext = undefined;
@@ -51,7 +48,7 @@ describe('ContentComponent', () => {
                   ? '<h2>Hi <strong>How does this render</strong></h2><table><tbody><tr><td>and</td><td>not</td><td>something</td></tr></tbody></table>'
                   : context?.content;
               }
-              return Handlebars.compile('<h3>{{content}}</h3>')(context);
+              return handlebarsCompile('<h3>{{content}}</h3>')(context);
             default:
               throw new Error(`Unknown key: ${keyStr}`);
           }

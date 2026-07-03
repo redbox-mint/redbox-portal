@@ -46,6 +46,8 @@ import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
 import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
+import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
+import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
 import { ApplicationRef, ComponentRef } from "@angular/core";
 import isSpy = jasmine.isSpy;
 
@@ -216,6 +218,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
       "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
       "ConfirmationDialogComponent": ConfirmationDialogComponent,
+      "RecordAuditLauncherComponent": RecordAuditLauncherComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({
       "CommonModule": CommonModule,
@@ -225,6 +228,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "I18NextPipe": I18NextPipe,
       "TiptapEditorDirective": TiptapEditorDirective,
       "A11yModule": A11yModule,
+      "RecordAuditModule": RecordAuditModule,
     }, testConfig.imports ?? {}),
     providers: await createTestBedModuleConfig({
       "APP_BASE_HREF": { provide: APP_BASE_HREF, useValue: 'http://localhost' },

@@ -25,6 +25,8 @@ import {
   SuggestedValidationSummaryFormComponentDefinitionOutline,
   SaveStatusFieldComponentDefinitionOutline,
   SaveStatusFormComponentDefinitionOutline,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -108,10 +110,6 @@ import { DataValueFormConfigVisitor } from "./data-value.visitor";
 
 
 declare const sails: Sails.Application;
-
-declare const DomSanitizerService: {
-    sanitizeWithProfile: (value: string, profile?: string) => string;
-};
 
 /**
  * Visit each form config component and run its validators.
@@ -250,6 +248,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+        await this.acceptFormComponentDefinition(item);
+    }
+
+    /* Integration Status */
+
+    async visitIntegrationStatusFieldComponentDefinition(_item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    }
+
+    async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
         await this.acceptFormComponentDefinition(item);
     }
 
@@ -600,7 +607,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
         const enabledModes = Array.isArray(item.config?.enabledModes) ? item.config?.enabledModes : [];
-        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+        const validModes: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'];
         const invalidModes = enabledModes.filter(mode => !validModes.includes(mode));
         if (invalidModes.length > 0) {
             configErrors.push({

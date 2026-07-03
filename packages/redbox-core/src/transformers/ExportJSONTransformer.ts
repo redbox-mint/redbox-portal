@@ -1,4 +1,4 @@
-import { Transform } from 'stream';
+import { Transform } from 'node:stream';
 import { DateTime } from 'luxon';
 import * as _ from 'lodash';
 

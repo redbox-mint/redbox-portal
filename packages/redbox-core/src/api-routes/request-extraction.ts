@@ -1,4 +1,4 @@
-import { ZodTypeAny } from 'zod';
+import { ZodType } from 'zod';
 
 import { ApiRequestDefinition, ApiRequestSource } from './types';
 import { coerceValueForSchema, getObjectSchemaShape, getRequestFiles, isPassthroughObjectSchema, isRecord } from './helpers';
@@ -91,7 +91,7 @@ export function buildRequestSourceInput(
   req: Sails.Req,
   request: ApiRequestDefinition | undefined,
   source: ApiRequestSource,
-  schema?: ZodTypeAny
+  schema?: ZodType
 ): unknown {
   const rawValue = getRequestSourceValue(req, request, source);
   if (!schema) {

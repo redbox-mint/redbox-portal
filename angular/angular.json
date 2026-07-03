@@ -1019,17 +1019,12 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets",
-              {
-                "glob": "**/*",
-                "input": "node_modules/leaflet/dist/images",
-                "output": "assets/leaflet"
-              }
+              "projects/researchdatabox/form/src/assets"
             ],
             "styles": [
               "projects/researchdatabox/form/src/styles.scss",
               "ngx-bootstrap/datepicker/bs-datepicker.css",
-              "node_modules/leaflet/dist/leaflet.css"
+              "node_modules/ol/ol.css"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/form/src/main.ts"
@@ -1089,14 +1084,9 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "projects/researchdatabox/form/src/favicon.ico",
-              "projects/researchdatabox/form/src/assets",
-              {
-                "glob": "**/*",
-                "input": "node_modules/leaflet/dist/images",
-                "output": "assets/leaflet"
-              }
+              "projects/researchdatabox/form/src/assets"
             ],
-            "styles": ["projects/researchdatabox/form/src/styles.scss", "node_modules/leaflet/dist/leaflet.css"],
+            "styles": ["projects/researchdatabox/form/src/styles.scss", "node_modules/ol/ol.css"],
             "scripts": []
           }
         }

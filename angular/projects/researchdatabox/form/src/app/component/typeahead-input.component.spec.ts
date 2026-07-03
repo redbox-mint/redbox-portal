@@ -2,12 +2,16 @@ import { TestBed } from "@angular/core/testing";
 import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
-import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
 import i18next from "i18next";
+import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
+import {SimpleInputComponent} from "./simple-input.component";
+import {ContentComponent} from "./content.component";
+import {GroupFieldComponent} from "./group.component";
 
 describe("TypeaheadInputComponent", () => {
   let translationService: any;
@@ -15,7 +19,12 @@ describe("TypeaheadInputComponent", () => {
     beforeEach(async () => {
       ({ translationService } = await createTestbedModule({
             declarations: {
-                "TypeaheadInputComponent": TypeaheadInputComponent
+                "TypeaheadInputComponent": TypeaheadInputComponent,
+                "SimpleInputComponent": SimpleInputComponent,
+                "ContentComponent": ContentComponent,
+                "RepeatableComponent": RepeatableComponent,
+                "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+                "GroupFieldComponent": GroupFieldComponent,
             },
             imports: {
                 "TypeaheadModule": TypeaheadModule.forRoot()
@@ -212,6 +221,7 @@ describe("TypeaheadInputComponent", () => {
                         class: "TypeaheadInputComponent",
                         config: {
                             sourceType: "static",
+                          // valueMode is 'value' by default
                             staticOptions: [{ label: "Jane Doe", value: "jane" }]
                         }
                     },
@@ -741,4 +751,169 @@ describe("TypeaheadInputComponent", () => {
 
       expect(translationService.t).toHaveBeenCalledWith('@lookup-placeholder-party');
     });
+  it("stores free text entered after selecting from lookup when requireSelection is false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "person_lookup",
+          component: {
+            class: "TypeaheadInputComponent",
+            config: {
+              sourceType: "static",
+              valueMode: "optionObject",
+              staticOptions: [{label: "Item 1", value: "item1"}],
+              requireSelection: false,
+            }
+          },
+          model: {
+            class: "TypeaheadInputModel",
+            config: {}
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+    const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+    // Select item from lookup
+    component.onSelect({
+      item: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }
+    } as TypeaheadMatch);
+
+    expect((formComponent as any).form.get("person_lookup")?.value).toEqual({
+      label: "Item 1",
+      value: "item1",
+      sourceType: "static"
+    });
+    expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
+    expect(input.value).toBe("Item 1");
+
+    // Change to free text entry
+    input.value = "Custom Entry";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new Event("blur"));
+    await fixture.whenStable();
+
+    const value = (formComponent as any).form.value?.person_lookup;
+    expect(value).toEqual({
+      label: "Custom Entry",
+      value: "Custom Entry",
+      sourceType: "freeText"
+    });
+    expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
+  });
+  it("should store free text entered after selecting from lookup in a group when requireSelection is false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      debugValue: false,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: "related_services",
+          component: {
+            class: "RepeatableComponent", config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent", config: {
+                    componentDefinitions: [
+                      {
+                        name: "related_title",
+                        component: {
+                          class: 'TypeaheadInputComponent',
+                          config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            staticOptions: [{label: "Item 1", value: "item1"}],
+                            requireSelection: false,
+                            placeholder: '@lookup-placeholder-service',
+                            minChars: 1,
+                            debounceMs: 250,
+                            maxResults: 25,
+                            label: "@dataPublication-related-service-title",
+                            wrapperCssClasses: "rb-form-related-link-inline__field"
+                          },
+                        },
+                        model: {class: "TypeaheadInputModel"},
+                        layout: {
+                          class: "InlineLayout",
+                          config: {
+                            label: "@dataPublication-related-service-title",
+                          }
+                        }
+                      },
+                    ]
+                  }
+                },
+                model: {class: "GroupModel"},
+                layout: {class: "RepeatableElementLayout"}
+              }
+            }
+          },
+          layout: {
+            class: "DefaultLayout",
+            config: {
+              label: "@dataPublication-related-services",
+              helpText: "@dataPublication-related-services-help",
+            }
+          },
+          model: {
+            class: "RepeatableModel",
+            config: {value: [{related_title: {label: "", value: "", sourceType: "static"}}]}
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    let inputElements = compiled.querySelectorAll('input');
+    expect(Array.from(inputElements)).toHaveSize(1);
+
+    const input = inputElements[0];
+
+    const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+    // Select item from lookup
+    component?.onSelect({
+      item: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }
+    } as TypeaheadMatch);
+
+    expect((formComponent as any).form.value).toEqual({related_services: [{related_title: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }}]});
+    expect((formComponent as any).form.get("related_services")?.dirty).toBeTrue();
+    expect(input.value).toBe("Item 1");
+
+    // Change to free text entry
+    input.value = "Custom Entry";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new Event("blur"));
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.value).toEqual({related_services: [{related_title: {
+      label: "Custom Entry",
+      value: "Custom Entry",
+      sourceType: "freeText"
+    }}]});
+    expect((formComponent as any).form.get("related_services")?.dirty).toBeTrue();
+  });
 });

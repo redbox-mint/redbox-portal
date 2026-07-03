@@ -72,6 +72,7 @@ export interface FigshareLicense {
 
 export interface FigshareInstitutionAccount {
   id: number | string;
+  user_id?: number | string;
   email?: string;
   first_name?: string;
   last_name?: string;

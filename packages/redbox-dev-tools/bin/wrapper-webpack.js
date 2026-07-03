@@ -1,9 +1,23 @@
 // This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core webpack.ts for how the hook runs webpack
 const path = require('path');
 const { createRequire } = require('module');
-const redboxCore = require('@researchdatabox/redbox-core');
 
 const requireFromHere = createRequire(__filename);
+let redboxCore;
+
+const getRedboxCore = () => {
+  if (redboxCore !== undefined) {
+    return redboxCore;
+  }
+
+  try {
+    redboxCore = require('@researchdatabox/redbox-core');
+  } catch (e) {
+    redboxCore = null;
+  }
+
+  return redboxCore;
+};
 
 const ensureTsNode = () => {
   try {
@@ -14,7 +28,7 @@ const ensureTsNode = () => {
   }
 };
 
-let defineWebpackHook = redboxCore.defineWebpackHook || (redboxCore.default && redboxCore.default.defineWebpackHook);
+let defineWebpackHook;
 if (!defineWebpackHook) {
   try {
     defineWebpackHook = require('@researchdatabox/redbox-core/dist/hooks/webpack').defineWebpackHook;
@@ -24,6 +38,10 @@ if (!defineWebpackHook && ensureTsNode()) {
   try {
     defineWebpackHook = requireFromHere('@researchdatabox/redbox-core/src/hooks/webpack.ts').defineWebpackHook;
   } catch (e) {}
+}
+if (!defineWebpackHook) {
+  const core = getRedboxCore();
+  defineWebpackHook = core && (core.defineWebpackHook || (core.default && core.default.defineWebpackHook));
 }
 
 // Resolve webpack config: prefer exported `Config.webpack.config`, fall back to repo `config/webpack.js`.
@@ -41,16 +59,6 @@ try {
 }
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
   try {
-    const Config = redboxCore.Config || (redboxCore.default && redboxCore.default.Config);
-    if (Config && Config.webpack && Config.webpack.config) {
-      webpackConfig = Config.webpack.config;
-    }
-  } catch (e) {
-    // ignore
-  }
-}
-if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
-  try {
     const distWebpack = require('@researchdatabox/redbox-core/dist/config/webpack.config');
     webpackConfig = distWebpack && distWebpack.webpack ? distWebpack.webpack.config : distWebpack.config || distWebpack;
   } catch (e) {}
@@ -61,6 +69,17 @@ if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 
       const srcWebpack = requireFromHere('@researchdatabox/redbox-core/src/config/webpack.config.ts');
       webpackConfig = srcWebpack && srcWebpack.webpack ? srcWebpack.webpack.config : srcWebpack.config || srcWebpack;
     } catch (e) {}
+  }
+}
+if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
+  try {
+    const core = getRedboxCore();
+    const Config = core && (core.Config || (core.default && core.default.Config));
+    if (Config && Config.webpack && Config.webpack.config) {
+      webpackConfig = Config.webpack.config;
+    }
+  } catch (e) {
+    // ignore
   }
 }
 

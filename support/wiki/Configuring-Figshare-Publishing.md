@@ -177,7 +177,7 @@ This section maps record metadata into the Figshare article payload.
 | `Funding` | Optional funding text or structured value. |
 | `License` | Binding and matching strategy used to resolve a Figshare license value. |
 | `Categories Binding` | Binding that pulls local category codes from the record. |
-| `Related Resource` | Optional title and DOI written to `related_materials`. |
+| `Related Resource` | Optional title and identifier bindings written to `related_materials`; bindings may resolve to a single value or a repeater array such as related data publications. |
 | `Custom Fields` | Extra Figshare custom fields with optional validation. |
 
 #### Binding Types

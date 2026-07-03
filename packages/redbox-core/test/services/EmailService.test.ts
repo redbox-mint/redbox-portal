@@ -4,7 +4,8 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'graceful-fs';
-import * as ejs from 'ejs';
+import * as os from 'os';
+import * as path from 'path';
 import { of } from 'rxjs';
 
 describe('EmailService', function() {
@@ -63,12 +64,6 @@ describe('EmailService', function() {
     sinon.stub(fs, 'readFileSync').callThrough();
     */
 
-    // Mock ejs - SKIPPED
-    /*
-    if ((ejs.render as any).restore) (ejs.render as any).restore();
-    sinon.stub(ejs, 'render').returns('rendered content');
-    */
-
     const { Services } = require('../../src/services/EmailService');
     EmailService = new Services.Email();
   });
@@ -85,7 +80,6 @@ describe('EmailService', function() {
     cleanupServiceTestGlobals();
     // if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     // if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
-    if ((ejs.render as any).restore) (ejs.render as any).restore();
     sinon.restore();
   });
 
@@ -96,22 +90,72 @@ describe('EmailService', function() {
   });
 
   describe('buildFromTemplate', function() {
-    it.skip('should read and render template', async function() {
-      // Skipped
+    // graceful-fs makes fs.readFileSync non-configurable, so we exercise the real
+    // file read against a temporary template directory instead of stubbing fs.
+    let tmpDir: string;
+
+    beforeEach(function() {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emailtpl-'));
+      mockSails.config.emailnotification.settings.templateDir = tmpDir + path.sep;
     });
 
-    it.skip('should handle read error', async function() {
-      // Skipped
+    afterEach(function() {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should read and render a Handlebars template', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'greeting.hbs'), '<p>Hello {{name}}</p>');
+
+      const result = await EmailService.buildFromTemplateAsync('greeting', { name: 'World' });
+
+      expect(result.status).to.equal(200);
+      expect(result.body).to.equal('<p>Hello World</p>');
+    });
+
+    it('should render shared helpers (pluck + join)', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'creators.hbs'), '{{join (pluck creators "email") ","}}');
+
+      const result = await EmailService.buildFromTemplateAsync('creators', {
+        creators: [{ email: 'a@x' }, { email: 'b@x' }],
+      });
+
+      expect(result.status).to.equal(200);
+      expect(result.body).to.equal('a@x,b@x');
+    });
+
+    it('should fail when required template data is missing', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'required.hbs'), '<p>Hello {{name}}</p>');
+
+      const result = await EmailService.buildFromTemplateAsync('required', {});
+
+      expect(result.status).to.equal(500);
+      expect(result.body).to.equal('Templating error.');
+    });
+
+    it('should allow missing data in guarded optional blocks', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'optional.hbs'), '{{#if nickname}}<p>{{nickname}}</p>{{/if}}');
+
+      const result = await EmailService.buildFromTemplateAsync('optional', {});
+
+      expect(result.status).to.equal(200);
+      expect(result.body).to.equal('');
+    });
+
+    it('should handle read error for a missing template', async function() {
+      const result = await EmailService.buildFromTemplateAsync('does-not-exist', {});
+
+      expect(result.status).to.equal(500);
+      expect(result.body).to.equal('Templating error.');
     });
   });
 
   describe('runTemplate', function() {
-    it('should run lodash template', function() {
-      const template = 'Hello <%= name %>';
-      const variables = { imports: { name: 'World' } };
-      
+    it('should run Handlebars template', function() {
+      const template = 'Hello {{name}}';
+      const variables = { name: 'World' };
+
       const result = EmailService.runTemplate(template, variables);
-      
+
       expect(result).to.equal('Hello World');
     });
 
@@ -135,11 +179,11 @@ describe('EmailService', function() {
     });
 
     it('should render properties with templates', function() {
-      const options = { msgTo: 'user_<%= id %>@example.com' };
+      const options = { msgTo: 'user_{{id}}@example.com' };
       const templateData = { id: '123' };
-      
+
       const result = EmailService.evaluateProperties(options, {}, templateData);
-      
+
       expect(result.toRendered).to.equal('user_123@example.com');
     });
   });
