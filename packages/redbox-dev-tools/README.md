@@ -209,6 +209,14 @@ Optional Angular service scaffold:
 npx @researchdatabox/redbox-dev-tools generate form-component my-widget --app form --with-service
 ```
 
+### `sync-translation`
+
+Read translations from API and write to language defaults files.
+
+```bash
+npx @researchdatabox/redbox-dev-tools sync-translation -a "https://example.com" -l ~/redbox-portal/language-defaults
+````
+
 ### `help`
 
 Show CLI help and usage information.

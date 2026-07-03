@@ -19,6 +19,7 @@ import {
   parseNavMappings,
   parseRoutes,
 } from './cli-parsers';
+import {registerSyncTranslationCommand} from "./commands/sync-translation";
 
 const program = new Command();
 // List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
@@ -126,6 +127,7 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')
