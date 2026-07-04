@@ -762,7 +762,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
     );
 
-    // Add the validation summary.
+    // Add the save status and validation summary used by legacy forms.
+    const saveStatusFrame = {
+      name: 'save_status',
+      component: { class: 'SaveStatusComponent' },
+    };
+    const saveStatusComponent = this.sharedProps.sharedConstructFormComponent(saveStatusFrame);
+    item.componentDefinitions.push(saveStatusComponent);
+
     const validationSummaryFrame = {
       name: 'validation_summary',
       component: { class: 'ValidationSummaryComponent' },
@@ -2412,7 +2419,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected shouldOmitLegacyField(field: Record<string, unknown>, v4FormPathMore?: string[]): boolean {
+  protected shouldOmitLegacyField(field: Record<string, unknown> | null | undefined, v4FormPathMore?: string[]): boolean {
+    if (!field || typeof field !== 'object') {
+      this.logger.warn(
+        `${this.logName}: Omitting empty legacy field entry at ${JSON.stringify([
+          ...(this.v4FormPath ?? []),
+          ...(v4FormPathMore ?? []),
+        ])}.`
+      );
+      return true;
+    }
+
     const v4ClassName = `${field?.class ?? ''}`.trim();
     const v4CompClassName = `${field?.compClass ?? ''}`.trim();
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
@@ -2896,7 +2913,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return normalized;
   }
 
-  protected async migrateOptions(field: Record<string, unknown>) {
+  protected migrateOptions(field: Record<string, unknown>) {
     return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map(
       option => {
         return {
@@ -3525,11 +3542,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   private async injectLegacyRecordMetadataRetrieverExpressions(
-    legacyFields: Record<string, unknown>[],
+    legacyFields: (Record<string, unknown> | null | undefined)[],
     migratedComponents: AllFormComponentDefinitionOutlines[],
     containerPointer = ''
   ): Promise<void> {
-    for (const legacyField of legacyFields) {
+    const validLegacyFields = legacyFields.filter(
+      (legacyField): legacyField is Record<string, unknown> => !!legacyField && typeof legacyField === 'object'
+    );
+
+    for (const legacyField of validLegacyFields) {
       if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
         continue;
       }
@@ -3543,11 +3564,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const migratedRetriever = migratedComponents.find(component => component.name === retrieverName);
       if (migratedRetriever) {
         migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
-          this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
+          this.buildRetrieverExpressions(legacyField, validLegacyFields, containerPointer)
         );
       }
 
-      for (const targetField of legacyFields) {
+      for (const targetField of validLegacyFields) {
         const targetDefinition = (targetField.definition ?? {}) as Record<string, unknown>;
         const targetName = String(targetDefinition.name ?? targetDefinition.id ?? '').trim();
         if (!targetName) {

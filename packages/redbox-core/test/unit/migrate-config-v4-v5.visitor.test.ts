@@ -121,6 +121,93 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migrated.editCssClasses).to.equal('redbox-form form rb-form-edit');
   });
 
+  it('adds save status immediately before the validation summary', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-status-summary-migration',
+        fields: [],
+      },
+    });
+
+    const saveStatusIndex = migrated.componentDefinitions.findIndex(component => component.name === 'save_status');
+    const validationSummaryIndex = migrated.componentDefinitions.findIndex(
+      component => component.name === 'validation_summary'
+    );
+
+    expect(saveStatusIndex).to.be.greaterThan(-1);
+    expect(validationSummaryIndex).to.equal(saveStatusIndex + 1);
+    expect(migrated.componentDefinitions[saveStatusIndex].component.class).to.equal('SaveStatusComponent');
+    expect(migrated.componentDefinitions[validationSummaryIndex].component.class).to.equal('ValidationSummaryComponent');
+    expect(migrated.componentDefinitions[validationSummaryIndex].constraints).to.deep.equal({
+      authorization: { allowRoles: [] },
+      allowModes: [],
+    });
+  });
+
+  it('omits sparse legacy field entries while migrating nested retriever subscriptions', async function () {
+    const warnings: string[] = [];
+    const testLogger = {
+      ...logger,
+      warn: (message: unknown) => warnings.push(String(message ?? '')),
+    };
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'sparse-field-migration',
+        fields: [
+          {
+            class: 'TabOrAccordionContainer',
+            compClass: 'TabOrAccordionContainerComponent',
+            definition: {
+              id: 'mainTab',
+              fields: [
+                {
+                  class: 'Container',
+                  definition: {
+                    id: 'about',
+                    label: 'About',
+                    fields: [
+                      {
+                        class: 'RecordMetadataRetriever',
+                        compClass: 'RecordMetadataRetrieverComponent',
+                        definition: {
+                          name: 'rdmpGetter',
+                        },
+                      },
+                      ,
+                      {
+                        class: 'TextField',
+                        definition: {
+                          name: 'title',
+                          subscribe: {
+                            rdmpGetter: {
+                              onValueUpdate: [
+                                {
+                                  action: 'utilityService.getPropertyFromObject',
+                                  field: 'title',
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const serialised = JSON.stringify(migrated);
+    expect(serialised).to.not.contain('v4ClassName ""');
+    expect(serialised).to.contain('"name":"title"');
+    expect(warnings.some(msg => msg.includes('Omitting empty legacy field entry'))).to.equal(true);
+  });
+
   it('applies checkbox tree migration edge-case fallbacks and coercions', async function () {
     const warnings: string[] = [];
     const testLogger = {
@@ -188,6 +275,49 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedField.component.class).to.equal('CheckboxInputComponent');
     expect(migratedField.model?.class).to.equal('CheckboxInputModel');
     expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+  });
+
+  it('migrates legacy selection options to arrays for dropdown and checkbox inputs', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-selection-options',
+        fields: [
+          {
+            class: 'SelectionField',
+            compClass: 'DropdownFieldComponent',
+            definition: {
+              name: 'retention',
+              options: [
+                { value: '', label: '@empty' },
+                { value: 'permanent', label: '@permanent' },
+              ],
+            },
+          },
+          {
+            class: 'SelectionField',
+            compClass: 'SelectionFieldComponent',
+            definition: {
+              name: 'notes',
+              controlType: 'checkbox',
+              options: [{ value: 'heritage', label: '@heritage' }],
+            },
+          },
+        ],
+      },
+    });
+
+    const dropdown = migrated.componentDefinitions.find(component => component.name === 'retention');
+    const checkbox = migrated.componentDefinitions.find(component => component.name === 'notes');
+    expect(dropdown?.component.class).to.equal('DropdownInputComponent');
+    expect(checkbox?.component.class).to.equal('CheckboxInputComponent');
+    expect((dropdown?.component.config as Record<string, unknown>)?.options).to.deep.equal([
+      { label: '@empty', value: '', disabled: undefined },
+      { label: '@permanent', value: 'permanent', disabled: undefined },
+    ]);
+    expect((checkbox?.component.config as Record<string, unknown>)?.options).to.deep.equal([
+      { label: '@heritage', value: 'heritage', disabled: undefined },
+    ]);
   });
 
   it('builds nested component JSON pointers without regex-based trailing slash trimming', async function () {
