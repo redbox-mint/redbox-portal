@@ -32,7 +32,7 @@ for lock_dir in "${LOCK_DIRS[@]}"; do
     show_step "Refresh package lock in ${lock_dir}"
     (
         cd "${package_dir}"
-        npm install --package-lock-only --ignore-scripts --strict-peer-deps --no-audit --fund=false
+        npm install --package-lock-only --ignore-scripts --strict-peer-deps --no-audit --fund=false --save
     )
 done
 
