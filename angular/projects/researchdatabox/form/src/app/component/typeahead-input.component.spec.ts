@@ -73,6 +73,97 @@ describe("TypeaheadInputComponent", () => {
         expect(input.value).toBe("Jane Doe");
     });
 
+    it("stores configured optionObject fields from the selected raw result", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "namedQuery",
+                            queryId: "activity",
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            valueMode: "optionObject",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        // Mirrors CQU Research Master grants: persist the configured fields, not label/value.
+        component.onSelect({
+            item: {
+                label: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+                value: "0980024219",
+                sourceType: "namedQuery",
+                raw: {
+                    dc_title: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+                    grant_number: "0980024219"
+                }
+            }
+        } as TypeaheadMatch);
+
+        expect((formComponent as any).form.get("research_master_project_id")?.value).toEqual({
+            dc_title: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+            grant_number: "0980024219"
+        });
+        expect((fixture.nativeElement.querySelector("input") as HTMLInputElement).value).toBe(
+            "Improving the transition of agricultural students between vocational and higher education - RSH/4414"
+        );
+    });
+
+    it("renders a pre-populated configured optionObject label", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "namedQuery",
+                            queryId: "activity",
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            valueMode: "optionObject",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            minChars: 1
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: {
+                                dc_title: "Improving nursing workforce retention in rural Central Queensland",
+                                grant_number: "14875"
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        // Existing records with custom object fields must still render a readable label.
+        expect(input.value).toBe("Improving nursing workforce retention in rural Central Queensland");
+    });
+
     it("updates displayed text when the underlying model value changes after init", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

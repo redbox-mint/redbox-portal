@@ -14,12 +14,14 @@ import {
   HistoricalVocabMode,
   TypeaheadInputComponentName,
   TypeaheadInputFieldComponentConfig,
+  TypeaheadInputModelOptionValue,
   TypeaheadInputModelName,
   TypeaheadInputModelValueType,
   TypeaheadOption,
   TypeaheadSourceType,
   TypeaheadValueMode,
 } from '@researchdatabox/sails-ng-common';
+import { get as _get } from 'lodash-es';
 import { TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { defer, from, Observable } from 'rxjs';
 import { FormComponent } from '../form.component';
@@ -116,6 +118,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private labelField = 'label';
   private valueField = 'value';
   private valueMode: TypeaheadValueMode = 'value';
+  private optionObjectFields: Record<string, string> = {};
   private cacheResults = true;
   private historicalVocabMode: HistoricalVocabMode = 'hide';
   private hasHistoricalOrUnknownModelValue = false;
@@ -169,6 +172,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     ];
     this.compiledItems = undefined;
     this.valueField = String(cfg.valueField ?? 'value').trim() || 'value';
+    this.optionObjectFields = this.normalizeOptionObjectFields(cfg.optionObjectFields);
     this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
     this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
@@ -406,7 +410,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     const value = this.model?.getValue();
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
       this.setHistoricalLookupState((value.sourceType as string | undefined) === 'historical');
-      this.setDisplayValue(value.label);
+      this.setDisplayValue(this.getOptionObjectLabel(value));
       return;
     }
     if (this.valueMode === 'value' && typeof value === 'string') {
@@ -443,7 +447,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
     const value = this.model?.getValue();
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return String(value.label ?? '').trim().length > 0;
+      return this.getOptionObjectLabel(value).trim().length > 0;
     }
     return typeof value === 'string' && value.trim().length > 0;
   }
@@ -451,7 +455,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private getAutoDisplaySyncSignature(): string {
     const value = this.model?.getValue();
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return `option:${value.value}:${value.label}`;
+      return `option:${this.getOptionObjectValue(value)}:${this.getOptionObjectLabel(value)}`;
     }
     return typeof value === 'string' ? `value:${value}` : '';
   }
@@ -459,11 +463,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private setModelFromOption(option: TypeaheadOption): void {
     this.setHistoricalLookupState(this.isHistoricalOption(option));
     if (this.valueMode === 'optionObject') {
-      this.setModelValue({
-        label: option.label,
-        value: option.value,
-        sourceType: option.sourceType,
-      });
+      this.setModelValue(this.buildOptionObjectValue(option));
       return;
     }
     this.setModelValue(option.value);
@@ -472,11 +472,12 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private setModelFromFreeText(text: string): void {
     this.setHistoricalLookupState(this.sourceType === 'vocabulary');
     if (this.valueMode === 'optionObject') {
-      this.setModelValue({
+      const freeTextValue: TypeaheadInputModelOptionValue = {
         label: text,
         value: text,
         sourceType: 'freeText',
-      });
+      };
+      this.setModelValue(this.hasOptionObjectFields() ? this.buildConfiguredFreeTextValue(text) : freeTextValue);
       return;
     }
     this.setModelValue(text);
@@ -548,7 +549,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return values;
     }
     if (this.isOptionObjectValue(value)) {
-      values.add(String(value.value ?? ''));
+      values.add(this.getOptionObjectValue(value));
       return values;
     }
     values.add(String(value));
@@ -594,14 +595,136 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   private isOptionObjectValue(
     value: TypeaheadInputModelValueType | undefined
-  ): value is { label: string; value: string } {
-    return Boolean(
-      value &&
-      typeof value === 'object' &&
-      'label' in value &&
-      'value' in value &&
-      typeof value.label === 'string' &&
-      typeof value.value === 'string'
+  ): value is TypeaheadInputModelOptionValue {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+    if (typeof value['label'] === 'string' && typeof value['value'] === 'string') {
+      return true;
+    }
+    return this.hasOptionObjectFields() && Object.keys(this.optionObjectFields).some(fieldName => fieldName in value);
+  }
+
+  private normalizeOptionObjectFields(value: unknown): Record<string, string> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return Object.entries(value as Record<string, unknown>).reduce<Record<string, string>>((fields, [fieldName, sourcePath]) => {
+      const normalizedFieldName = String(fieldName ?? '').trim();
+      const normalizedSourcePath = String(sourcePath ?? '').trim();
+      if (normalizedFieldName && normalizedSourcePath) {
+        fields[normalizedFieldName] = normalizedSourcePath;
+      }
+      return fields;
+    }, {});
+  }
+
+  private hasOptionObjectFields(): boolean {
+    return Object.keys(this.optionObjectFields).length > 0;
+  }
+
+  /**
+   * Default optionObject mode keeps the historic label/value/sourceType object.
+   * Configured fields project selected raw result paths into a domain-specific object.
+   */
+  private buildOptionObjectValue(option: TypeaheadOption): TypeaheadInputModelOptionValue {
+    if (!this.hasOptionObjectFields()) {
+      return {
+        label: option.label,
+        value: option.value,
+        sourceType: option.sourceType,
+      };
+    }
+
+    const source = option.raw ?? option;
+    return Object.entries(this.optionObjectFields).reduce<TypeaheadInputModelOptionValue>((storedValue, [fieldName, sourcePath]) => {
+      const resolvedValue = this.resolveOptionFieldValue(option, source, sourcePath);
+      if (resolvedValue !== undefined) {
+        storedValue[fieldName] = resolvedValue;
+      }
+      return storedValue;
+    }, {});
+  }
+
+  /**
+   * Free text has no raw result, so only configured label/value-equivalent fields can
+   * be populated while preserving the custom object shape.
+   */
+  private buildConfiguredFreeTextValue(text: string): TypeaheadInputModelOptionValue {
+    return Object.keys(this.optionObjectFields).reduce<TypeaheadInputModelOptionValue>((storedValue, fieldName) => {
+      const sourcePath = this.optionObjectFields[fieldName];
+      if (this.isConfiguredLabelField(fieldName, sourcePath) || this.isConfiguredValueField(fieldName, sourcePath)) {
+        storedValue[fieldName] = text;
+      }
+      return storedValue;
+    }, {});
+  }
+
+  private resolveOptionFieldValue(option: TypeaheadOption, source: unknown, sourcePath: string): unknown {
+    if (sourcePath === 'label') {
+      return option.label;
+    }
+    if (sourcePath === 'value') {
+      return option.value;
+    }
+    if (sourcePath === 'sourceType') {
+      return option.sourceType;
+    }
+    return _get(source, sourcePath);
+  }
+
+  // Display helpers accept both legacy label/value objects and configured objects.
+  private getOptionObjectLabel(value: Record<string, unknown>): string {
+    return String(
+      value['label'] ??
+      this.getConfiguredStoredValue(value, this.labelField, this.isConfiguredLabelField.bind(this)) ??
+      value[this.labelField] ??
+      this.getConfiguredStoredValue(value, this.valueField, this.isConfiguredValueField.bind(this)) ??
+      value[this.valueField] ??
+      value['value'] ??
+      ''
     );
+  }
+
+  private getOptionObjectValue(value: Record<string, unknown>): string {
+    return String(
+      value['value'] ??
+      this.getConfiguredStoredValue(value, this.valueField, this.isConfiguredValueField.bind(this)) ??
+      value[this.valueField] ??
+      this.getConfiguredStoredValue(value, this.labelField, this.isConfiguredLabelField.bind(this)) ??
+      value[this.labelField] ??
+      value['label'] ??
+      ''
+    );
+  }
+
+  /**
+   * Resolve a stored configured field by exact source-path match first, then by
+   * label/value semantics so stored keys may differ from source result paths.
+   */
+  private getConfiguredStoredValue(
+    value: Record<string, unknown>,
+    sourcePath: string,
+    matchesField: (fieldName: string, configuredSourcePath: string) => boolean
+  ): unknown {
+    const directMatch = Object.entries(this.optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      configuredSourcePath === sourcePath && value[fieldName] !== undefined
+    );
+    if (directMatch) {
+      return value[directMatch[0]];
+    }
+
+    const semanticMatch = Object.entries(this.optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      matchesField(fieldName, configuredSourcePath) && value[fieldName] !== undefined
+    );
+    return semanticMatch ? value[semanticMatch[0]] : undefined;
+  }
+
+  private isConfiguredLabelField(fieldName: string, sourcePath: string): boolean {
+    return fieldName === this.labelField || sourcePath === this.labelField || fieldName === 'label' || sourcePath === 'label';
+  }
+
+  private isConfiguredValueField(fieldName: string, sourcePath: string): boolean {
+    return fieldName === this.valueField || sourcePath === this.valueField || fieldName === 'value' || sourcePath === 'value';
   }
 }

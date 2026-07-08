@@ -33,6 +33,11 @@ export type TypeaheadInputComponentNameType = typeof TypeaheadInputComponentName
 export type TypeaheadSourceType = "static" | "vocabulary" | "namedQuery" | "external" | "service";
 export type TypeaheadValueMode = "value" | "optionObject";
 export type TypeaheadStoredSourceType = TypeaheadSourceType | "freeText";
+/**
+ * Maps stored object property names to paths on the selected option/raw result.
+ * When omitted, optionObject mode keeps the legacy label/value/sourceType shape.
+ */
+export type TypeaheadOptionObjectFields = Record<string, string>;
 
 export interface TypeaheadOption {
     label: string;
@@ -68,6 +73,7 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     maxResults?: number;
     requireSelection?: boolean;
     valueMode?: TypeaheadValueMode;
+    optionObjectFields?: TypeaheadOptionObjectFields;
     cacheResults?: boolean;
     multiSelect?: boolean;
     placeholder?: string;
@@ -93,9 +99,11 @@ export const TypeaheadInputModelName = "TypeaheadInputModel" as const;
 export type TypeaheadInputModelNameType = typeof TypeaheadInputModelName;
 
 export interface TypeaheadInputModelOptionValue {
-    label: string;
-    value: string;
+    label?: string;
+    value?: string;
     sourceType?: TypeaheadStoredSourceType;
+    /** Allows configured object-mode fields such as dc_title/grant_number. */
+    [key: string]: unknown;
 }
 
 export type TypeaheadInputModelValueType = string | TypeaheadInputModelOptionValue | null;

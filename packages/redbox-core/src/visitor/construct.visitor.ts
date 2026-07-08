@@ -1962,6 +1962,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('maxResults', item.config, config);
     this.sharedProps.setPropOverride('requireSelection', item.config, config);
     this.sharedProps.setPropOverride('valueMode', item.config, config);
+    // Required for configured optionObject storage such as dc_title/grant_number.
+    this.sharedProps.setPropOverride('optionObjectFields', item.config, config);
     this.sharedProps.setPropOverride('cacheResults', item.config, config);
     this.sharedProps.setPropOverride('multiSelect', item.config, config);
     this.sharedProps.setPropOverride('placeholder', item.config, config);
