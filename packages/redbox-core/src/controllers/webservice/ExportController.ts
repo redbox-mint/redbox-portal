@@ -8,6 +8,11 @@ import { pipeline } from 'node:stream/promises';
 /**
  * Package that contains all Controllers.
  */
+const EXPORT_CONTENT_TYPES: Record<string, string> = {
+  csv: 'text/csv; charset=utf-8',
+  json: 'application/json; charset=utf-8',
+};
+
 export namespace Controllers {
   /**
    * Responsible for exporting data
@@ -34,7 +39,7 @@ export namespace Controllers {
         const after: string | null = _.isEmpty(query.after) ? null : (query.after as string);
         const filename: string = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
         if (format == 'csv' || format == 'json') {
-          res.set('Content-Type', `text/${format}`);
+          res.set('Content-Type', EXPORT_CONTENT_TYPES[format]);
           sails.log.verbose('filename ' + filename);
           res.attachment(filename);
           await pipeline(
