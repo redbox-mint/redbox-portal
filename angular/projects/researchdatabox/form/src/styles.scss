@@ -208,7 +208,21 @@
 .rb-form-host .rb-form-action-row a.btn,
 .rb-form-host .rb-form-action-row button.btn {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
+}
+
+/* The legacy theme bundle re-applies Bootstrap 3 button-group rules
+   (inline-block groups, floated buttons) after Bootstrap 5, which collapses
+   split-button dropdown toggles. Restore the Bootstrap 5 behavior here. */
+.rb-form-host .rb-form-action-row .btn-group,
+.rb-form-host .rb-form-action-row .btn-group-vertical {
+  display: inline-flex;
+}
+
+.rb-form-host .rb-form-action-row .btn-group > .btn,
+.rb-form-host .rb-form-action-row .btn-group-vertical > .btn {
+  float: none;
 }
 
 .rb-form-host .rb-form-action-row .container {

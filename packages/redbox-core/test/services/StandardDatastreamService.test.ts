@@ -235,6 +235,8 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
 
       const ds = new Datastream({ fileId: 'missing-file' });
       try {
@@ -242,6 +244,171 @@ describe('StandardDatastreamService', function () {
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('Attachment not found in staging');
+      }
+    });
+
+    it('should treat wrapped S3 not found metadata errors as a missing primary object', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      const wrappedNotFound = Object.assign(new Error('Unable to retrieve metadata: UnknownError'), {
+        cause: Object.assign(new Error('UnknownError'), { name: 'NotFound' }),
+      });
+      mockPrimaryDisk.getMetaData.rejects(wrappedNotFound);
+
+      const ds = new Datastream({ fileId: 'missing-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Attachment not found in staging');
+      }
+
+      expect(mockSails.log.warn.called).to.be.false;
+    });
+
+    it('should bound recursive storage not found checks for circular cause chains', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      const circularError = Object.assign(new Error('wrapped storage failure'), { name: 'StorageError' }) as Error & { cause?: unknown };
+      circularError.cause = circularError;
+      mockPrimaryDisk.getMetaData.rejects(circularError);
+
+      const ds = new Datastream({ fileId: 'missing-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Attachment not found in staging');
+      }
+
+      expect(mockSails.log.warn.called).to.be.true;
+    });
+
+    it('should treat an already-promoted primary object as a successful add', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.withArgs('attachments/oid-123/already-promoted-file').resolves(true);
+
+      const ds = new Datastream({ fileId: 'already-promoted-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/already-promoted-file' });
+      expect(mockStagingDisk.getStream.called).to.be.false;
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.delete.called).to.be.false;
+    });
+
+    it('should succeed when a concurrent promotion completes during the TUS parts attempt', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      // First primary check loses the race; the re-check after the TUS attempt wins.
+      mockPrimaryDisk.exists.onFirstCall().resolves(false);
+      mockPrimaryDisk.exists.onSecondCall().resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+
+      const ds = new Datastream({ fileId: 'raced-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/raced-file' });
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.getStream.called).to.be.false;
+    });
+
+    it('should treat primary metadata as proof of an already-promoted object', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.withArgs('attachments/oid-123/metadata-visible-file').resolves(false);
+      mockPrimaryDisk.getMetaData.withArgs('attachments/oid-123/metadata-visible-file').resolves({
+        contentType: 'text/plain',
+        contentLength: 373,
+        etag: 'metadata-etag',
+        lastModified: new Date(),
+      });
+
+      const ds = new Datastream({ fileId: 'metadata-visible-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/metadata-visible-file' });
+      expect(mockPrimaryDisk.getMetaData.calledWith('attachments/oid-123/metadata-visible-file')).to.be.true;
+      expect(mockStagingDisk.getStream.called).to.be.false;
+      expect(mockPrimaryDisk.putStream.called).to.be.false;
+      expect(mockStagingDisk.delete.called).to.be.false;
+    });
+
+    it('should promote TUS parts when legacy and current prefixes contain equivalent parts', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.listAll.callsFake((prefix: string) => {
+        if (prefix === '.tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/00000000000000000000' }] });
+        }
+        if (prefix === 'tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/00000000000000000000' }] });
+        }
+        return Promise.resolve({ objects: [] });
+      });
+      mockStagingDisk.getMetaData.callsFake((key: string) => {
+        if (key.endsWith('/parts/00000000000000000000')) {
+          return Promise.resolve({ contentLength: 9 });
+        }
+        return Promise.reject(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      });
+      mockStagingDisk.getStream.callsFake(() => Readable.from(Buffer.from('test-data')));
+      mockPrimaryDisk.putStream.callsFake(async (_key: string, stream: Readable) => {
+        for await (const _chunk of stream) {
+          // Consume the lazy stream so part reads happen in the test.
+        }
+      });
+
+      const ds = new Datastream({ fileId: 'tus-file' });
+      const result = await service.addDatastream('oid-123', ds);
+
+      expect(result).to.deep.equal({ success: true, key: 'attachments/oid-123/tus-file' });
+      expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.putStream.firstCall.args[0]).to.equal('attachments/oid-123/tus-file');
+      expect(mockStagingDisk.getStream.calledOnceWithExactly('tus/tus-file/parts/00000000000000000000')).to.be.true;
+    });
+
+    it('should reject TUS parts when legacy and current prefixes contain different parts', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.listAll.callsFake((prefix: string) => {
+        if (prefix === '.tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: '.tus/tus-file/parts/0' }] });
+        }
+        if (prefix === 'tus/tus-file/parts/') {
+          return Promise.resolve({ objects: [{ key: 'tus/tus-file/parts/1' }] });
+        }
+        return Promise.resolve({ objects: [] });
+      });
+      mockStagingDisk.getMetaData.resolves({ contentLength: 9 });
+
+      const ds = new Datastream({ fileId: 'tus-file' });
+      try {
+        await service.addDatastream('oid-123', ds);
+        expect.fail('Should have thrown');
+      } catch (err: any) {
+        expect(err.message).to.include('Ambiguous TUS upload parts');
       }
     });
   });
@@ -353,6 +520,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
 
       try {
         await service.getDatastream('oid-123', 'missing-file');
@@ -368,6 +536,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
 
       const result = await service.getDatastream('oid-123', 'file-123');
@@ -385,6 +554,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockPrimaryDisk.putStream.rejects(new Error('primary promotion failed'));
 
       try {
@@ -418,6 +588,7 @@ describe('StandardDatastreamService', function () {
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.putStream.callsFake(() => new Promise<void>((resolve) => {
         resolvePromotion = resolve;
@@ -447,6 +618,7 @@ describe('StandardDatastreamService', function () {
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(true);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.putStream.rejects(new Error('already exists'));
 
@@ -462,6 +634,7 @@ describe('StandardDatastreamService', function () {
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockStagingDisk.delete.rejects(new Error('ENOENT'));
 
