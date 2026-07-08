@@ -5,13 +5,10 @@ import {
   getValidatedApiRequest,
 } from '../../index';
 import { pipeline } from 'node:stream/promises';
+import { EXPORT_CONTENT_TYPES } from '../../constants/export';
 /**
  * Package that contains all Controllers.
  */
-const EXPORT_CONTENT_TYPES: Record<string, string> = {
-  csv: 'text/csv; charset=utf-8',
-  json: 'application/json; charset=utf-8',
-};
 
 export namespace Controllers {
   /**
@@ -39,9 +36,9 @@ export namespace Controllers {
         const after: string | null = _.isEmpty(query.after) ? null : (query.after as string);
         const filename: string = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
         if (format == 'csv' || format == 'json') {
+          res.attachment(filename);
           res.set('Content-Type', EXPORT_CONTENT_TYPES[format]);
           sails.log.verbose('filename ' + filename);
-          res.attachment(filename);
           await pipeline(
             RecordsService.exportAllPlans(
               req.user!.username,
