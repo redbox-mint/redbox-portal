@@ -363,6 +363,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedFieldResolved.model).to.equal(undefined);
     expect(componentConfig?.label).to.equal(undefined);
     expect((migratedFieldResolved.layout?.config as Record<string, unknown>)?.label).to.equal(undefined);
+    expect((migratedFieldResolved.layout?.config as Record<string, unknown>)?.helpText).to.equal(undefined);
     expect(componentConfig?.content).to.deep.equal({
       label: '@dataPublication-citation-url',
       valuePath: 'citation_url',
@@ -1525,6 +1526,37 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const componentConfig = migratedField.component.config as Record<string, unknown>;
     expect(componentConfig.content).to.equal('@dmpt-welcome-heading');
     expect(componentConfig.template).to.equal('<h3>{{t content}}</h3>');
+  });
+
+  it('promotes legacy TextBlock heading help into layout label config', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'text-block-heading-help',
+        fields: [
+          {
+            class: 'Container',
+            compClass: 'TextBlockComponent',
+            definition: {
+              name: 'temporal_heading',
+              value: '@dataPublication-temporalcoverage-heading',
+              help: '@dataPublication-temporalcoverage-heading-help',
+              type: 'h4',
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('ContentComponent');
+    const componentConfig = migratedField.component.config as Record<string, unknown>;
+    const layoutConfig = migratedField.layout?.config as Record<string, unknown>;
+    expect(componentConfig.content).to.equal('@dataPublication-temporalcoverage-heading');
+    expect(componentConfig.template).to.equal('<span></span>');
+    expect(layoutConfig.label).to.equal('@dataPublication-temporalcoverage-heading');
+    expect(layoutConfig.helpText).to.equal('@dataPublication-temporalcoverage-heading-help');
+    expect(layoutConfig.cssClassesMap).to.deep.equal({ label: 'h4-header' });
   });
 
   it('binds TextBlock heading content from formData when value is missing and definition.name is present', async function () {
