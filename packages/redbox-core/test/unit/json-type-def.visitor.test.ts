@@ -374,8 +374,8 @@ describe("JSON Type Def Schema Visitor", async () => {
                     // Schema should match the configured persisted object shape.
                     "research-master-project-id": {
                         properties: {
-                            dc_title: {type: "string"},
-                            grant_number: {type: "string"}
+                            dc_title: {},
+                            grant_number: {}
                         },
                         optionalProperties: {
                             sourceType: {type: "string"}

@@ -499,10 +499,10 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     const valueMode = this.typeaheadValueModesByJsonPath.get(jsonPathKey) ?? 'value';
     if (valueMode === 'optionObject') {
       const optionObjectFields = this.typeaheadOptionObjectFieldsByJsonPath.get(jsonPathKey) ?? {};
-      // Custom object mode should describe the configured stored shape, not label/value.
       const properties = Object.keys(optionObjectFields).length > 0
-        ? Object.keys(optionObjectFields).reduce<Record<string, { type: 'string' }>>((schema, fieldName) => {
-          schema[fieldName] = { type: 'string' };
+        ? Object.keys(optionObjectFields).reduce<Record<string, Record<string, unknown>>>((schema, fieldName) => {
+          // Configured fields persist raw lookup values; an empty JTD schema accepts any JSON value.
+          schema[fieldName] = {};
           return schema;
         }, {})
         : {

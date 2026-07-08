@@ -170,6 +170,51 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("external_id")?.value).toBeNull();
     });
 
+    it("stores configured free text only in label-equivalent fields", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: false,
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            staticOptions: [
+                                {
+                                    label: "Known project",
+                                    value: "RSH/4414",
+                                    raw: { dc_title: "Known project", grant_number: "RSH/4414" }
+                                }
+                            ]
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        input.value = "Custom project";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.get("research_master_project_id")?.value).toEqual({
+            dc_title: "Custom project"
+        });
+    });
+
     it("renders a pre-populated configured optionObject label", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

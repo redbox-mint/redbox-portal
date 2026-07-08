@@ -659,13 +659,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   /**
-   * Free text has no raw result, so only configured label/value-equivalent fields can
-   * be populated while preserving the custom object shape.
+   * Free text has no raw result, so only the display label can be safely populated
+   * while preserving the configured object shape.
    */
   private buildConfiguredFreeTextValue(text: string): TypeaheadInputModelOptionValue {
     return Object.keys(this.optionObjectFields).reduce<TypeaheadInputModelOptionValue>((storedValue, fieldName) => {
       const sourcePath = this.optionObjectFields[fieldName];
-      if (this.isConfiguredLabelField(fieldName, sourcePath) || this.isConfiguredValueField(fieldName, sourcePath)) {
+      if (this.isConfiguredLabelField(fieldName, sourcePath)) {
         storedValue[fieldName] = text;
       }
       return storedValue;
@@ -677,7 +677,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return true;
     }
     return Object.entries(this.optionObjectFields).some(([fieldName, sourcePath]) =>
-      this.isConfiguredLabelField(fieldName, sourcePath) || this.isConfiguredValueField(fieldName, sourcePath)
+      this.isConfiguredLabelField(fieldName, sourcePath)
     );
   }
 
