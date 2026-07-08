@@ -2233,6 +2233,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         className === QuestionTreeComponentName ||
         className === RepeatableComponentName ||
         (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
+        this.mostRecentRepeatableElementTemplatePath !== null ||
         (
           componentConfig?.inlineVocab === true &&
           (
@@ -2242,6 +2243,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
           )
         );
       if (shouldDeferToClientViewTransform) {
+        if (formComponent.overrides?.replaceName !== undefined) {
+          (formComponent as { name: string | null }).name = formComponent.overrides.replaceName;
+          delete formComponent.overrides.replaceName;
+        }
         return formComponent;
       }
     }

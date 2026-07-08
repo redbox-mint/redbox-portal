@@ -304,6 +304,13 @@ export class FormOverride {
     PublishDataLocationSelectorComponentName,
   ]);
 
+  public hasDefaultViewTransform(className: string | undefined): boolean {
+    if (!className || !(className in this.defaultTransforms)) {
+      return false;
+    }
+    return !!this.defaultTransforms[className as keyof DefaultTransformsType]?.view;
+  }
+
   /**
    * Apply any reusable form configs in the form component definitions.
    * @param items The form component definitions.
@@ -795,7 +802,7 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
-      const configuredDateFormat = source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
+      const configuredDateFormat = this.resolveDateInputFormat(source);
       target.component.config.content = source.model.config.value;
       target.component.config.template = `<span data-value="{{content}}">{{formatDate content "${configuredDateFormat}"}}</span>`;
     }
@@ -833,7 +840,7 @@ export class FormOverride {
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    const outputFormat = (source.component?.config as { outputFormat?: 'html' | 'markdown' } | undefined)?.outputFormat ?? 'html';
+    const outputFormat = this.resolveRichTextOutputFormat(source);
     if (!target.component.config || source.model?.config?.value === undefined) {
       return target;
     }
@@ -850,6 +857,14 @@ export class FormOverride {
     };
 
     return target;
+  }
+
+  private resolveDateInputFormat(source: DateInputFormComponentDefinitionOutline): string {
+    return source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
+  }
+
+  private resolveRichTextOutputFormat(source: RichTextEditorFormComponentDefinitionOutline): 'html' | 'markdown' {
+    return (source.component?.config as { outputFormat?: 'html' | 'markdown' } | undefined)?.outputFormat ?? 'html';
   }
 
   private sourceFileUploadComponentTargetContentComponent(
@@ -1360,6 +1375,15 @@ export class FormOverride {
     if (className === TypeaheadInputComponentName) {
       return this.renderTypeaheadValue(expression, component);
     }
+    if (className === DateInputComponentName) {
+      return this.renderDateInputValue(expression, component as DateInputFormComponentDefinitionOutline);
+    }
+    if (className === RichTextEditorComponentName) {
+      return this.renderRichTextEditorValue(expression, component as RichTextEditorFormComponentDefinitionOutline);
+    }
+    if (className === SimpleInputComponentName) {
+      return this.renderDisplayValue(expression);
+    }
     if (
       className === DropdownInputComponentName ||
       className === CheckboxInputComponentName ||
@@ -1372,6 +1396,17 @@ export class FormOverride {
       return this.renderOptionSingleValue(expression, options);
     }
     return `{{default ${expression} ""}}`;
+  }
+
+  private renderDateInputValue(expression: string, component: DateInputFormComponentDefinitionOutline): string {
+    const configuredDateFormat = this.resolveDateInputFormat(component);
+    const dateValueTemplate = `{{default ${expression} ""}}`;
+    return `<span data-value="${dateValueTemplate}">{{formatDate ${expression} "${configuredDateFormat}"}}</span>`;
+  }
+
+  private renderRichTextEditorValue(expression: string, component: RichTextEditorFormComponentDefinitionOutline): string {
+    const outputFormat = this.resolveRichTextOutputFormat(component);
+    return `{{{markdownToHtml ${expression} "${this.escapeForHandlebarsLiteral(outputFormat)}"}}}`;
   }
 
   private renderTypeaheadValue(expression: string, component: AllFormComponentDefinitionOutlines): string {

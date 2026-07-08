@@ -546,6 +546,233 @@ describe("Client Visitor", async () => {
     });
   });
 
+  describe("Repeatable view mode data retention (#4284)", async () => {
+    const dateFormat = "DD/MM/YYYY";
+    const recordRows = [
+      {
+        title: "Initial planning",
+        startDate: "2026-01-15",
+        categories: ["a", "b"],
+      },
+      {
+        title: "Final review",
+        startDate: "2026-02-20",
+        categories: ["b"],
+      },
+    ];
+
+    const buildData = (
+      entriesName = "entries",
+      childDefinitions: any[] = [
+        {
+          name: "title",
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+        {
+          name: "startDate",
+          component: {class: "DateInputComponent", config: {dateFormat}},
+          model: {class: "DateInputModel", config: {}},
+        },
+        {
+          name: "categories",
+          component: {
+            class: "CheckboxInputComponent",
+            config: {
+              options: [
+                {value: "a", label: "A"},
+                {value: "b", label: "B"},
+              ],
+              multipleValues: true,
+            },
+          },
+          model: {class: "CheckboxInputModel", config: {}},
+        },
+      ],
+      repeatableDefinition: Record<string, unknown> = {}
+    ): FormConfigFrame => ({
+      name: "repeatable-view-mode-data-retention",
+      componentDefinitions: [
+        {
+          name: entriesName,
+          ...repeatableDefinition,
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent",
+                  config: {
+                    componentDefinitions: childDefinitions,
+                  },
+                },
+                model: {class: "GroupModel", config: {}},
+              },
+            },
+          },
+          model: {class: "RepeatableModel", config: {}},
+        },
+      ],
+    });
+
+    const constructAndVisit = async (
+      data: FormConfigFrame,
+      record: Record<string, unknown>,
+      userRoles: string[] = []
+    ): Promise<FormConfigFrame> => {
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      return await visitor.start({
+        form: constructed,
+        formMode: "view",
+        userRoles,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+    };
+
+    it("should retain grouped repeatable row data when transforming to content in view mode", async function () {
+      const actual = await constructAndVisit(buildData(), {entries: recordRows});
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.content).to.deep.equal(recordRows);
+      expect(config.template).to.contain('(get this "title" "")');
+      expect(config.template).to.contain("formatDate");
+      expect(config.template).to.contain("startDate");
+      expect(config.template).to.contain(dateFormat);
+      expect(config.template).to.contain("categories");
+    });
+
+    it("should prune constrained grouped repeatable row data in view mode", async function () {
+      const data = buildData("entries", [
+        {
+          name: "title",
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+        {
+          name: "startDate",
+          constraints: {allowModes: ["edit"]},
+          component: {class: "DateInputComponent", config: {dateFormat}},
+          model: {class: "DateInputModel", config: {}},
+        },
+        {
+          name: "categories",
+          constraints: {authorization: {allowRoles: ["Admin"]}},
+          component: {
+            class: "CheckboxInputComponent",
+            config: {
+              options: [
+                {value: "a", label: "A"},
+                {value: "b", label: "B"},
+              ],
+              multipleValues: true,
+            },
+          },
+          model: {class: "CheckboxInputModel", config: {}},
+        },
+      ]);
+
+      const actual = await constructAndVisit(data, {entries: recordRows}, ["Librarian"]);
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(config.content).to.deep.equal([
+        {title: "Initial planning"},
+        {title: "Final review"},
+      ]);
+      expect(config.content?.every(row => "title" in row)).to.equal(true);
+      expect(config.content?.every(row => !("startDate" in row))).to.equal(true);
+      expect(config.content?.every(row => !("categories" in row))).to.equal(true);
+      expect(config.template).to.not.contain('(get this "startDate"');
+      expect(config.template).to.not.contain('(get this "categories"');
+    });
+
+    it("should retain grouped repeatable model data when explicit view mode skips repeatable transform", async function () {
+      const actual = await constructAndVisit(
+        buildData("entries", undefined, {constraints: {allowModes: ["view"]}}),
+        {entries: recordRows}
+      );
+      const component = actual.componentDefinitions[0];
+      const stringifiedComponent = JSON.stringify(component);
+      const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
+
+      expect(component.component.class).to.equal("RepeatableComponent");
+      expect(stringifiedComponent).to.not.contain("SimpleInputComponent");
+      expect(stringifiedComponent).to.not.contain("DateInputComponent");
+      expect(stringifiedComponent).to.not.contain("CheckboxInputComponent");
+      expect(component.model?.config?.value).to.deep.equal(recordRows);
+      expect(stringifiedDefinitions).to.not.contain("constraints");
+      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+    });
+
+    it("should strip empty overrides after replaceName inside explicit view repeatable templates", async function () {
+      const rows = [
+        {displayTitle: "Explicit first title"},
+        {displayTitle: "Explicit second title"},
+      ];
+      const data = buildData(
+        "entries",
+        [
+          {
+            name: "legacyTitle",
+            constraints: {allowModes: ["view"]},
+            overrides: {replaceName: "displayTitle"},
+            component: {class: "SimpleInputComponent", config: {}},
+            model: {class: "SimpleInputModel", config: {}},
+          },
+        ],
+        {constraints: {allowModes: ["view"]}}
+      );
+      const repeatable = data.componentDefinitions[0];
+      (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate.constraints = {
+        allowModes: ["view"],
+      };
+
+      const actual = await constructAndVisit(data, {entries: rows});
+      const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
+
+      expect(actual.componentDefinitions[0].component.class).to.equal("RepeatableComponent");
+      expect(actual.componentDefinitions[0].model?.config?.value).to.deep.equal(rows);
+      expect(stringifiedDefinitions).to.not.contain("overrides");
+      expect(stringifiedDefinitions).to.not.contain("constraints");
+      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+    });
+
+    it("should retain replaceName row data and template references inside grouped repeatable templates", async function () {
+      const rows = [
+        {displayTitle: "Renamed first title"},
+        {displayTitle: "Renamed second title"},
+      ];
+      const data = buildData("entries", [
+        {
+          name: "legacyTitle",
+          overrides: {replaceName: "displayTitle"},
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+      ]);
+
+      const actual = await constructAndVisit(data, {entries: rows});
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(config.content).to.deep.equal(rows);
+      expect(config.content?.every(row => "displayTitle" in row)).to.equal(true);
+      expect(config.content?.every(row => !("legacyTitle" in row))).to.equal(true);
+      expect(config.template).to.contain('(get this "displayTitle" "")');
+    });
+  });
+
   it(`should create full example form config`, async function () {
     const args = formConfigExample1;
 

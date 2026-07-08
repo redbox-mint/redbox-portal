@@ -285,17 +285,24 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     item: AvailableFormComponentDefinitionOutlines
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
-    const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup = className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
-    const shouldTransformQuestionTree = className === QuestionTreeComponentName;
+    const shouldSkipActionRowGroupTransform =
+      className === GroupFieldComponentName && item?.layout?.class === ActionRowLayoutName;
+    const hasExplicitViewTransform = item?.overrides?.formModeClasses?.view !== undefined;
+    const hasDefaultViewTransform = this.formOverride.hasDefaultViewTransform(className);
     const shouldTransformInlineVocabOption = this.isInlineVocabOptionComponent(item);
+    const shouldTransform =
+      !shouldSkipActionRowGroupTransform &&
+      (hasDefaultViewTransform || hasExplicitViewTransform || shouldTransformInlineVocabOption);
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree || shouldTransformInlineVocabOption) {
+    if (shouldTransform) {
       if (shouldSkipViewTransform) {
         this.applyPostPruningTransformsToNestedChildren(item);
         if ('constraints' in item) {
           delete item['constraints'];
+        }
+        if ('overrides' in item) {
+          delete item['overrides'];
         }
         return item;
       }
@@ -304,7 +311,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         phase: 'client',
         reusableFormDefs: this.reusableFormDefs,
       }) as AvailableFormComponentDefinitionOutlines;
-      this.processFormComponentDefinition(transformed);
+      if (transformed?.component?.class !== className) {
+        this.processFormComponentDefinition(transformed);
+      }
       this.applyPostPruningTransformsToNestedChildren(transformed);
       if ('constraints' in transformed) {
         delete transformed['constraints'];
@@ -313,6 +322,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
 
     this.applyPostPruningTransformsToNestedChildren(item);
+    if ('overrides' in item) {
+      delete item['overrides'];
+    }
     return item;
   }
 
@@ -354,6 +366,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
     if (Array.isArray(config.panels)) {
       config.panels = this.applyPostPruningTransforms(config.panels as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (config.elementTemplate) {
+      config.elementTemplate = this.applyPostPruningTransformToComponent(
+        config.elementTemplate as AvailableFormComponentDefinitionOutlines
+      );
     }
   }
 
@@ -1030,7 +1047,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       this.formModeProvided &&
       (item?.component?.class === RepeatableComponentName ||
         item?.component?.class === GroupFieldComponentName ||
-        item?.component?.class === QuestionTreeComponentName);
+        item?.component?.class === QuestionTreeComponentName ||
+        item?.overrides?.formModeClasses?.view !== undefined ||
+        this.formOverride.hasDefaultViewTransform(item?.component?.class) ||
+        this.isInlineVocabOptionComponent(item as AvailableFormComponentDefinitionOutlines));
 
     // Constraint define the criteria for including a component.
     // The client has no need for the constraints.
@@ -1187,6 +1207,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
     const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig});
+    this.applyRepeatableComponentSchemaOverrides(elementTemplateSchema, elementTemplateCompConfig.componentDefinitions);
 
     // Remove any data model items that are not present in the schema.
     const itemValue = item.model?.config?.value;
@@ -1198,6 +1219,54 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if (elementTemplate?.model?.config) {
       elementTemplate.model.config.newEntryValue = this.buildDataMatchingSchema(elementTemplateSchema, [], newEntryValue, []) as any ?? {};
     }
+  }
+
+  protected applyRepeatableComponentSchemaOverrides(
+    schema: Record<string, unknown>,
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[]
+  ): void {
+    const schemaProperties = schema?.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!schemaProperties) {
+      return;
+    }
+
+    componentDefinitions.forEach(componentDefinition => {
+      const componentName = componentDefinition.name;
+      if (!componentName) {
+        return;
+      }
+
+      const componentSchema = schemaProperties[componentName];
+      if (!componentSchema) {
+        return;
+      }
+
+      const componentConfig = componentDefinition.component?.config as Record<string, unknown> | undefined;
+      if (
+        componentDefinition.component?.class === CheckboxInputComponentName &&
+        componentConfig?.multipleValues === true
+      ) {
+        schemaProperties[componentName] = {elements: {type: 'string'}};
+        return;
+      }
+
+      if (isTypeWithComponentDefinitions(componentConfig)) {
+        this.applyRepeatableComponentSchemaOverrides(
+          componentSchema,
+          componentConfig.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+        );
+      }
+
+      const elementTemplate = componentConfig?.elementTemplate as AvailableFormComponentDefinitionOutlines | undefined;
+      const elementTemplateConfig = elementTemplate?.component?.config as Record<string, unknown> | undefined;
+      const elementSchema = componentSchema.elements as Record<string, unknown> | undefined;
+      if (elementSchema && isTypeWithComponentDefinitions(elementTemplateConfig)) {
+        this.applyRepeatableComponentSchemaOverrides(
+          elementSchema,
+          elementTemplateConfig.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+        );
+      }
+    });
   }
 
   protected updateLayoutVisibilityForZeroRows(item: RepeatableFormComponentDefinitionOutline): void {

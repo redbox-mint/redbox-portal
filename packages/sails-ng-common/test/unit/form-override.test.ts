@@ -10,6 +10,8 @@ import {
  CheckboxInputComponentName,
  TypeaheadInputComponentName,
  FileUploadComponentName,
+ DateInputComponentName,
+ RichTextEditorComponentName,
  isTypeFieldDefinitionName,
  ILogger,
 } from '../../src';
@@ -161,6 +163,17 @@ describe('FormOverride reusable expansion', () => {
     );
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+  });
+
+  it('reports component classes with default view transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    expect(formOverride.hasDefaultViewTransform(SimpleInputComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(DateInputComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(RepeatableComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(ContentComponentName)).to.equal(false);
+    expect(formOverride.hasDefaultViewTransform('UnknownComponent')).to.equal(false);
+    expect(formOverride.hasDefaultViewTransform(undefined)).to.equal(false);
   });
 
   it('renders dropdown leaf option labels in generated view templates', () => {
@@ -679,5 +692,82 @@ describe('FormOverride reusable expansion', () => {
     expect(template).to.not.contain('<th>{{t "Nickname"}}</th>');
     expect(template).to.not.contain('get this "orcid"');
     expect(template).to.not.contain('get this "nickname"');
+  });
+
+  it('renders repeatable table values from unflattened leaf components', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'events',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: GroupFieldComponentName,
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'startDate',
+                      component: {
+                        class: DateInputComponentName,
+                        config: { label: 'Start date', dateFormat: 'DD/MM/YYYY' },
+                      },
+                    },
+                    {
+                      name: 'endDate',
+                      component: {
+                        class: DateInputComponentName,
+                        config: { label: 'End date' },
+                      },
+                    },
+                    {
+                      name: 'description',
+                      component: {
+                        class: RichTextEditorComponentName,
+                        config: { label: 'Description', outputFormat: 'markdown' },
+                      },
+                    },
+                    {
+                      name: 'person',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Person' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        model: {
+          class: 'RepeatableModel',
+          config: {
+            value: [
+              {
+                startDate: '2026-07-09',
+                endDate: '2026-07-10',
+                description: '**Details**',
+                person: { dc_title: 'Ada Lovelace' },
+              },
+            ],
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.contain('<span data-value="{{default (get this "startDate" "") ""}}">{{formatDate (get this "startDate" "") "DD/MM/YYYY"}}</span>');
+    expect(template).to.contain('<span data-value="{{default (get this "endDate" "") ""}}">{{formatDate (get this "endDate" "") "YYYY/MM/DD"}}</span>');
+    expect(template).to.contain('{{{markdownToHtml (get this "description" "") "markdown"}}}');
+    expect(template).to.contain('(get (get this "person" "") "dc_title" "")');
+    expect(template).to.contain('{{{renderMetadataValue (get this "person" "")}}}');
+    expect(template).to.not.contain('{{default (get this "person" "") ""}}');
   });
 });
