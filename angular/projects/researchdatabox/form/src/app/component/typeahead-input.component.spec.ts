@@ -124,6 +124,52 @@ describe("TypeaheadInputComponent", () => {
         );
     });
 
+    it("prevents free text for configured optionObject fields without a label or value mapping", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "external_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: false,
+                            labelField: "name",
+                            valueField: "code",
+                            optionObjectFields: {
+                                identifier: "id"
+                            },
+                            staticOptions: [
+                                {
+                                    label: "Known item",
+                                    value: "known",
+                                    raw: { id: "known-id", name: "Known item", code: "known" }
+                                }
+                            ],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        expect(component.allowFreeText).toBeFalse();
+
+        input.value = "Custom Entry";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.get("external_id")?.value).toBeNull();
+    });
+
     it("renders a pre-populated configured optionObject label", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -712,6 +758,91 @@ describe("TypeaheadInputComponent", () => {
         const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         component.displayControl.setValue("leg");
         const options = await firstValueFrom(component.suggestions$);
+
+        expect(options.map(option => option.value)).toEqual(["legacy"]);
+        expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
+    });
+
+    it("preserves historical vocabulary state for configured optionObject fields", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        const searchVocabularyEntries = spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
+            _vocabRef: string,
+            _search: string,
+            _limit: number,
+            _offset: number,
+            includeHistoricalValues?: boolean
+        ) => includeHistoricalValues
+            ? [{ label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true }]
+            : []
+        );
+        const config = {
+            sourceType: "vocabulary",
+            vocabRef: "access-rights",
+            valueMode: "optionObject",
+            labelField: "label",
+            valueField: "value",
+            optionObjectFields: {
+                term: "label",
+                code: "value"
+            },
+            minChars: 1,
+            historicalVocabMode: "hide"
+        } as const;
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.onSelect({
+            item: {
+                label: "Legacy",
+                value: "legacy",
+                sourceType: "vocabulary",
+                historical: true
+            }
+        } as TypeaheadMatch);
+
+        const storedValue = (formComponent as any).form.get("vocab_lookup")?.value;
+        expect(storedValue).toEqual({
+            term: "Legacy",
+            code: "legacy",
+            sourceType: "vocabulary",
+            historical: true
+        });
+
+        const reloadedConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: { value: storedValue }
+                    }
+                }
+            ]
+        };
+        const { fixture: reloadedFixture } = await createFormAndWaitForReady(reloadedConfig);
+        const reloadedComponent = reloadedFixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        searchVocabularyEntries.calls.reset();
+
+        reloadedComponent.displayControl.setValue("leg");
+        const options = await firstValueFrom(reloadedComponent.suggestions$);
 
         expect(options.map(option => option.value)).toEqual(["legacy"]);
         expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
