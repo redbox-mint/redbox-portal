@@ -23,11 +23,19 @@ nvm install
 nvm use
 npm install --ignore-scripts --strict-peer-deps
 
-testAngular "portal-ng-common" "frontend-core-lib"
-ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
-for ng2app in "${ng2apps[@]}"
-do
-  if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
-    testAngular "${ng2app}" "frontend-${ng2app}"
+if [ $# -ne 0 ]; then
+  if [ "${1}" == "portal-ng-common" ]; then
+      testAngular "portal-ng-common" "frontend-core-lib"
+  else
+    testAngular "${1}" "frontend-${1}"
   fi
-done
+else
+  testAngular "portal-ng-common" "frontend-core-lib"
+  ng2apps=( $(find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -exec basename {} \;) )
+  for ng2app in "${ng2apps[@]}"
+  do
+    if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
+      testAngular "${ng2app}" "frontend-${ng2app}"
+    fi
+  done
+fi
