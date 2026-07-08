@@ -34,6 +34,7 @@ import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
 
 const { flatten } = transforms;
+const UTF8_BOM = '\uFEFF';
 
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
@@ -948,9 +949,11 @@ export namespace Services {
             if (isCancelled()) {
               return;
             }
+            passThrough.write(UTF8_BOM);
             if (_.isEmpty(fields)) {
               // No matching records means no columns to derive a header from; emit an empty file
-              // deterministically rather than relying on json2csv's empty-fields behaviour.
+              // deterministically rather than relying on json2csv's empty-fields behaviour. The
+              // UTF-8 BOM remains so spreadsheet apps detect the file encoding correctly.
               passThrough.end();
               return;
             }
