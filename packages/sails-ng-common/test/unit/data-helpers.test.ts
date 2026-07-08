@@ -33,9 +33,9 @@ describe('Data Helpers', function () {
         elements: [
           processDataPropertyRedactSensitiveElement,
           {
-            action: "redact",
+            action: "replace",
             type: "sensitive",
-            redactValue: "[HIDDEN_PASSWORD]",
+            replaceValue: "[HIDDEN_PASSWORD]",
             path: ['password']
           }
         ],
@@ -60,7 +60,7 @@ describe('Data Helpers', function () {
       })
     });
 
-    it('should redact a circular reference', async function () {
+    it('should delete a circular reference', async function () {
       const data = {
         brandId: 'brand-1',
         triggeredBy: 'manual',

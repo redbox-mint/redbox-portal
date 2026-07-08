@@ -138,6 +138,19 @@ export function arrayStartsWithArray(base: unknown[], check: unknown[]) {
   return base.every((value, index) => check[index] === value);
 }
 
+export function arrayEqualsArray(base: unknown[], check: unknown[]) {
+  if (base === check) {
+    return true;
+  }
+  if (base === undefined || base === null || check === undefined || check === null) {
+    return false;
+  }
+  if (base.length !== check.length) {
+    return false;
+  }
+  return base.every((value, index) => check[index] === value);
+}
+
 /**
  * Extract all properties of the type T that are of the type U.
  */
