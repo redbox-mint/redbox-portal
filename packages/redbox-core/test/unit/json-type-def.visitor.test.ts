@@ -338,7 +338,8 @@ describe("JSON Type Def Schema Visitor", async () => {
                             value: {type: "string"}
                         },
                         optionalProperties: {
-                            sourceType: {type: "string"}
+                            sourceType: {type: "string"},
+                            historical: {type: "boolean"}
                         }
                     }
                 }
@@ -378,7 +379,8 @@ describe("JSON Type Def Schema Visitor", async () => {
                             grant_number: {}
                         },
                         optionalProperties: {
-                            sourceType: {type: "string"}
+                            sourceType: {type: "string"},
+                            historical: {type: "boolean"}
                         }
                     }
                 }

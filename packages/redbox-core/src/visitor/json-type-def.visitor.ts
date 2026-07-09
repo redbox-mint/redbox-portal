@@ -514,6 +514,8 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
         properties,
         optionalProperties: {
           sourceType: { type: 'string' },
+          // Vocabulary sources persist a historical marker alongside the stored fields.
+          historical: { type: 'boolean' },
         },
       });
       return;
