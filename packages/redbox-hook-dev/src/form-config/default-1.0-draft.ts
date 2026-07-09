@@ -364,6 +364,43 @@ const formConfig: FormConfigFrame = {
                       },
                     },
                     {
+                      // Issue #4240 test field: with requireSelection true, typing free
+                      // text and blurring must NOT keep the free text. It should clear
+                      // (or restore the previously selected option's label).
+                      name: 'lookahead_require_selection',
+                      layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                          label: 'Name (requireSelection true)',
+                          helpText:
+                            'Type free text and click away: the free text should be discarded. Select an option, type free text, then click away: the selected option should be restored.',
+                        },
+                      },
+                      model: {
+                        class: 'TypeaheadInputModel',
+                        config: {
+                          defaultValue: null,
+                        },
+                      },
+                      component: {
+                        class: 'TypeaheadInputComponent',
+                        config: {
+                          sourceType: 'static',
+                          valueMode: 'optionObject',
+                          staticOptions: [
+                            { label: 'Jane Doe', value: 'jane' },
+                            { label: 'John Smith', value: 'john' },
+                            { label: 'Alice Scott', value: 'alice' },
+                          ],
+                          placeholder: 'Start typing a name...',
+                          minChars: 1,
+                          debounceMs: 200,
+                          maxResults: 10,
+                          requireSelection: true,
+                        },
+                      },
+                    },
+                    {
                       name: 'lookahead_party_1',
                       layout: {
                         class: 'DefaultLayout',
