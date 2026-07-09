@@ -100,6 +100,13 @@ export interface TypeaheadVocabularySourceConfigFrame extends TypeaheadInputFiel
 export interface TypeaheadNamedQuerySourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
     sourceType: "namedQuery";
     queryId?: string;
+    /**
+     * Some existing hooks use vocabRef as the domain identifier for namedQuery
+     * typeaheads, for example ROR-backed lookups. Runtime validation still keys
+     * namedQuery sources from queryId, but the frame accepts vocabRef so those
+     * configs remain type-safe and can be migrated without blocking compilation.
+     */
+    vocabRef?: string;
 }
 
 export interface TypeaheadExternalSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
