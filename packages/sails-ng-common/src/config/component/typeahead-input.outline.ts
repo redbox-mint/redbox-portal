@@ -59,19 +59,12 @@ export interface TypeaheadOption {
     raw?: unknown;
 }
 
-export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
+export interface TypeaheadInputFieldComponentConfigCommonFrame extends FieldComponentConfigFrame {
     /**
-     * Selects the lookup backend. Each source expects its matching config:
-     * static -> staticOptions, vocabulary -> vocabRef, namedQuery -> queryId,
-     * external -> provider/resultArrayProperty, service -> serviceId.
+     * Static options are required for sourceType: "static"; remote configs may
+     * still carry an empty array from older defaults, so this remains common.
      */
-    sourceType?: TypeaheadSourceType;
     staticOptions?: TypeaheadOption[];
-    vocabRef?: string;
-    queryId?: string;
-    serviceId?: string;
-    provider?: string;
-    resultArrayProperty?: string;
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;
@@ -94,7 +87,62 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     historicalVocabMode?: HistoricalVocabMode;
 }
 
-export interface TypeaheadInputFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigFrame, FieldComponentConfigOutline {
+export interface TypeaheadStaticSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType?: "static";
+}
+
+export interface TypeaheadVocabularySourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "vocabulary";
+    vocabRef?: string;
+}
+
+export interface TypeaheadNamedQuerySourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "namedQuery";
+    queryId?: string;
+}
+
+export interface TypeaheadExternalSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "external";
+    provider?: string;
+    resultArrayProperty?: string;
+}
+
+export interface TypeaheadServiceSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "service";
+    serviceId?: string;
+}
+
+/**
+ * Source-specific config shape for TypeScript-authored forms. The source-specific
+ * IDs remain optional so runtime validator tests can still exercise missing config.
+ */
+export type TypeaheadInputSourceConfigFrame =
+    | TypeaheadStaticSourceConfigFrame
+    | TypeaheadVocabularySourceConfigFrame
+    | TypeaheadNamedQuerySourceConfigFrame
+    | TypeaheadExternalSourceConfigFrame
+    | TypeaheadServiceSourceConfigFrame;
+
+/**
+ * The public config frame uses sourceType as a discriminant while keeping required
+ * source values runtime-validated for JSON, migrated, and intentionally invalid forms.
+ */
+export type TypeaheadInputFieldComponentConfigFrame = TypeaheadInputSourceConfigFrame;
+
+export type TypeaheadInputFieldComponentConfigOutline =
+    TypeaheadInputFieldComponentConfigFrame & FieldComponentConfigOutline;
+
+/**
+ * Runtime defaults stay permissive because the constructed config class has to
+ * carry every possible source property before a concrete sourceType is known.
+ */
+export interface TypeaheadInputPermissiveFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigCommonFrame, FieldComponentConfigOutline {
+    sourceType?: TypeaheadSourceType;
+    vocabRef?: string;
+    queryId?: string;
+    serviceId?: string;
+    provider?: string;
+    resultArrayProperty?: string;
 }
 
 export interface TypeaheadInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {

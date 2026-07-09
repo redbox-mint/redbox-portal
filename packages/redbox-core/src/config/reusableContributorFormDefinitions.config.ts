@@ -35,7 +35,6 @@ export const reusableContributorFormDefinitions: ReusableFormDefinitions = {
         config: {
           hostCssClasses: 'flex-grow-1 d-block',
           wrapperCssClasses: 'rb-form-inline-fields__field rb-form-contributor-inline__field',
-          vocabRef: 'party',
           sourceType: 'namedQuery',
           queryId: 'party',
           labelField: 'metadata.fullName',

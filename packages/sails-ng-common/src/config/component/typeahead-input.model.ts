@@ -18,6 +18,7 @@ import {
     TypeaheadInputFieldModelConfigOutline,
     TypeaheadInputFieldModelDefinitionOutline,
     TypeaheadInputFormComponentDefinitionOutline,
+    TypeaheadInputPermissiveFieldComponentConfigOutline,
     TypeaheadInputModelName,
     TypeaheadInputModelValueType,
     TypeaheadOption
@@ -25,7 +26,7 @@ import {
 
 /* Typeahead Input Component */
 
-export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputFieldComponentConfigOutline {
+export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputPermissiveFieldComponentConfigOutline {
     sourceType: "static" | "vocabulary" | "namedQuery" | "external" | "service" = "static";
     staticOptions: TypeaheadOption[] = [];
     vocabRef?: string;
