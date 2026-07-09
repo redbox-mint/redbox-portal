@@ -3,12 +3,27 @@ import fs from 'node:fs/promises';
 import path from "node:path";
 
 type MetaEntryKey = string;
+const contentFormats = ["plain", "html"];
+type ContentFormats = typeof contentFormats[number];
 type MetaEntryValue = {
   category?: string,
   description?: string
-  contentFormat?: "plain" | "html",
+  contentFormat?: ContentFormats,
 };
 export type MetaEntries = Record<MetaEntryKey, MetaEntryValue>;
+
+function isContentFormat(value: string | undefined): value is ContentFormats | undefined {
+  return contentFormats.some(contentFormat => contentFormat === value);
+}
+
+function firstNonEmptyString(...value: unknown[]): string | undefined {
+  for (const item of value) {
+    if (typeof item === 'string' && item.length > 0) {
+      return item;
+    }
+  }
+  return undefined;
+}
 
 export function registerSyncTranslationCommand(program: Command): void {
   program
@@ -48,10 +63,9 @@ export function registerSyncTranslationCommand(program: Command): void {
         // Read urls
         const translationUrl = new URL('/default/rdmp/locales/__locale__/translation.json', apiBaseUrl);
         const entriesUrl = new URL('/default/rdmp/app/i18n/entries', apiBaseUrl);
-        // const bundlesTranslationUrl = new URL('/default/rdmp/app/i18n/bundles/__locale__/translation', apiBaseUrl);
 
         console.log(`Load translation entries url ${entriesUrl}`);
-        const entriesResponse = await fetch(entriesUrl);
+        const entriesResponse = await fetch(entriesUrl, {signal: AbortSignal.timeout(5000)});
         if (!entriesResponse.ok) {
           throw new Error(`Could not fetch translation entries: status ${entriesResponse.status} body ${await entriesResponse.text()}`);
         }
@@ -60,11 +74,10 @@ export function registerSyncTranslationCommand(program: Command): void {
           locale?: string
         } & MetaEntryValue)[] = await entriesResponse.json();
         const translationData = [];
-        // const bundlesTranslationData = [];
         for (const langDefaultsLocale of langDefaultsLocales) {
           const translationLocaleUrl = translationUrl.toString().replace('/__locale__/', `/${langDefaultsLocale}/`);
           console.log(`Load translation locale url ${translationLocaleUrl}`);
-          const translationResponse = await fetch(translationLocaleUrl);
+          const translationResponse = await fetch(translationLocaleUrl, {signal: AbortSignal.timeout(5000)});
           if (!translationResponse.ok) {
             throw new Error(`Could not fetch translation locale: status ${translationResponse.status} body ${await translationResponse.text()}`);
           }
@@ -72,13 +85,6 @@ export function registerSyncTranslationCommand(program: Command): void {
             locale: langDefaultsLocale,
             data: await translationResponse.json()
           });
-
-          // TODO: this data looks the same as the translation.json api endpoint?
-          // const bundlesTranslationLocaleUrl = bundlesTranslationUrl.toString().replace('/__locale__/', `/${langDefaultsLocale}/`);
-          // bundlesTranslationData.push({
-          //   locale: langDefaultsLocale,
-          //   data: await (await fetch(bundlesTranslationLocaleUrl)).json()
-          // });
         }
 
         // Merge locale data
@@ -123,9 +129,12 @@ export function registerSyncTranslationCommand(program: Command): void {
             const metaItem = langDefaultsMetaData[key];
 
             const newItem = {
-              category: (entriesItem?.category || metaItem?.category) ?? undefined,
-              description: (entriesItem?.description || metaItem?.description) ?? undefined,
-              contentFormat: (entriesItem?.contentFormat || metaItem?.contentFormat) ?? undefined,
+              category: firstNonEmptyString(entriesItem?.category, metaItem?.category),
+              description: firstNonEmptyString(entriesItem?.description, metaItem?.description),
+              contentFormat: firstNonEmptyString(entriesItem?.contentFormat, metaItem?.contentFormat),
+            };
+            if (!isContentFormat(newItem.contentFormat)) {
+              newItem.contentFormat = undefined;
             }
 
             if (globalOptions.dryRun && JSON.stringify(metaItem) !== JSON.stringify(newItem)) {

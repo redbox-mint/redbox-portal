@@ -215,7 +215,7 @@ Read translations from API and write to language defaults files.
 
 ```bash
 npx @researchdatabox/redbox-dev-tools sync-translation -a "https://example.com" -l ~/redbox-portal/language-defaults
-````
+```
 
 ### `help`
 
