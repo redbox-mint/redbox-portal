@@ -1,5 +1,5 @@
 {
-  "@name-test1": "Name 1",
+  "@name-test1": "Name 1 <a href=\"https://qcif.edu.au\">link</a>",
   "@name-test2": "Name 2",
   "@name-test3": "Name 3"
 }

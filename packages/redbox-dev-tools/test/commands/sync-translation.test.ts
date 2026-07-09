@@ -120,7 +120,7 @@ describe('sync-translation command', () => {
     expect(targetMeta).to.eql(tempMetaData);
 
     expect(Object.keys(tempEnTranslationData)).to.have.length(3);
-    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1");
+    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1 <a href=\"https://qcif.edu.au\">link</a>");
     expect(tempEnTranslationData["@name-test2"]).to.eql("Name 2");
     expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
 
@@ -128,7 +128,7 @@ describe('sync-translation command', () => {
     expect(tempMetaData["@name-test1"]).to.eql({
       "category": "name",
       "description": "Name for test 1.",
-      "contentFormat": "plain"
+      "contentFormat": "html"
     });
     expect(tempMetaData["@name-test2"]).to.eql({
       "category": "name",
@@ -136,6 +136,7 @@ describe('sync-translation command', () => {
       "contentFormat": "plain"
     });
     expect(tempMetaData["@name-test3"]).to.eql({
+      "category": "name",
       "description": "Name for test 3."
     });
 
@@ -199,8 +200,7 @@ describe('sync-translation command', () => {
     expect(Object.keys(tempMetaData)).to.have.length(2);
     expect(tempMetaData["@name-test1"]).to.eql({
       "category": "name",
-      "description": "Name for test 1.",
-      "contentFormat": "plain"
+      "description": "Name for test 1."
     });
     expect(tempMetaData["@name-test3"]).to.eql({
       "description": "Name for test 3."
