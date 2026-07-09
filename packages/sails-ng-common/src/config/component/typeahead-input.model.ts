@@ -41,7 +41,8 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     maxResults = 25;
     requireSelection = false;
     valueMode: "value" | "optionObject" = "value";
-    // Optional projection used by optionObject mode for non-label/value storage.
+    // Optional projection used by optionObject mode when forms need a custom
+    // stored object instead of label/value/sourceType.
     optionObjectFields?: Record<string, string>;
     cacheResults = true;
     multiSelect = false;

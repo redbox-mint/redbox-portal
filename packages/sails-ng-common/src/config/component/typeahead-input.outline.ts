@@ -35,6 +35,8 @@ export type TypeaheadValueMode = "value" | "optionObject";
 export type TypeaheadStoredSourceType = TypeaheadSourceType | "freeText";
 /**
  * Maps stored object property names to paths on the selected option/raw result.
+ * Use this only with valueMode: "optionObject" when a form needs a domain-specific
+ * stored object, for example { dc_title: "dc_title", grant_number: "grant_number" }.
  * When omitted, optionObject mode keeps the legacy label/value/sourceType shape.
  */
 export type TypeaheadOptionObjectFields = Record<string, string>;
@@ -58,6 +60,11 @@ export interface TypeaheadOption {
 }
 
 export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
+    /**
+     * Selects the lookup backend. Each source expects its matching config:
+     * static -> staticOptions, vocabulary -> vocabRef, namedQuery -> queryId,
+     * external -> provider/resultArrayProperty, service -> serviceId.
+     */
     sourceType?: TypeaheadSourceType;
     staticOptions?: TypeaheadOption[];
     vocabRef?: string;
@@ -72,6 +79,12 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     debounceMs?: number;
     maxResults?: number;
     requireSelection?: boolean;
+    /**
+     * "value" stores the selected option value as a string.
+     * "optionObject" stores an object. Without optionObjectFields that object is
+     * { label, value, sourceType }; with optionObjectFields it uses the configured
+     * persisted property names and source paths.
+     */
     valueMode?: TypeaheadValueMode;
     optionObjectFields?: TypeaheadOptionObjectFields;
     cacheResults?: boolean;
@@ -102,7 +115,10 @@ export interface TypeaheadInputModelOptionValue {
     label?: string;
     value?: string;
     sourceType?: TypeaheadStoredSourceType;
-    /** Allows configured object-mode fields such as dc_title/grant_number. */
+    /**
+     * Allows configured object-mode fields such as dc_title/grant_number while
+     * keeping backwards compatibility with legacy label/value/sourceType objects.
+     */
     [key: string]: unknown;
 }
 

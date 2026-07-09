@@ -172,6 +172,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     ];
     this.compiledItems = undefined;
     this.valueField = String(cfg.valueField ?? 'value').trim() || 'value';
+    // optionObjectFields is meaningful only for valueMode: 'optionObject'; it
+    // maps persisted field names to paths on the selected option/raw lookup row.
     this.optionObjectFields = this.normalizeOptionObjectFields(cfg.optionObjectFields);
     this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
     this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
@@ -625,7 +627,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   /**
    * Default optionObject mode keeps the historic label/value/sourceType object.
-   * Configured fields project selected raw result paths into a domain-specific object.
+   * Configured fields project selected raw result paths into a domain-specific object,
+   * so lookup-backed forms can persist fields such as dc_title and grant_number.
    */
   private buildOptionObjectValue(option: TypeaheadOption): TypeaheadInputModelOptionValue {
     if (!this.hasOptionObjectFields()) {
