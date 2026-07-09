@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from "node:path";
 
 type MetaEntryKey = string;
-const contentFormats = ["plain", "html"];
+const contentFormats = ["plain", "html"] as const;
 type ContentFormats = typeof contentFormats[number];
 type MetaEntryValue = {
   category?: string,
@@ -12,7 +12,7 @@ type MetaEntryValue = {
 };
 export type MetaEntries = Record<MetaEntryKey, MetaEntryValue>;
 
-function isContentFormat(value: string | undefined): value is ContentFormats | undefined {
+function isContentFormat(value: string | undefined): value is (ContentFormats | undefined) {
   return contentFormats.some(contentFormat => contentFormat === value);
 }
 
@@ -94,7 +94,16 @@ export function registerSyncTranslationCommand(program: Command): void {
             throw new Error(`Duplicate locale ${locale}`);
           }
           const translationDataFromUrl = translationData.find(i => i.locale === locale) ?? {locale, data: {}};
-          const newData = {...data, ...translationDataFromUrl.data};
+          const dataOnlyStrings: Record<string, string> = {};
+          for (const [key, value] of Object.entries(translationDataFromUrl.data)) {
+            if (typeof value === 'string') {
+              dataOnlyStrings[key] = value;
+            } else {
+              console.log(`Dropped key '${key}' with non-string value ${JSON.stringify(value)}`);
+            }
+          }
+
+          const newData = {...data, ...dataOnlyStrings};
           if (globalOptions.dryRun) {
             const changes = Object.entries(newData)
               .filter(([key, value]) => data[key] !== value)
@@ -125,17 +134,27 @@ export function registerSyncTranslationCommand(program: Command): void {
           for (const key of Object.keys(localeTranslation)) {
             const entriesItems = entriesLocale.filter(e => e.key === key);
             const entriesItem = entriesItems.length > 0 ? entriesItems[0] : undefined;
-            const translationItem = localeTranslation[key];
+            const translationItem = localeTranslation[key] ?? "";
             const metaItem = langDefaultsMetaData[key];
 
-            const newItem = {
-              category: firstNonEmptyString(entriesItem?.category, metaItem?.category),
-              description: firstNonEmptyString(entriesItem?.description, metaItem?.description),
-              contentFormat: firstNonEmptyString(entriesItem?.contentFormat, metaItem?.contentFormat),
-            };
-            if (!isContentFormat(newItem.contentFormat)) {
-              newItem.contentFormat = undefined;
+            // Populate the meta data.
+            const contentFormatRaw = firstNonEmptyString(entriesItem?.contentFormat, metaItem?.contentFormat);
+            let contentFormat: ContentFormats | undefined = isContentFormat(contentFormatRaw) ? contentFormatRaw : undefined;
+            if (
+              !contentFormat && (typeof translationItem === 'string' && (
+              translationItem?.includes('<') &&
+              translationItem?.includes('</') &&
+              translationItem?.includes('>')))
+            ) {
+              contentFormat = "html";
             }
+
+            const description = firstNonEmptyString(entriesItem?.description, metaItem?.description) ?? `Translation for ${key}`;
+
+            const keySplit = key.split(/[_\-:.@]+/).filter(i => !!i);
+            const category = firstNonEmptyString(entriesItem?.category, metaItem?.category) ?? (keySplit.length > 0 ? keySplit[0] : undefined);
+
+            const newItem: MetaEntryValue = {category, description, contentFormat};
 
             if (globalOptions.dryRun && JSON.stringify(metaItem) !== JSON.stringify(newItem)) {
               console.log({key, metaItem, translationItem, entriesItem, newItem});
