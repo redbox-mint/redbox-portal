@@ -30,7 +30,8 @@ import type { HistoricalVocabMode } from "./dropdown-input.outline";
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
 export type TypeaheadInputComponentNameType = typeof TypeaheadInputComponentName;
 
-export type TypeaheadSourceType = "static" | "vocabulary" | "namedQuery" | "external" | "service";
+export const TypeaheadSourceTypes = ["static", "vocabulary", "namedQuery", "external", "service"] as const;
+export type TypeaheadSourceType = typeof TypeaheadSourceTypes[number];
 export type TypeaheadValueMode = "value" | "optionObject";
 export type TypeaheadStoredSourceType = TypeaheadSourceType | "freeText";
 /**

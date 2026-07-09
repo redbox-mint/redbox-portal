@@ -21,13 +21,15 @@ import {
     TypeaheadInputPermissiveFieldComponentConfigOutline,
     TypeaheadInputModelName,
     TypeaheadInputModelValueType,
-    TypeaheadOption
+    TypeaheadOption,
+    TypeaheadSourceType,
+    TypeaheadValueMode
 } from "./typeahead-input.outline";
 
 /* Typeahead Input Component */
 
 export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig implements TypeaheadInputPermissiveFieldComponentConfigOutline {
-    sourceType: "static" | "vocabulary" | "namedQuery" | "external" | "service" = "static";
+    sourceType: TypeaheadSourceType = "static";
     staticOptions: TypeaheadOption[] = [];
     vocabRef?: string;
     queryId?: string;
@@ -41,7 +43,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     debounceMs = 250;
     maxResults = 25;
     requireSelection = false;
-    valueMode: "value" | "optionObject" = "value";
+    valueMode: TypeaheadValueMode = "value";
     // Optional projection used by optionObject mode when forms need a custom
     // stored object instead of label/value/sourceType.
     optionObjectFields?: Record<string, string>;
