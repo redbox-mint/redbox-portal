@@ -931,7 +931,7 @@ describe('API routes contract layer', async () => {
     const exportContent = exportResponse.content as globalThis.Record<string, globalThis.Record<string, unknown>>;
 
     expect(exportContent).to.have.property('text/csv');
-    expect(exportContent).to.have.property('text/json');
+    expect(exportContent).to.have.property('application/json');
     expect((exportContent['text/csv'].schema as globalThis.Record<string, unknown>).format).to.equal('binary');
     expect(exportResponse.headers).to.have.property('Content-Disposition');
   });
