@@ -19,7 +19,7 @@
 
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
-import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition } from '../config/solr.config';
+import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { RoleModel } from '../model/storage/RoleModel';
@@ -112,6 +112,12 @@ export namespace Services {
   type PreIndexJsonStringConfig = { source: string; dest?: string };
   type PreIndexTemplateConfig = { source?: string; dest?: string; template: string };
   type PreIndexFlattenSpecialConfig = { field: string; source: string; dest?: string; options?: Record<string, unknown> };
+  type SolrSchema = {
+    fields?: SolrFieldDefinition[];
+    dynamicFields?: SolrFieldDefinition[];
+    copyFields?: SolrCopyFieldDefinition[];
+  };
+  type SolrSchemaResponse = { schema: SolrSchema };
 
   /**
    * Service class for adding documents to Solr.
@@ -166,67 +172,89 @@ export namespace Services {
       const solrConfig: SolrConfig = sails.config.solr;
       const coreNameKeys: string[] = Object.keys(solrConfig.cores);
 
-      // wait for SOLR deafult core to start up
-      await ref.waitForSolr('default');
-
       for (const coreId of coreNameKeys) {
-
         const core: SolrCore = solrConfig.cores[coreId];
         const coreName = core.options.core;
+        await ref.waitForSolr(coreId, ref);
 
-        if (coreId != 'default') {
-          await ref.waitForSolr(coreId, ref);
-        }
-
-        // check if the schema is built....
         try {
-          if (core.initSchemaFlag) {
-            const flagName: string = core.initSchemaFlag.name;
-            const schemaInitFlag = await ref.getSchemaEntry(coreId, 'fields', flagName, ref);
-            if (!_.isEmpty(schemaInitFlag)) {
-              sails.log.verbose(`${ref.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
-              continue;
-            }
-          }
-        } catch (err) {
-          sails.log.verbose(JSON.stringify(err));
-        }
-        sails.log.verbose(`${ref.logHeader} Schema not initialised, building schema...`)
-        const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
-        try {
-          const schemaDef = _.get(sails.config.solr.cores, coreId + '.schema') as unknown as SolrCoreSchema;
-          if (_.isEmpty(schemaDef)) {
-            sails.log.verbose(`${ref.logHeader} Schema definition empty, skipping build.`);
+          const liveSchema = await ref.getSchema(coreId, ref);
+          const schemaDef = ref.getMissingSchemaDefinitions(coreId, core, liveSchema.schema, ref);
+          if (ref.isSchemaDefinitionEmpty(schemaDef)) {
+            sails.log.verbose(`${ref.logHeader} Schema already reconciled for core: ${coreName}.`);
             continue;
           }
-          // append the init flag
-          if (_.isEmpty(schemaDef['add-field'])) {
-            schemaDef['add-field'] = [];
-          }
-          const initSchemaFlag = _.get(sails.config.solr.cores, coreId + '.initSchemaFlag') as unknown as SolrFieldDefinition;
-          schemaDef['add-field'].push(initSchemaFlag);
-          sails.log.verbose(`${ref.logHeader} sending schema definition:`);
-          sails.log.verbose(JSON.stringify(schemaDef));
+
+          const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
+          sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
           const response = await axios.post(schemaUrl, schemaDef).then((response: { data: unknown }) => response.data);
-          sails.log.verbose(`${ref.logHeader} Schema build successful, response: `);
+          sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
-          sails.log.error(`${ref.logHeader} Failed to build SOLR schema:`);
+          sails.log.error(`${ref.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
           sails.log.error(JSON.stringify(err));
         }
       }
     }
 
-    private async getSchemaEntry(coreId: string, fieldName: string, name: string, ref: SolrSearchService = this) {
-      const schemaResp = await ref.getSchema(coreId);
-      return _.find(_.get(schemaResp.schema, fieldName), (schemaDef: Record<string, unknown>) => { return schemaDef.name == name });
+    private isSchemaDefinitionEmpty(schemaDef: SolrCoreSchema): boolean {
+      return schemaDef['add-field'].length === 0 &&
+        schemaDef['add-dynamic-field'].length === 0 &&
+        schemaDef['add-copy-field'].length === 0;
     }
 
-    private async getSchema(coreId: string, ref: SolrSearchService = this) {
+    private getMissingSchemaDefinitions(coreId: string, core: SolrCore, liveSchema: SolrSchema, ref: SolrSearchService = this): SolrCoreSchema {
+      const configuredFields = [...(core.schema['add-field'] || [])];
+      if (core.initSchemaFlag && !configuredFields.some(field => field.name === core.initSchemaFlag?.name)) {
+        configuredFields.push({ ...core.initSchemaFlag });
+      }
+
+      return {
+        'add-field': ref.getMissingFieldDefinitions(coreId, configuredFields, liveSchema.fields || [], ref),
+        'add-dynamic-field': ref.getMissingFieldDefinitions(coreId, core.schema['add-dynamic-field'] || [], liveSchema.dynamicFields || [], ref),
+        'add-copy-field': (core.schema['add-copy-field'] || []).filter(copyField =>
+          !(liveSchema.copyFields || []).some(liveCopyField =>
+            liveCopyField.source === copyField.source && liveCopyField.dest === copyField.dest))
+      };
+    }
+
+    private getMissingFieldDefinitions(coreId: string, configured: SolrFieldDefinition[], live: SolrFieldDefinition[], ref: SolrSearchService): SolrFieldDefinition[] {
+      return configured.filter(desired => {
+        const existing = live.find(field => field.name === desired.name);
+        if (!existing) {
+          return true;
+        }
+        if (!ref.schemaFieldsMatch(desired, existing)) {
+          sails.log.error(JSON.stringify({
+            message: 'Solr schema definition conflict; existing field will not be replaced.',
+            core: coreId,
+            fieldName: desired.name,
+            desiredDefinition: desired,
+            liveDefinition: existing
+          }));
+        }
+        return false;
+      });
+    }
+
+    private schemaFieldsMatch(desired: SolrFieldDefinition, live: SolrFieldDefinition): boolean {
+      const properties: Array<keyof SolrFieldDefinition> = ['name', 'type', 'indexed', 'stored', 'multiValued', 'required', 'docValues'];
+      return properties.every(property => {
+        if (desired[property] === undefined) {
+          return true;
+        }
+        const liveValue = live[property] === undefined && typeof desired[property] === 'boolean'
+          ? false
+          : live[property];
+        return desired[property] === liveValue;
+      });
+    }
+
+    private async getSchema(coreId: string, ref: SolrSearchService = this): Promise<SolrSchemaResponse> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
-      return await axios.get(schemaUrl).then((response: { data: unknown }) => response.data);
+      return await axios.get(schemaUrl).then((response: { data: SolrSchemaResponse }) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
