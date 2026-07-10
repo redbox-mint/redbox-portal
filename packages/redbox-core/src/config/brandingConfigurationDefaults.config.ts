@@ -6,6 +6,8 @@
  */
 
 import type { DoiPublishingConfigData } from '../configmodels/DoiPublishing';
+import type { RaidPublishingConfigData } from '../configmodels/RaidPublishing';
+import { raid } from './raid.config';
 
 export interface BrandAuthLocalConfig {
     usernameField: string;
@@ -145,6 +147,7 @@ export interface BrandingConfigurationDefaultsConfig {
     adminSidebar: BrandingAdminSidebarConfig;
     doiPublishing?: DoiPublishingConfigData;
     figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
+    raidPublishing?: RaidPublishingConfigData;
 }
 
 /**
@@ -350,6 +353,40 @@ const defaultDoiPublishingConfig: DoiPublishingConfigData = {
     profiles: {}
 };
 
+const defaultRaidPublishingConfig: RaidPublishingConfigData = {
+    enabled: true,
+    connection: {
+        baseUrl: raid.basePath,
+        token: raid.token,
+        timeoutMs: 30000,
+        oauth: {
+            url: raid.oauth.url,
+            clientId: raid.oauth.client_id,
+            username: raid.oauth.username,
+            password: raid.oauth.password,
+            timeoutMs: 10000,
+            expirySkewMs: 30000
+        },
+        retry: {
+            maxAttempts: 3,
+            baseDelayMs: 500,
+            maxDelayMs: 10000,
+            jitter: true,
+            retryOnStatusCodes: [408, 425, 429, 500, 502, 503, 504]
+        }
+    },
+    durableRetry: {
+        jobName: raid.retryJobName,
+        schedule: raid.retryJobSchedule,
+        maxAttempts: raid.retryJobMaxAttempts
+    },
+    saveBodyInMeta: raid.saveBodyInMeta,
+    raidFieldName: raid.raidFieldName,
+    orcidBaseUrl: raid.orcidBaseUrl,
+    types: raid.types,
+    mapping: raid.mapping
+};
+
 /**
  * Default branding configuration defaults
  * Provides fallback values when brand-specific config is not set
@@ -359,5 +396,6 @@ export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefault
     menu: defaultMenuConfig,
     homePanels: defaultHomePanelsConfig,
     adminSidebar: defaultAdminSidebarConfig,
-    doiPublishing: defaultDoiPublishingConfig
+    doiPublishing: defaultDoiPublishingConfig,
+    raidPublishing: defaultRaidPublishingConfig
 };
