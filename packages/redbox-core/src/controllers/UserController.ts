@@ -243,7 +243,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe(_user => {
           this.sendResp(req, res, {
             data: { status: true, message: uuid },
             headers: this.getNoCacheHeaders(),
