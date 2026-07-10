@@ -1118,7 +1118,14 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
 
     const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select']);
+    expect(componentConfig.enabledModes).to.deep.equal([
+      'point',
+      'polygon',
+      'linestring',
+      'rectangle',
+      'circle',
+      'select',
+    ]);
   });
 
   it('omits select tooling when legacy map explicitly disables editing', async function () {
@@ -1227,6 +1234,45 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('SaveButtonComponent');
     expect((migratedField.component.config as Record<string, unknown>)?.targetStep).to.equal('queued');
+  });
+
+  it('migrates the legacy workspace selector and preserves its configuration', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'workspace-selector-migration',
+        fields: [
+          {
+            class: 'WorkspaceSelectorField',
+            compClass: 'WorkspaceSelectorComponent',
+            definition: {
+              name: 'workspace-selector',
+              open: '@open-workspace',
+              saveFirst: '@save-first',
+              displayType: 'cards',
+              shouldSaveForm: false,
+              allowAddTemplate: '<%= imports.rdmp ? "true" : "false" %>',
+              defaultSelection: [{ name: 'gitlab', label: 'GitLab' }],
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('WorkspaceSelectorComponent');
+    expect(migratedField.model).to.be.undefined;
+    expect(migratedField.layout).to.be.undefined;
+    expect(migratedField.component.config).to.include({
+      open: '@open-workspace',
+      saveFirst: '@save-first',
+      displayType: 'cards',
+      shouldSaveForm: false,
+      allowAddTemplate: '<%= imports.rdmp ? "true" : "false" %>',
+    });
+    expect((migratedField.component.config as any).defaultSelection).to.deep.equal([
+      { name: 'gitlab', label: 'GitLab' },
+    ]);
   });
 
   it('maps AnchorOrButton links to ContentComponent anchor links with InlineLayout', async function () {

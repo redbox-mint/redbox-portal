@@ -32,6 +32,10 @@ import {
   IntegrationStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -75,8 +79,8 @@ import {
   TextAreaFieldModelDefinitionOutline,
   TextAreaFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import {DefaultFieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import {ActionRowLayoutName} from '@researchdatabox/sails-ng-common';
+import { DefaultFieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { ActionRowLayoutName } from '@researchdatabox/sails-ng-common';
 import {
   CheckboxInputComponentName,
   CheckboxInputFieldComponentDefinitionOutline,
@@ -154,29 +158,29 @@ import {
   QuestionTreeFieldModelDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import {FormConstraintConfig} from '@researchdatabox/sails-ng-common';
-import {AvailableFormComponentDefinitionOutlines} from '@researchdatabox/sails-ng-common';
-import {FormComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import {FieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import {FieldModelDefinitionOutline} from '@researchdatabox/sails-ng-common';
-import {FieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
+import { FormConstraintConfig } from '@researchdatabox/sails-ng-common';
+import { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
+import { FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldModelDefinitionOutline } from '@researchdatabox/sails-ng-common';
+import { FieldLayoutDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   RecordMetadataRetrieverFieldComponentDefinitionOutline,
   RecordMetadataRetrieverFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import {ReusableFormDefinitions} from '@researchdatabox/sails-ng-common';
-import {ILogger} from '@researchdatabox/sails-ng-common';
-import {FormConfig} from '@researchdatabox/sails-ng-common';
-import {FormConfigVisitor} from '@researchdatabox/sails-ng-common';
-import {FormModesConfig} from '@researchdatabox/sails-ng-common';
-import {FormPathHelper} from '@researchdatabox/sails-ng-common';
-import {isTypeWithComponentDefinitions} from '@researchdatabox/sails-ng-common';
-import {JsonTypeDefSchemaFormConfigVisitor} from './json-type-def.visitor';
-import {guessType} from '@researchdatabox/sails-ng-common';
-import {FormOverride} from '@researchdatabox/sails-ng-common';
-import {GroupFieldComponentName} from '@researchdatabox/sails-ng-common';
-import {RepeatableComponentName} from '@researchdatabox/sails-ng-common';
-import {QuestionTreeComponentName} from '@researchdatabox/sails-ng-common';
+import { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { FormConfig } from '@researchdatabox/sails-ng-common';
+import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
+import { FormModesConfig } from '@researchdatabox/sails-ng-common';
+import { FormPathHelper } from '@researchdatabox/sails-ng-common';
+import { isTypeWithComponentDefinitions } from '@researchdatabox/sails-ng-common';
+import { JsonTypeDefSchemaFormConfigVisitor } from './json-type-def.visitor';
+import { guessType } from '@researchdatabox/sails-ng-common';
+import { FormOverride } from '@researchdatabox/sails-ng-common';
+import { GroupFieldComponentName } from '@researchdatabox/sails-ng-common';
+import { RepeatableComponentName } from '@researchdatabox/sails-ng-common';
+import { QuestionTreeComponentName } from '@researchdatabox/sails-ng-common';
 
 /**
  * Visit each form config class type and build the form config for the client-side.
@@ -291,7 +295,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldTransformInlineVocabOption = this.isInlineVocabOptionComponent(item);
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree || shouldTransformInlineVocabOption) {
+    if (
+      shouldTransformRepeatable ||
+      shouldTransformGroup ||
+      shouldTransformQuestionTree ||
+      shouldTransformInlineVocabOption
+    ) {
       if (shouldSkipViewTransform) {
         this.applyPostPruningTransformsToNestedChildren(item);
         if ('constraints' in item) {
@@ -321,11 +330,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const componentConfig = item?.component?.config as { inlineVocab?: boolean } | undefined;
     return (
       componentConfig?.inlineVocab === true &&
-      (
-        className === DropdownInputComponentName ||
+      (className === DropdownInputComponentName ||
         className === CheckboxInputComponentName ||
-        className === RadioInputComponentName
-      )
+        className === RadioInputComponentName)
     );
   }
 
@@ -476,7 +483,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.processFieldModelDefinition(item);
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
+  async visitRepeatableElementFieldLayoutDefinition(
+    item: RepeatableElementFieldLayoutDefinitionOutline
+  ): Promise<void> {
     this.processFieldLayoutDefinition(item);
   }
 
@@ -499,20 +508,28 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFieldComponentDefinition(
+    item: ValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
-  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFormComponentDefinition(
+    item: ValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(
+    item: SuggestedValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
-  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFormComponentDefinition(
+    item: SuggestedValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
@@ -528,11 +545,24 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFieldComponentDefinition(
+    item: IntegrationStatusFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
-  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFormComponentDefinition(
+    item: IntegrationStatusFormComponentDefinitionOutline
+  ): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+  }
+
+  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
@@ -625,7 +655,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+  async visitAccordionPanelFieldComponentDefinition(
+    item: AccordionPanelFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
 
     const items: AvailableFormComponentDefinitionOutlines[] = [];
@@ -783,7 +815,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordSelectorFieldComponentDefinition(
+    item: RecordSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
@@ -813,7 +847,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Typeahead Input */
 
-  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
+  async visitTypeaheadInputFieldComponentDefinition(
+    item: TypeaheadInputFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
@@ -828,7 +864,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRichTextEditorFieldComponentDefinition(
+    item: RichTextEditorFieldComponentDefinitionOutline
+  ): Promise<void> {
     this.processFieldComponentDefinition(item);
   }
 
@@ -944,7 +982,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       });
     }
     if (item.config) {
-      item.config.headerActions = headerActions.filter((entry) => this.hasObjectProps(entry));
+      item.config.headerActions = headerActions.filter(entry => this.hasObjectProps(entry));
     }
   }
 
@@ -1186,17 +1224,20 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const schemaVisitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
-    const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig});
+    const elementTemplateSchema = await schemaVisitor.start({ form: elementTemplateFormConfig });
 
     // Remove any data model items that are not present in the schema.
     const itemValue = item.model?.config?.value;
     if (Array.isArray(itemValue) && item.model?.config) {
-      item.model.config.value = itemValue.map(value => this.buildDataMatchingSchema(elementTemplateSchema, [], value, []) ?? {});
+      item.model.config.value = itemValue.map(
+        value => this.buildDataMatchingSchema(elementTemplateSchema, [], value, []) ?? {}
+      );
     }
 
     const newEntryValue = elementTemplate?.model?.config?.newEntryValue;
     if (elementTemplate?.model?.config) {
-      elementTemplate.model.config.newEntryValue = this.buildDataMatchingSchema(elementTemplateSchema, [], newEntryValue, []) as any ?? {};
+      elementTemplate.model.config.newEntryValue =
+        (this.buildDataMatchingSchema(elementTemplateSchema, [], newEntryValue, []) as any) ?? {};
     }
   }
 
@@ -1222,7 +1263,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @return The updated value.
    */
   public buildDataMatchingSchema(
-    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    currentSchema: Record<string, unknown>,
+    schemaPath: string[],
+    currentValue: unknown,
+    valuePath: string[]
   ): unknown {
     currentSchema = currentSchema ?? {};
     schemaPath = schemaPath ?? [];
@@ -1235,7 +1279,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     // For debugging:
     // this.logger.warn(`buildDataMatchingSchema ${JSON.stringify({currentSchema, schemaPath, result, valuePath})}`);
 
-    if ((!currentSchema || schemaKeys.length === 0)) {
+    if (!currentSchema || schemaKeys.length === 0) {
       // TODO: If there are no components that have a data model,
       //   there will be no schema, so there is nothing to check and update.
       //   If there is no schema, then even if there is data, the data cannot be checked without a schema.
@@ -1243,17 +1287,25 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     } else if (schemaKeys.includes('elements') && schemaKeys.length === 1) {
       const elementsSchema = (currentSchema['elements'] ?? {}) as Record<string, unknown>;
       result = this.buildDataMatchingSchemaElements(elementsSchema, [...schemaPath, 'elements'], result, valuePath);
-
     } else if (schemaKeys.includes('type') && schemaKeys.length === 1) {
       const typeSchema = (currentSchema['type'] ?? {}) as string | Record<string, unknown>;
       result = this.buildDataMatchingSchemaType(typeSchema, [...schemaPath, 'type'], result, valuePath);
-
     } else if (schemaKeys.length > 0 && schemaKeys.filter(k => !propKeys.includes(k)).length === 0) {
       // Process required and optional properties.
       const propertiesSchema = (currentSchema['properties'] ?? {}) as Record<string, unknown>;
-      result = this.buildDataMatchingSchemaProperties(propertiesSchema, [...schemaPath, 'properties'], result, valuePath);
+      result = this.buildDataMatchingSchemaProperties(
+        propertiesSchema,
+        [...schemaPath, 'properties'],
+        result,
+        valuePath
+      );
       const optionalPropertiesSchema = (currentSchema['optionalProperties'] ?? {}) as Record<string, unknown>;
-      result = this.buildDataMatchingSchemaProperties(optionalPropertiesSchema, [...schemaPath, 'optionalProperties'], result, valuePath);
+      result = this.buildDataMatchingSchemaProperties(
+        optionalPropertiesSchema,
+        [...schemaPath, 'optionalProperties'],
+        result,
+        valuePath
+      );
 
       // Remove properties not in the schema.
       const resultObj = (result ?? {}) as Record<string, unknown>;
@@ -1265,12 +1317,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
           delete (result as Record<string, unknown>)[key];
         }
       }
-
     } else {
       throw new Error(`Unknown schema structure '${JSON.stringify(currentSchema)}'.`);
     }
 
-    return result
+    return result;
   }
 
   /**
@@ -1283,7 +1334,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected buildDataMatchingSchemaProperties(
-    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    currentSchema: Record<string, unknown>,
+    schemaPath: string[],
+    currentValue: unknown,
+    valuePath: string[]
   ): unknown {
     let currentValueType = guessType(currentValue);
 
@@ -1312,7 +1366,6 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if (currentValueType !== 'object') {
       throw this.matchDataSchemaError('object', currentSchema, schemaPath, result, valuePath);
     }
-
 
     // Legacy schema has value instead of name.
     // Add the value as the name if name is missing.
@@ -1346,7 +1399,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected buildDataMatchingSchemaElements(
-    currentSchema: Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    currentSchema: Record<string, unknown>,
+    schemaPath: string[],
+    currentValue: unknown,
+    valuePath: string[]
   ): unknown {
     const currentValueType = guessType(currentValue);
 
@@ -1369,7 +1425,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected buildDataMatchingSchemaType(
-    currentSchema: string | Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    currentSchema: string | Record<string, unknown>,
+    schemaPath: string[],
+    currentValue: unknown,
+    valuePath: string[]
   ): unknown {
     const currentSchemaType = String(currentSchema);
     const currentValueType = guessType(currentValue);
@@ -1400,15 +1459,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
    * @protected
    */
   protected matchDataSchemaError(
-    expectedType: string, currentSchema: string | Record<string, unknown>, schemaPath: string[], currentValue: unknown, valuePath: string[]
+    expectedType: string,
+    currentSchema: string | Record<string, unknown>,
+    schemaPath: string[],
+    currentValue: unknown,
+    valuePath: string[]
   ): Error {
     const currentValueType = guessType(currentValue);
 
     // TODO: do the json type def type names match the guessType names?
     return new Error(
       `Value and schema do not match. ` +
-      `Value '${JSON.stringify(currentValue)}' at '${JSON.stringify(valuePath)}' is type '${currentValueType}'. ` +
-      `Schema ${JSON.stringify(currentSchema)} at '${JSON.stringify(schemaPath)}' expected type '${expectedType}'.`
+        `Value '${JSON.stringify(currentValue)}' at '${JSON.stringify(valuePath)}' is type '${currentValueType}'. ` +
+        `Schema ${JSON.stringify(currentSchema)} at '${JSON.stringify(schemaPath)}' expected type '${expectedType}'.`
     );
   }
 }

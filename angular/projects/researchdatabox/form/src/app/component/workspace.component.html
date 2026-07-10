@@ -1,0 +1,93 @@
+@if (isVisible) {
+  <section class="workspace-selector" [attr.aria-busy]="loading">
+    @if (loading) {
+      <p class="text-muted" role="status">{{ 'Loading workspace types' | i18next }}</p>
+    }
+    @if (loadError) {
+      <p class="alert alert-warning" role="status">{{ loadError | i18next }}</p>
+    }
+
+    @if (displayType === 'dropdown' && workspaceApps.length) {
+      <label [for]="name + '-workspace-select'" class="form-label">{{ label | i18next }}</label>
+      <select
+        class="form-select"
+        [id]="name + '-workspace-select'"
+        [value]="workspaceApp?.name"
+        [disabled]="isDisabled || isReadonly || launchPending"
+        (change)="selectWorkspace($any($event.target).value)"
+      >
+        @for (workspace of workspaceApps; track workspace.name) {
+          <option [value]="workspace.name">{{ translate(workspace.label || workspace.name) }}</option>
+        }
+      </select>
+      @if (workspaceApp; as workspace) {
+        <article class="card mt-3">
+          <div class="card-header">
+            <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+          </div>
+          <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
+        </article>
+      }
+    }
+
+    @if (displayType === 'cards') {
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        @for (workspace of workspaceApps; track workspace.name) {
+          <div class="col">
+            <article class="card h-100">
+              <div class="card-header">
+                <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+              </div>
+              <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
+            </article>
+          </div>
+        }
+      </div>
+    }
+
+    @if (displayType === 'panels') {
+      @for (workspace of workspaceApps; track workspace.name) {
+        <article class="card mb-3">
+          <div class="card-header">
+            <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+          </div>
+          <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
+        </article>
+      }
+    }
+  </section>
+}
+
+<ng-template #workspaceBody let-workspace>
+  <div class="card-body d-flex gap-3">
+    <div class="flex-grow-1">
+      @if (workspace.subtitle) {
+        <h6>{{ translate(workspace.subtitle) }}</h6>
+      }
+      @if (workspace.description) {
+        <div [innerHTML]="translate(workspace.description)"></div>
+      }
+    </div>
+    @if (workspace.logo) {
+      <img class="workspace-logo" [src]="workspace.logo" [alt]="translate(workspace.label || workspace.name)" />
+    }
+  </div>
+  <div class="card-footer">
+    @if (allowAdd) {
+      @if (workspace.externallyProvisioned !== true) {
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="isDisabled || isReadonly || launchPending"
+          (click)="openWorkspace(workspace)"
+        >
+          {{ translate(open) }}
+        </button>
+      }
+    } @else {
+      <p class="text-danger mb-0">
+        <strong>{{ translate(saveFirst) }}</strong>
+      </p>
+    }
+  </div>
+</ng-template>

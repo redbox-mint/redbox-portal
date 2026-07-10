@@ -342,6 +342,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  WorkspaceSelectorComponentName,
+  WorkspaceFieldComponentConfig,
+  WorkspaceFieldComponentDefinitionFrame,
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
   isTypeFormComponentDefinitionName,
@@ -795,9 +802,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFieldComponentDefinition(
+    item: IntegrationStatusFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
-    if (!isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(currentData, IntegrationStatusComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(
+        currentData,
+        IntegrationStatusComponentName
+      )
+    ) {
       throw new Error(
         `Invalid ${IntegrationStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
@@ -816,7 +830,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
   }
 
-  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFormComponentDefinition(
+    item: IntegrationStatusFormComponentDefinitionOutline
+  ): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<WorkspaceFieldComponentDefinitionFrame>(currentData, WorkspaceSelectorComponentName)
+    ) {
+      throw new Error(
+        `Invalid ${WorkspaceSelectorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+    item.config = new WorkspaceFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('open', item.config, config);
+    this.sharedProps.setPropOverride('saveFirst', item.config, config);
+    this.sharedProps.setPropOverride('displayType', item.config, config);
+    this.sharedProps.setPropOverride('shouldSaveForm', item.config, config);
+    this.sharedProps.setPropOverride('allowAddTemplate', item.config, config);
+    this.sharedProps.setPropOverride('defaultSelection', item.config, config);
+  }
+
+  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -2237,14 +2277,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         className === QuestionTreeComponentName ||
         className === RepeatableComponentName ||
         (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
-        (
-          componentConfig?.inlineVocab === true &&
-          (
-            className === DropdownInputComponentName ||
+        (componentConfig?.inlineVocab === true &&
+          (className === DropdownInputComponentName ||
             className === CheckboxInputComponentName ||
-            className === RadioInputComponentName
-          )
-        );
+            className === RadioInputComponentName));
       if (shouldDeferToClientViewTransform) {
         return formComponent;
       }
