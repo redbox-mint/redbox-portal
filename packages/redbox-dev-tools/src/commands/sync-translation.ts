@@ -88,6 +88,7 @@ export function registerSyncTranslationCommand(program: Command): void {
         }
 
         // Merge locale data
+        // Maintain _meta in translation.json file, but don't update it from remote meta.
         const translationMerged: Record<string, Record<string, string>> = {};
         for (const {locale, data} of langDefaultsLocaleTranslationData) {
           if (locale in translationMerged) {
@@ -127,32 +128,40 @@ export function registerSyncTranslationCommand(program: Command): void {
           }
         }
 
-        // Merge meta
+        // Merge meta, in highest to lowest priority order:
+        // remote meta, _meta key from the translation, existing meta entry.
+        // Use a calculated value for description and category if they are not provided.
         const metaMerged: MetaEntries = {};
         for (const [locale, localeTranslation] of Object.entries(translationMerged)) {
           const entriesLocale = entriesData.filter(e => e.locale === locale);
           for (const key of Object.keys(localeTranslation)) {
+            if (key === '_meta' || key.startsWith('_meta.')) {
+              continue;
+            }
             const entriesItems = entriesLocale.filter(e => e.key === key);
             const entriesItem = entriesItems.length > 0 ? entriesItems[0] : undefined;
             const translationItem = localeTranslation[key] ?? "";
+            const translationMetaItem = ('_meta' in localeTranslation && localeTranslation['_meta'] !== null && typeof localeTranslation['_meta'] === 'object') ? (localeTranslation['_meta'] as Record<string, Record<string, unknown>>)[key] : undefined;
             const metaItem = langDefaultsMetaData[key];
 
             // Populate the meta data.
-            const contentFormatRaw = firstNonEmptyString(entriesItem?.contentFormat, metaItem?.contentFormat);
+            const contentFormatRaw = firstNonEmptyString(
+              entriesItem?.contentFormat, translationMetaItem?.contentFormat, metaItem?.contentFormat
+            );
             let contentFormat: ContentFormats | undefined = isContentFormat(contentFormatRaw) ? contentFormatRaw : undefined;
-            if (
-              !contentFormat && (typeof translationItem === 'string' && (
-              translationItem?.includes('<') &&
-              translationItem?.includes('</') &&
-              translationItem?.includes('>')))
-            ) {
-              contentFormat = "html";
-            }
 
-            const description = firstNonEmptyString(entriesItem?.description, metaItem?.description) ?? `Translation for ${key}`;
+            // Don't guess whether the translation value is html or plain, leave it as-is.
+
+            const description = firstNonEmptyString(
+              entriesItem?.description, translationMetaItem?.description, metaItem?.description,
+              `Translation for ${key}`
+            );
 
             const keySplit = key.split(/[_\-:.@]+/).filter(i => !!i);
-            const category = firstNonEmptyString(entriesItem?.category, metaItem?.category) ?? (keySplit.length > 0 ? keySplit[0] : undefined);
+            const category = firstNonEmptyString(
+              entriesItem?.category, translationMetaItem?.category, metaItem?.category,
+              keySplit.length > 0 ? keySplit[0] : undefined
+            );
 
             const newItem: MetaEntryValue = {category, description, contentFormat};
 
