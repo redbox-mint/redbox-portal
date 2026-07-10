@@ -92,6 +92,7 @@ export class FormOverride {
     'cellsHtml',
     'rowsHtml',
     'itemBodyHtml',
+    'itemClass',
     'labelHtml',
     'valueHtml',
     'valueExpr',
@@ -114,12 +115,15 @@ export class FormOverride {
     leafDataLocation: 'view-template-leaf-data-location',
     leafPublishDataLocationSelector: 'view-template-leaf-publish-data-location-selector',
     leafCheckboxTree: 'view-template-leaf-checkbox-tree',
+    leafLink: 'view-template-leaf-link',
     groupContainer: 'view-template-group-container',
     groupRowWithLabel: 'view-template-group-row-with-label',
     groupRowNoLabel: 'view-template-group-row-no-label',
     repeatableTable: 'view-template-repeatable-table',
     repeatableList: 'view-template-repeatable-list',
   } as const;
+  private readonly linkLeafFallbackTemplate =
+    `{{#if [[valueExpr]]}}<a href="{{default [[valueExpr]] ""}}" target="_blank" rel="noopener noreferrer">{{default [[valueExpr]] ""}}</a>{{/if}}`;
   private readonly dataLocationLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
   private readonly pdfListLeafFallbackTemplate =
@@ -545,6 +549,19 @@ export class FormOverride {
     // Apply the transform.
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
+    if (
+      hasTransform &&
+      result?.component?.class === ContentComponentName &&
+      typeof transforms.template === 'string' &&
+      transforms.template.trim().length > 0 &&
+      result.component.config !== undefined
+    ) {
+      result.component.config.template = transforms.template;
+      result.component.config.visible = true;
+      if (original.layout?.config?.visible === false && result.layout?.config !== undefined) {
+        result.layout.config.visible = !this.isDeepEmpty(result.component.config.content);
+      }
+    }
 
     // Use 'replaceName' to update the form component name.
     if (original.overrides?.replaceName !== undefined) {
@@ -704,6 +721,13 @@ export class FormOverride {
     this.commonContentPlain(source, target);
 
     const sourceConfig = source.component?.config as { type?: string } | undefined;
+    if (sourceConfig?.type === 'url' && target.component.config !== undefined) {
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafLink,
+        this.linkLeafFallbackTemplate
+      );
+      target.component.config.template = this.substituteReusableTemplateSlots(template, { valueExpr: 'content' });
+    }
     if (sourceConfig?.type === 'hidden') {
       if (target.component.config) {
         target.component.config.visible = false;
@@ -1366,6 +1390,13 @@ export class FormOverride {
       const template = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafCheckboxTree,
         `<ul>{{#each [[valueExpr]]}}<li>{{default this.label this.notation}}</li>{{/each}}</ul>`
+      );
+      return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
+    }
+    if (className === SimpleInputComponentName && (component?.component?.config as { type?: string })?.type === 'url') {
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafLink,
+        this.linkLeafFallbackTemplate
       );
       return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
     }

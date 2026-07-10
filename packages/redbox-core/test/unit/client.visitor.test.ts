@@ -5,7 +5,8 @@ import {
   QuestionTreeMeta, QuestionTreeOutcome,
   QuestionTreeOutcomeInfoKey, QuestionTreeQuestion,
   RepeatableFieldComponentConfigFrame,
-  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame,
+  handlebarsCompile,
 } from "@researchdatabox/sails-ng-common";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
@@ -770,6 +771,178 @@ describe("Client Visitor", async () => {
       expect(config.content?.every(row => "displayTitle" in row)).to.equal(true);
       expect(config.content?.every(row => !("legacyTitle" in row))).to.equal(true);
       expect(config.template).to.contain('(get this "displayTitle" "")');
+    });
+  });
+
+  describe("Custom view templates and url leaf rendering", async () => {
+    const constructAndVisit = async (
+      data: FormConfigFrame,
+      record: Record<string, unknown>
+    ): Promise<FormConfigFrame> => {
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      return await visitor.start({
+        form: constructed,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+    };
+
+    const buildRepeatableData = (
+      childDefinitions: any[],
+      repeatableDefinition: Record<string, unknown> = {}
+    ): FormConfigFrame => ({
+      name: "custom-view-templates-and-url-leaf-rendering",
+      componentDefinitions: [
+        {
+          name: "entries",
+          ...repeatableDefinition,
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent",
+                  config: {
+                    componentDefinitions: childDefinitions,
+                  },
+                },
+                model: {class: "GroupModel", config: {}},
+              },
+            },
+          },
+          model: {class: "RepeatableModel", config: {}},
+        },
+      ],
+    });
+
+    it("should replace a top-level view template while retaining generated content", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "custom-view-template-top-level",
+          componentDefinitions: [
+            {
+              name: "title",
+              overrides: {formModeClasses: {view: {template: "<h1>{{content}}</h1>"}}},
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+        },
+        {title: "Custom Title"}
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.equal("<h1>{{content}}</h1>");
+      expect(config.content).to.equal("Custom Title");
+    });
+
+    it("should prune constrained repeatable row data when replacing the view template", async function () {
+      const template = '<ul>{{#each content}}<li>{{get this "title" ""}}</li>{{/each}}</ul>';
+      const actual = await constructAndVisit(
+        buildRepeatableData(
+          [
+            {
+              name: "title",
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+            {
+              name: "secret",
+              constraints: {allowModes: ["edit"]},
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+          {overrides: {formModeClasses: {view: {template}}}}
+        ),
+        {
+          entries: [
+            {title: "First title", secret: "First secret"},
+            {title: "Second title", secret: "Second secret"},
+          ],
+        }
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.equal(template);
+      expect(config.content).to.deep.equal([
+        {title: "First title"},
+        {title: "Second title"},
+      ]);
+      expect(config.content?.every(row => "title" in row)).to.equal(true);
+      expect(config.content?.every(row => !("secret" in row))).to.equal(true);
+    });
+
+    it("should render url leaves as links inside generated repeatable table templates", async function () {
+      const actual = await constructAndVisit(
+        buildRepeatableData([
+          {
+            name: "website",
+            component: {class: "SimpleInputComponent", config: {type: "url"}},
+            model: {class: "SimpleInputModel", config: {}},
+          },
+        ]),
+        {
+          entries: [
+            {website: "https://example.org"},
+            {website: "https://example.com"},
+          ],
+        }
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.contain('target="_blank"');
+      expect(config.template).to.contain('<a href="{{default (get this "website" "") ""}}"');
+      const renderedTemplate = handlebarsCompile(config.template)({
+        content: [
+          {website: "https://example.org"},
+          {website: "https://example.com"},
+        ],
+      });
+      expect(renderedTemplate).to.contain('<a href="https://example.org" target="_blank" rel="noopener noreferrer">https://example.org</a>');
+      expect(renderedTemplate).to.contain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>');
+      expect(config.content).to.deep.equal([
+        {website: "https://example.org"},
+        {website: "https://example.com"},
+      ]);
+    });
+
+    it("should render standalone url leaves as links in view mode", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "standalone-url-leaf",
+          componentDefinitions: [
+            {
+              name: "website",
+              component: {class: "SimpleInputComponent", config: {type: "url"}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+        },
+        {website: "https://example.org"}
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.contain('target="_blank"');
+      expect(config.template).to.contain('href="{{default content ""}}"');
+      expect(config.content).to.equal("https://example.org");
     });
   });
 
