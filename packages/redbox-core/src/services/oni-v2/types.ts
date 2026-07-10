@@ -3,6 +3,7 @@ import type {
   OniPublishingSiteConfig,
   OniSiteStorageConfig,
 } from '../../configmodels/OniPublishing';
+import type { Readable } from 'node:stream';
 
 export type AnyRecord = Record<string, unknown>;
 
@@ -83,49 +84,6 @@ export interface OniOcflRepository {
   writeDatasetObject(crate: OniCrateBuildResult, input: OniPublishInput): Promise<void>;
 }
 
-export interface StorageManagerLike {
-  bootstrap?: () => Promise<void>;
-  isBootstrapped?: () => boolean;
-  disk: (name: string) => StorageDiskLike;
-}
-
-export interface StorageDiskLike {
-  exists(key: string): Promise<boolean>;
-  get(key: string): Promise<string>;
-  getStream(key: string): Promise<NodeJS.ReadableStream>;
-  getBytes(key: string): Promise<Uint8Array>;
-  getMetaData(
-    key: string
-  ): Promise<{ contentType?: string; contentLength: number; etag?: string; lastModified?: Date }>;
-  put(
-    key: string,
-    contents: string | Uint8Array | NodeJS.ReadableStream,
-    options?: Record<string, unknown>
-  ): Promise<void>;
-  putStream(key: string, contents: NodeJS.ReadableStream, options?: Record<string, unknown>): Promise<void>;
-  copy(source: string, destination: string, options?: Record<string, unknown>): Promise<void>;
-  move(source: string, destination: string, options?: Record<string, unknown>): Promise<void>;
-  delete(key: string): Promise<void>;
-  deleteAll(prefix?: string): Promise<void>;
-  listAll(
-    prefix?: string,
-    options?: { recursive?: boolean; paginationToken?: string }
-  ): Promise<{
-    paginationToken?: string;
-    objects: Iterable<unknown>;
-  }>;
-}
-
-export interface DatastreamResponse {
-  readstream?: NodeJS.ReadableStream;
-  body?: string | Uint8Array;
-  size?: number;
-}
-
-export interface DatastreamServiceLike {
-  getDatastream(oid: string, fileId: string): Promise<DatastreamResponse>;
-}
-
 export interface OcflStorageConfig {
   root: string;
   workspace: string;
@@ -135,31 +93,31 @@ export interface OcflStorageConfig {
   };
 }
 
-export interface OcflModuleLike {
+export interface OcflModuleAdapter {
   Ocfl: new (
     storeClass: unknown,
     storeOptions: Record<string, unknown>
   ) => {
-    storage(config: OcflStorageConfig, storeOptions: Record<string, unknown>): OcflStorageLike;
+    storage(config: OcflStorageConfig, storeOptions: Record<string, unknown>): OcflStorageAdapter;
   };
   OcflStore: new (options: Record<string, unknown>) => object;
 }
 
-export interface OcflStorageLike {
+export interface OcflStorageAdapter {
   load(): Promise<void>;
   create(options?: Record<string, unknown>): Promise<void>;
-  object(id: string): OcflObjectLike;
+  object(id: string): OcflObjectAdapter;
 }
 
-export interface OcflObjectLike {
+export interface OcflObjectAdapter {
   load(): Promise<void>;
-  update(updater: (transaction: OcflTransactionLike) => Promise<void>, mode?: 'MERGE' | 'REPLACE'): Promise<void>;
+  update(updater: (transaction: OcflTransactionAdapter) => Promise<void>, mode?: 'MERGE' | 'REPLACE'): Promise<void>;
 }
 
-export interface OcflTransactionLike {
+export interface OcflTransactionAdapter {
   write(
     logicalPath: string,
-    data: string | Uint8Array | NodeJS.ReadableStream,
+    data: string | Uint8Array | Readable,
     options?: Record<string, unknown> | string
   ): Promise<void>;
 }

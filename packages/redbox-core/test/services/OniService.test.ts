@@ -11,7 +11,7 @@ import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../..
 import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
 import { runPublishDatasetProgram } from '../../src/services/oni-v2/runtime';
-import type { StorageDiskLike } from '../../src/services/oni-v2/types';
+import type { Services as StorageManagerServices } from '../../src/services/StorageManagerService';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
@@ -875,7 +875,7 @@ describe('OniService', function () {
       objects: [{ key: 'ocfl/test/object/nested/b.txt' }],
     });
     const store = new Store({
-      disk: disk as unknown as StorageDiskLike,
+      disk: disk as unknown as StorageManagerServices.IDisk,
       root: '/ocfl',
       workspace: '/ocfl-work',
       prefix: 'ocfl/test',

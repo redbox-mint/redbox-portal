@@ -7,6 +7,7 @@ import _ from 'lodash';
 import { firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
+import type { DatastreamService } from '../DatastreamService';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
 import { getBrand, getRequestedOniSiteName, resolveOniPublishingConfig, resolveOniSite } from './oni-v2/config';
@@ -24,6 +25,7 @@ import type {
   OniRunContext,
   ResolvedOniPublishingConfigData,
 } from './oni-v2/types';
+import { makeOniAuditService } from './oni-v2/audit';
 
 export namespace Services {
   /**
@@ -132,7 +134,14 @@ export namespace Services {
       config: ResolvedOniPublishingConfigData,
       site: OniPublishingSiteConfig
     ): OniOcflRepository {
-      return createOniRepository(config, site);
+      const serviceName = String(sails.config?.record?.datastreamService ?? '');
+      const datastreamService = serviceName
+        ? (sails.services?.[serviceName] as unknown as DatastreamService | undefined)
+        : undefined;
+      if (datastreamService == null || typeof datastreamService.getDatastream !== 'function') {
+        throw new Error('Datastream service is not configured for Oni publishing');
+      }
+      return createOniRepository(config, site, datastreamService);
     }
 
     protected runPublishDataset(
@@ -142,7 +151,11 @@ export namespace Services {
       repository: OniOcflRepository,
       auditContext: IntegrationAuditContext | null
     ): Promise<OniPublishResult> {
-      return runPublishDatasetProgram(input, config, runContext, repository, { auditContext });
+      const auditService = typeof IntegrationAuditService === 'undefined' ? undefined : IntegrationAuditService;
+      return runPublishDatasetProgram(input, config, runContext, repository, {
+        auditContext,
+        auditService: makeOniAuditService(auditService),
+      });
     }
 
     public async exportDataset(oid: string, record: unknown, options: unknown, user: unknown): Promise<OniRecordModel> {

@@ -1,11 +1,11 @@
-import { PassThrough, Writable } from 'node:stream';
+import { PassThrough, Readable, Writable } from 'node:stream';
 import { posix as pathPosix, relative } from 'node:path';
-import type { StorageDiskLike } from './types';
+import type { Services as StorageManagerServices } from '../StorageManagerService';
 
 type OcflStoreConstructor = new (options: Record<string, unknown>) => object;
 
 type StoreOptions = {
-  disk: StorageDiskLike;
+  disk: StorageManagerServices.IDisk;
   root: string;
   workspace: string;
   prefix?: string;
@@ -30,7 +30,7 @@ type DirectoryEntryInfo = {
 };
 
 async function listDiskEntries(
-  disk: StorageDiskLike,
+  disk: StorageManagerServices.IDisk,
   prefix: string,
   options: { recursive: boolean }
 ): Promise<unknown[]> {
@@ -115,7 +115,7 @@ function isMissingDiskError(error: unknown): boolean {
 export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstructor) {
   return class StorageManagerOcflStore extends OcflStore {
     readonly prefix: string;
-    readonly disk: StorageDiskLike;
+    readonly disk: StorageManagerServices.IDisk;
     readonly root: string;
     readonly workspace: string;
     readonly keyEncoding: 'flydrive' | 'raw';
@@ -249,12 +249,12 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
 
     async writeFile(
       filePath: string,
-      data: string | Uint8Array | NodeJS.ReadableStream,
+      data: string | Uint8Array | Readable,
       options?: Record<string, unknown>
     ): Promise<void> {
       const key = this.keyFor(filePath);
-      if (data != null && typeof data === 'object' && typeof (data as { pipe?: unknown }).pipe === 'function') {
-        await this.disk.putStream(key, data as NodeJS.ReadableStream, options);
+      if (data instanceof Readable) {
+        await this.disk.putStream(key, data, options);
         return;
       }
       await this.disk.put(key, data, options);
