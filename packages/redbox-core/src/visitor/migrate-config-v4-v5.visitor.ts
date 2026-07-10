@@ -104,6 +104,7 @@ import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputPermissiveFieldComponentConfigOutline,
   TypeaheadInputModelName,
 } from '@researchdatabox/sails-ng-common';
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
@@ -2057,36 +2058,36 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item: TypeaheadInputFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
-    item.config = new TypeaheadInputFieldComponentConfig();
-    this.sharedPopulateFieldComponentConfig(item.config, field);
+    const itemConfig: TypeaheadInputPermissiveFieldComponentConfigOutline = new TypeaheadInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(itemConfig, field);
 
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const sourceType = this.resolveTypeaheadSourceType(definition);
-    this.sharedProps.setPropOverride('sourceType', item.config, { sourceType });
+    this.sharedProps.setPropOverride('sourceType', itemConfig, { sourceType });
 
     if (sourceType === 'namedQuery') {
       const queryId = String(definition.vocabQueryId ?? definition.queryId ?? '').trim();
       if (queryId) {
-        this.sharedProps.setPropOverride('queryId', item.config, { queryId });
+        this.sharedProps.setPropOverride('queryId', itemConfig, { queryId });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing queryId/vocabQueryId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
       const labelField = this.resolveLegacyLabelField(definition);
-      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      this.sharedProps.setPropOverride('labelField', itemConfig, { labelField });
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
-      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+      this.sharedProps.setPropOverride('valueField', itemConfig, { valueField });
     } else if (sourceType === 'static') {
       const labelField = this.resolveLegacyLabelField(definition);
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
       const normalizedOptions = this.normalizeLegacyTypeaheadStaticOptions(definition, labelField, valueField);
-      this.sharedProps.setPropOverride('options', item.config, { options: normalizedOptions });
-      this.sharedProps.setPropOverride('staticOptions', item.config, { staticOptions: normalizedOptions });
+      this.sharedProps.setPropOverride('options', itemConfig, { options: normalizedOptions });
+      this.sharedProps.setPropOverride('staticOptions', itemConfig, { staticOptions: normalizedOptions });
     } else if (sourceType === 'vocabulary') {
       const vocabRef = String(definition.vocabRef ?? definition.vocabId ?? '').trim();
       if (vocabRef) {
-        this.sharedProps.setPropOverride('vocabRef', item.config, { vocabRef });
+        this.sharedProps.setPropOverride('vocabRef', itemConfig, { vocabRef });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
@@ -2095,7 +2096,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     } else if (sourceType === 'service') {
       const serviceId = String(definition.serviceId ?? '').trim();
       if (serviceId) {
-        this.sharedProps.setPropOverride('serviceId', item.config, { serviceId });
+        this.sharedProps.setPropOverride('serviceId', itemConfig, { serviceId });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing serviceId at ${JSON.stringify(this.v4FormPath)}.`
@@ -2104,7 +2105,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     } else if (sourceType === 'external') {
       const provider = String(definition.provider ?? '').trim();
       if (provider) {
-        this.sharedProps.setPropOverride('provider', item.config, { provider });
+        this.sharedProps.setPropOverride('provider', itemConfig, { provider });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing provider at ${JSON.stringify(this.v4FormPath)}.`
@@ -2112,20 +2113,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
       const resultArrayProperty = String(definition.resultArrayProperty ?? '').trim();
       if (resultArrayProperty) {
-        this.sharedProps.setPropOverride('resultArrayProperty', item.config, { resultArrayProperty });
+        this.sharedProps.setPropOverride('resultArrayProperty', itemConfig, { resultArrayProperty });
       }
       const labelField = this.resolveLegacyLabelField(definition);
-      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      this.sharedProps.setPropOverride('labelField', itemConfig, { labelField });
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? labelField).trim() || labelField;
-      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+      this.sharedProps.setPropOverride('valueField', itemConfig, { valueField });
     }
 
     const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
-    this.sharedProps.setPropOverride('requireSelection', item.config, { requireSelection });
+    this.sharedProps.setPropOverride('requireSelection', itemConfig, { requireSelection });
 
     const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
     const valueMode = storeLabelOnly ? 'value' : 'optionObject';
-    this.sharedProps.setPropOverride('valueMode', item.config, { valueMode });
+    this.sharedProps.setPropOverride('valueMode', itemConfig, { valueMode });
 
     const readOnlyAfterSelect = this.parseLegacyTypeaheadBoolean(
       definition.disableEditAfterSelect,
@@ -2133,9 +2134,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'disableEditAfterSelect'
     );
     if (readOnlyAfterSelect) {
-      this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, { readOnlyAfterSelect });
+      this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, { readOnlyAfterSelect });
     }
 
+    item.config = itemConfig;
     await this.warnOnDroppedLegacyTypeaheadProperties(definition);
   }
 

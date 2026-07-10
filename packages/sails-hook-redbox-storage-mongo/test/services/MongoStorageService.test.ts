@@ -645,8 +645,8 @@ describe('MongoStorageService', function () {
       toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
     }));
 
-  it('exports plans as csv using streamed records', async function () {
-    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'One' } }]) };
+  it('exports plans as UTF-8 BOM csv using streamed records', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
     const chunks: Buffer[] = [];
@@ -654,7 +654,11 @@ describe('MongoStorageService', function () {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
 
-    expect(Buffer.concat(chunks).toString('utf8')).to.include('redboxOid');
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
+    expect(output).to.include('redboxOid');
+    expect(output).to.include('Waldenström');
     // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
     // for the empty terminating batch.
     expect(service.recordCol.find.callCount).to.equal(4);
@@ -676,7 +680,9 @@ describe('MongoStorageService', function () {
     for await (const chunk of exportStream) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
-    const output = Buffer.concat(chunks).toString('utf8');
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
 
     // Header is the union of every paged record's flattened keys, so the second-page column survives.
     expect(output).to.include('metadata.extraField');
@@ -697,8 +703,9 @@ describe('MongoStorageService', function () {
     }
 
     // No matching records means no columns to derive a header from, so the stream ends cleanly with
-    // an empty file rather than hanging or emitting a malformed CSV.
-    expect(Buffer.concat(chunks).toString('utf8')).to.equal('');
+    // only the UTF-8 BOM rather than hanging or emitting a malformed CSV.
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer]).to.deep.equal([0xef, 0xbb, 0xbf]);
     // Only the field-collection pass runs (single page, immediately empty); the CSV pass is skipped.
     expect(service.recordCol.find.callCount).to.equal(1);
   });
@@ -748,7 +755,9 @@ describe('MongoStorageService', function () {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
 
-    const output = Buffer.concat(chunks).toString('utf8');
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.not.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
     expect(output).to.include('"redboxOid":"1"');
     expect(output).to.include('"redboxOid":"2"');
     expect(findStub.callCount).to.equal(3);

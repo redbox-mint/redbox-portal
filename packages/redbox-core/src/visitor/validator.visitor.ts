@@ -69,6 +69,7 @@ import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputPermissiveFieldComponentConfigOutline,
   RichTextEditorFieldComponentDefinitionOutline,
   RichTextEditorFieldModelDefinitionOutline,
   RichTextEditorFormComponentDefinitionOutline,
@@ -470,7 +471,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
         const configErrors: FormValidatorSummaryErrors["errors"] = [];
-        const config = item.config;
+        const config = item.config as TypeaheadInputPermissiveFieldComponentConfigOutline | undefined;
         const sourceType = String(config?.sourceType ?? "");
 
         if (!sourceType || !["static", "vocabulary", "namedQuery", "external", "service"].includes(sourceType)) {

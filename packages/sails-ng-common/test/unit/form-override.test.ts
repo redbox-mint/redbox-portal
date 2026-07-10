@@ -233,6 +233,114 @@ describe('FormOverride reusable expansion', () => {
     expect(result).to.not.equal('{{default (get content "fundingSource" "") ""}}');
   });
 
+  it('renders legacy typeahead option objects as content in view mode', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'fundingSource',
+        component: {
+          class: TypeaheadInputComponentName,
+          config: {
+            valueMode: 'optionObject',
+          },
+        },
+        model: {
+          class: 'TypeaheadInputModel',
+          config: {
+            value: {
+              label: 'Legacy funding source',
+              value: 'legacy-funding-source',
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    expect((transformed.component.config as { content?: unknown } | undefined)?.content).to.equal(
+      'Legacy funding source'
+    );
+  });
+
+  it('renders configured typeahead option objects as content in view mode', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'research-master-project-id',
+        component: {
+          class: TypeaheadInputComponentName,
+          config: {
+            labelField: 'dc_title',
+            valueField: 'grant_number',
+            valueMode: 'optionObject',
+            optionObjectFields: {
+              dc_title: 'dc_title',
+              grant_number: 'grant_number',
+            },
+          },
+        },
+        model: {
+          class: 'TypeaheadInputModel',
+          config: {
+            value: {
+              dc_title: 'Improving the transition of agricultural students between vocational and higher education - RSH/4414',
+              grant_number: '0980024219',
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    expect((transformed.component.config as { content?: unknown } | undefined)?.content).to.equal(
+      'Improving the transition of agricultural students between vocational and higher education - RSH/4414'
+    );
+  });
+
+  it('renders configured typeahead objects when stored keys differ from source paths', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'research-master-project-id',
+        component: {
+          class: TypeaheadInputComponentName,
+          config: {
+            labelField: 'metadata.dc_title',
+            valueField: 'metadata.grant_number',
+            valueMode: 'optionObject',
+            optionObjectFields: {
+              projectTitle: 'metadata.dc_title',
+              projectGrantNumber: 'metadata.grant_number',
+            },
+          },
+        },
+        model: {
+          class: 'TypeaheadInputModel',
+          config: {
+            value: {
+              projectTitle: 'Mapped project title',
+              projectGrantNumber: 'RSH/4414',
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    expect((transformed.component.config as { content?: unknown } | undefined)?.content).to.equal(
+      'Mapped project title'
+    );
+  });
+
   it('renders repeatable typeahead objects without stringifying them', () => {
     const formOverride = new FormOverride(createLogger());
 
