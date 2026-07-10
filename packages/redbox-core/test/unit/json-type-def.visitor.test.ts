@@ -338,7 +338,49 @@ describe("JSON Type Def Schema Visitor", async () => {
                             value: {type: "string"}
                         },
                         optionalProperties: {
-                            sourceType: {type: "string"}
+                            sourceType: {type: "string"},
+                            historical: {type: "boolean"}
+                        }
+                    }
+                }
+            }
+        },
+        {
+            title: "create typeahead schema from configured optionObjectFields",
+            args: {
+                name: "typeahead-form",
+                componentDefinitions: [
+                    {
+                        name: "research-master-project-id",
+                        component: {
+                            class: "TypeaheadInputComponent",
+                            config: {
+                                sourceType: "namedQuery",
+                                queryId: "activity",
+                                labelField: "dc_title",
+                                valueField: "grant_number",
+                                valueMode: "optionObject",
+                                optionObjectFields: {
+                                    dc_title: "dc_title",
+                                    grant_number: "grant_number"
+                                }
+                            }
+                        },
+                        model: {class: "TypeaheadInputModel", config: {}}
+                    }
+                ]
+            },
+            expected: {
+                properties: {
+                    // Schema should match the configured persisted object shape.
+                    "research-master-project-id": {
+                        properties: {
+                            dc_title: {},
+                            grant_number: {}
+                        },
+                        optionalProperties: {
+                            sourceType: {type: "string"},
+                            historical: {type: "boolean"}
                         }
                     }
                 }

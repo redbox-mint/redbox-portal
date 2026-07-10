@@ -175,6 +175,8 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   private jsonTypeDefPath: LineagePath;
   private jsonTypeDef: Record<string, unknown>;
   private typeaheadValueModesByJsonPath: Map<string, 'value' | 'optionObject'>;
+  // Typeahead schema needs component config later when the paired model is visited.
+  private typeaheadOptionObjectFieldsByJsonPath: Map<string, Record<string, string>>;
   private formPathHelper: FormPathHelper;
 
   constructor(logger: ILogger) {
@@ -182,6 +184,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     this.jsonTypeDefPath = [];
     this.jsonTypeDef = {};
     this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
+    this.typeaheadOptionObjectFieldsByJsonPath = new Map<string, Record<string, string>>();
     this.formPathHelper = new FormPathHelper(logger, this);
   }
 
@@ -194,6 +197,7 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
     this.jsonTypeDefPath = [];
     this.jsonTypeDef = {};
     this.typeaheadValueModesByJsonPath = new Map<string, 'value' | 'optionObject'>();
+    this.typeaheadOptionObjectFieldsByJsonPath = new Map<string, Record<string, string>>();
     this.formPathHelper.reset();
 
     await options.form.accept(this);
@@ -486,19 +490,32 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
       jsonPathKey,
       item.config?.valueMode === 'optionObject' ? 'optionObject' : 'value'
     );
+    // Store custom object fields by JSON path until the model visitor emits schema.
+    this.typeaheadOptionObjectFieldsByJsonPath.set(jsonPathKey, item.config?.optionObjectFields ?? {});
   }
 
   async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
     const jsonPathKey = this.jsonTypeDefPath.join('/');
     const valueMode = this.typeaheadValueModesByJsonPath.get(jsonPathKey) ?? 'value';
     if (valueMode === 'optionObject') {
+      const optionObjectFields = this.typeaheadOptionObjectFieldsByJsonPath.get(jsonPathKey) ?? {};
+      const properties = Object.keys(optionObjectFields).length > 0
+        ? Object.keys(optionObjectFields).reduce<Record<string, Record<string, unknown>>>((schema, fieldName) => {
+          // Configured fields persist raw lookup values; an empty JTD schema accepts any JSON value.
+          schema[fieldName] = {};
+          return schema;
+        }, {})
+        : {
+          label: { type: 'string' as const },
+          value: { type: 'string' as const },
+        };
+
       _set(this.jsonTypeDef, this.jsonTypeDefPath, {
-        properties: {
-          label: { type: 'string' },
-          value: { type: 'string' },
-        },
+        properties,
         optionalProperties: {
           sourceType: { type: 'string' },
+          // Vocabulary sources persist a historical marker alongside the stored fields.
+          historical: { type: 'boolean' },
         },
       });
       return;

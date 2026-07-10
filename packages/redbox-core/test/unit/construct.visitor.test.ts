@@ -298,6 +298,43 @@ describe("Construct Visitor", async () => {
             expect(cfg?.cacheResults).to.equal(false);
         });
 
+        it("should preserve typeahead optionObjectFields config", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "research-master-project-id",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "namedQuery",
+                                    queryId: "activity",
+                                    labelField: "dc_title",
+                                    valueField: "grant_number",
+                                    valueMode: "optionObject",
+                                    optionObjectFields: {
+                                        dc_title: "dc_title",
+                                        grant_number: "grant_number"
+                                    }
+                                }
+                            },
+                            model: { class: "TypeaheadInputModel", config: {} }
+                        }
+                    ]
+                }
+            });
+            const cfg = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            expect(cfg?.valueMode).to.equal("optionObject");
+            // The Angular component cannot build custom stored objects if this is dropped.
+            expect(cfg?.optionObjectFields).to.deep.equal({
+                dc_title: "dc_title",
+                grant_number: "grant_number"
+            });
+        });
+
         it("should preserve external typeahead provider config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
