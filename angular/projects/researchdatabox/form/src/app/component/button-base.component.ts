@@ -4,6 +4,7 @@ import {FormComponentEventBus, FormStateFacade} from "../form-state";
 import {FormService} from "../form.service";
 import {ConfirmationDialogService} from "../confirmation-dialog.service";
 import {FormComponent} from "../form.component";
+import {handlebarsTemplate} from "@researchdatabox/sails-ng-common";
 
 export abstract class ButtonBaseComponent extends FormFieldBaseComponent<undefined> {
   public override logName = "ButtonBaseComponent";
@@ -44,7 +45,7 @@ export abstract class ButtonBaseComponent extends FormFieldBaseComponent<undefin
     try {
       const compiledItems = await this.getFormComponent.getRecordCompiledItems();
       const context = this.getTemplateContext();
-      const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
+      const extra = {libraries: {handlebars: handlebarsTemplate}};
       const rendered = compiledItems.evaluate(templateLineagePath, context, extra);
       const output = String(rendered ?? '').trim();
       return output || redirectLocation;

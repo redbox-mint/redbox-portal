@@ -17,15 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-import { Services as services } from '../CoreService';
-import Handlebars, { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
+import {PopulateExportedMethods} from '../decorator/PopulateExportedMethods.decorator';
+import {Services as services} from '../CoreService';
 import {
   buildKeyString,
+  handlebarsPrecompile,
   jsonataCompile,
   jsonataExpressionEncode,
-  normaliseVisual,
-  registerSharedHandlebarsHelpers,
   TemplateCompileInput,
   TemplateCompileItem,
   TemplateCompileKey,
@@ -35,19 +33,6 @@ import {
 export namespace Services {
   @PopulateExportedMethods
   export class Template extends services.Core.Service {
-    private helpersRegistered: boolean = false;
-
-    /**
-     * Ensure shared Handlebars helpers are registered on the server.
-     */
-    private ensureHelpersRegistered() {
-      if (!this.helpersRegistered) {
-        registerSharedHandlebarsHelpers(Handlebars);
-        this.helpersRegistered = true;
-        sails.log.verbose('TemplateService: Registered shared Handlebars helpers');
-      }
-    }
-
     /**
      * Compile one or more inputs into an output mapping.
      *
@@ -76,14 +61,14 @@ export namespace Services {
               const jsonataExprEncoded = jsonataExpressionEncode(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `jsonata("${jsonataExprEncoded}").evaluate(context);`,
+                value: `jsonata("${jsonataExprEncoded}").evaluate(context)`,
               });
             }
             break;
           case 'handlebars':
             result.push({
               key: input.key,
-              value: `Handlebars.template(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
+              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
             });
             break;
           default:
@@ -102,7 +87,6 @@ export namespace Services {
      */
     public buildClientJsonata(expression: string): string | null {
       try {
-        expression = normaliseVisual(expression);
         // Validate the expression by compiling it
         const compiled = jsonataCompile(expression);
         sails.log.verbose(`Validated client JSONata expression '${expression}'`, compiled);
@@ -124,34 +108,9 @@ export namespace Services {
      */
     public buildClientHandlebars(template: string): string | null {
       try {
-        this.ensureHelpersRegistered();
-        template = normaliseVisual(template);
-        // handlebars pre-compiled output is already a string
-        const result = Handlebars.precompile(template)?.toString();
-        sails.log.verbose(`Built client Handlebars template '${template}'`);
-        return result;
+        return handlebarsPrecompile(template)?.toString();
       } catch (error) {
         sails.log.error(`Could not build client Handlebars template '${template}'`, error);
-        return null;
-      }
-    }
-
-    /**
-     * Compile a Handlebars template to a form that is ready to be executed on the server.
-     *
-     * The template will be normalised and have some transformations applied.
-     *
-     * @param template
-     */
-    public buildServerHandlebars(template: string): HandlebarsTemplateDelegate | null {
-      try {
-        this.ensureHelpersRegistered();
-        template = normaliseVisual(template);
-        const result = Handlebars.compile(template);
-        sails.log.verbose(`Built server Handlebars template '${template}'`);
-        return result;
-      } catch (error) {
-        sails.log.error(`Could not build server Handlebars template '${template}'`, error);
         return null;
       }
     }

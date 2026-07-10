@@ -1,18 +1,9 @@
 import _ from 'lodash';
-import Handlebars from 'handlebars';
-import { jsonataCompileAndEvaluate, registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
+import { handlebarsCompile, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import type { ValueBinding } from '../../configmodels/DoiPublishing';
 import type { DoiBindingContext, DoiBindingIterationContext } from './types';
 import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
 
-let handlebarsHelpersRegistered = false;
-
-function ensureHandlebarsHelpersRegistered(): void {
-  if (!handlebarsHelpersRegistered) {
-    registerSharedHandlebarsHelpers(Handlebars);
-    handlebarsHelpersRegistered = true;
-  }
-}
 
 export function validateHandlebarsTemplate(template: string): void {
   validateSafeHandlebarsTemplate(template, 'DOI');
@@ -31,9 +22,8 @@ export async function evaluateBinding(
   }
 
   if (binding.kind === 'handlebars') {
-    ensureHandlebarsHelpersRegistered();
     validateHandlebarsTemplate(binding.template);
-    const compiled = Handlebars.compile(binding.template);
+    const compiled = handlebarsCompile(binding.template);
     const value = compiled(context);
     return value === '' ? binding.defaultValue : value;
   }
