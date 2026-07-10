@@ -100,7 +100,7 @@
     "typescript-json-schema": "0.67.4",
     "umzug": "3.8.3",
     "url-pattern": "1.0.3",
-    "uuid": "14.0.0",
+    "uuid": "14.0.1",
     "webpack": "5.107.2",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.0",
@@ -117,7 +117,7 @@
     "srvx": "0.11.13",
     "serialize-javascript": "7.0.5",
     "svgo": "4.0.1",
-    "uuid": "14.0.0",
+    "uuid": "14.0.1",
     "@parcel/watcher": {
       "picomatch": "4.0.4"
     },
