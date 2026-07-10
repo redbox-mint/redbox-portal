@@ -38,7 +38,7 @@ tests {
 
   test("Check response is an array", function () {
       var jsonData = res.getBody();
-      expect(jsonData).to.be.an.instanceof(Array);
+      expect(Array.isArray(jsonData)).to.equal(true);
   });
 
   test("Check researcheruser is in the array", function () {
