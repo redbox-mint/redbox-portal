@@ -143,7 +143,7 @@
     "@types/mime-types": "3.0.1",
     "@types/mocha": "10.0.10",
     "@types/node-schedule": "2.1.8",
-    "@types/nodemailer": "8.0.0",
+    "@types/nodemailer": "8.0.1",
     "@types/numeral": "2.0.5",
     "@types/passport-http-bearer": "1.0.42",
     "@types/passport-jwt": "4.0.1",
