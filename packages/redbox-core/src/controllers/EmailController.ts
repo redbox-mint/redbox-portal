@@ -74,7 +74,7 @@ export namespace Controllers {
                 subject: body.subject,
                 template: body.template,
             };
-            this.updateChronicle(req, {emailOptions: options});
+            this.updateChronicle(req, {emailOptionFormat: options.format, emailOptionTemplate: options.template});
             const config = {};
             const templateDate = body.data;
 
@@ -122,9 +122,7 @@ export namespace Controllers {
                         chronicle: {emailProcessStepFailed: 'build template', emailProcessStepResult: buildResult},
                     });
                 } else {
-                    this.updateChronicle(req, {emailSendOptions:{
-                      toRendered, subjectRendered, fromRendered, formatRendered, ccRendered, bccRendered
-                    }});
+                    this.updateChronicle(req, {emailSendOptionFormat: formatRendered, emailSendOptionSubject: subjectRendered});
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
@@ -148,7 +146,7 @@ export namespace Controllers {
                               data: {message: sendResult['msg']},
                               status: 200,
                               headers: this.getNoCacheHeaders(),
-                              chronicle: {emailSent: true, emailSendResult: sendResult},
+                              chronicle: {emailSent: true},
                             });
                         }
                     });

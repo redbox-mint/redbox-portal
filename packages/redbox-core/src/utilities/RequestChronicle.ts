@@ -56,13 +56,6 @@ export interface RequestChronicle {
    * Arbitrary data added during the request processing.
    */
   [key: string]: unknown,
-
-  // TODO: consider adding these properties:
-  // request_id: ctx.get('requestId'),
-  // service: process.env.SERVICE_NAME,
-  // version: process.env.SERVICE_VERSION,
-  // deployment_id: process.env.DEPLOYMENT_ID,
-  // region: process.env.REGION,
 }
 
 export class RequestChronicleHelper {
@@ -79,7 +72,6 @@ export class RequestChronicleHelper {
 
     if (request?.options?.requestChronicleHelper === undefined || request?.options?.requestChronicleHelper === null) {
       // Make the event accessible to other middleware, plus anywhere that can access the req.
-      // TODO: This could use opentelemetry span or logs or trace, but that doesn't have to happen right now.
       request.options.requestChronicleHelper = new RequestChronicleHelper(logger);
     }
 
@@ -148,7 +140,7 @@ export class RequestChronicleHelper {
   public log(logger: ILogger) {
     if (!this.isFinished) {
       this.logger.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
-      // return;
+      return;
     }
     const data = this.#data;
     const classification = data.result?.classification;
@@ -169,6 +161,7 @@ export class RequestChronicleHelper {
         // Don't log discarded request chronicles.
         break;
       default:
+        // Use TypeScript types to confirm all classification options are catered for.
         const _check: never = classification;
     }
   }
@@ -180,7 +173,7 @@ export class RequestChronicleHelper {
   public addError(error?: unknown): void {
     if (!this.isRunning || this.isFinished) {
       this.logger.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
-      // return;
+      return;
     }
     if (!Array.isArray(this.#data.errors)) {
       this.#data.errors = [];
@@ -195,7 +188,7 @@ export class RequestChronicleHelper {
   public addInfo(info: Record<string, unknown>) {
     if (!this.isRunning || this.isFinished) {
       this.logger.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
-      // return;
+      return;
     }
     const notAllowedKeys = ['result', 'req', 'res', 'errors'];
     for (const [key, value] of Object.entries(info ?? {})) {
@@ -203,11 +196,13 @@ export class RequestChronicleHelper {
         this.logger.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}' value '${value}'.`);
         continue;
       }
+
       // TODO: Expecting only top-level properties, not nested props.
-      //       If nested props are wanted, this might need to merge instead of replace.
-      // TODO: should it be allowed to replace an existing arbitrary property?
+      //  If nested props are wanted, this might need to merge instead of replace.
       const currentValue = this.#data[key];
+
       if (currentValue !== null && currentValue !== undefined && currentValue !== value) {
+        // TODO: should it be allowed to replace an existing arbitrary property?
         this.logger.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${currentValue}' with new value '${value}'.`);
       }
       this.#data[key] = value;
@@ -222,7 +217,7 @@ export class RequestChronicleHelper {
   private classify(): RequestChronicleClassificationsType | undefined {
     if (this.isRunning || !this.isFinished) {
       this.logger.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
-      // return undefined;
+      return undefined;
     }
     const item = this.#data;
 
@@ -244,8 +239,6 @@ export class RequestChronicleHelper {
     if ((item?.result?.durationMs ?? 0) > 2000) {
       return "slow";
     }
-
-    // TODO: check for specific properties and treat the request chronicle specially if present
 
     // Classify a 10% random selection of the remaining 'standard' and 'success' items as samples.
     // Discard the rest.
