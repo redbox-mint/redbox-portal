@@ -106,7 +106,9 @@ export namespace Services {
       const attemptCount = Number(getPath(record, 'metaMetadata.raid.attemptCount') ?? 0);
       if (oid && attemptCount > 0) {
         const options = (getPath(record, 'metaMetadata.raid.options') ?? {}) as SerializableRaidOptions;
-        const { config } = this.resolveConfig(record);
+        const config = getPath(record, 'metaMetadata.brandId')
+          ? this.resolveConfig(record).config
+          : legacyConfigToPublishing(sails.config.raid as AnyRecord);
         await AgendaQueueService.schedule(config.durableRetry.jobName, config.durableRetry.schedule, { oid, options, attemptCount });
       }
     }
@@ -120,7 +122,19 @@ export namespace Services {
       const fakeRecord = { metadata: { contributor: contribVal } } as unknown as RecordLike;
       const config = legacyConfigToPublishing(sails.config.raid as AnyRecord);
       const built = buildContributors(fakeRecord, { dest: 'contributor', engine: 'jsonata', expression: '$contributors()', contributorMap: { contributor: contribConfig as any } }, { date: { startDate, endDate } }, config);
-      for (const item of built) contributors[item.id] = item;
+      for (const item of built) {
+        const existing = contributors[item.id];
+        if (!existing) {
+          contributors[item.id] = item;
+          continue;
+        }
+        for (const key of ['role', 'position'] as const) {
+          const current = Array.isArray(existing[key]) ? existing[key] as AnyRecord[] : [];
+          const additions = Array.isArray(item[key]) ? item[key] as AnyRecord[] : [];
+          existing[key] = [...current, ...additions.filter(addition => !current.some(value => value.id === addition.id))];
+        }
+        for (const [key, value] of Object.entries(item)) if (!(key in existing)) existing[key] = value;
+      }
     }
 
     public getSubject(record: RecordLike, _options: RaidOptions, _fieldConfig: Record<string, unknown> = {}, subjects: Array<Record<string, unknown>> = [], subjectType = '', subjectData?: Array<Record<string, unknown>>) {
