@@ -56,10 +56,10 @@ values into `oniPublishing`. The renamed fields are:
 
 - `sites.<name>.url` -> `sites.<name>.publicUrl`
 - `sites.<name>.dir` -> `sites.<name>.storage` when using Flydrive. `storage` is an object, not the old path string: set `driver`, `diskName`, `rootPath`, `workspacePath`, optional `prefix`, and optional `keyEncoding`; see the full Flydrive example above.
-- `metadata.html_filename` -> `metadata.htmlFilename`
 - `metadata.jsonld_filename` -> `metadata.jsonldFilename`
-- `metadata.datapub_json` -> `metadata.datapubJson`
-- `metadata.identifier_namespace` -> `metadata.identifierNamespace`
-- `metadata.render_script` -> `metadata.renderScript`
-- `metadata.related_works` -> `metadata.relatedWorks`
 - `metadata.DEFAULT_IRI_PREFS` -> `metadata.defaultIriPrefs`
+
+Legacy `metadata.html_filename`, `metadata.datapub_json`,
+`metadata.identifier_namespace`, `metadata.render_script`, and
+`metadata.related_works` are not part of `oniPublishing`; related works,
+funders, and subjects are configured through `mapping.graphEntities`.
