@@ -9,6 +9,7 @@ import { SaveStatusTypes } from './component/save-status.outline';
 import { IntegrationStatusTypes } from './component/integration-status.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
+import { RelatedObjectDataTypes } from './component/related-object-data.outline';
 import { SimpleInputTypes} from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import { SuggestedValidationSummaryTypes } from './component/suggested-validation-summary.outline';
@@ -70,6 +71,7 @@ export type AllTypes =
   | TabNavButtonTypes
   | TextAreaTypes
   | ContentTypes
+  | RelatedObjectDataTypes
   | SimpleInputTypes
   | ValidationSummaryTypes
   | SuggestedValidationSummaryTypes

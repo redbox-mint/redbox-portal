@@ -15,6 +15,7 @@ import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model
 import { IntegrationStatusDefaults, IntegrationStatusMap } from './component/integration-status.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
+import { RelatedObjectDataDefaults, RelatedObjectDataMap } from './component/related-object-data.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
 import { ValidationSummaryDefaults, ValidationSummaryMap } from './component/validation-summary.model';
 import {
@@ -73,6 +74,7 @@ export const AllDefs = [
   ...TabNavButtonMap,
   ...TextAreaMap,
   ...ContentMap,
+  ...RelatedObjectDataMap,
   ...SimpleInputMap,
   ...ValidationSummaryMap,
   ...SuggestedValidationSummaryMap,
@@ -116,6 +118,7 @@ const RawDefaults = [
   TabNavButtonDefaults,
   TextAreaDefaults,
   ContentDefaults,
+  RelatedObjectDataDefaults,
   SimpleInputDefaults,
   ValidationSummaryDefaults,
   SuggestedValidationSummaryDefaults,

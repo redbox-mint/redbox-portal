@@ -84,6 +84,8 @@ export * from './config/component/text-area.model';
 export * from './config/component/text-area.outline';
 export * from './config/component/content.model';
 export * from './config/component/content.outline';
+export * from './config/component/related-object-data.model';
+export * from './config/component/related-object-data.outline';
 export * from './config/component/validation-summary.model';
 export * from './config/component/validation-summary.outline';
 export * from './config/component/suggested-validation-summary.model';

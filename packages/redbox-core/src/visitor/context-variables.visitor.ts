@@ -8,6 +8,7 @@ import {
   CheckboxInputFormComponentDefinitionOutline,
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
+  RelatedObjectDataFieldComponentDefinitionOutline,
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
@@ -101,6 +102,9 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
   }
+  async visitRelatedObjectDataFormComponentDefinition(item: import('@researchdatabox/sails-ng-common').RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
+    await item.component.accept(this);
+  }
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
     await item.component?.accept(this);
     await item.model?.accept(this);
@@ -171,6 +175,13 @@ export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {
     if (item.config && typeof item.config.content === 'string') {
       item.config.content = this.replaceTokens(item.config.content);
     }
+  }
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    if (!item.config) return;
+    if (typeof item.config.template === 'string') item.config.template = String(this.replaceTokens(item.config.template));
+    if (typeof item.config.content === 'string') item.config.content = this.replaceTokens(item.config.content);
+    if (typeof item.config.dataPath === 'string') item.config.dataPath = String(this.replaceTokens(item.config.dataPath));
+    item.config.relatedFields = item.config.relatedFields?.map(field => String(this.replaceTokens(field)));
   }
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {

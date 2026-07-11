@@ -35,6 +35,7 @@ import { InlineLayoutComponent } from './component/inline-layout.component';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
+import { RelatedObjectDataComponent } from './component/related-object-data.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
@@ -89,6 +90,7 @@ import { RecordAuditLauncherComponent } from './record-audit/record-audit-launch
     FormComponent,
     SimpleInputComponent,
     ContentComponent,
+    RelatedObjectDataComponent,
     TextAreaComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
