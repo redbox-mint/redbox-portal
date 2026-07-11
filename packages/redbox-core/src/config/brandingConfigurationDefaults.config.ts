@@ -5,7 +5,7 @@
  * Default configuration for per-brand settings including auth, menus, panels.
  */
 
-import { createDefaultBinding, type DoiPublishingConfigData } from '../configmodels/DoiPublishing';
+import type { DoiPublishingConfigData } from '../configmodels/DoiPublishing';
 import { OniPublishing, type OniPublishingConfigData } from '../configmodels/OniPublishing';
 
 export interface BrandAuthLocalConfig {
