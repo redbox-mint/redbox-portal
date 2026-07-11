@@ -3,6 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed } from '@angular/core/testing';
 import { ConfigService } from './config.service';
 import { getStubConfigService } from './helper.spec';
+import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
 import { WorkspaceTypeService } from './workspace-type.service';
 
@@ -16,6 +17,7 @@ describe('WorkspaceTypeService', () => {
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         { provide: ConfigService, useValue: getStubConfigService() },
+        LoggerService,
         UtilityService,
         WorkspaceTypeService,
       ],
