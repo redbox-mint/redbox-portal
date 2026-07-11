@@ -126,6 +126,44 @@ describe('contentSecurityPolicy policy', function () {
         expect(csp).to.include('block-all-mixed-content');
     });
 
+    it('should omit upgrade-insecure-requests for an HTTP appUrl', function () {
+        (global as any).sails.config.appUrl = 'http://redbox-portal.local:1500';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        expect(getHeaders()['Content-Security-Policy']).not.to.include('upgrade-insecure-requests');
+    });
+
+    it('should retain upgrade-insecure-requests for an HTTPS appUrl', function () {
+        (global as any).sails.config.appUrl = 'https://portal.example.edu';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
+    });
+
+    it('should retain upgrade-insecure-requests for HTTP appUrl in production', function () {
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        (global as any).sails.config.appUrl = 'http://portal.example.edu';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        if (originalNodeEnv === undefined) {
+            delete process.env.NODE_ENV;
+        } else {
+            process.env.NODE_ENV = originalNodeEnv;
+        }
+
+        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
+    });
+
     it('should include default directives', function () {
         const { req, res, getHeaders } = createMockReqRes();
 

@@ -1,5 +1,38 @@
+.workspace-selector-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-selector-panel .panel-heading {
+  flex: 0 0 auto;
+}
+
+.workspace-selector-panel .panel-body {
+  flex: 1 1 auto;
+}
+
+.workspace-selector-panel-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.workspace-selector-subtitle {
+  margin-top: 0;
+}
+
+.workspace-selector-cards .col {
+  display: flex;
+}
+
+.workspace-selector-cards .workspace-selector-panel {
+  width: 100%;
+}
+
 .workspace-logo {
   max-width: 10rem;
   max-height: 8rem;
+  margin-left: auto;
   object-fit: contain;
 }

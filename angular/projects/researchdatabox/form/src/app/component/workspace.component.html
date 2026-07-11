@@ -21,9 +21,9 @@
         }
       </select>
       @if (workspaceApp; as workspace) {
-        <article class="card mt-3">
-          <div class="card-header">
-            <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+        <article class="panel panel-default workspace-selector-panel mt-3">
+          <div class="panel-heading">
+            <h4 class="panel-title">{{ translate(workspace.label || workspace.name) | uppercase }}</h4>
           </div>
           <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
         </article>
@@ -31,12 +31,12 @@
     }
 
     @if (displayType === 'cards') {
-      <div class="row row-cols-1 row-cols-md-3 g-4">
+      <div class="workspace-selector-cards row row-cols-1 row-cols-md-3 g-4">
         @for (workspace of workspaceApps; track workspace.name) {
           <div class="col">
-            <article class="card h-100">
-              <div class="card-header">
-                <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+            <article class="panel panel-default workspace-selector-panel h-100">
+              <div class="panel-heading">
+                <h4 class="panel-title">{{ translate(workspace.label || workspace.name) | uppercase }}</h4>
               </div>
               <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
             </article>
@@ -47,9 +47,9 @@
 
     @if (displayType === 'panels') {
       @for (workspace of workspaceApps; track workspace.name) {
-        <article class="card mb-3">
-          <div class="card-header">
-            <h5 class="mb-0">{{ translate(workspace.label || workspace.name) | uppercase }}</h5>
+        <article class="panel panel-default workspace-selector-panel mb-3">
+          <div class="panel-heading">
+            <h4 class="panel-title">{{ translate(workspace.label || workspace.name) | uppercase }}</h4>
           </div>
           <ng-container *ngTemplateOutlet="workspaceBody; context: { $implicit: workspace }" />
         </article>
@@ -59,10 +59,10 @@
 }
 
 <ng-template #workspaceBody let-workspace>
-  <div class="card-body d-flex gap-3">
+  <div class="panel-body workspace-selector-panel-body">
     <div class="flex-grow-1">
       @if (workspace.subtitle) {
-        <h6>{{ translate(workspace.subtitle) }}</h6>
+        <h5 class="workspace-selector-subtitle">{{ translate(workspace.subtitle) }}</h5>
       }
       @if (workspace.description) {
         <div [innerHTML]="translate(workspace.description)"></div>
@@ -72,7 +72,7 @@
       <img class="workspace-logo" [src]="workspace.logo" [alt]="translate(workspace.label || workspace.name)" />
     }
   </div>
-  <div class="card-footer">
+  <div class="panel-footer">
     @if (allowAdd) {
       @if (workspace.externallyProvisioned !== true) {
         <button
