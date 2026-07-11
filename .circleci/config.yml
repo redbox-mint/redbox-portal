@@ -498,7 +498,7 @@ jobs:
           name: Install packages
           command: |
             cd ./packages/redbox-core
-            npm ci --include=dev
+            npm install --no-save --include=dev
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
