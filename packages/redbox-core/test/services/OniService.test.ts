@@ -1105,7 +1105,7 @@ describe('OniService', function() {
 
   describe('writeToFileUsingStream (private method)', function() {
     it('should write stream to file', async function() {
-      const { Readable } = require('stream');
+      const { Readable } = require('node:stream');
       const writeToFileUsingStream = OniService.writeToFileUsingStream.bind(OniService);
       
       // Create a test readable stream
@@ -1128,7 +1128,7 @@ describe('OniService', function() {
 
   describe('writeDatastream (private method)', function() {
     it('should create directory and write file', async function() {
-      const { Readable } = require('stream');
+      const { Readable } = require('node:stream');
       const writeDatastream = OniService.writeDatastream.bind(OniService);
       
       const testData = 'test file content';

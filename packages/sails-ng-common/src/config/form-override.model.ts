@@ -74,7 +74,10 @@ import {
   PublishDataLocationSelectorComponentName,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from './component/publish-data-location-selector.outline';
-import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
+import {
+  TypeaheadInputModelOptionValue,
+  TypeaheadInputModelValueType,
+} from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { LineagePaths } from './names/naming-helpers';
@@ -716,7 +719,10 @@ export class FormOverride {
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    this.commonContentPlain(source, target);
+    if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      target.component.config.content = source.model.config.value;
+      target.component.config.template = `<span>{{{plaintextToHtml content}}}</span>`;
+    }
     return target;
   }
 
@@ -809,13 +815,7 @@ export class FormOverride {
       return target;
     }
 
-    const value = source.model.config.value;
-    const displayValue =
-      value && typeof value === 'object' && 'label' in value
-        ? (value as TypeaheadInputModelOptionValue).label
-        : typeof value === 'string'
-          ? value
-          : '';
+    const displayValue = this.resolveTypeaheadContentValue(source.model.config.value, source);
     target.component.config.content = displayValue;
     target.component.config.template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafPlain,
@@ -823,6 +823,107 @@ export class FormOverride {
     );
 
     return target;
+  }
+
+  private resolveTypeaheadContentValue(
+    value: TypeaheadInputModelValueType | undefined,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (!value || typeof value !== 'object') {
+      return '';
+    }
+
+    const configuredValue = value as TypeaheadInputModelOptionValue;
+    const componentConfig = source.component.config as {
+      labelField?: string;
+      valueField?: string;
+      optionObjectFields?: Record<string, string>;
+    } | undefined;
+
+    const labelField = componentConfig?.labelField?.trim?.() || 'label';
+    const valueField = componentConfig?.valueField?.trim?.() || 'value';
+    const preferredFields = this.getTypeaheadDisplayFields(source);
+    const candidates = [
+      configuredValue.label,
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        labelField,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      ),
+      configuredValue[labelField],
+      ...preferredFields.map(field => this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        field,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      )),
+      ...preferredFields.map(field => configuredValue[field]),
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        valueField,
+        source,
+        this.isConfiguredTypeaheadValueField.bind(this)
+      ),
+      configuredValue[valueField],
+      configuredValue.value,
+    ];
+
+    const resolvedValue = candidates.find(candidate => candidate !== undefined && candidate !== null);
+    return resolvedValue === undefined ? '' : String(resolvedValue);
+  }
+
+  private getConfiguredTypeaheadStoredValue(
+    value: TypeaheadInputModelOptionValue,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline,
+    matchesField: (
+      fieldName: string,
+      configuredSourcePath: string,
+      source: TypeaheadInputFormComponentDefinitionOutline
+    ) => boolean
+  ): unknown {
+    const optionObjectFields = this.getTypeaheadOptionObjectFields(source);
+    const directMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      configuredSourcePath === sourcePath && value[fieldName] !== undefined
+    );
+    if (directMatch) {
+      return value[directMatch[0]];
+    }
+
+    const semanticMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      matchesField(fieldName, configuredSourcePath, source) && value[fieldName] !== undefined
+    );
+    return semanticMatch ? value[semanticMatch[0]] : undefined;
+  }
+
+  private getTypeaheadOptionObjectFields(source: TypeaheadInputFormComponentDefinitionOutline): Record<string, string> {
+    const optionObjectFields = (source.component.config as { optionObjectFields?: unknown } | undefined)?.optionObjectFields;
+    if (!optionObjectFields || typeof optionObjectFields !== 'object' || Array.isArray(optionObjectFields)) {
+      return {};
+    }
+    return optionObjectFields as Record<string, string>;
+  }
+
+  private isConfiguredTypeaheadLabelField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const labelField = (source.component.config as { labelField?: string } | undefined)?.labelField ?? 'label';
+    return fieldName === labelField || sourcePath === labelField || fieldName === 'label' || sourcePath === 'label';
+  }
+
+  private isConfiguredTypeaheadValueField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const valueField = (source.component.config as { valueField?: string } | undefined)?.valueField ?? 'value';
+    return fieldName === valueField || sourcePath === valueField || fieldName === 'value' || sourcePath === 'value';
   }
 
   private sourceRichTextEditorComponentTargetContentComponent(
@@ -860,7 +961,7 @@ export class FormOverride {
     target.component.config.content = source.model.config.value;
     const uploadTemplate = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafFileUpload,
-      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
     );
     target.component.config.template = this.substituteReusableTemplateSlots(uploadTemplate, { valueExpr: 'content' });
     return target;
@@ -1281,7 +1382,7 @@ export class FormOverride {
     if (className === FileUploadComponentName) {
       const fileTemplate = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafFileUpload,
-        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
       );
       return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
     }
@@ -1340,9 +1441,9 @@ export class FormOverride {
         trimmedTemplate === '{{{content}}}' ||
         trimmedTemplate === '<span>{{content}}</span>'
       ) {
-        return `{{default ${expression} ""}}`;
+        return this.renderDisplayValue(expression);
       }
-      return `{{default ${expression} ""}}`;
+      return this.renderDisplayValue(expression);
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(
@@ -1351,7 +1452,107 @@ export class FormOverride {
       );
       return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
     }
+    if (className === TextAreaComponentName) {
+      return `<span>{{{plaintextToHtml ${expression}}}}</span>`;
+    }
+    if (className === TypeaheadInputComponentName) {
+      return this.renderTypeaheadValue(expression, component);
+    }
+    if (
+      className === DropdownInputComponentName ||
+      className === CheckboxInputComponentName ||
+      className === RadioInputComponentName
+    ) {
+      const options = this.getOptionLabelPairs(component);
+      if (className === CheckboxInputComponentName) {
+        return this.renderOptionListValue(expression, options);
+      }
+      return this.renderOptionSingleValue(expression, options);
+    }
     return `{{default ${expression} ""}}`;
+  }
+
+  private renderTypeaheadValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const arrayItem = this.renderTypeaheadScalarValue('this', component);
+    const singleValue = this.renderTypeaheadScalarValue(expression, component);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderTypeaheadScalarValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const fields = this.getTypeaheadDisplayFields(component);
+    return this.renderDisplayScalarValue(expression, fields);
+  }
+
+  private renderDisplayValue(expression: string): string {
+    const fields = this.getCommonDisplayFields();
+    const arrayItem = this.renderDisplayScalarValue('this', fields);
+    const singleValue = this.renderDisplayScalarValue(expression, fields);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderDisplayScalarValue(expression: string, fields: string[]): string {
+    const objectBranches = fields.map(field =>
+      `{{#if (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}` +
+      `<span>{{{plaintextToHtml (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}}</span>` +
+      '{{else}}'
+    ).join('');
+
+    return `{{#if (isObject ${expression})}}${objectBranches}` +
+      `{{{renderMetadataValue ${expression}}}}${'{{/if}}'.repeat(fields.length)}` +
+      `{{else}}<span>{{{plaintextToHtml ${expression}}}}</span>{{/if}}`;
+  }
+
+  private getTypeaheadDisplayFields(component: AllFormComponentDefinitionOutlines): string[] {
+    const componentConfig =
+      component?.component?.config as { labelField?: string; valueField?: string } | undefined;
+    const fields = [
+      componentConfig?.labelField,
+      ...this.getCommonDisplayFields(),
+      componentConfig?.valueField,
+    ];
+    return Array.from(
+      new Set(fields.filter((field): field is string => typeof field === 'string' && field.trim().length > 0))
+    );
+  }
+
+  private getCommonDisplayFields(): string[] {
+    return ['label', 'name', 'title', 'dc_title', 'dc_description', 'utf8_name', 'value'];
+  }
+
+  private getOptionLabelPairs(component: AllFormComponentDefinitionOutlines): Array<{ value: string; label: string }> {
+    const componentConfig = component?.component?.config as { options?: Array<{ value?: unknown; label?: unknown }> } | undefined;
+    return (componentConfig?.options ?? [])
+      .filter(option => option?.value !== undefined && option?.label !== undefined)
+      .map(option => ({
+        value: String(option.value),
+        label: String(option.label),
+      }));
+  }
+
+  private renderOptionSingleValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const optionBranches = options.map(option =>
+      `{{#if (eq ${expression} "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<span data-value="{{default ${expression} ""}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</span>` +
+      '{{else}}'
+    ).join('');
+    return `${optionBranches}<span>{{default ${expression} ""}}</span>${'{{/if}}'.repeat(options.length)}`;
+  }
+
+  private renderOptionListValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const singleValue = this.renderOptionSingleValue(expression, options);
+    const optionBranches = options.map(option =>
+      `{{#if (eq this "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<li data-value="{{this}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</li>` +
+      '{{else}}'
+    ).join('');
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}${optionBranches}` +
+      `<li>{{this}}</li>${'{{/if}}'.repeat(options.length)}{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
   }
 
   private getGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {

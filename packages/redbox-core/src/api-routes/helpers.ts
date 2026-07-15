@@ -7,7 +7,7 @@ import {
   ZodObject,
   ZodRawShape,
   ZodOptional,
-  ZodTypeAny,
+  ZodType,
   ZodUnion,
   z,
 } from 'zod';
@@ -497,23 +497,22 @@ export function isZodObjectSchema(schema: ApiSchemaField | undefined): schema is
   return schema instanceof ZodObject;
 }
 
-export function isPassthroughObjectSchema(schema: ZodTypeAny): schema is ZodObject<ZodRawShape> {
-  return schema instanceof ZodObject && schema._def.unknownKeys === 'passthrough';
+export function isPassthroughObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
+  return schema instanceof ZodObject && 'catchall' in schema._zod.def && (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown';
 }
 
-export function isOptionalSchema(schema: ZodTypeAny): boolean {
+export function isOptionalSchema(schema: ZodType): boolean {
   return schema instanceof ZodOptional;
 }
 
-function isIntegerSchema(schema: ZodTypeAny): boolean {
+function isIntegerSchema(schema: ZodType): boolean {
   return (
     schema instanceof ZodNumber &&
-    Array.isArray((schema as ZodNumber)._def.checks) &&
-    (schema as ZodNumber)._def.checks.some((check: { kind?: string }) => check.kind === 'int')
+    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some((check) => check.format === 'safeint') === true
   );
 }
 
-function coercePrimitiveValue(value: unknown, schema: ZodTypeAny): unknown {
+function coercePrimitiveValue(value: unknown, schema: ZodType): unknown {
   if (schema instanceof ZodBoolean) {
     if (typeof value === 'string' && /^(true|false)$/i.test(value.trim())) {
       return value.trim().toLowerCase() === 'true';
@@ -532,17 +531,17 @@ function coercePrimitiveValue(value: unknown, schema: ZodTypeAny): unknown {
   return value;
 }
 
-export function coerceValueForSchema(value: unknown, schema: ZodTypeAny): unknown {
+export function coerceValueForSchema(value: unknown, schema: ZodType): unknown {
   if (value == null) {
     return value;
   }
 
   if (isOptionalSchema(schema)) {
-    return coerceValueForSchema(value, (schema as unknown as { unwrap: () => ZodTypeAny }).unwrap());
+    return coerceValueForSchema(value, (schema as unknown as { unwrap: () => ZodType }).unwrap());
   }
 
   if (schema instanceof ZodNullable) {
-    return coerceValueForSchema(value, (schema as unknown as { unwrap: () => ZodTypeAny }).unwrap());
+    return coerceValueForSchema(value, (schema as unknown as { unwrap: () => ZodType }).unwrap());
   }
 
   if (schema instanceof ZodObject) {
@@ -553,7 +552,7 @@ export function coerceValueForSchema(value: unknown, schema: ZodTypeAny): unknow
     const result: Record<string, unknown> = {};
     for (const [key, childSchema] of Object.entries(shape)) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
-        result[key] = coerceValueForSchema(value[key], childSchema as unknown as ZodTypeAny);
+        result[key] = coerceValueForSchema(value[key], childSchema as unknown as ZodType);
       }
     }
     if (isPassthroughObjectSchema(schema)) {
@@ -567,7 +566,7 @@ export function coerceValueForSchema(value: unknown, schema: ZodTypeAny): unknow
   }
 
   if (schema instanceof ZodArray && Array.isArray(value)) {
-    return value.map(item => coerceValueForSchema(item, schema.element as unknown as ZodTypeAny));
+    return value.map(item => coerceValueForSchema(item, schema.element as unknown as ZodType));
   }
 
   if (schema instanceof ZodUnion) {

@@ -28,6 +28,10 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -74,6 +78,7 @@ import {
 import {DefaultFieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {ActionRowLayoutName} from '@researchdatabox/sails-ng-common';
 import {
+  CheckboxInputComponentName,
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
@@ -89,6 +94,7 @@ import {
   RecordSelectorFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  DropdownInputComponentName,
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
@@ -133,6 +139,7 @@ import {
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RadioInputComponentName,
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -281,9 +288,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldTransformRepeatable = className === RepeatableComponentName;
     const shouldTransformGroup = className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
     const shouldTransformQuestionTree = className === QuestionTreeComponentName;
+    const shouldTransformInlineVocabOption = this.isInlineVocabOptionComponent(item);
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree) {
+    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree || shouldTransformInlineVocabOption) {
       if (shouldSkipViewTransform) {
         this.applyPostPruningTransformsToNestedChildren(item);
         if ('constraints' in item) {
@@ -306,6 +314,19 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     this.applyPostPruningTransformsToNestedChildren(item);
     return item;
+  }
+
+  protected isInlineVocabOptionComponent(item: AvailableFormComponentDefinitionOutlines): boolean {
+    const className = item?.component?.class;
+    const componentConfig = item?.component?.config as { inlineVocab?: boolean } | undefined;
+    return (
+      componentConfig?.inlineVocab === true &&
+      (
+        className === DropdownInputComponentName ||
+        className === CheckboxInputComponentName ||
+        className === RadioInputComponentName
+      )
+    );
   }
 
   protected hasExplicitAllowedMode(item: AvailableFormComponentDefinitionOutlines, mode: FormModesConfig): boolean {
@@ -501,6 +522,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }

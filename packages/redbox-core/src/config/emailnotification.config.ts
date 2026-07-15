@@ -59,6 +59,7 @@ export const emailnotification: EmailNotificationConfig = {
     settings: {
         enabled: true,
         from: 'noreply@redbox',
+        // Email body templates are Handlebars files (.hbs) resolved by name from this directory.
         templateDir: 'views/emailTemplates/',
         serverOptions: {
             host: 'integration-testing-email-1',

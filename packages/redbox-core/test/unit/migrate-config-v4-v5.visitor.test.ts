@@ -971,6 +971,12 @@ describe('Migrate v4 to v5 Visitor', async () => {
   it('defines lookup-only contributor reusable fields with required selection and readonly email', async function () {
     const lookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only'];
     expect(lookupOnlyFields).to.have.length(3);
+    const compactLookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only-name-email'];
+    expect(compactLookupOnlyFields.map(field => field.name)).to.deep.equal([
+      'standard_contributor_field_name',
+      'standard_contributor_field_email',
+      'standard_contributor_field_orcid',
+    ]);
 
     const nameField = lookupOnlyFields[0];
     if (nameField.component?.class === 'ReusableComponent') {
@@ -1077,12 +1083,73 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const componentConfig = migratedField.component.config as Record<string, unknown>;
     expect(componentConfig.center).to.deep.equal([-24.67, 134.07]);
     expect(componentConfig.zoom).to.equal(5);
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'select']);
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'circle', 'select']);
     const modelConfig = migratedField.model?.config as Record<string, unknown>;
     expect(modelConfig.defaultValue).to.deep.equal({
       type: 'FeatureCollection',
       features: [],
     });
+  });
+
+  it('enables select tooling by default when legacy map has no edit config', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'map-migration-no-edit',
+        fields: [
+          {
+            class: 'MapField',
+            compClass: 'MapComponent',
+            definition: {
+              name: 'map_coverage',
+              drawOptions: {
+                draw: {
+                  marker: {},
+                  polygon: {},
+                  polyline: {},
+                  rectangle: {},
+                },
+              },
+            },
+            value: {},
+          },
+        ],
+      },
+    });
+
+    const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select']);
+  });
+
+  it('omits select tooling when legacy map explicitly disables editing', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'map-migration-edit-false',
+        fields: [
+          {
+            class: 'MapField',
+            compClass: 'MapComponent',
+            definition: {
+              name: 'map_coverage',
+              drawOptions: {
+                draw: {
+                  marker: {},
+                  polygon: {},
+                  polyline: false,
+                  rectangle: false,
+                },
+                edit: false,
+              },
+            },
+            value: {},
+          },
+        ],
+      },
+    });
+
+    const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
+    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'circle']);
   });
 
   it('migrates ButtonBarContainer as expected', async function () {

@@ -1,10 +1,8 @@
-import jsonata from 'jsonata';
 import {
   jsonataCompile,
   jsonataCompileAndEvaluate,
   jsonataEvaluate,
   jsonataEvaluateFunc,
-  jsonataLibrary,
 } from '../../src';
 
 describe('JSONata helpers', function () {
@@ -19,7 +17,7 @@ describe('JSONata helpers', function () {
     if ('message' in (error as Record<string, unknown>) && expected instanceof Error) {
       expect((error as Record<string, unknown>).message).to.eql(expected.message);
     } else {
-      expect.fail(`Threw unexpected error ${JSON.stringify({ error, type: typeof error })}`);
+      expect.fail(`Threw unexpected error ${JSON.stringify({error, type: typeof error})}`);
     }
   }
 
@@ -27,7 +25,7 @@ describe('JSONata helpers', function () {
     {
       args: {
         expression: '$sum(example.value)',
-        input: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] },
+        input: {example: [{value: 4}, {value: 7}, {value: 13}]},
         bindings: undefined,
       },
       expected: 24,
@@ -36,14 +34,14 @@ describe('JSONata helpers', function () {
       args: {
         expression: '$a + $b()',
         input: {},
-        bindings: { a: 4, b: () => 78 },
+        bindings: {a: 4, b: () => 78},
       },
       expected: 82,
     },
     {
       args: {
         expression: '$.name',
-        input: { name: 'testing' },
+        input: {name: 'testing'},
         bindings: undefined,
       },
       expected: 'testing',
@@ -51,13 +49,166 @@ describe('JSONata helpers', function () {
     {
       args: {
         expression: '{{{{invalid',
-        input: { name: 'testing' },
+        input: {name: 'testing'},
         bindings: undefined,
       },
       expected: new Error('Expected ":" before end of expression'),
     },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: null},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: undefined},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, format)',
+        input: {date: undefined, format: undefined},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      // unparsable date
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: 'abc'},
+        bindings: undefined,
+      },
+      expected: '',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy-MM")',
+        input: {date: 1781092138000},
+        bindings: undefined,
+      },
+      expected: '2026-06',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy/MM")',
+        // We want to use local timezones in the browser.
+        // Use Z timezone to try to avoid rolling over to next or previous day.
+        input: {date: new Date('2025-08-10T10:00:00Z')},
+        bindings: undefined,
+      },
+      expected: '2025/08',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: '2026/06/10'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy/MM/dd", "MM/dd/yyyy")',
+        input: {date: '06/10/2026'},
+        bindings: undefined,
+      },
+      expected: '2026/06/10',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: '2026-06-10'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        // We want to use local timezones in the browser.
+        // Use a timezone near midday UTC to try to avoid rolling over to next or previous day.
+        // should format RFC 2822 date string values with luxon JSONata helper
+        input: {date: 'Wed, 10 Jun 2026 11:00:00 +0030'},
+        bindings: undefined,
+      },
+      expected: '2026',
+    },
+    {
+      args: {
+        expression: '$luxonFormatDate(date, "yyyy")',
+        input: {date: ['Wed, 10 Jun 2026 11:00:00 +0030']},
+        bindings: undefined,
+      },
+      expected: new Error("Argument 1 of function \"luxonFormatDate\" does not match function signature"),
+    },
+    {
+      args: {
+        // not expose the jsonata factory to client-style JSONata library bindings
+        expression: '$exists($jsonata)',
+        input: null,
+        bindings: undefined,
+      },
+      expected: false,
+    },
+    {
+      args: {
+        expression: '$jsonata("1+a", {"a": 2})',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error('Attempted to invoke a non-function'),
+    },
+    {
+      args: {
+        // should not allow JSONata eval to run dynamic expressions
+        expression: '$eval("1+a", {"a": 2})',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error('Attempted to invoke eval'),
+    },
+    // guessNameParts
+    {
+      args: {
+        expression: '$guessNameParts("my Name is")',
+        input: null,
+        bindings: undefined,
+      },
+      expected: {full: "my Name is", first: "my", last: "Name is"},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: undefined},
+        bindings: undefined,
+      },
+      expected: {full: "", first: "", last: ""},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(value)',
+        input: {value: "\tHELLO  "},
+        bindings: undefined,
+      },
+      expected: {full: "HELLO", first: "", last: "HELLO"},
+    },
+    {
+      args: {
+        expression: '$guessNameParts(["My Name"])',
+        input: null,
+        bindings: undefined,
+      },
+      expected: new Error("Argument 1 of function \"guessNameParts\" does not match function signature"),
+    },
   ];
-  cases.forEach(({ args, expected }) => {
+  cases.forEach(({args, expected}) => {
     it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
       try {
         const compiled = jsonataCompile(args.expression);
@@ -85,41 +236,5 @@ describe('JSONata helpers', function () {
         compareError(error, expected);
       }
     });
-  });
-
-  it('should expose luxon date formatting to compiled JSONata expressions', async function () {
-    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
-      date: '2026/06/10',
-    });
-
-    expect(actual).to.eql('2026');
-  });
-
-  it('should not allow JSONata eval to run dynamic expressions on the server side', async function () {
-    const actual = await jsonataCompileAndEvaluate('$eval("1+1")', {});
-
-    expect(actual).to.be.undefined;
-  });
-
-  it('should expose luxon date formatting to client-style JSONata library bindings', async function () {
-    const actual = await jsonata('$luxonFormatDate(date, "yyyy")').evaluate({ date: '2026-06-10' }, jsonataLibrary);
-
-    expect(actual).to.eql('2026');
-  });
-
-  it('should not expose the jsonata factory to client-style JSONata library bindings', async function () {
-    expect(jsonataLibrary).not.to.have.property('jsonata');
-
-    const actual = await jsonata('$exists($jsonata)').evaluate({}, jsonataLibrary);
-
-    expect(actual).to.eql(false);
-  });
-
-  it('should format RFC 2822 date string values with luxon JSONata helper', async function () {
-    const actual = await jsonataCompileAndEvaluate('$luxonFormatDate(date, "yyyy")', {
-      date: 'Wed, 10 Jun 2026 00:00:00 +0930',
-    });
-
-    expect(actual).to.eql('2026');
   });
 });

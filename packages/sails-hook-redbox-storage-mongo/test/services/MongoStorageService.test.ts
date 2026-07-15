@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
-const { PassThrough, Readable } = require('stream');
+const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
@@ -632,12 +632,46 @@ describe('MongoStorageService', function () {
     expect(deleted).to.deep.equal({ items: ['deleted'], totalItems: 2 });
   });
 
-  it('exports plans as csv using streamed records', async function () {
-    const firstBatch = [{ redboxOid: '1', metadata: { title: 'One' } }];
-    const secondBatch: any[] = [];
+  // Paged find stub that serves the same batch to every export pass: returns the batch on the
+  // first page (skip 0) and an empty terminating batch afterwards. fetchAllRecords resets skip to
+  // 0 on each pass, so both the field-collection pass and the CSV pass receive identical data.
+  const pagedFind = (batch: any[]) =>
+    sandbox.stub().callsFake((_query: any, opts: any) => ({
+      toArray: async () => ((opts.skip ?? 0) === 0 ? batch : []),
+    }));
+
+  const pagedFindPages = (pagesBySkip: Record<number, any[]>) =>
+    sandbox.stub().callsFake((_query: any, opts: any) => ({
+      toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
+    }));
+
+  it('exports plans as UTF-8 BOM csv using streamed records', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
+    expect(output).to.include('redboxOid');
+    expect(output).to.include('Waldenström');
+    // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
+    // for the empty terminating batch.
+    expect(service.recordCol.find.callCount).to.equal(4);
+  });
+
+  it('includes csv columns from later result pages that the first record lacks', async function () {
     service.recordCol = {
-      find: sandbox.stub().onFirstCall().returns({ toArray: sandbox.stub().resolves(firstBatch) }).onSecondCall().returns({
-        toArray: sandbox.stub().resolves(secondBatch),
+      find: pagedFindPages({
+        0: [
+          { redboxOid: '1', metadata: { title: 'One' } },
+          { redboxOid: '2', metadata: { title: 'Two' } },
+        ],
+        2: [{ redboxOid: '3', metadata: { title: 'Three', extraField: 'present' } }],
       }),
     };
 
@@ -646,8 +680,66 @@ describe('MongoStorageService', function () {
     for await (const chunk of exportStream) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
 
-    expect(Buffer.concat(chunks).toString('utf8')).to.include('redboxOid');
+    // Header is the union of every paged record's flattened keys, so the second-page column survives.
+    expect(output).to.include('metadata.extraField');
+    expect(output).to.include('present');
+    expect(output).to.include('"1"');
+    expect(output).to.include('"3"');
+    // Two export passes, each reading skip 0, skip 2, then the empty terminating page at skip 4.
+    expect(service.recordCol.find.callCount).to.equal(6);
+  });
+
+  it('produces an empty csv and skips the second pass when there are no records', async function () {
+    service.recordCol = { find: pagedFind([]) };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    // No matching records means no columns to derive a header from, so the stream ends cleanly with
+    // only the UTF-8 BOM rather than hanging or emitting a malformed CSV.
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    // Only the field-collection pass runs (single page, immediately empty); the CSV pass is skipped.
+    expect(service.recordCol.find.callCount).to.equal(1);
+  });
+
+  it('stops collecting csv fields once the export has been cancelled', async function () {
+    // Each page holds one record; cancellation is signalled after the first record is seen.
+    const findStub = sandbox.stub();
+    findStub.onFirstCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '1', metadata: { title: 'One' } }]) });
+    findStub.onSecondCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '2', metadata: { extraField: 'present' } }]) });
+    // A third page is never requested; if it were, this unstubbed call would throw and fail the test.
+    service.recordCol = { find: findStub };
+
+    let scanned = 0;
+    const isCancelled = () => scanned++ >= 1;
+    const fields = await service.collectCsvFields({}, { limit: 1 }, isCancelled);
+
+    // The loop bails out before the second record's columns are collected, so the scan stops short
+    // instead of reading every matching record.
+    expect(fields).to.include('redboxOid');
+    expect(fields).to.not.include('metadata.extraField');
+    expect(findStub.callCount).to.equal(2);
+  });
+
+  it('errors the export stream when the csv query fails', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().rejects(new Error('mongo query failed')) }),
+    };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    await expectRejects(async () => {
+      for await (const _chunk of exportStream) {
+        // drain
+      }
+    }, 'mongo query failed');
   });
 
   it('exports plans as json and iterates over multiple record pages', async function () {
@@ -663,7 +755,9 @@ describe('MongoStorageService', function () {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
 
-    const output = Buffer.concat(chunks).toString('utf8');
+    const outputBuffer = Buffer.concat(chunks);
+    expect([...outputBuffer.subarray(0, 3)]).to.not.deep.equal([0xef, 0xbb, 0xbf]);
+    const output = outputBuffer.toString('utf8');
     expect(output).to.include('"redboxOid":"1"');
     expect(output).to.include('"redboxOid":"2"');
     expect(findStub.callCount).to.equal(3);

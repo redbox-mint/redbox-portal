@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { DateTime } from 'luxon';
+import Handlebars from 'handlebars';
 import {
   get as _get,
   isEmpty as _isEmpty,
@@ -28,6 +29,7 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
+import {normaliseVisual} from "./config/names/naming-helpers";
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -59,9 +61,9 @@ let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
 void import('marked')
   .then(markedModule => {
-    const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
-    if (typeof parseFn === 'function') {
-      cachedMarkedParser = (value: string): string => {
+      const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+      if (typeof parseFn === 'function') {
+        cachedMarkedParser = (value: string): string => {
         const result = parseFn(value);
         return typeof result === 'string' ? result : value;
       };
@@ -177,6 +179,85 @@ function renderMetadataValue(value: unknown): string {
   return renderMetadataPrimitive(value);
 }
 
+function trimSlashes(value: unknown): string {
+  const text = String(value ?? '');
+  let start = 0;
+  let end = text.length;
+  while (start < end && text[start] === '/') start++;
+  while (end > start && text[end - 1] === '/') end--;
+  return text.slice(start, end);
+}
+
+function isSafeDownloadUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value) || value.startsWith('/');
+}
+
+function resolveAttachmentLocation(location: string, branding: unknown, portal: unknown): string {
+  if (!location) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(location)) {
+    return location;
+  }
+  const recordRelativeMatch = location.match(/^([^/]+)\/attach\/([^/?#]+)$/);
+  if (recordRelativeMatch) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    const path = `record/${encodeURIComponent(recordRelativeMatch[1])}/attach/${encodeURIComponent(recordRelativeMatch[2])}`;
+    return `/${[prefix, path].filter(Boolean).join('/')}`;
+  }
+  if (!isSafeDownloadUrl(location)) {
+    return '';
+  }
+  if (location.startsWith('/record/')) {
+    const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+    return prefix ? `/${prefix}${location}` : location;
+  }
+  return location;
+}
+
+function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
+  if (!_isPlainObject(attachment)) {
+    return '';
+  }
+
+  const item = attachment as Record<string, unknown>;
+  const url = String(item.url ?? '').trim();
+  if (url && isSafeDownloadUrl(url)) {
+    return url;
+  }
+
+  const uploadUrl = String(item.uploadUrl ?? '').trim();
+  if (uploadUrl) {
+    try {
+      const parsedUploadUrl = new URL(uploadUrl);
+      const uploadPath = resolveAttachmentLocation(parsedUploadUrl.pathname, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    } catch {
+      const uploadPath = resolveAttachmentLocation(uploadUrl, branding, portal);
+      if (uploadPath) {
+        return uploadPath;
+      }
+    }
+  }
+
+  const location = resolveAttachmentLocation(String(item.location ?? '').trim(), branding, portal);
+  if (location) {
+    return location;
+  }
+
+  const fileId = String(item.fileId ?? '').trim();
+  const recordOid = String(oid ?? '').trim();
+  if (!fileId || !recordOid) {
+    return '';
+  }
+
+  const prefix = [trimSlashes(branding), trimSlashes(portal)].filter(Boolean).join('/');
+  const path = `record/${encodeURIComponent(recordOid)}/attach/${encodeURIComponent(fileId)}`;
+  return `/${[prefix, path].filter(Boolean).join('/')}`;
+}
+
 /**
  * Shared Handlebars helper definitions for use in both server and client contexts.
  * These helpers provide CSP-safe alternatives to lodash template expressions.
@@ -190,7 +271,7 @@ function renderMetadataValue(value: unknown): string {
  * Preset mapping for locale-aware date formatting.
  * Maps preset names to Luxon's built-in format options.
  */
-export const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
+const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
   DATE_SHORT: DateTime.DATE_SHORT,
   DATE_MED: DateTime.DATE_MED,
   DATE_MED_WITH_WEEKDAY: DateTime.DATE_MED_WITH_WEEKDAY,
@@ -493,6 +574,21 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Extract a property from each item in an array using dot notation.
+   * Replaces lodash usage like: _.map(creators, c => c.email).
+   * Returns an empty array for non-array input. Combine with {{join}} to
+   * build a delimited string, e.g. {{join (pluck creators "email") ","}}.
+   *
+   * @example {{join (pluck record.metadata.creators "email") ","}}
+   */
+  pluck: function (arr: unknown, path: string): unknown[] {
+    if (!_isArray(arr)) {
+      return [];
+    }
+    return arr.map((item) => _get(item, path, ''));
+  },
+
+  /**
    * Return part of a string using slice semantics.
    *
    * @example {{substring notation 0 6}}
@@ -600,6 +696,15 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Render plain text as escaped HTML while preserving line breaks.
+   *
+   * @example {{{plaintextToHtml content}}}
+   */
+  plaintextToHtml: function (value: unknown): string {
+    return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
+  },
+
+  /**
    * JSON stringify a value (useful for debugging).
    *
    * @example {{json data}}
@@ -620,29 +725,80 @@ export const handlebarsHelperDefinitions = {
   renderMetadataValue: function (value: unknown): string {
     return renderMetadataValue(value);
   },
+
+  /**
+   * Build a view-mode download URL for a file upload attachment value.
+   *
+   * @example {{attachmentDownloadUrl this oid branding portal}}
+   */
+  attachmentDownloadUrl: function (
+    attachment: unknown,
+    oid: unknown,
+    branding: unknown,
+    portal: unknown
+  ): string {
+    return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
+  },
 };
 
 /**
- * Type definition for the Handlebars helper functions.
+ * A class to encapsulate the Handlebars registerHelper calls
+ * and ensure they happen exactly once.
  */
-export type HandlebarsHelperDefinitions = typeof handlebarsHelperDefinitions;
+class HandlebarsRegisterHelper {
+  static #isSetupDone:boolean = false;
+  constructor() {
+    if (HandlebarsRegisterHelper.#isSetupDone) {
+      return;
+    }
 
-/**
- * Register all shared helpers with a Handlebars instance.
- *
- * @param Handlebars The Handlebars instance to register helpers on
- */
-export function registerSharedHandlebarsHelpers(Handlebars: {
-  registerHelper: (name: string, fn: (...args: any[]) => any) => void;
-}): void {
-  for (const [name, fn] of Object.entries(handlebarsHelperDefinitions)) {
-    Handlebars.registerHelper(name, fn);
+    for (const [name, fn] of Object.entries(handlebarsHelperDefinitions)) {
+      Handlebars.registerHelper(name, fn);
+    }
+
+    HandlebarsRegisterHelper.#isSetupDone = true;
+  }
+
+  get instance() {
+    return Handlebars;
   }
 }
 
 /**
- * Get the names of all shared helpers.
+ * Register Handlebars helpers for use in dashboard and report templates.
+ * Uses shared helpers from sails-ng-common for consistency between server and client.
  */
-export function getSharedHandlebarsHelperNames(): string[] {
-  return Object.keys(handlebarsHelperDefinitions);
+export function handlebarsInstance() {
+  return new HandlebarsRegisterHelper().instance;
+}
+
+/**
+ * Pre-compile a handlebars template.
+ * @param input The template to compile.
+ * @param options The compile options.
+ */
+export function handlebarsPrecompile(input: unknown, options?: PrecompileOptions): TemplateSpecification {
+  const instance = handlebarsInstance();
+  const value = normaliseVisual(input);
+  return instance.precompile(value, options);
+}
+
+/**
+ * Get a compiled handlebars template.
+ * @param input The template to compile.
+ * @param options The compile options.
+ */
+export function handlebarsCompile(input: unknown, options?: CompileOptions): HandlebarsTemplateDelegate {
+  const instance = handlebarsInstance();
+  const value = normaliseVisual(input);
+  return instance.compile(value, options);
+}
+
+/**
+ * Render a pre-compiled handlebars template.
+ * @param precompilation The pre-compiled template.
+ */
+export function handlebarsTemplate(precompilation: TemplateSpecification): HandlebarsTemplateDelegate {
+  const instance = handlebarsInstance();
+  return instance.template(precompilation);
 }

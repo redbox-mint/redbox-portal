@@ -29,6 +29,129 @@
   vertical-align: middle;
 }
 
+/* Integration status reuses the global ".panel" theme so it matches the other admin
+   panels (e.g. the manage-roles page). Only minor tweaks are layered on top. */
+.rb-integration-status.panel {
+  margin-bottom: 1rem;
+}
+
+.rb-integration-status .rb-int-badge {
+  min-width: 7.5em;
+  justify-content: center;
+}
+
+.rb-integration-status .rb-int-meta {
+  font-size: 0.85rem;
+}
+
+/* Collapse toggle sits in the (branded) panel heading; the global theme already colours
+   .panel-heading .btn, so we only need layout tweaks here. */
+.rb-integration-status .rb-int-collapse {
+  line-height: 1;
+}
+
+.rb-integration-status .rb-int-technical-toggle {
+  border-color: var(--bs-border-color-translucent, rgba(0, 0, 0, 0.08));
+}
+
+/* Dimmed backdrop for in-app modal dialogs.
+   Defined here (external stylesheet) instead of an inline style attribute,
+   because the portal CSP style-src does not allow inline styles. */
+.rb-form-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.rb-form-host .fa,
+.rb-form-host .fas,
+.rb-form-host .far,
+.rb-form-host .fal,
+.rb-form-host .fab,
+.rb-form-host .fa-solid,
+.rb-form-host .fa-regular,
+.rb-form-host .fa-brands,
+.rb-form-host [class^="fa-"],
+.rb-form-host [class*=" fa-"] {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.rb-form-host a:hover .fa,
+.rb-form-host a:hover .fas,
+.rb-form-host a:hover .far,
+.rb-form-host a:hover .fal,
+.rb-form-host a:hover .fab,
+.rb-form-host a:hover .fa-solid,
+.rb-form-host a:hover .fa-regular,
+.rb-form-host a:hover .fa-brands,
+.rb-form-host a:hover [class^="fa-"],
+.rb-form-host a:hover [class*=" fa-"],
+.rb-form-host a:focus .fa,
+.rb-form-host a:focus .fas,
+.rb-form-host a:focus .far,
+.rb-form-host a:focus .fal,
+.rb-form-host a:focus .fab,
+.rb-form-host a:focus .fa-solid,
+.rb-form-host a:focus .fa-regular,
+.rb-form-host a:focus .fa-brands,
+.rb-form-host a:focus [class^="fa-"],
+.rb-form-host a:focus [class*=" fa-"] {
+  text-decoration: none;
+}
+
+.rb-form-host .fa::before,
+.rb-form-host .fas::before,
+.rb-form-host .far::before,
+.rb-form-host .fal::before,
+.rb-form-host .fab::before,
+.rb-form-host .fa-solid::before,
+.rb-form-host .fa-regular::before,
+.rb-form-host .fa-brands::before,
+.rb-form-host [class^="fa-"]::before,
+.rb-form-host [class*=" fa-"]::before {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.rb-form-host .rb-form-icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.rb-form-host .rb-form-icon-link:hover,
+.rb-form-host .rb-form-icon-link:focus {
+  text-decoration: none;
+}
+
+.rb-form-host .rb-form-icon-link:hover .rb-form-icon-link__text,
+.rb-form-host .rb-form-icon-link:focus .rb-form-icon-link__text {
+  text-decoration: underline;
+}
+
+.rb-form-host .rb-form-rich-text-content table {
+  width: auto;
+  max-width: 100%;
+  margin: 0.75rem 0 1rem;
+  border-collapse: collapse;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.rb-form-host .rb-form-rich-text-content th,
+.rb-form-host .rb-form-rich-text-content td {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  vertical-align: top;
+}
+
+.rb-form-host .rb-form-rich-text-content th {
+  font-weight: 700;
+  background: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.rb-form-host .rb-form-rich-text-content tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.025);
+}
+
 /* Global action-row safety rules for migrated legacy inline/button groups in view mode. */
 .rb-form-host .rb-form-action-row {
   display: flex;
@@ -85,7 +208,21 @@
 .rb-form-host .rb-form-action-row a.btn,
 .rb-form-host .rb-form-action-row button.btn {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
+}
+
+/* The legacy theme bundle re-applies Bootstrap 3 button-group rules
+   (inline-block groups, floated buttons) after Bootstrap 5, which collapses
+   split-button dropdown toggles. Restore the Bootstrap 5 behavior here. */
+.rb-form-host .rb-form-action-row .btn-group,
+.rb-form-host .rb-form-action-row .btn-group-vertical {
+  display: inline-flex;
+}
+
+.rb-form-host .rb-form-action-row .btn-group > .btn,
+.rb-form-host .rb-form-action-row .btn-group-vertical > .btn {
+  float: none;
 }
 
 .rb-form-host .rb-form-action-row .container {

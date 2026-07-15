@@ -1,5 +1,8 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
+import {decodeBase64, encodeBase64} from "./html-helpers";
+import {normaliseVisual} from "./config/names/naming-helpers";
+import {guessNameParts} from "./translation-helpers";
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
@@ -7,15 +10,16 @@ import { DateTime } from 'luxon';
 export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
 
 /**
- * A function that registers a custom JSONata function.
+ * Format a date using the luxon library.
+ * @param value The value to format.
+ * @param format The format to use.
+ * @param sourceFormat The optional format of the value, if known.
  */
-export type JSONataRegisterFunction = (
-  name: string,
-  implementation: (this: jsonata.Focus, ...args: unknown[]) => unknown,
-  signature?: string
-) => void;
-
-export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: unknown): string {
+export function luxonFormatDate(
+  value: undefined | null | string | number | Date,
+  format: undefined | null | string,
+  sourceFormat?: null | string
+): string {
   if (value === undefined || value === null || value === '') {
     return '';
   }
@@ -45,9 +49,27 @@ export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: 
   return dateTime.isValid ? dateTime.toFormat(outputFormat) : '';
 }
 
-export const jsonataLibrary = {
-  luxonFormatDate,
-};
+/**
+ * Prepare a jsonata expression to be transferred from server to client.
+ * @param expression The jsonata expression string.
+ */
+export function jsonataExpressionEncode(expression: string): string {
+  expression = normaliseVisual(expression);
+  return encodeBase64(expression);
+}
+
+/**
+ * Provide an encoded JSONata expression string and return a compiled JSONata expression object.
+ *
+ * Registers the common custom functions that should be available everywhere.
+ *
+ * @param expressionEncoded The encoded expression string.
+ * @param options The compile options.
+ * @return compiled JSONata expression object
+ */
+export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  return jsonataCompile(decodeBase64(expressionEncoded), options);
+}
 
 /**
  * Provide a JSONata expression string and return a compiled JSONata expression object.
@@ -59,17 +81,31 @@ export const jsonataLibrary = {
  * @return compiled JSONata expression object
  */
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  expression = normaliseVisual(expression);
   const compiled = jsonata(expression, options);
 
+  // Register jsonata functions.
+  // The function signatures are used on purpose to restrict the arguments,
+  // so invalid input types are clear instead of hidden.
+  // Callers of the jsonata helper functions must be prepared for possible parse errors and input type errors.
+
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
-  compiled.registerFunction('eval', () => undefined);
+  compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
 
-  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
+  // Register a function for formatting date time values.
+  // First param 'value': string, number, null, object (to allow Date)
+  // Second param 'format': string, null
+  // Third param 'sourceFormat': string, null, optional
+  // Return type: string
+  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
 
-  // TODO: register a function for obtaining translations
-  // TODO: register a function for formatting date time values
-  // TODO: register a function / context state holder that provides model data
-  // TODO: replace regex with google's re2?
+  // Register a function for guessing name parts.
+  // First param 'value': string, null
+  // Return type: object
+  compiled.registerFunction('guessNameParts', guessNameParts, '<(sl):o>');
+
+  // TODO: consider registering a function for translations
+  // TODO: consider replacing regex with google's re2?
 
   return compiled;
 }

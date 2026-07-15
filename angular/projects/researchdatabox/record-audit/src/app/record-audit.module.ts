@@ -3,17 +3,17 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
-import { RecordAuditComponent } from './record-audit.component';
+import { RedboxPortalCoreModule, trimLastSlashFromUrl, RecordAuditModule as LibRecordAuditModule } from '@researchdatabox/portal-ng-common';
+import { RecordAuditComponent } from '@researchdatabox/portal-ng-common';
 
 @NgModule({
-  declarations: [RecordAuditComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
     CommonModule,
     FormsModule,
     RedboxPortalCoreModule,
+    LibRecordAuditModule,
   ],
   providers: [
     {

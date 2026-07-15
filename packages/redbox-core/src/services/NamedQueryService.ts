@@ -22,9 +22,6 @@ import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { DateTime } from 'luxon';
-import Handlebars from 'handlebars';
-import { registerSharedHandlebarsHelpers } from '@researchdatabox/sails-ng-common';
-
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { firstValueFrom } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -32,6 +29,7 @@ import { RecordModel } from '../model/storage/RecordModel';
 import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -119,24 +117,13 @@ const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<st
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
-let namedQueryHandlebarsHelpersRegistered = false;
-
-const ensureNamedQueryHandlebarsHelpers = () => {
-  if (namedQueryHandlebarsHelpersRegistered) {
-    return;
-  }
-
-  registerSharedHandlebarsHelpers(Handlebars);
-  namedQueryHandlebarsHelpersRegistered = true;
-};
-
 export namespace Services {
   type RecordLike = AnyRecord & Partial<RecordModel> & { createdAt?: string | Date; updatedAt?: string | Date };
   type UserLike = AnyRecord & UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
 
   /**
    * Named Query related functions...
-   * 
+   *
    */
   export class NamedQueryService extends services.Core.Service {
 
@@ -841,8 +828,7 @@ export namespace Services {
 
       if (templateOrPath && templateOrPath.indexOf('{{') != -1) {
         try {
-          ensureNamedQueryHandlebarsHelpers();
-          const compiledTemplate = Handlebars.compile(templateOrPath, { noEscape: true });
+          const compiledTemplate = handlebarsCompile(templateOrPath, { noEscape: true });
           return compiledTemplate(templateVars);
         } catch (err) {
           sails.log.error(`Template compilation failed for ${templateOrPath}`, err);

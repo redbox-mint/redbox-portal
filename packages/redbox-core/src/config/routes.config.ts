@@ -30,8 +30,7 @@ export const routes: RoutesConfig = {
     // CSRF Token
     'GET /csrfToken': { action: 'security/grant-csrf-token' },
 
-    // Home routes
-    '/': '/default/rdmp/home',
+    // Home routes (demo hook overrides to /default/rdmp/home)
     '/:branding/:portal/home': {
         controller: 'RenderViewController',
         action: 'render',
@@ -227,6 +226,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/viewAudit/:oid/audit': 'RecordAuditController.getAuditData',
     'get /:branding/:portal/record/viewAudit/:oid/permissions': 'RecordAuditController.getPermissionsData',
     'get /:branding/:portal/record/viewAudit/:oid/integration-audit': 'RecordAuditController.getIntegrationAuditData',
+    'get /:branding/:portal/record/integrationStatus/:oid': 'RecordAuditController.getIntegrationStatusData',
     'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
         controller: 'RecordController',
         action: 'edit',

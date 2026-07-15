@@ -20,17 +20,15 @@ import {
   FormExpressionsTargetValidationGroups,
   DynamicScriptResponse,
   toBoolean,
-  jsonataLibrary,
+  jsonataDecodeCompile,
   FormExpressionsTargetModelDisabled,
   FormExpressionsTargetFieldVisible,
   FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
-import { AbstractControl } from '@angular/forms';
+import { isEmpty as _isEmpty } from 'lodash-es';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
-import jsonata from 'jsonata';
 /**
  * Options main bag for matching events against conditions
  */
@@ -110,7 +108,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return undefined;
     }
     try {
-      this.compiledItemsCache = await this.formComp.getFormCompiledItems();
+      // Use the record's current workflow-stage form (oid-aware) so expression keys match
+      // the rendered form. Workflow-stage forms can differ structurally from the starting-step
+      // form, which otherwise yields "Unknown key" errors when evaluating expressions.
+      this.compiledItemsCache = await this.formComp.getRecordCompiledItems();
       return this.compiledItemsCache;
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error getting compiled items.`, error);
@@ -202,7 +203,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         runtimeContext,
       };
 
-      return await compiledItems.evaluate(templateKey, context, { jsonata, libraries: jsonataLibrary });
+      return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
       return (event as { value?: unknown }).value;

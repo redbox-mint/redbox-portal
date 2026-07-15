@@ -236,7 +236,28 @@ For hooks using the new `hasConfig` capability, configuration can also be provid
 ### Asset and View Changes
 
 Assets and Views are kept in the `assets` and `views` directories.
-These files are copied into `/opt/redbox-portal/assets` and `/opt/redbox-portal/views` respectively as part of the startup.
+Installed hooks are resolved directly at runtime, so these files do not need to be copied into `/opt/redbox-portal/assets`, `/opt/redbox-portal/.tmp/public`, or `/opt/redbox-portal/views`.
+
+View resolution follows the same branding fallback order as core views:
+
+1. `<branding>/<portal>/<view>.ejs`
+2. `default/<portal>/<view>.ejs`
+3. `default/default/<view>.ejs`
+
+For a matching candidate path, hook views override core views. When more than one installed hook supplies the same path, the installation can define precedence in the root portal `package.json`:
+
+```json
+{
+  "hookLoadPriority": [
+    "redbox-hook-jcu",
+    "sails-hook-redbox-pdfgen"
+  ]
+}
+```
+
+The first listed hook has the highest precedence. Listed hooks override unlisted hooks. If `hookLoadPriority` is missing, hook views and assets keep the previous deterministic package-name fallback behavior.
+
+Static assets under a hook's `assets` directory are served through the existing public URL shapes. For example, a hook can provide `assets/styles/client-branding.css` for `/styles/client-branding.css`, or `assets/default/rdmp/styles/theme.css` for branded fallback from `/mybrand/rdmp/styles/theme.css`.
 
 ## See Also
 

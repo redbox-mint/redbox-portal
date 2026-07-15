@@ -1,4 +1,5 @@
 import { resolveSiteTitle } from './siteTitle';
+import { inspect } from 'node:util';
 
 declare module 'express-serve-static-core' {
     interface Response {
@@ -41,7 +42,7 @@ export function created(this: { req: Sails.Req, res: Sails.Res }, data?: unknown
     let viewData = data;
     if (!(viewData instanceof Error) && 'object' == typeof viewData) {
         try {
-            viewData = require('util').inspect(data, { depth: null });
+            viewData = inspect(data, { depth: null });
         }
         catch (_e) {
             viewData = undefined;

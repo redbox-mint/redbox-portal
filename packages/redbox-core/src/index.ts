@@ -66,6 +66,14 @@ export {
     IntegrationAuditParams
 }
     from "./IntegrationAuditParams";
+export type {
+    IntegrationOutcome,
+    IntegrationOutcomeSeverity,
+    IntegrationStatusSummary,
+    IntegrationStatusRecordContext,
+    IntegrationOutcomeMapper
+}
+    from "./services/IntegrationAuditService";
 export * from './model/storage/HarvestRunModel';
 export {
     ILogger
@@ -75,6 +83,30 @@ export {
 export * from './model';
 export * from './decorator';
 export * from './decorators';
+
+export {
+  compareHookPrecedence,
+  discoverRedboxHookPackages,
+  getHookPrecedenceOrder,
+  getHookProcessingOrder,
+  readHookLoadPriority,
+} from './hooks/hookDiscovery';
+export type {
+  RedboxHookDiscoveryOptions,
+  RedboxHookOrderConfig,
+  RedboxHookPackageMetadata,
+} from './hooks/hookDiscovery';
+export {
+  discoverRedboxHookResources,
+  getHookAssetRoots,
+  getHookViewRoots,
+  resolveHookAssetFile,
+  resolveHookViewFile,
+} from './hooks/hookResources';
+export type {
+  RedboxHookResource,
+  ResolvedHookFile,
+} from './hooks/hookResources';
 
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
@@ -130,7 +162,7 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export { generateAllShims } from './loader/index';
+export { generateAllShims, mergeRedboxConfig } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';

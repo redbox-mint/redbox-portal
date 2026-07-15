@@ -1,6 +1,6 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -420,6 +420,22 @@ describe('FormComponent', () => {
     await formComponent.saveForm();
 
     expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '');
+  });
+
+  it('does not save invalid forms when forced', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({
+      required_field: new FormControl('', Validators.required),
+    });
+    formComponent.form.updateValueAndValidity();
+    formComponent.oid.set('oid-123');
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    await formComponent.saveForm({force: true, targetStep: 'review'});
+
+    expect(formComponent.form.invalid).toBeTrue();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('fails save when pending async validation times out', async () => {

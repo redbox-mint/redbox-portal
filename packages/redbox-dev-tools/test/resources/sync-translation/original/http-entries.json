@@ -1,0 +1,17 @@
+[
+  {
+    "locale": "en",
+    "key": "@name-test1",
+    "category": "name",
+    "description": "Name for test 1.",
+    "contentFormat": "plain"
+
+  },
+  {
+    "locale": "en",
+    "key": "@name-test2",
+    "category": "name",
+    "description": "Name for test 2.",
+    "contentFormat": "plain"
+  }
+]
