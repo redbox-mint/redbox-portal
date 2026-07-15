@@ -4,6 +4,7 @@ import * as sinon from 'sinon';
 import { Buffer } from 'buffer';
 import _ from 'lodash';
 import { brandingConfigurationDefaults } from '../../src/config/brandingConfigurationDefaults.config';
+import { createDefaultBinding, type DoiProfile } from '../../src/configmodels/DoiPublishing';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 describe('DoiService', function() {
@@ -13,7 +14,67 @@ describe('DoiService', function() {
   let originalEnv: NodeJS.ProcessEnv;
   let axios: typeof import('axios');
   let axiosGetStub: sinon.SinonStub;
-  const baseDoiPublishing = _.cloneDeep(brandingConfigurationDefaults.doiPublishing)!;
+  const testDoiProfile: DoiProfile = {
+    enabled: true,
+    label: 'Data Publication',
+    metadata: {
+      prefix: createDefaultBinding('', '10.1234'),
+      url: {
+        kind: 'jsonata',
+        expression: `'https://redboxresearchdata.com.au/published/' & oid`
+      },
+      publicationYear: {
+        kind: 'jsonata',
+        expression: `record.metadata.citation_publication_date ? $substring(record.metadata.citation_publication_date, 0, 4) : $substring(now, 0, 4)`
+      },
+      publisher: createDefaultBinding('record.metadata.citation_publisher'),
+      creators: [
+        {
+          sourcePath: 'metadata.creators',
+          itemMode: 'array',
+          name: {
+            kind: 'jsonata',
+            expression: `item.text_full_name ? item.text_full_name : item.family_name & ', ' & item.given_name`
+          },
+          nameType: createDefaultBinding('', 'Personal'),
+          givenName: createDefaultBinding('item.given_name'),
+          familyName: createDefaultBinding('item.family_name')
+        }
+      ],
+      titles: [
+        {
+          title: createDefaultBinding('record.metadata.citation_title')
+        }
+      ],
+      types: {
+        resourceTypeGeneral: createDefaultBinding('', 'Dataset'),
+        resourceType: createDefaultBinding('', 'Dataset')
+      }
+    },
+    writeBack: {
+      citationUrlPath: 'metadata.citation_url',
+      citationDoiPath: 'metadata.citation_doi',
+      generatedCitationPath: 'metadata.citation_generated',
+      citationString: {
+        kind: 'jsonata',
+        expression: `record.metadata.citation_title & ". " & record.metadata.citation_publisher & ". https://doi.org/" & record.metadata.citation_doi`
+      }
+    },
+    validation: {
+      requireUrl: true,
+      requirePublisher: true,
+      requirePublicationYear: true,
+      requireCreators: true,
+      requireTitles: false
+    }
+  };
+  const baseDoiPublishing = {
+    ..._.cloneDeep(brandingConfigurationDefaults.doiPublishing)!,
+    defaultProfile: 'dataPublication',
+    profiles: {
+      dataPublication: testDoiProfile
+    }
+  };
 
   function withBrand<T extends Record<string, unknown>>(record: T): T & { metaMetadata: { brandId: string } } {
     return {
@@ -44,19 +105,7 @@ describe('DoiService', function() {
               username: 'user',
               password: 'pwd'
             },
-            profiles: {
-              ..._.cloneDeep(baseDoiPublishing.profiles),
-              dataPublication: {
-                ..._.cloneDeep(baseDoiPublishing.profiles.dataPublication),
-                metadata: {
-                  ..._.cloneDeep(baseDoiPublishing.profiles.dataPublication.metadata),
-                  prefix: {
-                    ..._.cloneDeep(baseDoiPublishing.profiles.dataPublication.metadata.prefix),
-                    defaultValue: '10.1234'
-                  }
-                }
-              }
-            }
+            profiles: _.cloneDeep(baseDoiPublishing.profiles)
           }
         }
       }
@@ -189,6 +238,9 @@ describe('DoiService', function() {
     });
 
     it('should include the partial DOI request body in failure audits when payload validation fails', async function() {
+      // Required-field validation only runs for findable ('publish') events, and the
+      // require* flags default to off, so enable the title check explicitly here.
+      mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication.validation.requireTitles = true;
       const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
@@ -199,7 +251,7 @@ describe('DoiService', function() {
 
       let thrown: unknown;
       try {
-        await service.publishDoi('oid1', record, 'draft');
+        await service.publishDoi('oid1', record, 'publish');
       } catch (error) {
         thrown = error;
       }
@@ -208,7 +260,7 @@ describe('DoiService', function() {
       expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.be.false;
       expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
       const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
-      expect(auditDetails.requestSummary.event).to.equal('draft');
+      expect(auditDetails.requestSummary.event).to.equal('publish');
       expect(auditDetails.requestSummary.action).to.equal('create');
       expect(auditDetails.requestSummary.requestBody.data.type).to.equal('dois');
       expect(auditDetails.requestSummary.requestBody.data.attributes.publisher).to.equal('My Publisher');

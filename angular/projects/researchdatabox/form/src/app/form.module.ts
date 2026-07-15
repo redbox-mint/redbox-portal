@@ -20,7 +20,7 @@ import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
-import { I18NextPipe, RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { I18NextPipe, RedboxPortalCoreModule, trimLastSlashFromUrl, RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -37,6 +37,7 @@ import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
+import { IntegrationStatusComponent } from './component/integration-status.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -76,6 +77,7 @@ import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component
 import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
 import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
 import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
+import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,
@@ -95,6 +97,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     GroupFieldComponent,
     SaveButtonComponent,
     SaveStatusComponent,
+    IntegrationStatusComponent,
     CancelButtonComponent,
     DeleteButtonComponent,
     TabNavButtonComponent,
@@ -125,6 +128,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     FormDebugConfigTabComponent,
     FormDebugEventsTabComponent,
     ConfirmationDialogComponent,
+    RecordAuditLauncherComponent,
   ],
   imports: [
     CommonModule,
@@ -137,6 +141,7 @@ import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.
     BsDatepickerModule.forRoot(),
     TypeaheadModule.forRoot(),
     A11yModule,
+    RecordAuditModule,
   ],
   providers: [
     {

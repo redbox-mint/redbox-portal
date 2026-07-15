@@ -1,5 +1,5 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
-import { ZodTypeAny } from 'zod';
+import { ZodType } from 'zod';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
 import { ApiResponseDefinition, ApiRouteDefinition } from './types';
@@ -154,7 +154,7 @@ function createSchemaConverter() {
   let schemaIndex = 0;
 
   return {
-    toOpenApiSchema(schema: ZodTypeAny): Record<string, unknown> {
+    toOpenApiSchema(schema: ZodType): Record<string, unknown> {
       const registry = new OpenAPIRegistry();
       const path = `/__redbox_schema_conversion/${schemaIndex++}`;
       registry.registerPath({
@@ -186,23 +186,23 @@ function createSchemaConverter() {
 
 function buildParameters(
   route: ApiRouteDefinition,
-  toOpenApiSchema: (schema: ZodTypeAny) => Record<string, unknown>
+  toOpenApiSchema: (schema: ZodType) => Record<string, unknown>
 ): Record<string, unknown>[] {
   const params: Record<string, unknown>[] = [];
   const wildcardPathParameterNames = getWildcardPathParameterNames(route.path);
-  const getObjectSchema = (schema: ZodTypeAny): ZodTypeAny | undefined => {
+  const getObjectSchema = (schema: ZodType): ZodType | undefined => {
     if (isZodObjectSchema(schema)) {
       return schema;
     }
     if (isOptionalSchema(schema)) {
-      const innerSchema = (schema as unknown as { unwrap: () => ZodTypeAny }).unwrap();
+      const innerSchema = (schema as unknown as { unwrap: () => ZodType }).unwrap();
       if (isZodObjectSchema(innerSchema)) {
         return innerSchema;
       }
     }
     return undefined;
   };
-  const addParameters = (location: 'path' | 'query' | 'header', schema?: ZodTypeAny) => {
+  const addParameters = (location: 'path' | 'query' | 'header', schema?: ZodType) => {
     const properties = getObjectSchemaShape(schema);
     if (!properties) {
       return;
@@ -235,7 +235,7 @@ function buildParameters(
 
 function buildResponses(
   route: ApiRouteDefinition,
-  toOpenApiSchema: (schema: ZodTypeAny) => Record<string, unknown>
+  toOpenApiSchema: (schema: ZodType) => Record<string, unknown>
 ): Record<string, unknown> {
   const responses: Record<string, unknown> = {};
   const routeResponses = route.responses ?? { 200: { description: 'Success' } };
@@ -276,7 +276,7 @@ function buildResponses(
 
 function buildRequestBody(
   route: ApiRouteDefinition,
-  toOpenApiSchema: (schema: ZodTypeAny) => Record<string, unknown>
+  toOpenApiSchema: (schema: ZodType) => Record<string, unknown>
 ): Record<string, unknown> | undefined {
   const body = route.request?.body;
   if (!body) {

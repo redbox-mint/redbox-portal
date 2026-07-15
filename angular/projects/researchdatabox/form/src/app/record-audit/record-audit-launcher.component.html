@@ -1,0 +1,49 @@
+@if (canView() && oid()) {
+  @if (isOpen()) {
+    <div
+      class="modal fade show d-block rb-form-modal-overlay rb-audit-modal-overlay"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="recordAuditModalTitle"
+      (keydown.escape)="close()"
+      (click.self)="close()"
+    >
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+          <div class="modal-header">
+            <h5 id="recordAuditModalTitle" class="modal-title">{{ '@record-audit-page-title' | i18next }}</h5>
+            <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
+          </div>
+          <div class="modal-body rb-audit-modal-body">
+            <record-audit
+              [oid]="oid()"
+              [branding]="branding()"
+              [portal]="portal()"
+              [isAdmin]="isAdmin()"
+            />
+          </div>
+          <div class="modal-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-primary" (click)="openStandalonePage()">
+              <i class="fa-solid fa-external-link-alt"></i>
+              {{ '@record-audit-launcher-open-standalone' | i18next }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="close()">
+              {{ '@record-audit-modal-close' | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <button
+      type="button"
+      class="rb-form-audit-launch rb-form-audit-launch--side btn btn-sm btn-info"
+      (click)="open()"
+      title="{{ '@record-audit-launcher-title' | i18next }}"
+    >
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      {{ '@record-audit-launcher-label' | i18next }}
+    </button>
+  }
+}

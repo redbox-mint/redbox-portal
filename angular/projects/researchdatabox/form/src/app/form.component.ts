@@ -237,6 +237,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   componentsLoaded = signal<boolean>(false);
   public readonly debugState = inject(FormDebugStateService);
+
+  readonly viewAuditRoles = signal<string[]>(['Admin', 'Librarians']);
   // Backward-compatible aliases for existing tests and callers.
   debugFormComponents = this.debugState.debugFormComponents;
   debugFormValues = this.debugState.debugFormValues;
@@ -379,6 +381,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     try {
       this.refreshRequestParamsFromUrl();
       this.configObj = await this.configService.getConfig();
+      const viewAuditRolesVal = this.configObj?.['viewAuditRoles'];
+      if (Array.isArray(viewAuditRolesVal) && viewAuditRolesVal.every(v => typeof v === 'string')) {
+        this.viewAuditRoles.set(viewAuditRolesVal);
+      }
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
       } else {

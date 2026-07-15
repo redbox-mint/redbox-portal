@@ -6873,11 +6873,13 @@ button.close {
     margin-left: auto
 }
 
-/* Keep the Angular form loader consistent with the server-rendered loading.svg size. */
+/* Keep loading.svg constrained before embedded Angular apps replace fallback markup. */
+img[src$="/images/loading.svg"],
+img[src$="images/loading.svg"],
 .rb-form-loading__spinner {
     width: 120px !important;
     height: 120px !important;
-    max-width: none !important;
+    max-width: 120px !important;
 }
 
 .pull-right {

@@ -19,6 +19,7 @@ import {
   parseNavMappings,
   parseRoutes,
 } from './cli-parsers';
+import {registerSyncTranslationCommand} from "./commands/sync-translation";
 import {registerUpdateLintRulesCommand} from "./commands/lint";
 
 const program = new Command();
@@ -127,6 +128,7 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+registerSyncTranslationCommand(program);
 
 registerUpdateLintRulesCommand(program);
 

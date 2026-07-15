@@ -1,4 +1,4 @@
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { RecordModel } from './model';
 import { StorageServiceResponse } from './StorageServiceResponse';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './RecordsService';

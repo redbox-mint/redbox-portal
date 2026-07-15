@@ -115,12 +115,10 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
   readonly bindingKinds: BindingKind[] = ['path', 'handlebars', 'jsonata'];
   private bindingValue: ValueBindingValue = { kind: 'path', path: '' };
   collapsed = true;
-  showAdvanced = false;
 
   ngOnInit(): void {
     this.bindingValue = this.normaliseValue(this.resolveCurrentValue());
     this.syncValue(this.bindingValue);
-    this.showAdvanced = this.kind !== 'path';
     this.collapsed = true;
   }
 
@@ -169,17 +167,12 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     this.collapsed = !this.collapsed;
   }
 
-  toggleAdvanced(): void {
-    this.showAdvanced = !this.showAdvanced;
-  }
-
   updateField(key: string, value: unknown): void {
     const nextValue = { ...this.value, [key]: value };
     if (key === 'kind') {
       delete nextValue.path;
       delete nextValue.template;
       delete nextValue.expression;
-      this.showAdvanced = value !== 'path';
     }
     this.bindingValue = this.normaliseValue(nextValue);
     this.syncValue(this.bindingValue, true);

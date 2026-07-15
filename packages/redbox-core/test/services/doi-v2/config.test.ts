@@ -59,7 +59,7 @@ describe('doi-v2 config', function () {
 
     expect(config).to.not.equal(null);
     expect(config?.enabled).to.equal(true);
-    expect(config?.defaultProfile).to.equal('dataPublication');
+    expect(config?.defaultProfile).to.equal('');
     expect(config?.connection.password).to.equal('pwd');
   });
 

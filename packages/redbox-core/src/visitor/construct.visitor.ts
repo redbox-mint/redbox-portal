@@ -221,6 +221,7 @@ import {
   TypeaheadInputFieldModelDefinitionFrame,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputPermissiveFieldComponentConfigOutline,
   TypeaheadInputModelName,
 } from '@researchdatabox/sails-ng-common';
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
@@ -333,6 +334,13 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
+  IntegrationStatusComponentName,
+  IntegrationStatusFieldComponentDefinitionFrame,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
@@ -785,6 +793,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(currentData, IntegrationStatusComponentName)) {
+      throw new Error(
+        `Invalid ${IntegrationStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new IntegrationStatusFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('integrationNames', item.config, config);
+    this.sharedProps.setPropOverride('pollIntervalMs', item.config, config);
+    this.sharedProps.setPropOverride('maxPollAttempts', item.config, config);
+    this.sharedProps.setPropOverride('heading', item.config, config);
+    this.sharedProps.setPropOverride('technicalDetailRoles', item.config, config);
+    this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
   /* Group */
 
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
@@ -1181,6 +1216,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
@@ -1908,60 +1945,63 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
     const config = currentData?.config;
 
-    item.config = new TypeaheadInputFieldComponentConfig();
-    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    const itemConfig: TypeaheadInputPermissiveFieldComponentConfigOutline = new TypeaheadInputFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(itemConfig, config);
 
-    this.sharedProps.setPropOverride('sourceType', item.config, config);
-    this.sharedProps.setPropOverride('staticOptions', item.config, config);
-    this.sharedProps.setPropOverride('vocabRef', item.config, config);
-    this.sharedProps.setPropOverride('queryId', item.config, config);
-    this.sharedProps.setPropOverride('serviceId', item.config, config);
-    this.sharedProps.setPropOverride('provider', item.config, config);
-    this.sharedProps.setPropOverride('resultArrayProperty', item.config, config);
-    this.sharedProps.setPropOverride('labelField', item.config, config);
-    this.sharedProps.setPropOverride('labelTemplate', item.config, config);
-    this.sharedProps.setPropOverride('valueField', item.config, config);
-    this.sharedProps.setPropOverride('minChars', item.config, config);
-    this.sharedProps.setPropOverride('debounceMs', item.config, config);
-    this.sharedProps.setPropOverride('maxResults', item.config, config);
-    this.sharedProps.setPropOverride('requireSelection', item.config, config);
-    this.sharedProps.setPropOverride('valueMode', item.config, config);
-    this.sharedProps.setPropOverride('cacheResults', item.config, config);
-    this.sharedProps.setPropOverride('multiSelect', item.config, config);
-    this.sharedProps.setPropOverride('placeholder', item.config, config);
-    this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, config);
-    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
+    this.sharedProps.setPropOverride('sourceType', itemConfig, config);
+    this.sharedProps.setPropOverride('staticOptions', itemConfig, config);
+    this.sharedProps.setPropOverride('vocabRef', itemConfig, config);
+    this.sharedProps.setPropOverride('queryId', itemConfig, config);
+    this.sharedProps.setPropOverride('serviceId', itemConfig, config);
+    this.sharedProps.setPropOverride('provider', itemConfig, config);
+    this.sharedProps.setPropOverride('resultArrayProperty', itemConfig, config);
+    this.sharedProps.setPropOverride('labelField', itemConfig, config);
+    this.sharedProps.setPropOverride('labelTemplate', itemConfig, config);
+    this.sharedProps.setPropOverride('valueField', itemConfig, config);
+    this.sharedProps.setPropOverride('minChars', itemConfig, config);
+    this.sharedProps.setPropOverride('debounceMs', itemConfig, config);
+    this.sharedProps.setPropOverride('maxResults', itemConfig, config);
+    this.sharedProps.setPropOverride('requireSelection', itemConfig, config);
+    this.sharedProps.setPropOverride('valueMode', itemConfig, config);
+    // Required for configured optionObject storage such as dc_title/grant_number.
+    this.sharedProps.setPropOverride('optionObjectFields', itemConfig, config);
+    this.sharedProps.setPropOverride('cacheResults', itemConfig, config);
+    this.sharedProps.setPropOverride('multiSelect', itemConfig, config);
+    this.sharedProps.setPropOverride('placeholder', itemConfig, config);
+    this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', itemConfig, config);
 
-    const sourceType = String(item.config.sourceType ?? 'static');
+    const sourceType = String(itemConfig.sourceType ?? 'static');
     if (sourceType === 'namedQuery' || sourceType === 'service') {
-      if (!item.config.labelField) {
-        item.config.labelField = 'label';
+      if (!itemConfig.labelField) {
+        itemConfig.labelField = 'label';
       }
-      if (!item.config.valueField) {
-        item.config.valueField = 'value';
+      if (!itemConfig.valueField) {
+        itemConfig.valueField = 'value';
       }
       if (config?.cacheResults === undefined) {
-        item.config.cacheResults = false;
+        itemConfig.cacheResults = false;
       }
     } else if (config?.cacheResults === undefined) {
-      item.config.cacheResults = true;
+      itemConfig.cacheResults = true;
     }
 
-    const minChars = Number(item.config.minChars);
-    const debounceMs = Number(item.config.debounceMs);
-    const maxResults = Number(item.config.maxResults);
+    const minChars = Number(itemConfig.minChars);
+    const debounceMs = Number(itemConfig.debounceMs);
+    const maxResults = Number(itemConfig.maxResults);
     if (!Number.isInteger(minChars) || minChars < 0) {
-      item.config.minChars = 2;
+      itemConfig.minChars = 2;
     }
     if (!Number.isInteger(debounceMs) || debounceMs < 0) {
-      item.config.debounceMs = 250;
+      itemConfig.debounceMs = 250;
     }
     if (!Number.isInteger(maxResults) || maxResults <= 0) {
-      item.config.maxResults = 25;
+      itemConfig.maxResults = 25;
     }
 
-    item.config.requireSelection = Boolean(item.config.requireSelection);
-    item.config.multiSelect = Boolean(item.config.multiSelect);
+    itemConfig.requireSelection = Boolean(itemConfig.requireSelection);
+    itemConfig.multiSelect = Boolean(itemConfig.multiSelect);
+    item.config = itemConfig;
   }
 
   async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
@@ -2436,7 +2476,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   private sanitizeMapEnabledModes(rawModes: unknown, source: 'construct' | 'migrate'): MapDrawingMode[] {
-    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'];
     if (!Array.isArray(rawModes)) {
       return fallback;
     }
@@ -2448,6 +2488,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         mode === 'polygon' ||
         mode === 'linestring' ||
         mode === 'rectangle' ||
+        mode === 'circle' ||
         mode === 'select'
       ) {
         validModes.push(mode);

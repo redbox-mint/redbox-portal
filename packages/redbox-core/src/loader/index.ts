@@ -1,11 +1,12 @@
 import { promises as fs } from 'fs';
 import fsSync from 'fs';
-import Handlebars from 'handlebars';
 import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
+import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import type { RedboxMigration } from './MigrationRunner';
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type { RedboxMigration } from './MigrationRunner';
 
@@ -115,6 +116,78 @@ export interface GenerateAllShimsSuccessResult {
 
 export type GenerateAllShimsResult = GenerateAllShimsSkippedResult | GenerateAllShimsSuccessResult;
 
+type RedboxConfigMap = Record<string, unknown>;
+
+function normalizeAgendaJobsConfig(jobs: unknown): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    const normalized: RedboxConfigMap = {};
+    if (Array.isArray(jobs)) {
+        for (const job of jobs) {
+            if (!_.isPlainObject(job)) {
+                continue;
+            }
+            const jobRecord = job as RedboxConfigMap;
+            const jobName = String(jobRecord.name ?? '').trim();
+            if (jobName === '') {
+                continue;
+            }
+            const { name: _name, ...jobConfig } = jobRecord;
+            normalized[jobName] = jobConfig;
+        }
+        return normalized;
+    }
+    if (_.isPlainObject(jobs)) {
+        for (const [jobName, jobConfig] of Object.entries(jobs as RedboxConfigMap)) {
+            if (!_.isPlainObject(jobConfig)) {
+                continue;
+            }
+            const { name: _name, ...jobRecord } = jobConfig as RedboxConfigMap;
+            normalized[jobName] = jobRecord;
+        }
+    }
+    return normalized;
+}
+
+function mergeAgendaQueueConfig(...configs: RedboxConfigMap[]): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    const mergedConfig = _.merge(
+        {},
+        ...configs.map(config => {
+            const { jobs: _jobs, ...rest } = config as RedboxConfigMap & { jobs?: unknown };
+            return rest;
+        })
+    ) as RedboxConfigMap;
+    const jobsByName: RedboxConfigMap = {};
+
+    for (const config of configs) {
+        const jobs = normalizeAgendaJobsConfig((config as { jobs?: unknown }).jobs);
+        for (const [jobName, jobConfig] of Object.entries(jobs)) {
+            jobsByName[jobName] = _.merge({}, jobsByName[jobName] ?? {}, jobConfig);
+        }
+    }
+
+    return {
+        ...mergedConfig,
+        jobs: jobsByName,
+    };
+}
+
+export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    if (name === 'agendaQueue') {
+        return mergeAgendaQueueConfig(...configs);
+    }
+    if (name === 'brandingConfigurationDefaults') {
+        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
+            if (Array.isArray(srcValue)) {
+                return srcValue;
+            }
+            return undefined;
+        }) as RedboxConfigMap;
+    }
+    return _.merge({}, ...configs) as RedboxConfigMap;
+}
+
 type CoreTypesRegistry = {
     WaterlineModels: Record<string, unknown>;
     Policies: Record<string, unknown>;
@@ -157,7 +230,7 @@ async function readLoaderTemplate(templateName: string): Promise<string> {
 }
 
 async function renderLoaderTemplate(templateName: string, replacements: Record<string, string>): Promise<string> {
-    const template = Handlebars.compile(await readLoaderTemplate(templateName), { noEscape: true });
+    const template = handlebarsCompile(await readLoaderTemplate(templateName), { noEscape: true });
     return template(replacements);
 }
 
@@ -249,50 +322,17 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
     const hookWebserviceControllers: Record<string, HookControllerRegistration> = {};
     const hookFormConfigs: Record<string, HookModuleRegistration> = {};
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hooks', message);
-        return {
-            hookModels,
-            hookPolicies,
-            hookBootstraps,
-            hookMigrations,
-            hookApiRoutes,
-            hookServices,
-            hookControllers,
-            hookWebserviceControllers,
-            hookFormConfigs,
-        };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as {
+            const depPackageJson = { sails: hookPackage.sails } as {
                 sails?: {
                     hasModels?: boolean;
                     hasPolicies?: boolean;
@@ -890,40 +930,17 @@ export async function generateFormConfigShims(
 export async function findAndRegisterHookConfigs(appPath: string): Promise<HookConfigRegistrations> {
     const hookConfigs: HookConfigRegistration[] = [];
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hook configs', message);
-        return { hookConfigs };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as { sails?: { hasConfig?: boolean } };
+            const depPackageJson = { sails: hookPackage.sails } as { sails?: { hasConfig?: boolean } };
 
             if (depPackageJson.sails?.hasConfig === true) {
                 log.verbose(`Found hook with config: ${depName}`);
@@ -972,10 +989,11 @@ export async function generateConfigShims(
                 return `${varName}['${name}'] || {}`;
             });
 
+            const mergeArgs = [`Config.${name} || {}`, ...hookMerges];
             const mergeStatement =
-                hookMerges.length > 0 ? `_.merge({}, Config.${name} || {}, ${hookMerges.join(', ')})` : `Config.${name}`;
+                hookMerges.length > 0 ? `mergeRedboxConfig('${name}', ${mergeArgs.join(', ')})` : `Config.${name}`;
 
-            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (alphabetical order)\n * Debug view: see support/debug-config/resolved.js\n */\nconst _ = require('lodash');\nconst { Config } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
+            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (root hookLoadPriority precedence; unlisted hooks use package-name fallback)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
             const written = await writeFileIfChanged(filePath, content);
             if (written) {
                 generated++;
@@ -1035,7 +1053,10 @@ export async function generatePreLiftSnapshot(appPath: string, hookConfigs: Hook
             const hookModule = require(hook.module) as { registerRedboxConfig?: () => Record<string, unknown> };
             if (typeof hookModule.registerRedboxConfig === 'function') {
                 const hookConfig = hookModule.registerRedboxConfig();
-                mergedConfig = _.merge(mergedConfig, hookConfig);
+                mergedConfig = Object.keys(hookConfig).reduce((config, name) => {
+                    config[name] = mergeRedboxConfig(name, config[name] as RedboxConfigMap ?? {}, hookConfig[name] as RedboxConfigMap ?? {});
+                    return config;
+                }, mergedConfig as RedboxConfigMap);
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);

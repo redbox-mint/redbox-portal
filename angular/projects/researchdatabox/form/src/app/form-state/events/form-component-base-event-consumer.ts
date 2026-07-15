@@ -108,7 +108,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return undefined;
     }
     try {
-      this.compiledItemsCache = await this.formComp.getFormCompiledItems();
+      // Use the record's current workflow-stage form (oid-aware) so expression keys match
+      // the rendered form. Workflow-stage forms can differ structurally from the starting-step
+      // form, which otherwise yields "Unknown key" errors when evaluating expressions.
+      this.compiledItemsCache = await this.formComp.getRecordCompiledItems();
       return this.compiledItemsCache;
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error getting compiled items.`, error);

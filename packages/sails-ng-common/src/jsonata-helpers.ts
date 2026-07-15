@@ -1,6 +1,8 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
 import {decodeBase64, encodeBase64} from "./html-helpers";
+import {normaliseVisual} from "./config/names/naming-helpers";
+import {guessNameParts} from "./translation-helpers";
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
@@ -13,7 +15,11 @@ export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
  * @param format The format to use.
  * @param sourceFormat The optional format of the value, if known.
  */
-export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: unknown): string {
+export function luxonFormatDate(
+  value: undefined | null | string | number | Date,
+  format: undefined | null | string,
+  sourceFormat?: null | string
+): string {
   if (value === undefined || value === null || value === '') {
     return '';
   }
@@ -48,6 +54,7 @@ export function luxonFormatDate(value: unknown, format: unknown, sourceFormat?: 
  * @param expression The jsonata expression string.
  */
 export function jsonataExpressionEncode(expression: string): string {
+  expression = normaliseVisual(expression);
   return encodeBase64(expression);
 }
 
@@ -74,13 +81,28 @@ export function jsonataDecodeCompile(expressionEncoded: string, options?: jsonat
  * @return compiled JSONata expression object
  */
 export function jsonataCompile(expression: string, options?: jsonata.JsonataOptions): jsonata.Expression {
+  expression = normaliseVisual(expression);
   const compiled = jsonata(expression, options);
+
+  // Register jsonata functions.
+  // The function signatures are used on purpose to restrict the arguments,
+  // so invalid input types are clear instead of hidden.
+  // Callers of the jsonata helper functions must be prepared for possible parse errors and input type errors.
 
   // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
   compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
 
   // Register a function for formatting date time values.
-  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snd)(sn)s?:s>');
+  // First param 'value': string, number, null, object (to allow Date)
+  // Second param 'format': string, null
+  // Third param 'sourceFormat': string, null, optional
+  // Return type: string
+  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
+
+  // Register a function for guessing name parts.
+  // First param 'value': string, null
+  // Return type: object
+  compiled.registerFunction('guessNameParts', guessNameParts, '<(sl):o>');
 
   // TODO: consider registering a function for translations
   // TODO: consider replacing regex with google's re2?

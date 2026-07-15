@@ -6,6 +6,7 @@ import {
 import { GroupTypes } from './component/group.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
 import { SaveStatusTypes } from './component/save-status.outline';
+import { IntegrationStatusTypes } from './component/integration-status.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
 import { SimpleInputTypes} from './component/simple-input.outline';
@@ -63,6 +64,7 @@ export type AllTypes =
   | GroupTypes
   | SaveButtonTypes
   | SaveStatusTypes
+  | IntegrationStatusTypes
   | CancelButtonTypes
   | DeleteButtonTypes
   | TabNavButtonTypes

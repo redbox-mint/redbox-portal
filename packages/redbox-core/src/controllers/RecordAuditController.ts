@@ -2,10 +2,10 @@ import { Controllers as controllers } from '../CoreController';
 import { RecordsService } from '../RecordsService';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { FormAttributes } from '../waterline-models';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
 import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
+import type { IntegrationStatusRecordContext } from '../services/IntegrationAuditService';
 
 type AnyRecord = Record<string, unknown>;
 type AuditPath = Array<string | number>;
@@ -14,23 +14,6 @@ type FormRecordConsistencyChange = {
   path: AuditPath;
   original: unknown;
   changed: unknown;
-};
-type IntegrationAuditLogResult = {
-  rows: Array<{
-    id: string;
-    traceId: string;
-    status: string;
-    startedAt: string;
-    completedAt?: string;
-    durationMs?: number;
-    triggeredBy?: string;
-    integrationName?: string;
-    actions: string[];
-    eventCount: number;
-    rootSpanId?: string;
-    events: Array<Record<string, unknown>>;
-  }>;
-  total: number;
 };
 type AuditFieldChange = FormRecordConsistencyChange & {
   pathText: string;
@@ -41,23 +24,6 @@ type AuditFieldChange = FormRecordConsistencyChange & {
 
 const VALID_INTEGRATION_AUDIT_STATUSES = new Set<string>(Object.values(IntegrationAuditStatus));
 
-declare const BrandingService: {
-  getBrand(branding: string): BrandingModel;
-  getDefault(): BrandingModel;
-};
-declare const FormsService: {
-  getFormByName(formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null>;
-};
-declare const FormRecordConsistencyService: {
-  compareRecords(original: unknown, changed: unknown, path?: AuditPath): FormRecordConsistencyChange[];
-};
-declare const IntegrationAuditService: {
-  getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult>;
-};
-declare const TranslationService: {
-  t(key: string): string;
-};
-
 export namespace Controllers {
   export class RecordAudit extends controllers.Core.Controller {
     protected recordsService!: RecordsService;
@@ -67,6 +33,7 @@ export namespace Controllers {
       'getAuditData',
       'getPermissionsData',
       'getIntegrationAuditData',
+      'getIntegrationStatusData',
       'init',
     ];
 
@@ -488,6 +455,66 @@ export namespace Controllers {
           status: 500,
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to load record permissions.' }],
+        });
+      }
+    }
+
+    private hasEditAccess(brand: BrandingModel, user: AnyRecord | undefined, record: AnyRecord): Observable<boolean> {
+      const currentUser = user ?? {};
+      return of(this.recordsService.hasEditAccess(brand, currentUser, (currentUser['roles'] ?? []) as AnyRecord[], record));
+    }
+
+    public async getIntegrationStatusData(req: Sails.Req, res: Sails.Res) {
+      const oid = String(req.param('oid') ?? '').trim();
+      if (_.isEmpty(oid)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+      }
+
+      try {
+        const brand = this.getReqBrand(req);
+        const record = await this.getRecordOrSendNotFound(req, res, oid);
+        if (record == null) {
+          return;
+        }
+
+        const hasView = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        if (!hasView) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ code: 'view-error-no-permissions' }],
+            v1: { message: TranslationService.t('view-error-no-permissions') },
+          });
+        }
+
+        const integrationName = String(req.param('integrationName') ?? '').trim();
+        const params = new IntegrationAuditParams();
+        params.oid = oid;
+        if (!_.isEmpty(integrationName)) {
+          params.integrationName = integrationName;
+        }
+
+        const brandConfig = sails.config.brandingAware(brand.name);
+        const citationDoiPath = String(_.get(brandConfig, 'doiPublishing.writeBack.citationDoiPath') ?? 'metadata.citation_doi');
+
+        // Build record context for outcome derivation.
+        const recordContext: IntegrationStatusRecordContext = {
+          citationDoi: (() => {
+            const val = _.get(record, citationDoiPath);
+            return typeof val === 'string' && val.trim() ? val.trim() : undefined;
+          })(),
+          workflowStage: (() => {
+            const val = _.get(record, 'workflow.stage');
+            return typeof val === 'string' && val.trim() ? val.trim() : undefined;
+          })(),
+        };
+
+        const integrations = await IntegrationAuditService.getStatusSummaryWithOutcomes(params, recordContext);
+        return this.sendResp(req, res, { data: { integrations } });
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load integration status data.' }],
         });
       }
     }

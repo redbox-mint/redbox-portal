@@ -3,6 +3,7 @@ import { FigshareRunContext } from './types';
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const API_KEY_PATTERN = /^(sk_live_|sk_test_)[A-Za-z0-9]+$/;
+const URI_CREDENTIAL_PATTERN = /\/\/[^:\s]+:[^@\s]+@/;
 
 export function redactSecret(value: unknown): unknown {
   if (typeof value !== 'string') {
@@ -13,7 +14,8 @@ export function redactSecret(value: unknown): unknown {
   if (
     /^Bearer\s+/i.test(trimmed) ||
     JWT_PATTERN.test(trimmed) ||
-    API_KEY_PATTERN.test(trimmed)
+    API_KEY_PATTERN.test(trimmed) ||
+    URI_CREDENTIAL_PATTERN.test(trimmed)
   ) {
     return 'REDACTED';
   }
