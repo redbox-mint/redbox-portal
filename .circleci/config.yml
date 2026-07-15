@@ -134,7 +134,7 @@ jobs:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
   test-bruno-general:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -199,7 +199,7 @@ jobs:
             - ~/.npm
   test-bruno-oidc:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -252,7 +252,7 @@ jobs:
             - ~/.npm
   test-bruno-s3:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -305,7 +305,7 @@ jobs:
             - ~/.npm
   test-playwright:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -352,7 +352,7 @@ jobs:
             - ~/.npm
   test-mocha:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -408,7 +408,7 @@ jobs:
       angular_app:
         type: string
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -447,7 +447,7 @@ jobs:
             - ~/.npm
   test-sails-ng-common:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -482,7 +482,7 @@ jobs:
           path: packages/sails-ng-common/support/junit
   test-redbox-core:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -544,7 +544,7 @@ jobs:
             - ~/.npm
   test-redbox-dev-tools-cli:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     steps:
       - checkout
@@ -664,7 +664,7 @@ jobs:
             npm run lint
   # test-sails-hook-redbox-storage-mongo:
   #   machine:
-  #     image: ubuntu-2204:current
+  #     image: ubuntu-2404:current
   #   resource_class: medium
   #   environment:
   #     BUILDKIT_PROGRESS: 'plain'
@@ -798,7 +798,7 @@ jobs:
           command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime ""
   publish-runtime-arm64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -819,7 +819,7 @@ jobs:
           command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime_pdfgen "-pdfgen"
   publish-runtime-pdfgen-arm64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -855,7 +855,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
   deploy-arm64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -865,7 +865,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
   deploy-runtime-pdfgen-arm64:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -893,7 +893,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
   generate-docs:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     steps:
       - add_ssh_keys:
           fingerprints:

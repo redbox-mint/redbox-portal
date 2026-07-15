@@ -1,8 +1,6 @@
 {
   "@name-test1": {
-    "category": "name",
-    "description": "Name for test 1.",
-    "contentFormat": "plain"
+    "description": "Name for test 1."
   },
   "@name-test3": {
     "description": "Name for test 3."
