@@ -23,6 +23,7 @@ describe('Webservice IntegrationAuditController', () => {
       log: {
         error: sinon.stub(),
         verbose: sinon.stub(),
+        warn: sinon.stub(),
       },
     };
     (global as any).IntegrationAuditService = {

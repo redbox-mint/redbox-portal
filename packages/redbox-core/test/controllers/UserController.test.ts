@@ -25,7 +25,7 @@ describe('UserController', () => {
                 http: { rootContext: '' },
                 appUrl: 'http://localhost'
             },
-            log: { debug: sinon.stub(), verbose: sinon.stub(), error: sinon.stub() }
+            log: { debug: sinon.stub(), verbose: sinon.stub(), error: sinon.stub(), warn: sinon.stub() }
         };
 
         (global as any).sails = mockSails;

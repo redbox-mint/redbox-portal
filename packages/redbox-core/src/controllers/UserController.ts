@@ -164,6 +164,7 @@ export namespace Controllers {
 
     public info(req: Sails.Req, res: Sails.Res) {
       const user = req.user!;
+      this.updateChronicle(req, {userInfoSuccess: true, ...this.extractUserDetailsForChronicle(user)});
       delete user.token;
       return res.json({
         user: user
@@ -171,6 +172,7 @@ export namespace Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
@@ -178,7 +180,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           data: { status: false, message: "No current user session. Please login." },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingSession: true, userId: req.user?.id},
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingSession: true},
         });
       }
 
@@ -186,7 +188,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           data: { status: false, message: "Error: unable to get user ID." },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingUserId: true, userId: req.user?.id},
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingUserId: true},
         });
       }
 
@@ -196,7 +198,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           data: { status: false, message: "Error: user details not specified" },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingDetails: true, userId: userid},
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingDetails: true},
         });
       }
 
@@ -209,27 +211,28 @@ export namespace Controllers {
           this.sendResp(req, res, {
             data: {status: true, message: "Profile updated successfully."},
             headers: this.getNoCacheHeaders(),
-            chronicle: {userDetailsUpdateSuccess: true, userId: userid}
+            chronicle: {userDetailsUpdateSuccess: true}
           });
         }, error => {
           this.sendResp(req, res, {
             data: {status: false, message: (error as Error).message},
             headers: this.getNoCacheHeaders(),
             errors: [error],
-            chronicle: {userDetailsUpdateSuccess: false, userId: userid},
+            chronicle: {userDetailsUpdateSuccess: false},
           });
         });
       } else {
         return this.sendResp(req, res, {
           data: { status: false, message: "Error: name must not be null" },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingName: true, userId: userid},
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingName: true},
         });
       }
       return;
     }
 
     public generateUserKey(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
@@ -237,7 +240,7 @@ export namespace Controllers {
         this.sendResp(req, res, {
           data: { status: false, message: "No current user session. Please login." },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userKeyUpdateSuccess: false, userKeyUpdateUserId: userid, userChangeRequestMissingSession: true},
+          chronicle: {userKeyUpdateSuccess: false, userChangeRequestMissingSession: true},
         });
       }
 
@@ -247,27 +250,28 @@ export namespace Controllers {
           this.sendResp(req, res, {
             data: { status: true, message: uuid },
             headers: this.getNoCacheHeaders(),
-            chronicle: {userKeyUpdateSuccess: true, userKeyUpdateUserId: userid}
+            chronicle: {userKeyUpdateSuccess: true}
           });
         }, error => {
           this.sendResp(req, res, {
             data: { status: false, message: (error as Error).message },
             headers: this.getNoCacheHeaders(),
             errors: [error],
-            chronicle: {userKeyUpdateSuccess: false, userKeyUpdateUserId: userid},
+            chronicle: {userKeyUpdateSuccess: false},
           });
         });
       } else {
         return this.sendResp(req, res, {
           data: { status: false, message: "Error: unable to get user ID." },
           headers: this.getNoCacheHeaders(),
-          chronicle: {userKeyUpdateSuccess: false, userKeyUpdateUserId: userid, userChangeRequestMissingUserId: true},
+          chronicle: {userKeyUpdateSuccess: false, userChangeRequestMissingUserId: true},
         });
       }
       return;
     }
 
     public revokeUserKey(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
@@ -342,9 +346,7 @@ export namespace Controllers {
           }
 
           // login success
-          that.updateChronicle(req, {
-            userLoginSuccess: true, userLoginIsAjax: isAjax, ...that.extractUserDetailsForChronicle(user)
-          });
+          that.updateChronicle(req, {userLoginSuccess: true, userLoginIsAjax: isAjax});
 
           // redir if api header call is not found
           if (isAjax) {
@@ -453,9 +455,7 @@ export namespace Controllers {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
-          that.updateChronicle(req, {
-            userLoginSuccess: true, ...that.extractUserDetailsForChronicle(user)
-          });
+          that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
@@ -634,9 +634,7 @@ export namespace Controllers {
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
-          that.updateChronicle(req, {
-            userLoginSuccess: true, ...that.extractUserDetailsForChronicle(user)
-          });
+          that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
@@ -658,8 +656,7 @@ export namespace Controllers {
         this.sendResp(req, res, {
           data: userArr,
           headers: this.getNoCacheHeaders(),
-          chronicle: {userFindSource: searchSource, userFindName: searchName,
-            userFindMatches: users.map(user => this.extractUserDetailsForChronicle(user))},
+          chronicle: {userFindSource: searchSource, userFindName: searchName},
         });
       }, error => {
         this.sendResp(req, res, {
