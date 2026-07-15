@@ -19,7 +19,7 @@ rm /opt/junit/backend-bruno/backend-bruno-general.xml || true
 
 # Run bruno tests
 node_modules/.bin/bru run \
-  --disable-cookies --env int-test --format junit --bail \
+  --disable-cookies --env int-test --sandbox developer --format junit --bail \
   --output /opt/junit/backend-bruno/backend-bruno-general.xml
 
 status=$?
