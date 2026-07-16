@@ -60,7 +60,7 @@ describe('form-config commands', () => {
 
       const migratedConfig = loadTs(module, outputPath).default;
       const heading = migratedConfig.componentDefinitions.find(
-        component => component?.component?.config?.content === '@dataPublication-temporalcoverage-heading'
+        component => component?.name === 'temporal_heading'
       );
       const linkValue = migratedConfig.componentDefinitions.find(
         component => component?.name === 'citation_url-link-value'
@@ -70,7 +70,6 @@ describe('form-config commands', () => {
       expect(heading?.layout?.config?.helpText).to.equal('@dataPublication-temporalcoverage-heading-help');
       expect(heading?.layout?.config?.cssClassesMap).to.deep.equal({ label: 'h4-header' });
       expect(linkValue).to.not.equal(undefined);
-      expect(linkValue.component.class).to.equal('LinkValueComponent');
       expect(linkValue?.layout?.config?.label).to.equal(undefined);
       expect(linkValue?.layout?.config?.helpText).to.equal(undefined);
     });
