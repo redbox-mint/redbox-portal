@@ -1,8 +1,7 @@
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, consoleLogger } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { TemplateFormConfigVisitor } from '../../src/visitor/template.visitor';
 import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
-import { logger } from './helpers';
 
 let expect!: Chai.ExpectStatic;
 
@@ -67,16 +66,16 @@ describe('Form behaviour visitors', () => {
   } as FormConfigFrame & { behaviours: unknown[] };
 
   it('construct visitor preserves behaviours on form config', async () => {
-    const visitor = new ConstructFormConfigVisitor(logger);
+    const visitor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await visitor.start({ data: formConfig, formMode: 'edit' });
 
     expect((constructed as any).behaviours).to.deep.equal(formConfig.behaviours);
   });
 
   it('template visitor extracts compiled behaviour templates', async () => {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
-    const visitor = new TemplateFormConfigVisitor(logger);
+    const visitor = new TemplateFormConfigVisitor(consoleLogger);
 
     const actual = await visitor.start({ form: constructed });
 
@@ -110,9 +109,9 @@ describe('Form behaviour visitors', () => {
   });
 
   it('client visitor strips behaviour template source and sets flags', async () => {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
-    const visitor = new ClientFormConfigVisitor(logger);
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
 
     const actual = await visitor.start({ form: constructed });
     const behaviour = (actual as any).behaviours?.[0];

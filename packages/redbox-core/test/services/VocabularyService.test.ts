@@ -5,17 +5,12 @@ import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 import type { VocabularyAttributes } from '../../src/waterline-models';
+import { ILogger } from "@researchdatabox/sails-ng-common";
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
-type StubbedLogger = {
-  error: (...args: unknown[]) => void;
-  verbose: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
-};
-
 type StubbedSails = {
-  log: StubbedLogger;
+  log: Partial<ILogger>;
   config: {
     auth: { defaultBrand: string };
     bootstrap?: { bootstrapDataPath?: string };

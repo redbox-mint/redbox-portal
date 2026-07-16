@@ -3,53 +3,83 @@
  * (sails.config.log)
  *
  * Configure the log level for your app, as well as the transport.
+ *
  * Using pino for namespace logging and different formats to different transports.
  */
 
 import * as _ from 'lodash';
 const pino = require('pino');
-import type { Logger, LoggerOptions, DestinationStream } from 'pino';
-import { ILogger } from '../Logger';
+import type {Logger, LoggerOptions, DestinationStream, LevelWithSilent} from 'pino';
+import {availableLogLevels, AvailableLogLevels, ILogger, isLogger} from '@researchdatabox/sails-ng-common';
+import {isPlainObject as _isPlainObject} from "lodash-es";
 
 // Declare global sails type for namespace logger
 declare const sails: Sails.Application;
 
-export type SailsLogLevel = 'silly' | 'verbose' | 'trace' | 'debug' | 'log' | 'info' | 'warn' | 'error' | 'crit' | 'fatal' | 'silent' | 'blank';
+const pinoLevels: LevelWithSilent[] = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
 
-// Helper to ensure the logger satisfies ILogger interface
-function asILogger(logger: Logger): ILogger {
-    const iLogger = logger as unknown as ILogger;
-    // Add missing blank method if it doesn't exist (pino doesn't support 'blank' level natively)
-    if (!iLogger.blank) {
-        iLogger.blank = iLogger.silent;
-    }
-    return iLogger;
-}
+type CustomLevels = Exclude<AvailableLogLevels, LevelWithSilent>;
+const customLevels = availableLogLevels.filter(i => !(pinoLevels as readonly string[]).includes(i));
+type CustomLogLevelValues = Record<CustomLevels, number>;
+
+const customLevelMap: CustomLogLevelValues = {
+  // silent: ,
+  blank: 69,
+  // fatal: 60,
+  crit: 59,
+  emerg: 58,
+  // error: 50,
+  alert: 49,
+  // warn: 40,
+  warning: 39,
+  // info: 30,
+  log: 29,
+  notice: 28,
+  // debug: 20,
+  verbose: 19,
+  silly:18,
+  // trace: 10,
+};
+
 
 export interface LogConfig {
     custom: ILogger; // Use ILogger instead of custom interface
     inspect: boolean;
-    level: SailsLogLevel;
+    level: AvailableLogLevels;
     customLogger: ILogger;
-    createNamespaceLogger: (name: string, parentLogger: ILogger, prefix?: string, level?: string) => ILogger;
-    createPinoLogger: (level?: string, destination?: DestinationStream) => ILogger;
+    createNamespaceLogger: typeof createNamespaceLogger;
+    createPinoLogger: typeof createPinoLogger;
     lognamespace: Record<string, string>;
+}
+
+export function isPinoLogger(value: unknown): value is Logger {
+  if (value === undefined || value === null || typeof value !== 'object') {
+    return false;
+  }
+  if (!('level' in value) || typeof value.level !== 'string' || !availableLogLevels.some(i => i === value.level)) {
+    return false;
+  }
+  if (!('customLevels' in value) || value.customLevels === null || typeof value.customLevels !== 'object' || !_isPlainObject(value.customLevels)) {
+    return false;
+  }
+  if (!('child' in value) || typeof value.child !== 'function') {
+    return false;
+  }
+  if (!Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))) {
+    return false;
+  }
+  return true;
 }
 
 /**
  * Create a pino logger, using an optional log level and an optional destination.
  */
-function createPinoLogger(level?: string, destination?: DestinationStream): ILogger {
+function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationStream): ILogger & Logger {
     const options: LoggerOptions = {
         formatters: {
             level: (label: string) => ({ level: label })
         },
-        customLevels: {
-            silly: 5,
-            verbose: 9,
-            log: 29,
-            crit: 59,
-        },
+        customLevels: customLevelMap,
         level: level ?? 'verbose',
         hooks: {
             logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void) {
@@ -85,59 +115,53 @@ function createPinoLogger(level?: string, destination?: DestinationStream): ILog
         logger = pino(options);
     }
 
-    return asILogger(logger);
+    if (!isLogger(logger)){
+      throw new Error(`Pino logger does not have all the log level functions expected.`);
+    }
+    return logger;
 }
 
 /**
  * Create a namespaced logger using the pino 'childlogger' feature.
  */
-function createNamespaceLogger(name: string, parentLogger: ILogger, prefix?: string, level?: string): ILogger {
-    if (!name) {
-        throw new Error('Must provide a logger name.');
-    }
+function createNamespaceLogger(name: string, parentLogger: ILogger, prefix?: string, level?: AvailableLogLevels): ILogger & Logger {
+  if (!name) {
+    throw new Error('Must provide a logger name.');
+  }
+  if (!isPinoLogger(parentLogger)) {
+    throw new Error(`Expected parentLogger to be a pino logger, but got ${parentLogger}`);
+  }
 
-    let calcLevel: string | null = level ?? null;
-    if (!calcLevel && typeof sails !== 'undefined') {
-        calcLevel = sails.config.lognamespace[name] ?? calcLevel;
-    }
+  let calcLevel: string | null = level ?? null;
+  if (!calcLevel && typeof sails !== 'undefined') {
+    calcLevel = sails.config.lognamespace[name] ?? calcLevel;
+  }
 
-    const bindings = { name: name };
-    const options: Record<string, unknown> = {};
+  const bindings = {name: name};
+  const options: Record<string, unknown> = {};
 
-    if (calcLevel !== null) {
-        options['level'] = calcLevel;
-    }
-    if (prefix) {
-        options['msgPrefix'] = prefix;
-    }
+  if (calcLevel !== null) {
+    options['level'] = calcLevel;
+  }
+  if (prefix) {
+    options['msgPrefix'] = prefix;
+  }
 
-    // parentLogger is ILogger but underlying is pino. Need to cast to pino Logger to call child()
-    // However, ILogger methods are compatible.
-    // Typescript might complain if we treat ILogger as pino Logger directly if ILogger is missing pino specific methods.
-    // But since we created it via createPinoLogger, it IS a pino logger.
-    const pinoParent = parentLogger as unknown as Logger;
-    const newLogger = pinoParent.child(bindings, options);
+  const namespaceLogger = parentLogger.child(bindings, options);
 
-    return asILogger(newLogger);
+  if (!isLogger(namespaceLogger)){
+    throw new Error(`Pino namespace logger does not have the expected log level functions.`);
+  }
+  return namespaceLogger;
 }
 
 const customLogger = createPinoLogger();
 
+// TODO: use a singleton class that creates the pino logger only when accessed,
+//       so the pino logger can use the sails config to get the log level when the logger is created
+
 export const log: LogConfig = {
-    custom: {
-        silly: function silly(...args: unknown[]) { customLogger.silly(...args); },
-        verbose: function verbose(...args: unknown[]) { customLogger.verbose(...args); },
-        trace: function trace(...args: unknown[]) { customLogger.trace(...args); },
-        debug: function debug(...args: unknown[]) { customLogger.debug(...args); },
-        log: function log(...args: unknown[]) { customLogger.log(...args); },
-        info: function info(...args: unknown[]) { customLogger.info(...args); },
-        warn: function warn(...args: unknown[]) { customLogger.warn(...args); },
-        error: function error(...args: unknown[]) { customLogger.error(...args); },
-        crit: function crit(...args: unknown[]) { customLogger.crit(...args); },
-        fatal: function fatal(...args: unknown[]) { customLogger.fatal(...args); },
-        silent: function silent(...args: unknown[]) { customLogger.silent(...args); },
-        blank: function blank(...args: unknown[]) { customLogger.silent(...args); },
-    },
+    custom: customLogger,
     inspect: false,
     level: 'verbose',
     customLogger: customLogger,

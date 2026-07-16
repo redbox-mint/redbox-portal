@@ -7,7 +7,7 @@ import {
 import {AvailableFormComponentDefinitionFrames} from "../dictionary.outline";
 import {ReusableFormComponentDefinitionFrame} from "./reusable.outline";
 import {LineagePaths} from "../names/naming-helpers";
-import {ILogger} from "../../logger.interface";
+import {ILogger} from "../../logger.model";
 import {guessType} from "../helpers";
 
 export class QuestionTreeHelper {

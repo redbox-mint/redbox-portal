@@ -1,4 +1,3 @@
-import type { ILogger } from '../Logger';
 import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFormComponentDefinitionOutline,
@@ -23,7 +22,8 @@ import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
   TabFieldComponentDefinitionOutline,
-  TabFormComponentDefinitionOutline
+  TabFormComponentDefinitionOutline,
+  ILogger
 } from '@researchdatabox/sails-ng-common';
 import { VocabularyEntryAttributes } from '../waterline-models';
 

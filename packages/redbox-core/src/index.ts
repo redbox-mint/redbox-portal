@@ -75,11 +75,6 @@ export type {
 }
     from "./services/IntegrationAuditService";
 export * from './model/storage/HarvestRunModel';
-export {
-    ILogger
-}
-    from "./Logger";
-
 export * from './model';
 export * from './decorator';
 export * from './decorators';

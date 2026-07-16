@@ -1,5 +1,6 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
 import { FigshareRunContext } from './types';
+import {isAvailableLogLevel} from "@researchdatabox/sails-ng-common/src";
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const API_KEY_PATTERN = /^(sk_live_|sk_test_)[A-Za-z0-9]+$/;
@@ -75,12 +76,26 @@ export function withSpan<T>(name: string, runContext: FigshareRunContext, attrib
 }
 
 export function logEvent(level: string, message: string, runContext: FigshareRunContext, payload: unknown = {}): void {
-  const logger = sails.log[level] || sails.log.info;
-  logger({
-    recordOid: runContext.recordOid,
-    brandName: runContext.brandName,
-    correlationId: runContext.correlationId,
-    triggerSource: runContext.triggerSource,
-    payload: redactObject(payload)
-  }, message);
+  const log = sails.log;
+  if (!isAvailableLogLevel(level)) {
+    log.warn(`Unknown log level '${level}' in logEvent, using 'info' instead.`);
+    level = 'info';
+  }
+
+  const args = [
+    {
+      recordOid: runContext.recordOid,
+      brandName: runContext.brandName,
+      correlationId: runContext.correlationId,
+      triggerSource: runContext.triggerSource,
+      payload: redactObject(payload)
+    },
+    message,
+  ];
+
+  if (isAvailableLogLevel(level)) {
+    if (level in log && typeof log[level] === 'function') {
+      log[level](...args);
+    }
+  }
 }

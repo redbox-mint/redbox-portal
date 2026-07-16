@@ -1,7 +1,6 @@
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import path from 'path';
-import {consoleLogger, ILogger} from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
@@ -14,9 +13,7 @@ import {
   ErrorResponseItemV2,
 } from "./model";
 import {RequestChronicleHelper} from "./utilities/RequestChronicle";
-
-
-
+import {CoreBase} from "./CoreBase";
 
 
 export namespace Controllers.Core {
@@ -38,19 +35,13 @@ export namespace Controllers.Core {
    * The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
    * They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.
    */
-  export class Controller {
-
+  export class Controller extends CoreBase {
     /**
      * Overrides for the settings in `config/controllers.js`
      * (specific to the controller where it's defined)
      * Specific to sails. Don't rename.
      */
     protected _config: Record<string, unknown> = {};
-
-    /**
-     * Exported methods. Must be overridden by the child to add custom methods.
-     */
-    protected _exportedMethods: string[] = [];
 
     /**
      * Theme used by the controller by default.
@@ -77,82 +68,7 @@ export namespace Controllers.Core {
       '_config',
     ];
 
-    // Namespaced logger for controllers
-    private _logger: ILogger | null = null;
-
-    private getFallbackLogger(): ILogger {
-      return consoleLogger;
-    }
-
-    /**
-     * Get a namespaced logger for this controller class.
-     * Uses the class constructor name as the namespace.
-     * Falls back to sails.log if pino namespaced logging is not available.
-     */
-    protected get logger(): ILogger {
-      if (typeof sails === 'undefined') {
-        return this.getFallbackLogger();
-      }
-      if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
-        const controllerName = this.constructor.name + 'Controller';
-        this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
-      }
-      if (this._logger !== null) {
-        return this._logger;
-      }
-      const sailsLogger = sails?.log as Partial<ILogger> | undefined;
-      if (sailsLogger && typeof sailsLogger.verbose === 'function') {
-        return sailsLogger as ILogger;
-      }
-      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this.getFallbackLogger();
-    }
-
-    /**
-     * Registers a Sails hook handler if Sails is available.
-     */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-      if (typeof sails === 'undefined') {
-        return false;
-      }
-      if (action === 'on') {
-        if (typeof sails.on !== 'function') {
-          return false;
-        }
-        sails.on(eventName as string, handler);
-        return true;
-      }
-      if (typeof sails.after !== 'function') {
-        return false;
-      }
-      sails.after(eventName, handler);
-      return true;
-    }
-
-    constructor() {
-      this.processDynamicImports().then(() => {
-        this.logger.verbose("Dynamic imports imported");
-        this.onDynamicImportsCompleted();
-      });
-    }
-
-    /**
-     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
-     * Called in the constructor and intended to be overridden in sub class to allow imports.
-     */
-    protected async processDynamicImports() {
-      // Override in sub class as needed
-    }
-
-    /**
-     * Function that is called during the construction of the Controller after the dynamic imports are completed.
-     * Intended to be overridden in the sub class
-     */
-    protected onDynamicImportsCompleted() {
-      // Override in sub class as needed
-    }
+    protected _loggerNamespaceSuffix: string = "Controller";
 
     /**
      **************************************************************************************************

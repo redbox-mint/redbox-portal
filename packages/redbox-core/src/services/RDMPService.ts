@@ -122,18 +122,18 @@ export namespace Services {
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
-      sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${recordData.metaMetadata.brandId}`);
-      sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
-      sails.log[processRecordCountersLogLevel](options);
+      this.logAtLevel(processRecordCountersLogLevel, `processRecordCounters - brandId: ${recordData.metaMetadata.brandId}`);
+      this.logAtLevel(processRecordCountersLogLevel,'processRecordCounters - options:');
+      this.logAtLevel(processRecordCountersLogLevel, options);
       // get the counters
       for (const counter of optionsData.counters ?? []) {
         const counterData = counter as { field_name?: string; strategy?: string; source_field?: string };
-        sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counterData.strategy}`);
+        this.logAtLevel(processRecordCountersLogLevel,`processRecordCounters - counter.strategy: ${counterData.strategy}`);
 
         if (counterData.strategy == "global") {
 
-          sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
-          sails.log[processRecordCountersLogLevel](counter);
+          this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - before - counter:');
+          this.logAtLevel(processRecordCountersLogLevel, counter);
 
           const promiseCounter = await firstValueFrom(this.getObservable<Array<{ id?: string | number; value: number }>>(Counter.findOrCreate({
             name: counterData.field_name,
@@ -145,17 +145,17 @@ export namespace Services {
           })));
 
           if (_.isEmpty(promiseCounter)) {
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter isEmpty');
-            sails.log[processRecordCountersLogLevel](promiseCounter);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - promiseCounter isEmpty');
+            this.logAtLevel(processRecordCountersLogLevel, promiseCounter);
 
           } else {
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter:');
-            sails.log[processRecordCountersLogLevel](promiseCounter);
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - after - counter:');
-            sails.log[processRecordCountersLogLevel](counter);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - promiseCounter:');
+            this.logAtLevel(processRecordCountersLogLevel, promiseCounter);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - after - counter:');
+            this.logAtLevel(processRecordCountersLogLevel, counter);
             const newVal = promiseCounter[0].value + 1;
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - newVal:');
-            sails.log[processRecordCountersLogLevel](newVal);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - newVal:');
+            this.logAtLevel(processRecordCountersLogLevel, newVal);
 
             //increment counter to get new value for the record's field associated to the counter
             this.incrementCounter(recordData, counterData, newVal);
@@ -166,23 +166,23 @@ export namespace Services {
             }, {
               value: newVal
             })));
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - updateOnePromise:');
-            sails.log[processRecordCountersLogLevel](updateOnePromise);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - updateOnePromise:');
+            this.logAtLevel(processRecordCountersLogLevel, updateOnePromise);
           }
 
         } else if (counterData.strategy == "field") {
-          sails.log[processRecordCountersLogLevel]('processRecordCounters - field - enter');
+          this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - field - enter');
           let srcVal = (recordData.metadata ?? {})[counterData.field_name ?? ''];
           if (!_.isEmpty(counterData.source_field)) {
             srcVal = (recordData.metadata ?? {})[counterData.source_field ?? ''];
           }
           const newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal) + 1;
-          sails.log[processRecordCountersLogLevel](`processRecordCounters - field - newVal: ${newVal}`);
+          this.logAtLevel(processRecordCountersLogLevel, `processRecordCounters - field - newVal: ${newVal}`);
           this.incrementCounter(recordData, counterData, newVal);
         }
       }
 
-      sails.log[processRecordCountersLogLevel]('processRecordCounters - end');
+      this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - end');
       return record;
     }
 
@@ -201,12 +201,12 @@ export namespace Services {
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
-      sails.log[processRecordCountersLogLevel]('incrementCounter - enter');
+      this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - enter');
 
       if (!_.isEmpty(counterData.template)) {
-        sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
-        sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
-        sails.log[processRecordCountersLogLevel](counter);
+        this.logAtLevel(processRecordCountersLogLevel, `incrementCounter - newVal: ${newVal}`);
+        this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - counter:');
+        this.logAtLevel(processRecordCountersLogLevel, counter);
         const templateData = _.extend({ newVal: newVal }, counterData);
         const templateImportData = {
           imports: {
@@ -221,7 +221,7 @@ export namespace Services {
         newVal = (counterData.template as (data: unknown) => unknown)(templateData);
       }
       const recVal = `${TranslationService.t(counterData.prefix ?? '')}${newVal}`;
-      sails.log[processRecordCountersLogLevel](`incrementCounter - recVal: ${recVal}`);
+      this.logAtLevel(processRecordCountersLogLevel, `incrementCounter - recVal: ${recVal}`);
       const fieldName = counterData.field_name ?? '';
       if (fieldName) {
         _.set(metadata, fieldName, recVal);
@@ -232,10 +232,10 @@ export namespace Services {
         const arrayVal = _.get(record, arrayPath, []) as unknown[];
         arrayVal.push(recVal);
         _.set(record, arrayPath, arrayVal);
-        sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:');
-        sails.log[processRecordCountersLogLevel](arrayVal);
+        this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - arrayVal:');
+        this.logAtLevel(processRecordCountersLogLevel, arrayVal);
       }
-      sails.log[processRecordCountersLogLevel]('incrementCounter - end');
+      this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - end');
     }
 
     public checkTotalSizeOfFilesInRecord(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
@@ -250,8 +250,8 @@ export namespace Services {
           sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
         }
         const dataLocations = _.get(record, 'metadata.dataLocations', []) as AnyRecord[];
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
-        sails.log[functionLogLevel](dataLocations);
+        this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - dataLocations');
+        this.logAtLevel(functionLogLevel, dataLocations);
         if (Array.isArray(dataLocations)) {
           let foundAttachment = false;
 
@@ -263,18 +263,18 @@ export namespace Services {
             }
           }
 
-          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
+          this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
           if (foundAttachment) {
             let totalSizeOfFilesInRecord = 0;
             for (const attachmentFile of dataLocations) {
               const attachmentObj = attachmentFile as AnyRecord;
-              sails.log[functionLogLevel](attachmentObj);
+              this.logAtLevel(functionLogLevel, attachmentObj);
               if (!_.isUndefined(attachmentObj.size)) {
                 totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentObj.size);
               }
             }
 
-            sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
+            this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
             const maxUploadSize = sails.config.record.maxUploadSize;
             if (totalSizeOfFilesInRecord > maxUploadSize) {
 
@@ -303,7 +303,7 @@ export namespace Services {
           }
         }
 
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+        this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - end');
       }
       return record;
     }

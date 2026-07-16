@@ -1,25 +1,12 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import type { ILogger } from '../../src/Logger';
+import type { FormConfigFrame} from '@researchdatabox/sails-ng-common';
+import { consoleLogger as testLogger } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { ContextVariablesFormConfigVisitor } from '../../src/visitor/context-variables.visitor';
 
 describe('ContextVariablesFormConfigVisitor', () => {
-  const logger: ILogger = {
-    silly: () => undefined,
-    verbose: () => undefined,
-    trace: () => undefined,
-    debug: () => undefined,
-    log: () => undefined,
-    info: () => undefined,
-    warn: () => undefined,
-    error: () => undefined,
-    crit: () => undefined,
-    fatal: () => undefined,
-    silent: () => undefined,
-    blank: () => undefined,
-  };
+
 
   it('replaces tokens only in scoped fields and supports overlapping keys', async () => {
     const input: FormConfigFrame = {
@@ -105,10 +92,10 @@ describe('ContextVariablesFormConfigVisitor', () => {
       ]
     };
 
-    const constructor = new ConstructFormConfigVisitor(logger as any);
+    const constructor = new ConstructFormConfigVisitor(testLogger);
     const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-    const visitor = new ContextVariablesFormConfigVisitor(logger);
+    const visitor = new ContextVariablesFormConfigVisitor(testLogger);
     await visitor.applyContextVariables(constructed, { '@user': 'U', '@user_name': 'User Name', '@user_email': 'user@example.com' });
 
     const content = constructed.componentDefinitions?.[0]?.component?.config as { content?: string };

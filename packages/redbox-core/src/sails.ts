@@ -8,6 +8,7 @@ import {RequestChronicleHelper} from "./utilities/RequestChronicle";
 // passport import type is to be able to access 'Express.AuthenticatedRequest' from '@types/passport'.
 // oxlint-disable-next-line eslint/no-unused-vars
 import type * as passportType from 'passport';
+import {ILogger} from "@researchdatabox/sails-ng-common";
 
 
 // Augment express-session to include Sails-specific session properties
@@ -45,23 +46,6 @@ declare global {
       [key: string]: unknown;
     }
 
-    // Log interface based on https://github.com/balderdashy/captains-log
-    export interface Log {
-      crit: (...args: unknown[]) => void;
-      error: (...args: unknown[]) => void;
-      warn: (...args: unknown[]) => void;
-      debug: (...args: unknown[]) => void;
-      info: (...args: unknown[]) => void;
-      verbose: (...args: unknown[]) => void;
-      silly: (...args: unknown[]) => void;
-      blank: (...args: unknown[]) => void;
-      trace: (...args: unknown[]) => void;
-      log: (...args: unknown[]) => void;
-      fatal: (...args: unknown[]) => void;
-      silent: (...args: unknown[]) => void;
-      [key: string]: (...args: unknown[]) => void;
-    }
-
     // Represents a dynamically-loaded Sails service with callable methods
     export interface DynamicService {
       [method: string]: (...args: unknown[]) => unknown;
@@ -69,7 +53,7 @@ declare global {
 
     export interface Application {
       config: ConfigObject;
-      log: Log;
+      log: ILogger;
       services: {
         [key: string]: DynamicService;
       };

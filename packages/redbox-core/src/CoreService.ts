@@ -4,17 +4,13 @@ import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
-import { ILogger } from './Logger';
+import {CoreBase} from "./CoreBase";
 
 // Type alias for query objects used with RxJS bindings
 type QueryObject = object;
 
 export namespace Services.Core {
-  export class Service {
-    /**
-     * Exported methods. Must be overridden by the child to add custom methods.
-     */
-    protected _exportedMethods: string[] = [];
+  export class Service extends CoreBase {
     /**
      * Default exported methods.
      * These methods will be accessible.
@@ -27,70 +23,8 @@ export namespace Services.Core {
 
     protected logHeader: string = '';
 
-    // Namespaced logger for services
-    private _logger: ILogger | null = null;
+    protected _loggerNamespaceSuffix: string = "Service";
 
-    /**
-     * Get a namespaced logger for this service class.
-     * Uses the class constructor name as the namespace.
-     * Falls back to sails.log if pino namespaced logging is not available.
-     */
-    protected get logger(): ILogger {
-      if (typeof sails !== 'undefined' && this._logger === null && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
-        const serviceName = this.constructor.name + 'Service';
-        this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
-      }
-      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      if (this._logger !== null) {
-        return this._logger;
-      }
-      
-      if (typeof sails !== 'undefined' && sails.log) {
-        return sails.log as unknown as ILogger;
-      }
-
-      // Fallback logger for when sails is not defined (e.g. during shim generation)
-      return {
-        crit: console.error,
-        error: console.error,
-        warn: console.warn,
-        debug: console.debug,
-        info: console.info,
-        verbose: console.log,
-        silly: console.log,
-        blank: console.log,
-        trace: console.trace,
-        log: console.log,
-        fatal: console.error,
-        silent: () => {}
-      };
-    }
-
-    /**
-     * Registers a Sails hook handler if Sails is available.
-     */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-      if (typeof sails === 'undefined') {
-        console.warn(`Sails is undefined so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-        return false;
-      }
-      if (action === 'on') {
-        if (typeof sails.on !== 'function') {
-          console.warn(`Sails.on is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-          return false;
-        }
-        sails.on(eventName as string, handler);
-        return true;
-      }
-      if (typeof sails.after !== 'function') {
-        console.warn(`Sails.after is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-        return false;
-      }
-      sails.after(eventName, handler);
-      return true;
-    }
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
     * @param q The query object with an exec or similar method
@@ -112,28 +46,7 @@ export namespace Services.Core {
       this.getObservable(q).subscribe(successFn, errorFn);
     }
 
-    constructor() {
-      this.processDynamicImports().then(() => {
-        this.logger.verbose("Dynamic imports imported");
-        this.onDynamicImportsCompleted();
-      });
-    }
 
-    /**
-     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
-     * Called in the constructor and intended to be overridden in sub class to allow imports.
-     */
-    protected async processDynamicImports() {
-      // Override in sub class as needed
-    }
-
-    /**
-     * Function that is called during the construction of the Controller after the dynamic imports are completed.
-     * Intended to be overridden in the sub class
-     */
-    protected onDynamicImportsCompleted() {
-      // Override in sub class as needed
-    }
 
     /**
      * Initialization method called during bootstrap for services that need to register

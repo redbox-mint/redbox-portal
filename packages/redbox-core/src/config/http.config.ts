@@ -20,7 +20,7 @@ import * as PathRulesServiceModule from '../services/PathRulesService';
 import { resolveHookAssetFile } from '../hooks/hookResources';
 import {requestChronicle} from "../middleware/requestChronicle";
 import {RequestChronicleHelper} from "../utilities/RequestChronicle";
-import {consoleLogger} from "../Logger";
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
 
 // Declare Sails and its config structure
 declare const sails: Sails.Application;

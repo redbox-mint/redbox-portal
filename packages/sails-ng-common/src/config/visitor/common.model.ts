@@ -1,4 +1,4 @@
-import { ILogger } from '../../logger.interface';
+import { ILogger } from '../../logger.model';
 import { FieldLayoutConfigFrame } from '../field-layout.outline';
 import { FieldComponentConfigFrame } from '../field-component.outline';
 import { FieldModelConfigFrame } from '../field-model.outline';
