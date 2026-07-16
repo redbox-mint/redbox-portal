@@ -311,9 +311,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         phase: 'client',
         reusableFormDefs: this.reusableFormDefs,
       }) as AvailableFormComponentDefinitionOutlines;
-      if (transformed?.component?.class !== className) {
-        this.processFormComponentDefinition(transformed);
-      }
+      this.processFormComponentDefinition(transformed);
       this.applyPostPruningTransformsToNestedChildren(transformed);
       if ('constraints' in transformed) {
         delete transformed['constraints'];
@@ -405,7 +403,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         (typeof etViewOverride?.template === 'string' && etViewOverride.template.trim().length > 0) ||
         etViewOverride?.component !== undefined
       );
-      const etShouldTransform = etHasExplicitTransform && this.formOverride.hasDefaultViewTransform(etClassName);
+      const etShouldTransform = etHasExplicitTransform;
       if (etShouldTransform) {
         const transformed = this.formOverride.applyOverrideTransform(et, this.formMode, {
           phase: 'client',

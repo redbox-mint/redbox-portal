@@ -749,6 +749,82 @@ describe("Client Visitor", async () => {
       expect(stringifiedDefinitions).to.not.contain("formModeClasses");
     });
 
+    it("should apply an explicit element view override without a default transform", async function () {
+      const data = buildData("entries", undefined, {constraints: {allowModes: ["view"]}});
+      const repeatable = data.componentDefinitions[0];
+      const elementTemplate = (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate;
+      elementTemplate.constraints = {allowModes: ["view"]};
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record: {entries: recordRows},
+      });
+      const constructedElement = (
+        constructed.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
+      ).elementTemplate;
+      (constructedElement.component as {class: string}).class = "CustomElementComponent";
+      constructedElement.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = await visitor.start({
+        form: constructed,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+      const actualElement = (
+        actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
+      ).elementTemplate;
+
+      expect(actualElement.component.class).to.equal("ContentComponent");
+      expect(JSON.stringify(actualElement)).to.not.contain("overrides");
+    });
+
+    it("should post-process expressions on an identity view override", async function () {
+      const data: FormConfigFrame = {
+        name: "identity-view-override",
+        componentDefinitions: [
+          {
+            name: "details",
+            constraints: {allowModes: ["view"]},
+            overrides: {formModeClasses: {view: {component: "GroupComponent"}}},
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "title",
+                    component: {class: "SimpleInputComponent", config: {}},
+                    model: {class: "SimpleInputModel", config: {}},
+                  },
+                ],
+              },
+            },
+            model: {class: "GroupModel", config: {}},
+            expressions: [
+              {
+                name: "details-expression",
+                config: {
+                  template: "true",
+                  conditionKind: "jsonpointer",
+                  condition: "/source::field.value.changed",
+                  target: "field.visible",
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const actual = await constructAndVisit(data, {});
+      const expression = actual.componentDefinitions[0].expressions?.[0];
+
+      expect(expression?.config.hasTemplate).to.equal(true);
+      expect(JSON.stringify(actual.componentDefinitions[0])).to.not.contain("overrides");
+    });
+
     it("should retain replaceName row data and template references inside grouped repeatable templates", async function () {
       const rows = [
         {displayTitle: "Renamed first title"},
