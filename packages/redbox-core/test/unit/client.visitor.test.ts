@@ -754,6 +754,7 @@ describe("Client Visitor", async () => {
       const repeatable = data.componentDefinitions[0];
       const elementTemplate = (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate;
       elementTemplate.constraints = {allowModes: ["view"]};
+      elementTemplate.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
 
       const constructor = new ConstructFormConfigVisitor(logger);
       const constructed = await constructor.start({
@@ -765,10 +766,13 @@ describe("Client Visitor", async () => {
       const constructedElement = (
         constructed.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
       ).elementTemplate;
-      (constructedElement.component as {class: string}).class = "CustomElementComponent";
-      constructedElement.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
+      expect(constructedElement.component.class).to.equal("GroupComponent");
 
       const visitor = new ClientFormConfigVisitor(logger);
+      const formOverride = (
+        visitor as unknown as {formOverride: {defaultTransforms: Record<string, unknown>}}
+      ).formOverride;
+      delete formOverride.defaultTransforms.GroupComponent;
       const actual = await visitor.start({
         form: constructed,
         formMode: "view",
