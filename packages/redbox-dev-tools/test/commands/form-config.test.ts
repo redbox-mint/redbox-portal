@@ -55,7 +55,7 @@ describe('form-config commands', () => {
       expect(fs.existsSync(outputPath)).to.be.true;
       const content = fs.readFileSync(outputPath, 'utf8');
       expect(content).to.contain("import { FormConfigFrame } from '@researchdatabox/sails-ng-common';");
-      expect(content).to.contain('const formConfig = ');
+      expect(content).to.contain('const formConfig: FormConfigFrame = ');
       expect(content).to.contain('export default formConfig;');
 
       const migratedConfig = loadTs(module, outputPath).default;
@@ -69,6 +69,8 @@ describe('form-config commands', () => {
       expect(heading?.layout?.config?.label).to.equal('@dataPublication-temporalcoverage-heading');
       expect(heading?.layout?.config?.helpText).to.equal('@dataPublication-temporalcoverage-heading-help');
       expect(heading?.layout?.config?.cssClassesMap).to.deep.equal({ label: 'h4-header' });
+      expect(linkValue).to.not.equal(undefined);
+      expect(linkValue.component.class).to.equal('LinkValueComponent');
       expect(linkValue?.layout?.config?.label).to.equal(undefined);
       expect(linkValue?.layout?.config?.helpText).to.equal(undefined);
     });

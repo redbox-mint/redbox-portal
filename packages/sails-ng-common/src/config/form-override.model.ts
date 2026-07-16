@@ -496,10 +496,11 @@ export class FormOverride {
       !shouldForceViewTransform &&
       this.hasExplicitAllowedMode(original?.constraints, 'view');
 
+    const hasExplicitTemplate = typeof transforms.template === 'string' && transforms.template.trim().length > 0;
     if (
       originalComponentClassName in this.defaultTransforms &&
       !deferViewModeContentFlatteningAtConstruct &&
-      !skipAutomaticViewTransform
+      (!skipAutomaticViewTransform || hasExplicitTemplate)
     ) {
       const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
       if (formMode in defaultTransform) {
@@ -550,6 +551,7 @@ export class FormOverride {
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
     if (
+      formMode === 'view' &&
       hasTransform &&
       result?.component?.class === ContentComponentName &&
       typeof transforms.template === 'string' &&
@@ -1203,6 +1205,54 @@ export class FormOverride {
     return values;
   }
 
+  private pruneGroupValue(
+    value: unknown,
+    componentDefinitions: AllFormComponentDefinitionOutlines[]
+  ): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || this.isDeepEmpty(value as Record<string, unknown>)) {
+      return undefined;
+    }
+    const result: Record<string, unknown> = {};
+    const renderableDefs = componentDefinitions.filter(c => this.isViewRenderableComponent(c));
+    const childNames = new Set(renderableDefs.map(c => c.name).filter((n): n is string => typeof n === 'string'));
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      if (!childNames.has(key)) {
+        continue;
+      }
+      const childDef = renderableDefs.find(c => c.name === key);
+      const childIsGroup = childDef?.component?.class === GroupFieldComponentName;
+      const childIsRepeatable = childDef?.component?.class === RepeatableComponentName;
+      if (childIsGroup && val && typeof val === 'object' && !Array.isArray(val)) {
+        const childChildren = (childDef?.component?.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] } | undefined)
+          ?.componentDefinitions ?? [];
+        const nestedPruned = this.pruneGroupValue(val, childChildren);
+        if (nestedPruned !== undefined) {
+          result[key] = nestedPruned;
+        }
+      } else if (childIsRepeatable && Array.isArray(val)) {
+        const elementTemplate = (childDef?.component?.config as { elementTemplate?: AllFormComponentDefinitionOutlines } | undefined)
+          ?.elementTemplate;
+        const elementChildren = elementTemplate?.component?.class === GroupFieldComponentName
+          ? ((elementTemplate?.component?.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] } | undefined)
+            ?.componentDefinitions ?? [])
+          : [];
+        if (elementChildren.length > 0) {
+          result[key] = val.map((item: unknown) => {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+              return this.pruneGroupValue(item, elementChildren) ?? {};
+            }
+            return item;
+          });
+        } else {
+          result[key] = val;
+        }
+      } else {
+        result[key] = val;
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
   private sourceGroupComponentTargetContentComponent(
     source: GroupFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -1210,9 +1260,11 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
     if (target.component.config) {
       const contentValue = source.model?.config?.value;
+      const children = source?.component?.config?.componentDefinitions ?? [];
+      const prunedValue = this.pruneGroupValue(contentValue, children);
       target.component.config.content =
-        contentValue && typeof contentValue === 'object' && !this.isDeepEmpty(contentValue)
-          ? contentValue
+        prunedValue && !this.isDeepEmpty(prunedValue)
+          ? prunedValue
           : this.extractDescendantValues(source);
       target.component.config.template = this.generateTemplateForComponent(source, 'content');
     }
@@ -1234,6 +1286,16 @@ export class FormOverride {
     const elementTemplate = component?.component?.config?.elementTemplate;
     if (!elementTemplate) {
       return `<div class="rb-view-repeatable rb-view-repeatable-list"></div>`;
+    }
+
+    const elementViewOverride = (elementTemplate as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const elementClassName = elementTemplate?.component?.class ?? '';
+    const elementIsIdentity = elementViewOverride?.component === elementClassName;
+    const elementHasCustomTemplate = !elementIsIdentity && typeof elementViewOverride?.template === 'string' &&
+      elementViewOverride.template.trim().length > 0 &&
+      this.effectiveViewTargetsContentComponent(elementClassName, elementViewOverride);
+    if (elementHasCustomTemplate) {
+      return this.renderRepeatableFallback(elementTemplate, rootExpr);
     }
 
     const groupChildren = this.getRenderableGroupChildren(elementTemplate);
@@ -1269,8 +1331,11 @@ export class FormOverride {
   }
 
   private renderRepeatableFallback(elementTemplate: AllFormComponentDefinitionOutlines, rootExpr: string): string {
-    const itemBody = this.renderComponentBody(elementTemplate, 'this');
     const elementClassName = elementTemplate?.component?.class ?? '';
+    const isLeafElement = elementClassName !== GroupFieldComponentName && elementClassName !== RepeatableComponentName;
+    const itemBody = isLeafElement
+      ? this.renderLeafValue(elementTemplate, 'this', [])
+      : this.renderComponentBody(elementTemplate, 'this');
     const itemClass =
       elementClassName === GroupFieldComponentName || elementClassName === RepeatableComponentName
         ? 'rb-view-repeatable-card'
@@ -1282,8 +1347,25 @@ export class FormOverride {
     return this.substituteReusableTemplateSlots(template, { rootExpr, itemBodyHtml: itemBody, itemClass });
   }
 
+  private effectiveViewTargetsContentComponent(className: string | undefined, viewOverride: { component?: string; template?: string } | undefined): boolean {
+    if (!className) return false;
+    if (viewOverride?.component === ContentComponentName) return true;
+    if (this.hasDefaultViewTransform(className)) {
+      const defaultTransform = this.defaultTransforms[className as keyof DefaultTransformsType]?.view;
+      return defaultTransform?.component === ContentComponentName || defaultTransform?.component === undefined;
+    }
+    return false;
+  }
+
   private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
     const className = component?.component?.class;
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const overrideComponent = viewOverride?.component;
+    const isIdentityViewOverride = typeof overrideComponent === 'string' && overrideComponent === className;
+    if (!isIdentityViewOverride && typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+        this.effectiveViewTargetsContentComponent(className, viewOverride)) {
+      return `{{#with ${rootExpr} includeZero=true as |content|}}{{#with @root as |__root__|}}${viewOverride.template}{{/with}}{{/with}}`;
+    }
     if (className === GroupFieldComponentName) {
       const children = this.getRenderableGroupChildren(component) ?? [];
       return children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
@@ -1319,6 +1401,14 @@ export class FormOverride {
   ): string {
     const className = component?.component?.class ?? '';
     const expression = this.safeValueExpression(rootExpr, pathParts);
+
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const overrideComponent = viewOverride?.component;
+    const isIdentityViewOverride = typeof overrideComponent === 'string' && overrideComponent === className;
+    if (!isIdentityViewOverride && typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+        this.effectiveViewTargetsContentComponent(className, viewOverride)) {
+      return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${viewOverride.template}{{/with}}{{/with}}`;
+    }
 
     if (className === FileUploadComponentName) {
       const fileTemplate = this.resolveReusableViewTemplate(
@@ -1384,7 +1474,7 @@ export class FormOverride {
       ) {
         return this.renderDisplayValue(expression);
       }
-      return this.renderDisplayValue(expression);
+      return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${trimmedTemplate}{{/with}}{{/with}}`;
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(
@@ -1537,6 +1627,12 @@ export class FormOverride {
 
   private isViewRenderableComponent(component: AllFormComponentDefinitionOutlines): boolean {
     const componentConfig = component?.component?.config as { visible?: boolean; type?: string } | undefined;
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { template?: string }> } })?.overrides?.formModeClasses?.view;
+    const hasEffectiveViewTemplate = typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+      this.effectiveViewTargetsContentComponent(component?.component?.class, viewOverride);
+    if (hasEffectiveViewTemplate) {
+      return true;
+    }
     if (componentConfig?.visible === false || componentConfig?.type === 'hidden') {
       return false;
     }

@@ -296,14 +296,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
     if (shouldTransform) {
-      if (shouldSkipViewTransform) {
-        this.applyPostPruningTransformsToNestedChildren(item);
+      if (shouldSkipViewTransform && !hasExplicitViewTransform) {
         if ('constraints' in item) {
           delete item['constraints'];
         }
         if ('overrides' in item) {
           delete item['overrides'];
         }
+        this.applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item);
         return item;
       }
 
@@ -318,12 +318,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       if ('constraints' in transformed) {
         delete transformed['constraints'];
       }
+      if ('overrides' in transformed) {
+        delete transformed['overrides'];
+      }
       return transformed;
     }
 
     this.applyPostPruningTransformsToNestedChildren(item);
     if ('overrides' in item) {
       delete item['overrides'];
+    }
+    if ('constraints' in item) {
+      delete item['constraints'];
     }
     return item;
   }
@@ -371,6 +377,56 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       config.elementTemplate = this.applyPostPruningTransformToComponent(
         config.elementTemplate as AvailableFormComponentDefinitionOutlines
       );
+    }
+  }
+
+  protected applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item: AvailableFormComponentDefinitionOutlines): void {
+    const config = item?.component?.config as Record<string, unknown> | undefined;
+    if (!config) {
+      return;
+    }
+    if (Array.isArray(config.componentDefinitions)) {
+      config.componentDefinitions = this.applyPostPruningTransforms(
+        config.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+      );
+    }
+    if (Array.isArray(config.tabs)) {
+      config.tabs = this.applyPostPruningTransforms(config.tabs as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (Array.isArray(config.panels)) {
+      config.panels = this.applyPostPruningTransforms(config.panels as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (config.elementTemplate) {
+      const et = config.elementTemplate as AvailableFormComponentDefinitionOutlines;
+      const etViewOverride = (et as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+      const etClassName = et?.component?.class;
+      const etIsIdentity = etViewOverride?.component === etClassName;
+      const etHasExplicitTransform = !etIsIdentity && (
+        (typeof etViewOverride?.template === 'string' && etViewOverride.template.trim().length > 0) ||
+        etViewOverride?.component !== undefined
+      );
+      const etShouldTransform = etHasExplicitTransform && this.formOverride.hasDefaultViewTransform(etClassName);
+      if (etShouldTransform) {
+        const transformed = this.formOverride.applyOverrideTransform(et, this.formMode, {
+          phase: 'client',
+          reusableFormDefs: this.reusableFormDefs,
+        });
+        config.elementTemplate = transformed;
+        if ('constraints' in transformed) {
+          delete transformed['constraints'];
+        }
+        if ('overrides' in transformed) {
+          delete transformed['overrides'];
+        }
+      } else {
+        if ('constraints' in et) {
+          delete et['constraints'];
+        }
+        if ('overrides' in et) {
+          delete et['overrides'];
+        }
+        this.applyPostPruningTransformsToNestedChildren(et);
+      }
     }
   }
 
