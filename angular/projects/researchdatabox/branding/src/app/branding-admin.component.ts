@@ -142,7 +142,8 @@ export class BrandingAdminComponent extends BaseComponent {
         name: this.i18n.t('branding-site-branding-name'),
         help: this.i18n.t('branding-site-branding-help'),
         variables: [
-          { key: 'site-branding-area-background-color', label: this.i18n.t('branding-site-branding-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-site-branding-background-color-help') }
+          { key: 'site-branding-area-background-color', label: this.i18n.t('branding-site-branding-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-site-branding-background-color-help') },
+          { key: 'logo-heading-text-color', label: this.i18n.t('branding-logo-heading-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-logo-heading-text-color-help') }
         ]
       },
       {

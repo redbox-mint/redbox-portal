@@ -61,14 +61,14 @@ export namespace Services {
               const jsonataExprEncoded = jsonataExpressionEncode(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `jsonata("${jsonataExprEncoded}").evaluate(context)`,
+                value: `jsonata("${jsonataExprEncoded}", extra).evaluate(context)`,
               });
             }
             break;
           case 'handlebars':
             result.push({
               key: input.key,
-              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
+              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()}, extra)(context)`,
             });
             break;
           default:
