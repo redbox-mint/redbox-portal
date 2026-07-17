@@ -653,6 +653,79 @@ describe('FormComponent', () => {
     expect(formComponent.form?.valid).toBeTrue();
   });
 
+  it('restores nested group validity after temporary save validation', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'nested-grouped-save-validation',
+      debugValue: false,
+      enabledValidationGroups: ['none'],
+      validationGroups: {
+        none: {
+          description: 'Allow incomplete draft saves.',
+          initialMembership: 'none',
+        },
+        activation: {
+          description: 'Validate fields required for activation.',
+          initialMembership: 'all',
+        },
+      },
+      componentDefinitions: [
+        {
+          name: 'description',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: 'Original description' },
+          },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'contributor_ci',
+          model: { class: 'GroupModel' },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'name',
+                  model: {
+                    class: 'SimpleInputModel',
+                    config: {
+                      value: '',
+                      validators: [{ class: 'required' }],
+                    },
+                  },
+                  component: { class: 'SimpleInputComponent' },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+
+    expect(formComponent.form?.valid).toBeTrue();
+
+    await formComponent.saveForm({
+      force: true,
+      targetStep: 'active',
+      enabledValidationGroups: ['activation'],
+    });
+
+    expect(formComponent.form?.valid).toBeFalse();
+    expect(formComponent.form?.get('contributor_ci')?.valid).toBeFalse();
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    formComponent.form?.get('description')?.setValue('Changed description');
+    await fixture.whenStable();
+
+    expect(formComponent.enabledValidationGroups).toEqual(['none']);
+    expect(formComponent.form?.get('contributor_ci.name')?.hasError('required')).toBeFalse();
+    expect(formComponent.form?.get('contributor_ci')?.valid).toBeTrue();
+    expect(formComponent.form?.valid).toBeTrue();
+  });
+
   it('compares validation groups independent of order', () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance as unknown as {
