@@ -1,6 +1,6 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
 import { FigshareRunContext } from './types';
-import {isAvailableLogLevel} from "@researchdatabox/sails-ng-common/src";
+import {isAvailableLogLevel} from "@researchdatabox/sails-ng-common";
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const API_KEY_PATTERN = /^(sk_live_|sk_test_)[A-Za-z0-9]+$/;

@@ -1,27 +1,12 @@
 import { Command } from 'commander';
 import fs from "fs";
 import * as path from 'path';
-import { ILogger } from '@researchdatabox/sails-ng-common';
+import { consoleLogger as migrationLogger } from '@researchdatabox/sails-ng-common';
 import {
   migrateFormConfigFile, migrateDataClassification,
   migrateFormConfigVerify, createClientFormConfig,
   MigrationV4ToV5FormConfigVisitor, createQuestionTreeDiagram
 } from '@researchdatabox/redbox-core';
-
-const migrationLogger: ILogger = {
-  silly: (...args: any[]) => console.debug(...args),
-  verbose: (...args: any[]) => console.debug(...args),
-  trace: (...args: any[]) => console.debug(...args),
-  debug: (...args: any[]) => console.debug(...args),
-  log: (...args: any[]) => console.log(...args),
-  info: (...args: any[]) => console.info(...args),
-  warn: (...args: any[]) => console.warn(...args),
-  error: (...args: any[]) => console.error(...args),
-  crit: (...args: any[]) => console.error(...args),
-  fatal: (...args: any[]) => console.error(...args),
-  silent: () => undefined,
-  blank: () => undefined,
-};
 
 
 export function registerMigrateFormConfigCommand(program: Command): void {
@@ -55,7 +40,7 @@ export function registerMigrateFormConfigCommand(program: Command): void {
         await migrateFormConfigVerify(migrated.migrated, migrationLogger);
 
         console.log('\n✅ Done!\n');
-      } catch (error: any) {
+      } catch (error) {
         console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
@@ -92,7 +77,7 @@ export function registerMigrateDataClassificationCommand(program: Command): void
         await migrateFormConfigVerify(migrated.formConfig, migrationLogger);
 
         console.log('\n✅ Done!\n');
-      } catch (error: any) {
+      } catch (error) {
         console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
@@ -140,7 +125,7 @@ export default clientFormConfig;`;
         await migrateFormConfigVerify(clientFormConfig, migrationLogger);
 
         console.log('\n✅ Done!\n');
-      } catch (error: any) {
+      } catch (error) {
         console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
@@ -173,7 +158,7 @@ export function registerQuestionTreeDiagramCommand(program: Command) {
           console.log(`✅ Wrote diagram text file: ${outputPath}`);
         }
 
-      } catch (error: any) {
+      } catch (error) {
         console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
@@ -400,7 +385,7 @@ export function registerMigrateFigshareConfigCommand(program: Command): void {
           console.log('[dry-run] Migration report generated; no files written.');
         }
         console.log(JSON.stringify(report, null, 2));
-      } catch (error: any) {
+      } catch (error) {
         console.error(`\n❌ Error: `, error);
         process.exit(1);
       }
