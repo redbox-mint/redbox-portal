@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {PopulateExportedMethods} from '../decorator/PopulateExportedMethods.decorator';
-import {Services as services} from '../CoreService';
+import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
+import { Services as services } from '../CoreService';
 import {
   buildKeyString,
   handlebarsPrecompile,
@@ -61,14 +61,14 @@ export namespace Services {
               const jsonataExprEncoded = jsonataExpressionEncode(jsonataExpr);
               result.push({
                 key: input.key,
-                value: `jsonata("${jsonataExprEncoded}", extra).evaluate(context)`,
+                value: `jsonata("${jsonataExprEncoded}").evaluate(context)`,
               });
             }
             break;
           case 'handlebars':
             result.push({
               key: input.key,
-              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()}, extra)(context)`,
+              value: `handlebars(${this.buildClientHandlebars(input.value)?.toString()})(context)`,
             });
             break;
           default:
