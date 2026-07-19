@@ -36,7 +36,15 @@ export function redactObject(value: unknown, visited: WeakSet<object> = new Weak
     const result: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(obj)) {
       const normalizedKey = key.toLowerCase();
-      if (normalizedKey.includes('token') || normalizedKey.includes('authorization') || normalizedKey.includes('secret')) {
+      if (
+        normalizedKey.includes('token') ||
+        normalizedKey.includes('authorization') ||
+        normalizedKey.includes('secret') ||
+        normalizedKey.includes('apikey') ||
+        normalizedKey.includes('api_key') ||
+        normalizedKey.includes('password') ||
+        normalizedKey.includes('credential')
+      ) {
         result[key] = 'REDACTED';
       } else {
         result[key] = redactObject(entry, visited);

@@ -8,7 +8,11 @@ describe('RedactionUtils', function () {
       client_secret: 'secret-value',
       nested: {
         access_token: 'access-token-value',
-        authorization: 'Bearer credential'
+        authorization: 'Bearer credential',
+        apiKey: 'opaque-api-key',
+        api_key: 'another-opaque-api-key',
+        password: 'opaque-password',
+        credential: 'opaque-credential'
       }
     };
 
@@ -17,7 +21,11 @@ describe('RedactionUtils', function () {
       client_secret: 'REDACTED',
       nested: {
         access_token: 'REDACTED',
-        authorization: 'REDACTED'
+        authorization: 'REDACTED',
+        apiKey: 'REDACTED',
+        api_key: 'REDACTED',
+        password: 'REDACTED',
+        credential: 'REDACTED'
       }
     });
     expect(source.client_secret).to.equal('secret-value');
