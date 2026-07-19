@@ -106,4 +106,29 @@ describe('UserController', () => {
             }))).to.be.true;
         });
     });
+
+    describe('OIDC error logging', () => {
+        it('should redact secrets and tokens from the logged configuration', () => {
+            const oidcConfig = {
+                opts: {
+                    client: {
+                        client_id: 'safe-client-id',
+                        client_secret: 'do-not-log-this'
+                    },
+                    access_token: 'do-not-log-this-token'
+                }
+            };
+
+            (controller as any).decodeErrorMappings(oidcConfig, 'OIDC failed');
+
+            const optionsLog = mockSails.log.verbose.args
+                .map((args: unknown[]) => String(args[0]))
+                .find((message: string) => message.startsWith('decodeErrorMappings - options:'));
+
+            expect(optionsLog).to.include('safe-client-id');
+            expect(optionsLog).to.include('REDACTED');
+            expect(optionsLog).to.not.include('do-not-log-this');
+            expect(optionsLog).to.not.include('do-not-log-this-token');
+        });
+    });
 });
