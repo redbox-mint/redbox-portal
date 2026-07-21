@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -66,7 +68,7 @@ describe('VocabularyService', () => {
     previousUnderscore = Reflect.get(globalThis, '_');
     Reflect.set(globalThis, '_', lodash);
     g.sails = {
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
+      log: createSinonStubLogger(sinon),
       config: { auth: { defaultBrand: 'default' } },
       services: {
         brandingservice: { getDefault: sinon.stub().returns('default') },

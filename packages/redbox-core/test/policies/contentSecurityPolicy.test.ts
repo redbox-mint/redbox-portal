@@ -1,15 +1,15 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { contentSecurityPolicy } from '../../src/policies/contentSecurityPolicy';
+import * as sinon from "sinon";
 
 // Mock globals
 
 (global as any).sails = {
     config: {},
-    log: {
-        verbose: () => { },
-        warn: () => { }
-    }
+    log: createSinonStubLogger(sinon),
 };
 
 describe('contentSecurityPolicy policy', function () {
@@ -19,11 +19,7 @@ describe('contentSecurityPolicy policy', function () {
         originalSails = (global as any).sails;
         (global as any).sails = {
             config: {},
-            log: {
-                verbose: () => { },
-                warn: () => { }
-            }
-        };
+            log: createSinonStubLogger(sinon),
     });
 
     afterEach(function () {

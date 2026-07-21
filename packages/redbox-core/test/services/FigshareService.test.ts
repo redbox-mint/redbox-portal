@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
+import {createSinonStubLogger} from "../logger.test";
 
 const testRequire = createRequire(import.meta.url);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
@@ -325,20 +326,7 @@ describe('FigshareService', function () {
 
   beforeEach(function () {
     const mockSails = createMockSails({
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-        crit: sinon.stub(),
-        fatal: sinon.stub(),
-        silly: sinon.stub(),
-        blank: sinon.stub(),
-        log: sinon.stub(),
-        silent: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
     mockSails.config.queue = { serviceName: 'queueservice' };
     mockSails.config.figshareDev = buildFigshareDevConfig();

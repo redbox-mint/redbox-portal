@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 
 import { Controllers } from '../../../src/controllers/webservice/HarvestRunController';
+import {createSinonStubLogger} from "../../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -23,10 +24,7 @@ describe('Webservice HarvestRunController', () => {
     originalLodash = (global as any)._;
 
     (global as any).sails = {
-      log: {
-        error: sinon.stub(),
-        verbose: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),

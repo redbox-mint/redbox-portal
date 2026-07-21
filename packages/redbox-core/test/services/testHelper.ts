@@ -3,6 +3,7 @@
  */
 import * as sinon from 'sinon';
 import { from } from 'rxjs';
+import {createSinonStubLogger} from "../logger.test";
 
 /**
  * Creates a mock sails object with common configurations
@@ -27,14 +28,7 @@ export function createMockSails(overrides: any = {}): any {
         mode: 'live'
       },
     },
-    log: {
-      verbose: sinon.stub(),
-      debug: sinon.stub(),
-      info: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-      trace: sinon.stub(),
-    },
+    log: createSinonStubLogger(sinon),
     services: {},
     on: sinon.stub(), // Add sails.on for event handlers
   };

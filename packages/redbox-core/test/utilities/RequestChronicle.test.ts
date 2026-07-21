@@ -5,6 +5,7 @@ import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import {RequestChronicleHelper} from "../../src/utilities/RequestChronicle";
 import {ILogger} from "@researchdatabox/sails-ng-common";
+import {createSinonStubLogger} from "../logger.test";
 
 
 describe('RequestChronicleHelper', () => {
@@ -12,11 +13,7 @@ describe('RequestChronicleHelper', () => {
   beforeEach(() => {
     (globalThis as any).sails = {
       config: {},
-      log: {
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-      }
+      log: createSinonStubLogger(sinon)
     };
     clock = sinon.useFakeTimers({shouldAdvanceTime: true});
   });

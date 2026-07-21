@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -21,7 +23,7 @@ describe('ActionController', () => {
                     }
                 }
             },
-            log: { verbose: sinon.stub(), error: sinon.stub(), warn: sinon.stub() }
+            log: createSinonStubLogger(sinon)
         };
         (global as any).sails = mockSails;
         controller = new Controllers.Action();

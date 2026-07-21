@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -16,13 +18,7 @@ describe('WorkspaceService', function() {
       config: {
         appPath: '/app'
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     // Use createQueryObject for proper getObservable compatibility
@@ -84,9 +80,9 @@ describe('WorkspaceService', function() {
         { ele: 'name', record: 'title' },
         { ele: 'info.description', record: 'description' }
       ];
-      
+
       const result = WorkspaceService.mapToRecord(obj, recordMap);
-      
+
       expect(result).to.deep.equal({
         title: 'Test Workspace',
         description: 'A test workspace'
@@ -99,9 +95,9 @@ describe('WorkspaceService', function() {
         { ele: 'name', record: 'title' },
         { ele: 'missing', record: 'other' }
       ];
-      
+
       const result = WorkspaceService.mapToRecord(obj, recordMap);
-      
+
       expect(result.title).to.equal('Test');
       expect(result.other).to.be.undefined;
     });
@@ -112,9 +108,9 @@ describe('WorkspaceService', function() {
       const targetRecordOid = 'record-123';
       const workspaceOid = 'workspace-456';
       const workspaceData = { name: 'My Workspace' };
-      
+
       await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid, workspaceData);
-      
+
       expect((global as any).RecordsService.appendToRecord.calledOnce).to.be.true;
       const args = (global as any).RecordsService.appendToRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
@@ -125,9 +121,9 @@ describe('WorkspaceService', function() {
     it('should use default empty workspaceData', async function() {
       const targetRecordOid = 'record-123';
       const workspaceOid = 'workspace-456';
-      
+
       await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid);
-      
+
       const args = (global as any).RecordsService.appendToRecord.firstCall.args;
       expect(args[1].id).to.equal(workspaceOid);
     });
@@ -137,9 +133,9 @@ describe('WorkspaceService', function() {
     it('should remove workspace from record metadata', async function() {
       const targetRecordOid = 'record-123';
       const workspaceOid = 'workspace-456';
-      
+
       await WorkspaceService.removeWorkspaceFromRecord(targetRecordOid, workspaceOid);
-      
+
       expect((global as any).RecordsService.removeFromRecord.calledOnce).to.be.true;
       const args = (global as any).RecordsService.removeFromRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
@@ -158,9 +154,9 @@ describe('WorkspaceService', function() {
           ]
         }
       };
-      
+
       const result = await WorkspaceService.getWorkspaces(targetRecordOid, targetRecord);
-      
+
       expect(result).to.be.an('array');
     });
 
@@ -169,9 +165,9 @@ describe('WorkspaceService', function() {
       (global as any).RecordsService.getMeta.resolves({
         metadata: { workspaces: [] }
       });
-      
+
       const result = await WorkspaceService.getWorkspaces(targetRecordOid);
-      
+
       expect((global as any).RecordsService.getMeta.calledWith(targetRecordOid)).to.be.true;
     });
   });
@@ -185,9 +181,9 @@ describe('WorkspaceService', function() {
         redboxHeaders: { 'Authorization': 'Bearer token' }
       };
       const project = { name: 'Test Project' };
-      
+
       axiosStub.resolves({ data: { oid: 'new-record-123' } });
-      
+
       WorkspaceService.createWorkspaceRecord(config, 'testuser', project, 'workspace', 'draft')
         .subscribe({
           next: (result: any) => {
@@ -206,9 +202,9 @@ describe('WorkspaceService', function() {
         brandingAndPortalUrl: 'http://localhost:1500/default/portal',
         redboxHeaders: { 'Authorization': 'Bearer token' }
       };
-      
+
       axiosStub.resolves({ data: { oid: 'record-123', metadata: {} } });
-      
+
       WorkspaceService.getRecordMeta(config, 'record-123')
         .subscribe({
           next: (result: any) => {
@@ -228,9 +224,9 @@ describe('WorkspaceService', function() {
         redboxHeaders: { 'Authorization': 'Bearer token' }
       };
       const record = { metadata: { name: 'Updated' } };
-      
+
       axiosStub.resolves({ data: { success: true } });
-      
+
       WorkspaceService.updateRecordMeta(config, record, 'record-123')
         .subscribe({
           next: (result: any) => {
@@ -246,9 +242,9 @@ describe('WorkspaceService', function() {
     it('should return user information', function(done) {
       const userId = 'user-123';
       const userData = { id: userId, username: 'testuser', email: 'test@example.com' };
-      
+
       mockUser.findOne.returns(createQueryObject(userData));
-      
+
       WorkspaceService.userInfo(userId).subscribe({
         next: (result: any) => {
           expect(mockUser.findOne.calledWith({ id: userId })).to.be.true;
@@ -264,9 +260,9 @@ describe('WorkspaceService', function() {
     it('should find user by username', function(done) {
       const username = 'testuser';
       const userData = { id: 'user-123', username };
-      
+
       mockUser.findOne.returns(createQueryObject(userData));
-      
+
       WorkspaceService.provisionerUser(username).subscribe({
         next: (result: any) => {
           expect(mockUser.findOne.calledWith({ username })).to.be.true;

@@ -1,5 +1,6 @@
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/IntegrationAuditController';
+import {createSinonStubLogger} from "../../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -20,11 +21,7 @@ describe('Webservice IntegrationAuditController', () => {
     originalLodash = (global as any)._;
 
     (global as any).sails = {
-      log: {
-        error: sinon.stub(),
-        verbose: sinon.stub(),
-        warn: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any).IntegrationAuditService = {
       getAuditLog: sinon.stub().resolves({ rows: [{ redboxOid: 'oid-1', status: 'success' }], total: 11 }),

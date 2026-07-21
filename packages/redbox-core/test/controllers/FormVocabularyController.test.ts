@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -17,7 +19,7 @@ describe('FormVocabularyController', () => {
 
   beforeEach(() => {
     (global as any).sails = {
-      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub(), warn: sinon.stub() },
+      log: createSinonStubLogger(sinon),
       services: {
         vocabularyservice: {
           getByIdOrSlug: sinon.stub(),

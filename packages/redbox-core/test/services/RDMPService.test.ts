@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 import { of, firstValueFrom } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -28,13 +29,7 @@ describe('RDMPService', function () {
           serviceName: 'agendaqueueservice'
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         agendaqueueservice: {
           now: sinon.stub().resolves({})

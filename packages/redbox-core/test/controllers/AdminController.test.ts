@@ -2,6 +2,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/AdminController';
 import { createQueryObject } from '../services/testHelper';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -32,10 +33,7 @@ describe('AdminController', () => {
                     hiddenRoles: []
                 }
             },
-            log: {
-                error: sinon.stub(),
-                verbose: sinon.stub()
-            }
+            log: createSinonStubLogger(sinon)
         };
         (global as any).BrandingService = {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })

@@ -1,5 +1,6 @@
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
 
@@ -21,14 +22,7 @@ describe('FormPayloadPrehydrateService', function () {
           }
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      }
+      log: createSinonStubLogger(sinon)
     });
     setupServiceTestGlobals(mockSails);
     (global as any).VocabularyService = {

@@ -2,6 +2,7 @@ import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
 import { Services, EmailChannel, IntegrationNotificationPayload } from '../../src/services/IntegrationNotificationService';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
 
@@ -49,14 +50,7 @@ describe('IntegrationNotificationService', function () {
           defaults: { subject: 'Test', from: 'test@example.com', format: 'html' },
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);

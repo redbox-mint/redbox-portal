@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -114,20 +116,7 @@ describe('OniService', function() {
           apiKey: 'test-api-key'
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-        crit: sinon.stub(),
-        fatal: sinon.stub(),
-        silly: sinon.stub(),
-        blank: sinon.stub(),
-        log: sinon.stub(),
-        silent: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         datastreamservice: {
           getDatastream: sinon.stub().resolves({
@@ -850,11 +839,11 @@ describe('OniService', function() {
   describe('writeDatasetObject (private method)', function() {
     it('should filter attachments based on accessRightsToggle and selection', async function() {
       const writeDatasetObject = OniService.writeDatasetObject.bind(OniService);
-      
+
       // Mock writeDatasetROCrate to avoid full execution
       sinon.stub(OniService, 'writeDatasetROCrate').resolves();
       sinon.stub(OniService, 'removeTempDir').resolves();
-      
+
       const creator = { email: 'creator@test.com' };
       const approver = { email: 'approver@test.com' };
       const record = {
@@ -867,9 +856,9 @@ describe('OniService', function() {
         },
         metaMetadata: {}
       };
-      
+
       await writeDatasetObject(creator, approver, 'oid', 'drid', {}, {}, record, '/tmp');
-      
+
       // writeDatasetROCrate should be called with empty attachments when mdOnly=true
       expect(OniService.writeDatasetROCrate.called).to.be.true;
       const callArgs = OniService.writeDatasetROCrate.firstCall.args;
@@ -878,13 +867,13 @@ describe('OniService', function() {
 
     it('should throw error when datastream retrieval fails', async function() {
       const writeDatasetObject = OniService.writeDatasetObject.bind(OniService);
-      
+
       // Mock datastream service to fail
       OniService.datastreamService = {
         getDatastream: sinon.stub().rejects(new Error('Datastream error'))
       };
       sinon.stub(OniService, 'removeTempDir').resolves();
-      
+
       const creator = { email: 'creator@test.com' };
       const approver = { email: 'approver@test.com' };
       const record = {
@@ -896,7 +885,7 @@ describe('OniService', function() {
         },
         metaMetadata: {}
       };
-      
+
       try {
         await writeDatasetObject(creator, approver, 'oid', 'drid', {}, {}, record, '/tmp');
         expect.fail('Should have thrown');
@@ -907,7 +896,7 @@ describe('OniService', function() {
 
     it('should handle datastream with body instead of readstream', async function() {
       const writeDatasetObject = OniService.writeDatasetObject.bind(OniService);
-      
+
       // Mock datastream service to return body instead of readstream
       OniService.datastreamService = {
         getDatastream: sinon.stub().resolves({
@@ -917,7 +906,7 @@ describe('OniService', function() {
       sinon.stub(OniService, 'writeDatasetROCrate').resolves();
       sinon.stub(OniService, 'removeTempDir').resolves();
       sinon.stub(OniService, 'writeDatastream').resolves();
-      
+
       const creator = { email: 'creator@test.com' };
       const approver = { email: 'approver@test.com' };
       const record = {
@@ -929,9 +918,9 @@ describe('OniService', function() {
         },
         metaMetadata: {}
       };
-      
+
       await writeDatasetObject(creator, approver, 'oid', 'drid', {}, {}, record, '/tmp');
-      
+
       // Should use Buffer.from for body
       expect(OniService.writeDatastream.called).to.be.true;
     });
@@ -944,7 +933,7 @@ describe('OniService', function() {
 
     it('should create RO-Crate with all metadata properties', async function() {
       const writeDatasetROCrate = OniService.writeDatasetROCrate.bind(OniService);
-      
+
       const mockTargetRepoObj = {
         crate: {
           rootId: 'arcp://name,test/oid',
@@ -957,16 +946,16 @@ describe('OniService', function() {
         addFile: sinon.stub().resolves(),
         addToRepo: sinon.stub().resolves()
       };
-      
+
       const mockTargetCollector = {
         namespace: 'test-namespace',
         newObject: sinon.stub().returns(mockTargetRepoObj)
       };
-      
+
       const mockRootCollection = {
         rootDataset: { name: 'Root Collection' }
       };
-      
+
       const creator = { email: 'creator@test.com', name: 'Creator' };
       const approver = { email: 'approver@test.com', name: 'Approver' };
       const record = {
@@ -992,9 +981,9 @@ describe('OniService', function() {
           createdOn: '2023-01-01T00:00:00Z'
         }
       };
-      
+
       await writeDatasetROCrate(creator, approver, 'test-oid', [], record, mockTargetCollector, mockRootCollection);
-      
+
       expect(mockTargetRepoObj.mintArcpId.called).to.be.true;
       expect(mockTargetRepoObj.crate.addProfile.called).to.be.true;
       expect(mockTargetRepoObj.addToRepo.called).to.be.true;
@@ -1005,7 +994,7 @@ describe('OniService', function() {
 
     it('should handle contact point not in author list', async function() {
       const writeDatasetROCrate = OniService.writeDatasetROCrate.bind(OniService);
-      
+
       const mockTargetRepoObj = {
         crate: {
           rootId: 'arcp://name,test/oid',
@@ -1018,16 +1007,16 @@ describe('OniService', function() {
         addFile: sinon.stub().resolves(),
         addToRepo: sinon.stub().resolves()
       };
-      
+
       const mockTargetCollector = {
         namespace: 'test-namespace',
         newObject: sinon.stub().returns(mockTargetRepoObj)
       };
-      
+
       const mockRootCollection = {
         rootDataset: { name: 'Root Collection' }
       };
-      
+
       const creator = { email: 'creator@test.com', name: 'Creator' };
       const approver = { email: 'approver@test.com', name: 'Approver' };
       const record = {
@@ -1045,16 +1034,16 @@ describe('OniService', function() {
           createdOn: '2023-01-01T00:00:00Z'
         }
       };
-      
+
       await writeDatasetROCrate(creator, approver, 'test-oid', [], record, mockTargetCollector, mockRootCollection);
-      
+
       // Contact point should be added as contributor
       expect(mockTargetRepoObj.rootDataset).to.have.property('contributor');
     });
 
     it('should add extra context when spatial coverage exists', async function() {
       const writeDatasetROCrate = OniService.writeDatasetROCrate.bind(OniService);
-      
+
       const mockTargetRepoObj = {
         crate: {
           rootId: 'arcp://name,test/oid',
@@ -1067,16 +1056,16 @@ describe('OniService', function() {
         addFile: sinon.stub().resolves(),
         addToRepo: sinon.stub().resolves()
       };
-      
+
       const mockTargetCollector = {
         namespace: 'test-namespace',
         newObject: sinon.stub().returns(mockTargetRepoObj)
       };
-      
+
       const mockRootCollection = {
         rootDataset: { name: 'Root Collection' }
       };
-      
+
       const creator = { email: 'creator@test.com', name: 'Creator' };
       const approver = { email: 'approver@test.com', name: 'Approver' };
       const record = {
@@ -1095,9 +1084,9 @@ describe('OniService', function() {
           createdOn: '2023-01-01T00:00:00Z'
         }
       };
-      
+
       await writeDatasetROCrate(creator, approver, 'test-oid', [], record, mockTargetCollector, mockRootCollection);
-      
+
       // Extra context should be added
       expect(mockTargetRepoObj.crate.addContext.called).to.be.true;
     });
@@ -1107,20 +1096,20 @@ describe('OniService', function() {
     it('should write stream to file', async function() {
       const { Readable } = require('node:stream');
       const writeToFileUsingStream = OniService.writeToFileUsingStream.bind(OniService);
-      
+
       // Create a test readable stream
       const testData = 'test file content';
       const readable = Readable.from([testData]);
-      
+
       const testFilePath = '/tmp/oni-test-file-' + Date.now() + '.txt';
-      
+
       await writeToFileUsingStream(testFilePath, readable);
-      
+
       // Verify file was created
       const fs = require('fs').promises;
       const content = await fs.readFile(testFilePath, 'utf8');
       expect(content).to.equal(testData);
-      
+
       // Cleanup
       await fs.unlink(testFilePath);
     });
@@ -1130,20 +1119,20 @@ describe('OniService', function() {
     it('should create directory and write file', async function() {
       const { Readable } = require('node:stream');
       const writeDatastream = OniService.writeDatastream.bind(OniService);
-      
+
       const testData = 'test file content';
       const readable = Readable.from([testData]);
-      
+
       const testDir = '/tmp/oni-test-dir-' + Date.now();
       const testFilename = 'test-file.txt';
-      
+
       await writeDatastream(readable, testDir, testFilename);
-      
+
       // Verify file was created
       const fs = require('fs').promises;
       const content = await fs.readFile(testDir + '/' + testFilename, 'utf8');
       expect(content).to.equal(testData);
-      
+
       // Cleanup
       await fs.rm(testDir, { recursive: true });
     });

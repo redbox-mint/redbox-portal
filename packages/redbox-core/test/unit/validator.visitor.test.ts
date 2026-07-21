@@ -12,6 +12,8 @@ import {ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfig
 import Services from "../../src/services/DomSanitizerService";
 import * as _ from "lodash";
 import { formConfigExample1} from "./example-data";
+import {createSinonStubLogger} from "../logger.test";
+import * as sinon from "sinon";
 
 const DomSanitizerService = new Services.DomSanitizer();
 
@@ -562,13 +564,7 @@ describe("Validator Visitor", async () => {
                     defaultProfile: 'html'
                 }
             },
-            log: {
-                error: () => {},
-                warn: () => {},
-                info: () => {},
-                debug: () => {},
-                silly: () => {}
-            }
+            log: createSinonStubLogger(sinon),
         });
 
         it("should sanitize dangerous HTML in rich text model value and report warning", async function () {

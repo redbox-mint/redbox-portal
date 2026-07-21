@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 import * as sinon from 'sinon';
 import { Upload, ERRORS } from '@tus/server';
 import { TusStorageManagerDataStore } from '../../src/storage/TusStorageManagerDataStore';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -128,11 +129,7 @@ describe('TusStorageManagerDataStore', function () {
 
   function createStore(overrides: Record<string, unknown> = {}) {
     const disk = new MemoryDisk();
-    const logger = {
-      verbose: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-    };
+    const logger = createSinonStubLogger(sinon);
     const store = new TusStorageManagerDataStore({
       disk: disk as any,
       logger,

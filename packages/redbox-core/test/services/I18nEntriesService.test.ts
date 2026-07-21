@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -25,13 +27,7 @@ describe('I18nEntriesService', function() {
           }
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     mockI18nTranslation = {
@@ -175,9 +171,9 @@ describe('I18nEntriesService', function() {
       mockI18nTranslation.create.resolves({ id: 'new-id' });
       // mock getBundle to return null so it creates a bundle too
       mockI18nBundle.findOne.resolves(null);
-      
+
       await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value');
-      
+
       expect(mockI18nTranslation.create.called).to.be.true;
       expect(mockI18nBundle.create.called).to.be.true;
     });
@@ -185,9 +181,9 @@ describe('I18nEntriesService', function() {
     it('should update existing entry', async function() {
       mockI18nTranslation.findOne.resolves({ id: 'existing-id' });
       mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: {} });
-      
+
       await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value');
-      
+
       expect(mockI18nTranslation.updateOne.calledWith({ id: 'existing-id' })).to.be.true;
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
@@ -215,9 +211,9 @@ describe('I18nEntriesService', function() {
     it('should destroy entry and update bundle', async function() {
       mockI18nTranslation.destroyOne.resolves({ id: 'deleted' });
       mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: { key: 'value' } });
-      
+
       await I18nEntriesService.deleteEntry('brand-1', 'en', 'ns', 'key');
-      
+
       expect(mockI18nTranslation.destroyOne.called).to.be.true;
       expect(mockI18nBundle.updateOne.called).to.be.true;
     });
@@ -257,9 +253,9 @@ describe('I18nEntriesService', function() {
       mockI18nBundle.findOne.resolves(null);
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
-      
+
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' });
-      
+
       expect(mockI18nBundle.create.called).to.be.true;
       expect(I18nEntriesService.syncEntriesFromBundle.called).to.be.true;
     });
@@ -268,9 +264,9 @@ describe('I18nEntriesService', function() {
       mockI18nBundle.findOne.resolves({ id: 'bundle-1' });
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
-      
+
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' });
-      
+
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
 
@@ -288,15 +284,15 @@ describe('I18nEntriesService', function() {
   describe('updateBundleEnabled', function() {
     it('should update enabled status', async function() {
       mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves({ id: 'bundle-1' }) });
-      
+
       await I18nEntriesService.updateBundleEnabled('brand-1', 'en', 'ns', true);
-      
+
       expect(mockI18nBundle.updateOne.called).to.be.true;
     });
 
     it('should throw if bundle not found', async function() {
       mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves(null) });
-      
+
       try {
         await I18nEntriesService.updateBundleEnabled('brand-1', 'en', 'ns', true);
         expect.fail('Should have thrown');
@@ -319,14 +315,14 @@ describe('I18nEntriesService', function() {
 
   describe('syncEntriesFromBundle', function() {
     it('should sync entries', async function() {
-      const bundle = { 
-        id: 'bundle-1', 
-        branding: 'brand-1', 
-        locale: 'en', 
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
         namespace: 'ns',
-        data: { key: 'value' } 
+        data: { key: 'value' }
       };
-      
+
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
       mockI18nTranslation.find.returns({
         sort: sinon.stub().resolves([])
@@ -336,25 +332,25 @@ describe('I18nEntriesService', function() {
       // It returns a promise. My mockI18nTranslation.find default returns { sort: ... }
       // If the code awaits it, it gets the object with sort.
       // But map() expects array.
-      
+
       // I need to check how find is used in syncEntriesFromBundle.
       // line 423: const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
       // It DOES NOT chain sort here.
       // So await returns the mock return value.
       // If mock returns { sort: ... }, then existingEntries is { sort: ... }.
       // Then existingEntries.map(...) fails.
-      
+
       // I need to handle this.
       // If I want find to be flexible, I can make it return a thenable that also has sort?
       // Or I can stub it specifically for this test.
-      
+
       mockI18nTranslation.find.resolves([]);
-      
+
       mockI18nTranslation.findOne.resolves(null); // no existing key
       mockI18nTranslation.create.resolves({});
-      
+
       await I18nEntriesService.syncEntriesFromBundle(bundle);
-      
+
       expect(mockI18nTranslation.create.called).to.be.true;
     });
 

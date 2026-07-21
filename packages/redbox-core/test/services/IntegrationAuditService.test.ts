@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
 
@@ -29,14 +30,7 @@ describe('IntegrationAuditService', function () {
       services: {
         mongostorageservice: mockStorageService,
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -860,14 +854,7 @@ describe('IntegrationAuditService', function () {
         services: {
           mongostorageservice: mockStorageService,
         },
-        log: {
-          verbose: sinon.stub(),
-          debug: sinon.stub(),
-          info: sinon.stub(),
-          warn: sinon.stub(),
-          error: sinon.stub(),
-          trace: sinon.stub(),
-        },
+        log: createSinonStubLogger(sinon),
       });
 
       setupServiceTestGlobals(mockSails);
