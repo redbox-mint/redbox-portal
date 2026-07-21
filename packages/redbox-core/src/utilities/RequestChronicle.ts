@@ -1,5 +1,5 @@
 import {Request} from 'express';
-import {ILogger} from "@researchdatabox/sails-ng-common";
+import {guessType, ILogger} from "@researchdatabox/sails-ng-common";
 import {RBValidationError} from "../model";
 
 const RequestChronicleOutcome = ["success", "error"] as const;
@@ -12,10 +12,8 @@ type RequestChronicleClassificationsType = typeof RequestChronicleClassification
 export type RequestChronicleError = {
   name?: string,
   message?: string,
-  code?: string,
-  cause?: RequestChronicleError,
-  [key: string]: unknown,
-} | string;
+  details?: RequestChronicleError[],
+};
 
 /**
  * A holder for attributes of one request and response,
@@ -61,7 +59,7 @@ export interface RequestChronicle {
 export class RequestChronicleHelper {
   #data: RequestChronicle = {};
 
-  constructor(private logger: ILogger) {
+  private constructor(private logger: ILogger) {
   }
 
   public static fromReq(logger: ILogger, req: Sails.Req | Request): RequestChronicleHelper {
@@ -76,6 +74,14 @@ export class RequestChronicleHelper {
     }
 
     return request.options.requestChronicleHelper;
+  }
+
+  /**
+   * Get the current request chronicle data.
+   * Do not use this for logging - use the `log` method.
+   */
+  get data() {
+    return structuredClone(this.#data);
   }
 
   start(): void {
@@ -178,11 +184,8 @@ export class RequestChronicleHelper {
     if (!Array.isArray(this.#data.errors)) {
       this.#data.errors = [];
     }
-    if (RBValidationError.isError(error)) {
-      this.#data.errors.push(RBValidationError.toObj(error));
-    } else {
-      this.#data.errors.push({raw: String(error)});
-    }
+
+    this.#data.errors.push(this.toChronicleError(error));
   }
 
   public addInfo(info: Record<string, unknown>) {
@@ -243,6 +246,56 @@ export class RequestChronicleHelper {
     // Classify a 10% random selection of the remaining 'standard' and 'success' items as samples.
     // Discard the rest.
     return Math.random() <= 0.1 ? "sample" : "discard";
+  }
+
+  /**
+   * Convert a possible error to a consistent plain object representation.
+   * @param item This might be an error, or a string, or something else.
+   */
+  private toChronicleError(item: unknown): RequestChronicleError {
+    const result: RequestChronicleError = {};
+    result.details = [];
+    const guessedType = guessType(item);
+    if (RBValidationError.isError(item)) {
+      if (item.name) {
+        result.name = item.name;
+      }
+      if (item.message) {
+        result.message = item.message;
+      }
+      if (item.cause) {
+        result.details.push(this.toChronicleError(item.cause));
+      }
+      if (item instanceof SuppressedError && item.error) {
+        result.details.push(this.toChronicleError(item.error));
+      }
+      if (item instanceof SuppressedError && item.suppressed) {
+        result.details.push(this.toChronicleError(item.suppressed));
+      }
+      if (item instanceof AggregateError && item.errors) {
+        result.details.push(...item.errors.map(i => this.toChronicleError(i)));
+      }
+      if (RBValidationError.isRBValidationError(item)) {
+        result.details.push(...item.displayErrors.map(i => {
+          return {
+            name: i.title,
+            message: Object.entries({id: i.id, status: i.status, code: i.code, detail: i.detail})
+              .filter(([_key, value]) => value !== undefined)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', '),
+          }
+        }));
+      }
+    } else if (Array.isArray(item) || guessedType === "array") {
+      result.details.push(...(item as unknown[]).map(i => this.toChronicleError(i)));
+    } else {
+      result.message = String(item);
+    }
+
+    if (result.details.length === 0) {
+      delete result.details;
+    }
+    return result;
   }
 
 }

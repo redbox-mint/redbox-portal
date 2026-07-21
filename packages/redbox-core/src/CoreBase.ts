@@ -74,6 +74,7 @@ export abstract class CoreBase {
     }
 
     if (
+      sails?.config?.log !== undefined &&
       'createNamespaceLogger' in sails?.config?.log &&
       typeof sails.config.log.createNamespaceLogger === 'function' &&
       'customLogger' in sails?.config?.log &&
@@ -90,7 +91,7 @@ export abstract class CoreBase {
     }
 
     // Fallback logger for when sails is not defined (e.g. during shim generation).
-    // This should be temporary until `sails.log` is available, so don't assign to `this._logger`.
+    // This should be temporary as the app loads, until `sails.log` is available, so don't assign to `this._logger`.
     return consoleLogger;
   }
 

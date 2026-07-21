@@ -1,6 +1,5 @@
 import {Services} from "../services/TranslationService";
 import {ErrorResponseItemV2} from "./api";
-import {isTypeObjIndexSigStr} from "@researchdatabox/sails-ng-common";
 
 // Define ErrorOptions locally for ES6 target compatibility
 interface RBErrorOptions {
@@ -51,7 +50,11 @@ export class RBValidationError extends Error {
       return item;
     }
     if (RBValidationError.isError(item)) {
-      return new RBValidationError({message: `${item.name}: ${item.message}`, options: {cause: item.cause}})
+      return new RBValidationError({
+        message: item.message,
+        displayErrors: [{title: item.name, detail: item.message}],
+        options: {cause: item.cause}
+      });
     }
 
     return new RBValidationError({message: String(item)});
@@ -61,13 +64,16 @@ export class RBValidationError extends Error {
    * Check if item is an instance of Error.
    * @param item The item to check.
    * @param name The expected error name. Returns false if the name is provided and does not match.
-   * @returns True if item is an instance of Error, otherwise false.
+   * @returns True if item is an instance of Error, and matches optional name, otherwise false.
    */
   public static isError(item: unknown, name?: string): item is Error {
-    if (!name) {
-      return item instanceof Error;
+    if (item === undefined || item === null || !(item instanceof Error)) {
+      return false;
     }
-    return item instanceof Error && item?.name === name;
+    if (name !== undefined) {
+      return item.name === name;
+    }
+    return true;
   }
 
   /**
@@ -81,24 +87,6 @@ export class RBValidationError extends Error {
     }
 
     return new Error(String(item));
-  }
-
-  /**
-   * Convert a possible error to a consistent plain object representation.
-   * @param item This might be an error, or a string, or something else.
-   */
-  public static toObj(item: unknown): Record<string, unknown>  {
-    const result: Record<string, unknown> = {};
-    if (isTypeObjIndexSigStr(item)) {
-      for (const [key, value] of Object.entries(item)) {
-        if (key === 'cause') {
-          result.cause = RBValidationError.toObj(value);
-        } else {
-          result[key] = value;
-        }
-      }
-    }
-    return result;
   }
 
   /**
