@@ -4,7 +4,6 @@ import { createRequire } from 'node:module';
 import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
-import {createSinonStubLogger} from "../logger.test";
 
 const testRequire = createRequire(import.meta.url);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
@@ -17,6 +16,7 @@ const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/servi
 const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
 const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
 const { RBValidationError } = testRequire('../../src/model/RBValidationError');
+const {createSinonStubLogger} = testRequire("../logger.test") as typeof import('../logger.test');
 
 let expect!: Chai.ExpectStatic;
 

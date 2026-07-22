@@ -18,8 +18,9 @@ describe('contentSecurityPolicy policy', function () {
     beforeEach(function () {
         originalSails = (global as any).sails;
         (global as any).sails = {
-            config: {},
-            log: createSinonStubLogger(sinon),
+          config: {},
+          log: createSinonStubLogger(sinon),
+        }
     });
 
     afterEach(function () {

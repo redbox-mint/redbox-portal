@@ -1,3 +1,4 @@
+import * as sinon from "sinon";
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -21,7 +22,7 @@ import("chai").then(mod => expect = mod.expect);
 };
 
 import { checkBrandingValid } from '../../src/policies/checkBrandingValid';
-import * as sinon from "sinon";
+
 
 describe('checkBrandingValid policy', function () {
     let originalSails: any;

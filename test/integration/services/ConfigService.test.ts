@@ -1,4 +1,6 @@
 /* eslint-disable no-unused-expressions */
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
+
 const _ = require('lodash');
 const path = require('path');
 const fs = require('fs-extra');
@@ -25,12 +27,7 @@ describe('The ConfigService', function () {
                         controllers: { moduleDefinitions: {} },
                         services: {}
                     },
-                    log: {
-                        verbose: () => { },
-                        info: () => { },
-                        error: console.error,
-                        warn: console.warn
-                    },
+                    log: consoleLogger,
                     services: {}
                 };
             }

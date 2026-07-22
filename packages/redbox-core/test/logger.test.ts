@@ -1,7 +1,7 @@
 import {ILogger, noOpLogFunc} from "@researchdatabox/sails-ng-common";
 
 /**
- * Logger implementation that discards all logs.
+ * Logger implementation that uses sinon stubs.
  */
 export function createSinonStubLogger(sinonSandbox?: any): ILogger {
   return {

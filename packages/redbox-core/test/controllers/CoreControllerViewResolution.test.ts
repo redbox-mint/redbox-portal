@@ -1,5 +1,3 @@
-import {createSinonStubLogger} from "../logger.test";
-
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
@@ -57,6 +55,7 @@ describe('CoreController hook view resolution', function () {
 
   beforeEach(function () {
     const { Controllers } = require('../../src/CoreController') as typeof import('../../src/CoreController');
+    const { createSinonStubLogger } = require("../logger.test") as typeof import("../logger.test");
     class TestController extends Controllers.Core.Controller { }
 
     originalSails = (global as { sails?: unknown }).sails;
