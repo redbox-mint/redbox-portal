@@ -979,6 +979,11 @@
     "description": "Global navigation link label for the system messages admin page",
     "contentFormat": "plain"
   },
+  "menu-webanalytics": {
+    "category": "menu",
+    "description": "Global navigation link label for the web analytics admin page",
+    "contentFormat": "plain"
+  },
   "aaf-title": {
     "category": "aaf",
     "description": "Login page heading for AAF authentication",

@@ -12,6 +12,7 @@ import {
 } from './DoiPublishing';
 import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
+import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -38,7 +39,8 @@ export type ConfigModelKey =
     | 'figsharePublishing'
     | 'doiPublishing'
     | 'dashboardTableConfig'
-    | 'integrationNotification';
+    | 'integrationNotification'
+    | 'webAnalytics';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -110,6 +112,13 @@ export class ConfigModels {
             class: IntegrationNotificationConfig,
             schema: INTEGRATION_NOTIFICATION_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/IntegrationNotificationConfig.ts')
+        }],
+        ['webAnalytics', {
+            modelName: 'WebAnalytics',
+            title: 'Web Analytics',
+            class: WebAnalytics,
+            schema: WEB_ANALYTICS_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')
         }],
     ]);
 

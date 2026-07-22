@@ -41,9 +41,14 @@
 
 
     <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>" ></angular-bootstrap>
+
+    <!-- Branding-aware web analytics (loader scripts) -->
+    <%- include('analytics', { position: 'head' }) %>
 </head>
 
 <body>
+  <!-- Branding-aware web analytics (noscript fallback) -->
+  <%- include('analytics', { position: 'body' }) %>
   <div class="header-area">
     <div class="container">
       <div class="row">

@@ -22,6 +22,13 @@ describe('ConfigModels', function() {
       const info = ConfigModels.getModelInfo('unknown');
       expect(info).to.be.undefined;
     });
+
+    it('should return model info for webAnalytics with class and schema', function() {
+      const info = ConfigModels.getModelInfo('webAnalytics');
+      expect(info).to.have.property('modelName', 'WebAnalytics');
+      expect(info?.class).to.be.a('function');
+      expect(info?.schema).to.be.an('object');
+    });
   });
 
   describe('getConfigKeys', function() {
@@ -31,6 +38,7 @@ describe('ConfigModels', function() {
       expect(keys).to.include('systemMessage');
       expect(keys).to.include('menu');
       expect(keys).to.include('doiPublishing');
+      expect(keys).to.include('webAnalytics');
     });
   });
 

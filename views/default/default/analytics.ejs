@@ -1,0 +1,58 @@
+<%
+  // Branding-aware web analytics rendering.
+  //
+  // Config comes from the branding-aware AppConfig `webAnalytics` block (see
+  // packages/redbox-core/src/configmodels/WebAnalytics.ts). The provider's
+  // required CSP domains are allow-listed per-request by the
+  // contentSecurityPolicy policy, and inline scripts here carry the request
+  // nonce so they pass the script-src policy.
+  //
+  // Include with a `position` local: 'head' emits the loader scripts (in
+  // <head>), 'body' emits the GTM <noscript> fallback (top of <body>).
+  var analyticsPosition = (typeof position !== 'undefined') ? position : 'head';
+  var webAnalyticsConfig = {};
+  try {
+    if (typeof sails !== 'undefined' && typeof sails.config.brandingAware === 'function') {
+      var analyticsBrandName = BrandingService.getBrandNameFromReq(req);
+      webAnalyticsConfig = sails.config.brandingAware(analyticsBrandName).webAnalytics || {};
+    }
+  } catch (e) {
+    webAnalyticsConfig = {};
+  }
+  // Only render for enabled config with a safe, whitelisted tracking id. The id
+  // is admin-entered, so restrict to the characters valid in GA4/GTM ids to
+  // prevent breaking out of the attribute/JS string context.
+  var analyticsProvider = webAnalyticsConfig.provider || '';
+  var analyticsTrackingId = (webAnalyticsConfig.trackingId || '').trim();
+  var analyticsIdValid = /^[A-Za-z0-9\-_]+$/.test(analyticsTrackingId);
+  var analyticsEnabled = webAnalyticsConfig.enabled === true && analyticsIdValid;
+  var analyticsNonceAttr = (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) ? (' nonce="' + contentSecurityPolicyNonce + '"') : '';
+%>
+<% if (analyticsEnabled && analyticsPosition === 'head') { %>
+  <% if (analyticsProvider === 'googleAnalytics') { %>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=<%= analyticsTrackingId %>"></script>
+  <script<%- analyticsNonceAttr %>>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '<%= analyticsTrackingId %>');
+  </script>
+  <% } else if (analyticsProvider === 'googleTagManager') { %>
+  <!-- Google Tag Manager -->
+  <script<%- analyticsNonceAttr %>>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','<%= analyticsTrackingId %>');
+  </script>
+  <!-- End Google Tag Manager -->
+  <% } %>
+<% } %>
+<% if (analyticsEnabled && analyticsPosition === 'body' && analyticsProvider === 'googleTagManager') { %>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<%= analyticsTrackingId %>"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+<% } %>

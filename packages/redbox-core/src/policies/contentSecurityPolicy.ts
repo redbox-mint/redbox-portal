@@ -1,4 +1,7 @@
 import * as crypto from 'node:crypto';
+import * as BrandingServiceModule from '../services/BrandingService';
+
+declare const BrandingService: BrandingServiceModule.Services.Branding;
 
 interface CspConfig {
     enabled?: boolean;
@@ -10,6 +13,61 @@ interface CspConfig {
 
 function isAdminApiDocsPath(pathname: string): boolean {
     return /\/admin\/api-docs(?:\/|$)/.test(pathname);
+}
+
+/**
+ * Additional CSP directive sources required by each supported web analytics
+ * provider. Kept as a small map so adding a provider later is a single edit
+ * (see also views/default/default/analytics.ejs and the WebAnalytics config
+ * model). Domains are only merged when analytics is enabled for the request's
+ * branding, so brandings without analytics get no extra allow-listing.
+ */
+const WEB_ANALYTICS_CSP_SOURCES: Record<string, Record<string, string[]>> = {
+    googleAnalytics: {
+        'script-src': ['https://www.googletagmanager.com'],
+        'img-src': ['https://*.google-analytics.com', 'https://*.googletagmanager.com'],
+        'connect-src': ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com'],
+    },
+    googleTagManager: {
+        // GTM commonly injects GA4, so allow both GTM and GA endpoints.
+        'script-src': ['https://www.googletagmanager.com'],
+        'img-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com'],
+        'connect-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'],
+        'frame-src': ['https://www.googletagmanager.com'],
+    },
+};
+
+/**
+ * If web analytics is enabled for the request's branding, merge the provider's
+ * required sources into the CSP directives (Set-union, mirroring the
+ * admin-api-docs handling). Best-effort and fully guarded: any resolution
+ * failure leaves the directives untouched.
+ */
+function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[]>): void {
+    try {
+        if (!sails || !sails.config || typeof sails.config.brandingAware !== 'function') {
+            return;
+        }
+        if (typeof BrandingService === 'undefined' || typeof BrandingService.getBrandNameFromReq !== 'function') {
+            return;
+        }
+        const brandName = BrandingService.getBrandNameFromReq(req);
+        const analytics = (sails.config.brandingAware(brandName) || {}).webAnalytics;
+        if (!analytics || analytics.enabled !== true) {
+            return;
+        }
+        const sources = WEB_ANALYTICS_CSP_SOURCES[analytics.provider];
+        if (!sources) {
+            return;
+        }
+        Object.keys(sources).forEach((directive) => {
+            const merged = new Set([...(directives[directive] ?? [])]);
+            sources[directive].forEach((src) => merged.add(src));
+            directives[directive] = Array.from(merged);
+        });
+    } catch (err) {
+        sails.log.warn(`Failed to apply web analytics CSP sources: ${(err as Error)?.message}`);
+    }
 }
 
 /**
@@ -87,6 +145,9 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
         connectSrc.add('blob:');
         directives['connect-src'] = Array.from(connectSrc);
     }
+
+    // Allow-list the branding's configured web analytics provider (if enabled).
+    applyWebAnalyticsCsp(req, directives);
 
     if (!enabled) {
         return next();
