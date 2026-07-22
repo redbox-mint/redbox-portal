@@ -323,6 +323,84 @@ describe('SolrSearchService', function() {
     });
   });
 
+  describe('buildSchema', function() {
+    const configuredSchema = {
+      'add-field': [{ name: 'title', type: 'string', indexed: true, stored: true, multiValued: false }],
+      'add-dynamic-field': [{ name: 'date_*', type: 'pdate', indexed: true, stored: true }, { name: '*', type: 'string', indexed: true, stored: true, multiValued: true }],
+      'add-copy-field': [{ source: '*', dest: 'title' }]
+    };
+
+    function prepareSchemaReconciliation(liveSchema: Record<string, unknown>) {
+      mockSails.config.solr.cores.default.schema = configuredSchema;
+      mockSails.config.solr.cores.default.initSchemaFlag = { name: 'schema_initialised', type: 'string', indexed: false, stored: false };
+      sinon.stub(SolrSearchService, 'waitForSolr').resolves();
+      const axios = require('axios');
+      sinon.stub(axios, 'get').resolves({ data: { schema: liveSchema } });
+      return sinon.stub(axios, 'post').resolves({ data: { responseHeader: { status: 0 } } });
+    }
+
+    it('adds all configured definitions to an empty schema', async function() {
+      const post = prepareSchemaReconciliation({ fields: [], dynamicFields: [], copyFields: [] });
+
+      await SolrSearchService.buildSchema();
+
+      expect(post.calledOnce).to.equal(true);
+      const payload = post.firstCall.args[1];
+      expect(payload['add-field'].map((field: { name: string }) => field.name)).to.deep.equal(['title', 'schema_initialised']);
+      expect(payload['add-dynamic-field'].map((field: { name: string }) => field.name)).to.deep.equal(['date_*', '*']);
+      expect(payload['add-copy-field']).to.deep.equal([{ source: '*', dest: 'title' }]);
+    });
+
+    it('adds the catch-all field when the legacy initialization flag is present', async function() {
+      const post = prepareSchemaReconciliation({
+        fields: [{ name: 'schema_initialised', type: 'string', indexed: false, stored: false }],
+        dynamicFields: [{ name: 'date_*', type: 'pdate', indexed: true, stored: true }],
+        copyFields: []
+      });
+
+      await SolrSearchService.buildSchema();
+
+      expect(post.calledOnce).to.equal(true);
+      expect(post.firstCall.args[1]['add-dynamic-field']).to.deep.equal([configuredSchema['add-dynamic-field'][1]]);
+    });
+
+    it('does not post when all definitions already exist', async function() {
+      const post = prepareSchemaReconciliation({
+        fields: [configuredSchema['add-field'][0], { name: 'schema_initialised', type: 'string', indexed: false, stored: false }],
+        dynamicFields: configuredSchema['add-dynamic-field'],
+        copyFields: configuredSchema['add-copy-field']
+      });
+
+      await SolrSearchService.buildSchema();
+
+      expect(post.called).to.equal(false);
+    });
+
+    it('reports conflicts without replacing existing fields', async function() {
+      const post = prepareSchemaReconciliation({
+        fields: [{ name: 'title', type: 'pdate', indexed: true, stored: true, multiValued: false }],
+        dynamicFields: configuredSchema['add-dynamic-field'],
+        copyFields: configuredSchema['add-copy-field']
+      });
+
+      await SolrSearchService.buildSchema();
+
+      expect(post.calledOnce).to.equal(true);
+      expect(post.firstCall.args[1]['add-field']).to.deep.equal([{ name: 'schema_initialised', type: 'string', indexed: false, stored: false }]);
+      expect(mockSails.log.error.calledWithMatch('Solr schema definition conflict')).to.equal(true);
+    });
+
+    it('does not duplicate initialization fields across reconciliations', async function() {
+      const post = prepareSchemaReconciliation({ fields: [], dynamicFields: [], copyFields: [] });
+
+      await SolrSearchService.buildSchema();
+      await SolrSearchService.buildSchema();
+
+      expect(post.firstCall.args[1]['add-field'].filter((field: { name: string }) => field.name === 'schema_initialised')).to.have.length(1);
+      expect(mockSails.config.solr.cores.default.schema['add-field']).to.have.length(1);
+    });
+  });
+
   describe('clientSleep', function() {
     it('should resolve immediately when no sleep time configured', async function() {
       mockSails.config.solr.clientSleepTimeMillis = undefined;

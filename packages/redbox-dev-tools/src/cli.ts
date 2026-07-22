@@ -19,6 +19,7 @@ import {
   parseNavMappings,
   parseRoutes,
 } from './cli-parsers';
+import {registerSyncTranslationCommand} from "./commands/sync-translation";
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -128,6 +129,7 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')

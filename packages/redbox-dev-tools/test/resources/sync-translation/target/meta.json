@@ -1,0 +1,15 @@
+{
+  "@name-test1": {
+    "category": "naming",
+    "description": "Name for test 1."
+  },
+  "@name-test2": {
+    "category": "name",
+    "description": "Name for test 2.",
+    "contentFormat": "plain"
+  },
+  "@name-test3": {
+    "category": "name",
+    "description": "Name for test 3."
+  }
+}

@@ -34,6 +34,7 @@ import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
 
 const { flatten } = transforms;
+const UTF8_BOM = '\uFEFF';
 
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
@@ -954,6 +955,8 @@ export namespace Services {
               passThrough.end();
               return;
             }
+            // Populated CSVs retain a UTF-8 BOM so spreadsheet apps detect their encoding correctly.
+            passThrough.write(UTF8_BOM);
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), json2csv, passThrough);
           } catch (err) {

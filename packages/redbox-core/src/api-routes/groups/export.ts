@@ -24,7 +24,7 @@ export const downloadRecsRoute = apiRoute(
         },
         content: {
           'text/csv': { schema: binaryField('CSV export file contents') },
-          'text/json': { schema: binaryField('JSON export file contents') },
+          'application/json': { schema: binaryField('JSON export file contents') },
         },
       },
       400: badRequestResponse,
