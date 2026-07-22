@@ -16,7 +16,12 @@ wait_for_minio() {
 
 ensure_mc() {
   if [ ! -x /tmp/mc ]; then
-    curl -fsSL -o /tmp/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+    case "$(uname -m)" in
+      x86_64) mc_arch=amd64 ;;
+      aarch64|arm64) mc_arch=arm64 ;;
+      *) echo "Unsupported architecture: $(uname -m)" >&2; return 1 ;;
+    esac
+    curl -fsSL -o /tmp/mc "https://dl.min.io/client/mc/release/linux-${mc_arch}/mc"
     chmod +x /tmp/mc
   fi
 }
