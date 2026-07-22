@@ -165,6 +165,8 @@ export const brandingPublishBody = objectField({
 
 export const logoUploadBody = objectField({}, [], 'Multipart logo upload body', true);
 
+export const faviconUploadBody = objectField({}, [], 'Multipart favicon upload body', true);
+
 export const datastreamUploadBody = objectField({}, [], 'Multipart datastream upload body', true);
 
 export const notificationBody = objectField(
