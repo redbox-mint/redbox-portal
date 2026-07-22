@@ -63,35 +63,38 @@ export abstract class CoreBase {
   /**
    * Get a namespaced logger for this class.
    * Uses the class constructor name as the namespace.
-   * Falls back to sails.log if pino namespaced logging is not available.
+   * Falls back to sails.log or console logger if pino namespaced logging is not available.
    * @protected
    */
   protected get logger(): ILogger {
-    // Preference order: this._logger; create pino namespace logger; use sails.log; use console temporarily
+    // Check logger in preference order.
 
     if (this._logger !== undefined) {
+      // If a namespace logger has already been created, use it.
       return this._logger;
     }
 
     if (
+      typeof sails !== 'undefined' &&
       sails?.config?.log !== undefined &&
       'createNamespaceLogger' in sails?.config?.log &&
       typeof sails.config.log.createNamespaceLogger === 'function' &&
       'customLogger' in sails?.config?.log &&
       typeof sails.config.log.customLogger === 'function'
     ) {
+      // Create and store a pino namespace logger.
       const serviceName = this.constructor.name + this._loggerNamespaceSuffix;
       this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
       return this._logger;
     }
 
-    if (sails?.log !== undefined) {
-      this._logger = sails.log;
-      return this._logger;
+    if (typeof sails !== 'undefined' && sails?.log !== undefined) {
+      // Use sails.log without storing it - once the app has loaded the namespace config should be available.
+      return sails.log;
     }
 
-    // Fallback logger for when sails is not defined (e.g. during shim generation).
-    // This should be temporary as the app loads, until `sails.log` is available, so don't assign to `this._logger`.
+    // Console logger as fallback for when sails is not defined (e.g. during shim generation).
+    // Don't store it - once the app has loaded the namespace config should be available.
     return consoleLogger;
   }
 

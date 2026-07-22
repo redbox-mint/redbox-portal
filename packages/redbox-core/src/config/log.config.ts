@@ -16,6 +16,8 @@ import {isPlainObject as _isPlainObject} from "lodash-es";
 // Declare global sails type for namespace logger
 declare const sails: Sails.Application;
 
+const initialLogLevel = 'verbose' as const;
+
 const pinoLevels: LevelWithSilent[] = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
 
 type CustomLevels = Exclude<AvailableLogLevels, LevelWithSilent>;
@@ -37,19 +39,19 @@ const customLevelMap: CustomLogLevelValues = {
   notice: 28,
   // debug: 20,
   verbose: 19,
-  silly:18,
+  silly: 18,
   // trace: 10,
 };
 
 
 export interface LogConfig {
-    custom: ILogger; // Use ILogger instead of custom interface
-    inspect: boolean;
-    level: AvailableLogLevels;
-    customLogger: ILogger;
-    createNamespaceLogger: typeof createNamespaceLogger;
-    createPinoLogger: typeof createPinoLogger;
-    lognamespace: Record<string, string>;
+  custom: ILogger; // Use ILogger instead of custom interface
+  inspect: boolean;
+  level: AvailableLogLevels;
+  customLogger: ILogger;
+  createNamespaceLogger: typeof createNamespaceLogger;
+  createPinoLogger: typeof createPinoLogger;
+  lognamespace: Record<string, string>;
 }
 
 export function isPinoLogger(value: unknown): value is Logger {
@@ -75,50 +77,50 @@ export function isPinoLogger(value: unknown): value is Logger {
  * Create a pino logger, using an optional log level and an optional destination.
  */
 function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationStream): ILogger & Logger {
-    const options: LoggerOptions = {
-        formatters: {
-            level: (label: string) => ({ level: label })
-        },
-        customLevels: customLevelMap,
-        level: level ?? 'verbose',
-        hooks: {
-            logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void) {
-                if (inputArgs.length === 1) {
-                    return method.apply(this, inputArgs);
-                } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {
-                    const arg1 = (inputArgs as unknown[]).shift();
-                    const arg2 = (inputArgs as unknown[]).shift();
-                    return method.apply(this, [arg2, arg1, ...inputArgs]);
-                } else if (inputArgs.length > 1 && _.isString(inputArgs[0])) {
-                    const arg1 = (inputArgs as unknown[]).shift();
-                    const arg2 = (inputArgs as unknown[]).shift();
-                    return method.apply(this, [arg2, arg1, ...inputArgs]);
-                } else {
-                    return method.apply(this, inputArgs);
-                }
-            }
+  const options: LoggerOptions = {
+    formatters: {
+      level: (label: string) => ({level: label})
+    },
+    customLevels: customLevelMap,
+    level: level ?? initialLogLevel,
+    hooks: {
+      logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void) {
+        if (inputArgs.length === 1) {
+          return method.apply(this, inputArgs);
+        } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {
+          const arg1 = (inputArgs as unknown[]).shift();
+          const arg2 = (inputArgs as unknown[]).shift();
+          return method.apply(this, [arg2, arg1, ...inputArgs]);
+        } else if (inputArgs.length > 1 && _.isString(inputArgs[0])) {
+          const arg1 = (inputArgs as unknown[]).shift();
+          const arg2 = (inputArgs as unknown[]).shift();
+          return method.apply(this, [arg2, arg1, ...inputArgs]);
+        } else {
+          return method.apply(this, inputArgs);
         }
+      }
+    }
+  };
+
+  let logger: Logger;
+  if (destination) {
+    logger = pino(options, destination);
+  } else {
+    options.transport = {
+      target: 'pino-logfmt',
+      options: {
+        formatTime: true,
+        flattenNestedObjects: true,
+        convertToSnakeCase: true,
+      }
     };
+    logger = pino(options);
+  }
 
-    let logger: Logger;
-    if (destination) {
-        logger = pino(options, destination);
-    } else {
-        options.transport = {
-            target: 'pino-logfmt',
-            options: {
-                formatTime: true,
-                flattenNestedObjects: true,
-                convertToSnakeCase: true,
-            }
-        };
-        logger = pino(options);
-    }
-
-    if (!isLogger(logger)){
-      throw new Error(`Pino logger does not have all the log level functions expected.`);
-    }
-    return logger;
+  if (!isLogger(logger)) {
+    throw new Error(`Pino logger does not have all the log level functions expected.`);
+  }
+  return logger;
 }
 
 /**
@@ -149,23 +151,20 @@ function createNamespaceLogger(name: string, parentLogger: ILogger, prefix?: str
 
   const namespaceLogger = parentLogger.child(bindings, options);
 
-  if (!isLogger(namespaceLogger)){
+  if (!isLogger(namespaceLogger)) {
     throw new Error(`Pino namespace logger does not have the expected log level functions.`);
   }
   return namespaceLogger;
 }
 
-const customLogger = createPinoLogger();
-
-// TODO: use a singleton class that creates the pino logger only when accessed,
-//       so the pino logger can use the sails config to get the log level when the logger is created
+const customLogger = createPinoLogger(initialLogLevel);
 
 export const log: LogConfig = {
-    custom: customLogger,
-    inspect: false,
-    level: 'verbose',
-    customLogger: customLogger,
-    createNamespaceLogger: createNamespaceLogger,
-    createPinoLogger: createPinoLogger,
-    lognamespace: {},
+  custom: customLogger,
+  inspect: false,
+  level: initialLogLevel,
+  customLogger: customLogger,
+  createNamespaceLogger: createNamespaceLogger,
+  createPinoLogger: createPinoLogger,
+  lognamespace: {},
 };
