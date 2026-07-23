@@ -332,8 +332,8 @@ export namespace Controllers {
      */
     public async renderFavicon(req: Sails.Req, res: Sails.Res) {
       const sendDefault = () => {
-        res.contentType('image/png');
-        return res.sendFile(`${sails.config.appPath}/assets/favicon-32x32.png`);
+        res.contentType(sails.config.static_assets.faviconType);
+        return res.sendFile(`${sails.config.appPath}/assets/${sails.config.static_assets.faviconName}`);
       };
       try {
         const branding = req.param('branding');
