@@ -1,5 +1,5 @@
 import {
-  FormConfigFrame, FormExpressionsOptionsConfigFrame,
+  FormConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
   QuestionTreeMeta, QuestionTreeOutcome,
@@ -7,6 +7,7 @@ import {
   RepeatableFieldComponentConfigFrame,
   TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame,
   handlebarsCompile,
+  SimpleInputFormComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
@@ -1023,6 +1024,58 @@ describe("Client Visitor", async () => {
       expect(config.template).to.contain('target="_blank"');
       expect(config.template).to.contain('href="{{default content ""}}"');
       expect(config.content).to.equal("https://example.org");
+    });
+
+    it("should retain hidden simple input in view mode", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "form",
+          componentDefinitions: [
+            {
+              name: "legacyId",
+              overrides: {
+                formModeClasses: {
+                  view: {
+                    component: "SimpleInputComponent",
+                  },
+                },
+              },
+              component: {
+                "class": "SimpleInputComponent",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  type: "hidden"
+                }
+              },
+              model: {
+                "class": "SimpleInputModel",
+              },
+              layout: {
+                "class": "DefaultLayout",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  labelRequiredStr: "*",
+                  helpTextVisible: false
+                }
+              }
+            },
+          ]
+        },
+        {},
+      );
+
+      const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+      expect(simpleInput.overrides).to.equal(undefined);
+      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.component.config?.visible).to.be.false;
+      expect(simpleInput.component.config?.label).to.equal("legacyId");
+      expect(simpleInput.component.config?.type).to.equal("hidden");
+      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.layout?.config?.visible).to.be.false;
+      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
     });
   });
 
