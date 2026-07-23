@@ -62,16 +62,22 @@ export function isPinoLogger(value: unknown): value is Logger {
   if (!('level' in value) || typeof value.level !== 'string' || !availableLogLevels.some(i => i === value.level)) {
     return false;
   }
-  // TODO
-  // if (!('customLevels' in value) || value.customLevels === null || typeof value.customLevels !== 'object' || !_isPlainObject(value.customLevels)) {
-  //   return false;
-  // }
-  // if (!('child' in value) || typeof value.child !== 'function') {
-  //   return false;
-  // }
-  // if (!Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))) {
-  //   return false;
-  // }
+
+  if (
+    'customLevels' in value && (
+      value.customLevels === null ||
+      typeof value.customLevels !== 'object' ||
+      !_isPlainObject(value.customLevels) ||
+      !Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))
+    )
+  ) {
+    return false;
+  }
+
+  if ('child' in value && typeof value.child !== 'function') {
+    return false;
+  }
+
   return true;
 }
 
