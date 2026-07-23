@@ -94,7 +94,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     hooks: {
       logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void, level: number) {
         if (level === customLevelBlank) {
-          return method.apply(this, []);
+          return method.apply(this, ['']);
         } else if (inputArgs.length === 1) {
           return method.apply(this, inputArgs);
         } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {

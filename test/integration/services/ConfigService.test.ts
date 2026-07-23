@@ -468,7 +468,7 @@ describe('The ConfigService', function () {
         });
 
         // -------------------------------------------------------------------------
-        // Test: Copy views directory  
+        // Test: Copy views directory
         // -------------------------------------------------------------------------
         it('should copy views from hook to application', function (done) {
             const viewsDir = path.join(testHookDir, 'views');

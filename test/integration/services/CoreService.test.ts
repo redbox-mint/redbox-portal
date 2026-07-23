@@ -1,5 +1,3 @@
-import {consoleLogger} from "@researchdatabox/sails-ng-common";
-
 const coreTypes = require('@researchdatabox/redbox-core');
 describe('The CoreService', function () {
   // Create a class for testing
@@ -12,9 +10,6 @@ describe('The CoreService', function () {
 
   before(function (done) {
     testCoreService = new TestCoreService();
-    // Set the console logger that has all log methods,
-    // instead of the default sails log that doesn't.
-    sails.log = consoleLogger;
     done();
   });
 

@@ -2,9 +2,13 @@ const pino = require('pino');
 const pinoTest = require('pino-test');
 
 // Custom assert function for pino testing
-function expectFunc(received, expected, msg) {
-    const actualItem = `LEVEL ${received.level} MSG ${received.msg}`;
-    const expectedItem = `LEVEL ${expected.level} MSG ${expected.msg}`;
+function expectFunc(received: {level?: string, msg?: string}, expected: {level?: string, msg?: string}, msg: unknown) {
+    const receivedLevel = received.level ?? '';
+    const receivedMsg = receivedLevel === 'blank' ? '' : (received.msg ?? '');
+    const expectedLevel = expected.level ?? '';
+    const expectedMsg = expectedLevel === 'blank' ? '' : (expected.msg ?? '');
+    const actualItem = `LEVEL ${receivedLevel} MSG ${receivedMsg}`;
+    const expectedItem = `LEVEL ${expectedLevel} MSG ${expectedMsg}`;
     expect(expectedItem).to.eql(actualItem);
 }
 
