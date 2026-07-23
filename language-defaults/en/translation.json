@@ -1354,6 +1354,8 @@
   "branding-light-label": "Light",
   "branding-links-help": "Controls link colours for normal, hover, and focus states.",
   "branding-links-name": "Links",
+  "branding-favicon-upload-help": "PNG, SVG or ICO. Displayed as the browser tab icon. Max 256 KB.",
+  "branding-favicon-upload-label": "Upload Favicon",
   "branding-logo-upload-label": "Upload Logo",
   "branding-main-menu-active-dropdown-item-background-color-help": "Sets the background colour for active dropdown items in the main menu.",
   "branding-main-menu-active-dropdown-item-background-color-hover-help": "Sets the background colour for active dropdown items in the main menu on hover.",

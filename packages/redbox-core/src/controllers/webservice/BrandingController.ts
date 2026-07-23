@@ -7,6 +7,7 @@ import {
   brandingPublishRoute,
   brandingRollbackRoute,
   brandingLogoRoute,
+  brandingFaviconRoute,
   brandingHistoryRoute,
 } from '../../index';
 
@@ -19,6 +20,7 @@ function mapError(e: unknown): { status: number; displayErrors: Array<{ code?: s
   if (msg === 'history-not-found') return { status: 404, displayErrors: [{ code: 'history-not-found' }] };
   if (msg === 'publish-conflict') return { status: 409, displayErrors: [{ code: 'publish-conflict' }] };
   if (msg.startsWith('logo-invalid')) return { status: 400, displayErrors: [{ code: 'logo-invalid', detail: msg }] };
+  if (msg.startsWith('favicon-invalid')) return { status: 400, displayErrors: [{ code: 'favicon-invalid', detail: msg }] };
   return { status: 500, displayErrors: [{ code: 'server-error', detail: msg }] };
 }
 
@@ -28,7 +30,7 @@ function toValidationDisplayErrors(issues: Array<{ path: string; message: string
 
 export namespace Controllers {
   export class Branding extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'history'];
+    protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'favicon', 'history'];
 
     async draft(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
@@ -150,20 +152,75 @@ export namespace Controllers {
             resolve([]);
           }
         });
-        const fileValidation = validateApiRouteFiles(brandingLogoRoute, { logo: files });
-        if (!fileValidation.valid) {
+        const fs = require('fs').promises;
+        try {
+          const fileValidation = validateApiRouteFiles(brandingLogoRoute, { logo: files });
+          if (!fileValidation.valid) {
+            return this.sendResp(req, res, {
+              status: 400,
+              displayErrors: toValidationDisplayErrors(fileValidation.issues),
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+          req.apiRequest = { ...validated, files: { logo: files } };
+          const f = files[0];
+          const buf = await fs.readFile(f.fd);
+          const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
+          return this.apiRespond(req, res, { hash }, 200);
+        } finally {
+          await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
+        }
+      } catch (e: unknown) {
+        const { status, displayErrors } = mapError(e);
+        return this.sendResp(req, res, {
+          status,
+          displayErrors,
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+    }
+    async favicon(req: Sails.Req, res: Sails.Res) {
+      const validated = getValidatedApiRequest(req);
+      const { params } = validated;
+      const branding = params.branding as string;
+      const portal = params.portal as string;
+      try {
+        const reqObj = req as unknown as globalThis.Record<string, unknown>;
+        if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: toValidationDisplayErrors(fileValidation.issues),
+            displayErrors: [{ code: 'no-file' }],
             headers: this.getNoCacheHeaders(),
           });
         }
-        req.apiRequest = { ...validated, files: { logo: files } };
-        const f = files[0];
+        const fileFn = reqObj.file as (name: string) => {
+          upload: (cb: (err: unknown, uploaded: Array<{ fd: string; type: string }>) => void) => void;
+        };
+        const files = await new Promise<Array<{ fd: string; type: string }>>((resolve, reject) => {
+          try {
+            fileFn('favicon').upload((err: unknown, uploaded) => (err ? reject(err) : resolve(uploaded)));
+          } catch (_e) {
+            resolve([]);
+          }
+        });
         const fs = require('fs').promises;
-        const buf = await fs.readFile(f.fd);
-        const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
-        return this.apiRespond(req, res, { hash }, 200);
+        try {
+          const fileValidation = validateApiRouteFiles(brandingFaviconRoute, { favicon: files });
+          if (!fileValidation.valid) {
+            return this.sendResp(req, res, {
+              status: 400,
+              displayErrors: toValidationDisplayErrors(fileValidation.issues),
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+          req.apiRequest = { ...validated, files: { favicon: files } };
+          const f = files[0];
+          const buf = await fs.readFile(f.fd);
+          const { hash } = await BrandingLogoService.putFavicon({ branding, portal, fileBuffer: buf, contentType: f.type });
+          return this.apiRespond(req, res, { hash }, 200);
+        } finally {
+          await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
+        }
       } catch (e: unknown) {
         const { status, displayErrors } = mapError(e);
         return this.sendResp(req, res, {
