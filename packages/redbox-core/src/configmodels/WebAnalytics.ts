@@ -19,7 +19,7 @@ export class WebAnalytics extends AppConfig {
      *
      * @title Provider
      */
-    provider: string = 'googleAnalytics';
+    provider: 'googleAnalytics' | 'googleTagManager' = 'googleAnalytics';
 
     /**
      * The provider tracking identifier. For Google Analytics 4 this is the

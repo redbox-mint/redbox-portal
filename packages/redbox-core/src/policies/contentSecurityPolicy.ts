@@ -29,8 +29,9 @@ const WEB_ANALYTICS_CSP_SOURCES: Record<string, Record<string, string[]>> = {
         'connect-src': ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com'],
     },
     googleTagManager: {
-        // GTM commonly injects GA4, so allow both GTM and GA endpoints.
-        'script-src': ['https://www.googletagmanager.com'],
+        // Trust scripts injected by the nonce-authorized GTM bootstrap while
+        // retaining the GTM origin for browsers without strict-dynamic support.
+        'script-src': ["'strict-dynamic'", 'https://www.googletagmanager.com'],
         'img-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com'],
         'connect-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'],
         'frame-src': ['https://www.googletagmanager.com'],
@@ -54,6 +55,10 @@ function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[
         const brandName = BrandingService.getBrandNameFromReq(req);
         const analytics = (sails.config.brandingAware(brandName) || {}).webAnalytics;
         if (!analytics || analytics.enabled !== true) {
+            return;
+        }
+        const trackingId = typeof analytics.trackingId === 'string' ? analytics.trackingId.trim() : '';
+        if (!/^[A-Za-z0-9\-_]+$/.test(trackingId)) {
             return;
         }
         const sources = WEB_ANALYTICS_CSP_SOURCES[analytics.provider];

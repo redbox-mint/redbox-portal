@@ -227,6 +227,7 @@ describe('contentSecurityPolicy policy', function () {
             expect(csp).to.include('https://www.googletagmanager.com');
             expect(csp).to.include('https://*.google-analytics.com');
             expect(csp).to.include('https://*.analytics.google.com');
+            expect(csp).to.not.include("'strict-dynamic'");
         });
 
         it('should allow-list Google Tag Manager domains when enabled for the branding', function () {
@@ -236,12 +237,36 @@ describe('contentSecurityPolicy policy', function () {
             contentSecurityPolicy(req, res, () => { });
 
             const csp = getHeaders()['Content-Security-Policy'];
+            const scriptSrc = csp.match(/script-src[^;]*/)?.[0] ?? '';
             const frameSrc = csp.match(/frame-src[^;]*/)?.[0] ?? '';
+            expect(scriptSrc).to.include("'strict-dynamic'");
             expect(frameSrc).to.include('https://www.googletagmanager.com');
         });
 
         it('should NOT allow-list analytics domains when disabled for the branding', function () {
             withBrandingAnalytics({ enabled: false, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains when the tracking ID is empty', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: '  ' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains when the tracking ID is invalid', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC<script>' });
             const { req, res, getHeaders } = createMockReqRes();
 
             contentSecurityPolicy(req, res, () => { });
