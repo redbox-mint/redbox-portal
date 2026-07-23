@@ -571,8 +571,11 @@ export class FormOverride {
     }
 
     // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-    if ('overrides' in result) {
-      delete result['overrides'];
+    if ('overrides' in result && phase === 'client') {
+      delete result.overrides;
+    } else if ('overrides' in result && phase === 'construct') {
+      delete result.overrides?.replaceName;
+      delete result.overrides?.reusableFormName;
     }
 
     if (isTransformExpected) {

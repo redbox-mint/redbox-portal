@@ -802,7 +802,7 @@ describe("Construct Visitor", async () => {
           });
 
           const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
-          expect(simpleInput.overrides).to.equal(undefined);
+          expect(simpleInput.overrides?.formModeClasses?.view?.component).to.equal("SimpleInputComponent");
           expect(simpleInput.model?.class).to.equal("SimpleInputModel");
           expect(simpleInput.component.class).to.equal("SimpleInputComponent");
           expect(simpleInput.component.config?.visible).to.be.false;
