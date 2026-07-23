@@ -24,8 +24,8 @@ export const availableLogLevels = [
   'notice',
   'debug',
   'verbose',
-  'silly',
   'trace',
+  'silly',
 ] as const;
 
 /**

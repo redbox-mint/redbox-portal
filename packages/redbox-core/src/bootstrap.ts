@@ -181,7 +181,7 @@ export function preLiftSetup(): void {
     }
 
     if (isPinoLogger(sails.config.log.customLogger)) {
-        // Update the pino log level to the sails.log.level
+        // Update the pino log level to the sails.config.log.level
         sails.config.log.customLogger.level = sails.config.log.level;
     }
 

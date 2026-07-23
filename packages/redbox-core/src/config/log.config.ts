@@ -24,9 +24,10 @@ type CustomLevels = Exclude<AvailableLogLevels, LevelWithSilent>;
 const customLevels = availableLogLevels.filter(i => !(pinoLevels as readonly string[]).includes(i));
 type CustomLogLevelValues = Record<CustomLevels, number>;
 
+const customLevelBlank = 69;
 const customLevelMap: CustomLogLevelValues = {
   // silent: ,
-  blank: 69,
+  blank: customLevelBlank,
   // fatal: 60,
   crit: 59,
   emerg: 58,
@@ -39,8 +40,8 @@ const customLevelMap: CustomLogLevelValues = {
   notice: 28,
   // debug: 20,
   verbose: 19,
-  silly: 18,
   // trace: 10,
+  silly: 9,
 };
 
 
@@ -61,15 +62,16 @@ export function isPinoLogger(value: unknown): value is Logger {
   if (!('level' in value) || typeof value.level !== 'string' || !availableLogLevels.some(i => i === value.level)) {
     return false;
   }
-  if (!('customLevels' in value) || value.customLevels === null || typeof value.customLevels !== 'object' || !_isPlainObject(value.customLevels)) {
-    return false;
-  }
-  if (!('child' in value) || typeof value.child !== 'function') {
-    return false;
-  }
-  if (!Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))) {
-    return false;
-  }
+  // TODO
+  // if (!('customLevels' in value) || value.customLevels === null || typeof value.customLevels !== 'object' || !_isPlainObject(value.customLevels)) {
+  //   return false;
+  // }
+  // if (!('child' in value) || typeof value.child !== 'function') {
+  //   return false;
+  // }
+  // if (!Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))) {
+  //   return false;
+  // }
   return true;
 }
 
@@ -84,8 +86,10 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     customLevels: customLevelMap,
     level: level ?? initialLogLevel,
     hooks: {
-      logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void) {
-        if (inputArgs.length === 1) {
+      logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void, level: number) {
+        if (level === customLevelBlank) {
+          return method.apply(this, []);
+        } else if (inputArgs.length === 1) {
           return method.apply(this, inputArgs);
         } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {
           const arg1 = (inputArgs as unknown[]).shift();

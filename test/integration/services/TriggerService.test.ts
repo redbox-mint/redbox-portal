@@ -1,5 +1,10 @@
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
+
 describe('The TriggerService', function () {
     before(function (done) {
+        // Set the console logger that has all log methods,
+        // instead of the default sails log that doesn't.
+        sails.log = consoleLogger;
         done();
     });
     describe('should validate fields using regex', function () {
