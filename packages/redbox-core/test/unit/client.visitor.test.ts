@@ -1077,6 +1077,69 @@ describe("Client Visitor", async () => {
       expect(simpleInput.layout?.config?.visible).to.be.false;
       expect(simpleInput.layout?.config?.label).to.equal("legacyId");
     });
+
+    it("should remove overrides in edit mode", async function () {
+      const data: FormConfigFrame = {
+          name: "form",
+          componentDefinitions: [
+            {
+              name: "legacyId",
+              overrides: {
+                formModeClasses: {
+                  view: {
+                    component: "SimpleInputComponent",
+                  },
+                },
+              },
+              component: {
+                "class": "SimpleInputComponent",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  type: "hidden"
+                }
+              },
+              model: {
+                "class": "SimpleInputModel",
+              },
+              layout: {
+                "class": "DefaultLayout",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  labelRequiredStr: "*",
+                  helpTextVisible: false
+                }
+              }
+            },
+          ]
+      };
+      const formMode = "edit";
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = await visitor.start({
+        form: constructed,
+        formMode,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+      expect(simpleInput.overrides).to.equal(undefined);
+      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.component.config?.visible).to.be.false;
+      expect(simpleInput.component.config?.label).to.equal("legacyId");
+      expect(simpleInput.component.config?.type).to.equal("hidden");
+      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.layout?.config?.visible).to.be.false;
+      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+    });
   });
 
   it(`should create full example form config`, async function () {
