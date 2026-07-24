@@ -80,7 +80,7 @@ export class RecordSelectorModel extends FormFieldModel<RecordSelectorModelValue
       }
 
       .rb-record-selector-selected-title {
-        font-size: 1rem;
+        font-size: inherit;
         line-height: 1.5;
         color: #1c2733;
         overflow-wrap: anywhere;

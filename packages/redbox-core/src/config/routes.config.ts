@@ -81,6 +81,10 @@ export const routes: RoutesConfig = {
         controller: 'BrandingController',
         action: 'renderImage'
     },
+    '/:branding/:portal/images/favicon': {
+        controller: 'BrandingController',
+        action: 'renderFavicon'
+    },
 
     // Admin routes
     '/:branding/:portal/admin': {
@@ -193,6 +197,7 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/app/branding/preview': { controller: 'BrandingAppController', action: 'preview' },
     'post /:branding/:portal/app/branding/publish': { controller: 'BrandingAppController', action: 'publish' },
     'post /:branding/:portal/app/branding/logo': { controller: 'BrandingAppController', action: 'logo' },
+    'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
     // Admin user management routes
     'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
