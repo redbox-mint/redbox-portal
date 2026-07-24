@@ -49,6 +49,7 @@ export class BrandingAdminComponent extends BaseComponent {
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
   logoUrl?: string;
+  faviconUrl?: string;
 
   // Track component initialization state without casting
   private componentReady: boolean = false;
@@ -66,6 +67,7 @@ export class BrandingAdminComponent extends BaseComponent {
   publishing = false;
   generatingPreview = false;
   logoUploading = false;
+  faviconUploading = false;
   message?: string;
   error?: string;
   // Variables sourced exclusively from assets/styles/custom-variables.scss
@@ -88,6 +90,7 @@ export class BrandingAdminComponent extends BaseComponent {
     // Set logo URL
     const base = this.brandingService.getBrandingAndPortalUrl();
     this.logoUrl = `${base}/images/logo`;
+    this.faviconUrl = `${base}/images/favicon`;
     // Initialize Bootstrap tooltips for all elements with data-bs-toggle="tooltip"
     setTimeout(() => {
       const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -298,6 +301,21 @@ export class BrandingAdminComponent extends BaseComponent {
       this.error = `Failed to upload logo: ${e?.message || e}`;
       this.logger.error(this.error);
     } finally { this.logoUploading = false; }
+  }
+
+  async uploadFavicon(event: any) {
+    const file: File | undefined = event?.target?.files?.[0];
+    if (!file) { return; }
+    this.faviconUploading = true; this.message = this.error = undefined;
+    try {
+      const formData = new FormData();
+      formData.append('favicon', file);
+      await this.brandingService.uploadFavicon(formData);
+      this.message = 'Favicon uploaded';
+    } catch (e: any) {
+      this.error = `Failed to upload favicon: ${e?.message || e}`;
+      this.logger.error(this.error);
+    } finally { this.faviconUploading = false; }
   }
 
   copyToClipboard(text: string) {

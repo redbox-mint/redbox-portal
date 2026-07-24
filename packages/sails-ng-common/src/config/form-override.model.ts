@@ -74,7 +74,10 @@ import {
   PublishDataLocationSelectorComponentName,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from './component/publish-data-location-selector.outline';
-import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
+import {
+  TypeaheadInputModelOptionValue,
+  TypeaheadInputModelValueType,
+} from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { LineagePaths } from './names/naming-helpers';
@@ -856,13 +859,7 @@ export class FormOverride {
       return target;
     }
 
-    const value = source.model.config.value;
-    const displayValue =
-      value && typeof value === 'object' && 'label' in value
-        ? (value as TypeaheadInputModelOptionValue).label
-        : typeof value === 'string'
-          ? value
-          : '';
+    const displayValue = this.resolveTypeaheadContentValue(source.model.config.value, source);
     target.component.config.content = displayValue;
     target.component.config.template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafPlain,
@@ -870,6 +867,107 @@ export class FormOverride {
     );
 
     return target;
+  }
+
+  private resolveTypeaheadContentValue(
+    value: TypeaheadInputModelValueType | undefined,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (!value || typeof value !== 'object') {
+      return '';
+    }
+
+    const configuredValue = value as TypeaheadInputModelOptionValue;
+    const componentConfig = source.component.config as {
+      labelField?: string;
+      valueField?: string;
+      optionObjectFields?: Record<string, string>;
+    } | undefined;
+
+    const labelField = componentConfig?.labelField?.trim?.() || 'label';
+    const valueField = componentConfig?.valueField?.trim?.() || 'value';
+    const preferredFields = this.getTypeaheadDisplayFields(source);
+    const candidates = [
+      configuredValue.label,
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        labelField,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      ),
+      configuredValue[labelField],
+      ...preferredFields.map(field => this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        field,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      )),
+      ...preferredFields.map(field => configuredValue[field]),
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        valueField,
+        source,
+        this.isConfiguredTypeaheadValueField.bind(this)
+      ),
+      configuredValue[valueField],
+      configuredValue.value,
+    ];
+
+    const resolvedValue = candidates.find(candidate => candidate !== undefined && candidate !== null);
+    return resolvedValue === undefined ? '' : String(resolvedValue);
+  }
+
+  private getConfiguredTypeaheadStoredValue(
+    value: TypeaheadInputModelOptionValue,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline,
+    matchesField: (
+      fieldName: string,
+      configuredSourcePath: string,
+      source: TypeaheadInputFormComponentDefinitionOutline
+    ) => boolean
+  ): unknown {
+    const optionObjectFields = this.getTypeaheadOptionObjectFields(source);
+    const directMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      configuredSourcePath === sourcePath && value[fieldName] !== undefined
+    );
+    if (directMatch) {
+      return value[directMatch[0]];
+    }
+
+    const semanticMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      matchesField(fieldName, configuredSourcePath, source) && value[fieldName] !== undefined
+    );
+    return semanticMatch ? value[semanticMatch[0]] : undefined;
+  }
+
+  private getTypeaheadOptionObjectFields(source: TypeaheadInputFormComponentDefinitionOutline): Record<string, string> {
+    const optionObjectFields = (source.component.config as { optionObjectFields?: unknown } | undefined)?.optionObjectFields;
+    if (!optionObjectFields || typeof optionObjectFields !== 'object' || Array.isArray(optionObjectFields)) {
+      return {};
+    }
+    return optionObjectFields as Record<string, string>;
+  }
+
+  private isConfiguredTypeaheadLabelField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const labelField = (source.component.config as { labelField?: string } | undefined)?.labelField ?? 'label';
+    return fieldName === labelField || sourcePath === labelField || fieldName === 'label' || sourcePath === 'label';
+  }
+
+  private isConfiguredTypeaheadValueField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const valueField = (source.component.config as { valueField?: string } | undefined)?.valueField ?? 'value';
+    return fieldName === valueField || sourcePath === valueField || fieldName === 'value' || sourcePath === 'value';
   }
 
   private sourceRichTextEditorComponentTargetContentComponent(

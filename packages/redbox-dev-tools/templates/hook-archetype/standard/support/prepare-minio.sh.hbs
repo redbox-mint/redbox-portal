@@ -1,0 +1,74 @@
+#! /bin/sh
+MINIO_URL="${HOOK_S3_ENDPOINT:-http://minio:9000}"
+MINIO_WAIT_SECONDS="${MINIO_WAIT_SECONDS:-180}"
+
+wait_for_minio() {
+  echo "Waiting for MinIO at ${MINIO_URL}..."
+  for _ in $(seq 1 "${MINIO_WAIT_SECONDS}"); do
+    if curl -fsS "${MINIO_URL}/minio/health/ready" >/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "MinIO did not become ready within ${MINIO_WAIT_SECONDS} seconds." >&2
+  return 1
+}
+
+ensure_mc() {
+  if [ ! -x /tmp/mc ]; then
+    case "$(uname -m)" in
+      x86_64) mc_arch=amd64 ;;
+      aarch64|arm64) mc_arch=arm64 ;;
+      *) echo "Unsupported architecture: $(uname -m)" >&2; return 1 ;;
+    esac
+    curl -fsSL -o /tmp/mc "https://dl.min.io/client/mc/release/linux-${mc_arch}/mc"
+    chmod +x /tmp/mc
+  fi
+}
+
+ensure_alias() {
+  /tmp/mc alias set local "${MINIO_URL}" "${HOOK_S3_ACCESS_KEY}" "${HOOK_S3_SECRET_KEY}" >/dev/null
+}
+
+ensure_bucket() {
+  if /tmp/mc stat "local/${HOOK_S3_BUCKET}" >/dev/null 2>&1; then
+    echo "Attachments bucket exists, skipping creation."
+    return 0
+  fi
+
+  /tmp/mc mb "local/${HOOK_S3_BUCKET}"
+}
+
+ensure_credentials() {
+  CREDS_DIR=/home/node/.aws
+  CREDS_FILE="${CREDS_DIR}/credentials"
+  DESIRED_CREDS_FILE=/tmp/minio-credentials
+
+  cat > "${DESIRED_CREDS_FILE}" <<EOF
+[default]
+aws_access_key_id = ${HOOK_S3_ACCESS_KEY}
+aws_secret_access_key = ${HOOK_S3_SECRET_KEY}
+EOF
+
+  mkdir -p "${CREDS_DIR}"
+
+  if [ -f "${CREDS_FILE}" ] && cmp -s "${CREDS_FILE}" "${DESIRED_CREDS_FILE}"; then
+    echo "Reusing existing credentials file: ${CREDS_FILE}"
+    rm -f "${DESIRED_CREDS_FILE}"
+    return 0
+  fi
+
+  echo "Writing credentials file: ${CREDS_FILE}"
+  mv "${DESIRED_CREDS_FILE}" "${CREDS_FILE}"
+}
+
+if [ -z "${HOOK_S3_BUCKET:-}" ]; then
+  echo "HOOK_S3_BUCKET is not set; skipping MinIO preparation."
+  exit 0
+fi
+
+ensure_mc
+wait_for_minio
+ensure_alias
+ensure_bucket
+ensure_credentials

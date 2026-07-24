@@ -36,7 +36,7 @@ tests {
 
   test("Secondary researcher is returned as a link candidate", function () {
       var jsonData = res.getBody();
-      expect(jsonData).to.be.an.instanceof(Array);
+      expect(Array.isArray(jsonData)).to.equal(true);
       var candidate = jsonData.find(function(user) {
           return user.username === bru.getEnvVar("secondaryResearcherUsername");
       });

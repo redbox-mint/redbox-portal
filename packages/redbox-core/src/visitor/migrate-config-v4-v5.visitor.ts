@@ -104,6 +104,7 @@ import {
   TypeaheadInputFieldComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputPermissiveFieldComponentConfigOutline,
   TypeaheadInputModelName,
 } from '@researchdatabox/sails-ng-common';
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
@@ -762,7 +763,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
     );
 
-    // Add the validation summary.
+    // Add the save status and validation summary used by legacy forms.
+    const saveStatusFrame = {
+      name: 'save_status',
+      component: { class: 'SaveStatusComponent' },
+    };
+    const saveStatusComponent = this.sharedProps.sharedConstructFormComponent(saveStatusFrame);
+    item.componentDefinitions.push(saveStatusComponent);
+
     const validationSummaryFrame = {
       name: 'validation_summary',
       component: { class: 'ValidationSummaryComponent' },
@@ -911,31 +919,32 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const contentBoundHtmlTemplateToken = '{{{get formData content ""}}}';
       const contentBoundValueTemplateToken = '{{get formData content.value ""}}';
       const labelOnlyTemplateToken = this.isLegacyTranslationKey(item.config.label) ? '{{t content}}' : '{{content}}';
+      const contentConfig = item.config;
+      const setHeadingContent = (headingLevel: string, templateToken: string) => {
+        contentConfig.content = bindContentFromFormData ? v4Name : v4Value;
+        contentConfig.template = this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)
+          ? `<span></span>`
+          : `<${headingLevel}>${templateToken}</${headingLevel}>`;
+      };
 
       switch (v4Type) {
         case 'h1':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h1>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h1>`;
+          setHeadingContent('h1', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h2':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h2>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h2>`;
+          setHeadingContent('h2', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h3':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h3>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h3>`;
+          setHeadingContent('h3', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h4':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h4>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h4>`;
+          setHeadingContent('h4', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h5':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h5>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h5>`;
+          setHeadingContent('h5', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h6':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h6>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h6>`;
+          setHeadingContent('h6', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'hr':
           item.config.content = bindContentFromFormData ? v4Name : v4Value;
@@ -2057,36 +2066,36 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item: TypeaheadInputFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
-    item.config = new TypeaheadInputFieldComponentConfig();
-    this.sharedPopulateFieldComponentConfig(item.config, field);
+    const itemConfig: TypeaheadInputPermissiveFieldComponentConfigOutline = new TypeaheadInputFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(itemConfig, field);
 
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const sourceType = this.resolveTypeaheadSourceType(definition);
-    this.sharedProps.setPropOverride('sourceType', item.config, { sourceType });
+    this.sharedProps.setPropOverride('sourceType', itemConfig, { sourceType });
 
     if (sourceType === 'namedQuery') {
       const queryId = String(definition.vocabQueryId ?? definition.queryId ?? '').trim();
       if (queryId) {
-        this.sharedProps.setPropOverride('queryId', item.config, { queryId });
+        this.sharedProps.setPropOverride('queryId', itemConfig, { queryId });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing queryId/vocabQueryId at ${JSON.stringify(this.v4FormPath)}.`
         );
       }
       const labelField = this.resolveLegacyLabelField(definition);
-      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      this.sharedProps.setPropOverride('labelField', itemConfig, { labelField });
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
-      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+      this.sharedProps.setPropOverride('valueField', itemConfig, { valueField });
     } else if (sourceType === 'static') {
       const labelField = this.resolveLegacyLabelField(definition);
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? 'value').trim() || 'value';
       const normalizedOptions = this.normalizeLegacyTypeaheadStaticOptions(definition, labelField, valueField);
-      this.sharedProps.setPropOverride('options', item.config, { options: normalizedOptions });
-      this.sharedProps.setPropOverride('staticOptions', item.config, { staticOptions: normalizedOptions });
+      this.sharedProps.setPropOverride('options', itemConfig, { options: normalizedOptions });
+      this.sharedProps.setPropOverride('staticOptions', itemConfig, { staticOptions: normalizedOptions });
     } else if (sourceType === 'vocabulary') {
       const vocabRef = String(definition.vocabRef ?? definition.vocabId ?? '').trim();
       if (vocabRef) {
-        this.sharedProps.setPropOverride('vocabRef', item.config, { vocabRef });
+        this.sharedProps.setPropOverride('vocabRef', itemConfig, { vocabRef });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing vocabRef/vocabId at ${JSON.stringify(this.v4FormPath)}.`
@@ -2095,7 +2104,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     } else if (sourceType === 'service') {
       const serviceId = String(definition.serviceId ?? '').trim();
       if (serviceId) {
-        this.sharedProps.setPropOverride('serviceId', item.config, { serviceId });
+        this.sharedProps.setPropOverride('serviceId', itemConfig, { serviceId });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing serviceId at ${JSON.stringify(this.v4FormPath)}.`
@@ -2104,7 +2113,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     } else if (sourceType === 'external') {
       const provider = String(definition.provider ?? '').trim();
       if (provider) {
-        this.sharedProps.setPropOverride('provider', item.config, { provider });
+        this.sharedProps.setPropOverride('provider', itemConfig, { provider });
       } else {
         this.logger.warn(
           `${this.logName}: Typeahead migration missing provider at ${JSON.stringify(this.v4FormPath)}.`
@@ -2112,20 +2121,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       }
       const resultArrayProperty = String(definition.resultArrayProperty ?? '').trim();
       if (resultArrayProperty) {
-        this.sharedProps.setPropOverride('resultArrayProperty', item.config, { resultArrayProperty });
+        this.sharedProps.setPropOverride('resultArrayProperty', itemConfig, { resultArrayProperty });
       }
       const labelField = this.resolveLegacyLabelField(definition);
-      this.sharedProps.setPropOverride('labelField', item.config, { labelField });
+      this.sharedProps.setPropOverride('labelField', itemConfig, { labelField });
       const valueField = String(definition.valueFieldName ?? definition.valueField ?? labelField).trim() || labelField;
-      this.sharedProps.setPropOverride('valueField', item.config, { valueField });
+      this.sharedProps.setPropOverride('valueField', itemConfig, { valueField });
     }
 
     const requireSelection = !this.parseLegacyTypeaheadBoolean(definition.freeText, false, 'freeText');
-    this.sharedProps.setPropOverride('requireSelection', item.config, { requireSelection });
+    this.sharedProps.setPropOverride('requireSelection', itemConfig, { requireSelection });
 
     const storeLabelOnly = this.parseLegacyTypeaheadBoolean(definition.storeLabelOnly, true, 'storeLabelOnly');
     const valueMode = storeLabelOnly ? 'value' : 'optionObject';
-    this.sharedProps.setPropOverride('valueMode', item.config, { valueMode });
+    this.sharedProps.setPropOverride('valueMode', itemConfig, { valueMode });
 
     const readOnlyAfterSelect = this.parseLegacyTypeaheadBoolean(
       definition.disableEditAfterSelect,
@@ -2133,9 +2142,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       'disableEditAfterSelect'
     );
     if (readOnlyAfterSelect) {
-      this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, { readOnlyAfterSelect });
+      this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, { readOnlyAfterSelect });
     }
 
+    item.config = itemConfig;
     await this.warnOnDroppedLegacyTypeaheadProperties(definition);
   }
 
@@ -2412,7 +2422,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected shouldOmitLegacyField(field: Record<string, unknown>, v4FormPathMore?: string[]): boolean {
+  protected shouldOmitLegacyField(field: Record<string, unknown> | null | undefined, v4FormPathMore?: string[]): boolean {
+    if (!field || typeof field !== 'object') {
+      this.logger.warn(
+        `${this.logName}: Omitting empty legacy field entry at ${JSON.stringify([
+          ...(this.v4FormPath ?? []),
+          ...(v4FormPathMore ?? []),
+        ])}.`
+      );
+      return true;
+    }
+
     const v4ClassName = `${field?.class ?? ''}`.trim();
     const v4CompClassName = `${field?.compClass ?? ''}`.trim();
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
@@ -2750,15 +2770,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           ? (definition.label as string)
           : isLegacyDataLocation
             ? fallbackLabel
-            : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-              (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
-                ? definition.value
+            : this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field) && typeof definition.value === 'string'
+              ? definition.value
+              : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+                (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
+                  ? definition.value
                 : fallbackLabel || (typeof definition.name === 'string' ? definition.name : undefined));
     const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
-    const cssClassesMap =
-      this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
-        ? { label: legacyCssClasses }
-        : undefined;
+    let cssClassesMap: { label: string } | undefined;
+    if (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses) {
+      cssClassesMap = { label: legacyCssClasses };
+    } else if (this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)) {
+      const headingCssClass = this.getLegacyTextBlockHeadingCssClass(field);
+      cssClassesMap = headingCssClass ? { label: headingCssClass } : undefined;
+    }
     const config = {
       label: this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer() ? undefined : migratedLabel,
       helpText:
@@ -2822,6 +2847,39 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return hasHelpText || hasLegacyCssClass;
   }
 
+  private isLegacyTextBlockHeadingField(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return (
+      `${field.class ?? ''}`.trim() === 'Container' &&
+      `${field.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
+      /^h[1-6]$/.test(`${definition.type ?? ''}`.trim())
+    );
+  }
+
+  private shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field?: Record<string, unknown>): boolean {
+    if (!this.isLegacyTextBlockHeadingField(field)) {
+      return false;
+    }
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    return typeof definition.help === 'string' && definition.help.trim().length > 0;
+  }
+
+  private getLegacyTextBlockHeadingCssClass(field?: Record<string, unknown>): string | undefined {
+    if (!this.isLegacyTextBlockHeadingField(field)) {
+      return undefined;
+    }
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
+    if (legacyCssClasses) {
+      return legacyCssClasses;
+    }
+    const type = `${definition.type ?? ''}`.trim();
+    return /^h[1-6]$/.test(type) ? `${type}-header` : undefined;
+  }
+
   private shouldSuppressLegacyTextBlockLayoutLabel(field?: Record<string, unknown>): boolean {
     if (!field) {
       return false;
@@ -2835,7 +2893,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       isLegacyTextBlock &&
       hasLegacyNameBinding &&
       !hasExplicitLabel &&
-      !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field)
+      !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) &&
+      !this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)
     );
   }
 
@@ -2895,7 +2954,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return normalized;
   }
 
-  protected async migrateOptions(field: Record<string, unknown>) {
+  protected migrateOptions(field: Record<string, unknown>) {
     return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map(
       option => {
         return {
@@ -3524,11 +3583,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   private async injectLegacyRecordMetadataRetrieverExpressions(
-    legacyFields: Record<string, unknown>[],
+    legacyFields: (Record<string, unknown> | null | undefined)[],
     migratedComponents: AllFormComponentDefinitionOutlines[],
     containerPointer = ''
   ): Promise<void> {
-    for (const legacyField of legacyFields) {
+    const validLegacyFields = legacyFields.filter(
+      (legacyField): legacyField is Record<string, unknown> => !!legacyField && typeof legacyField === 'object'
+    );
+
+    for (const legacyField of validLegacyFields) {
       if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
         continue;
       }
@@ -3542,11 +3605,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const migratedRetriever = migratedComponents.find(component => component.name === retrieverName);
       if (migratedRetriever) {
         migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
-          this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
+          this.buildRetrieverExpressions(legacyField, validLegacyFields, containerPointer)
         );
       }
 
-      for (const targetField of legacyFields) {
+      for (const targetField of validLegacyFields) {
         const targetDefinition = (targetField.definition ?? {}) as Record<string, unknown>;
         const targetName = String(targetDefinition.name ?? targetDefinition.id ?? '').trim();
         if (!targetName) {

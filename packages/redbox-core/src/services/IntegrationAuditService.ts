@@ -10,7 +10,7 @@ import {
   IntegrationAuditStatus,
 } from '../model/storage/IntegrationAuditModel';
 import { StorageServiceResponse } from '../StorageServiceResponse';
-import { redactObject } from './figshare-v2/observability';
+import { redactObject } from '../utilities/RedactionUtils';
 import { StorageService } from '../StorageService';
 
 type AnyRecord = Record<string, unknown>;

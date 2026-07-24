@@ -1,0 +1,19 @@
+import type { RedboxMigration } from '@researchdatabox/redbox-core';
+
+export const MigrationExports: RedboxMigration[] = [];
+
+/**
+ * Hook migration registry. The ReDBox loader discovers this via
+ * `package.json` -> `sails.hasMigrations: true` and calls it through the
+ * generated `config/migrations.js` shim.
+ *
+ * Keep this function synchronous. Migrations are ordered lexically by `name`,
+ * so prefix new migration names with the hook package name and a sortable
+ * timestamp, for example:
+ * `{{packageName}}:20260703T000000-seed-client-defaults`.
+ */
+export function registerRedboxMigrations(): RedboxMigration[] {
+  return MigrationExports;
+}
+
+export default registerRedboxMigrations;

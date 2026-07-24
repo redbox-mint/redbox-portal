@@ -30,9 +30,17 @@ import type { HistoricalVocabMode } from "./dropdown-input.outline";
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
 export type TypeaheadInputComponentNameType = typeof TypeaheadInputComponentName;
 
-export type TypeaheadSourceType = "static" | "vocabulary" | "namedQuery" | "external" | "service";
+export const TypeaheadSourceTypes = ["static", "vocabulary", "namedQuery", "external", "service"] as const;
+export type TypeaheadSourceType = typeof TypeaheadSourceTypes[number];
 export type TypeaheadValueMode = "value" | "optionObject";
 export type TypeaheadStoredSourceType = TypeaheadSourceType | "freeText";
+/**
+ * Maps stored object property names to paths on the selected option/raw result.
+ * Use this only with valueMode: "optionObject" when a form needs a domain-specific
+ * stored object, for example { dc_title: "dc_title", grant_number: "grant_number" }.
+ * When omitted, optionObject mode keeps the legacy label/value/sourceType shape.
+ */
+export type TypeaheadOptionObjectFields = Record<string, string>;
 
 export interface TypeaheadOption {
     label: string;
@@ -52,14 +60,12 @@ export interface TypeaheadOption {
     raw?: unknown;
 }
 
-export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    sourceType?: TypeaheadSourceType;
+export interface TypeaheadInputFieldComponentConfigCommonFrame extends FieldComponentConfigFrame {
+    /**
+     * Static options are required for sourceType: "static"; remote configs may
+     * still carry an empty array from older defaults, so this remains common.
+     */
     staticOptions?: TypeaheadOption[];
-    vocabRef?: string;
-    queryId?: string;
-    serviceId?: string;
-    provider?: string;
-    resultArrayProperty?: string;
     labelField?: string;
     labelTemplate?: string;
     valueField?: string;
@@ -67,7 +73,14 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     debounceMs?: number;
     maxResults?: number;
     requireSelection?: boolean;
+    /**
+     * "value" stores the selected option value as a string.
+     * "optionObject" stores an object. Without optionObjectFields that object is
+     * { label, value, sourceType }; with optionObjectFields it uses the configured
+     * persisted property names and source paths.
+     */
     valueMode?: TypeaheadValueMode;
+    optionObjectFields?: TypeaheadOptionObjectFields;
     cacheResults?: boolean;
     multiSelect?: boolean;
     placeholder?: string;
@@ -75,7 +88,69 @@ export interface TypeaheadInputFieldComponentConfigFrame extends FieldComponentC
     historicalVocabMode?: HistoricalVocabMode;
 }
 
-export interface TypeaheadInputFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigFrame, FieldComponentConfigOutline {
+export interface TypeaheadStaticSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType?: "static";
+}
+
+export interface TypeaheadVocabularySourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "vocabulary";
+    vocabRef?: string;
+}
+
+export interface TypeaheadNamedQuerySourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "namedQuery";
+    queryId?: string;
+    /**
+     * Some existing hooks use vocabRef as the domain identifier for namedQuery
+     * typeaheads, for example ROR-backed lookups. Runtime validation still keys
+     * namedQuery sources from queryId, but the frame accepts vocabRef so those
+     * configs remain type-safe and can be migrated without blocking compilation.
+     */
+    vocabRef?: string;
+}
+
+export interface TypeaheadExternalSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "external";
+    provider?: string;
+    resultArrayProperty?: string;
+}
+
+export interface TypeaheadServiceSourceConfigFrame extends TypeaheadInputFieldComponentConfigCommonFrame {
+    sourceType: "service";
+    serviceId?: string;
+}
+
+/**
+ * Source-specific config shape for TypeScript-authored forms. The source-specific
+ * IDs remain optional so runtime validator tests can still exercise missing config.
+ */
+export type TypeaheadInputSourceConfigFrame =
+    | TypeaheadStaticSourceConfigFrame
+    | TypeaheadVocabularySourceConfigFrame
+    | TypeaheadNamedQuerySourceConfigFrame
+    | TypeaheadExternalSourceConfigFrame
+    | TypeaheadServiceSourceConfigFrame;
+
+/**
+ * The public config frame uses sourceType as a discriminant while keeping required
+ * source values runtime-validated for JSON, migrated, and intentionally invalid forms.
+ */
+export type TypeaheadInputFieldComponentConfigFrame = TypeaheadInputSourceConfigFrame;
+
+export type TypeaheadInputFieldComponentConfigOutline =
+    TypeaheadInputFieldComponentConfigFrame & FieldComponentConfigOutline;
+
+/**
+ * Runtime defaults stay permissive because the constructed config class has to
+ * carry every possible source property before a concrete sourceType is known.
+ */
+export interface TypeaheadInputPermissiveFieldComponentConfigOutline extends TypeaheadInputFieldComponentConfigCommonFrame, FieldComponentConfigOutline {
+    sourceType?: TypeaheadSourceType;
+    vocabRef?: string;
+    queryId?: string;
+    serviceId?: string;
+    provider?: string;
+    resultArrayProperty?: string;
 }
 
 export interface TypeaheadInputFieldComponentDefinitionFrame extends FieldComponentDefinitionFrame {
@@ -93,9 +168,14 @@ export const TypeaheadInputModelName = "TypeaheadInputModel" as const;
 export type TypeaheadInputModelNameType = typeof TypeaheadInputModelName;
 
 export interface TypeaheadInputModelOptionValue {
-    label: string;
-    value: string;
+    label?: string;
+    value?: string;
     sourceType?: TypeaheadStoredSourceType;
+    /**
+     * Allows configured object-mode fields such as dc_title/grant_number while
+     * keeping backwards compatibility with legacy label/value/sourceType objects.
+     */
+    [key: string]: unknown;
 }
 
 export type TypeaheadInputModelValueType = string | TypeaheadInputModelOptionValue | null;
