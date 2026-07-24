@@ -374,6 +374,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   private formMode: FormModesConfig;
   private recordValues: Record<string, unknown> | null;
+  private removeOverrides: boolean;
   private extractedDefaultValues: Record<string, unknown>;
 
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
@@ -394,6 +395,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.formMode = 'view';
     this.recordValues = null;
+    this.removeOverrides = false;
     this.extractedDefaultValues = {};
 
     this.mostRecentRepeatableElementTemplatePath = null;
@@ -417,12 +419,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.reusableFormDefs The reusable form definitions. Default empty.
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
+   * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
    */
   async start(options: {
     data: FormConfigFrame;
     reusableFormDefs?: ReusableFormDefinitions;
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
+    removeOverrides?: boolean;
   }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
     this.reusableFormDefs = options.reusableFormDefs ?? {};
@@ -431,6 +435,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
     // This allows for specifying an empty record '{}' and using that instead of the defaults.
     this.recordValues = options.record === null || options.record === undefined ? null : options.record;
+
+    this.removeOverrides = options.removeOverrides ?? false;
 
     // Collect the form config defaults.
     // The defaults always need to be extract so they are available to any repeatable components.
@@ -2254,6 +2260,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     return this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,
+      removeOverrides: this.removeOverrides,
     }) as AllFormComponentDefinitionOutlines;
   }
 

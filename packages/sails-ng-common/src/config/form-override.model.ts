@@ -467,12 +467,16 @@ export class FormOverride {
    * Apply any overrides that transform a component into another component.
    * @param source The original component.
    * @param formMode The current form mode.
+   * @param options Additional options for applying override transforms.
+   * @param options.phase The phase of the form config processing to run.
+   * @param options.reusableFormDefs The available reusable form definitions.
+   * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
    * @returns The transformed form component.
    */
   public applyOverrideTransform(
     source: AllFormComponentDefinitionOutlines,
     formMode: FormModesConfig,
-    options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions }
+    options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions; removeOverrides?: boolean; }
   ): AllFormComponentDefinitionOutlines {
     const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
     const phase = options?.phase ?? 'construct';
@@ -571,9 +575,13 @@ export class FormOverride {
     }
 
     // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-    if ('overrides' in result && phase === 'client') {
+    if ('overrides' in result && (phase === 'client' || options?.removeOverrides === true || formMode !== 'view')) {
+      // In the client phase or if the formMode is not 'view', the overrides have already been applied.
+      // The 'options.removeOverrides' setting provides a way to obtain the 'construct' phase with the overrides removed.
       delete result.overrides;
     } else if ('overrides' in result && phase === 'construct') {
+      // The client visitor might use the overrides.formModeClasses[formMode] properties.
+      // Keep them in the construct phase, unless options?.removeOverrides is true.
       delete result.overrides?.replaceName;
       delete result.overrides?.reusableFormName;
     }

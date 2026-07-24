@@ -273,7 +273,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   ): AvailableFormComponentDefinitionOutlines[] {
     return items
       .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
-      .map(item => this.applyPostPruningTransformToComponent(item));
+      .map(item => {
+        const result = this.applyPostPruningTransformToComponent(item);
+        this.removeServerOnlyProperties(result);
+        return result;
+      });
   }
 
   protected isExplicitlyDisallowedByFormMode(item: AvailableFormComponentDefinitionOutlines): boolean {
@@ -297,12 +301,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
 
     if (shouldTransform) {
       if (shouldSkipViewTransform && !hasExplicitViewTransform) {
-        if ('constraints' in item) {
-          delete item['constraints'];
-        }
-        if ('overrides' in item) {
-          delete item['overrides'];
-        }
+        this.removeServerOnlyProperties(item);
         this.applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item);
         return item;
       }
@@ -313,22 +312,12 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
       this.applyPostPruningTransformsToNestedChildren(transformed);
-      if ('constraints' in transformed) {
-        delete transformed['constraints'];
-      }
-      if ('overrides' in transformed) {
-        delete transformed['overrides'];
-      }
+      this.removeServerOnlyProperties(transformed);
       return transformed;
     }
 
     this.applyPostPruningTransformsToNestedChildren(item);
-    if ('overrides' in item) {
-      delete item['overrides'];
-    }
-    if ('constraints' in item) {
-      delete item['constraints'];
-    }
+    this.removeServerOnlyProperties(item);
     return item;
   }
 
@@ -410,19 +399,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
           reusableFormDefs: this.reusableFormDefs,
         });
         config.elementTemplate = transformed;
-        if ('constraints' in transformed) {
-          delete transformed['constraints'];
-        }
-        if ('overrides' in transformed) {
-          delete transformed['overrides'];
-        }
+        this.removeServerOnlyProperties(transformed);
       } else {
-        if ('constraints' in et) {
-          delete et['constraints'];
-        }
-        if ('overrides' in et) {
-          delete et['overrides'];
-        }
+        this.removeServerOnlyProperties(et);
         this.applyPostPruningTransformsToNestedChildren(et);
       }
     }
@@ -1106,8 +1085,8 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
         this.formOverride.hasDefaultViewTransform(item?.component?.class) ||
         this.isInlineVocabOptionComponent(item as AvailableFormComponentDefinitionOutlines));
 
-    // Constraint define the criteria for including a component.
-    // The client has no need for the constraints.
+    // Constraints define the criteria for including a component.
+    // Remove the constraints if the client does not need them.
     if ('constraints' in item && !isPostPruningCandidate) {
       delete item['constraints'];
     }
@@ -1533,5 +1512,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       `Value '${JSON.stringify(currentValue)}' at '${JSON.stringify(valuePath)}' is type '${currentValueType}'. ` +
       `Schema ${JSON.stringify(currentSchema)} at '${JSON.stringify(schemaPath)}' expected type '${expectedType}'.`
     );
+  }
+
+  private removeServerOnlyProperties(item: AvailableFormComponentDefinitionOutlines): void {
+    if ('constraints' in item) {
+      delete item['constraints'];
+    }
+    if ('overrides' in item) {
+      delete item['overrides'];
+    }
   }
 }
