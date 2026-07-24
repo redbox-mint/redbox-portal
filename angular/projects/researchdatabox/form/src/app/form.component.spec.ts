@@ -232,6 +232,49 @@ describe('FormComponent', () => {
     }
   });
 
+  it('broadcasts the settled result of form-level async validation without restarting it', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'async-form-validator-status-broadcast',
+      debugValue: false,
+      defaultComponentConfig: { defaultComponentCssClasses: 'row' },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'async_field',
+          model: { class: 'SimpleInputModel', config: { value: 'ready' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const broadcasts: FormValidationBroadcastEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
+      .subscribe(event => broadcasts.push(event));
+    let validatorCalls = 0;
+
+    try {
+      formComponent.form!.setAsyncValidators([
+        async () => {
+          validatorCalls += 1;
+          await Promise.resolve();
+          return null;
+        },
+      ]);
+      formComponent.form!.updateValueAndValidity();
+      await fixture.whenStable();
+
+      expect(validatorCalls).toBe(1);
+      expect(formComponent.form!.status).toBe('VALID');
+      expect(broadcasts.length).toBeGreaterThan(0);
+      const settledBroadcast = broadcasts[broadcasts.length - 1];
+      expect(settledBroadcast?.status?.pending).toBeFalse();
+      expect(settledBroadcast?.isValid).toBeTrue();
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
   it('broadcastFormStatus is a no-op when the form has not been created yet', () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;
@@ -548,9 +591,10 @@ describe('FormComponent', () => {
 
       // The formGroupChangesSub subscription must have fired broadcastFormStatus
       // at least once between releasing the barrier and the save completing.
-      // That call publishes a FORM_VALIDATION_BROADCAST and re-runs validators
-      // synchronously; if any of that interfered with the save resumption we
-      // would either see no update call or a FORM_SAVE_FAILURE.
+      // That call publishes a FORM_VALIDATION_BROADCAST with the already-settled
+      // status (it does not re-run validators on this path); if publishing that
+      // broadcast interfered with the save resumption we would either see no
+      // update call or a FORM_SAVE_FAILURE.
       expect(broadcastSpy.calls.count()).toBeGreaterThan(broadcastCallsBeforeResolve);
       expect(validationBroadcasts.length).toBeGreaterThan(broadcastEventsBeforeResolve);
       expect(updateSpy).toHaveBeenCalledTimes(1);
