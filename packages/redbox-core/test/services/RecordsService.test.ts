@@ -658,6 +658,27 @@ describe('RecordsService', function () {
       expect(result).to.have.property('form', 'default-form');
       expect(result).to.have.property('attachmentFields', form.configuration.attachmentFields);
     });
+
+    it('falls back to top-level attachmentFields when configuration is absent', function () {
+      const recordType = {
+        name: 'rdmp',
+        packageType: 'rdmp',
+        packageName: 'RDMP',
+        searchCore: 'default'
+      };
+      const workflowStep = {
+        config: { form: 'default-form' }
+      };
+      const form = {
+        attachmentFields: ['dataLocations']
+      };
+
+      const result = (RecordsService as any).initRecordMetaMetadata(
+        'brand-1', 'testuser', recordType, workflowStep, form, '2024-01-01T00:00:00Z'
+      );
+
+      expect(result).to.have.property('attachmentFields', form.attachmentFields);
+    });
   });
 
   describe('bindPendingAttachmentOids', function () {

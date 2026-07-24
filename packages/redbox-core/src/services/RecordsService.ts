@@ -405,7 +405,7 @@ export namespace Services {
               _.set(
                 recordMetadata,
                 `${attFieldKey}[${attFieldIdx}].${fldKey}`,
-                _.replace(String(fldVal), 'pending-oid', oid)
+                _.replace(String(fldVal), /pending-oid/g, oid)
               );
             }
           });
