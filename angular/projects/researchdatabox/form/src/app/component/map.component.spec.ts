@@ -812,7 +812,7 @@ describe("MapComponent", () => {
                 features: [
                   {
                     type: "Feature",
-                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    geometry: {type: "Polygon", coordinates: [[144.96, -37.81], ["144.961", "-37.811"], ["144.96", "-37.81"]]},
                     properties: {name: "Melbourne"}
                   }
                 ]
@@ -828,8 +828,8 @@ describe("MapComponent", () => {
       jasmine.objectContaining({
         id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
-        geometry: {type: "Point", coordinates: [144.96, -37.81]},
-        properties: jasmine.objectContaining({name: "Melbourne", mode: "point"})
+        geometry: {type: "Polygon", coordinates: [[144.96, -37.81], [144.961, -37.811], [144.96, -37.81]]},
+        properties: jasmine.objectContaining({name: "Melbourne", mode: "polygon"})
       })
     ]);
     expect(drawFeatures.length).toBe(1);

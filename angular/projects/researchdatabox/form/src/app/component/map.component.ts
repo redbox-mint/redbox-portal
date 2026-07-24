@@ -1262,11 +1262,17 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!Array.isArray(position) || position.length < 2) {
       return null;
     }
-    const [longitude, latitude] = position;
-    if (typeof longitude !== "number" || typeof latitude !== "number") {
-      return null;
+    let longitude: number | null = null;
+    let latitude: number | null = null;
+    try {
+      longitude = Number(position[0]);
+      latitude = Number(position[1]);
+    } catch (err) {
+      this.loggerService.error(`${this.logName}: failed to parse position ${position}`, err);
     }
-    return [longitude, latitude];
+    return longitude !== null && Number.isFinite(longitude) &&
+    latitude !== null && Number.isFinite(latitude)
+      ? [longitude, latitude] : null;
   }
 
   private normalizeLineStringCoordinates(coordinates: GeoJSON.Position[]): [number, number][] {
