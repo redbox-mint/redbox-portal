@@ -2773,11 +2773,9 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
             : this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field) && typeof definition.value === 'string'
               ? definition.value
               : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-                fallbackLabel ||
-                (typeof definition.name === 'string' ? definition.name : undefined) ||
                 (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
                   ? definition.value
-                  : undefined);
+                : fallbackLabel || (typeof definition.name === 'string' ? definition.name : undefined));
     const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
     let cssClassesMap: { label: string } | undefined;
     if (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses) {
@@ -2788,11 +2786,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     const config = {
       label: this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer() ? undefined : migratedLabel,
-      helpText: this.isLegacyLinkValueControl(field)
-        ? undefined
-        : typeof definition.help === 'string'
-          ? definition.help
-          : undefined,
+      helpText:
+        !this.isLegacyLinkValueControl(field) && typeof definition.help === 'string' ? definition.help : undefined,
       cssClassesMap,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
