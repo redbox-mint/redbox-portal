@@ -172,15 +172,18 @@ describe('CoreController hook view resolution', function () {
 
   it('exposes the actual core layout directory so hook partials can resolve from core layouts', function () {
     const hookRoot = createHook();
-    const coreView = path.join(appPath, 'views', 'default', 'default', 'homepage.ejs');
+    const coreView = path.join(appPath, 'views', 'default', 'default', 'researcher', 'home.ejs');
     const coreLayout = path.join(appPath, 'views', 'default', 'default', 'layout.ejs');
     writeFile(coreView, 'core homepage');
     writeFile(coreLayout, '<%- superPartial("/layout/footer.ejs", branding, portal, true) %>');
     writeFile(path.join(hookRoot, 'views', 'default', 'default', 'layout', 'footer.ejs'), 'hook footer');
 
     const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
+    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'researcher/home');
 
+    expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(coreView)}${path.sep}`);
     expect(res.view.firstCall.args[1].layoutDirectoryLocation).to.equal(`${path.dirname(coreLayout)}${path.sep}`);
+    expect(res.view.firstCall.args[1].layoutDirectoryLocation)
+      .not.to.equal(res.view.firstCall.args[1].templateDirectoryLocation);
   });
 });

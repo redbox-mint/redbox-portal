@@ -103,7 +103,7 @@
   <div class="site-branding-area">
     <div class="container">
       <div class="row">
-        <% if(locals.branding != null && locals.portal != null) { %>
+        <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
           <%- include('layout/logo.ejs') %>
@@ -115,7 +115,7 @@
     </div>
   </div>
   <!-- End site branding area -->
-  <% if(locals.branding != null && locals.portal != null) { %>
+  <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
     <% } else { %>
     <%- include('layout/menu.ejs') %>
@@ -169,7 +169,7 @@
 
 
   <div class="footer-bottom-area navbar-bottom">
-    <% if(locals.branding != null && locals.portal != null) { %>
+    <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
         <%- include('layout/footer.ejs') %>
