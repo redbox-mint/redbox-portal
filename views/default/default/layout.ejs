@@ -29,7 +29,9 @@
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
   <% } %>
   <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->
-  <%- superPartial("/layout/head-extra.ejs", branding, portal, true) %>
+  <%- superPartial("/layout/head-extra.ejs",
+       typeof branding !== 'undefined' && branding != null ? branding : BrandingService.getBrandNameFromReq(req),
+       typeof portal !== 'undefined' && portal != null ? portal : BrandingService.getPortalFromReq(req), true) %>
   <!-- Print stylesheet served as a static asset so it can be updated independently of the
        MongoDB-cached theme.css (which only refreshes on admin republish). -->
   <link rel="stylesheet" media="print" href="<%= BrandingService.getRootContext() %>/styles/print.css">
