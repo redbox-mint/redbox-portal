@@ -222,6 +222,7 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+      BrandingService.updateCachedFavicon(brand.id, meta);
       try {
         await BrandingService.refreshBrandingCache(brand.id);
       } catch (error) {

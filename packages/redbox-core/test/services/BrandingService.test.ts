@@ -142,6 +142,20 @@ describe('BrandingService', function () {
     });
   });
 
+  describe('updateCachedFavicon', function () {
+    it('should update favicon metadata without a database refresh', function () {
+      const { Services } = require('../../src/services/BrandingService');
+      const brandingService = new Services.Branding();
+      brandingService.brandings = [
+        { name: 'mybrand', id: '123', favicon: { sha256: 'old-hash' } }
+      ];
+
+      brandingService.updateCachedFavicon('123', { sha256: 'new-hash' });
+
+      expect(brandingService.getBrandById('123').favicon).to.deep.equal({ sha256: 'new-hash' });
+    });
+  });
+
   describe('getAvailable', function () {
     it('should return list of available branding names', function () {
       const { Services } = require('../../src/services/BrandingService');
@@ -374,6 +388,7 @@ describe('BrandingService', function () {
       expect(exported).to.have.property('getAvailable');
       expect(exported).to.have.property('getBrandAndPortalPath');
       expect(exported).to.have.property('getFaviconUrl');
+      expect(exported).to.have.property('updateCachedFavicon');
       expect(exported).to.have.property('getBrandNameFromReq');
       expect(exported).to.have.property('getBrandFromReq');
       expect(exported).to.have.property('getPortalFromReq');

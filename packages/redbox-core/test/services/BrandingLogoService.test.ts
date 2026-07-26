@@ -28,6 +28,7 @@ describe('BrandingLogoService', function() {
     };
 
     (global as any).BrandingService = {
+      updateCachedFavicon: sinon.stub(),
       refreshBrandingCache: sinon.stub().resolves()
     };
 
@@ -144,6 +145,10 @@ describe('BrandingLogoService', function() {
         storageKey: 'brand/portal/images/favicon.png',
         contentType: 'image/png',
       });
+      expect((global as any).BrandingService.updateCachedFavicon.calledOnceWith(
+        'brand1',
+        (global as any).BrandingConfig.update.firstCall.args[1].favicon
+      )).to.be.true;
       expect((global as any).BrandingService.refreshBrandingCache.calledOnceWith('brand1')).to.be.true;
     });
 
@@ -157,6 +162,7 @@ describe('BrandingLogoService', function() {
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
 
       expect(result.storageKey).to.equal('brand/portal/images/favicon.png');
+      expect((global as any).BrandingService.updateCachedFavicon.calledOnce).to.be.true;
       expect(mockSails.log.warn.calledOnceWith(
         'BrandingLogoService.putFavicon cache refresh failed:',
         refreshError

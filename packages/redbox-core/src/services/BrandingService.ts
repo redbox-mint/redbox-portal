@@ -50,6 +50,7 @@ export namespace Services {
       'getRootContext',
       'getBrandById',
       'getBrandingFromDB',
+      'updateCachedFavicon',
       'saveDraft',
       'preview',
       'fetchPreview',
@@ -103,6 +104,13 @@ export namespace Services {
 
     public getBrandById = (id: string): BrandingModel => {
       return _.find(this.brandings, (o: BrandingModel) => { return o.id == id }) as BrandingModel;
+    }
+
+    public updateCachedFavicon(id: string, favicon: Record<string, unknown>): void {
+      const branding = this.getBrandById(id);
+      if (branding) {
+        branding.favicon = favicon;
+      }
     }
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
