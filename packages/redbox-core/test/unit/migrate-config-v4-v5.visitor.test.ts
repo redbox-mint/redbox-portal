@@ -1099,6 +1099,31 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedField.layout).to.equal(undefined);
   });
 
+  it('maps legacy split-name contributors to the citation contributor definition', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'citation-contributor',
+        fields: [
+          {
+            class: 'ContributorField',
+            definition: {
+              name: 'creator',
+              splitNames: true,
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('ReusableComponent');
+    expect(migratedField.overrides).to.deep.equal({
+      reusableFormName: 'citation-contributor-fields-with-title-family-given-group',
+    });
+    expect(migratedField.layout).to.equal(undefined);
+  });
+
   it('defines lookup-only contributor reusable fields with required selection and readonly email', async function () {
     const lookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only'];
     expect(lookupOnlyFields).to.have.length(3);

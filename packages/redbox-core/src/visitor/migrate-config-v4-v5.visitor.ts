@@ -2899,12 +2899,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   private getLegacyContributorReusableFormName(fieldDefinition: Record<string, unknown>): string {
+    const splitNames = this.parseLegacyTypeaheadBoolean(fieldDefinition.splitNames, false, 'splitNames');
+    if (splitNames) {
+      return 'citation-contributor-fields-with-title-family-given-group';
+    }
     const forceLookupOnly = this.parseLegacyTypeaheadBoolean(fieldDefinition.forceLookupOnly, false, 'forceLookupOnly');
     return forceLookupOnly ? 'standard-contributor-fields-lookup-only-group' : 'standard-contributor-fields-group';
   }
 
   private getLegacyContributorReusableGroupItemName(reusableFormName: string): string {
     switch (reusableFormName) {
+      case 'citation-contributor-fields-with-title-family-given-group':
+        return 'citation_contributor_fields_with_title_family_given_group';
       case 'standard-contributor-fields-lookup-only-group':
         return 'standard_contributor_fields_lookup_only_group';
       case 'standard-contributor-fields-group':
