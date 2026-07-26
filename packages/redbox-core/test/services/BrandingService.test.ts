@@ -142,20 +142,6 @@ describe('BrandingService', function () {
     });
   });
 
-  describe('updateCachedFavicon', function () {
-    it('should update favicon metadata without a database refresh', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-      brandingService.brandings = [
-        { name: 'mybrand', id: '123', favicon: { sha256: 'old-hash' } }
-      ];
-
-      brandingService.updateCachedFavicon('123', { sha256: 'new-hash' });
-
-      expect(brandingService.getBrandById('123').favicon).to.deep.equal({ sha256: 'new-hash' });
-    });
-  });
-
   describe('getAvailable', function () {
     it('should return list of available branding names', function () {
       const { Services } = require('../../src/services/BrandingService');
@@ -208,7 +194,7 @@ describe('BrandingService', function () {
   });
 
   describe('getFaviconUrl', function () {
-    it('should append the favicon hash to invalidate browser caches', function () {
+    it('should return a stable URL so the favicon endpoint can revalidate its ETag', function () {
       const { Services } = require('../../src/services/BrandingService');
       const brandingService = new Services.Branding();
       brandingService.brandings = [{
@@ -223,7 +209,7 @@ describe('BrandingService', function () {
       };
 
       expect(brandingService.getFaviconUrl(req))
-        .to.equal('/mybrand/myportal/images/favicon?v=favicon-hash');
+        .to.equal('/mybrand/myportal/images/favicon');
     });
 
     it('should use the unversioned URL when no custom favicon is configured', function () {
@@ -388,7 +374,6 @@ describe('BrandingService', function () {
       expect(exported).to.have.property('getAvailable');
       expect(exported).to.have.property('getBrandAndPortalPath');
       expect(exported).to.have.property('getFaviconUrl');
-      expect(exported).to.have.property('updateCachedFavicon');
       expect(exported).to.have.property('getBrandNameFromReq');
       expect(exported).to.have.property('getBrandFromReq');
       expect(exported).to.have.property('getPortalFromReq');

@@ -333,6 +333,7 @@ export namespace Controllers {
     public async renderFavicon(req: Sails.Req, res: Sails.Res) {
       const sendDefault = () => {
         res.contentType(sails.config.static_assets.faviconType);
+        res.set('Cache-Control', 'public, no-cache');
         return res.sendFile(`${sails.config.appPath}/assets/${sails.config.static_assets.faviconName}`);
       };
       try {
@@ -357,8 +358,8 @@ export namespace Controllers {
           : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'favicon-');
         res.set('ETag', etag);
+        res.set('Cache-Control', 'public, no-cache');
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
-        res.set('Cache-Control', 'public, max-age=3600');
         return res.send(buf);
       } catch (_e) {
         return sendDefault();

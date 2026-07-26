@@ -50,7 +50,6 @@ export namespace Services {
       'getRootContext',
       'getBrandById',
       'getBrandingFromDB',
-      'updateCachedFavicon',
       'saveDraft',
       'preview',
       'fetchPreview',
@@ -106,13 +105,6 @@ export namespace Services {
       return _.find(this.brandings, (o: BrandingModel) => { return o.id == id }) as BrandingModel;
     }
 
-    public updateCachedFavicon(id: string, favicon: Record<string, unknown>): void {
-      const branding = this.getBrandById(id);
-      if (branding) {
-        branding.favicon = favicon;
-      }
-    }
-
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
       return BrandingConfig.findOne({ name: name }) as unknown as BrandingModel;
     }
@@ -133,15 +125,7 @@ export namespace Services {
     }
 
     public getFaviconUrl(req: Sails.ReqParamProvider): string {
-      const path = `${this.getBrandAndPortalPath(req)}/images/favicon`;
-      const favicon = this.getBrandFromReq(req)?.favicon;
-      const version = typeof favicon?.sha256 === 'string'
-        ? favicon.sha256
-        : typeof favicon?.updatedAt === 'string'
-          ? favicon.updatedAt
-          : null;
-
-      return version ? `${path}?v=${encodeURIComponent(version)}` : path;
+      return `${this.getBrandAndPortalPath(req)}/images/favicon`;
     }
 
     public getRootContext(): string {

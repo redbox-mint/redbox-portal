@@ -27,11 +27,6 @@ describe('BrandingLogoService', function() {
       update: sinon.stub()
     };
 
-    (global as any).BrandingService = {
-      updateCachedFavicon: sinon.stub(),
-      refreshBrandingCache: sinon.stub().resolves()
-    };
-
     (global as any).DomSanitizerService = {
       sanitize: sinon.stub()
     };
@@ -42,7 +37,6 @@ describe('BrandingLogoService', function() {
   afterEach(function() {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingConfig;
-    delete (global as any).BrandingService;
     delete (global as any).DomSanitizerService;
     delete (global as any).StorageManagerService;
     sinon.restore();
@@ -145,28 +139,6 @@ describe('BrandingLogoService', function() {
         storageKey: 'brand/portal/images/favicon.png',
         contentType: 'image/png',
       });
-      expect((global as any).BrandingService.updateCachedFavicon.calledOnceWith(
-        'brand1',
-        (global as any).BrandingConfig.update.firstCall.args[1].favicon
-      )).to.be.true;
-      expect((global as any).BrandingService.refreshBrandingCache.calledOnceWith('brand1')).to.be.true;
-    });
-
-    it('should succeed and warn when the post-persistence cache refresh fails', async function() {
-      const brand = { id: 'brand1' };
-      const refreshError = new Error('cache refresh failed');
-      (global as any).BrandingConfig.findOne.resolves(brand);
-      (global as any).BrandingConfig.update.resolves([]);
-      (global as any).BrandingService.refreshBrandingCache.rejects(refreshError);
-
-      const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
-
-      expect(result.storageKey).to.equal('brand/portal/images/favicon.png');
-      expect((global as any).BrandingService.updateCachedFavicon.calledOnce).to.be.true;
-      expect(mockSails.log.warn.calledOnceWith(
-        'BrandingLogoService.putFavicon cache refresh failed:',
-        refreshError
-      )).to.be.true;
     });
 
     it('should accept an ICO favicon', async function() {
