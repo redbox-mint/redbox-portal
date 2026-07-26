@@ -87,9 +87,9 @@ export namespace Services {
       return `${branding}/${portal}/images/logo.${ext}`;
     }
 
-    private faviconStorageKey(branding: string, portal: string, contentType: string): string {
+    private faviconStorageKey(branding: string, portal: string, contentType: string, sha256: string): string {
       const ext = this.extForContentType(contentType);
-      return `${branding}/${portal}/images/favicon.${ext}`;
+      return `${branding}/${portal}/images/favicon-${sha256}.${ext}`;
     }
 
     getMaxBytes(): number {
@@ -214,7 +214,7 @@ export namespace Services {
       if (!ok) throw new Error('favicon-invalid: ' + errorList.join(','));
 
       const resolvedContentType = finalContentType ?? opts.contentType;
-      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType);
+      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType, sha256!);
 
       await StorageManagerService.primaryDisk().put(storageKey, sanitizedBuffer!, { contentType: resolvedContentType });
 
