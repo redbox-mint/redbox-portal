@@ -2422,7 +2422,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected shouldOmitLegacyField(field: Record<string, unknown> | null | undefined, v4FormPathMore?: string[]): boolean {
+  protected shouldOmitLegacyField(
+    field: Record<string, unknown> | null | undefined,
+    v4FormPathMore?: string[]
+  ): boolean {
     if (!field || typeof field !== 'object') {
       this.logger.warn(
         `${this.logName}: Omitting empty legacy field entry at ${JSON.stringify([
@@ -2438,6 +2441,27 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const isLegacyParameterRetriever =
       v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+    const isLegacyRenderCompleteMarker =
+      v4ClassName === 'Container' &&
+      `${definition.id ?? ''}`.trim() === 'form-render-complete' &&
+      `${definition.label ?? ''}`.trim() === 'Test' &&
+      Array.isArray(definition.fields) &&
+      definition.fields.some(childField => {
+        if (!childField || typeof childField !== 'object') {
+          return false;
+        }
+        const child = childField as Record<string, unknown>;
+        const childDefinition = (child.definition ?? {}) as Record<string, unknown>;
+        return (
+          (`${child.class ?? ''}`.trim() === 'TextBlock' ||
+            `${child.compClass ?? ''}`.trim() === 'TextBlockComponent') &&
+          `${childDefinition.value ?? ''}`.trim() === 'will be empty'
+        );
+      });
+
+    if (isLegacyRenderCompleteMarker) {
+      return true;
+    }
 
     if (!isLegacyParameterRetriever) {
       return false;

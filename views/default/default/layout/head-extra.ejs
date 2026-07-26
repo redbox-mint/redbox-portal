@@ -1,0 +1,10 @@
+<%#
+  Hook extension point for additional <head> content.
+
+  Core intentionally renders nothing here. A hook can override this partial
+  (views/default/default/layout/head-extra.ejs in the hook) to contribute extra
+  stylesheets, fonts or meta tags without having to fork the whole layout.
+
+  It is included after style.min.css and theme.css, so anything added here wins
+  over both the compiled core bundle and the branding theme variables.
+%>

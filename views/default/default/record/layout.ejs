@@ -27,6 +27,10 @@
   <% } else { %>
     <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
   <% } %>
+  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->
+  <%- superPartial("/layout/head-extra.ejs",
+       typeof branding !== 'undefined' && branding != null ? branding : req.param('theme'),
+       typeof portal !== 'undefined' && portal != null ? portal : req.param('portal'), true) %>
 </head>
 
 <body>

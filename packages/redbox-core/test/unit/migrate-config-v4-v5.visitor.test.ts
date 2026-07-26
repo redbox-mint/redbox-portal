@@ -145,6 +145,45 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
   });
 
+  it('omits the legacy form-render-complete test marker', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-render-complete-marker-migration',
+        fields: [
+          {
+            class: 'Container',
+            definition: {
+              id: 'form-render-complete',
+              label: 'Test',
+              fields: [
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: 'will be empty',
+                    type: 'span',
+                  },
+                },
+              ],
+            },
+          },
+          {
+            class: 'TextField',
+            definition: {
+              name: 'title',
+              label: 'Test',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(migrated.componentDefinitions.some(component => component.name === 'form-render-complete')).to.equal(false);
+    expect(migrated.componentDefinitions.some(component => component.name === 'title')).to.equal(true);
+    expect(JSON.stringify(migrated)).to.not.contain('will be empty');
+  });
+
   it('omits sparse legacy field entries while migrating nested retriever subscriptions', async function () {
     const warnings: string[] = [];
     const testLogger = {

@@ -27,6 +27,10 @@ describe('BrandingLogoService', function() {
       update: sinon.stub()
     };
 
+    (global as any).BrandingService = {
+      refreshBrandingCache: sinon.stub().resolves()
+    };
+
     (global as any).DomSanitizerService = {
       sanitize: sinon.stub()
     };
@@ -37,6 +41,7 @@ describe('BrandingLogoService', function() {
   afterEach(function() {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingConfig;
+    delete (global as any).BrandingService;
     delete (global as any).DomSanitizerService;
     delete (global as any).StorageManagerService;
     sinon.restore();
@@ -139,6 +144,7 @@ describe('BrandingLogoService', function() {
         storageKey: 'brand/portal/images/favicon.png',
         contentType: 'image/png',
       });
+      expect((global as any).BrandingService.refreshBrandingCache.calledOnceWith('brand1')).to.be.true;
     });
 
     it('should accept an ICO favicon', async function() {

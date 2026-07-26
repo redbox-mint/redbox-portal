@@ -193,6 +193,41 @@ describe('BrandingService', function () {
     });
   });
 
+  describe('getFaviconUrl', function () {
+    it('should append the favicon hash to invalidate browser caches', function () {
+      const { Services } = require('../../src/services/BrandingService');
+      const brandingService = new Services.Branding();
+      brandingService.brandings = [{
+        name: 'mybrand',
+        favicon: { sha256: 'favicon-hash' }
+      }];
+
+      const req = {
+        params: { branding: 'mybrand', portal: 'myportal' },
+        body: {},
+        session: {}
+      };
+
+      expect(brandingService.getFaviconUrl(req))
+        .to.equal('/mybrand/myportal/images/favicon?v=favicon-hash');
+    });
+
+    it('should use the unversioned URL when no custom favicon is configured', function () {
+      const { Services } = require('../../src/services/BrandingService');
+      const brandingService = new Services.Branding();
+      brandingService.brandings = [{ name: 'mybrand' }];
+
+      const req = {
+        params: { branding: 'mybrand', portal: 'myportal' },
+        body: {},
+        session: {}
+      };
+
+      expect(brandingService.getFaviconUrl(req))
+        .to.equal('/mybrand/myportal/images/favicon');
+    });
+  });
+
   describe('getBrandNameFromReq', function () {
     it('should get branding from params', function () {
       const { Services } = require('../../src/services/BrandingService');
@@ -338,6 +373,7 @@ describe('BrandingService', function () {
       expect(exported).to.have.property('getBrand');
       expect(exported).to.have.property('getAvailable');
       expect(exported).to.have.property('getBrandAndPortalPath');
+      expect(exported).to.have.property('getFaviconUrl');
       expect(exported).to.have.property('getBrandNameFromReq');
       expect(exported).to.have.property('getBrandFromReq');
       expect(exported).to.have.property('getPortalFromReq');
