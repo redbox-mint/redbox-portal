@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+import crypto from 'crypto';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/BrandingLogoService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
@@ -111,6 +112,34 @@ describe('BrandingLogoService', function() {
       expect(firstRead?.toString()).to.equal('stored-binary');
       expect(secondRead?.toString()).to.equal('stored-binary');
       expect(mockPrimaryDisk.getBytes.calledOnce).to.be.true;
+    });
+
+    it('should reload a cached binary when the expected hash changes', async function() {
+      const oldBinary = Buffer.from('old-binary');
+      const newBinary = Buffer.from('new-binary');
+      const oldHash = crypto.createHash('sha256').update(oldBinary).digest('hex');
+      const newHash = crypto.createHash('sha256').update(newBinary).digest('hex');
+      mockPrimaryDisk.getBytes.onFirstCall().resolves(oldBinary);
+      mockPrimaryDisk.getBytes.onSecondCall().resolves(newBinary);
+
+      const firstRead = await service.getBinaryAsync('brand/portal/images/favicon.png', oldHash);
+      const secondRead = await service.getBinaryAsync('brand/portal/images/favicon.png', newHash);
+
+      expect(firstRead?.toString()).to.equal('old-binary');
+      expect(secondRead?.toString()).to.equal('new-binary');
+      expect(mockPrimaryDisk.getBytes.calledTwice).to.be.true;
+    });
+
+    it('should not serve storage bytes that do not match the expected hash', async function() {
+      const expectedHash = crypto.createHash('sha256').update('new-binary').digest('hex');
+      mockPrimaryDisk.getBytes.resolves(Buffer.from('old-binary'));
+
+      const result = await service.getBinaryAsync('brand/portal/images/favicon.png', expectedHash);
+
+      expect(result).to.be.null;
+      expect(mockSails.log.warn.calledWith(
+        'BrandingLogoService.getBinaryAsync hash mismatch for brand/portal/images/favicon.png'
+      )).to.be.true;
     });
   });
 

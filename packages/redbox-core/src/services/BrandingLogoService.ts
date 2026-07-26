@@ -13,7 +13,7 @@ export namespace Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
     /** In-memory placeholder storage keyed by storage identifier. */
-    private _binaryById: Record<string, { buffer: Buffer; storedAt: number }> = {};
+    private _binaryById: Record<string, { buffer: Buffer; sha256: string; storedAt: number }> = {};
 
     private getCacheTtlMs(): number {
       const DEFAULT_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -34,14 +34,19 @@ export namespace Services {
     }
 
     private setCache(id: string, buffer: Buffer): void {
-      this._binaryById[id] = { buffer, storedAt: Date.now() };
+      const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+      this._binaryById[id] = { buffer, sha256, storedAt: Date.now() };
       this.pruneExpiredEntries();
     }
 
-    private getFromCache(id: string): Buffer | null {
+    private getFromCache(id: string, expectedSha256?: string): Buffer | null {
       const entry = this._binaryById[id];
       if (!entry) return null;
       if (Date.now() - entry.storedAt > this.getCacheTtlMs()) {
+        delete this._binaryById[id];
+        return null;
+      }
+      if (expectedSha256 && entry.sha256 !== expectedSha256) {
         delete this._binaryById[id];
         return null;
       }
@@ -229,13 +234,18 @@ export namespace Services {
       return this.getFromCache(id);
     }
 
-    async getBinaryAsync(id: string): Promise<Buffer | null> {
-      const mem = this.getFromCache(id);
+    async getBinaryAsync(id: string, expectedSha256?: string): Promise<Buffer | null> {
+      const mem = this.getFromCache(id, expectedSha256);
       if (mem) return mem;
 
       try {
         const bytes = await StorageManagerService.primaryDisk().getBytes(id);
         const buf = Buffer.from(bytes);
+        const actualSha256 = crypto.createHash('sha256').update(buf).digest('hex');
+        if (expectedSha256 && actualSha256 !== expectedSha256) {
+          sails.log.warn(`BrandingLogoService.getBinaryAsync hash mismatch for ${id}`);
+          return null;
+        }
         this.setCache(id, buf);
         return buf;
       } catch (error) {

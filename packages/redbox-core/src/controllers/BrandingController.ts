@@ -302,15 +302,16 @@ export namespace Controllers {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
-        const buf = await BrandingLogoService.getBinaryAsync(storageId);
+        const expectedSha256 = typeof logo.sha256 === 'string' ? logo.sha256 : undefined;
+        const buf = await BrandingLogoService.getBinaryAsync(storageId, expectedSha256);
 
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
-        const etagSeed = typeof logo.sha256 === 'string'
-          ? logo.sha256
+        const etagSeed = expectedSha256
+          ? expectedSha256
           : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
@@ -348,13 +349,14 @@ export namespace Controllers {
         if (!brand || !favicon || !storageId) {
           return sendDefault();
         }
-        const buf = await BrandingLogoService.getBinaryAsync(storageId);
+        const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
+        const buf = await BrandingLogoService.getBinaryAsync(storageId, expectedSha256);
         if (!buf) {
           return sendDefault();
         }
         res.contentType((favicon.contentType as string) || 'image/png');
-        const etagSeed = typeof favicon.sha256 === 'string'
-          ? favicon.sha256
+        const etagSeed = expectedSha256
+          ? expectedSha256
           : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'favicon-');
         res.set('ETag', etag);
