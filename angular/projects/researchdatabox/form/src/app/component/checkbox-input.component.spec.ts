@@ -105,6 +105,52 @@ describe('CheckboxInputComponent', () => {
     expect(checked.length).toEqual(2);
   });
 
+  it('should render and store a boolean for no-option legacy toggles', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'project-hdr',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: false,
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              booleanMode: true,
+              multipleValues: false,
+              options: [],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const compiled = fixture.nativeElement as HTMLElement;
+    const checkbox = compiled.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    const component = fixture.debugElement.query(By.directive(CheckboxInputComponent))
+      .componentInstance as CheckboxInputComponent;
+
+    expect(checkbox).not.toBeNull();
+    expect(checkbox?.checked).toBeFalse();
+
+    checkbox!.checked = true;
+    checkbox!.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(component.formControl?.value).toBeTrue();
+    expect(checkbox?.checked).toBeTrue();
+  });
+
   it('should resolve language-map labels for options', async () => {
     translationService.translationMap = translationService.translationMap || {};
     translationService.translationMap['@checkbox-language-label'] = 'English Label';

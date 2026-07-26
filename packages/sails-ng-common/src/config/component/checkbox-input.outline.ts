@@ -35,6 +35,7 @@ export interface CheckboxInputFieldComponentConfigFrame extends FieldComponentCo
     placeholder?: string;
     options?: CheckboxOption[];
     multipleValues?: boolean;
+    booleanMode?: boolean;
     vocabRef?: string;
     inlineVocab?: boolean;
     historicalVocabMode?: HistoricalVocabMode;
@@ -56,7 +57,7 @@ export interface CheckboxInputFieldComponentDefinitionOutline extends CheckboxIn
 /* Checkbox Input Model */
 export const CheckboxInputModelName = "CheckboxInputModel" as const;
 export type CheckboxInputModelNameType = typeof CheckboxInputModelName;
-export type CheckboxInputModelValueType = string | null | Array<string>;
+export type CheckboxInputModelValueType = string | boolean | null | Array<string>;
 
 export interface CheckboxInputFieldModelConfigFrame extends FieldModelConfigFrame<CheckboxInputModelValueType> {
 }

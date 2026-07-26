@@ -252,7 +252,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(warnings.some(msg => msg.includes('coerced non-array default value'))).to.equal(true);
   });
 
-  it('omits boolean defaults for legacy toggle fields migrated to CheckboxInput', async function () {
+  it('migrates no-option legacy toggles to boolean checkboxes', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
     const migrated = await visitor.start({
       data: {
@@ -275,7 +275,14 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('CheckboxInputComponent');
     expect(migratedField.model?.class).to.equal('CheckboxInputModel');
-    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+    expect(migratedField.component.config).to.deep.include({
+      options: [],
+      booleanMode: true,
+      multipleValues: false,
+    });
+    // The legacy boolean default is representable now that the model accepts booleans,
+    // so the field starts unticked and saves false rather than null.
+    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(false);
   });
 
   it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {

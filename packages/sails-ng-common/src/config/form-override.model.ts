@@ -796,14 +796,15 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
-      // Checkbox value can be string, null, array. If string or array, get the labels.
+      // Checkbox value can be string, boolean, null, or an array. Resolve option
+      // labels for strings and stringify boolean-mode values for view rendering.
       // Can have 0, 1, or more values.
       const values =
         source.model.config.value === null
           ? []
           : Array.isArray(source.model.config.value)
             ? source.model.config.value
-            : [source.model.config.value];
+            : [String(source.model.config.value)];
       const options = source.component.config?.options ?? [];
 
       this.commonContentOptionList(target, values, options);
