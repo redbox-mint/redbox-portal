@@ -3887,7 +3887,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)) {
         return `${path}.${segment}`;
       }
-      return `${path}[${JSON.stringify(segment)}]`;
+      // JSONata reads `path["name"]` as a filter predicate, not a property lookup, so a
+      // string literal there is simply truthy and the whole object is returned. Names that
+      // are not bare identifiers (hyphens, colons) must be backtick quoted instead.
+      if (!segment.includes('`')) {
+        return `${path}.\`${segment}\``;
+      }
+      return `$lookup(${path}, ${JSON.stringify(segment)})`;
     }, 'event.value');
   }
 
