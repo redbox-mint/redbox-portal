@@ -39,6 +39,10 @@ standalone reference page); expressions have their own reference page linked abo
   parameter), fetch that record's metadata and pre-fill fields on the current
   form. This is the pattern behind the *related RDMP* on a Data Record and the
   *related Data Record* on a Data Publication.
+- **[Gating fields until a related record is selected](Form-Configuration-Recipe-Gate-Fields-Until-Related-Record-Selected.md)** —
+  keep the related-record selector enabled while disabling every dependent input
+  and repeatable until a selection exists, including initial-load, clear, and
+  URL-parameter behaviour.
 - **[Configuring option sets and vocabularies](Form-Configuration-Recipe-Option-Sets-And-Vocabularies.md)** —
   choose between field-local `options` and reusable `vocabRef`/`inlineVocab`
   vocabularies for dropdowns, radio buttons, and checkboxes.
