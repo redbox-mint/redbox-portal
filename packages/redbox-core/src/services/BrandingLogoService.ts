@@ -222,7 +222,11 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       await BrandingConfig.update({ id: brand.id }, { favicon: meta });
-      await BrandingService.refreshBrandingCache(brand.id);
+      try {
+        await BrandingService.refreshBrandingCache(brand.id);
+      } catch (error) {
+        sails.log.warn('BrandingLogoService.putFavicon cache refresh failed:', error);
+      }
       return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 
