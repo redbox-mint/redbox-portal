@@ -373,9 +373,43 @@ export namespace Services {
       }
 
       _.set(metaMetadata, 'form', _.get(metaMetadataWorkflowStep, 'config.form'));
-      _.set(metaMetadata, 'attachmentFields', formObj.attachmentFields);
+      _.set(
+        metaMetadata,
+        'attachmentFields',
+        _.get(formObj, 'configuration.attachmentFields', formObj.attachmentFields ?? [])
+      );
 
       return metaMetadata;
+    }
+
+    protected bindPendingAttachmentOids(
+      recordMetadata: AnyRecord,
+      attachmentFields: unknown[],
+      oid: string
+    ): void {
+      const fieldsToCheck = ['location', 'uploadUrl'];
+      _.each(attachmentFields, (attFieldName: unknown) => {
+        const attFieldKey = String(attFieldName ?? '');
+        _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
+          if (_.isEmpty(attFieldEntry)) {
+            return;
+          }
+          _.each(fieldsToCheck, (fldName: unknown) => {
+            const fldKey = String(fldName ?? '');
+            const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
+            if (!_.isEmpty(fldVal)) {
+              _.set(
+                recordMetadata,
+                `${attFieldKey}[${attFieldIdx}].${fldKey}`,
+                _.replace(String(fldVal), /pending-oid/g, oid)
+              );
+            }
+          });
+          if (_.get(attFieldEntry as AnyRecord, 'pending') === true) {
+            _.set(recordMetadata, `${attFieldKey}[${attFieldIdx}].pending`, false);
+          }
+        });
+      });
     }
 
     async create(
@@ -482,32 +516,12 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
       createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
       if (createResponse.isSuccessful()) {
-        const fieldsToCheck = ['location', 'uploadUrl'];
         const oid = createResponse.oid;
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         const recordMetadata = recordObj.metadata as AnyRecord;
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
         if (!_.isEmpty(attachmentFields)) {
-          // check if we have any pending-oid elements
-          _.each(attachmentFields, (attFieldName: unknown) => {
-            const attFieldKey = String(attFieldName ?? '');
-            _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-              if (!_.isEmpty(attFieldEntry)) {
-                _.each(fieldsToCheck, (fldName: unknown) => {
-                  const fldKey = String(fldName ?? '');
-                  const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
-                  if (!_.isEmpty(fldVal)) {
-                    sails.log.verbose(`RecordsService - create - fldVal ${fldVal}`);
-                    _.set(
-                      recordMetadata,
-                      `${attFieldKey}[${attFieldIdx}].${fldKey}`,
-                      _.replace(String(fldVal), 'pending-oid', oid)
-                    );
-                  }
-                });
-              }
-            });
-          });
+          this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid);
 
           try {
             // handle datastream update
@@ -746,29 +760,9 @@ export namespace Services {
       )) as StorageServiceResponse;
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
-      const fieldsToCheck = ['location', 'uploadUrl'];
       if (!_.isEmpty(recordMeta.attachmentFields)) {
         const recordMetadata = recordObj.metadata as AnyRecord;
-        // check if we have any pending-oid elements
-        _.each(recordMeta.attachmentFields as unknown[], (attFieldName: unknown) => {
-          const attFieldKey = String(attFieldName ?? '');
-          _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-            if (!_.isEmpty(attFieldEntry)) {
-              _.each(fieldsToCheck, (fldName: unknown) => {
-                const fldKey = String(fldName ?? '');
-                const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
-                if (!_.isEmpty(fldVal)) {
-                  sails.log.verbose(`RecordService - updateMeta - fldVal ${fldVal}`);
-                  _.set(
-                    recordMetadata,
-                    `${attFieldKey}[${attFieldIdx}].${fldKey}`,
-                    _.replace(String(fldVal), 'pending-oid', oid)
-                  );
-                }
-              });
-            }
-          });
-        });
+        this.bindPendingAttachmentOids(recordMetadata, recordMeta.attachmentFields as unknown[], oid);
       }
       // End of potential dead code
 

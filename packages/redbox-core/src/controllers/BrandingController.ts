@@ -93,6 +93,7 @@ export namespace Controllers {
       'init',
       'renderCss',
       'renderImage',
+      'renderFavicon',
       'renderApiB',
       'renderSwaggerJSON',
       'renderSwaggerYAML',
@@ -319,6 +320,48 @@ export namespace Controllers {
       } catch (_e) {
         res.contentType(sails.config.static_assets.imageType);
         return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
+      }
+    }
+
+    /**
+     * Serves the per-brand favicon from storage, falling back to the static
+     * default favicon when no custom favicon has been configured.
+     *
+     * @param req
+     * @param res
+     */
+    public async renderFavicon(req: Sails.Req, res: Sails.Res) {
+      const sendDefault = () => {
+        res.contentType(sails.config.static_assets.faviconType);
+        return res.sendFile(`${sails.config.appPath}/assets/${sails.config.static_assets.faviconName}`);
+      };
+      try {
+        const branding = req.param('branding');
+        const brand = await BrandingConfig.findOne({ name: branding });
+        const favicon = brand?.favicon as Record<string, unknown> | undefined;
+        const storageId = typeof favicon?.storageKey === 'string'
+          ? favicon.storageKey
+          : typeof favicon?.gridFsId === 'string'
+            ? favicon.gridFsId
+            : null;
+        if (!brand || !favicon || !storageId) {
+          return sendDefault();
+        }
+        const buf = await BrandingLogoService.getBinaryAsync(storageId);
+        if (!buf) {
+          return sendDefault();
+        }
+        res.contentType((favicon.contentType as string) || 'image/png');
+        const etagSeed = typeof favicon.sha256 === 'string'
+          ? favicon.sha256
+          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etag = this.generateETag(etagSeed, 'favicon-');
+        res.set('ETag', etag);
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.send(buf);
+      } catch (_e) {
+        return sendDefault();
       }
     }
   }

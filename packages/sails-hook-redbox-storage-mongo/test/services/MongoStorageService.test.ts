@@ -702,10 +702,10 @@ describe('MongoStorageService', function () {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
 
-    // No matching records means no columns to derive a header from, so the stream ends cleanly with
-    // only the UTF-8 BOM rather than hanging or emitting a malformed CSV.
+    // No matching records means no columns to derive a header from, so the stream ends cleanly as a
+    // zero-byte file. A BOM on its own is displayed as visible mojibake by some versions of Excel.
     const outputBuffer = Buffer.concat(chunks);
-    expect([...outputBuffer]).to.deep.equal([0xef, 0xbb, 0xbf]);
+    expect(outputBuffer).to.have.length(0);
     // Only the field-collection pass runs (single page, immediately empty); the CSV pass is skipped.
     expect(service.recordCol.find.callCount).to.equal(1);
   });

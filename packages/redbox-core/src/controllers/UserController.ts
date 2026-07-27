@@ -24,6 +24,7 @@ import {
   Controllers as controllers,
   RequestDetails,
 } from '../index';
+import { redactObject } from '../utilities/RedactionUtils';
 
 type AnyRecord = globalThis.Record<string, unknown>;
 
@@ -473,7 +474,7 @@ export namespace Controllers {
 
     private decodeErrorMappings(options: unknown, errorMessage: string) {
       // sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
-      // sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
+      // sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(redactObject(options)));
       let errorMessageDecoded: unknown = 'oidc-default-unknown-error';
       const errorMappingList = _.get(options, 'errorMappings', []);
 

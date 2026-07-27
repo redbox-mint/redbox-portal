@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import Handlebars from 'handlebars';
 
 
 export interface HookArchetypeOptions {
@@ -32,6 +32,10 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
 };
+
+const handlebars = Handlebars.create();
+
+handlebars.registerHelper('json', (value: unknown) => JSON.stringify(value));
 
 function toPascalCase(value: string): string {
   return value
@@ -72,7 +76,7 @@ function walkTemplateFiles(dir: string): string[] {
 
 function renderTemplate(sourcePath: string, context: HookTemplateContext): string {
   const templateSource = fs.readFileSync(sourcePath, 'utf8');
-  const template = handlebarsCompile(templateSource, { noEscape: true });
+  const template = handlebars.compile(templateSource, { noEscape: true });
   return template(context);
 }
 
@@ -165,7 +169,7 @@ function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContex
     hookShortName,
     hookPascalName,
     description: options.description ?? `ReDBox hook for ${hookPascalName}`,
-    integrationDirName: hookShortName,
+    integrationDirName: `hook-${hookShortName}`,
     redboxCoreVersion: readDependencyPackageVersion(packageRoot, 'redbox-core'),
     redboxDevToolsVersion: readOwnPackageVersion(packageRoot),
   };

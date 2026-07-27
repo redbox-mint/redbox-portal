@@ -74,7 +74,7 @@ const QuestionTreeOutcomeInfoKey = 'questiontree-outcome-info';
 module.exports = ${JSON.stringify(migrated, null, 2)};`;
   } else {
     tsContent = `import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-const formConfig: FormConfigFrame = ${JSON.stringify(migrated, null, 2)};
+const formConfig = ${JSON.stringify(migrated, null, 2)} as unknown as FormConfigFrame;
 export default formConfig;`;
   }
 
