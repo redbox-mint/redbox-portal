@@ -1258,15 +1258,15 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
   }
 
-  private normalizePosition(position: GeoJSON.Position): [number, number] | null {
+  private normalizePosition(position: GeoJSON.Position | (string | number)[]): [number, number] | null {
     if (!Array.isArray(position) || position.length < 2) {
       return null;
     }
     let longitude: number | null = null;
     let latitude: number | null = null;
     try {
-      longitude = Number(position[0]);
-      latitude = Number(position[1]);
+      longitude = ["string", "number"].includes(typeof position[0]) ? Number(position[0]) : null;
+      latitude = ["string", "number"].includes(typeof position[1]) ? Number(position[1]) : null;
     } catch (err) {
       this.loggerService.error(`${this.logName}: failed to parse position ${position}`, err);
     }
@@ -1275,7 +1275,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       latitude !== null && Number.isFinite(latitude)) {
       return [longitude, latitude];
     }
-    this.loggerService.warn(`${this.logName}: invalid position ${position}`);
+    this.loggerService.warn(`${this.logName}: invalid position`, position);
     return null;
   }
 

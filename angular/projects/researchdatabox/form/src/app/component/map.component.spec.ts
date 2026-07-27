@@ -825,6 +825,24 @@ describe("MapComponent", () => {
                       coordinates: ["145.935234375", "-22.625184301"]
                     },
                     properties: {}
+                  },
+                  {
+                    type: "Feature",
+                    geometry: {
+                      type: "Point",
+                      // Should ignore non-string, non-number coordinates.
+                      coordinates: [undefined, null]
+                    },
+                    properties: {}
+                  },
+                  {
+                    type: "Feature",
+                    geometry: {
+                      type: "Point",
+                      // Should ignore non-string, non-number coordinates.
+                      coordinates: [true, {testing: 1}]
+                    },
+                    properties: {}
                   }
                 ]
               }
