@@ -638,7 +638,8 @@ describe("MapComponent", () => {
       type: "Feature",
       geometry: {
         type: "MultiPoint",
-        coordinates: [[153.02, -27.47], [146.82, -19.25]]
+        // Should allow string coordinates.
+        coordinates: [[153.02, -27.47], ["146.82", "-19.25"]]
       },
       properties: {name: "Queensland sites", mode: "polygon"}
     });
@@ -653,6 +654,7 @@ describe("MapComponent", () => {
     expect((modelValue?.features ?? []).length).toBe(2);
     expect(modelValue.features.map((feature: any) => feature.geometry.type)).toEqual(["Point", "Point"]);
     expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id) && feature.properties.mode === "point")).toBeTrue();
+    expect(modelValue.features.map((feature: any) => feature.geometry.coordinates)).toEqual([[153.02, -27.47], [146.82, -19.25]]);
   });
 
   it("throws a controlled error when map feature ids cannot be generated", async () => {
@@ -812,8 +814,17 @@ describe("MapComponent", () => {
                 features: [
                   {
                     type: "Feature",
-                    geometry: {type: "Polygon", coordinates: [[144.96, -37.81], ["144.961", "-37.811"], ["144.96", "-37.81"]]},
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
                     properties: {name: "Melbourne"}
+                  },
+                  {
+                    type: "Feature",
+                    geometry: {
+                      type: "Point",
+                      // Should allow string coordinates.
+                      coordinates: ["145.935234375", "-22.625184301"]
+                    },
+                    properties: {}
                   }
                 ]
               }
@@ -823,16 +834,27 @@ describe("MapComponent", () => {
       ]
     };
 
-    await createFormAndWaitForReady(formConfig, {editMode: true} as any);
-    expect(fakeDraw.addFeatures).toHaveBeenCalledOnceWith([
+    const {fixture} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fakeDraw.addFeatures).toHaveBeenCalledTimes(1);
+    expect(fakeDraw.addFeatures).toHaveBeenCalledWith([
       jasmine.objectContaining({
         id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
-        geometry: {type: "Polygon", coordinates: [[144.96, -37.81], [144.961, -37.811], [144.96, -37.81]]},
-        properties: jasmine.objectContaining({name: "Melbourne", mode: "polygon"})
+        geometry: {type: "Point", coordinates: [144.96, -37.81]},
+        properties: jasmine.objectContaining({name: "Melbourne", mode: "point"})
+      }),
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(uuidV4Pattern),
+        type: "Feature",
+        geometry: {type: "Point", coordinates: [145.935234375, -22.625184301]},
+        properties: jasmine.objectContaining({mode: "point"})
       })
     ]);
-    expect(drawFeatures.length).toBe(1);
+    expect(drawFeatures.length).toBe(2);
     expect(fakeMap.updateSize).toHaveBeenCalled();
   });
 

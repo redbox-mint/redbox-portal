@@ -1270,9 +1270,13 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     } catch (err) {
       this.loggerService.error(`${this.logName}: failed to parse position ${position}`, err);
     }
-    return longitude !== null && Number.isFinite(longitude) &&
-    latitude !== null && Number.isFinite(latitude)
-      ? [longitude, latitude] : null;
+
+    if (longitude !== null && Number.isFinite(longitude) &&
+      latitude !== null && Number.isFinite(latitude)) {
+      return [longitude, latitude];
+    }
+    this.loggerService.warn(`${this.logName}: invalid position ${position}`);
+    return null;
   }
 
   private normalizeLineStringCoordinates(coordinates: GeoJSON.Position[]): [number, number][] {
