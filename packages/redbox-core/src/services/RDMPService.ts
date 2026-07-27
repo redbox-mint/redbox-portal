@@ -25,6 +25,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { momentShim as moment } from '../shims/momentShim';
 import numeral from 'numeral';
+import { trimRecordWhitespace, TrimWhitespaceOptions } from '../utilities/WhitespaceUtils';
 
 // removed duplicate isObservable import
 
@@ -61,6 +62,7 @@ export namespace Services {
       'stripUserBasedPermissions',
       'restoreUserBasedPermissions',
       'runTemplates',
+      'trimWhitespace',
       'addWorkspaceToRecord',
       'queuedTriggerSubscriptionHandler',
       'queueTriggerCall',
@@ -747,6 +749,31 @@ export namespace Services {
           }
           delete auth.stored;
         }
+      }
+      return of(record);
+    }
+
+    /**
+     * Pre-save trigger that strips leading and trailing whitespace from every
+     * string value stored on the record.
+     *
+     * Defaults to trimming all strings under `metadata`. Supply `fields` to
+     * restrict trimming to an include-list, or `excludeFields` to skip fields
+     * where surrounding whitespace is meaningful. `fields` takes precedence
+     * over `excludeFields` when both are set.
+     *
+     * Only the ends of each string are trimmed, so internal formatting -
+     * including the two-space markdown line break - is preserved.
+     *
+     * @param  oid
+     * @param  record
+     * @param  options see {@link TrimWhitespaceOptions}
+     * @param  _user
+     */
+    public trimWhitespace(oid: string, record: RecordWithMeta, options: TrimWhitespaceOptions = {}, _user?: unknown) {
+      const changed = trimRecordWhitespace(record, options ?? {});
+      if (changed) {
+        sails.log.verbose(`${this.logHeader}trimWhitespace: trimmed whitespace from record ${oid}`);
       }
       return of(record);
     }

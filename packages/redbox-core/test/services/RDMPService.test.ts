@@ -680,6 +680,89 @@ describe('RDMPService', function () {
     });
   });
 
+  describe('trimWhitespace', function () {
+    it('should trim strings nested in objects and arrays under metadata', async function () {
+      const record: any = {
+        metaMetadata: { type: '  rdmp  ' },
+        metadata: {
+          title: '  Test project name  ',
+          nested: { value: ' deep ' },
+          contributor_ci: [{ text_full_name: '  Ada Lovelace ' }],
+          keywords: [' one', 'two ']
+        }
+      };
+
+      const result: any = await firstValueFrom(RDMPService.trimWhitespace('oid-1', record, {}, {}));
+
+      expect(result.metadata.title).to.equal('Test project name');
+      expect(result.metadata.nested.value).to.equal('deep');
+      expect(result.metadata.contributor_ci[0].text_full_name).to.equal('Ada Lovelace');
+      expect(result.metadata.keywords).to.deep.equal(['one', 'two']);
+      expect(result.metaMetadata.type).to.equal('  rdmp  ');
+    });
+
+    it('should leave non-string values and internal formatting untouched', async function () {
+      const markdown = 'Line one  \nline two';
+      const record: any = {
+        metadata: {
+          count: 42,
+          flag: false,
+          missing: null,
+          description: `  ${markdown}  `
+        }
+      };
+
+      const result: any = await firstValueFrom(RDMPService.trimWhitespace('oid-1', record, {}, {}));
+
+      expect(result.metadata.count).to.equal(42);
+      expect(result.metadata.flag).to.equal(false);
+      expect(result.metadata.missing).to.equal(null);
+      expect(result.metadata.description).to.equal(markdown);
+    });
+
+    it('should honour the excludeFields option by leaf name inside a repeatable', async function () {
+      const record: any = {
+        metadata: {
+          title: '  Trim me  ',
+          related: [{ related_title: '  A title  ', related_url: '  http://example.com/a  ' }]
+        }
+      };
+
+      const result: any = await firstValueFrom(
+        RDMPService.trimWhitespace('oid-1', record, { excludeFields: ['related_url'] }, {})
+      );
+
+      expect(result.metadata.title).to.equal('Trim me');
+      expect(result.metadata.related[0].related_title).to.equal('A title');
+      expect(result.metadata.related[0].related_url).to.equal('  http://example.com/a  ');
+    });
+
+    it('should only trim the include-list when fields is supplied', async function () {
+      const record: any = {
+        metadata: {
+          title: '  Trim me  ',
+          description: '  Leave me  '
+        }
+      };
+
+      const result: any = await firstValueFrom(
+        RDMPService.trimWhitespace('oid-1', record, { fields: ['title'] }, {})
+      );
+
+      expect(result.metadata.title).to.equal('Trim me');
+      expect(result.metadata.description).to.equal('  Leave me  ');
+    });
+
+    it('should return the record unchanged when there is nothing to trim', async function () {
+      const record: any = { metadata: { title: 'Already clean' } };
+
+      const result: any = await firstValueFrom(RDMPService.trimWhitespace('oid-1', record, undefined, {}));
+
+      expect(result).to.equal(record);
+      expect(result.metadata.title).to.equal('Already clean');
+    });
+  });
+
   describe('addWorkspaceToRecord', function () {
     it('should add workspace to record', async function () {
       const workspaceData = {
@@ -944,6 +1027,7 @@ describe('RDMPService', function () {
       expect(exported).to.have.property('stripUserBasedPermissions');
       expect(exported).to.have.property('restoreUserBasedPermissions');
       expect(exported).to.have.property('runTemplates');
+      expect(exported).to.have.property('trimWhitespace');
       expect(exported).to.have.property('addWorkspaceToRecord');
       expect(exported).to.have.property('removeWorkspaceFromRecord');
       expect(exported).to.have.property('queueTriggerCall');
