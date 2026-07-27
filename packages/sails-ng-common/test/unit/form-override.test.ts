@@ -149,7 +149,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('reports component classes with default view transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     expect(formOverride.hasDefaultViewTransform(SimpleInputComponentName)).to.equal(true);
     expect(formOverride.hasDefaultViewTransform(DateInputComponentName)).to.equal(true);
@@ -786,7 +786,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders repeatable table values from unflattened leaf components', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -863,7 +863,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders standalone url simple inputs as links without changing plain simple inputs', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const urlTransformed = formOverride.applyOverrideTransform(
       {
@@ -916,7 +916,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders url simple inputs as links in repeatable group tables', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -981,7 +981,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('substitutes the reusable repeatable-list item class', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -1023,7 +1023,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('applies template-only view overrides to repeatable content transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const customTemplate = '<div class="custom">{{#each content}}<span>{{title}}</span>{{/each}}</div>';
 
     const transformed = formOverride.applyOverrideTransform(
@@ -1082,7 +1082,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('applies template-only view overrides to leaf simple input content transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const customTemplate = '<strong>{{content}}</strong>';
 
     const transformed = formOverride.applyOverrideTransform(
@@ -1133,7 +1133,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('ignores templates on identity view overrides', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -1159,7 +1159,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('uses reusable view templates for url simple input links', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {

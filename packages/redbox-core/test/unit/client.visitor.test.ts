@@ -12,8 +12,11 @@ import {
 } from "@researchdatabox/sails-ng-common";
 import {formConfigExample1} from "./example-data";
 import {
-  reusableFormDefinitions, VocabInlineFormConfigVisitor,
-  ClientFormConfigVisitor, ConstructFormConfigVisitor, buildRelatedObjectsFieldDefinition,
+  reusableFormDefinitions,
+  VocabInlineFormConfigVisitor,
+  ClientFormConfigVisitor,
+  ConstructFormConfigVisitor,
+  buildRelatedObjectsFieldDefinition,
 } from "../../src";
 
 
@@ -623,7 +626,7 @@ describe("Client Visitor", async () => {
       record: Record<string, unknown>,
       userRoles: string[] = []
     ): Promise<FormConfigFrame> => {
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
         formMode: "view",
@@ -631,7 +634,7 @@ describe("Client Visitor", async () => {
         record,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       return await visitor.start({
         form: constructed,
         formMode: "view",
@@ -757,7 +760,7 @@ describe("Client Visitor", async () => {
       elementTemplate.constraints = {allowModes: ["view"]};
       elementTemplate.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
         formMode: "view",
@@ -769,7 +772,7 @@ describe("Client Visitor", async () => {
       ).elementTemplate;
       expect(constructedElement.component.class).to.equal("GroupComponent");
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       const formOverride = (
         visitor as unknown as {formOverride: {defaultTransforms: Record<string, unknown>}}
       ).formOverride;
@@ -860,7 +863,7 @@ describe("Client Visitor", async () => {
       data: FormConfigFrame,
       record: Record<string, unknown>
     ): Promise<FormConfigFrame> => {
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
         formMode: "view",
@@ -868,7 +871,7 @@ describe("Client Visitor", async () => {
         record,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       return await visitor.start({
         form: constructed,
         formMode: "view",
@@ -1115,14 +1118,14 @@ describe("Client Visitor", async () => {
           ]
       };
       const formMode = "edit";
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
         formMode,
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
         formMode,
