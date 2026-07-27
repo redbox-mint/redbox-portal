@@ -1262,20 +1262,33 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!Array.isArray(position) || position.length < 2) {
       return null;
     }
-    let longitude: number | null = null;
-    let latitude: number | null = null;
-    try {
-      longitude = ["string", "number"].includes(typeof position[0]) ? Number(position[0]) : null;
-      latitude = ["string", "number"].includes(typeof position[1]) ? Number(position[1]) : null;
-    } catch (err) {
-      this.loggerService.error(`${this.logName}: failed to parse position ${position}`, err);
-    }
+
+    const longitude = this.normalizePositionNumber(position[0]);
+    const latitude= this.normalizePositionNumber(position[1]);
 
     if (longitude !== null && Number.isFinite(longitude) &&
       latitude !== null && Number.isFinite(latitude)) {
       return [longitude, latitude];
     }
     this.loggerService.warn(`${this.logName}: invalid position`, position);
+    return null;
+  }
+
+  private normalizePositionNumber(value: unknown): number | null {
+    try {
+      if (typeof value === "number") {
+        return value;
+      }
+      if (typeof value === "string") {
+        const trimmed = value?.trim();
+        if (trimmed.length > 0) {
+          return Number(trimmed);
+        }
+        return null;
+      }
+    } catch (err) {
+      this.loggerService.error(`${this.logName}: failed to parse position value ${value}`, err);
+    }
     return null;
   }
 

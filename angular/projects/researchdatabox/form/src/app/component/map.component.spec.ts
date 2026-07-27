@@ -817,31 +817,36 @@ describe("MapComponent", () => {
                     geometry: {type: "Point", coordinates: [144.96, -37.81]},
                     properties: {name: "Melbourne"}
                   },
+                  // Should allow string coordinates.
                   {
                     type: "Feature",
-                    geometry: {
-                      type: "Point",
-                      // Should allow string coordinates.
-                      coordinates: ["145.935234375", "-22.625184301"]
-                    },
+                    geometry: {type: "Point", coordinates: ["145.935234375", "-22.625184301"]},
+                    properties: {}
+                  },
+                  // Should only include coordinates that are numbers or non-empty strings.
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [undefined, -22.62]},
                     properties: {}
                   },
                   {
                     type: "Feature",
-                    geometry: {
-                      type: "Point",
-                      // Should ignore non-string, non-number coordinates.
-                      coordinates: [undefined, null]
-                    },
+                    geometry: {type: "Point", coordinates: [145.93, null]},
                     properties: {}
                   },
                   {
                     type: "Feature",
-                    geometry: {
-                      type: "Point",
-                      // Should ignore non-string, non-number coordinates.
-                      coordinates: [true, {testing: 1}]
-                    },
+                    geometry: {type: "Point", coordinates: [145.93, {}]},
+                    properties: {}
+                  },
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [145.93, true]},
+                    properties: {}
+                  },
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: ["  \n", -22.62]},
                     properties: {}
                   }
                 ]
