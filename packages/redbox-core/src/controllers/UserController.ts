@@ -24,7 +24,6 @@ import {
   Controllers as controllers,
   RequestDetails,
 } from '../index';
-import { redactObject } from '../utilities/RedactionUtils';
 
 type AnyRecord = globalThis.Record<string, unknown>;
 

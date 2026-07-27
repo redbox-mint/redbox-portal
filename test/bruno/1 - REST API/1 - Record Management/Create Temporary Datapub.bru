@@ -202,13 +202,14 @@ body:json {
 }
 
 tests {
-  
+
   test("Status code is 201", function () {
       expect(res.getStatus()).to.equal(201);
   });
-  
+
   test("Test oid exists", function () {
       var jsonData = res.getBody();
+      console.log(jsonData);
       expect(jsonData).to.have.property('oid');
       bru.setEnvVar("tempDataPubOid", jsonData.oid);
   });
