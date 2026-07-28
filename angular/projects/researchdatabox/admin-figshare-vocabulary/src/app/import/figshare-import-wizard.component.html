@@ -73,7 +73,7 @@
           [checked]="taxonomyId === taxonomy.taxonomyId"
           (change)="selectTaxonomy(taxonomy.taxonomyId)"
         />
-        <label class="form-check-label" [attr.for]="'figshare-taxonomy-' + taxonomy.taxonomyId">
+        <label class="form-check-label d-block" [attr.for]="'figshare-taxonomy-' + taxonomy.taxonomyId">
           <span class="fw-semibold">{{ taxonomy.title }}</span>
           <small class="d-block text-muted">
             {{ 'figshare-vocab-taxonomy-counts' | i18next: { categories: taxonomy.categoryCount, selectable: taxonomy.selectableCount } }}
