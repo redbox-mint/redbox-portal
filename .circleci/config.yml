@@ -187,6 +187,7 @@ jobs:
       - run:
           name: Upload Bruno General code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-general/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
@@ -241,6 +242,7 @@ jobs:
       - run:
           name: Upload Bruno OIDC code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-oidc/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
@@ -295,6 +297,7 @@ jobs:
       - run:
           name: Upload Bruno S3 code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-s3/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
@@ -351,6 +354,7 @@ jobs:
       - run:
           name: Upload Playwright code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/playwright/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
@@ -407,6 +411,7 @@ jobs:
       - run:
           name: Upload Mocha code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
