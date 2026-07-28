@@ -26,6 +26,7 @@ import {
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
+import { transformNestedValues } from '../utilities/NestedValueUtils';
 import { HarvestRecordEventAttributes } from '../waterline-models/HarvestRecordEvent';
 import { HarvestRunChunkAttributes } from '../waterline-models/HarvestRunChunk';
 import { HarvestRunAttributes } from '../waterline-models/HarvestRun';
@@ -817,49 +818,35 @@ export namespace Services {
       });
     }
 
-    private canonicalizeValue(value: unknown, seen = new WeakSet<object>()): unknown {
-      if (value === undefined) {
-        return undefined;
-      }
-      if (value === null || typeof value === 'boolean') {
-        return value;
-      }
-      if (typeof value === 'string') {
-        return value.normalize('NFC');
-      }
-      if (typeof value === 'number') {
-        if (!Number.isFinite(value)) {
-          throw new HarvestRunServiceError('Tracked harvest payload contains an invalid number value.', 400);
-        }
-        return Object.is(value, -0) ? 0 : value;
-      }
-      if (typeof value === 'bigint' || typeof value === 'function' || typeof value === 'symbol') {
-        throw new HarvestRunServiceError('Tracked harvest payload contains a non-serializable value.', 400);
-      }
-      if (Array.isArray(value)) {
-        return value.map(entry => this.canonicalizeValue(entry, seen));
-      }
-      if (value instanceof Date) {
-        return value.toISOString();
-      }
-      if (typeof value === 'object') {
-        if (seen.has(value as object)) {
+    private canonicalizeValue(value: unknown): unknown {
+      return transformNestedValues(value, {
+        sortObjectKeys: true,
+        referenceTracking: 'ancestors',
+        onCircular: () => {
           throw new HarvestRunServiceError('Tracked harvest payload contains circular data.', 400);
-        }
-        seen.add(value as object);
-        const result = Object.keys(value as AnyRecord)
-          .sort((left, right) => left.localeCompare(right))
-          .reduce((acc, key) => {
-            const normalized = this.canonicalizeValue((value as AnyRecord)[key], seen);
-            if (normalized !== undefined) {
-              acc[key] = normalized;
+        },
+        transform: entry => {
+          if (entry === undefined) {
+            return { value: undefined, omit: true, traverse: false };
+          }
+          if (typeof entry === 'string') {
+            return { value: entry.normalize('NFC'), traverse: false };
+          }
+          if (typeof entry === 'number') {
+            if (!Number.isFinite(entry)) {
+              throw new HarvestRunServiceError('Tracked harvest payload contains an invalid number value.', 400);
             }
-            return acc;
-          }, {} as AnyRecord);
-        seen.delete(value as object);
-        return result;
-      }
-      return value;
+            return { value: Object.is(entry, -0) ? 0 : entry, traverse: false };
+          }
+          if (typeof entry === 'bigint' || typeof entry === 'function' || typeof entry === 'symbol') {
+            throw new HarvestRunServiceError('Tracked harvest payload contains a non-serializable value.', 400);
+          }
+          if (entry instanceof Date) {
+            return { value: entry.toISOString(), traverse: false };
+          }
+          return undefined;
+        },
+      }).value;
     }
 
     private buildChunkContentHash(brandId: string, recordTypeName: string, request: HarvestTrackedChunkRequest): string {

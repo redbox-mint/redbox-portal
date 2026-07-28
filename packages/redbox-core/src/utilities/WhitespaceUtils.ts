@@ -1,4 +1,5 @@
 import { get as _get, set as _set } from 'lodash';
+import { transformNestedValues } from './NestedValueUtils';
 
 /**
  * Options controlling {@link trimRecordWhitespace}.
@@ -26,18 +27,6 @@ export interface TrimWhitespaceOptions {
   nullifyEmpty?: boolean;
 }
 
-interface WalkContext {
-  fields: string[];
-  excludeFields: string[];
-  nullifyEmpty: boolean;
-  seen: WeakSet<object>;
-}
-
-interface WalkResult {
-  value: unknown;
-  changed: boolean;
-}
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false;
@@ -59,62 +48,13 @@ function matchesField(entries: string[], path: string, leaf: string): boolean {
   return entries.includes(path) || (leaf !== '' && entries.includes(leaf));
 }
 
-function walk(value: unknown, path: string, leaf: string, included: boolean, ctx: WalkContext): WalkResult {
-  const useIncludeList = ctx.fields.length > 0;
-  const selfIncluded = included || (useIncludeList && matchesField(ctx.fields, path, leaf));
-
-  if (!useIncludeList && matchesField(ctx.excludeFields, path, leaf)) {
-    // Excluding a container excludes everything beneath it.
-    return { value, changed: false };
-  }
-
-  if (typeof value === 'string') {
-    if (useIncludeList && !selfIncluded) {
-      return { value, changed: false };
-    }
-    const trimmed = value.trim();
-    const next = ctx.nullifyEmpty && trimmed === '' ? null : trimmed;
-    return { value: next, changed: next !== value };
-  }
-
-  if (Array.isArray(value)) {
-    if (ctx.seen.has(value)) {
-      return { value, changed: false };
-    }
-    ctx.seen.add(value);
-    let changed = false;
-    // Array indices are normalised to `[]` so path matching is index-agnostic.
-    const childPath = `${path}[]`;
-    for (let i = 0; i < value.length; i++) {
-      const result = walk(value[i], childPath, leaf, selfIncluded, ctx);
-      if (result.changed) {
-        value[i] = result.value;
-        changed = true;
-      }
-    }
-    return { value, changed };
-  }
-
-  if (isPlainObject(value)) {
-    if (ctx.seen.has(value)) {
-      return { value, changed: false };
-    }
-    ctx.seen.add(value);
-    let changed = false;
-    for (const key of Object.keys(value)) {
-      const childPath = path === '' ? key : `${path}.${key}`;
-      const result = walk(value[key], childPath, key, selfIncluded, ctx);
-      if (result.changed) {
-        value[key] = result.value;
-        changed = true;
-      }
-    }
-    return { value, changed };
-  }
-
-  // Numbers, booleans, null, undefined, Date, Buffer and other class
-  // instances are left untouched.
-  return { value, changed: false };
+function pathIsWithinField(entries: string[], path: string, leaf: string): boolean {
+  return entries.some(entry =>
+    entry === leaf ||
+    path === entry ||
+    path.startsWith(`${entry}.`) ||
+    path.startsWith(`${entry}[]`)
+  );
 }
 
 /**
@@ -135,12 +75,9 @@ export function trimRecordWhitespace(target: unknown, options: TrimWhitespaceOpt
   }
 
   const paths = options.paths && options.paths.length > 0 ? options.paths : ['metadata'];
-  const ctx: WalkContext = {
-    fields: options.fields ?? [],
-    excludeFields: options.excludeFields ?? [],
-    nullifyEmpty: options.nullifyEmpty === true,
-    seen: new WeakSet<object>(),
-  };
+  const fields = options.fields ?? [];
+  const excludeFields = options.excludeFields ?? [];
+  const useIncludeList = fields.length > 0;
 
   let changed = false;
   for (const rootPath of paths) {
@@ -149,7 +86,29 @@ export function trimRecordWhitespace(target: unknown, options: TrimWhitespaceOpt
       continue;
     }
     const leaf = String(rootPath).split('.').pop() ?? '';
-    const result = walk(rootValue, '', leaf, false, ctx);
+    const rootIncluded = useIncludeList && matchesField(fields, '', leaf);
+    const result = transformNestedValues(rootValue, {
+      rootLeaf: leaf,
+      mutate: true,
+      referenceTracking: 'visited',
+      isTraversableObject: isPlainObject,
+      transform: (value, context) => {
+        if (!useIncludeList && matchesField(excludeFields, context.path, context.leaf)) {
+          return { value, traverse: false };
+        }
+        if (typeof value !== 'string') {
+          return undefined;
+        }
+        if (useIncludeList && !rootIncluded && !pathIsWithinField(fields, context.path, context.leaf)) {
+          return { value, traverse: false };
+        }
+        const trimmed = value.trim();
+        return {
+          value: options.nullifyEmpty === true && trimmed === '' ? null : trimmed,
+          traverse: false,
+        };
+      },
+    });
     if (result.changed) {
       changed = true;
       if (result.value !== rootValue) {

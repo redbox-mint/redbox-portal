@@ -239,4 +239,11 @@ describe('WhitespaceUtils', function () {
     expect(trimRecordWhitespace(record, { paths: ['title'] })).to.equal(true);
     expect(record.title).to.equal('Trim me');
   });
+
+  it('includes the whole selected root when fields names that root', function () {
+    const record = { metadata: { title: '  Trim me  ', nested: { value: '  Me too  ' } } };
+
+    expect(trimRecordWhitespace(record, { fields: ['metadata'] })).to.equal(true);
+    expect(record.metadata).to.deep.equal({ title: 'Trim me', nested: { value: 'Me too' } });
+  });
 });

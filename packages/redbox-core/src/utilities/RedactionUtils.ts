@@ -19,23 +19,12 @@ export function redactSecret(value: unknown): unknown {
   return value;
 }
 
-export function redactObject(value: unknown, visited: WeakSet<object> = new WeakSet<object>()): unknown {
-  if (Array.isArray(value)) {
-    if (visited.has(value)) {
-      return '[Circular]';
-    }
-    visited.add(value);
-    return value.map((entry) => redactObject(entry, visited));
-  }
-  if (value != null && typeof value === 'object') {
-    if (visited.has(value)) {
-      return '[Circular]';
-    }
-    visited.add(value);
-    const obj = value as Record<string, unknown>;
-    const result: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(obj)) {
-      const normalizedKey = key.toLowerCase();
+export function redactObject(value: unknown): unknown {
+  return transformNestedValues(value, {
+    referenceTracking: 'visited',
+    onCircular: () => ({ value: '[Circular]', traverse: false }),
+    transform: (entry, context) => {
+      const normalizedKey = context.leaf.toLowerCase();
       if (
         normalizedKey.includes('token') ||
         normalizedKey.includes('authorization') ||
@@ -45,12 +34,11 @@ export function redactObject(value: unknown, visited: WeakSet<object> = new Weak
         normalizedKey.includes('password') ||
         normalizedKey.includes('credential')
       ) {
-        result[key] = 'REDACTED';
-      } else {
-        result[key] = redactObject(entry, visited);
+        return { value: 'REDACTED', traverse: false };
       }
-    }
-    return result;
-  }
-  return redactSecret(value);
+      const redacted = redactSecret(entry);
+      return redacted === entry ? undefined : { value: redacted, traverse: false };
+    },
+  }).value;
 }
+import { transformNestedValues } from './NestedValueUtils';
