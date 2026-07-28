@@ -26,6 +26,7 @@ function testAngular() {
   node ../support/unit-testing/codecov/prepare-report.cjs \
     "./projects/researchdatabox/${1}/coverage/coverage-final.json" "angular"
   /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+    --network-root-folder "$(git rev-parse --show-toplevel)" \
     --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
     --flag "${2}" --file "./projects/researchdatabox/${1}/coverage/coverage-final.json" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
 }
