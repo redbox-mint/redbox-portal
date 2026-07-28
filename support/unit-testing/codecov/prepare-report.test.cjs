@@ -50,3 +50,18 @@ test('excludes generated sources while retaining tracked LCOV records', () => {
   assert.doesNotMatch(fs.readFileSync(report, 'utf8'), /does-not-exist/);
   assert.match(result.stderr, /Excluded 1 generated or untracked coverage sources/);
 });
+
+test('replaces a read-only report produced by a container', () => {
+  const report = temporaryReport(
+    'info',
+    'SF:src/services/figshare-v2/http.ts\nDA:1,1\nend_of_record\n'
+  );
+  fs.chmodSync(report, 0o444);
+
+  execFileSync(process.execPath, [script, report, 'packages/redbox-core']);
+
+  assert.match(
+    fs.readFileSync(report, 'utf8'),
+    /^SF:packages\/redbox-core\/src\/services\/figshare-v2\/http\.ts$/m
+  );
+});

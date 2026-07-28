@@ -98,7 +98,9 @@ if (!fs.existsSync(reportPath)) {
 
 const contents = fs.readFileSync(reportPath, 'utf8');
 const result = reportPath.endsWith('.json') ? prepareIstanbulJson(contents) : prepareLcov(contents);
-fs.writeFileSync(reportPath, result.contents);
+const preparedPath = `${reportPath}.prepared-${process.pid}`;
+fs.writeFileSync(preparedPath, result.contents);
+fs.renameSync(preparedPath, reportPath);
 console.log(`Prepared ${result.sources} coverage source paths in ${path.relative(repositoryRoot, reportPath)}`);
 if (result.skipped.length > 0) {
   console.warn(
