@@ -75,8 +75,17 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     return this.vocabularies.filter((vocabulary: VocabularySummary) => vocabulary.source === 'rva').length;
   }
 
+  /**
+   * Figshare mirrors are maintained by their own admin screen; the service rejects writes
+   * to them, so the generic editor opens them read-only rather than offering a save that
+   * is guaranteed to fail.
+   */
+  get isSelectedReadOnly(): boolean {
+    return this.draft.source === 'external';
+  }
+
   get canSave(): boolean {
-    return this.isEditModalOpen && !!this.draft.name?.trim();
+    return this.isEditModalOpen && !!this.draft.name?.trim() && !this.isSelectedReadOnly;
   }
 
   get canSyncSelected(): boolean {

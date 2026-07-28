@@ -62,6 +62,7 @@
     [total]="sourceTotal"
     [scopeFilter]="scopeFilter"
     [loading]="sourcesLoading"
+    [busySourceId]="busySourceId"
     (scopeFilterChanged)="onScopeFilterChanged($event)"
     (resyncRequested)="resyncSource($event)"
     (cloneRequested)="cloneSource($event)"
@@ -99,10 +100,10 @@
       <tbody>
         @for (run of syncRuns; track run.id) {
         <tr>
-          <td><span class="figshare-badge">{{ run.state }}</span></td>
-          <td>{{ run.scope }} · {{ run.taxonomyId }}</td>
+          <td><span class="figshare-badge">{{ 'figshare-vocab-run-state-' + run.state | i18next }}</span></td>
+          <td>{{ scopeLabelKey(run.scope) | i18next }} · {{ run.taxonomyId }}</td>
           <td>{{ run.requestedBy }}</td>
-          <td>{{ run.appliedAt || '—' }}</td>
+          <td>{{ formatDate(run.appliedAt) || '—' }}</td>
         </tr>
         }
       </tbody>

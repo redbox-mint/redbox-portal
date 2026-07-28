@@ -123,7 +123,7 @@
   </nav>
   }
 
-  <div class="mt-3">
+  <div class="mt-3 d-flex flex-wrap gap-2">
     <button type="button" class="btn btn-secondary" (click)="closed.emit()">{{ 'figshare-vocab-back' | i18next }}</button>
     <button type="button" class="btn btn-primary" [disabled]="!canApprove" (click)="requestApproval()">
       {{ 'figshare-vocab-approve-revision' | i18next: { revision: crosswalk.workingRevision } }}

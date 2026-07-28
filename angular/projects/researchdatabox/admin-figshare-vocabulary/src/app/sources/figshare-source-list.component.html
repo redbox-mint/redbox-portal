@@ -43,8 +43,8 @@
             'figshare-vocab-source-terms' | i18next: { count: source.mirroredCount }
           }}</small>
         </th>
-        <td>{{ source.scope }}</td>
-        <td>{{ source.lastSyncedAt || ('figshare-vocab-never-synced' | i18next) }}</td>
+        <td>{{ scopeLabelKey(source.scope) | i18next }}</td>
+        <td>{{ formatDate(source.lastSyncedAt) || ('figshare-vocab-never-synced' | i18next) }}</td>
         <td>
           @if (source.historicalCount > 0) {
           <span class="figshare-badge figshare-badge--historical">{{
@@ -56,16 +56,22 @@
         </td>
         <td>
           <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-primary" (click)="resyncRequested.emit(source)">
+            <button type="button" class="btn btn-outline-primary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">
               {{ 'figshare-vocab-action-resync' | i18next }}
             </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="cloneRequested.emit(source)">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source)">
               {{ 'figshare-vocab-action-clone' | i18next }}
             </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="historyRequested.emit(source)">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="isBusy(source)" (click)="historyRequested.emit(source)">
               {{ 'figshare-vocab-action-history' | i18next }}
             </button>
           </div>
+          @if (isBusy(source)) {
+          <span class="d-inline-flex align-items-center ms-2 text-muted small" role="status">
+            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            {{ 'figshare-vocab-working' | i18next }}
+          </span>
+          }
         </td>
       </tr>
       }

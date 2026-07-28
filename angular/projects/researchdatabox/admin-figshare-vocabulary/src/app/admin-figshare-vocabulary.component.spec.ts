@@ -145,4 +145,33 @@ describe('AdminFigshareVocabularyComponent', () => {
     );
     expect(component.wizardError).not.toContain('502');
   });
+
+  it('renders stored timestamps in the shared admin display format', () => {
+    expect(component.formatDate('2026-07-28T05:17:04.771Z')).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    expect(component.formatDate(null)).toBe('');
+    expect(component.formatDate('not-a-date')).toBe('not-a-date');
+  });
+
+  it('maps catalogue scopes onto translation keys rather than showing the raw value', () => {
+    expect(component.scopeLabelKey('account')).toBe('figshare-vocab-scope-account');
+    expect(component.scopeLabelKey('public')).toBe('figshare-vocab-scope-public');
+  });
+
+  it('clears a stale banner and marks the row busy while a clone runs', async () => {
+    const source = { id: 'source-1', displayName: 'Taxonomy' } as any;
+    let busyDuringCall = '';
+    (api as any).cloneSource = jasmine.createSpy('cloneSource').and.callFake(async () => {
+      busyDuringCall = component.busySourceId;
+      return { localVocabularyId: 'local-1', crosswalkId: 'crosswalk-1', entries: 12 };
+    });
+    api.listCrosswalks.and.resolveTo({ data: [], total: 0 } as any);
+    component.error = 'a previous failure';
+
+    await component.cloneSource(source);
+
+    expect(busyDuringCall).toBe('source-1');
+    expect(component.busySourceId).toBe('');
+    expect(component.error).toBe('');
+    expect(component.message).toContain('Editable clone created');
+  });
 });

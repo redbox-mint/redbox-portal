@@ -11,6 +11,7 @@ import {
   FigshareTaxonomySummary,
   FigshareVocabularyApiService
 } from './services/figshare-vocabulary-api.service';
+import { formatFigshareTimestamp } from './figshare-format';
 import { FigshareImportRequest } from './import/figshare-import-wizard.component';
 import { PreviewFilterState } from './sync-preview/figshare-sync-preview.component';
 import { MappingChangeRequest, MappingSearchState } from './crosswalks/figshare-crosswalk-editor.component';
@@ -33,6 +34,8 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   public sourceTotal = 0;
   public scopeFilter: '' | 'public' | 'account' = '';
   public sourcesLoading = false;
+  /** Id of the source whose row action is running, so that row can show progress. */
+  public busySourceId = '';
 
   public crosswalks: FigshareCrosswalkSummary[] = [];
   public crosswalkTotal = 0;
@@ -152,19 +155,25 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async resyncSource(source: FigshareSourceSummary): Promise<void> {
+    this.clearAlerts();
     this.previewError = '';
     this.applying = false;
+    this.busySourceId = source.id;
     try {
       const preview = await this.api.createSourcePreview(source.id, {});
       await this.openPreview(preview.runId);
     } catch (err) {
       this.error = this.errorText('figshare-vocab-error-preview', err);
       this.logger.error(this.error);
+    } finally {
+      this.busySourceId = '';
     }
   }
 
   async cloneSource(source: FigshareSourceSummary): Promise<void> {
+    this.clearAlerts();
     const name = `${source.displayName} (local copy)`;
+    this.busySourceId = source.id;
     try {
       const clone = await this.api.cloneSource(source.id, { name });
       this.message = this.t('figshare-vocab-clone-created', 'Editable clone created with {{count}} terms.', {
@@ -175,6 +184,8 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     } catch (err) {
       this.error = this.errorText('figshare-vocab-error-clone', err);
       this.logger.error(this.error);
+    } finally {
+      this.busySourceId = '';
     }
   }
 
@@ -456,6 +467,20 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   private t(key: string, defaultValue: string, options?: Record<string, unknown>): string {
     return String(this.translationService.t(key, defaultValue, options));
+  }
+
+  /** Drop any banner left over from a previous action before starting a new one. */
+  private clearAlerts(): void {
+    this.message = '';
+    this.error = '';
+  }
+
+  public formatDate(value?: string | null): string {
+    return formatFigshareTimestamp(value);
+  }
+
+  public scopeLabelKey(scope: string): string {
+    return scope === 'account' ? 'figshare-vocab-scope-account' : 'figshare-vocab-scope-public';
   }
 
   private errorText(key: string, err: unknown): string {

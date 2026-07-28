@@ -125,7 +125,8 @@ const normalizeAndResolveBranding = async (record: Record<string, unknown>, isCr
 @Entity('vocabulary', {
   indexes: [
     { attributes: { branding: 1, slug: 1 }, unique: true },
-    { attributes: { rvaSourceKey: 1 }, unique: true, sparse: true }
+    { attributes: { rvaSourceKey: 1 }, unique: true, sparse: true },
+    { attributes: { figshareSourceKey: 1 }, unique: true, sparse: true }
   ]
 })
 export class VocabularyClass {
@@ -162,6 +163,9 @@ export class VocabularyClass {
   @Attr({ type: 'string' })
   public rvaSourceKey?: string | null;
 
+  @Attr({ type: 'string' })
+  public figshareSourceKey?: string | null;
+
   @HasMany('vocabularyentry', 'vocabulary')
   public entries?: unknown[];
 }
@@ -173,6 +177,7 @@ export interface VocabularyAttributes extends Sails.WaterlineAttributes {
   description?: string;
   entries?: (string | number | VocabularyEntryAttributes)[];
   lastSyncedAt?: string;
+  figshareSourceKey?: string | null;
   name: string;
   owner?: string;
   rvaSourceKey?: string | null;

@@ -432,7 +432,42 @@ export namespace Services {
     }
 
     /**
-     * Resolve which of the three mutually exclusive preview modes was requested.
+     * A brand may only mirror a given catalogue once, so an import that names no explicit
+     * source still has to bind the existing mirror instead of creating a second one.
+     */
+    private async findSourceForCatalogue(
+      brandId: string,
+      scope: FigshareCategoryScope,
+      taxonomyId: string
+    ): Promise<FigshareVocabularySourceAttributes | null> {
+      return await FigshareVocabularySource.findOne({
+        branding: brandId,
+        scope,
+        taxonomyId
+      }) as FigshareVocabularySourceAttributes | null;
+    }
+
+    /**
+     * Likewise, a local vocabulary is crosswalked to a mirror at most once; re-running the
+     * wizard for an existing pairing resynchronises that crosswalk rather than forking it.
+     */
+    private async findCrosswalkForPairing(
+      brandId: string,
+      localVocabularyId: string,
+      sourceId: string
+    ): Promise<FigshareVocabularyCrosswalkAttributes | null> {
+      return await FigshareVocabularyCrosswalk.findOne({
+        branding: brandId,
+        localVocabulary: localVocabularyId,
+        figshareSource: sourceId
+      }) as FigshareVocabularyCrosswalkAttributes | null;
+    }
+
+    /**
+     * Resolve which of the mutually exclusive preview modes was requested.
+     *
+     * Four shapes are accepted: an explicit crosswalk resync, a mirror-only resync
+     * (`sourceId` with no local target), an existing local vocabulary, and a new clone.
      */
     private async resolvePreviewMode(
       input: CreatePreviewInput,
@@ -461,16 +496,25 @@ export namespace Services {
       if (localVocabularyId && createLocalClone) {
         throw new CatalogueInvalidError('Select an existing local vocabulary or create a clone, not both');
       }
-      if (!localVocabularyId && !createLocalClone) {
-        throw new CatalogueInvalidError('Select an existing local vocabulary or request an editable clone');
-      }
       if (createLocalClone && String(input.localCloneName ?? '').trim() === '') {
         throw new CatalogueInvalidError('localCloneName is required when creating an editable clone');
       }
 
-      const source = sourceId ? await this.requireSource(sourceId, brandId) : null;
+      const source = sourceId
+        ? await this.requireSource(sourceId, brandId)
+        : await this.findSourceForCatalogue(brandId, input.scope, String(input.taxonomyId ?? '').trim());
+
+      // Refreshing an existing mirror is a complete request on its own; only a brand new
+      // mirror needs to be told what it should be crosswalked to.
+      if (!localVocabularyId && !createLocalClone && !source) {
+        throw new CatalogueInvalidError('Select an existing local vocabulary or request an editable clone');
+      }
+
       const localVocabulary = localVocabularyId ? await this.requireLocalVocabulary(localVocabularyId, brandId) : null;
-      return { source, crosswalk: null, localVocabulary, createLocalClone };
+      const crosswalk = source && localVocabulary
+        ? await this.findCrosswalkForPairing(brandId, String(localVocabulary.id), String(source.id))
+        : null;
+      return { source, crosswalk, localVocabulary, createLocalClone };
     }
 
     public async createPreview(input: CreatePreviewInput, ctx: ActorContext): Promise<SyncPreview> {
@@ -781,6 +825,7 @@ export namespace Services {
             type: 'tree',
             source: 'external',
             sourceId: `${run.scope}:${run.taxonomyId}`,
+            figshareSourceKey: `${ctx.brandId}:${run.scope}:${run.taxonomyId}`,
             branding: ctx.brandId
           }) as Sails.WaterlinePromise<VocabularyAttributes>,
           connection
@@ -832,8 +877,18 @@ export namespace Services {
 
       if (localVocabularyId) {
         if (!crosswalkId) {
+          // A clone knows its own name up front; an existing local vocabulary has to be
+          // read back so the crosswalk is labelled after it rather than a generic stand-in.
+          let localLabel = String(run.localCloneName ?? '').trim();
+          if (!localLabel) {
+            const localVocabulary = await this.runQuery(
+              Vocabulary.findOne({ id: localVocabularyId }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
+              connection
+            );
+            localLabel = String(localVocabulary?.name ?? '').trim();
+          }
           const crosswalkName = await this.uniqueCrosswalkName(
-            `${String(run.localCloneName ?? '').trim() || 'Crosswalk'} → Figshare taxonomy ${run.taxonomyId}`,
+            `${localLabel || 'Crosswalk'} → Figshare taxonomy ${run.taxonomyId}`,
             ctx.brandId,
             connection
           );

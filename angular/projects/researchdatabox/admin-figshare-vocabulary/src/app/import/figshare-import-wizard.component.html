@@ -43,7 +43,7 @@
       </label>
     </div>
   </fieldset>
-  <div class="mt-3">
+  <div class="mt-3 d-flex flex-wrap gap-2">
     <button type="button" class="btn btn-primary" [disabled]="!canDiscover" (click)="discover()">
       {{ 'figshare-vocab-discover-taxonomies' | i18next }}
     </button>
@@ -79,8 +79,10 @@
             {{ 'figshare-vocab-taxonomy-counts' | i18next: { categories: taxonomy.categoryCount, selectable: taxonomy.selectableCount } }}
           </small>
           @if (taxonomy.missingParentCount > 0) {
-          <small class="d-block figshare-badge figshare-badge--warning">
-            {{ 'figshare-vocab-missing-parents' | i18next: { count: taxonomy.missingParentCount } }}
+          <small class="d-block mt-1">
+            <span class="figshare-badge figshare-badge--warning">
+              {{ 'figshare-vocab-missing-parents' | i18next: { count: taxonomy.missingParentCount } }}
+            </span>
           </small>
           }
         </label>
@@ -89,7 +91,7 @@
     }
   </ul>
   }
-  <div class="mt-3">
+  <div class="mt-3 d-flex flex-wrap gap-2">
     <button type="button" class="btn btn-secondary" (click)="back()">{{ 'figshare-vocab-back' | i18next }}</button>
     <button type="button" class="btn btn-primary" [disabled]="!canAdvanceToTarget" (click)="goToTarget()">
       {{ 'figshare-vocab-next' | i18next }}
@@ -163,7 +165,7 @@
   <p class="text-muted small">{{ 'figshare-vocab-clone-help' | i18next }}</p>
   }
 
-  <div class="mt-3">
+  <div class="mt-3 d-flex flex-wrap gap-2">
     <button type="button" class="btn btn-secondary" (click)="back()">{{ 'figshare-vocab-back' | i18next }}</button>
     <button type="button" class="btn btn-primary" [disabled]="!canGeneratePreview" (click)="generatePreview()">
       {{ generating ? ('figshare-vocab-generating' | i18next) : ('figshare-vocab-generate-preview' | i18next) }}

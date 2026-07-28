@@ -312,7 +312,7 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
         {
             id: 'integrations',
             titleKey: 'menu-integrations',
-            defaultExpanded: false,
+            defaultExpanded: true,
             requiredRoles: ['Admin'],
             items: [
                 {
