@@ -23,6 +23,8 @@ function testAngular() {
     browser="ChromeHeadlessNoSandbox"
   fi
   node_modules/.bin/ng t --browsers="${browser}" "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  node ../support/unit-testing/codecov/prepare-report.cjs \
+    "./projects/researchdatabox/${1}/coverage/coverage-final.json" "angular"
   /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
     --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
     --flag "${2}" --file "./projects/researchdatabox/${1}/coverage/coverage-final.json" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"

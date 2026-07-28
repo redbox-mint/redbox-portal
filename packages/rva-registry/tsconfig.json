@@ -13,6 +13,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "inlineSourceMap": true,
     "outDir": "./dist",
     "declaration": true,
     "types": ["node", "mocha"],

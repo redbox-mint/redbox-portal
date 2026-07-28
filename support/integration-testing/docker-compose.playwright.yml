@@ -44,6 +44,7 @@ x-rbportal-env: &rbportal-env
   - LOAD_DEFAULT_FORMS=true
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - sails_security__csrf=false
+  - RBPORTAL_COVERAGE_DIR=/tmp/coverage/playwright
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -68,6 +69,7 @@ x-rbportal-service: &rbportal-service
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     - '../../package.json:/opt/redbox-portal/package.json:ro'
     - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
+    - '../../coverage/playwright:/tmp/coverage/playwright'
   stop_grace_period: 30m
   healthcheck:
     test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']

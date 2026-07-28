@@ -187,6 +187,7 @@ jobs:
       - run:
           name: Upload Bruno General code coverage
           command: |
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-general/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -240,6 +241,7 @@ jobs:
       - run:
           name: Upload Bruno OIDC code coverage
           command: |
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-oidc/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -293,6 +295,7 @@ jobs:
       - run:
           name: Upload Bruno S3 code coverage
           command: |
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-s3/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-s3" --file "./coverage/bruno-s3/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -328,8 +331,11 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
+          <<: *installCodecov
+      - run:
           name: Setup test directories
           command: |
+            sudo mkdir -p coverage/playwright
             sudo mkdir -p .tmp/junit/backend-playwright
             sudo mkdir -p .tmp/playwright
             sudo mkdir -p .tmp/attachments/staging
@@ -341,6 +347,14 @@ jobs:
       - run:
           name: Clean up Playwright containers
           command: npm run test:playwright:clean || true
+          when: always
+      - run:
+          name: Upload Playwright code coverage
+          command: |
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/playwright/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-playwright" --file "./coverage/playwright/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
       - store_test_results:
           path: .tmp/junit
@@ -393,6 +407,7 @@ jobs:
       - run:
           name: Upload Mocha code coverage
           command: |
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -474,6 +489,8 @@ jobs:
           name: Upload Mocha code coverage
           command: |
             cd ./packages/sails-ng-common
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/sails-ng-common/lcov.info" "packages/sails-ng-common"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-sails-ng-common" --file "./coverage/sails-ng-common/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -511,6 +528,8 @@ jobs:
           name: Upload redbox-core code coverage
           command: |
             cd ./packages/redbox-core
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/redbox-core/lcov.info" "packages/redbox-core"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-core" --file "./coverage/redbox-core/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -534,10 +553,59 @@ jobs:
             cd ./packages/agenda-sqs-backend
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
-          name: Run agenda SQS backend tests
+          <<: *installCodecov
+      - run:
+          name: Run agenda SQS backend tests with coverage
           command: |
             cd ./packages/agenda-sqs-backend
-            npm test
+            npm run test:coverage
+      - run:
+          name: Upload agenda SQS backend code coverage
+          command: |
+            cd ./packages/agenda-sqs-backend
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/agenda-sqs-backend/lcov.info" "packages/agenda-sqs-backend"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-agenda-sqs" --file "./coverage/agenda-sqs-backend/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+  test-rva-registry:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          <<: *installCodecov
+      - run:
+          name: Install RVA registry dependencies
+          command: |
+            cd ./packages/rva-registry
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run RVA registry integration tests with coverage
+          command: |
+            cd ./packages/rva-registry
+            npm run test:coverage
+      - run:
+          name: Upload RVA registry code coverage
+          command: |
+            cd ./packages/rva-registry
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/rva-registry/lcov.info" "packages/rva-registry"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-rva-registry" --file "./coverage/rva-registry/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -589,6 +657,8 @@ jobs:
           name: Upload redbox-dev-tools CLI code coverage
           command: |
             cd ./packages/redbox-dev-tools
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/redbox-dev-tools/lcov.info" "packages/redbox-dev-tools"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-dev-tools-cli" --file "./coverage/redbox-dev-tools/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -633,6 +703,8 @@ jobs:
           name: Upload storage-mongo code coverage
           command: |
             cd ./packages/sails-hook-redbox-storage-mongo
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/storage-mongo/lcov.info" "packages/sails-hook-redbox-storage-mongo"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-storage-mongo" --file "./coverage/storage-mongo/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
@@ -1024,12 +1096,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1045,6 +1122,9 @@ workflows:
           requires:
             - build
       - test-agenda-sqs-backend:
+          requires:
+            - build
+      - test-rva-registry:
           requires:
             - build
       - test-redbox-dev-tools-cli:
@@ -1183,12 +1263,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1201,6 +1286,9 @@ workflows:
           requires:
             - build
       - test-agenda-sqs-backend:
+          requires:
+            - build
+      - test-rva-registry:
           requires:
             - build
       - test-redbox-dev-tools-cli:
@@ -1310,12 +1398,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1343,6 +1436,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-agenda-sqs-backend:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-rva-registry:
           requires:
             - build
           filters:
