@@ -1,0 +1,75 @@
+<div class="figshare-panel">
+  <div class="d-flex flex-wrap justify-content-between align-items-end mb-3">
+    <div>
+      <label class="form-label" for="figshare-source-scope-filter">{{
+        'figshare-vocab-scope-filter-label' | i18next
+      }}</label>
+      <select
+        id="figshare-source-scope-filter"
+        class="form-select"
+        [value]="scopeFilter"
+        (change)="onScopeFilter($any($event.target).value)"
+      >
+        <option value="">{{ 'figshare-vocab-scope-all' | i18next }}</option>
+        <option value="public">{{ 'figshare-vocab-scope-public' | i18next }}</option>
+        <option value="account">{{ 'figshare-vocab-scope-account' | i18next }}</option>
+      </select>
+    </div>
+    <p class="mb-0 text-muted">{{ 'figshare-vocab-source-count' | i18next: { count: total } }}</p>
+  </div>
+
+  @if (loading) {
+  <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+  } @else if (sources.length === 0) {
+  <p class="text-muted mb-0">{{ 'figshare-vocab-no-sources' | i18next }}</p>
+  } @else {
+  <table class="table table-sm align-middle mb-0">
+    <caption class="visually-hidden">{{ 'figshare-vocab-source-table-caption' | i18next }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ 'figshare-vocab-source-column-source' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-source-column-scope' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-source-column-last-sync' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-source-column-status' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (source of sources; track source.id) {
+      <tr>
+        <th scope="row" class="fw-normal">
+          <span class="d-block">{{ source.displayName }}</span>
+          <small class="text-muted">{{
+            'figshare-vocab-source-terms' | i18next: { count: source.mirroredCount }
+          }}</small>
+        </th>
+        <td>{{ source.scope }}</td>
+        <td>{{ source.lastSyncedAt || ('figshare-vocab-never-synced' | i18next) }}</td>
+        <td>
+          @if (source.historicalCount > 0) {
+          <span class="figshare-badge figshare-badge--historical">{{
+            'figshare-vocab-historical-count' | i18next: { count: source.historicalCount }
+          }}</span>
+          } @else {
+          <span class="figshare-badge">{{ 'figshare-vocab-status-current' | i18next }}</span>
+          }
+        </td>
+        <td>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" (click)="resyncRequested.emit(source)">
+              {{ 'figshare-vocab-action-resync' | i18next }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="cloneRequested.emit(source)">
+              {{ 'figshare-vocab-action-clone' | i18next }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="historyRequested.emit(source)">
+              {{ 'figshare-vocab-action-history' | i18next }}
+            </button>
+          </div>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  }
+</div>

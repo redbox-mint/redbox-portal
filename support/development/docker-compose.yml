@@ -9,7 +9,7 @@ x-rbportal-env: &rbportal-env
   sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
   # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
   sails_angularDev: 'true'
-  sails_appUrl: http://localhost:1500
+  sails_appUrl: '${sails_appUrl:-http://localhost:1500}'
   # Flag to enable the new form framework app, currently enabled in the "edit" mode
   sails_enableNewForm: 'true'
   sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca

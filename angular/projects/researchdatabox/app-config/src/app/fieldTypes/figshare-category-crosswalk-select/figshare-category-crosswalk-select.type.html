@@ -1,0 +1,57 @@
+<div class="mb-3">
+  <label class="form-label" [attr.for]="'figshare-crosswalk-' + field.key">Approved Figshare crosswalk</label>
+  @if (loading) {
+  <p class="text-muted mb-0" role="status">Loading approved crosswalks…</p>
+  } @else if (loadError) {
+  <p class="text-danger mb-0" role="alert">{{ loadError }}</p>
+  } @else {
+  <select
+    class="form-select"
+    [id]="'figshare-crosswalk-' + field.key"
+    [value]="selectedId"
+    [attr.aria-describedby]="'figshare-crosswalk-help-' + field.key"
+    (change)="onSelect($any($event.target).value)"
+  >
+    <option value="">— None selected —</option>
+    @for (crosswalk of crosswalkOptions; track crosswalk.id) {
+    <option [value]="crosswalk.id">{{ crosswalk.name }}</option>
+    }
+  </select>
+
+  @if (crosswalkOptions.length === 0) {
+  <p class="text-muted mt-2 mb-0">
+    No approved crosswalks are available for the selected source vocabulary.
+  </p>
+  }
+
+  @if (selected) {
+  <dl class="row mt-3 mb-0 small">
+    <dt class="col-sm-5">Local vocabulary</dt>
+    <dd class="col-sm-7">{{ selected.localVocabularyName }}</dd>
+    <dt class="col-sm-5">Figshare source</dt>
+    <dd class="col-sm-7">{{ selected.figshareSourceName }} ({{ selected.scope }} · taxonomy {{ selected.taxonomyId }})</dd>
+    <dt class="col-sm-5">Approved revision</dt>
+    <dd class="col-sm-7">{{ selected.approvedRevision ?? '—' }}<span *ngIf="selected.approvedAt"> · {{ selected.approvedAt }}</span></dd>
+    <dt class="col-sm-5">Mappings</dt>
+    <dd class="col-sm-7">{{ selected.approvedMappingCount }}</dd>
+    <dt class="col-sm-5">Historical targets</dt>
+    <dd class="col-sm-7">{{ selected.historicalTargetCount }}</dd>
+  </dl>
+  }
+
+  @if (validationMessage) {
+  <p class="text-danger mt-2 mb-0" role="alert">{{ validationMessage }}</p>
+  }
+
+  <div class="form-text" [id]="'figshare-crosswalk-help-' + field.key">
+    Stored as <code>categories.crosswalkId</code>. Publishing always reads the approved revision.
+    @if (!crosswalkModeActive) {
+    <span class="fst-italic">Preserved but inactive while the legacy mapping table is selected.</span>
+    }
+  </div>
+
+  @if (adminUrl) {
+  <a class="btn btn-sm btn-outline-secondary mt-2" [href]="adminUrl">Open Figshare crosswalk ↗</a>
+  }
+  }
+</div>

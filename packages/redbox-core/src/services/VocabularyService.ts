@@ -7,9 +7,9 @@ import { toBoolean } from "@researchdatabox/sails-ng-common";
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
-  type VocabSource = 'local' | 'rva';
+  type VocabSource = 'local' | 'rva' | 'external';
   const VALID_TYPES = new Set<VocabType>(['flat', 'tree']);
-  const VALID_SOURCES = new Set<VocabSource>(['local', 'rva']);
+  const VALID_SOURCES = new Set<VocabSource>(['local', 'rva', 'external']);
   const RVA_IMPORTS_FILE = 'rva-imports.json';
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
@@ -87,6 +87,16 @@ export namespace Services {
     };
   }
 
+  export class ExternallyManagedVocabularyError extends Error {
+    public readonly code: 'externally-managed-vocabulary';
+
+    constructor(message = 'Vocabulary is managed by an external integration and is read-only here') {
+      super(message);
+      this.name = 'ExternallyManagedVocabularyError';
+      this.code = 'externally-managed-vocabulary';
+    }
+  }
+
   export class InvalidParentIdError extends Error {
     public readonly code: 'invalid-parent-id';
 
@@ -152,8 +162,31 @@ export namespace Services {
       'getTree',
       'normalizeEntry',
       'validateParent',
-      'upsertEntries'
+      'upsertEntries',
+      'assertMutableVocabulary'
     ];
+
+    /**
+     * Externally managed mirrors (a `source=external` vocabulary owned by a Figshare
+     * source) are only mutable through FigshareVocabularyService.applyPreview. Local
+     * clones created from a mirror are ordinary local vocabularies and stay editable.
+     */
+    public async assertMutableVocabulary(vocabularyId: string): Promise<void> {
+      const id = String(vocabularyId ?? '').trim();
+      if (!id) {
+        return;
+      }
+      const vocabulary = await Vocabulary.findOne({ id }) as VocabularyAttributes | null;
+      if (!vocabulary || vocabulary.source !== 'external') {
+        return;
+      }
+      const managedSource = await FigshareVocabularySource.findOne({ vocabulary: id });
+      if (managedSource) {
+        throw new ExternallyManagedVocabularyError(
+          `Vocabulary '${vocabulary.name}' mirrors a Figshare catalogue and can only be changed through the Figshare vocabulary administration screen`
+        );
+      }
+    }
 
     private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
       if (connection) {
@@ -708,6 +741,7 @@ export namespace Services {
       if (!existing) {
         throw new Error('Vocabulary not found');
       }
+      await this.assertMutableVocabulary(id);
 
       const updatePayload: Partial<VocabularyInput> = { ...input };
       const entries = updatePayload.entries;
@@ -763,6 +797,7 @@ export namespace Services {
       if (!Array.isArray(entryOrders) || entryOrders.length === 0) {
         return 0;
       }
+      await this.assertMutableVocabulary(vocabularyId);
 
       return runWithOptionalTransaction(
         this.getDatastore(),
@@ -810,6 +845,7 @@ export namespace Services {
     }
 
     public async delete(id: string): Promise<void> {
+      await this.assertMutableVocabulary(id);
       await VocabularyEntry.destroy({ vocabulary: id });
       await Vocabulary.destroyOne({ id });
     }
@@ -881,6 +917,7 @@ export namespace Services {
     }
 
     public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<{ created: number; updated: number; skipped: number }> {
+      await this.assertMutableVocabulary(vocabularyId);
       let created = 0;
       let updated = 0;
       let skipped = 0;

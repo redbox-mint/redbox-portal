@@ -136,6 +136,12 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
   return value;
 }
 
+/**
+ * How record category codes become numeric Figshare category IDs. A missing value
+ * means `mappingTable` so no existing AppConfig changes behaviour.
+ */
+export type FigshareCategoryResolutionMode = 'mappingTable' | 'crosswalk';
+
 export interface FigsharePublishingConfigData {
   enabled: boolean;
   connection: FigshareConnectionConfig;
@@ -189,6 +195,12 @@ export interface FigsharePublishingConfigData {
   };
   categories: {
     strategy: 'for2020Mapping';
+    /** Missing means `mappingTable`, so existing configurations are behaviourally unchanged. */
+    resolutionMode?: FigshareCategoryResolutionMode;
+    /** Required in crosswalk mode: the local vocabulary record codes are resolved against. */
+    sourceVocabularyId?: string;
+    /** Required in crosswalk mode: publishing reads only its approved revision. */
+    crosswalkId?: string;
     mappingTable: Array<{ sourceCode: string; figshareCategoryId: number }>;
     allowUnmapped: boolean;
   };
@@ -347,6 +359,9 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
 
   categories = {
     strategy: 'for2020Mapping' as const,
+    resolutionMode: 'mappingTable' as FigshareCategoryResolutionMode,
+    sourceVocabularyId: '',
+    crosswalkId: '',
     mappingTable: [] as Array<{ sourceCode: string; figshareCategoryId: number }>,
     allowUnmapped: false,
   };
@@ -431,6 +446,22 @@ const CATEGORY_MAPPING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
       type: 'figshare-category-mapping-editor',
+    },
+  },
+};
+
+const FIGSHARE_CROSSWALK_SELECT_WIDGET = {
+  widget: {
+    formlyConfig: {
+      type: 'figshare-category-crosswalk-select',
+    },
+  },
+};
+
+const FIGSHARE_SOURCE_VOCABULARY_SELECT_WIDGET = {
+  widget: {
+    formlyConfig: {
+      type: 'figshare-source-vocabulary-select',
     },
   },
 };
@@ -735,6 +766,26 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           title: 'Strategy',
           enum: ['for2020Mapping'],
           default: 'for2020Mapping',
+        },
+        resolutionMode: {
+          type: 'string',
+          title: 'Resolution Mode',
+          description:
+            'Choose how record category codes resolve to Figshare category IDs. Crosswalk mode reads only the approved revision of the selected crosswalk; legacy mode uses the mapping table below.',
+          enum: ['mappingTable', 'crosswalk'],
+          default: 'mappingTable',
+        },
+        sourceVocabularyId: {
+          type: 'string',
+          title: 'Source Vocabulary',
+          description: 'Required in crosswalk mode. Record codes are resolved against entries of exactly this vocabulary.',
+          ...FIGSHARE_SOURCE_VOCABULARY_SELECT_WIDGET,
+        },
+        crosswalkId: {
+          type: 'string',
+          title: 'Approved Figshare Crosswalk',
+          description: 'Required in crosswalk mode. Only approved, same-brand crosswalks whose local side matches the source vocabulary are offered.',
+          ...FIGSHARE_CROSSWALK_SELECT_WIDGET,
         },
         mappingTable: {
           type: 'array',

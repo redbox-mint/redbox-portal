@@ -3,7 +3,7 @@ import { ListAPIResponse, ListAPISummary } from '../model';
 import { Services as VocabularyServiceModule } from '../services/VocabularyService';
 
 const VALID_VOCAB_TYPES = new Set(['flat', 'tree']);
-const VALID_VOCAB_SOURCES = new Set(['local', 'rva']);
+const VALID_VOCAB_SOURCES = new Set(['local', 'rva', 'external']);
 
 export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {

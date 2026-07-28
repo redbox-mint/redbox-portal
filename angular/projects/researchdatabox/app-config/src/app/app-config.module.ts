@@ -16,11 +16,14 @@ import { AdminSidebarEditorTypeComponent } from './fieldTypes/admin-sidebar-edit
 import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
 import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
+import { FigshareCrosswalkSelectTypeComponent } from './fieldTypes/figshare-category-crosswalk-select';
+import { FigshareSourceVocabularySelectTypeComponent } from './fieldTypes/figshare-source-vocabulary-select';
 import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
+import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.service';
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent, FigshareCrosswalkSelectTypeComponent, FigshareSourceVocabularySelectTypeComponent
   ],
   imports: [
     BrowserModule,
@@ -38,12 +41,15 @@ import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
       { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
       { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
       { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
-      { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
+      { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent },
+      { name: 'figshare-category-crosswalk-select', component: FigshareCrosswalkSelectTypeComponent },
+      { name: 'figshare-source-vocabulary-select', component: FigshareSourceVocabularySelectTypeComponent }
     ],
   }),
     FormlyBootstrapModule
   ],
   providers: [
+    FigshareCrosswalkApiService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),

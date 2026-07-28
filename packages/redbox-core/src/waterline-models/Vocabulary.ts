@@ -13,7 +13,7 @@ import type { BrandingConfigAttributes } from './BrandingConfig';
 import type { VocabularyEntryAttributes } from './VocabularyEntry';
 
 const VALID_TYPES = new Set(['flat', 'tree']);
-const VALID_SOURCES = new Set(['local', 'rva']);
+const VALID_SOURCES = new Set(['local', 'rva', 'external']);
 
 const slugify = (value: string): string => value
   .toLowerCase()
@@ -177,7 +177,7 @@ export interface VocabularyAttributes extends Sails.WaterlineAttributes {
   owner?: string;
   rvaSourceKey?: string | null;
   slug: string;
-  source?: 'local' | 'rva' | string;
+  source?: 'local' | 'rva' | 'external' | string;
   sourceId?: string;
   sourceVersionId?: string;
   type?: 'flat' | 'tree' | string;

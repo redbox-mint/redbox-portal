@@ -23,6 +23,11 @@ export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldT
     return this.mappingRows;
   }
 
+  /** Legacy rows are never mutated by crosswalk mode; they are only labelled inactive. */
+  get crosswalkModeActive(): boolean {
+    return (this.model as Record<string, unknown> | undefined)?.['resolutionMode'] === 'crosswalk';
+  }
+
   addRow(): void {
     this.mappingRows = [...this.rows, { sourceCode: '', figshareCategoryId: null }];
     this.syncRows(this.mappingRows, true);

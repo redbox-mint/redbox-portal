@@ -125,6 +125,85 @@ function normalizeCategorySourceCode(value: unknown): string {
   return delimiterIndex === -1 ? withoutQuery : withoutQuery.slice(delimiterIndex + 1);
 }
 
+function resolveBrandId(record: RecordModel): string {
+  const rawBrand = String(record?.metaMetadata?.brandId ?? (record as Record<string, unknown>)?.branding ?? '').trim();
+  if (rawBrand === '') {
+    return '';
+  }
+  const brandingService = typeof BrandingService === 'undefined' ? undefined : BrandingService;
+  if (brandingService?.getBrandById?.(rawBrand)?.id != null) {
+    return rawBrand;
+  }
+  const byName = brandingService?.getBrand?.(rawBrand);
+  return byName?.id == null ? rawBrand : String(byName.id);
+}
+
+/**
+ * Resolve record category codes into numeric Figshare category IDs.
+ *
+ * A missing `resolutionMode` means the legacy mapping table, so every existing
+ * AppConfig keeps its current behaviour. Crosswalk mode validates its configuration
+ * and then fails closed: an invalid crosswalk never silently falls back to the
+ * preserved legacy rows.
+ */
+async function resolveFigshareCategoryIds(
+  config: FigsharePublishingConfigData,
+  record: RecordModel,
+  sourceCodes: string[]
+): Promise<number[]> {
+  const resolutionMode = config.categories.resolutionMode ?? 'mappingTable';
+  if (resolutionMode !== 'crosswalk') {
+    return sourceCodes
+      .map((sourceCode: string) =>
+        config.categories.mappingTable.find((entry) => entry.sourceCode === sourceCode)?.figshareCategoryId
+      )
+      .filter((value): value is number => value != null);
+  }
+
+  const crosswalkId = String(config.categories.crosswalkId ?? '').trim();
+  const sourceVocabularyId = String(config.categories.sourceVocabularyId ?? '').trim();
+  if (crosswalkId === '' || sourceVocabularyId === '') {
+    throw validationError(
+      'Figshare crosswalk category resolution requires both a source vocabulary and an approved crosswalk'
+    );
+  }
+
+  const brandId = resolveBrandId(record);
+  if (brandId === '') {
+    throw validationError('Unable to resolve the brand for Figshare crosswalk category resolution');
+  }
+
+  let resolution: {
+    categoryIds: number[];
+    unresolvedCodes: string[];
+    historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
+  };
+  try {
+    resolution = await FigshareVocabularyService.resolveCategories({
+      brandId,
+      crosswalkId,
+      sourceVocabularyId,
+      codes: sourceCodes,
+    });
+  } catch (error) {
+    throw validationError(
+      `Figshare crosswalk category resolution failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  if (resolution.historicalTargets.length > 0) {
+    const detail = resolution.historicalTargets
+      .map((target) => `${target.code} → ${target.sourceId} (${target.categoryId})`)
+      .join(', ');
+    if (!config.categories.allowUnmapped) {
+      throw validationError(`Figshare crosswalk maps to categories removed upstream: ${detail}`);
+    }
+    sails.log.warn(`Figshare crosswalk omitted historical category targets: ${detail}`);
+  }
+
+  return resolution.categoryIds;
+}
+
 function toRelatedMaterialItems(value: unknown): unknown[] {
   if (value == null || value === '') {
     return [];
@@ -263,11 +342,7 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
         : item
     )
   );
-  const mappedCategories = sourceCodes
-    .map((sourceCode: string) =>
-      config.categories.mappingTable.find((entry) => entry.sourceCode === sourceCode)?.figshareCategoryId
-    )
-    .filter((value): value is number => value != null);
+  const mappedCategories = await resolveFigshareCategoryIds(config, record, sourceCodes);
   payload.categories = mappedCategories;
 
   if (!config.categories.allowUnmapped && sourceCodes.length > 0 && mappedCategories.length === 0) {

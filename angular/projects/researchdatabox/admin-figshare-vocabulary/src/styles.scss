@@ -1,0 +1,45 @@
+:root {
+  --figshare-border: #d4dfdd;
+  --figshare-bg: #eef3f1;
+  --figshare-accent: #146b7f;
+  --figshare-warning: #8a5b00;
+  --figshare-danger: #8d1f2d;
+}
+
+.figshare-panel {
+  border: 1px solid var(--figshare-border);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.figshare-stat {
+  border: 1px solid var(--figshare-border);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  background: var(--figshare-bg);
+  min-width: 8rem;
+}
+
+.figshare-stat__value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.figshare-badge {
+  display: inline-block;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+}
+
+.figshare-badge--historical {
+  color: var(--figshare-danger);
+}
+
+.figshare-badge--warning {
+  color: var(--figshare-warning);
+}

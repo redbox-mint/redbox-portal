@@ -1,0 +1,159 @@
+@if (isReady) {
+<div class="container-fluid py-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
+    <div>
+      <h1 class="h4 mb-1">{{ 'figshare-vocab-title' | i18next }}</h1>
+      <p class="text-muted mb-0">{{ 'figshare-vocab-subtitle' | i18next }}</p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="startImport()">
+      {{ 'figshare-vocab-add-source' | i18next }}
+    </button>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ totalSources }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-stat-sources' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ approvedCrosswalkCount }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-stat-approved-crosswalks' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ syncWarningCount }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-stat-sync-warnings' | i18next }}</span>
+    </div>
+  </div>
+
+  @if (message) {
+  <div class="alert alert-success" role="status">{{ message }}</div>
+  }
+  @if (error) {
+  <div class="alert alert-danger" role="alert">{{ error }}</div>
+  }
+
+  @if (view === 'sources' || view === 'crosswalks' || view === 'history') {
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="view === 'sources'" role="tab"
+        [attr.aria-selected]="view === 'sources'" (click)="showTab('sources')">
+        {{ 'figshare-vocab-tab-sources' | i18next }}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="view === 'crosswalks'" role="tab"
+        [attr.aria-selected]="view === 'crosswalks'" (click)="showTab('crosswalks')">
+        {{ 'figshare-vocab-tab-crosswalks' | i18next }}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button type="button" class="nav-link" [class.active]="view === 'history'" role="tab"
+        [attr.aria-selected]="view === 'history'" (click)="showTab('history')">
+        {{ 'figshare-vocab-tab-history' | i18next }}
+      </button>
+    </li>
+  </ul>
+  }
+
+  @switch (view) {
+  @case ('sources') {
+  <figshare-source-list
+    [sources]="sources"
+    [total]="sourceTotal"
+    [scopeFilter]="scopeFilter"
+    [loading]="sourcesLoading"
+    (scopeFilterChanged)="onScopeFilterChanged($event)"
+    (resyncRequested)="resyncSource($event)"
+    (cloneRequested)="cloneSource($event)"
+    (historyRequested)="showHistoryFor($event)"
+  ></figshare-source-list>
+  }
+  @case ('crosswalks') {
+  <figshare-crosswalk-list
+    [crosswalks]="crosswalks"
+    [total]="crosswalkTotal"
+    [statusFilter]="crosswalkStatusFilter"
+    [loading]="crosswalksLoading"
+    (statusFilterChanged)="onCrosswalkStatusFilterChanged($event)"
+    (editRequested)="openCrosswalk($event)"
+    (deleteRequested)="deleteCrosswalk($event)"
+  ></figshare-crosswalk-list>
+  }
+  @case ('history') {
+  <div class="figshare-panel">
+    @if (historyLoading) {
+    <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+    } @else if (syncRuns.length === 0) {
+    <p class="text-muted mb-0">{{ 'figshare-vocab-no-history' | i18next }}</p>
+    } @else {
+    <table class="table table-sm align-middle mb-0">
+      <caption class="visually-hidden">{{ 'figshare-vocab-history-table-caption' | i18next }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{{ 'figshare-vocab-column-state' | i18next }}</th>
+          <th scope="col">{{ 'figshare-vocab-column-scope' | i18next }}</th>
+          <th scope="col">{{ 'figshare-vocab-column-requested-by' | i18next }}</th>
+          <th scope="col">{{ 'figshare-vocab-column-applied' | i18next }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (run of syncRuns; track run.id) {
+        <tr>
+          <td><span class="figshare-badge">{{ run.state }}</span></td>
+          <td>{{ run.scope }} · {{ run.taxonomyId }}</td>
+          <td>{{ run.requestedBy }}</td>
+          <td>{{ run.appliedAt || '—' }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    }
+  </div>
+  }
+  @case ('import') {
+  <figshare-import-wizard
+    [taxonomies]="taxonomies"
+    [localVocabularies]="localVocabularies"
+    [discovering]="discovering"
+    [generating]="generating"
+    [errorMessage]="wizardError"
+    (discoverRequested)="discoverTaxonomies($event)"
+    (previewRequested)="generatePreview($event)"
+    (cancelled)="cancelImport()"
+  ></figshare-import-wizard>
+  }
+  @case ('preview') {
+  <figshare-sync-preview
+    [preview]="preview"
+    [loading]="previewLoading"
+    [applying]="applying"
+    [errorMessage]="previewError"
+    [filters]="previewFilters"
+    [approvedProposalIds]="approvedProposalIds"
+    (filtersChanged)="onPreviewFiltersChanged($event)"
+    (proposalToggled)="onProposalToggled($event)"
+    (applyRequested)="applyPreview()"
+    (cancelled)="cancelPreview()"
+  ></figshare-sync-preview>
+  }
+  @case ('crosswalk-editor') {
+  <figshare-crosswalk-editor
+    [crosswalk]="activeCrosswalk"
+    [mappings]="mappings"
+    [total]="mappingTotal"
+    [pageSize]="mappingPageSize"
+    [search]="mappingSearch"
+    [usage]="crosswalkUsage"
+    [loading]="mappingsLoading"
+    [saving]="crosswalkSaving"
+    [errorMessage]="crosswalkError"
+    [statusMessage]="crosswalkMessage"
+    (searchChanged)="onMappingSearchChanged($event)"
+    (mappingRemoved)="onMappingRemoved($event)"
+    (approveRequested)="approveCrosswalk($event)"
+    (closed)="closeCrosswalkEditor()"
+  ></figshare-crosswalk-editor>
+  }
+  }
+</div>
+}

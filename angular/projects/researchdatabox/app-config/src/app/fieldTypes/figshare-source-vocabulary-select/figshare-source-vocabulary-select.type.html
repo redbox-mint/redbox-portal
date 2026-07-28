@@ -1,0 +1,28 @@
+<div class="mb-3">
+  <label class="form-label" [attr.for]="'figshare-source-vocabulary-' + field.key">Source vocabulary</label>
+  @if (loading) {
+  <p class="text-muted mb-0" role="status">Loading local vocabularies…</p>
+  } @else if (loadError) {
+  <p class="text-danger mb-0" role="alert">{{ loadError }}</p>
+  } @else {
+  <select
+    class="form-select"
+    [id]="'figshare-source-vocabulary-' + field.key"
+    [value]="selectedId"
+    [attr.aria-describedby]="'figshare-source-vocabulary-help-' + field.key"
+    (change)="onSelect($any($event.target).value)"
+  >
+    <option value="">— None selected —</option>
+    @for (vocabulary of vocabularies; track vocabulary.id) {
+    <option [value]="vocabulary.id">{{ vocabulary.name }} ({{ vocabulary.source }})</option>
+    }
+  </select>
+  <div class="form-text" [id]="'figshare-source-vocabulary-help-' + field.key">
+    Stored as <code>categories.sourceVocabularyId</code>. Record codes are resolved against entries of exactly this
+    vocabulary.
+    @if (!crosswalkModeActive) {
+    <span class="fst-italic">Preserved but inactive while the legacy mapping table is selected.</span>
+    }
+  </div>
+  }
+</div>
