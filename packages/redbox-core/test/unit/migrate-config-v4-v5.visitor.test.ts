@@ -122,7 +122,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
   });
 
   it('adds save status immediately before the validation summary', async function () {
-    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
         name: 'legacy-status-summary-migration',
@@ -148,7 +148,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
   it('omits sparse legacy field entries while migrating nested retriever subscriptions', async function () {
     const warnings: string[] = [];
     const testLogger = {
-      ...logger,
+      ...testingLogger,
       warn: (message: unknown) => warnings.push(String(message ?? '')),
     };
     const visitor = new MigrationV4ToV5FormConfigVisitor(testLogger);
@@ -278,7 +278,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
   });
 
   it('migrates legacy selection options to arrays for dropdown and checkbox inputs', async function () {
-    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
         name: 'legacy-selection-options',
@@ -1529,7 +1529,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
   });
 
   it('promotes legacy TextBlock heading help into layout label config', async function () {
-    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
         name: 'text-block-heading-help',

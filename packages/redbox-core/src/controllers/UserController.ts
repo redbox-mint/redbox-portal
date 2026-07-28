@@ -24,6 +24,7 @@ import {
   Controllers as controllers,
   RequestDetails,
 } from '../index';
+import { redactObject } from "../utilities/RedactionUtils";
 
 type AnyRecord = globalThis.Record<string, unknown>;
 
@@ -472,8 +473,8 @@ export namespace Controllers {
     }
 
     private decodeErrorMappings(options: unknown, errorMessage: string) {
-      // sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
-      // sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(redactObject(options)));
+      sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
+      sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(redactObject(options)));
       let errorMessageDecoded: unknown = 'oidc-default-unknown-error';
       const errorMappingList = _.get(options, 'errorMappings', []);
 
@@ -481,7 +482,7 @@ export namespace Controllers {
 
       if (!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
 
-        // sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
+        sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
         for (const errorMappingDetails of errorMappingList) {
 
           let matchRegex = false;
@@ -504,7 +505,7 @@ export namespace Controllers {
           }
 
           if (matchRegex) {
-            // sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
+            sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
             if (this.validateRegex(errorMessage, regexPattern)) {
               if (asObject) {
                 errorMessageDecodedAsObject = {
@@ -515,8 +516,8 @@ export namespace Controllers {
               } else if (matchRegexWithGroups && _.isRegExp(regexPattern)) {
                 const matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
                 if (!_.isEmpty(matchRegexGroupsDecoded)) {
-                  // sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
-                  // sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
+                  sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
+                  sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
                   errorMessageDecodedAsObject = {
                     message: fieldLanguageCode,
                     detailedMessage: fieldLanguageCode2,

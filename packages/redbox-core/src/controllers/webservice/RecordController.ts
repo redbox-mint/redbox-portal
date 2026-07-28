@@ -635,6 +635,7 @@ export namespace Controllers {
                 } else {
                   return this.sendResp(req, res, {
                     status: 500,
+                    errors: [new Error(`oid: ${response.oid} message: ${response.message}`)],
                     displayErrors: [{ detail: 'Create Record failed' }],
                   });
                 }

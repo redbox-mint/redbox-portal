@@ -798,7 +798,7 @@ describe("Construct Visitor", async () => {
         });
 
         it("should retain hidden simple input in view mode", async function () {
-          const visitor = new ConstructFormConfigVisitor(logger);
+          const visitor = new ConstructFormConfigVisitor(consoleLogger);
           const actual = await visitor.start({
             formMode: "view",
             data: {
@@ -851,7 +851,7 @@ describe("Construct Visitor", async () => {
         });
 
         it("should remove overrides when removeOverrides is true", async function () {
-          const visitor = new ConstructFormConfigVisitor(logger);
+          const visitor = new ConstructFormConfigVisitor(consoleLogger);
           const actual = await visitor.start({
             formMode: "view",
             removeOverrides: true,
