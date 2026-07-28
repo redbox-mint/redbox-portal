@@ -7,10 +7,12 @@
     "dist"
   ],
   "scripts": {
-    "test": "npm run test:integration",
-    "pretest:integration": "npm run build",
-    "test:integration": "mocha -r ts-node/register test/integration/**/*.spec.ts",
-    "test:coverage": "npm run build && nyc --all --include 'dist/**/*.js' --report-dir coverage/rva-registry --reporter=lcov --reporter=text --exclude-after-remap=false mocha -r ts-node/register test/integration/**/*.spec.ts",
+    "test": "npm run test:unit",
+    "pretest:unit": "npm run build",
+    "test:unit": "mocha -r ts-node/register test/unit/**/*.spec.ts",
+    "pretest:live": "npm run build",
+    "test:live": "mocha -r ts-node/register test/live/**/*.spec.ts",
+    "test:coverage": "npm run build && nyc --all --include 'dist/**/*.js' --report-dir coverage/rva-registry --reporter=lcov --reporter=text --exclude-after-remap=false mocha -r ts-node/register test/unit/**/*.spec.ts",
     "pregenerate": "npm install @openapitools/openapi-generator-cli -g",
     "generate": "openapi-generator-cli generate -i ../../rva-swagger.json -g typescript-axios -o ./src",
     "build": "tsc"

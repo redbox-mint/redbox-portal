@@ -605,7 +605,7 @@ jobs:
             cd ./packages/rva-registry
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
-          name: Run RVA registry integration tests with coverage
+          name: Run deterministic RVA registry client tests with coverage
           command: |
             cd ./packages/rva-registry
             npm run test:coverage
