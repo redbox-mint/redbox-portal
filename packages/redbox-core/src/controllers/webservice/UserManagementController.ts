@@ -141,9 +141,6 @@ export namespace Controllers {
       if (hasBrandRole) {
         return user;
       }
-      if (roles.length === 0) {
-        return user;
-      }
       const isLinked = typeof UserLink !== 'undefined'
         ? await UserLink.findOne({
             brandId: brandId,
@@ -155,6 +152,9 @@ export namespace Controllers {
           } as any)
         : null;
       if (isLinked) {
+        return user;
+      }
+      if (roles.length === 0) {
         return user;
       }
       return null;
