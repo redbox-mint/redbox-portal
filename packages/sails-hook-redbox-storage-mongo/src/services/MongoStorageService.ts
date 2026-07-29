@@ -36,6 +36,22 @@ import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdat
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
 
+const CSV_DANGEROUS_PREFIX = /^[=+\-@\t\r\n]/;
+function sanitizeCsvCell(value: unknown): unknown {
+  if (typeof value === 'string' && CSV_DANGEROUS_PREFIX.test(value)) {
+    return "'" + value;
+  }
+  return value;
+}
+
+function sanitizeCsvRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+  for (const key of Object.keys(record)) {
+    sanitized[key] = sanitizeCsvCell(record[key]);
+  }
+  return sanitized;
+}
+
 declare const sails: Sails.Application;
 declare const _: typeof import('lodash');
 type JsonMap = Record<string, unknown>;
@@ -957,8 +973,14 @@ export namespace Services {
             }
             // Populated CSVs retain a UTF-8 BOM so spreadsheet apps detect their encoding correctly.
             passThrough.write(UTF8_BOM);
+            const sanitize = new stream.Transform({
+              objectMode: true,
+              transform(record: Record<string, unknown>, _encoding, callback) {
+                callback(null, sanitizeCsvRecord(record));
+              }
+            });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
-            await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), json2csv, passThrough);
+            await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), sanitize, json2csv, passThrough);
           } catch (err) {
             sails.log.error(`${this.logHeader} Failed to export records as CSV:`);
             sails.log.error(err);

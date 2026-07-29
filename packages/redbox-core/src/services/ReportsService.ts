@@ -571,7 +571,13 @@ export namespace Services {
       const dataRows: string[][] = [];
 
       for (const row of data) {
-        dataRows.push(this.getDataRow(row, report.columns, optTemplateData));
+        const sanitizedRow = this.getDataRow(row, report.columns, optTemplateData).map(cell => {
+          if (typeof cell === 'string' && /^[=+\-@\t\r\n]/.test(cell)) {
+            return "'" + cell;
+          }
+          return cell;
+        });
+        dataRows.push(sanitizedRow);
       }
 
       return dataRows;
