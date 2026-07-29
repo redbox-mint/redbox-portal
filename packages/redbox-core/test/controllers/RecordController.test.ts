@@ -768,7 +768,7 @@ describe('AsynchController authorization', () => {
     const recordsService = (global as any).sails.services.recordsservice;
     recordsService.getMeta.callsFake(async (oid: string) => {
       if (oid === 'record-1') {
-        return { redboxOid: oid };
+        return { redboxOid: oid, metaMetadata: { brandId: 'brand-1' } };
       }
       throw new Error('not found');
     });
@@ -796,7 +796,7 @@ describe('AsynchController authorization', () => {
     const recordsService = (global as any).sails.services.recordsservice;
     recordsService.getMeta.callsFake(async (oid: string) => {
       if (oid === 'record') {
-        return { redboxOid: oid };
+        return { redboxOid: oid, metaMetadata: { brandId: 'brand-1' } };
       }
       throw new Error('not found');
     });
@@ -825,7 +825,7 @@ describe('AsynchController authorization', () => {
     await controller.subscribe(makeRequest({ roomId: 'unknown-room' }), {} as Sails.Res);
     expect(sendResp.firstCall.args[2].status).to.equal(403);
 
-    recordsService.getMeta.resolves({ redboxOid: 'record-1' });
+    recordsService.getMeta.resolves({ redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } });
     recordsService.hasViewAccess.returns(false);
     await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
     expect(sendResp.secondCall.args[2].status).to.equal(403);
@@ -841,6 +841,21 @@ describe('AsynchController authorization', () => {
     (global as any).sails.sockets.join.callsFake((_req: unknown, _roomId: string, callback: (error: unknown) => void) => callback(new Error('join failed')));
     await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
     expect(sendResp.callCount).to.equal(4);
+  });
+
+  it('rejects subscriptions to records owned by another brand', async () => {
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getMeta.resolves({
+      redboxOid: 'record-1',
+      metaMetadata: { brandId: 'brand-2' },
+    });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
+
+    expect(sendResp.firstCall.args[2].status).to.equal(403);
+    expect(recordsService.hasViewAccess.called).to.be.false;
+    expect((global as any).sails.sockets.join.called).to.be.false;
   });
 
   it('rejects cyclic progress room references without recursing indefinitely', async () => {

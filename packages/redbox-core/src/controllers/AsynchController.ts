@@ -139,6 +139,11 @@ export namespace Controllers {
         return this.sendAccessDenied(req, res);
       }
 
+      const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
+      if (recordBrandId !== String(brand.id)) {
+        return this.sendAccessDenied(req, res);
+      }
+
       const recordsService = sails.services.recordsservice as unknown as { hasViewAccess: (brand: BrandingModel, user: Record<string, unknown>, roles: Record<string, unknown>[], record: Record<string, unknown>) => boolean };
       const hasViewAccess = recordsService.hasViewAccess(
         brand,
