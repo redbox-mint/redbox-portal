@@ -217,34 +217,47 @@ export namespace Controllers {
       };
     }
 
-    private isRecordInBrand(record: RecordModel | null, brand: BrandingModel): boolean {
-      if (_.isEmpty(record)) {
-        return false;
-      }
-      const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
-      return !(recordBrandId && brand?.id && recordBrandId !== brand.id);
-    }
-
     private async requireRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
       try {
         const record = await this.RecordsService.getMeta(oid);
-        return this.isRecordInBrand(record, brand) ? record : null;
+        if (_.isEmpty(record)) {
+          return null;
+        }
+        const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
+        if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+          return null;
+        }
+        return record;
       } catch {
         return null;
       }
     }
 
-    /**
-     * Deleted records live outside the record store, so they are resolved through the deleted
-     * record metadata lookup rather than `getMeta`.
-     */
-    private async requireDeletedRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
-      try {
-        const record = await this.RecordsService.getDeletedRecordMeta(oid);
-        return this.isRecordInBrand(record, brand) ? record : null;
-      } catch {
-        return null;
+    private async requireDeletedRecordInBrand(
+      oid: string,
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown>
+    ): Promise<boolean> {
+      if (!brand?.id) {
+        return false;
       }
+      const roles = (user.roles ?? []) as globalThis.Record<string, unknown>[];
+      const results = await this.RecordsService.getDeletedRecords(
+        undefined,
+        undefined,
+        0,
+        1,
+        user.username,
+        roles,
+        brand,
+        undefined,
+        undefined,
+        undefined,
+        ['redboxOid'],
+        oid,
+        'equal'
+      );
+      return results.isSuccessful() && results.totalItems > 0;
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
@@ -255,16 +268,10 @@ export namespace Controllers {
       try {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.sendResp(req, res, {
-            status: 404,
-            displayErrors: [{ detail: 'Record not found!' }],
-          });
+          return this.sendResp(req, res, { status: 404 });
         }
         if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
-          return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ code: 'error-403-heading' }],
-          });
+          return this.sendResp(req, res, { status: 403 });
         }
         return this.sendResp(req, res, { data: record['authorization'] });
       } catch (err) {
@@ -515,10 +522,7 @@ export namespace Controllers {
       try {
         const record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
-          return this.sendResp(req, res, {
-            status: 404,
-            displayErrors: [{ detail: 'Record not found!' }],
-          });
+          return this.sendResp(req, res, { status: 404 });
         }
         return this.sendResp(req, res, { data: record['metaMetadata'] });
       } catch (err) {
@@ -598,10 +602,7 @@ export namespace Controllers {
       try {
         record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
-          return this.sendResp(req, res, {
-            status: 404,
-            displayErrors: [{ detail: 'Record not found!' }],
-          });
+          return this.sendResp(req, res, { status: 404 });
         }
         record['metaMetadata'] = body as unknown as RecordModel['metaMetadata'];
       } catch (err) {
@@ -1123,12 +1124,8 @@ export namespace Controllers {
         });
       }
 
-      const record = await this.requireDeletedRecordInBrand(oid, brand);
-      if (!record) {
-        return this.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ detail: 'Record not found!' }],
-        });
+      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
+        return this.sendResp(req, res, { status: 404 });
       }
 
       const response = await this.RecordsService.restoreRecord(oid, user);
@@ -1197,12 +1194,8 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.requireDeletedRecordInBrand(oid, brand);
-      if (!record) {
-        return this.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ detail: 'Record not found!' }],
-        });
+      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
+        return this.sendResp(req, res, { status: 404 });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user);
       if (response.isSuccessful()) {
