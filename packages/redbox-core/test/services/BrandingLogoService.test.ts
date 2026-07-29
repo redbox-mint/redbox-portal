@@ -220,6 +220,7 @@ describe('BrandingLogoService', function() {
 
       await clock.tickAsync(24 * 60 * 60 * 1000);
       expect(mockPrimaryDisk.delete.calledOnceWithExactly(previousStorageKey)).to.be.true;
+      expect(service.getBinary(previousStorageKey)?.toString()).to.equal('stored-binary');
     });
 
     it('should not delete a superseded favicon that becomes active again before cleanup', async function() {

@@ -60,8 +60,12 @@ export namespace Services {
           if (_.get(currentBrand, 'favicon.storageKey') === storageKey) {
             return;
           }
-          await StorageManagerService.primaryDisk().delete(storageKey);
-          delete this._binaryById[storageKey];
+          const disk = StorageManagerService.primaryDisk();
+          const retainedBytes = Buffer.from(await disk.getBytes(storageKey));
+          await disk.delete(storageKey);
+          // Keep a fresh in-process copy for another full TTL so a request that
+          // captured the superseded metadata before cleanup can still complete.
+          this.setCache(storageKey, retainedBytes);
         } catch (error) {
           sails.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`, error);
         }
