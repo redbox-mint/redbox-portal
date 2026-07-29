@@ -24,6 +24,9 @@ const trackedFiles = new Set(
 const reportPath = path.resolve(reportArgument);
 const sourceRoot = sourceRootArgument.replaceAll('\\', '/').replace(/^\.?\//, '').replace(/\/$/, '');
 
+// Codecov maps coverage to source files by matching report paths to the Git tree.
+// Normalize LCOV SF entries and Istanbul JSON paths to tracked, repository-relative paths:
+// https://docs.codecov.com/docs/fixing-paths
 function repositoryPath(sourcePath) {
   const normalized = sourcePath.replaceAll('\\', '/');
   const relativeToRepository = path.relative(repositoryRoot, normalized).replaceAll('\\', '/');
