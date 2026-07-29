@@ -559,7 +559,6 @@ describe('Webservice UserManagementController', () => {
 
                 expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
             });
-
             it(`allows ${method} for a user in the current brand`, async () => {
                 (global as any).UsersService.setUserKey = sinon.stub().returns(of({
                     id: 'user-1',
