@@ -1,0 +1,14 @@
+[
+  {
+    "locale": "en",
+    "key": "@name-test1",
+    "description": "Name for test 1."
+  },
+  {
+    "locale": "en",
+    "key": "@name-test2",
+    "category": "name",
+    "description": "Name for test 2.",
+    "contentFormat": "plain"
+  }
+]

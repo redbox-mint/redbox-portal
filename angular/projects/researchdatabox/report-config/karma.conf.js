@@ -17,7 +17,16 @@ module.exports = function (config) {
     jasmineHtmlReporter: {
       suppressAll: true
     },
-    reporters: ['progress', 'kjhtml', 'junit'],
+    coverageReporter: {
+      dir: require('path').join(__dirname, './coverage/'),
+      subdir: '.',
+      reporters: [
+        { type: 'html' },
+        { type: 'text-summary' },
+        { type: 'json' }
+      ]
+    },
+    reporters: ['progress', 'kjhtml', 'junit', 'coverage'],
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-report-config')
     },
@@ -28,7 +37,7 @@ module.exports = function (config) {
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding']
       }
     },
     browsers: ['ChromeHeadlessNoSandbox'],

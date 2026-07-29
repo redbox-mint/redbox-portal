@@ -28,6 +28,10 @@ import {
   SaveStatusFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   GroupFieldComponentDefinitionOutline,
   GroupFieldModelDefinitionOutline,
   GroupFormComponentDefinitionOutline,
@@ -74,6 +78,7 @@ import {
 import {DefaultFieldLayoutDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {ActionRowLayoutName} from '@researchdatabox/sails-ng-common';
 import {
+  CheckboxInputComponentName,
   CheckboxInputFieldComponentDefinitionOutline,
   CheckboxInputFieldModelDefinitionOutline,
   CheckboxInputFormComponentDefinitionOutline,
@@ -89,6 +94,7 @@ import {
   RecordSelectorFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  DropdownInputComponentName,
   DropdownInputFieldComponentDefinitionOutline,
   DropdownInputFieldModelDefinitionOutline,
   DropdownInputFormComponentDefinitionOutline,
@@ -133,6 +139,7 @@ import {
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RadioInputComponentName,
   RadioInputFieldComponentDefinitionOutline,
   RadioInputFieldModelDefinitionOutline,
   RadioInputFormComponentDefinitionOutline,
@@ -266,7 +273,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   ): AvailableFormComponentDefinitionOutlines[] {
     return items
       .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
-      .map(item => this.applyPostPruningTransformToComponent(item));
+      .map(item => {
+        const result = this.applyPostPruningTransformToComponent(item);
+        this.removeServerOnlyProperties(result);
+        return result;
+      });
   }
 
   protected isExplicitlyDisallowedByFormMode(item: AvailableFormComponentDefinitionOutlines): boolean {
@@ -278,17 +289,20 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     item: AvailableFormComponentDefinitionOutlines
   ): AvailableFormComponentDefinitionOutlines {
     const className = item?.component?.class;
-    const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup = className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
-    const shouldTransformQuestionTree = className === QuestionTreeComponentName;
+    const shouldSkipActionRowGroupTransform =
+      className === GroupFieldComponentName && item?.layout?.class === ActionRowLayoutName;
+    const hasExplicitViewTransform = item?.overrides?.formModeClasses?.view !== undefined;
+    const hasDefaultViewTransform = this.formOverride.hasDefaultViewTransform(className);
+    const shouldTransformInlineVocabOption = this.isInlineVocabOptionComponent(item);
+    const shouldTransform =
+      !shouldSkipActionRowGroupTransform &&
+      (hasDefaultViewTransform || hasExplicitViewTransform || shouldTransformInlineVocabOption);
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
 
-    if (shouldTransformRepeatable || shouldTransformGroup || shouldTransformQuestionTree) {
-      if (shouldSkipViewTransform) {
-        this.applyPostPruningTransformsToNestedChildren(item);
-        if ('constraints' in item) {
-          delete item['constraints'];
-        }
+    if (shouldTransform) {
+      if (shouldSkipViewTransform && !hasExplicitViewTransform) {
+        this.removeServerOnlyProperties(item);
+        this.applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item);
         return item;
       }
 
@@ -298,14 +312,26 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       }) as AvailableFormComponentDefinitionOutlines;
       this.processFormComponentDefinition(transformed);
       this.applyPostPruningTransformsToNestedChildren(transformed);
-      if ('constraints' in transformed) {
-        delete transformed['constraints'];
-      }
+      this.removeServerOnlyProperties(transformed);
       return transformed;
     }
 
     this.applyPostPruningTransformsToNestedChildren(item);
+    this.removeServerOnlyProperties(item);
     return item;
+  }
+
+  protected isInlineVocabOptionComponent(item: AvailableFormComponentDefinitionOutlines): boolean {
+    const className = item?.component?.class;
+    const componentConfig = item?.component?.config as { inlineVocab?: boolean } | undefined;
+    return (
+      componentConfig?.inlineVocab === true &&
+      (
+        className === DropdownInputComponentName ||
+        className === CheckboxInputComponentName ||
+        className === RadioInputComponentName
+      )
+    );
   }
 
   protected hasExplicitAllowedMode(item: AvailableFormComponentDefinitionOutlines, mode: FormModesConfig): boolean {
@@ -333,6 +359,51 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
     if (Array.isArray(config.panels)) {
       config.panels = this.applyPostPruningTransforms(config.panels as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (config.elementTemplate) {
+      config.elementTemplate = this.applyPostPruningTransformToComponent(
+        config.elementTemplate as AvailableFormComponentDefinitionOutlines
+      );
+    }
+  }
+
+  protected applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item: AvailableFormComponentDefinitionOutlines): void {
+    const config = item?.component?.config as Record<string, unknown> | undefined;
+    if (!config) {
+      return;
+    }
+    if (Array.isArray(config.componentDefinitions)) {
+      config.componentDefinitions = this.applyPostPruningTransforms(
+        config.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+      );
+    }
+    if (Array.isArray(config.tabs)) {
+      config.tabs = this.applyPostPruningTransforms(config.tabs as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (Array.isArray(config.panels)) {
+      config.panels = this.applyPostPruningTransforms(config.panels as AvailableFormComponentDefinitionOutlines[]);
+    }
+    if (config.elementTemplate) {
+      const et = config.elementTemplate as AvailableFormComponentDefinitionOutlines;
+      const etViewOverride = (et as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+      const etClassName = et?.component?.class;
+      const etIsIdentity = etViewOverride?.component === etClassName;
+      const etHasExplicitTransform = !etIsIdentity && (
+        (typeof etViewOverride?.template === 'string' && etViewOverride.template.trim().length > 0) ||
+        etViewOverride?.component !== undefined
+      );
+      const etShouldTransform = etHasExplicitTransform;
+      if (etShouldTransform) {
+        const transformed = this.formOverride.applyOverrideTransform(et, this.formMode, {
+          phase: 'client',
+          reusableFormDefs: this.reusableFormDefs,
+        });
+        config.elementTemplate = transformed;
+        this.removeServerOnlyProperties(transformed);
+      } else {
+        this.removeServerOnlyProperties(et);
+        this.applyPostPruningTransformsToNestedChildren(et);
+      }
     }
   }
 
@@ -530,6 +601,17 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.acceptCheckConstraintsCurrentPath(item);
     this.processFormComponentDefinition(item);
   }
@@ -1027,10 +1109,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       this.formModeProvided &&
       (item?.component?.class === RepeatableComponentName ||
         item?.component?.class === GroupFieldComponentName ||
-        item?.component?.class === QuestionTreeComponentName);
+        item?.component?.class === QuestionTreeComponentName ||
+        item?.overrides?.formModeClasses?.view !== undefined ||
+        this.formOverride.hasDefaultViewTransform(item?.component?.class) ||
+        this.isInlineVocabOptionComponent(item as AvailableFormComponentDefinitionOutlines));
 
-    // Constraint define the criteria for including a component.
-    // The client has no need for the constraints.
+    // Constraints define the criteria for including a component.
+    // Remove the constraints if the client does not need them.
     if ('constraints' in item && !isPostPruningCandidate) {
       delete item['constraints'];
     }
@@ -1184,6 +1269,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const elementTemplateFormConfig = new FormConfig();
     elementTemplateFormConfig.componentDefinitions = _cloneDeep(elementTemplateCompConfig.componentDefinitions);
     const elementTemplateSchema = await schemaVisitor.start({form: elementTemplateFormConfig});
+    this.applyRepeatableComponentSchemaOverrides(elementTemplateSchema, elementTemplateCompConfig.componentDefinitions);
 
     // Remove any data model items that are not present in the schema.
     const itemValue = item.model?.config?.value;
@@ -1195,6 +1281,54 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     if (elementTemplate?.model?.config) {
       elementTemplate.model.config.newEntryValue = this.buildDataMatchingSchema(elementTemplateSchema, [], newEntryValue, []) as any ?? {};
     }
+  }
+
+  protected applyRepeatableComponentSchemaOverrides(
+    schema: Record<string, unknown>,
+    componentDefinitions: AvailableFormComponentDefinitionOutlines[]
+  ): void {
+    const schemaProperties = schema?.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!schemaProperties) {
+      return;
+    }
+
+    componentDefinitions.forEach(componentDefinition => {
+      const componentName = componentDefinition.name;
+      if (!componentName) {
+        return;
+      }
+
+      const componentSchema = schemaProperties[componentName];
+      if (!componentSchema) {
+        return;
+      }
+
+      const componentConfig = componentDefinition.component?.config as Record<string, unknown> | undefined;
+      if (
+        componentDefinition.component?.class === CheckboxInputComponentName &&
+        componentConfig?.multipleValues === true
+      ) {
+        schemaProperties[componentName] = {elements: {type: 'string'}};
+        return;
+      }
+
+      if (isTypeWithComponentDefinitions(componentConfig)) {
+        this.applyRepeatableComponentSchemaOverrides(
+          componentSchema,
+          componentConfig.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+        );
+      }
+
+      const elementTemplate = componentConfig?.elementTemplate as AvailableFormComponentDefinitionOutlines | undefined;
+      const elementTemplateConfig = elementTemplate?.component?.config as Record<string, unknown> | undefined;
+      const elementSchema = componentSchema.elements as Record<string, unknown> | undefined;
+      if (elementSchema && isTypeWithComponentDefinitions(elementTemplateConfig)) {
+        this.applyRepeatableComponentSchemaOverrides(
+          elementSchema,
+          elementTemplateConfig.componentDefinitions as AvailableFormComponentDefinitionOutlines[]
+        );
+      }
+    });
   }
 
   protected updateLayoutVisibilityForZeroRows(item: RepeatableFormComponentDefinitionOutline): void {
@@ -1407,5 +1541,14 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       `Value '${JSON.stringify(currentValue)}' at '${JSON.stringify(valuePath)}' is type '${currentValueType}'. ` +
       `Schema ${JSON.stringify(currentSchema)} at '${JSON.stringify(schemaPath)}' expected type '${expectedType}'.`
     );
+  }
+
+  private removeServerOnlyProperties(item: AvailableFormComponentDefinitionOutlines): void {
+    if ('constraints' in item) {
+      delete item['constraints'];
+    }
+    if ('overrides' in item) {
+      delete item['overrides'];
+    }
   }
 }

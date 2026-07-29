@@ -95,6 +95,9 @@ export class BrandingConfigClass {
   @Attr({ type: 'json' })
   public logo?: Record<string, unknown>;
 
+  @Attr({ type: 'json' })
+  public favicon?: Record<string, unknown>;
+
   @HasMany('role', 'branding')
   public roles?: unknown[];
 }
@@ -107,6 +110,7 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   css?: string;
   hash?: string;
   logo?: Record<string, unknown>;
+  favicon?: Record<string, unknown>;
   name?: string;
   roles?: unknown[];
   variables?: Record<string, string>;

@@ -23,6 +23,15 @@ describe('RecordAuditController', () => {
     originalUnderscore = (global as any)._;
 
     (global as any).sails = {
+      config: {
+        brandingAware: sinon.stub().callsFake(() => ({
+          doiPublishing: {
+            writeBack: {
+              citationDoiPath: 'metadata.citation_doi',
+            },
+          },
+        })),
+      },
       log: {
         verbose: sinon.stub(),
         error: sinon.stub(),
@@ -107,6 +116,7 @@ describe('RecordAuditController', () => {
           events: [{ id: 'integration-1', redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
         }],
       }),
+      getStatusSummaryWithOutcomes: sinon.stub().resolves([]),
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
@@ -306,6 +316,39 @@ describe('RecordAuditController', () => {
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
+  });
+
+  it('uses the brand-specific DOI write-back path when building integration status context', async () => {
+    (global as any).sails.config.brandingAware = sinon.stub().callsFake(() => ({
+      doiPublishing: {
+        writeBack: {
+          citationDoiPath: 'metadata.alternate_doi',
+        },
+      },
+    }));
+    (global as any).sails.services.recordsservice.getMeta.resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { form: 'rdmp-form', brandId: 'brand-1' },
+      metadata: { alternate_doi: '10.1234/custom-doi' },
+    });
+    (global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.resolves([]);
+
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    const req = {
+      param,
+      options: { locals: {} },
+      session: { branding: 'default', portal: 'rdmp' },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getIntegrationStatusData(req, res);
+
+    assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.calledOnce, true);
+    assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi, '10.1234/custom-doi');
+    assert.equal(sendResp.calledOnce, true);
   });
 
   it('preserves the fallback integration audit id when a row id is missing', async () => {

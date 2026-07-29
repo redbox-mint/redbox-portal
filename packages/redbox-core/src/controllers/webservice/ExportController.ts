@@ -3,15 +3,13 @@ import {
   BrandingModel,
   Controllers as controllers,
   getValidatedApiRequest,
-  downloadRecsRoute,
 } from '../../index';
-import { default as util } from 'util';
-import { default as stream } from 'stream';
-
-const pipeline = util.promisify(stream.pipeline);
+import { pipeline } from 'node:stream/promises';
+import { EXPORT_CONTENT_TYPES } from '../../constants/export';
 /**
  * Package that contains all Controllers.
  */
+
 export namespace Controllers {
   /**
    * Responsible for exporting data
@@ -38,9 +36,9 @@ export namespace Controllers {
         const after: string | null = _.isEmpty(query.after) ? null : (query.after as string);
         const filename: string = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
         if (format == 'csv' || format == 'json') {
-          res.set('Content-Type', `text/${format}`);
-          sails.log.verbose('filename ' + filename);
           res.attachment(filename);
+          res.set('Content-Type', EXPORT_CONTENT_TYPES[format]);
+          sails.log.verbose('filename ' + filename);
           await pipeline(
             RecordsService.exportAllPlans(
               req.user!.username,

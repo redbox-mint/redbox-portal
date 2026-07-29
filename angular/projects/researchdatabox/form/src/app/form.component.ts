@@ -237,6 +237,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   componentsLoaded = signal<boolean>(false);
   public readonly debugState = inject(FormDebugStateService);
+
+  readonly viewAuditRoles = signal<string[]>(['Admin', 'Librarians']);
   // Backward-compatible aliases for existing tests and callers.
   debugFormComponents = this.debugState.debugFormComponents;
   debugFormValues = this.debugState.debugFormValues;
@@ -379,6 +381,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     try {
       this.refreshRequestParamsFromUrl();
       this.configObj = await this.configService.getConfig();
+      const viewAuditRolesVal = this.configObj?.['viewAuditRoles'];
+      if (Array.isArray(viewAuditRolesVal) && viewAuditRolesVal.every(v => typeof v === 'string')) {
+        this.viewAuditRoles.set(viewAuditRolesVal);
+      }
       if (this.downloadAndCreateOnInit()) {
         await this.downloadAndCreateFormComponents();
       } else {
@@ -669,7 +675,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
         (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
           if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-            this.broadcastFormStatus();
+            // Angular has already recalculated the form for these events. Re-running
+            // validation here restarts form-level async validators and can leave
+            // consumers permanently observing PENDING instead of the settled status.
+            this.broadcastFormStatus(false);
           }
         }
       );
@@ -707,12 +716,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * — e.g. expression-driven model updates — so consumers like the Save button
    * effect can re-evaluate. Without this, silent updates can leave the UI's idea
    * of validity out of sync with the FormGroup's actual state.
+   *
+   * Pass `false` when Angular has already recalculated validation for the event
+   * being broadcast, particularly for settled async-validation status changes.
    */
-  public broadcastFormStatus(): void {
+  public broadcastFormStatus(revalidate = true): void {
     if (!this.form) {
       return;
     }
-    this.form.updateValueAndValidity({ emitEvent: false });
+    if (revalidate) {
+      this.form.updateValueAndValidity({ emitEvent: false });
+    }
     this.formGroupStatus.set(this.dataStatus);
     this.eventBus.publish(
       createFormValidationBroadcastEvent({
@@ -1143,7 +1157,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsModified = this.form?.dirty || forceSave;
-    if (this.form?.pending && !forceSave) {
+    if (this.form?.pending) {
       const validationSettled = await this.waitForPendingValidation();
       if (this.isDestroyed) {
         return;
@@ -1156,7 +1170,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     }
     // At this point, only the validators that we want to run will be set on the angular components.
-    const formIsValid = this.form?.valid || forceSave;
+    const formIsValid = this.form?.valid;
     const formIsSaving = _isNull(this.saveResponse());
 
     if (this.form && formIsModified) {

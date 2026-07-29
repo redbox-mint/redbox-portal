@@ -5,7 +5,7 @@ set -o xtrace
 
 cd /opt/redbox-portal
 
-npm install --ignore-scripts --strict-peer-deps
+bash /opt/redbox-portal/support/integration-testing/install-redbox-dependencies-if-writable.sh
 
 npm run webpack
 
@@ -38,4 +38,13 @@ if [[ "${needs_angular_build}" == "true" ]]; then
   bash /opt/redbox-portal/support/development/compileDevAngular.sh
 fi
 
-exec node app.integrationtest.js
+export RBPORTAL_COVERAGE_DIR=${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/playwright}
+export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output_playwright}
+mkdir -p "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT"
+chmod 777 "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT" || true
+
+exec node_modules/.bin/nyc --no-clean \
+  --temp-dir "$NYC_OUTPUT" \
+  --report-dir "$RBPORTAL_COVERAGE_DIR" \
+  --reporter=lcov --exclude-after-remap=false \
+  node app.integrationtest.js

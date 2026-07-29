@@ -25,6 +25,36 @@ describe('RepeatableComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  for (const [description, value] of [
+    ['object', {title: 'First'}],
+    ['array', [{title: 'First'}]],
+  ] as const) {
+    it(`should preserve ${description} values as content when creating repeatable entries`, () => {
+      const fixture = TestBed.createComponent(RepeatableComponent);
+      const component = fixture.componentInstance;
+      spyOnProperty(component as any, 'getFormComponent', 'get').and.returnValue({
+        enabledValidationGroups: [],
+        validationGroups: [],
+      });
+      const templateEntry = {
+        compConfigJson: {
+          name: 'repeatable_content',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              template: '{{content.title}}'
+            }
+          }
+        }
+      };
+
+      const entry = (component as any).createFieldNewMapEntry(templateEntry, value);
+
+      expect(entry.defEntry.compConfigJson.component.config.content).toBe(value);
+    });
+  }
+
   it('should render the repeatable and array components', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
@@ -879,6 +909,58 @@ describe('RepeatableComponent', () => {
     rowsContainer = fixture.nativeElement.querySelector('.rb-form-repeatable__items') as HTMLElement;
     expect(rowsContainer.classList.contains('d-none')).toBeTrue();
     expect(fixture.nativeElement.querySelectorAll('.rb-form-repeatable-item').length).toBe(0);
+  }));
+
+  it('should emit exactly one value change event when moving an element', fakeAsync(() => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_move_emit',
+      componentDefinitions: [
+        {
+          name: 'repeatable_move',
+          model: {
+            class: 'RepeatableModel',
+            config: { value: ['one', 'two', 'three'] }
+          },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              canSort: true,
+              elementTemplate: {
+                name: '',
+                model: {
+                  class: 'SimpleInputModel',
+                  config: {}
+                },
+                component: {
+                  class: 'SimpleInputComponent'
+                }
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    let fixture: any;
+    createFormAndWaitForReady(formConfig).then(result => {
+      fixture = result.fixture;
+    });
+    flushMicrotasks();
+    tick();
+
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+    const formArray = repeatable.model?.getFormControl() as any;
+    let emitCount = 0;
+    const sub = formArray.valueChanges.subscribe(() => emitCount++);
+
+    repeatable.moveElementFn((repeatable as any).compDefMapEntries[0], 1)();
+    tick();
+    flushMicrotasks();
+
+    expect(emitCount).toBe(1);
+    expect(formArray.value).toEqual(['two', 'one', 'three']);
+
+    sub.unsubscribe();
   }));
 
   it('should disable add and remove buttons and model when the repeatable is disabled', async () => {

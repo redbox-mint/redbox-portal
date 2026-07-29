@@ -6,7 +6,8 @@ import {
   ContentComponentName,
   ContentFieldComponentConfig,
   FormFieldComponentStatus,
-  guessType
+  guessType,
+  handlebarsTemplate
 } from "@researchdatabox/sails-ng-common";
 import {FormService} from "../form.service";
 
@@ -39,7 +40,7 @@ import {FormService} from "../form.service";
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <span [innerHtml]="content"></span>
+      <span class="rb-form-content" [class.rb-form-rich-text-content]="isRichTextContent" [innerHtml]="content"></span>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -48,6 +49,7 @@ import {FormService} from "../form.service";
 export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
   public content:string = '';
+  public isRichTextContent = false;
   private formValueChangesSub?: Subscription;
   private formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -68,13 +70,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const template = config?.template ?? '';
+    const hasContent = config?.content !== null && config?.content !== undefined;
     const content = config?.content ?? '';
+    this.isRichTextContent = !!config?.outputFormat;
     const contentIsTranslationCode = (config as { contentIsTranslationCode?: boolean } | undefined)?.contentIsTranslationCode === true;
     const translationContentFormat = (config as { translationContentFormat?: 'plain' | 'html' } | undefined)?.translationContentFormat === 'html'
       ? 'html'
       : 'plain';
 
-    if (content && template) {
+    if (hasContent && template) {
       // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
@@ -91,8 +95,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
             portal: runtimeContext.portal,
             oid: runtimeContext.oid,
             workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
+            outputFormat: config?.outputFormat,
           };
-          const extra = {libraries: this.handlebarsTemplateService.getLibraries()};
+          const extra = {libraries: {handlebars: handlebarsTemplate}};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
         const initialForm = this.getFormComponent.form;

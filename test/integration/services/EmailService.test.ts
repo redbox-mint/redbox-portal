@@ -37,15 +37,13 @@ describe('The EmailService', function () {
 
     it('should run a template', function (done) {
         const data = {
-            imports: {
-                oid: "record-identifier",
-            }
+            oid: "record-identifier",
         };
-        const template = "Testing a template <%= oid %>";
+        const template = "Testing a template {{oid}}";
 
         const rendered = EmailService.runTemplate(template, data);
 
-        expect(rendered).to.eql(`Testing a template ${data.imports.oid}`);
+        expect(rendered).to.eql(`Testing a template ${data.oid}`);
 
         done();
     });
@@ -89,11 +87,11 @@ describe('The EmailService', function () {
         });
         it('should render values', function (done) {
             const options = {
-                to: "<%= record.metadata.contributor_ci.email %>,<%= _.isEmpty(record.metadata.contributors_investigators) ? '' : _.join(_.map(record.metadata.contributors_investigators, (contInvestigators)=>{ return contInvestigators.email; }), ',') %>,<%= _.isEmpty(record.metadata.contributor_dmp_administrators) ? '' : _.join(_.map(record.metadata.contributor_dmp_administrators, (contAdministrators)=>{ return contAdministrators.email; }), ',') %>",
+                to: '{{record.metadata.contributor_ci.email}},{{join (pluck record.metadata.contributors_investigators "email") ","}},{{join (pluck record.metadata.contributor_dmp_administrators "email") ","}}',
                 from: 'noreply@redboxresearchdata.com.au',
                 cc: 'info@redboxresearchdata.com.au',
                 bcc: 'support@redboxresearchdata.com.au',
-                subject: "Research Data Management Plan <%= _.get(record.metadata,'rdmp-id','') %> has been created",
+                subject: "Research Data Management Plan {{record.metadata.[rdmp-id]}} has been created",
                 template: "test",
                 format: "html"
             };
@@ -136,14 +134,15 @@ describe('The EmailService', function () {
                 expect(result.template).to.eql(options.template);
                 expect(buildResult['body']).to.eql(`<h1>Hello!</h1>
 <p>This is a test email from redbox portal</p>
-<p>Data: the test data</p>`);
+<p>Data: the test data</p>
+`);
 
                 done();
             });
         });
         it('should render default values', function (done) {
             const options = {
-                to: "<%= record.metadata.contributor_ci.email %>,<%= _.isEmpty(record.metadata.contributors_investigators) ? '' : _.join(_.map(record.metadata.contributors_investigators, (contInvestigators)=>{ return contInvestigators.email; }), ',') %>,<%= _.isEmpty(record.metadata.contributor_dmp_administrators) ? '' : _.join(_.map(record.metadata.contributor_dmp_administrators, (contAdministrators)=>{ return contAdministrators.email; }), ',') %>",
+                to: '{{record.metadata.contributor_ci.email}},{{join (pluck record.metadata.contributors_investigators "email") ","}},{{join (pluck record.metadata.contributor_dmp_administrators "email") ","}}',
                 template: "test",
                 format: "html"
             };
@@ -186,7 +185,8 @@ describe('The EmailService', function () {
                 expect(result.template).to.eql(options.template);
                 expect(buildResult['body']).to.eql(`<h1>Hello!</h1>
 <p>This is a test email from redbox portal</p>
-<p>Data: the test data</p>`);
+<p>Data: the test data</p>
+`);
 
                 done();
             });
@@ -241,7 +241,7 @@ describe('The EmailService', function () {
             };
             const options: any = {
                 triggerCondition: "<%= record.metadata.testing == true %>",
-                to: "<%= record.metadata.email_address %>",
+                to: "{{record.metadata.email_address}}",
                 subject: "Testing email sending",
                 template: "publicationReview",
                 otherSendOptions: {
@@ -280,7 +280,7 @@ describe('The EmailService', function () {
             };
             const options: any = {
                 triggerCondition: "<%= record.metadata.testing == true && user.username == 'testing-user-name' %>",
-                to: "<%= record.metadata.email_address %>",
+                to: "{{record.metadata.email_address}}",
                 subject: "Testing email sending",
                 template: "publicationReview",
                 otherSendOptions: {

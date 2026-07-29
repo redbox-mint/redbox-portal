@@ -1,9 +1,9 @@
 <div class="card card-body mb-3">
   <div class="mb-3">
     <label class="form-label">Binding Type</label>
-    <select class="form-select" [value]="kind" (change)="updateField('kind', $any($event.target).value)">
+    <select class="form-select" (change)="updateField('kind', $any($event.target).value)">
       @for (bindingKind of bindingKinds; track bindingKind) {
-      <option [value]="bindingKind">{{ bindingKind }}</option>
+      <option [value]="bindingKind" [selected]="bindingKind === kind">{{ bindingKind }}</option>
       }
     </select>
   </div>

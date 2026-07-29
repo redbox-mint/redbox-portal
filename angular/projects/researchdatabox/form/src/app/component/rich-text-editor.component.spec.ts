@@ -264,4 +264,27 @@ describe("RichTextEditorComponent", () => {
 
     expect(component.resolveCspNonce()).toBe("injected-csp-nonce");
   });
+
+  it("updates editor editable state when disabled changes", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "editableField",
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
+      }]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig, editModeProps);
+    const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    expect(richTextComponent.editor?.isEditable).toBe(true);
+
+    richTextComponent.setDisabled(true);
+    await fixture.whenStable();
+    expect(richTextComponent.editor?.isEditable).toBe(false);
+
+    richTextComponent.setDisabled(false);
+    await fixture.whenStable();
+    expect(richTextComponent.editor?.isEditable).toBe(true);
+  });
 });

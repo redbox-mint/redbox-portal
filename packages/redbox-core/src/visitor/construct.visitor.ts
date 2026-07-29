@@ -59,10 +59,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { InlineFieldLayoutConfig } from '@researchdatabox/sails-ng-common';
 import { FormExpressionsConfig } from '@researchdatabox/sails-ng-common';
-import {
-  FormComponentDefinitionFrame,
-  FormComponentDefinitionOutline,
-} from '@researchdatabox/sails-ng-common';
+import { FormComponentDefinitionFrame, FormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   ContentComponentName,
   ContentFieldComponentDefinitionFrame,
@@ -224,6 +221,7 @@ import {
   TypeaheadInputFieldModelDefinitionFrame,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  TypeaheadInputPermissiveFieldComponentConfigOutline,
   TypeaheadInputModelName,
 } from '@researchdatabox/sails-ng-common';
 import { TypeaheadInputFieldComponentConfig, TypeaheadInputFieldModelConfig } from '@researchdatabox/sails-ng-common';
@@ -337,6 +335,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { SaveStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  IntegrationStatusComponentName,
+  IntegrationStatusFieldComponentDefinitionFrame,
+  IntegrationStatusFieldComponentDefinitionOutline,
+  IntegrationStatusFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
+import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
   isTypeFormComponentDefinitionName,
@@ -370,6 +375,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   private formMode: FormModesConfig;
   private recordValues: Record<string, unknown> | null;
+  private removeOverrides: boolean;
   private extractedDefaultValues: Record<string, unknown>;
 
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
@@ -390,6 +396,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.formMode = 'view';
     this.recordValues = null;
+    this.removeOverrides = false;
     this.extractedDefaultValues = {};
 
     this.mostRecentRepeatableElementTemplatePath = null;
@@ -413,12 +420,14 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.reusableFormDefs The reusable form definitions. Default empty.
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
+   * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
    */
   async start(options: {
     data: FormConfigFrame;
     reusableFormDefs?: ReusableFormDefinitions;
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
+    removeOverrides?: boolean;
   }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
     this.reusableFormDefs = options.reusableFormDefs ?? {};
@@ -427,6 +436,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
     // This allows for specifying an empty record '{}' and using that instead of the defaults.
     this.recordValues = options.record === null || options.record === undefined ? null : options.record;
+
+    this.removeOverrides = options.removeOverrides ?? false;
 
     // Collect the form config defaults.
     // The defaults always need to be extract so they are available to any repeatable components.
@@ -601,6 +612,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('addButtonShow', item.config, frame);
     this.sharedProps.setPropOverride('allowZeroRows', item.config, frame);
     this.sharedProps.setPropOverride('hideWhenZeroRows', item.config, frame);
+    this.sharedProps.setPropOverride('canSort', item.config, frame);
 
     const currentFormConfigPath = this.formPathHelper.formPath.formConfig;
 
@@ -627,7 +639,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!nameIsFalsy && !nameWillBeTransformedToFalsy) {
       this.logger.error(
         `Repeatable element template must have a 'falsy' name: elementTemplateName '${JSON.stringify(elementTemplateName)}' ` +
-        `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
+          `elementTemplateClass ${JSON.stringify(elementTemplateClass)} elementTemplateReplaceName ${JSON.stringify(elementTemplateReplaceName)}`
       );
       throw new Error(
         `Repeatable element template must have a 'falsy' name, got ${JSON.stringify(frame.elementTemplate?.name)} at ${JSON.stringify(currentFormConfigPath)}.`
@@ -680,7 +692,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.setModelValue(item, currentData?.config);
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
+  async visitRepeatableElementFieldLayoutDefinition(
+    item: RepeatableElementFieldLayoutDefinitionOutline
+  ): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -703,7 +717,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFieldComponentDefinition(
+    item: ValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     // Get the current raw data for constructing the class instance.
     const currentData = this.getData();
     if (
@@ -726,11 +742,15 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('showWhenValid', item.config, config);
   }
 
-  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFormComponentDefinition(
+    item: ValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(
+    item: SuggestedValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<SuggestedValidationSummaryFieldComponentDefinitionFrame>(
@@ -753,7 +773,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('header', item.config, config);
   }
 
-  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFormComponentDefinition(
+    item: SuggestedValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -774,6 +796,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Integration Status */
+
+  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(currentData, IntegrationStatusComponentName)) {
+      throw new Error(
+        `Invalid ${IntegrationStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    item.config = new IntegrationStatusFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+
+    this.sharedProps.setPropOverride('integrationNames', item.config, config);
+    this.sharedProps.setPropOverride('pollIntervalMs', item.config, config);
+    this.sharedProps.setPropOverride('maxPollAttempts', item.config, config);
+    this.sharedProps.setPropOverride('heading', item.config, config);
+    this.sharedProps.setPropOverride('technicalDetailRoles', item.config, config);
+    this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
+  }
+
+  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -997,7 +1046,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
-  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+  async visitAccordionPanelFieldComponentDefinition(
+    item: AccordionPanelFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<AccordionPanelFieldComponentDefinitionFrame>(currentData, AccordionPanelComponentName)
@@ -1171,6 +1222,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
+    this.sharedProps.setPropOverride('redirectLocation', item.config, config);
+    this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, config);
   }
 
   async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
@@ -1278,7 +1331,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRichTextEditorFieldComponentDefinition(
+    item: RichTextEditorFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RichTextEditorFieldComponentDefinitionFrame>(currentData, RichTextEditorComponentName)
@@ -1793,7 +1848,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordSelectorFieldComponentDefinition(
+    item: RecordSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<RecordSelectorFieldComponentDefinitionFrame>(currentData, RecordSelectorComponentName)
@@ -1881,7 +1938,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Typeahead Input */
 
-  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
+  async visitTypeaheadInputFieldComponentDefinition(
+    item: TypeaheadInputFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
     if (
       !isTypeFieldDefinitionName<TypeaheadInputFieldComponentDefinitionFrame>(currentData, TypeaheadInputComponentName)
@@ -1892,60 +1951,63 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     }
     const config = currentData?.config;
 
-    item.config = new TypeaheadInputFieldComponentConfig();
-    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    const itemConfig: TypeaheadInputPermissiveFieldComponentConfigOutline = new TypeaheadInputFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(itemConfig, config);
 
-    this.sharedProps.setPropOverride('sourceType', item.config, config);
-    this.sharedProps.setPropOverride('staticOptions', item.config, config);
-    this.sharedProps.setPropOverride('vocabRef', item.config, config);
-    this.sharedProps.setPropOverride('queryId', item.config, config);
-    this.sharedProps.setPropOverride('serviceId', item.config, config);
-    this.sharedProps.setPropOverride('provider', item.config, config);
-    this.sharedProps.setPropOverride('resultArrayProperty', item.config, config);
-    this.sharedProps.setPropOverride('labelField', item.config, config);
-    this.sharedProps.setPropOverride('labelTemplate', item.config, config);
-    this.sharedProps.setPropOverride('valueField', item.config, config);
-    this.sharedProps.setPropOverride('minChars', item.config, config);
-    this.sharedProps.setPropOverride('debounceMs', item.config, config);
-    this.sharedProps.setPropOverride('maxResults', item.config, config);
-    this.sharedProps.setPropOverride('requireSelection', item.config, config);
-    this.sharedProps.setPropOverride('valueMode', item.config, config);
-    this.sharedProps.setPropOverride('cacheResults', item.config, config);
-    this.sharedProps.setPropOverride('multiSelect', item.config, config);
-    this.sharedProps.setPropOverride('placeholder', item.config, config);
-    this.sharedProps.setPropOverride('readOnlyAfterSelect', item.config, config);
-    this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
+    this.sharedProps.setPropOverride('sourceType', itemConfig, config);
+    this.sharedProps.setPropOverride('staticOptions', itemConfig, config);
+    this.sharedProps.setPropOverride('vocabRef', itemConfig, config);
+    this.sharedProps.setPropOverride('queryId', itemConfig, config);
+    this.sharedProps.setPropOverride('serviceId', itemConfig, config);
+    this.sharedProps.setPropOverride('provider', itemConfig, config);
+    this.sharedProps.setPropOverride('resultArrayProperty', itemConfig, config);
+    this.sharedProps.setPropOverride('labelField', itemConfig, config);
+    this.sharedProps.setPropOverride('labelTemplate', itemConfig, config);
+    this.sharedProps.setPropOverride('valueField', itemConfig, config);
+    this.sharedProps.setPropOverride('minChars', itemConfig, config);
+    this.sharedProps.setPropOverride('debounceMs', itemConfig, config);
+    this.sharedProps.setPropOverride('maxResults', itemConfig, config);
+    this.sharedProps.setPropOverride('requireSelection', itemConfig, config);
+    this.sharedProps.setPropOverride('valueMode', itemConfig, config);
+    // Required for configured optionObject storage such as dc_title/grant_number.
+    this.sharedProps.setPropOverride('optionObjectFields', itemConfig, config);
+    this.sharedProps.setPropOverride('cacheResults', itemConfig, config);
+    this.sharedProps.setPropOverride('multiSelect', itemConfig, config);
+    this.sharedProps.setPropOverride('placeholder', itemConfig, config);
+    this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, config);
+    this.sharedProps.setPropOverride('historicalVocabMode', itemConfig, config);
 
-    const sourceType = String(item.config.sourceType ?? 'static');
+    const sourceType = String(itemConfig.sourceType ?? 'static');
     if (sourceType === 'namedQuery' || sourceType === 'service') {
-      if (!item.config.labelField) {
-        item.config.labelField = 'label';
+      if (!itemConfig.labelField) {
+        itemConfig.labelField = 'label';
       }
-      if (!item.config.valueField) {
-        item.config.valueField = 'value';
+      if (!itemConfig.valueField) {
+        itemConfig.valueField = 'value';
       }
       if (config?.cacheResults === undefined) {
-        item.config.cacheResults = false;
+        itemConfig.cacheResults = false;
       }
     } else if (config?.cacheResults === undefined) {
-      item.config.cacheResults = true;
+      itemConfig.cacheResults = true;
     }
 
-    const minChars = Number(item.config.minChars);
-    const debounceMs = Number(item.config.debounceMs);
-    const maxResults = Number(item.config.maxResults);
+    const minChars = Number(itemConfig.minChars);
+    const debounceMs = Number(itemConfig.debounceMs);
+    const maxResults = Number(itemConfig.maxResults);
     if (!Number.isInteger(minChars) || minChars < 0) {
-      item.config.minChars = 2;
+      itemConfig.minChars = 2;
     }
     if (!Number.isInteger(debounceMs) || debounceMs < 0) {
-      item.config.debounceMs = 250;
+      itemConfig.debounceMs = 250;
     }
     if (!Number.isInteger(maxResults) || maxResults <= 0) {
-      item.config.maxResults = 25;
+      itemConfig.maxResults = 25;
     }
 
-    item.config.requireSelection = Boolean(item.config.requireSelection);
-    item.config.multiSelect = Boolean(item.config.multiSelect);
+    itemConfig.requireSelection = Boolean(itemConfig.requireSelection);
+    itemConfig.multiSelect = Boolean(itemConfig.multiSelect);
+    item.config = itemConfig;
   }
 
   async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
@@ -2079,7 +2141,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.formPath,
       item,
       // Provide the model value so the component visible state can be set correctly.
-      this.currentModelValue(),
+      this.currentModelValue()
     );
 
     // Apply the reusable component overrides.
@@ -2176,11 +2238,25 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   ): AllFormComponentDefinitionOutlines {
     if (this.formMode === 'view') {
       const className = formComponent?.component?.class;
+      const componentConfig = formComponent?.component?.config as { inlineVocab?: boolean } | undefined;
       const shouldDeferToClientViewTransform =
         className === QuestionTreeComponentName ||
         className === RepeatableComponentName ||
-        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName);
+        (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
+        this.mostRecentRepeatableElementTemplatePath !== null ||
+        (
+          componentConfig?.inlineVocab === true &&
+          (
+            className === DropdownInputComponentName ||
+            className === CheckboxInputComponentName ||
+            className === RadioInputComponentName
+          )
+        );
       if (shouldDeferToClientViewTransform) {
+        if (formComponent.overrides?.replaceName !== undefined) {
+          (formComponent as { name: string | null }).name = formComponent.overrides.replaceName;
+          delete formComponent.overrides.replaceName;
+        }
         return formComponent;
       }
     }
@@ -2188,6 +2264,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     return this.formOverride.applyOverrideTransform(formComponent, this.formMode, {
       phase: 'construct',
       reusableFormDefs: this.reusableFormDefs,
+      removeOverrides: this.removeOverrides,
     }) as AllFormComponentDefinitionOutlines;
   }
 
@@ -2223,7 +2300,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (item?.config?.value !== undefined || config?.value !== undefined) {
       throw new Error(
         `${this.logName}: Use 'model.config.defaultValue' in form config ` +
-        `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `instead of 'model.config.value' - item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2238,8 +2315,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (!isElementTemplate && (item.config.newEntryValue !== undefined || config?.newEntryValue !== undefined)) {
       throw new Error(
         `${this.logName}: Only repeatable elementTemplates can define 'model.config.newEntryValue', ` +
-        `use 'model.config.defaultValue' in other places ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `use 'model.config.defaultValue' in other places ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2247,9 +2324,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate new item default ` +
-        `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
-        `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `using 'elementTemplate.model.config.newEntryValue', not 'elementTemplate.model.config.defaultValue', ` +
+          `set the repeatable default in 'repeatable.model.config.defaultValue' ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2257,10 +2334,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplateDescendant && (item.config.defaultValue !== undefined || config?.defaultValue !== undefined)) {
       throw new Error(
         `${this.logName}: Set the repeatable elementTemplate descendant component new item default ` +
-        `using 'elementTemplate.model.config.newEntryValue', ` +
-        `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
-        `not the descendant components ` +
-        `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
+          `using 'elementTemplate.model.config.newEntryValue', ` +
+          `set the repeatable default in 'repeatable.model.config.defaultValue', ` +
+          `not the descendant components ` +
+          `- item: ${JSON.stringify(item)} config: ${JSON.stringify(config)}`
       );
     }
 
@@ -2379,7 +2456,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     if (isElementTemplate || isElementTemplateDescendant) {
       throw new Error(
         `${this.logName}: Cannot merge default values for a repeatable elementTemplate or descendants ` +
-        `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
+          `- itemName: ${JSON.stringify(itemName)} itemDefaultValue: ${JSON.stringify(itemDefaultValue)}`
       );
     }
 
@@ -2411,7 +2488,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   private sanitizeMapEnabledModes(rawModes: unknown, source: 'construct' | 'migrate'): MapDrawingMode[] {
-    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'select'];
+    const fallback: MapDrawingMode[] = ['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select'];
     if (!Array.isArray(rawModes)) {
       return fallback;
     }
@@ -2423,6 +2500,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         mode === 'polygon' ||
         mode === 'linestring' ||
         mode === 'rectangle' ||
+        mode === 'circle' ||
         mode === 'select'
       ) {
         validModes.push(mode);

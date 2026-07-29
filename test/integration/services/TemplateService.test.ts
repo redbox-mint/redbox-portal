@@ -1,9 +1,16 @@
+import {
+  arrayStartsWithArray,
+  DynamicScriptResponse,
+  DynamicScriptResponseEvaluateExtra
+} from "@researchdatabox/sails-ng-common";
+
+const jsonataHelpers = require("../../../packages/sails-ng-common/dist/src/jsonata-helpers");
+const handlebarsHelpers = require("../../../packages/sails-ng-common/dist/src/handlebars-helpers");
 
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const nodePath = require('node:path');
 const ejs = require('ejs');
-const Handlebars = require('handlebars');
 
 /*
  * The tests are using `require()` instead of `await import()` because this package is a commonjs type, not module.
@@ -21,9 +28,10 @@ const simulateBrowserLoadingJsFile = async function (value, callback) {
         tempDir = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'testing-'));
         const path = `${tempDir}/compile-mapping.js`;
         await fs.writeFile(path, value);
-        callback(path);
+        await callback(path);
     } catch (err) {
         console.error(err);
+        throw err;
     } finally {
         if (tempDir) {
             await fs.rm(tempDir, { recursive: true, force: true });
@@ -35,20 +43,23 @@ describe('The TemplateService', function () {
     describe('Handlebars template', function () {
         const cases = [
             {
-                args: { template: "Handlebars <b>{{doesWhat}}</b> precompiled!", context: { doesWhat: "testing" } },
+                args: {
+                  template: "Handlebars <b>{{doesWhat}}</b> precompiled!",
+                  context: { doesWhat: "testing" }
+                },
                 expected: "Handlebars <b>testing</b> precompiled!",
             }
         ];
         cases.forEach(({ args, expected }) => {
             it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
                 // server
-                const serverReady = TemplateService.buildServerHandlebars(args.template);
+                const serverReady = handlebarsHelpers.handlebarsCompile(args.template);
                 const serverResult = serverReady ? serverReady(args.context) : "";
                 expect(serverResult).to.eql(expected);
 
                 // client
                 let clientString = TemplateService.buildClientHandlebars(args.template);
-                clientString = `export const testingData = Handlebars.template(${clientString});`
+                clientString = `const Handlebars = require(${JSON.stringify(require.resolve('handlebars'))}); exports.testingData = Handlebars.template(${clientString});`
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
                     const clientResult = clientReady.testingData(args.context);
@@ -58,6 +69,14 @@ describe('The TemplateService', function () {
         });
     });
     describe('compile mapping', function () {
+      const extraHandlebars = {libraries: {handlebars: handlebarsHelpers.handlebarsTemplate}};
+      const extraJsonata = {libraries: {jsonata: jsonataHelpers.jsonataDecodeCompile}};
+      const extraHandlebarsAndJsonata = {
+        libraries: {
+          handlebars: handlebarsHelpers.handlebarsTemplate,
+          jsonata: jsonataHelpers.jsonataDecodeCompile
+        }
+      };
         const cases = [
             {
                 args: { inputs: [], contexts: [] },
@@ -67,13 +86,17 @@ describe('The TemplateService', function () {
                 args: {
                     inputs: [
                         { key: ['test1'], kind: "handlebars", value: "Handlebars <b>{{doesWhat}}</b> precompiled!" },
-                        { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" }
+                        { key: ['test2'], kind: "jsonata", value: "$sum(example.value)" },
+                        { key: ['test3'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test4'], kind: "jsonata", value: "$eval(\"1+1\")" },
                     ],
                     contexts: [
-                        { key: ["test1"], context: { doesWhat: "testing" } },
-                        { key: ["test1"], context: { doesWhat: "another one" } },
-                        { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: {} },
-                        { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: {} },
+                        { key: ["test1"], context: { doesWhat: "testing" }, extra: extraHandlebars },
+                        { key: ["test1"], context: { doesWhat: "another one" }, extra: extraHandlebars },
+                        { key: ["test2"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: extraJsonata},
+                        { key: ["test2"], context: { example: [{ value: 52 }, { value: 185 }] }, extra: extraJsonata },
+                        { key: ["test3"], context: {}, extra: extraJsonata },
+                        { key: ["test4"], context: {}, extra: extraJsonata },
                     ]
                 },
                 expected: [
@@ -81,18 +104,54 @@ describe('The TemplateService', function () {
                     "Handlebars <b>another one</b> precompiled!",
                     24,
                     237,
+                    false,
+                    new Error('Attempted to invoke eval'),
+                ],
+            },
+            {
+                args: {
+                    inputs: [
+                        { key: ['test1'], kind: "jsonata", value: "$sum(example.value)" },
+                        { key: ['test2'], kind: "jsonata", value: "$exists($jsonata)" },
+                        { key: ['test3'], kind: "jsonata", value: "$eval(\"1+a\", {\"a\":2})" },
+                        { key: ['test4'], kind: "jsonata", value: "$jsonata(\"1+a\", {\"a\": 2})" },
+                    ],
+                    contexts: [
+                        { key: ["test1"], context: { example: [{ value: 4 }, { value: 7 }, { value: 13 }] }, extra: extraJsonata },
+                        { key: ["test2"], context: {}, extra: extraJsonata },
+                        { key: ["test3"], context: {}, extra: extraJsonata },
+                        { key: ["test4"], context: {}, extra: extraJsonata },
+                    ]
+                },
+                expected: [
+                    24,
+                    false,
+                    new Error('Attempted to invoke eval'),
+                    new Error('Attempted to invoke a non-function'),
                 ],
             },
         ];
         cases.forEach(({ args, expected }) => {
-            it(`should have expected result using args "${JSON.stringify(args)}" expected "${JSON.stringify(expected)}"`, async function () {
+          it(`should have expected result with ${JSON.stringify(args.contexts.map((c, index) => {
+            return {
+              key: c.key,
+              context: c.context,
+              ...args.inputs.find(i =>
+                  i.key.length === c.key.length && i.key.every((k, keyIndex) =>
+                    k === c.key[keyIndex]
+                  )
+              ),
+              expected: expected[index],
+            }
+          }))}`, async function () {
                 // client
                 const clientMapping = TemplateService.buildClientMapping(args.inputs);
 
                 // Verify structure matches new implementation (key is [string], value has (context))
                 // For handlebars:
-                const handlebarsItem = clientMapping.find(i => i.key[0] === 'test1');
-                if (handlebarsItem) {
+                const handlebarsInput = args.inputs.find(i => i.kind === 'handlebars');
+                if (handlebarsInput) {
+                    const handlebarsItem = clientMapping.find(i => i.key[0] === handlebarsInput.key[0]);
                     expect(handlebarsItem.key).to.be.an('array');
                     expect(handlebarsItem.value).to.contain('(context)');
                 }
@@ -101,16 +160,61 @@ describe('The TemplateService', function () {
                 const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
                 const clientString = ejs.render(templateContent, { entries: clientMapping });
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
-                    const clientReady = require(path);
+                    const clientReady = require(path) as DynamicScriptResponse;
                     for (let i = 0; i < args.contexts.length; i++) {
                         const context = args.contexts[i];
+                        const input = args.inputs.find(i => arrayStartsWithArray(i.key, context.key));
                         const expectedValue = expected[i];
-                        const extra = Object.assign({}, { libraries: { Handlebars: Handlebars } }, context.extra ?? {});
-                        const result = clientReady.evaluate(context.key, context.context, extra);
-                        expect(result).to.eql(expectedValue);
+                        const extra: DynamicScriptResponseEvaluateExtra = context.extra ?? {};
+                        if (input?.kind === "handlebars") {
+                          expect(typeof extra.libraries?.handlebars).to.eql('function');
+                        }
+                        if (input?.kind === "jsonata") {
+                          expect(typeof extra.libraries?.jsonata).to.eql('function');
+                        }
+                        try {
+                          const result = await clientReady.evaluate(context.key, context.context, extra);
+                          expect(result).to.eql(expectedValue);
+                        } catch (err) {
+                          const errObj: Record<string, unknown> = (err as Record<string, unknown>) ?? {};
+                          if (errObj.message && expectedValue instanceof Error) {
+                            expect(err.message).to.eql(expectedValue.message);
+                          } else {
+                            expect.fail(`Threw unexpected error': ${JSON.stringify({
+                              'err': {
+                                'typeof': typeof err, 'isError': err instanceof Error, 'string': err?.toString(), 'obj': err
+                              },
+                              'expected': {
+                                'typeof': typeof expectedValue, 'isError': expectedValue instanceof Error, 'string': expectedValue?.toString(), 'obj': expectedValue
+                              },
+                            })}`);
+                          }
+                        }
                     }
                 });
 
+            });
+        });
+
+        it('should encode JSONata expressions as inert data in generated client mappings', async function () {
+            const expression = '"\\"); globalThis.__jsonataInjected = true; (\\""';
+            const clientMapping = TemplateService.buildClientMapping([
+                { key: ['unsafe-jsonata'], kind: 'jsonata', value: expression },
+            ]);
+
+            expect(clientMapping).to.have.length(1);
+            expect(clientMapping[0].value).to.not.contain(expression);
+
+            const templateContent = await fs.readFile('./views/dynamicScriptAsset.ejs', { encoding: 'utf8' });
+            const clientString = ejs.render(templateContent, { entries: clientMapping });
+
+            await simulateBrowserLoadingJsFile(clientString, async (path) => {
+                delete globalThis.__jsonataInjected;
+                const clientReady = require(path);
+                const result = await clientReady.evaluate(['unsafe-jsonata'], {}, extraHandlebarsAndJsonata);
+
+                expect(result).to.eql('"); globalThis.__jsonataInjected = true; ("');
+                expect(globalThis.__jsonataInjected).to.be.undefined;
             });
         });
     });

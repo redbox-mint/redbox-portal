@@ -1,10 +1,9 @@
-import {FormConfigFrame, buildKeyString} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
-import Handlebars from "handlebars";
 
 
 
@@ -13,9 +12,7 @@ describe('ContentComponent', () => {
   let translationService: any;
   let lastTemplateContext: any;
   let dynamicAssetOptions: DynamicAssetOptions
-  const mockHandlebarsTemplateService = {
-    getLibraries: () => ({ Handlebars })
-  };
+  const mockHandlebarsTemplateService = {};
 
   beforeEach(async () => {
     lastTemplateContext = undefined;
@@ -46,7 +43,12 @@ describe('ContentComponent', () => {
               if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
                 return context?.translationService?.t?.('@missing.translation.key') ?? '';
               }
-              return Handlebars.compile('<h3>{{content}}</h3>')(context);
+              if (context?.content === 'USE_MARKDOWN_TEMPLATE') {
+                return context?.outputFormat === 'markdown'
+                  ? '<h2>Hi <strong>How does this render</strong></h2><table><tbody><tr><td>and</td><td>not</td><td>something</td></tr></tbody></table>'
+                  : context?.content;
+              }
+              return handlebarsCompile('<h3>{{content}}</h3>')(context);
             default:
               throw new Error(`Unknown key: ${keyStr}`);
           }
@@ -95,6 +97,66 @@ describe('ContentComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const element = compiled.querySelector('h3');
     expect((element as HTMLHeadingElement)?.textContent).toEqual('My first text block component!!!');
+    expect(compiled.querySelector('.rb-form-content')?.classList.contains('rb-form-rich-text-content')).toBeFalse();
+  });
+
+  for (const content of [0, false]) {
+    it(`should render falsy content ${JSON.stringify(content)} through a template`, async () => {
+      const formConfig: FormConfigFrame = {
+        name: 'testing',
+        componentDefinitions: [
+          {
+            name: 'falsy_content',
+            component: {
+              class: 'ContentComponent',
+              config: {
+                content,
+                template: '<h3>{{content}}</h3>'
+              }
+            }
+          }
+        ]
+      };
+
+      const {fixture} = await createFormAndWaitForReady(
+        formConfig, undefined, undefined, dynamicAssetOptions);
+
+      expect(lastTemplateContext?.content).toBe(content);
+      expect(fixture.nativeElement.querySelector('h3')?.textContent).toBe(String(content));
+    });
+  }
+
+  it('should expose outputFormat to content templates for markdown rich text view rendering', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: 'markdown_content',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              content: 'USE_MARKDOWN_TEMPLATE',
+              outputFormat: 'markdown',
+              template: '{{{markdownToHtml content outputFormat}}}'
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture} = await createFormAndWaitForReady(
+      formConfig, undefined, undefined, dynamicAssetOptions);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(lastTemplateContext?.outputFormat).toEqual('markdown');
+    expect(compiled.querySelector('.rb-form-content')?.classList.contains('rb-form-rich-text-content')).toBeTrue();
+    expect(compiled.querySelector('h2')?.innerHTML).toContain('<strong>How does this render</strong>');
+    expect(compiled.querySelector('table td')?.textContent).toEqual('and');
   });
 
   it('should render content as-is when contentIsTranslationCode is false', async () => {

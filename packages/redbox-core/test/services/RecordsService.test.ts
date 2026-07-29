@@ -174,6 +174,18 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('describeError', function () {
+    it('should truncate circular cause chains', function () {
+      const error = Object.assign(new Error('upload failed'), { name: 'UploadError' }) as Error & { cause?: unknown };
+      error.cause = error;
+
+      const result = RecordsService.describeError(error);
+
+      expect(result).to.include('UploadError: upload failed');
+      expect(result).to.include('[cause chain truncated]');
+    });
+  });
+
   describe('getStorageService', function () {
     it('should use configured storage service', function () {
       RecordsService.getStorageService();
@@ -629,7 +641,11 @@ describe('RecordsService', function () {
       const workflowStep = {
         config: { form: 'default-form' }
       };
-      const form = { attachmentFields: ['dataLocations'] };
+      const form = {
+        configuration: {
+          attachmentFields: ['dataLocations']
+        }
+      };
 
       const result = (RecordsService as any).initRecordMetaMetadata(
         'brand-1', 'testuser', recordType, workflowStep, form, '2024-01-01T00:00:00Z'
@@ -640,7 +656,49 @@ describe('RecordsService', function () {
       expect(result).to.have.property('type', 'rdmp');
       expect(result).to.have.property('packageType', 'rdmp');
       expect(result).to.have.property('form', 'default-form');
+      expect(result).to.have.property('attachmentFields', form.configuration.attachmentFields);
+    });
+
+    it('falls back to top-level attachmentFields when configuration is absent', function () {
+      const recordType = {
+        name: 'rdmp',
+        packageType: 'rdmp',
+        packageName: 'RDMP',
+        searchCore: 'default'
+      };
+      const workflowStep = {
+        config: { form: 'default-form' }
+      };
+      const form = {
+        attachmentFields: ['dataLocations']
+      };
+
+      const result = (RecordsService as any).initRecordMetaMetadata(
+        'brand-1', 'testuser', recordType, workflowStep, form, '2024-01-01T00:00:00Z'
+      );
+
       expect(result).to.have.property('attachmentFields', form.attachmentFields);
+    });
+  });
+
+  describe('bindPendingAttachmentOids', function () {
+    it('rebinds pending attachment URLs and clears the pending flag', function () {
+      const metadata = {
+        attachments: [{
+          pending: true,
+          location: '/record/pending-oid/attach/file-123',
+          uploadUrl: 'http://localhost/record/pending-oid/attach/file-123',
+          fileId: 'file-123'
+        }]
+      };
+
+      (RecordsService as any).bindPendingAttachmentOids(metadata, ['attachments'], 'oid-100');
+
+      expect(metadata.attachments[0]).to.deep.include({
+        pending: false,
+        location: '/record/oid-100/attach/file-123',
+        uploadUrl: 'http://localhost/record/oid-100/attach/file-123'
+      });
     });
   });
 

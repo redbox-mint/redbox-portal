@@ -1,30 +1,9 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
-import { Observable, of, firstValueFrom } from 'rxjs';
+import { of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAttributes } from '../waterline-models/User';
-
-declare const UsersService: {
-  getUsersForBrand: (brand: BrandingModel | string) => Observable<UserAttributes[]>;
-  setUserKey: (userid: string, uuid: string) => Observable<unknown>;
-  updateUserRoles: (userid: string, roleIds: string[]) => Observable<unknown>;
-  updateUserDetails: (userid: string, name: string, email: string, password: string) => Observable<unknown>;
-  addLocalUser: (username: string, name: string, email: string, password: string) => Observable<globalThis.Record<string, unknown>>;
-  enrichUsersWithEffectiveDisabledState: <T extends UserAttributes>(users: T[]) => Promise<T[]>;
-  searchLinkCandidates: (query: string, brandId: string, primaryUserId: string) => Observable<globalThis.Record<string, unknown>[]>;
-  getLinkedAccounts: (primaryUserId: string) => Observable<globalThis.Record<string, unknown>>;
-  getUserWithId: (userId: string) => Observable<UserAttributes | null>;
-  getUserAudit: (userId: string) => Promise<{ records: unknown[]; summary: globalThis.Record<string, unknown> }>;
-  linkAccounts: (primaryUserId: string, secondaryUserId: string, actor: string, brandId: string) => Observable<globalThis.Record<string, unknown>>;
-  disableUser: (userId: string, actor: string, brandId: string) => Promise<void>;
-  enableUser: (userId: string, actor: string, brandId: string) => Promise<void>;
-};
-declare const RolesService: {
-  getRolesWithBrand: (brand: BrandingModel) => Observable<globalThis.Record<string, unknown>[]>;
-  getRoleIds: (roles: unknown, roleNames: string[]) => string[];
-  getAdminFromBrand: (brand: BrandingModel) => unknown;
-};
 
 export namespace Controllers {
   /**
@@ -140,7 +119,7 @@ export namespace Controllers {
       const pageData: globalThis.Record<string, unknown> = {};
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       RolesService.getRolesWithBrand(brand).pipe(flatMap((roles) => {
-        _.map(roles as globalThis.Record<string, unknown>[], (role: globalThis.Record<string, unknown>) => {
+        _.map(roles, (role) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
             if (_.isEmpty(pageData.roles)) {

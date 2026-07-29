@@ -30,6 +30,17 @@ export function parseAgendaQueueBackend(value: string | undefined, source = 'age
     throw new Error(`Invalid ${source} value '${value}'. Expected one of: ${AGENDA_QUEUE_BACKENDS.join(', ')}.`);
 }
 
+export function parseAgendaHistoryRetentionHours(value: string | undefined, source = 'agendaQueue.options.historyRetentionHours'): number | undefined {
+    if (typeof value === 'undefined') {
+        return undefined;
+    }
+    const hours = Number(value);
+    if (Number.isFinite(hours) && hours >= 0) {
+        return hours;
+    }
+    throw new Error(`Invalid ${source} value '${value}'. Expected a non-negative number of hours.`);
+}
+
 export interface AgendaQueueSqsOptions {
     queueUrl: string;
     region?: string;
@@ -53,9 +64,7 @@ export interface AgendaJobOptions {
     priority?: 'lowest' | 'low' | 'normal' | 'high' | 'highest' | number;
 }
 
-export interface AgendaJobDefinition {
-    /** Unique job name */
-    name: string;
+export interface AgendaJobConfig {
     /** Function to execute: 'service.method' format */
     fnName: string;
     /** Queue backend override */
@@ -65,6 +74,13 @@ export interface AgendaJobDefinition {
     /** Schedule configuration */
     schedule?: AgendaJobSchedule;
 }
+
+export interface AgendaJobDefinition extends AgendaJobConfig {
+    /** Unique job name */
+    name: string;
+}
+
+export type AgendaJobsConfig = Record<string, AgendaJobConfig>;
 
 export interface AgendaQueueOptions {
     /** Default backend for jobs without an override */
@@ -77,6 +93,8 @@ export interface AgendaQueueOptions {
     defaultLockLifetime?: number;
     /** Process every interval */
     processEvery?: string;
+    /** Hours to retain completed jobs in the history collection */
+    historyRetentionHours?: number;
     /** SQS backend configuration */
     sqs?: AgendaQueueSqsOptions;
 }
@@ -84,8 +102,8 @@ export interface AgendaQueueOptions {
 export interface AgendaQueueConfig {
     /** Agenda options */
     options?: AgendaQueueOptions;
-    /** Job definitions */
-    jobs: AgendaJobDefinition[];
+    /** Job definitions, keyed by unique job name */
+    jobs: AgendaJobsConfig;
 }
 
 export const agendaQueue: AgendaQueueConfig = {
@@ -94,10 +112,10 @@ export const agendaQueue: AgendaQueueConfig = {
         db: process.env['sails__agendaQueue_options_db'] ?? '',
         collection: process.env['sails__agendaQueue_options_collection'] ?? 'agendaJobs',
         processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? '5 seconds',
+        historyRetentionHours: parseAgendaHistoryRetentionHours(process.env['sails__agendaQueue_options_historyRetentionHours'], 'sails__agendaQueue_options_historyRetentionHours') ?? 25,
     },
-    jobs: [
-        {
-            name: 'SolrSearchService-CreateOrUpdateIndex',
+    jobs: {
+        'SolrSearchService-CreateOrUpdateIndex': {
             fnName: 'solrsearchservice.solrAddOrUpdate',
             options: {
                 lockLifetime: 3 * 1000,
@@ -105,8 +123,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'SolrSearchService-DeleteFromIndex',
+        'SolrSearchService-DeleteFromIndex': {
             fnName: 'solrsearchservice.solrDelete',
             options: {
                 lockLifetime: 3 * 1000,
@@ -114,8 +131,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'RecordsService-StoreRecordAudit',
+        'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
             options: {
                 lockLifetime: 30 * 1000,
@@ -123,8 +139,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'IntegrationAuditService-StoreIntegrationAudit',
+        'IntegrationAuditService-StoreIntegrationAudit': {
             fnName: 'integrationauditservice.storeIntegrationAudit',
             options: {
                 lockLifetime: 30 * 1000,
@@ -132,21 +147,22 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'RaidMintRetryJob',
+        'IntegrationNotificationService-Dispatch': {
+            fnName: 'integrationnotificationservice.dispatch',
+            options: { lockLifetime: 30000, lockLimit: 1, concurrency: 1 }
+        },
+        'RaidMintRetryJob': {
             fnName: 'raidservice.mintRetryJob',
 
         },
-        {
-            name: 'MoveCompletedJobsToHistory',
+        'MoveCompletedJobsToHistory': {
             fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
             schedule: {
                 method: 'every',
                 intervalOrSchedule: '5 minutes'
             }
         },
-        {
-            name: 'Figshare-PublishAfterUpload-Service',
+        'Figshare-PublishAfterUpload-Service': {
             fnName: 'figshareservice.publishAfterUploadFilesJob',
             options: {
                 lockLifetime: 120 * 1000,
@@ -154,8 +170,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
-        {
-            name: 'Figshare-UploadedFilesCleanup-Service',
+        'Figshare-UploadedFilesCleanup-Service': {
             fnName: 'figshareservice.deleteFilesFromRedbox',
             options: {
                 lockLifetime: 120 * 1000,
@@ -163,5 +178,5 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         }
-    ]
+    }
 };

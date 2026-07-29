@@ -4,7 +4,7 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
   "view-template-leaf-plain": [
     {
       name: "view_template_leaf_plain",
-      component: {class: "ContentComponent", config: {template: "<span>{{content}}</span>"}},
+      component: {class: "ContentComponent", config: {template: "<span>{{{plaintextToHtml content}}}</span>"}},
     },
   ],
   "view-template-leaf-date": [
@@ -52,7 +52,7 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
       component: {
         class: "ContentComponent",
         config: {
-          template: "<ul class=\"rb-view-file-upload\">{{#each [[valueExpr]]}}<li>{{#if this.url}}<a href=\"{{this.url}}\" target=\"_blank\" rel=\"noopener\">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class=\"text-muted\"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>"
+          template: "<ul class=\"rb-view-file-upload\">{{#each [[valueExpr]]}}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href=\"{{attachmentDownloadUrl this oid branding portal}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class=\"text-muted\"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>"
         }
       },
     },
@@ -64,6 +64,17 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
         class: "ContentComponent",
         config: {
           template: "{{#if [[valueExpr]]}}<div class=\"table-responsive mt-2\"><table class=\"table table-bordered table-striped table-hover mb-0 rb-view-data-location\"><thead><tr><th width=\"15%\">[[typeHeaderHtml]]</th><th width=\"40%\">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type \"url\") (eq this.type \"attachment\"))}}<a href=\"{{default this.url this.location}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}"
+        }
+      },
+    },
+  ],
+  "view-template-leaf-link": [
+    {
+      name: "view_template_leaf_link",
+      component: {
+        class: "ContentComponent",
+        config: {
+          template: "{{#if [[valueExpr]]}}<a href=\"{{default [[valueExpr]] \"\"}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default [[valueExpr]] \"\"}}</a>{{/if}}"
         }
       },
     },
