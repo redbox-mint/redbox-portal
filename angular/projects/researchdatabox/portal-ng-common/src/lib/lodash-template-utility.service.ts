@@ -122,7 +122,7 @@ export class LoDashTemplateUtilityService {
       variable: 'data'
     };
     const template = _template(config.template, templateOptions);
-    const templateRes = template();
+    const templateRes = template(data);
     if (config.json == true && !_isEmpty(templateRes)) {
       return JSON.parse(templateRes);
     }
