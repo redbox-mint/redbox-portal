@@ -263,30 +263,57 @@ export namespace Services {
     }
 
     private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): string {
-      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
-      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+      const params = new URLSearchParams();
+
+      const baseQuery = queryConfig.searchQuery.baseQuery;
+      const qParamIndex = baseQuery.indexOf('q=');
+      if (qParamIndex !== -1) {
+        const qEndIndex = baseQuery.indexOf('&', qParamIndex + 2);
+        const qValue = qEndIndex !== -1 ? baseQuery.substring(qParamIndex + 2, qEndIndex) : baseQuery.substring(qParamIndex + 2);
+        params.append('q', qValue);
+        const remaining = qEndIndex !== -1 ? baseQuery.substring(qEndIndex + 1) : '';
+        if (remaining) {
+          const extraParts = remaining.split('&');
+          for (const part of extraParts) {
+            const eqIndex = part.indexOf('=');
+            if (eqIndex !== -1) {
+              params.append(part.substring(0, eqIndex), part.substring(eqIndex + 1));
+            }
+          }
+        }
+      } else {
+        params.append('q', '*:*');
+      }
+
+      params.append('sort', 'date_object_modified desc');
+      params.append('version', '2.2');
+      params.append('start', String(start));
+      params.append('rows', String(rows));
+      params.append('fq', `metaMetadata_brandId:${brand.id}`);
+      params.append('wt', format);
 
       if (queryConfig.queryField.type == 'text') {
         const value = searchString;
         if (!_.isEmpty(value)) {
           const searchProperty = queryConfig.queryField.property;
-          query = query + '&fq=' + searchProperty + ':';
+          let fqValue = searchProperty + ':';
           if (value.indexOf('*') != -1) {
-            query = query + value.replaceAll('*', '') + '*';
+            fqValue = fqValue + value.replaceAll('*', '') + '*';
           } else {
-            query = query + value + '*';
+            fqValue = fqValue + value + '*';
           }
+          params.append('fq', fqValue);
         }
       }
 
       if (queryConfig.userQueryFields != null) {
         for (const userQueryField of queryConfig.userQueryFields) {
           const searchProperty = userQueryField.property;
-          query = query + '&fq=' + searchProperty + ':' + _.get(user, userQueryField.userValueProperty, null);
+          params.append('fq', searchProperty + ':' + _.get(user, userQueryField.userValueProperty, null));
         }
       }
 
-      return query;
+      return params.toString();
     }
 
     private getSearchService(): SearchService {
