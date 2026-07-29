@@ -113,7 +113,6 @@ These settings tell Redbox where to store figshare-related state inside a record
 | Option | What it means |
 |---|---|
 | `Article ID Path` | Record path where the Figshare article id is stored. |
-| `Article URL Paths` | One or more record paths where public article URLs are written. |
 | `Data Locations Path` | Path to the record's file/link array used for asset sync. |
 | `Status Path` | Path where sync status such as `syncing`, `published`, or `failed` is written. |
 | `Error Path` | Path where the last error message is stored. |
@@ -149,7 +148,6 @@ This section controls how record contributors are turned into Figshare authors.
 
 | Option | What it means |
 |---|---|
-| `Source Strategy` | Current supported strategy is `defaultRedboxContributors`. |
 | `Unique By` | De-duplicates contributors by `email`, `orcid`, `username`, or not at all. |
 | `External Name Field` | Fallback contributor field used when a Figshare institution account match is not found. |
 | `Max Inline Authors` | Maximum number of authors to send in the payload. |
@@ -346,20 +344,18 @@ This section controls file and URL handling.
 |---|---|
 | `Enable Hosted Files` | Upload attachment-type `dataLocations` entries as hosted Figshare files. |
 | `Enable Link Files` | Create link-only Figshare files from URL-type `dataLocations` entries. |
-| `Dedupe Strategy` | Intended strategy for avoiding duplicate assets. Present in the UI and config contract, but current service behavior still mostly de-dupes attachments by file name. |
 
 #### Staging
 
 | Option | What it means |
 |---|---|
-| `Temp Directory` | Local staging directory used while streaming attachments to disk before multipart upload. Empty falls back to `/tmp`. |
-| `Cleanup Policy` | `deleteAfterSuccess` removes staged files after upload; `retainForRetry` keeps them on disk. |
-| `Disk Space Threshold Bytes` | Minimum free space buffer required before staging uploads. |
+| `Storage Disk` | StorageManager disk that staged attachments are written to. Defaults to `figshare-staging`. |
+| `Storage Key Prefix` | Key prefix applied to staged objects on that disk. Defaults to `figshare/`. |
+| `Cleanup Policy` | `deleteAfterSuccess` removes staged files after upload; `retainForRetry` keeps them for a later retry. |
 
 Recommendation:
 
-- Leave `Temp Directory` blank unless you need a dedicated volume.
-- Keep a generous disk threshold on systems with large attachment uploads.
+- Leave `Storage Disk` and `Storage Key Prefix` at their defaults unless staging needs its own volume or bucket.
 
 ### Embargo
 
@@ -395,7 +391,6 @@ This section is for optional follow-up workflow transitions once Figshare reache
 
 | Option | What it means |
 |---|---|
-| `Transition Rules` | Declarative transition rows reserved for rule-driven workflow behavior. |
 | `Transition Job -> Enabled` | Turns the scheduled workflow transition job on or off. |
 | `Named Query` | Named query used to find candidate records. |
 | `Target Step` | Workflow step that matching records should move to. |
@@ -475,7 +470,7 @@ Then provide the real token through environment management in the deployment pla
 | Sync fails with `Figshare crosswalk maps to categories removed upstream` | Mappings point at categories Figshare has retired | Re-sync the mirror and remap those entries, or turn on `Allow Unmapped Categories` to drop them with a warning |
 | Sync fails with `must use the 'categoryId' output` | The Categories Binding's crosswalk emits labels or source ids | Set the binding's `Output` to `categoryId`; use `label`/`sourceId` crosswalks on keywords or custom fields instead |
 | Attachments do not upload | Selection settings exclude them, or hosted files are disabled | Check `Attachment Mode`, `Selected Flag Path`, and `Enable Hosted Files` |
-| Uploads fail on large files | Local staging volume lacks space or timeout is too small | Review `Temp Directory`, `Disk Space Threshold Bytes`, and upload timeouts |
+| Uploads fail on large files | The staging disk lacks space or the timeout is too small | Review the `Storage Disk` capacity and the upload timeouts |
 | Article is not published automatically | `Publish Mode` is `manual`, or delayed publish has not run yet | Check `Publish Mode` and queue delay values |
 | Record never transitions workflow | Transition job is disabled or target article state is never reached | Check `Workflow -> Transition Job` settings and the article field/value pair |
 

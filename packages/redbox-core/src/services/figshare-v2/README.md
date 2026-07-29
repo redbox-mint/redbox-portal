@@ -14,6 +14,7 @@ Figshare multipart upload. The default disk is `figshare-staging`, with object k
 successful upload by default, or retained on success when `cleanupPolicy` is
 `retainForRetry`. Failed uploads always make a best-effort delete of the staged object.
 
-The legacy `tempDir` and `diskSpaceThresholdBytes` settings are retained for stored
-configuration compatibility, but Figshare staging no longer reads them. Capacity failures
-now surface from the configured StorageManager disk.
+The fs-era `tempDir` and `diskSpaceThresholdBytes` settings have been removed from the
+config model; capacity failures now surface from the configured StorageManager disk.
+Migration `20260729T060000-figshare-drop-unused-config-keys` strips them from stored
+configs.

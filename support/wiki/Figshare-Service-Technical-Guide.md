@@ -270,8 +270,7 @@ Responsibilities:
 - Decide which attachments and URLs are in scope using `selection.attachmentMode`, `selection.urlMode`, and `selection.selectedFlagPath`.
 - For hosted attachments:
   - stream the attachment from the configured datastream service
-  - stage it in `assets.staging.tempDir` or `/tmp`
-  - check disk space threshold
+  - stage it on the StorageManager disk named by `assets.staging.disk`, under `assets.staging.keyPrefix`
   - initialize the Figshare file upload
   - upload each part
   - complete the upload
@@ -282,7 +281,7 @@ Responsibilities:
 
 Current implementation note:
 
-- `assets.dedupeStrategy` is part of the config contract and the UI, but the current asset implementation still effectively de-dupes attachments by file name and link files by replacement behavior. The configured strategy is not yet applied in `syncAssetsPhase`.
+- Attachments are de-duped by file name and link files by replacement behaviour. There is no configurable dedupe strategy; the unused `assets.dedupeStrategy` setting was removed.
 
 ### `syncEmbargo`
 
@@ -426,8 +425,7 @@ global to avoid a module cycle between `bindings.ts` and `FigshareVocabularyServ
 | `CustomFieldBinding` | `figshareField`, `value`, `validations?` | Configures one Figshare custom field |
 | `CustomFieldValidation` | `type`, `value?` | Validation such as `required`, `maxLength`, `url`, or `doi` |
 | `AuthorLookupRule` | `matchBy`, `value` | How a contributor is matched to a Figshare institution account |
-| `EmbargoBinding` | `accessRights`, `fullEmbargoUntil?`, `fileEmbargoUntil?`, `reason?` | Mapping rules for embargo data |
-| `WorkflowTransitionRule` | `when`, `targetWorkflowStageName`, `targetWorkflowStageLabel?`, `targetForm?`, `ifArticleField?`, `equals?` | Declarative transition rule data, reserved for broader workflow use |
+| `EmbargoBinding` | `accessRights`, `fullEmbargoUntil?`, `reason?` | Mapping rules for embargo data |
 | `WriteBackBinding` | `from`, `sourcePath`, `targetPath` | Copies data from `article`, `publishResult`, or `assetSyncResult` into the record |
 
 ### Runtime and Record Types
@@ -557,11 +555,11 @@ Binding and crosswalk coverage:
 | `packages/redbox-core/test/services/FigshareVocabularyServiceResolve.test.ts` | `resolveCrosswalkValues` per output mode, the label fallback, historical exclusion, the fail-closed guards, and `getCrosswalkUsage` |
 | `packages/redbox-core/test/services/FigshareService.test.ts` | The `crosswalk category bindings` block: end-to-end categories resolution, `historicalTargets` × `allowUnmapped`, the `categoryId`-only rule, a `label` crosswalk feeding keywords, and a crosswalk under an author lookup rule |
 | `packages/redbox-core/test/migrations/figshare-categories-crosswalk-binding.test.ts` | The legacy-config migration, including double-run idempotency |
+| `packages/redbox-core/test/migrations/figshare-drop-unused-config-keys.test.ts` | Removal of the unread config keys, including the `articleUrlPaths` carry-over |
 | `angular/projects/researchdatabox/app-config/src/app/fieldTypes/value-binding-editor/value-binding-editor.type.spec.ts` | Crosswalk round-tripping through `toModelValue`/`syncValue`, and the DOI gating that omits the kind and its form controls |
 
 Recommended follow-up tests while refactoring:
 
-- explicit coverage for `assets.dedupeStrategy` once implemented
 - category mapping edge cases with mixed mapped/unmapped values
 - curation-lock update suppression
 - live-client request retries and timeout mapping

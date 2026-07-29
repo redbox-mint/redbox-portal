@@ -87,17 +87,7 @@ export interface AuthorLookupRule {
 export interface EmbargoBinding {
   accessRights: ValueBinding;
   fullEmbargoUntil?: ValueBinding;
-  fileEmbargoUntil?: ValueBinding;
   reason?: ValueBinding;
-}
-
-export interface WorkflowTransitionRule {
-  when: 'published' | 'republished' | 'embargoUpdated' | 'awaitingUploadCompletion';
-  targetWorkflowStageName: string;
-  targetWorkflowStageLabel?: string;
-  targetForm?: string;
-  ifArticleField?: string;
-  equals?: string | number | boolean;
 }
 
 export interface FigshareFixtureConfig {
@@ -172,7 +162,6 @@ export interface FigsharePublishingConfigData {
   };
   record: {
     articleIdPath: string;
-    articleUrlPaths: string[];
     dataLocationsPath: string;
     statusPath: string;
     errorPath: string;
@@ -185,7 +174,6 @@ export interface FigsharePublishingConfigData {
     selectedFlagPath: string;
   };
   authors: {
-    source: 'defaultRedboxContributors';
     contributorPaths: string[];
     uniqueBy: 'email' | 'orcid' | 'username' | 'none';
     externalNameField: string;
@@ -214,7 +202,6 @@ export interface FigsharePublishingConfigData {
   assets: {
     enableHostedFiles: boolean;
     enableLinkFiles: boolean;
-    dedupeStrategy: 'sourceId' | 'nameAndMd5' | 'url';
     staging: {
       /**
        * StorageManager disk name used to stage attachments before upload.
@@ -223,10 +210,6 @@ export interface FigsharePublishingConfigData {
       disk?: string;
       /** Key prefix for staged objects on the disk. Default: 'figshare/'. */
       keyPrefix?: string;
-      /** @deprecated fs-only; ignored once staging runs through StorageManagerService. */
-      tempDir?: string;
-      /** @deprecated fs-only pre-flight guard; the disk surfaces its own capacity errors. */
-      diskSpaceThresholdBytes: number;
       cleanupPolicy: 'deleteAfterSuccess' | 'retainForRetry';
     };
   };
@@ -240,7 +223,6 @@ export interface FigsharePublishingConfigData {
     uploadedFilesCleanupDelay: string;
   };
   workflow: {
-    transitionRules: WorkflowTransitionRule[];
     transitionJob: {
       enabled: boolean;
       namedQuery: string;
@@ -305,7 +287,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
 
   record = {
     articleIdPath: 'metadata.figshare_article_id',
-    articleUrlPaths: ['metadata.figshare_article_location'],
     dataLocationsPath: 'metadata.dataLocations',
     statusPath: 'metadata.figshareStatus',
     errorPath: 'metadata.figshareError',
@@ -320,7 +301,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   authors = {
-    source: 'defaultRedboxContributors' as const,
     contributorPaths: [
       'metadata.contributor_ci',
       'metadata.contributor_data_manager',
@@ -371,13 +351,10 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   assets = {
     enableHostedFiles: true,
     enableLinkFiles: true,
-    dedupeStrategy: 'sourceId' as 'sourceId' | 'nameAndMd5' | 'url',
     staging: {
       disk: 'figshare-staging',
       keyPrefix: 'figshare/',
-      tempDir: '',
       cleanupPolicy: 'deleteAfterSuccess' as 'deleteAfterSuccess' | 'retainForRetry',
-      diskSpaceThresholdBytes: 1073741824,
     },
   };
 
@@ -387,7 +364,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     accessRights: {
       accessRights: createDefaultBinding('metadata.accessRights', ''),
       fullEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
-      fileEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
       reason: createDefaultBinding('metadata.embargoReason'),
     },
   };
@@ -398,7 +374,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   workflow = {
-    transitionRules: [] as WorkflowTransitionRule[],
     transitionJob: {
       enabled: false,
       namedQuery: '',
@@ -620,12 +595,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       title: 'Record',
       properties: {
         articleIdPath: { type: 'string', title: 'Article ID Path', default: 'metadata.figshare_article_id' },
-        articleUrlPaths: {
-          type: 'array',
-          title: 'Article URL Paths',
-          items: { type: 'string' },
-          default: ['metadata.figshare_article_location'],
-        },
         dataLocationsPath: { type: 'string', title: 'Data Locations Path', default: 'metadata.dataLocations' },
         statusPath: { type: 'string', title: 'Status Path', default: 'metadata.figshareStatus' },
         errorPath: { type: 'string', title: 'Error Path', default: 'metadata.figshareError' },
@@ -656,12 +625,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Authors',
       properties: {
-        source: {
-          type: 'string',
-          title: 'Source Strategy',
-          enum: ['defaultRedboxContributors'],
-          default: 'defaultRedboxContributors',
-        },
         uniqueBy: {
           type: 'string',
           title: 'Unique By',
@@ -802,32 +765,17 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       properties: {
         enableHostedFiles: { type: 'boolean', title: 'Enable Hosted Files', default: true },
         enableLinkFiles: { type: 'boolean', title: 'Enable Link Files', default: true },
-        dedupeStrategy: {
-          type: 'string',
-          title: 'Dedupe Strategy',
-          enum: ['sourceId', 'nameAndMd5', 'url'],
-          default: 'sourceId',
-        },
         staging: {
           type: 'object',
           title: 'Staging',
           properties: {
             disk: { type: 'string', title: 'Storage Disk', default: 'figshare-staging' },
             keyPrefix: { type: 'string', title: 'Storage Key Prefix', default: 'figshare/' },
-            tempDir: { type: 'string', title: 'Temp Directory' },
             cleanupPolicy: {
               type: 'string',
               title: 'Cleanup Policy',
               enum: ['deleteAfterSuccess', 'retainForRetry'],
               default: 'deleteAfterSuccess',
-            },
-            diskSpaceThresholdBytes: {
-              type: 'integer',
-              title: 'Disk Space Threshold Bytes (deprecated, no-op)',
-              deprecated: true,
-              description:
-                'Deprecated and ignored. Staging now runs through StorageManagerService, which surfaces its own capacity errors; this value no longer acts as a pre-flight disk-space guard. Retained only for compatibility with stored configs.',
-              default: 1073741824,
             },
           },
         },
@@ -850,7 +798,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           properties: {
             accessRights: VALUE_BINDING_SCHEMA,
             fullEmbargoUntil: VALUE_BINDING_SCHEMA,
-            fileEmbargoUntil: VALUE_BINDING_SCHEMA,
             reason: VALUE_BINDING_SCHEMA,
           },
         },
@@ -868,25 +815,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Workflow',
       properties: {
-        transitionRules: {
-          type: 'array',
-          title: 'Transition Rules',
-          items: {
-            type: 'object',
-            properties: {
-              when: {
-                type: 'string',
-                title: 'When',
-                enum: ['published', 'republished', 'embargoUpdated', 'awaitingUploadCompletion'],
-              },
-              targetWorkflowStageName: { type: 'string', title: 'Target Workflow Stage Name' },
-              targetWorkflowStageLabel: { type: 'string', title: 'Target Workflow Stage Label' },
-              targetForm: { type: 'string', title: 'Target Form' },
-              ifArticleField: { type: 'string', title: 'Article Field' },
-              equals: { title: 'Equals' },
-            },
-          },
-        },
         transitionJob: {
           type: 'object',
           title: 'Transition Job',

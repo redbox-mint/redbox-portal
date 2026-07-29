@@ -268,7 +268,6 @@ function createMigratedFigsharePublishingConfig(
     },
     record: {
       articleIdPath: mapping.recordFigArticleId ?? 'metadata.figshare_article_id',
-      articleUrlPaths: Array.isArray(mapping.recordFigArticleURL) ? mapping.recordFigArticleURL : [mapping.recordFigArticleURL ?? 'metadata.figshare_article_location'],
       dataLocationsPath: mapping.recordDataLocations ?? 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
@@ -281,7 +280,6 @@ function createMigratedFigsharePublishingConfig(
       selectedFlagPath: 'selected'
     },
     authors: {
-      source: 'defaultRedboxContributors',
       uniqueBy: mapping.recordAuthorUniqueBy ?? 'email',
       externalNameField: mapping.recordAuthorExternalName ?? 'text_full_name',
       maxInlineAuthors: 50,
@@ -307,11 +305,8 @@ function createMigratedFigsharePublishingConfig(
     assets: {
       enableHostedFiles: true,
       enableLinkFiles: true,
-      dedupeStrategy: 'sourceId',
       staging: {
-        tempDir: String(figshareApi.attachmentsFigshareTempDir ?? ''),
-        cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1073741824
+        cleanupPolicy: 'deleteAfterSuccess'
       }
     },
     embargo: {
@@ -320,7 +315,6 @@ function createMigratedFigsharePublishingConfig(
       accessRights: {
         accessRights: { kind: 'path', path: 'metadata.accessRights' },
         fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
-        fileEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
         reason: { kind: 'path', path: 'metadata.embargoReason' }
       }
     },
@@ -329,7 +323,6 @@ function createMigratedFigsharePublishingConfig(
       uploadedFilesCleanupDelay: typeof mapping.scheduleUploadedFilesCleanupJob === 'string' ? mapping.scheduleUploadedFilesCleanupJob : 'in 5 minutes'
     },
     workflow: {
-      transitionRules: [],
       transitionJob: {
         enabled: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.enabled ?? 'false') === 'true',
         namedQuery: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.namedQuery ?? ''),
@@ -346,7 +339,10 @@ function createMigratedFigsharePublishingConfig(
     },
     writeBack: {
       articleId: 'metadata.figshare_article_id',
-      articleUrls: ['metadata.figshare_article_location'],
+      // The legacy article URL paths are write targets, so they belong to writeBack.
+      articleUrls: Array.isArray(mapping.recordFigArticleURL)
+        ? mapping.recordFigArticleURL
+        : [mapping.recordFigArticleURL ?? 'metadata.figshare_article_location'],
       extraFields: []
     },
     migrationReport: {

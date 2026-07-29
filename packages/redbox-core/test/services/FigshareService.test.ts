@@ -56,7 +56,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     record: {
       ...(config.record as Record<string, unknown>),
       articleIdPath: 'metadata.figshare_article_id',
-      articleUrlPaths: ['metadata.figshare_article_location'],
       dataLocationsPath: 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
@@ -100,14 +99,12 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       ...(config.assets as Record<string, unknown>),
       enableHostedFiles: true,
       enableLinkFiles: true,
-      dedupeStrategy: 'sourceId',
       ...(overrides.assets as Record<string, unknown> | undefined),
       // Deep-merge staging last so a partial `assets` override (or a partial
       // `assets.staging` override) cannot erase defaults like disk/keyPrefix.
       staging: {
         ...((config.assets as Record<string, unknown>).staging as Record<string, unknown>),
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...((overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined),
       },
     },
@@ -126,7 +123,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     },
     workflow: {
       ...(config.workflow as Record<string, unknown>),
-      transitionRules: [],
       ...(overrides.workflow as Record<string, unknown> | undefined),
       // Deep-merge transitionJob last so a partial `workflow` override (or a partial
       // `workflow.transitionJob` override) cannot erase the other transitionJob settings.
@@ -230,9 +226,7 @@ function buildLiveAssetConfig(overrides: Record<string, unknown> = {}) {
       staging: {
         disk: 'figshare-staging',
         keyPrefix: 'figshare/',
-        tempDir: '',
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...(overrides as { staging?: Record<string, unknown> }).staging,
       },
     },
@@ -1706,8 +1700,7 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.figshare_article_id',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
@@ -1793,16 +1786,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1836,16 +1827,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1881,16 +1870,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
