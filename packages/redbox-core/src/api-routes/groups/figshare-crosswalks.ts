@@ -51,14 +51,27 @@ const mappingSchema = objectField(
   ['id', 'revision', 'status', 'matchType', 'localEntryId', 'figshareCategoryId']
 );
 
+const localEntrySchema = objectField(
+  {
+    id: stringField(),
+    label: stringField(),
+    value: stringField(),
+    identifier: stringField(),
+    historical: booleanField(),
+    targetCount: integerField('Targets already mapped in the requested revision'),
+  },
+  ['id', 'label', 'value', 'targetCount']
+);
+
 const usageSchema = objectField(
   {
     brandName: stringField(),
     configKey: stringField(),
-    resolutionMode: stringField(),
+    bindingPath: stringField(),
+    outputs: stringField(),
     sourceVocabularyId: stringField(),
   },
-  ['brandName', 'configKey', 'resolutionMode']
+  ['brandName', 'configKey', 'bindingPath']
 );
 
 export const listFigshareCrosswalksRoute = apiRoute(
@@ -118,6 +131,28 @@ export const getFigshareCrosswalkUsageRoute = apiRoute(
     tags: ['Figshare Crosswalk'],
     summary: 'List the Figshare publishing configurations that select this crosswalk',
     responses: { 200: responseField(arrayField(usageSchema), 'Crosswalk usage') },
+  }
+);
+
+export const listFigshareCrosswalkLocalEntriesRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/figshare-crosswalks/:id/local-entries',
+  'webservice/FigshareCrosswalkController',
+  'listLocalEntries',
+  {
+    params: idParams,
+    query: objectField({
+      q: stringField(),
+      mapped: stringField("Filter by mapping state: 'mapped' or 'unmapped'"),
+      revision: stringField(),
+      limit: stringField(),
+      offset: stringField(),
+    }),
+  },
+  {
+    tags: ['Figshare Crosswalk'],
+    summary: 'Search the local vocabulary terms of a crosswalk with their target counts',
+    responses: { 200: responseField(listApiResponseSchema(localEntrySchema), 'Crosswalk local entries') },
   }
 );
 
@@ -232,6 +267,7 @@ export const figshareCrosswalkApiRoutes = [
   listFigshareCrosswalksRoute,
   createFigshareCrosswalkRoute,
   getFigshareCrosswalkUsageRoute,
+  listFigshareCrosswalkLocalEntriesRoute,
   listFigshareCrosswalkMappingsRoute,
   saveFigshareCrosswalkMappingsRoute,
   approveFigshareCrosswalkRoute,

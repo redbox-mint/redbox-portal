@@ -12,7 +12,9 @@ import {
   RecordContributor,
   getRecordField,
 } from './types';
-import { evaluateBinding } from './bindings';
+import { evaluateBinding, resolveCrosswalkBinding } from './bindings';
+import { BindingContext, createBindingContext } from './context';
+import { toSourceCodeCandidates } from './categories';
 
 const figshareLicenseCache = new Map<string, FigshareLicense[]>();
 const relatedMaterialTitleKeys = ['related_title', 'title', 'name'];
@@ -61,7 +63,7 @@ function applyAuthorLookupTransform(config: FigsharePublishingConfigData, matchB
   return normalized;
 }
 
-async function resolveAuthors(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel): Promise<Array<{ id?: number | string; name?: string }>> {
+async function resolveAuthors(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, context: BindingContext): Promise<Array<{ id?: number | string; name?: string }>> {
   const contributors = getDefaultContributors(config, record);
   if (contributors.length === 0) {
     return [];
@@ -75,7 +77,9 @@ async function resolveAuthors(client: FigshareClient, config: FigsharePublishing
   for (const contributor of uniqueContributors.slice(0, config.authors.maxInlineAuthors)) {
     let matched = false;
     for (const rule of config.authors.lookup) {
-      const rawValue = await evaluateBinding(rule.value, contributor as Record<string, unknown>);
+      // The evaluation target is the contributor, so the brand can only come from
+      // the context.
+      const rawValue = await evaluateBinding(rule.value, contributor as Record<string, unknown>, context);
       const value = typeof rawValue === 'string' ? applyAuthorLookupTransform(config, rule.matchBy, rawValue) : rawValue;
       if (value == null || value === '') {
         continue;
@@ -115,6 +119,11 @@ function matchesLicense(matchBy: FigsharePublishingConfigData['metadata']['licen
   return candidate.includes(normalized);
 }
 
+/**
+ * Legacy mapping-table normalisation. Deliberately does NOT lowercase: mapping
+ * table rows are compared case-sensitively, so folding case here would silently
+ * stop alphanumeric source codes from matching.
+ */
 function normalizeCategorySourceCode(value: unknown): string {
   const rawValue = String(value ?? '').trim();
   if (rawValue === '') {
@@ -125,83 +134,66 @@ function normalizeCategorySourceCode(value: unknown): string {
   return delimiterIndex === -1 ? withoutQuery : withoutQuery.slice(delimiterIndex + 1);
 }
 
-function resolveBrandId(record: RecordModel): string {
-  const rawBrand = String(record?.metaMetadata?.brandId ?? (record as Record<string, unknown>)?.branding ?? '').trim();
-  if (rawBrand === '') {
-    return '';
-  }
-  const brandingService = typeof BrandingService === 'undefined' ? undefined : BrandingService;
-  if (brandingService?.getBrandById?.(rawBrand)?.id != null) {
-    return rawBrand;
-  }
-  const byName = brandingService?.getBrand?.(rawBrand);
-  return byName?.id == null ? rawBrand : String(byName.id);
-}
-
 /**
- * Resolve record category codes into numeric Figshare category IDs.
+ * Build the article's numeric category list.
  *
- * A missing `resolutionMode` means the legacy mapping table, so every existing
- * AppConfig keeps its current behaviour. Crosswalk mode validates its configuration
- * and then fails closed: an invalid crosswalk never silently falls back to the
- * preserved legacy rows.
+ * A crosswalk binding selects crosswalk resolution; anything else falls back to
+ * the legacy mapping table. Crosswalk resolution fails closed — an invalid
+ * crosswalk never silently degrades to the preserved mapping-table rows.
  */
-async function resolveFigshareCategoryIds(
+async function buildCategoriesPayload(
   config: FigsharePublishingConfigData,
-  record: RecordModel,
-  sourceCodes: string[]
+  recordData: Record<string, unknown>,
+  context: BindingContext
 ): Promise<number[]> {
-  const resolutionMode = config.categories.resolutionMode ?? 'mappingTable';
-  if (resolutionMode !== 'crosswalk') {
-    return sourceCodes
-      .map((sourceCode: string) =>
-        config.categories.mappingTable.find((entry) => entry.sourceCode === sourceCode)?.figshareCategoryId
-      )
-      .filter((value): value is number => value != null);
-  }
+  const binding = config.metadata.categories.source;
 
-  const crosswalkId = String(config.categories.crosswalkId ?? '').trim();
-  const sourceVocabularyId = String(config.categories.sourceVocabularyId ?? '').trim();
-  if (crosswalkId === '' || sourceVocabularyId === '') {
-    throw validationError(
-      'Figshare crosswalk category resolution requires both a source vocabulary and an approved crosswalk'
-    );
-  }
-
-  const brandId = resolveBrandId(record);
-  if (brandId === '') {
-    throw validationError('Unable to resolve the brand for Figshare crosswalk category resolution');
-  }
-
-  let resolution: {
-    categoryIds: number[];
-    unresolvedCodes: string[];
-    historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
-  };
-  try {
-    resolution = await FigshareVocabularyService.resolveCategories({
-      brandId,
-      crosswalkId,
-      sourceVocabularyId,
-      codes: sourceCodes,
-    });
-  } catch (error) {
-    throw validationError(
-      `Figshare crosswalk category resolution failed: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-
-  if (resolution.historicalTargets.length > 0) {
-    const detail = resolution.historicalTargets
-      .map((target) => `${target.code} → ${target.sourceId} (${target.categoryId})`)
-      .join(', ');
-    if (!config.categories.allowUnmapped) {
-      throw validationError(`Figshare crosswalk maps to categories removed upstream: ${detail}`);
+  if (binding?.kind === 'crosswalk') {
+    // `||` not `??`: an unset select in the editor arrives as an empty string, which
+    // means "the default" rather than "an invalid output mode".
+    if ((binding.outputs || 'categoryId') !== 'categoryId') {
+      throw validationError("The Figshare categories binding must use the 'categoryId' output");
     }
-    sails.log.warn(`Figshare crosswalk omitted historical category targets: ${detail}`);
+
+    let resolution;
+    try {
+      resolution = await resolveCrosswalkBinding(binding, recordData, context);
+    } catch (error) {
+      throw validationError(
+        `Figshare crosswalk category resolution failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    if (resolution.historicalTargets.length > 0) {
+      const detail = resolution.historicalTargets
+        .map((target) => `${target.code} → ${target.sourceId} (${target.categoryId})`)
+        .join(', ');
+      if (!config.categories.allowUnmapped) {
+        throw validationError(`Figshare crosswalk maps to categories removed upstream: ${detail}`);
+      }
+      sails.log.warn(`Figshare crosswalk omitted historical category targets: ${detail}`);
+    }
+
+    if (!config.categories.allowUnmapped && resolution.sourceCodes.length > 0 && resolution.values.length === 0) {
+      throw validationError('No Figshare categories mapped for selected record categories');
+    }
+    return resolution.values as number[];
   }
 
-  return resolution.categoryIds;
+  const rawValue = await evaluateBinding(binding, recordData, context);
+  const sourceCodes = toSourceCodeCandidates(rawValue)
+    .map(normalizeCategorySourceCode)
+    .filter((sourceCode) => sourceCode !== '');
+  const mappedCategories = sourceCodes
+    .map((sourceCode: string) =>
+      config.categories.mappingTable.find((entry) => entry.sourceCode === sourceCode)?.figshareCategoryId
+    )
+    .filter((value): value is number => value != null);
+
+  if (!config.categories.allowUnmapped && sourceCodes.length > 0 && mappedCategories.length === 0) {
+    throw validationError('No Figshare categories mapped for selected record categories');
+  }
+  return mappedCategories;
 }
 
 function toRelatedMaterialItems(value: unknown): unknown[] {
@@ -256,8 +248,8 @@ function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): N
   return relatedMaterials;
 }
 
-async function resolveLicense(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel): Promise<unknown> {
-  const licenseValue = await evaluateBinding(config.metadata.license.source, record as Record<string, unknown>);
+async function resolveLicense(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, context: BindingContext): Promise<unknown> {
+  const licenseValue = await evaluateBinding(config.metadata.license.source, record as Record<string, unknown>, context);
   if (licenseValue == null || licenseValue === '') {
     if (config.metadata.license.required) {
       throw validationError('Figshare license is required');
@@ -317,10 +309,12 @@ function validatePayload(config: FigsharePublishingConfigData, payload: Figshare
 
 export async function buildMetadataPayload(config: FigsharePublishingConfigData, record: RecordModel, client?: FigshareClient): Promise<FigshareArticlePayload> {
   const recordData = record as Record<string, unknown>;
+  // Built once: resolveBrandId hits BrandingService, and every binding shares it.
+  const bindingContext = createBindingContext(record);
   const payload: FigshareArticlePayload = {
-    title: await evaluateBinding(config.metadata.title, recordData),
-    description: await evaluateBinding(config.metadata.description, recordData),
-    keywords: await evaluateBinding(config.metadata.keywords, recordData),
+    title: await evaluateBinding(config.metadata.title, recordData, bindingContext),
+    description: await evaluateBinding(config.metadata.description, recordData, bindingContext),
+    keywords: await evaluateBinding(config.metadata.keywords, recordData, bindingContext),
     defined_type: config.article.itemType
   };
 
@@ -328,36 +322,22 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
     payload.group_id = config.article.groupId;
   }
 
-  const funding = await evaluateBinding(config.metadata.funding, recordData);
+  const funding = await evaluateBinding(config.metadata.funding, recordData, bindingContext);
   if (funding != null && funding !== '') {
     payload.funding = funding;
   }
 
-  const categorySource = await evaluateBinding(config.metadata.categories.source, recordData);
-  const sourceItems = Array.isArray(categorySource) ? categorySource : categorySource != null ? [categorySource] : [];
-  const sourceCodes = sourceItems.filter(Boolean).map((item: unknown) =>
-    normalizeCategorySourceCode(
-      typeof item === 'object' && item != null
-        ? (item as Record<string, unknown>).notation ?? (item as Record<string, unknown>).code ?? ''
-        : item
-    )
-  );
-  const mappedCategories = await resolveFigshareCategoryIds(config, record, sourceCodes);
-  payload.categories = mappedCategories;
-
-  if (!config.categories.allowUnmapped && sourceCodes.length > 0 && mappedCategories.length === 0) {
-    throw validationError('No Figshare categories mapped for selected record categories');
-  }
+  payload.categories = await buildCategoriesPayload(config, recordData, bindingContext);
 
   const licenseValue = client == null
-    ? await evaluateBinding(config.metadata.license.source, recordData)
-    : await resolveLicense(client, config, record);
+    ? await evaluateBinding(config.metadata.license.source, recordData, bindingContext)
+    : await resolveLicense(client, config, record, bindingContext);
   if (licenseValue != null && licenseValue !== '') {
     payload.license = licenseValue;
   }
 
   if (client != null) {
-    const authors = await resolveAuthors(client, config, record);
+    const authors = await resolveAuthors(client, config, record, bindingContext);
     if (authors.length > 0) {
       payload.authors = authors;
     }
@@ -365,8 +345,8 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
 
   if (config.metadata.relatedResource) {
     const relatedMaterials = buildRelatedMaterials(
-      await evaluateBinding(config.metadata.relatedResource.title, recordData),
-      await evaluateBinding(config.metadata.relatedResource.doi, recordData)
+      await evaluateBinding(config.metadata.relatedResource.title, recordData, bindingContext),
+      await evaluateBinding(config.metadata.relatedResource.doi, recordData, bindingContext)
     );
     if (relatedMaterials.length > 0) {
       payload.related_materials = relatedMaterials;
@@ -376,7 +356,7 @@ export async function buildMetadataPayload(config: FigsharePublishingConfigData,
   if (config.metadata.customFields.length > 0) {
     const customFieldsPayload: Record<string, unknown> = {};
     for (const customField of config.metadata.customFields) {
-      customFieldsPayload[customField.figshareField] = await evaluateBinding(customField.value, recordData);
+      customFieldsPayload[customField.figshareField] = await evaluateBinding(customField.value, recordData, bindingContext);
     }
     payload.custom_fields = customFieldsPayload;
   }

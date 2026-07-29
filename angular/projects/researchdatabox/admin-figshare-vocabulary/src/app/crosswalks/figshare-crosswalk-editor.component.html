@@ -57,6 +57,11 @@
         <option value="rejected">{{ 'figshare-vocab-mapping-status-rejected' | i18next }}</option>
       </select>
     </div>
+    <div class="col-md-2 text-md-end">
+      <button type="button" class="btn btn-primary w-100" [disabled]="saving" (click)="openAddMapping()">
+        {{ 'figshare-vocab-add-mapping' | i18next }}
+      </button>
+    </div>
   </div>
 
   @if (loading) {
@@ -95,9 +100,14 @@
           <span class="figshare-badge ms-1">{{ 'figshare-vocab-match-' + mapping.matchType | i18next }}</span>
         </td>
         <td>
-          <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving" (click)="removeMapping(mapping)">
-            {{ 'figshare-vocab-remove-target' | i18next }}
-          </button>
+          <div class="d-flex flex-wrap gap-1">
+            <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="saving" (click)="openAddTarget(mapping)">
+              {{ 'figshare-vocab-add-target' | i18next }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving" (click)="removeMapping(mapping)">
+              {{ 'figshare-vocab-remove-target' | i18next }}
+            </button>
+          </div>
         </td>
       </tr>
       } @empty {
@@ -130,6 +140,18 @@
     </button>
   </div>
 
+  @if (picker) {
+  <figshare-mapping-picker
+    [crosswalkId]="crosswalk.id"
+    [sourceId]="crosswalk.figshareSourceId"
+    [revision]="crosswalk.workingRevision"
+    [saving]="saving"
+    [localTerm]="picker.localTerm"
+    (confirmed)="onPickerConfirmed($event)"
+    (cancelled)="closePicker()"
+  ></figshare-mapping-picker>
+  }
+
   @if (confirmingApproval) {
   <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
     aria-labelledby="figshareApproveTitle" (keydown.escape)="cancelApproval()">
@@ -144,8 +166,8 @@
           <p class="mb-2">{{ 'figshare-vocab-confirm-approve-body' | i18next: { revision: crosswalk.workingRevision } }}</p>
           @if (usage.length > 0) {
           <ul class="mb-0">
-            @for (item of usage; track item.configKey) {
-            <li>{{ item.brandName }} · {{ item.configKey }} ({{ item.resolutionMode }})</li>
+            @for (item of usage; track item.bindingPath) {
+            <li>{{ item.brandName }} · {{ item.configKey }} · {{ item.bindingPath }}@if (item.outputs) { ({{ item.outputs }})}</li>
             }
           </ul>
           }

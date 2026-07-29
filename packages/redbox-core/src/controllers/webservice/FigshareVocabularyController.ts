@@ -11,6 +11,7 @@ export namespace Controllers {
       'listCatalogues',
       'listSources',
       'getSource',
+      'listSourceCategories',
       'createSourcePreview',
       'cloneSource',
       'listSyncRuns',
@@ -88,6 +89,26 @@ export namespace Controllers {
         const { params } = getValidatedApiRequest(req);
         const source = await FigshareVocabularyService.getSource(String(params.sourceId ?? ''), this.getActor(req));
         return this.sendResp(req, res, { data: source, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.fail(req, res, error);
+      }
+    }
+
+    public async listSourceCategories(req: Sails.Req, res: Sails.Res) {
+      try {
+        const { params, query } = getValidatedApiRequest(req);
+        const result = await FigshareVocabularyService.listSourceCategories(
+          String(params.sourceId ?? ''),
+          {
+            q: query.q as string | undefined,
+            includeHistorical: String(query.includeHistorical ?? '') === 'true',
+            selectableOnly: String(query.selectableOnly ?? '') === 'true',
+            limit: query.limit as unknown as number | undefined,
+            offset: query.offset as unknown as number | undefined,
+          },
+          this.getActor(req)
+        );
+        return this.sendResp(req, res, { data: this.asListResponse(result), headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.fail(req, res, error);
       }

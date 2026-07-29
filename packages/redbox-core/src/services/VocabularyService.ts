@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-models';
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
+import { promiseWithTimeout } from '../utilities/PromiseUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { toBoolean } from "@researchdatabox/sails-ng-common";
@@ -11,6 +12,11 @@ export namespace Services {
   const VALID_TYPES = new Set<VocabType>(['flat', 'tree']);
   const VALID_SOURCES = new Set<VocabSource>(['local', 'rva', 'external']);
   const RVA_IMPORTS_FILE = 'rva-imports.json';
+  /**
+   * Handled by FigshareVocabularyService.bootstrapData() instead of here: Figshare connection
+   * settings come from AppConfigService, which is not bootstrapped until after this service runs.
+   */
+  const FIGSHARE_IMPORTS_FILE = 'figshare-imports.json';
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
 
@@ -732,6 +738,9 @@ export namespace Services {
           await this.processRvaImportsFile(bootstrapPath, fileName, defaultBranding);
           continue;
         }
+        if (fileName === FIGSHARE_IMPORTS_FILE) {
+          continue;
+        }
         await this.processVocabularyBootstrapFile(bootstrapPath, fileName, defaultBranding);
       }
     }
@@ -1137,7 +1146,7 @@ export namespace Services {
         const versionId = typeof item?.versionId === 'string' ? item.versionId.trim() : undefined;
 
         try {
-          await this.promiseWithTimeout(
+          await promiseWithTimeout(
             rvaImportService.importRvaVocabulary(rvaId, versionId, defaultBranding),
             RVA_IMPORT_TIMEOUT_MS,
             `RVA import ${sourceKey}`
@@ -1191,23 +1200,6 @@ export namespace Services {
         normalized.children = entry.children.map((child, childIndex) => this.toBootstrapEntry(child, childIndex, generatedId));
       }
       return normalized;
-    }
-
-    private async promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-      let timeoutHandle: NodeJS.Timeout | null = null;
-      const timeoutPromise = new Promise<never>((_resolve, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      });
-
-      try {
-        return await Promise.race([promise, timeoutPromise]);
-      } finally {
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-      }
     }
 
     private flattenEntries(entries: VocabularyEntryInput[], parentId: string | null = null, branch: string = 'n'): VocabularyEntryInput[] {

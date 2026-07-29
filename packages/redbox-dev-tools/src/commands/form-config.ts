@@ -294,11 +294,10 @@ function createMigratedFigsharePublishingConfig(
       keywords: { kind: 'path', path: 'metadata.finalKeywords', defaultValue: [] },
       funding: { kind: 'path', path: 'metadata.funder' },
       license: { source: { kind: 'path', path: mapping.recordLicensePath ?? 'metadata.license' }, matchBy: 'urlContains', required: true },
-      categories: { source: { kind: 'path', path: mapping.recordCategoryPath ?? 'metadata.forCodes', defaultValue: [] }, mappingStrategy: 'for2020Mapping' },
+      categories: { source: { kind: 'path', path: mapping.recordCategoryPath ?? 'metadata.forCodes', defaultValue: [] } },
       customFields: []
     },
     categories: {
-      strategy: 'for2020Mapping',
       mappingTable: (((figshareForMapping.FORMapping as Record<string, unknown>[] | undefined) ?? []).map((entry) => ({
         sourceCode: String(entry.redboxCode ?? entry.sourceCode ?? ''),
         figshareCategoryId: Number(entry.figshareCategoryId ?? entry.figCode ?? 0)

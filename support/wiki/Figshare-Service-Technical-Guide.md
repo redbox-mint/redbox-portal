@@ -363,7 +363,39 @@ Bindings drive most configurable value extraction.
 | `PathBinding` | `kind`, `path`, `defaultValue?` | Read a dot-path from the record or source object |
 | `HandlebarsBinding` | `kind`, `template`, `defaultValue?` | Render a Handlebars template against the source object |
 | `JsonataBinding` | `kind`, `expression`, `defaultValue?` | Evaluate a JSONata expression against the source object |
-| `ValueBinding` | union of the three above | Shared config contract for metadata, embargo, author lookup, and related resources |
+| `SimpleValueBinding` | union of the three above | The binding kinds that read a value straight from the source object |
+| `CrosswalkBinding` | `kind`, `source`, `sourceVocabularyId`, `crosswalkId`, `outputs`, `defaultValue?` | Resolve codes through the approved revision of a Figshare vocabulary crosswalk |
+| `ValueBinding` | `SimpleValueBinding \| CrosswalkBinding` | Shared config contract for metadata, embargo, author lookup, and related resources |
+
+`CrosswalkBinding` is a *transform*, not a source, so it carries its own inner `source` — a
+`SimpleValueBinding` that supplies the codes. Nesting is deliberately one level deep:
+`source` is typed as `SimpleValueBinding`, and because config arrives as JSON
+`resolveCrosswalkBinding()` re-checks it at runtime and throws on a nested crosswalk.
+
+`outputs` (`FigshareCrosswalkOutput`) is `categoryId | label | sourceId`. An empty string is
+treated as `categoryId` — an unset select in the config editor arrives that way.
+
+The crosswalk kind is gated per schema rather than per type: `VALUE_BINDING_SCHEMA` sets
+`widget.formlyConfig.props.allowCrosswalk`. `DoiPublishing.ts` has its own copy of the schema
+without that flag, so the shared `value-binding-editor` widget never offers the kind there —
+`doi-v2/bindings.ts` could not resolve it.
+
+#### `evaluateBinding(binding, target, context?)`
+
+`context` (a `BindingContext` from `figshare-v2/context.ts`, holding `brandId` and `record`)
+is what the crosswalk kind needs and what `target` cannot always supply: author lookup rules
+evaluate against a *contributor* object, which carries no brand. `buildMetadataPayload` builds
+one context per payload — `resolveBrandId()` hits `BrandingService`, so it is not recomputed
+per binding — and threads it through every call site.
+
+Each kind is checked explicitly and an unrecognised kind throws
+``Unsupported Figshare binding kind '<kind>'``. Previously `jsonata` was an implicit `else`,
+so any unknown kind surfaced as a confusing JSONata parse error instead.
+
+For categories, `metadata.ts` calls `resolveCrosswalkBinding()` directly rather than
+`evaluateBinding()`, because it needs `historicalTargets` to enforce `allowUnmapped` and
+`evaluateBinding`'s `unknown` return cannot carry it. The service is reached through the sails
+global to avoid a module cycle between `bindings.ts` and `FigshareVocabularyService`.
 
 ### Top-Level Config Object: `FigsharePublishingConfigData`
 
@@ -376,7 +408,7 @@ Bindings drive most configurable value extraction.
 | `selection` | Rules that decide which `dataLocations` entries participate in sync |
 | `authors` | Contributor extraction, de-duplication, name fallback, and institution-account lookup rules |
 | `metadata` | Bindings for article metadata and custom fields |
-| `categories` | Category mapping rules from local category codes to Figshare category ids |
+| `categories` | Fallback mapping table and the unmapped-category policy. Which route resolves categories is decided by the kind of `metadata.categories.source` |
 | `assets` | Hosted file/link-file behavior and staging settings |
 | `embargo` | Record-driven embargo sync rules |
 | `queue` | Delay strings used for deferred publish and cleanup jobs |
@@ -389,7 +421,7 @@ Bindings drive most configurable value extraction.
 |---|---|---|
 | `FigshareConnectionConfig` | `baseUrl`, `frontEndUrl`, `token`, `timeoutMs`, `operationTimeouts`, `retry` | Connection and transport policy |
 | `LicenseBinding` | `source`, `matchBy`, `required` | How a record value resolves to a Figshare license |
-| `CategoryBinding` | `source`, `mappingStrategy` | How local categories are pulled from the record |
+| `CategoryBinding` | `source` | How local categories are pulled from the record |
 | `RelatedResourceBinding` | `title`, `doi` | Related material payload mapping |
 | `CustomFieldBinding` | `figshareField`, `value`, `validations?` | Configures one Figshare custom field |
 | `CustomFieldValidation` | `type`, `value?` | Validation such as `required`, `maxLength`, `url`, or `doi` |
@@ -421,6 +453,84 @@ Bindings drive most configurable value extraction.
 | `FigshareJobData` | `oid?`, `articleId?`, `brandId?`, `user?` | Agenda payload body |
 | `FigshareJob` | `attrs?.data?` | Agenda wrapper shape consumed by job methods |
 
+## Figshare Vocabulary Bootstrap Imports
+
+`FigshareVocabularyService.bootstrapData()` is a headless driver over the same public methods
+the admin import wizard uses. It reads
+`<bootstrap.bootstrapDataPath>/vocabularies/figshare-imports.json` and, for each declared
+`{ scope, taxonomyId, localCloneName, localCloneSlug?, crosswalkName? }` entry:
+
+1. Skips the entry when a `FigshareVocabularySource` already exists for
+   `{ branding, scope, taxonomyId }` — the idempotency key, equivalent to the `rvaSourceKey`
+   check in `VocabularyService.processRvaImportsFile`.
+2. Calls `createPreview({ ..., createLocalClone: true })`.
+3. Reads the resulting `FigshareVocabularySyncRun` row directly and collects the
+   `preselected` proposal ids. In clone mode every proposal is a `clone:<sourceId>` identity
+   match. It deliberately does not page `getPreview()`, which caps at `MAX_PAGE_SIZE` (200)
+   per page while a real taxonomy runs to thousands of categories.
+4. Calls `applyPreview()`, which creates the mirror `Vocabulary` (`source: 'external'`), the
+   `FigshareVocabularySource`, the `FigshareVocabularyCategory` rows, the clone vocabulary,
+   the crosswalk, and the mapping edges inside one transaction.
+5. Renames the crosswalk when `crosswalkName` is supplied, via `uniqueCrosswalkName()` to
+   respect the unique `{ branding, name }` index.
+6. Calls `approveCrosswalk()`. This step is load-bearing: `writeMappingEdges` creates mappings
+   with `status: 'proposed'`, and `resolveCategories()` rejects any crosswalk that lacks an
+   approved revision, so an unapproved crosswalk would be useless to publishing.
+
+Ordering constraint: the importer is invoked from `coreBootstrap()` **after**
+`appconfigservice.bootstrap()`, not alongside `vocabularyservice.bootstrapData()`. Figshare
+connection settings are resolved from the per-brand application configuration via
+`resolveFigshareVocabularyConfig()`, which is not populated until AppConfig has bootstrapped.
+`VocabularyService.bootstrapData()` therefore skips `figshare-imports.json` explicitly rather
+than misreading it as a vocabulary definition.
+
+Operational guarantees:
+
+- Nothing throws. A missing file is a silent no-op, a malformed file is logged, and a failing
+  entry is logged and skipped without affecting the remaining entries.
+- Each entry is wrapped in `promiseWithTimeout` (`packages/redbox-core/src/utilities/PromiseUtils.ts`,
+  shared with the RVA importer) so a hung catalogue request cannot stall the lift.
+- `vocab.bootstrapFigshareImports: false` disables the feature; the actor recorded on all
+  created records is `bootstrap-data`.
+
+A crosswalk binding's `crosswalkId` stores a database id and is therefore not portable between
+environments — bootstrapping creates the crosswalk, but an administrator still selects it per
+environment on the Categories binding.
+
+## Publishing Resolution
+
+`FigshareVocabularyService` exposes two resolution methods, both reading only the crosswalk's
+**approved** revision. They share a private `resolveCrosswalkTargets()` that holds every
+fail-closed guard: approved status and a non-null `approvedRevision`,
+`crosswalk.localVocabulary === sourceVocabularyId`, and a non-archived Figshare source. Each
+raises `RelationshipBoundaryError`.
+
+| Method | Returns |
+|---|---|
+| `resolveCategories({brandId, crosswalkId, sourceVocabularyId, codes})` | `{categoryIds, unresolvedCodes, historicalTargets}` — the narrow legacy surface |
+| `resolveCrosswalkValues({..., outputs})` | `{values, normalizedCodes, unresolvedCodes, historicalTargets}` — backs the `crosswalk` binding kind |
+
+`values` per output mode:
+
+- `categoryId` — `FigshareVocabularyCategory.categoryId`, deduped and numerically sorted.
+- `sourceId` — `category.sourceId`, deduped, in input-code order.
+- `label` — `FigshareVocabularyCategory` has no label column, so labels come via its `entry`
+  foreign key to `VocabularyEntry.label`, batch-loaded in one query. A missing entry or blank
+  label falls back to `sourceId` with a warning: the mapping *did* resolve, so it must not be
+  reported as an unresolved code.
+
+Historical (upstream-retired) categories are excluded from `values` in all three modes and
+reported in `historicalTargets`; the caller decides whether that is fatal. A code that maps
+only to historical categories is therefore not "unresolved".
+
+`resolveCrosswalkValues` must stay listed in `_exportedMethods` — `bindings.ts` reaches it
+through the sails global, so omitting it fails at runtime while still type-checking.
+
+`getCrosswalkUsage()` walks the entire `figsharePublishing` config for objects with
+`kind === 'crosswalk'` matching the id, returning a dotted `bindingPath` per hit. Any binding
+can reference a crosswalk now, so a targeted check would miss references and silently disarm
+the `deleteCrosswalk` guard.
+
 ## Testing
 
 Coverage for the refactored surface currently lives in `packages/redbox-core/test/services/FigshareService.test.ts`.
@@ -433,6 +543,21 @@ Useful assertions already in place:
 - write-back targets can be overridden by config
 - workflow transition job reads config and user settings
 - AppConfig defaults include queue and transition job fields
+
+Bootstrap-import coverage lives in
+`packages/redbox-core/test/services/FigshareVocabularyServiceBootstrap.test.ts` (unit) and
+`test/integration/services/FigshareVocabularyBootstrapData.test.ts` (integration, driven
+through the fixture client so no live Figshare call is made).
+
+Binding and crosswalk coverage:
+
+| File | Covers |
+|---|---|
+| `packages/redbox-core/test/services/figshare-bindings.test.ts` | `evaluateBinding` per kind, `defaultValue` fallbacks, the unknown-kind error, and the crosswalk kind including the recursion guard and missing-brand cases |
+| `packages/redbox-core/test/services/FigshareVocabularyServiceResolve.test.ts` | `resolveCrosswalkValues` per output mode, the label fallback, historical exclusion, the fail-closed guards, and `getCrosswalkUsage` |
+| `packages/redbox-core/test/services/FigshareService.test.ts` | The `crosswalk category bindings` block: end-to-end categories resolution, `historicalTargets` × `allowUnmapped`, the `categoryId`-only rule, a `label` crosswalk feeding keywords, and a crosswalk under an author lookup rule |
+| `packages/redbox-core/test/migrations/figshare-categories-crosswalk-binding.test.ts` | The legacy-config migration, including double-run idempotency |
+| `angular/projects/researchdatabox/app-config/src/app/fieldTypes/value-binding-editor/value-binding-editor.type.spec.ts` | Crosswalk round-tripping through `toModelValue`/`syncValue`, and the DOI gating that omits the kind and its form controls |
 
 Recommended follow-up tests while refactoring:
 

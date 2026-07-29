@@ -36,6 +36,12 @@
   line-height: 1.4rem;
 }
 
+/* Search results inside the mapping picker scroll rather than growing the modal. */
+.figshare-picker-list {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
 .figshare-badge--historical {
   color: var(--figshare-danger);
 }

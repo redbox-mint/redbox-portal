@@ -71,7 +71,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   public mappingTotal = 0;
   public mappingPageSize = MAPPING_PAGE_SIZE;
   public mappingSearch: MappingSearchState = { q: '', status: '', offset: 0 };
-  public crosswalkUsage: Array<{ brandName: string; configKey: string; resolutionMode: string }> = [];
+  public crosswalkUsage: Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }> = [];
   public mappingsLoading = false;
   public crosswalkSaving = false;
   public crosswalkError = '';
@@ -401,19 +401,39 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     await this.loadMappings();
   }
 
+  async onMappingAdded(change: MappingChangeRequest): Promise<void> {
+    await this.saveMappingChange(change, this.t(
+      'figshare-vocab-mapping-added',
+      'Target added to the working revision.'
+    ));
+  }
+
   async onMappingRemoved(change: MappingChangeRequest): Promise<void> {
+    await this.saveMappingChange(change, this.t(
+      'figshare-vocab-mapping-removed',
+      'Mapping removed from the working revision.'
+    ));
+  }
+
+  /**
+   * One edge at a time: the first edit of an approved crosswalk forks a new working
+   * revision server-side, so the returned summary replaces the cached crosswalk before
+   * the mapping page is reloaded.
+   */
+  private async saveMappingChange(change: MappingChangeRequest, successMessage: string): Promise<void> {
     if (!this.activeCrosswalk) {
       return;
     }
     this.crosswalkSaving = true;
     this.crosswalkError = '';
+    this.crosswalkMessage = '';
     try {
       const updated = await this.api.saveMappings(this.activeCrosswalk.id, {
         revision: this.activeCrosswalk.workingRevision,
         changes: [change]
       });
       this.activeCrosswalk = updated;
-      this.crosswalkMessage = this.t('figshare-vocab-mapping-removed', 'Mapping removed from the working revision.');
+      this.crosswalkMessage = successMessage;
       await this.loadMappings();
     } catch (err) {
       this.crosswalkError = this.errorText('figshare-vocab-error-save-mappings', err);

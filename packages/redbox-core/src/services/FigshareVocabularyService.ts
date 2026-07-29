@@ -10,6 +10,10 @@ import {
 } from '../waterline-models';
 import { isAllowedSyncRunTransition } from '../waterline-models/FigshareVocabularySyncRun';
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
+import { promiseWithTimeout } from '../utilities/PromiseUtils';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import _ from 'lodash';
 import { resolveFigshareVocabularyConfig } from './figshare-v2/config';
 import type { FigshareClient } from './figshare-v2/http';
 import { FigshareHttpError, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
@@ -46,6 +50,23 @@ export namespace Services {
   const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000;
   const MAX_MAPPING_BATCH = 2000;
   const MAX_PAGE_SIZE = 200;
+  const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
+  const FIGSHARE_IMPORTS_FILE = 'figshare-imports.json';
+  const FIGSHARE_IMPORT_TIMEOUT_MS = 120_000;
+  const BOOTSTRAP_ACTOR = 'bootstrap-data';
+
+  /** One declared import in `bootstrap-data/vocabularies/figshare-imports.json`. */
+  export interface BootstrapFigshareImportItem {
+    scope?: string;
+    taxonomyId?: string | number;
+    localCloneName?: string;
+    localCloneSlug?: string;
+    crosswalkName?: string;
+  }
+
+  export interface BootstrapFigshareImportsFile {
+    imports?: BootstrapFigshareImportItem[];
+  }
 
   export interface ActorContext {
     brandId: string;
@@ -169,10 +190,34 @@ export namespace Services {
     status?: 'proposed' | 'approved' | 'rejected';
   }
 
+  /** One selectable Figshare target offered by the manual mapping picker. */
+  export interface SourceCategoryOption {
+    id: string;
+    sourceId: string;
+    categoryId: number;
+    title: string;
+    parentSourceId?: string;
+    selectable: boolean;
+    historical: boolean;
+  }
+
+  /** One local vocabulary term offered by the manual mapping picker. */
+  export interface CrosswalkLocalEntryOption {
+    id: string;
+    label: string;
+    value: string;
+    identifier?: string;
+    historical: boolean;
+    /** Targets already mapped to this term in the requested revision. */
+    targetCount: number;
+  }
+
   export interface CrosswalkUsage {
     brandName: string;
     configKey: string;
-    resolutionMode: string;
+    /** Dotted path of the crosswalk binding within the config, e.g. `metadata.categories.source`. */
+    bindingPath: string;
+    outputs?: string;
     sourceVocabularyId?: string;
   }
 
@@ -185,6 +230,27 @@ export namespace Services {
 
   export interface ResolveCategoriesResult {
     categoryIds: number[];
+    unresolvedCodes: string[];
+    historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
+  }
+
+  export type CrosswalkOutput = 'categoryId' | 'label' | 'sourceId';
+
+  export interface ResolveCrosswalkValuesInput extends ResolveCategoriesInput {
+    outputs: CrosswalkOutput;
+  }
+
+  export interface ResolveCrosswalkValuesResult {
+    values: Array<number | string>;
+    normalizedCodes: string[];
+    unresolvedCodes: string[];
+    historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
+  }
+
+  /** Intermediate shape shared by every output mode. */
+  interface CrosswalkTargetResolution {
+    normalizedCodes: string[];
+    matches: Array<{ code: string; category: FigshareVocabularyCategoryAttributes }>;
     unresolvedCodes: string[];
     historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
   }
@@ -203,16 +269,20 @@ export namespace Services {
       'cloneMirror',
       'listSources',
       'getSource',
+      'listSourceCategories',
       'listSyncRuns',
       'listCrosswalks',
       'getCrosswalk',
       'getCrosswalkUsage',
       'createCrosswalk',
+      'listCrosswalkLocalEntries',
       'listCrosswalkMappings',
       'saveMappings',
       'approveCrosswalk',
       'deleteCrosswalk',
-      'resolveCategories'
+      'resolveCategories',
+      'resolveCrosswalkValues',
+      'bootstrapData'
     ];
 
     // ── Infrastructure helpers ────────────────────────────────────────
@@ -1292,6 +1362,62 @@ export namespace Services {
       return this.describeSource(await this.requireSource(sourceId, ctx.brandId));
     }
 
+    /**
+     * Search the mirrored categories of one source so an operator can pick a manual
+     * crosswalk target. Historical targets stay hidden unless explicitly requested:
+     * mapping to a retired Figshare category is a deliberate act, not a default.
+     */
+    public async listSourceCategories(
+      sourceId: string,
+      query: { q?: string; includeHistorical?: boolean; selectableOnly?: boolean; limit?: number; offset?: number },
+      ctx: ActorContext
+    ): Promise<{ data: SourceCategoryOption[]; meta: { total: number; limit: number; offset: number } }> {
+      const source = await this.requireSource(sourceId, ctx.brandId);
+      const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
+
+      const where: Record<string, unknown> = { source: String(source.id) };
+      if (query?.includeHistorical !== true) {
+        where.historical = false;
+      }
+      if (query?.selectableOnly === true) {
+        where.selectable = true;
+      }
+      const categories = await FigshareVocabularyCategory.find(where) as FigshareVocabularyCategoryAttributes[];
+      const titleByEntryId = await this.loadCategoryTitles(categories);
+
+      const search = String(query?.q ?? '').trim().toLowerCase();
+      const rows = categories
+        .map((category) => ({
+          id: String(category.id),
+          sourceId: String(category.sourceId),
+          categoryId: Number(category.categoryId),
+          title: titleByEntryId.get(String(category.entry)) ?? String(category.sourceId),
+          parentSourceId: category.parentSourceId,
+          selectable: category.selectable !== false,
+          historical: category.historical === true
+        }))
+        .filter((row) => !search
+          || `${row.title} ${row.sourceId} ${row.categoryId}`.toLowerCase().includes(search))
+        .sort((left, right) => left.sourceId.localeCompare(right.sourceId, undefined, { numeric: true }));
+
+      return {
+        data: rows.slice(offset, offset + limit),
+        meta: { total: rows.length, limit, offset }
+      };
+    }
+
+    /** Mirrored category titles live on the linked vocabulary entry, not the category row. */
+    private async loadCategoryTitles(
+      categories: FigshareVocabularyCategoryAttributes[]
+    ): Promise<Map<string, string>> {
+      if (categories.length === 0) {
+        return new Map();
+      }
+      const entryIds = Array.from(new Set(categories.map((category) => String(category.entry))));
+      const entries = await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
+      return new Map(entries.map((entry) => [String(entry.id), String(entry.label ?? '')]));
+    }
+
     private async describeSource(source: FigshareVocabularySourceAttributes): Promise<Record<string, unknown>> {
       const sourceId = String(source.id);
       const [mirroredCount, historicalCount, crosswalkCount] = await Promise.all([
@@ -1583,6 +1709,63 @@ export namespace Services {
       return this.describeCrosswalk(crosswalk);
     }
 
+    /**
+     * Search the local vocabulary behind a crosswalk, annotated with how many targets
+     * each term already has. Terms with no target never appear in the mapping table,
+     * so this is the only way the manual picker can reach them.
+     */
+    public async listCrosswalkLocalEntries(
+      crosswalkId: string,
+      query: { q?: string; mapped?: string; revision?: number; limit?: number; offset?: number },
+      ctx: ActorContext
+    ): Promise<{ data: CrosswalkLocalEntryOption[]; meta: { total: number; limit: number; offset: number; revision: number } }> {
+      const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
+      const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
+      const revision = Number(query?.revision ?? crosswalk.workingRevision);
+
+      const [entries, mappings] = await Promise.all([
+        VocabularyEntry.find({ vocabulary: String(crosswalk.localVocabulary) }) as Promise<VocabularyEntryAttributes[]>,
+        FigshareVocabularyCrosswalkMapping.find({
+          crosswalk: String(crosswalk.id),
+          revision
+        }) as Promise<FigshareVocabularyCrosswalkMappingAttributes[]>
+      ]);
+
+      const targetCountByEntryId = new Map<string, number>();
+      for (const mapping of mappings) {
+        const key = String(mapping.localEntry);
+        targetCountByEntryId.set(key, (targetCountByEntryId.get(key) ?? 0) + 1);
+      }
+
+      const search = String(query?.q ?? '').trim().toLowerCase();
+      const mappedFilter = String(query?.mapped ?? '').trim().toLowerCase();
+      const rows = entries
+        .map((entry) => ({
+          id: String(entry.id),
+          label: String(entry.label ?? ''),
+          value: String(entry.value ?? ''),
+          identifier: entry.identifier,
+          historical: entry.historical === true,
+          targetCount: targetCountByEntryId.get(String(entry.id)) ?? 0
+        }))
+        .filter((row) => !search || `${row.label} ${row.value}`.toLowerCase().includes(search))
+        .filter((row) => {
+          if (mappedFilter === 'unmapped') {
+            return row.targetCount === 0;
+          }
+          if (mappedFilter === 'mapped') {
+            return row.targetCount > 0;
+          }
+          return true;
+        })
+        .sort((left, right) => left.label.localeCompare(right.label));
+
+      return {
+        data: rows.slice(offset, offset + limit),
+        meta: { total: rows.length, limit, offset, revision }
+      };
+    }
+
     public async listCrosswalkMappings(
       crosswalkId: string,
       query: { status?: string; q?: string; revision?: number; limit?: number; offset?: number },
@@ -1854,7 +2037,38 @@ export namespace Services {
       );
     }
 
-    /** Report the Figshare publishing AppConfigs that select this crosswalk. */
+    /**
+     * Collect the dotted paths of every crosswalk binding in a config that selects
+     * `crosswalkId`. A crosswalk can now be referenced by any binding, not just the
+     * categories one, so the whole config tree has to be walked.
+     */
+    private collectCrosswalkBindings(
+      node: unknown,
+      crosswalkId: string,
+      pathSegments: string[],
+      found: Array<{ bindingPath: string; outputs?: string; sourceVocabularyId?: string }>
+    ): void {
+      if (node == null || typeof node !== 'object') {
+        return;
+      }
+      if (Array.isArray(node)) {
+        node.forEach((item, index) => this.collectCrosswalkBindings(item, crosswalkId, [...pathSegments, String(index)], found));
+        return;
+      }
+      const candidate = node as Record<string, unknown>;
+      if (candidate.kind === 'crosswalk' && String(candidate.crosswalkId ?? '') === crosswalkId) {
+        found.push({
+          bindingPath: pathSegments.join('.'),
+          outputs: candidate.outputs == null ? undefined : String(candidate.outputs),
+          sourceVocabularyId: candidate.sourceVocabularyId == null ? undefined : String(candidate.sourceVocabularyId)
+        });
+      }
+      for (const [key, value] of Object.entries(candidate)) {
+        this.collectCrosswalkBindings(value, crosswalkId, [...pathSegments, key], found);
+      }
+    }
+
+    /** Report the Figshare publishing bindings that select this crosswalk. */
     public async getCrosswalkUsage(crosswalkId: string, ctx: ActorContext): Promise<CrosswalkUsage[]> {
       const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
       const appConfigService = sails.services?.appconfigservice as {
@@ -1862,19 +2076,16 @@ export namespace Services {
       } | undefined;
       const brandName = this.resolveBrandName(ctx.brandId);
       const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName);
-      const figsharePublishing = brandConfig?.figsharePublishing as
-        | { categories?: { crosswalkId?: string; resolutionMode?: string; sourceVocabularyId?: string } }
-        | undefined;
-      const categories = figsharePublishing?.categories;
-      if (categories?.crosswalkId !== String(crosswalk.id)) {
-        return [];
-      }
-      return [{
+      const figsharePublishing = brandConfig?.figsharePublishing;
+      const found: Array<{ bindingPath: string; outputs?: string; sourceVocabularyId?: string }> = [];
+      this.collectCrosswalkBindings(figsharePublishing, String(crosswalk.id), [], found);
+      return found.map((binding) => ({
         brandName,
         configKey: 'figsharePublishing',
-        resolutionMode: categories.resolutionMode ?? 'mappingTable',
-        sourceVocabularyId: categories.sourceVocabularyId
-      }];
+        bindingPath: binding.bindingPath,
+        outputs: binding.outputs,
+        sourceVocabularyId: binding.sourceVocabularyId
+      }));
     }
 
     /** Draft crosswalks are deleted; approved ones archive to protect AppConfig references. */
@@ -1900,10 +2111,13 @@ export namespace Services {
     // ── Publishing resolution ─────────────────────────────────────────
 
     /**
-     * Resolve record category codes to numeric Figshare category IDs through the
+     * Resolve record codes to the Figshare categories they map to through the
      * approved revision of a crosswalk. Working revisions are never consulted.
+     *
+     * Shared by every output mode: the caller decides whether to emit the numeric
+     * category ID, the mirrored label, or the Figshare source ID.
      */
-    public async resolveCategories(input: ResolveCategoriesInput): Promise<ResolveCategoriesResult> {
+    private async resolveCrosswalkTargets(input: ResolveCategoriesInput): Promise<CrosswalkTargetResolution> {
       const crosswalk = await this.requireCrosswalk(String(input?.crosswalkId ?? ''), String(input?.brandId ?? ''));
       if (crosswalk.status !== 'approved' || crosswalk.approvedRevision == null) {
         throw new RelationshipBoundaryError('The configured Figshare crosswalk has no approved revision');
@@ -1922,7 +2136,7 @@ export namespace Services {
 
       const codes = Array.from(new Set((input?.codes ?? []).map((code) => normalizeCategoryCode(code)).filter((code) => code !== '')));
       if (codes.length === 0) {
-        return { categoryIds: [], unresolvedCodes: [], historicalTargets: [] };
+        return { normalizedCodes: [], matches: [], unresolvedCodes: [], historicalTargets: [] };
       }
 
       const entries = await VocabularyEntry.find({ vocabulary: sourceVocabularyId }) as VocabularyEntryAttributes[];
@@ -1949,7 +2163,7 @@ export namespace Services {
         matchedEntryIdsByCode.set(code, String(entry.id));
       }
       if (matchedEntryIdsByCode.size === 0) {
-        return { categoryIds: [], unresolvedCodes, historicalTargets: [] };
+        return { normalizedCodes: codes, matches: [], unresolvedCodes, historicalTargets: [] };
       }
 
       const mappings = await FigshareVocabularyCrosswalkMapping.find({
@@ -1959,7 +2173,12 @@ export namespace Services {
         localEntry: Array.from(new Set(matchedEntryIdsByCode.values()))
       }) as FigshareVocabularyCrosswalkMappingAttributes[];
       if (mappings.length === 0) {
-        return { categoryIds: [], unresolvedCodes: [...unresolvedCodes, ...matchedEntryIdsByCode.keys()], historicalTargets: [] };
+        return {
+          normalizedCodes: codes,
+          matches: [],
+          unresolvedCodes: [...unresolvedCodes, ...matchedEntryIdsByCode.keys()],
+          historicalTargets: []
+        };
       }
 
       const categories = await FigshareVocabularyCategory.find({
@@ -1967,36 +2186,277 @@ export namespace Services {
       }) as FigshareVocabularyCategoryAttributes[];
       const categoryById = new Map(categories.map((category) => [String(category.id), category]));
 
-      const categoryIds = new Set<number>();
-      const historicalTargets: ResolveCategoriesResult['historicalTargets'] = [];
-      const resolvedEntryIds = new Set<string>();
-
+      const mappingsByEntryId = new Map<string, FigshareVocabularyCrosswalkMappingAttributes[]>();
       for (const mapping of mappings) {
-        const category = categoryById.get(String(mapping.figshareCategory));
-        if (!category) {
-          continue;
+        const entryId = String(mapping.localEntry);
+        const bucket = mappingsByEntryId.get(entryId);
+        if (bucket) {
+          bucket.push(mapping);
+        } else {
+          mappingsByEntryId.set(entryId, [mapping]);
         }
-        resolvedEntryIds.add(String(mapping.localEntry));
-        const code = Array.from(matchedEntryIdsByCode.entries())
-          .find(([, entryId]) => entryId === String(mapping.localEntry))?.[0] ?? '';
-        if (category.historical === true) {
-          historicalTargets.push({ code, categoryId: category.categoryId, sourceId: category.sourceId });
-          continue;
-        }
-        categoryIds.add(category.categoryId);
       }
 
+      // Walk in code order so every output mode returns a deterministic sequence
+      // that follows the record's own ordering.
+      const matches: CrosswalkTargetResolution['matches'] = [];
+      const historicalTargets: CrosswalkTargetResolution['historicalTargets'] = [];
       for (const [code, entryId] of matchedEntryIdsByCode) {
-        if (!resolvedEntryIds.has(entryId)) {
+        let resolved = false;
+        for (const mapping of mappingsByEntryId.get(entryId) ?? []) {
+          const category = categoryById.get(String(mapping.figshareCategory));
+          if (!category) {
+            continue;
+          }
+          resolved = true;
+          if (category.historical === true) {
+            historicalTargets.push({ code, categoryId: category.categoryId, sourceId: category.sourceId });
+            continue;
+          }
+          matches.push({ code, category });
+        }
+        if (!resolved) {
           unresolvedCodes.push(code);
         }
       }
 
+      return { normalizedCodes: codes, matches, unresolvedCodes, historicalTargets };
+    }
+
+    /**
+     * Resolve record category codes to numeric Figshare category IDs. Retained as
+     * the stable narrow surface over {@link resolveCrosswalkValues}.
+     */
+    public async resolveCategories(input: ResolveCategoriesInput): Promise<ResolveCategoriesResult> {
+      const resolution = await this.resolveCrosswalkTargets(input);
+      const categoryIds = new Set<number>(resolution.matches.map((match) => match.category.categoryId));
       return {
         categoryIds: Array.from(categoryIds).sort((left, right) => left - right),
-        unresolvedCodes,
-        historicalTargets
+        unresolvedCodes: resolution.unresolvedCodes,
+        historicalTargets: resolution.historicalTargets
       };
+    }
+
+    /**
+     * Resolve record codes through a crosswalk into the values a publishing binding
+     * asks for. Historical targets are excluded from `values` in every mode and
+     * reported separately so the caller can decide whether they are fatal.
+     */
+    public async resolveCrosswalkValues(input: ResolveCrosswalkValuesInput): Promise<ResolveCrosswalkValuesResult> {
+      const outputs: CrosswalkOutput = input?.outputs || 'categoryId';
+      const resolution = await this.resolveCrosswalkTargets(input);
+      const base = {
+        normalizedCodes: resolution.normalizedCodes,
+        unresolvedCodes: resolution.unresolvedCodes,
+        historicalTargets: resolution.historicalTargets
+      };
+
+      if (outputs === 'categoryId') {
+        const categoryIds = new Set<number>(resolution.matches.map((match) => match.category.categoryId));
+        return { ...base, values: Array.from(categoryIds).sort((left, right) => left - right) };
+      }
+
+      if (outputs === 'sourceId') {
+        return { ...base, values: Array.from(new Set(resolution.matches.map((match) => match.category.sourceId))) };
+      }
+
+      // Labels live on the mirrored VocabularyEntry, not on the category row.
+      const entryIds = Array.from(new Set(resolution.matches.map((match) => String(match.category.entry))));
+      const entries = entryIds.length === 0
+        ? []
+        : await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
+      const labelByEntryId = new Map(entries.map((entry) => [String(entry.id), entry.label]));
+
+      const labels = new Set<string>();
+      for (const match of resolution.matches) {
+        const label = String(labelByEntryId.get(String(match.category.entry)) ?? '').trim();
+        if (label !== '') {
+          labels.add(label);
+          continue;
+        }
+        // The mapping resolved; only the display label is missing. Falling back to
+        // the source ID keeps the value usable rather than silently dropping it.
+        sails.log.warn(
+          `Figshare crosswalk ${input.crosswalkId}: category ${match.category.sourceId} has no mirrored label, using its source ID`
+        );
+        labels.add(match.category.sourceId);
+      }
+      return { ...base, values: Array.from(labels) };
+    }
+
+    // ── Bootstrap data ────────────────────────────────────────────────
+
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'vocabularies');
+    }
+
+    /** Overridable seam so unit tests can drive bootstrapData() without touching disk. */
+    protected getBootstrapFileOps(): Pick<typeof fs, 'readFile'> {
+      return fs;
+    }
+
+    private resolveDefaultBrandingId(): string {
+      const brandingService = sails.services?.brandingservice as { getDefault?: () => unknown } | undefined;
+      const defaultBrand = brandingService?.getDefault?.();
+      if (defaultBrand && typeof defaultBrand === 'object') {
+        const brand = defaultBrand as { id?: string | number; _id?: string | number };
+        const id = brand.id ?? brand._id;
+        if (id != null && String(id).trim() !== '') {
+          return String(id).trim();
+        }
+      }
+      return '';
+    }
+
+    /**
+     * Declaratively import Figshare taxonomies listed in
+     * `<bootstrapDataPath>/vocabularies/figshare-imports.json` during the Sails lift.
+     *
+     * Each item produces a read-only mirror, an editable local clone, and an approved
+     * identity crosswalk - the state a fresh environment needs for Figshare publishing to
+     * resolve categories without an administrator visiting the admin UI.
+     *
+     * Idempotent: an item whose FigshareVocabularySource already exists is skipped, so a
+     * restart never re-syncs or forks admin-curated crosswalks. Nothing here throws - a
+     * bootstrap importer must not be able to fail the lift.
+     */
+    public async bootstrapData(): Promise<void> {
+      if (_.get(sails.config, 'vocab.bootstrapFigshareImports') === false) {
+        sails.log.verbose('Skipping Figshare vocabulary bootstrap imports (disabled)');
+        return;
+      }
+
+      const filePath = path.join(this.getBootstrapDataPath(), FIGSHARE_IMPORTS_FILE);
+      let parsed: BootstrapFigshareImportsFile | null = null;
+      try {
+        const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
+        parsed = JSON.parse(content) as BootstrapFigshareImportsFile;
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError?.code === 'ENOENT') {
+          sails.log.verbose(`Figshare vocabulary bootstrap file not found: ${filePath}`);
+          return;
+        }
+        sails.log.error(`Failed to read Figshare vocabulary bootstrap file: ${FIGSHARE_IMPORTS_FILE}`, error);
+        return;
+      }
+
+      if (!Array.isArray(parsed?.imports)) {
+        sails.log.error(`Invalid Figshare imports format in bootstrap file: ${FIGSHARE_IMPORTS_FILE}`);
+        return;
+      }
+      const imports = parsed.imports;
+      if (imports.length === 0) {
+        return;
+      }
+
+      const brandId = this.resolveDefaultBrandingId();
+      if (!brandId) {
+        sails.log.error('Unable to resolve default branding for Figshare vocabulary bootstrap data');
+        return;
+      }
+
+      // Most deployments have no Figshare configuration at all; resolveClient() would throw
+      // a transport error on every lift, so check first and skip quietly instead.
+      if (resolveFigshareVocabularyConfig(this.resolveBrandName(brandId)) == null) {
+        sails.log.verbose('Skipping Figshare vocabulary bootstrap imports: Figshare is not configured for the default brand');
+        return;
+      }
+
+      const ctx: ActorContext = { brandId, userId: BOOTSTRAP_ACTOR };
+      for (const item of imports) {
+        await this.processBootstrapImport(item, ctx);
+      }
+    }
+
+    private async processBootstrapImport(item: BootstrapFigshareImportItem, ctx: ActorContext): Promise<void> {
+      const scope = String(item?.scope ?? '').trim().toLowerCase();
+      const taxonomyId = String(item?.taxonomyId ?? '').trim();
+      const localCloneName = String(item?.localCloneName ?? '').trim();
+      const label = `${scope || '?'}:${taxonomyId || '?'}`;
+
+      if (scope !== 'public' && scope !== 'account') {
+        sails.log.error(`Skipping Figshare bootstrap import with invalid scope '${item?.scope}' (expected 'public' or 'account')`);
+        return;
+      }
+      if (!taxonomyId) {
+        sails.log.error('Skipping Figshare bootstrap import with missing taxonomyId');
+        return;
+      }
+      if (!localCloneName) {
+        sails.log.error(`Skipping Figshare bootstrap import with missing localCloneName: ${label}`);
+        return;
+      }
+
+      const existing = await FigshareVocabularySource.findOne({
+        branding: ctx.brandId,
+        scope,
+        taxonomyId
+      }) as FigshareVocabularySourceAttributes | null;
+      if (existing) {
+        sails.log.verbose(`Skipping existing Figshare bootstrap import: ${label}`);
+        return;
+      }
+
+      try {
+        await promiseWithTimeout(
+          this.runBootstrapImport({ scope, taxonomyId, localCloneName, item }, ctx),
+          FIGSHARE_IMPORT_TIMEOUT_MS,
+          `Figshare vocabulary import ${label}`
+        );
+        sails.log.verbose(`Imported Figshare bootstrap vocabulary: ${label}`);
+      } catch (error) {
+        sails.log.error(`Failed Figshare bootstrap import: ${label}`, error);
+      }
+    }
+
+    private async runBootstrapImport(
+      input: { scope: FigshareCategoryScope; taxonomyId: string; localCloneName: string; item: BootstrapFigshareImportItem },
+      ctx: ActorContext
+    ): Promise<void> {
+      const localCloneSlug = String(input.item?.localCloneSlug ?? '').trim();
+      const preview = await this.createPreview({
+        scope: input.scope,
+        taxonomyId: input.taxonomyId,
+        createLocalClone: true,
+        localCloneName: input.localCloneName,
+        localCloneSlug: localCloneSlug || undefined
+      }, ctx);
+
+      // Read the run row directly rather than paging getPreview(), which caps at
+      // MAX_PAGE_SIZE per page - a real taxonomy has thousands of categories. In clone
+      // mode every proposal is an identity match and preselected.
+      const run = await FigshareVocabularySyncRun.findOne({ id: preview.runId }) as FigshareVocabularySyncRunAttributes | null;
+      const proposals = ((run?.proposals ?? []) as FigshareProposal[]);
+      const approvedProposalIds = proposals
+        .filter((proposal) => proposal.preselected)
+        .map((proposal) => proposal.proposalId);
+
+      const result = await this.applyPreview(preview.runId, {
+        remoteHash: preview.remoteHash,
+        approvedProposalIds
+      }, ctx);
+
+      const crosswalkId = String(result.crosswalkId ?? '');
+      if (!crosswalkId) {
+        throw new Error('Figshare bootstrap import did not produce a crosswalk');
+      }
+
+      const requestedName = String(input.item?.crosswalkName ?? '').trim();
+      if (requestedName) {
+        // { branding, name } is a unique index, so probe before renaming.
+        const name = await this.uniqueCrosswalkName(requestedName, ctx.brandId);
+        await FigshareVocabularyCrosswalk.updateOne({ id: crosswalkId }).set({
+          name,
+          updatedBy: ctx.userId
+        });
+      }
+
+      // Mapping edges are written as 'proposed' and resolveCategories() refuses any
+      // crosswalk without an approved revision - approving here is what makes the
+      // bootstrapped crosswalk usable for publishing.
+      await this.approveCrosswalk(crosswalkId, Number(result.crosswalkRevision ?? 1), ctx);
     }
   }
 }

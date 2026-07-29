@@ -120,6 +120,19 @@ const figshareSourceSchema = objectField(
   ['id', 'displayName', 'scope', 'taxonomyId', 'vocabularyId']
 );
 
+const figshareCategorySchema = objectField(
+  {
+    id: stringField(),
+    sourceId: stringField('Figshare category source identifier'),
+    categoryId: integerField('Numeric Figshare category identifier'),
+    title: stringField(),
+    parentSourceId: stringField(),
+    selectable: booleanField(),
+    historical: booleanField(),
+  },
+  ['id', 'sourceId', 'categoryId', 'title']
+);
+
 const previewBodySchema = objectField(
   {
     scope: stringField("Catalogue scope: 'public' or 'account'"),
@@ -196,6 +209,28 @@ export const getFigshareSourceRoute = apiRoute(
     tags: ['Figshare Vocabulary'],
     summary: 'Get a Figshare category source',
     responses: { 200: responseField(figshareSourceSchema, 'Figshare source') },
+  }
+);
+
+export const listFigshareSourceCategoriesRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/figshare-vocabularies/sources/:sourceId/categories',
+  'webservice/FigshareVocabularyController',
+  'listSourceCategories',
+  {
+    params: objectField({ sourceId: stringField('Figshare source identifier') }, ['sourceId']),
+    query: objectField({
+      q: stringField(),
+      includeHistorical: stringField(),
+      selectableOnly: stringField(),
+      limit: stringField(),
+      offset: stringField(),
+    }),
+  },
+  {
+    tags: ['Figshare Vocabulary'],
+    summary: 'Search the mirrored categories of a Figshare source',
+    responses: { 200: responseField(listApiResponseSchema(figshareCategorySchema), 'Figshare categories') },
   }
 );
 
@@ -331,6 +366,7 @@ export const figshareVocabularyApiRoutes = [
   listFigshareCataloguesRoute,
   listFigshareSourcesRoute,
   getFigshareSourceRoute,
+  listFigshareSourceCategoriesRoute,
   createFigshareSourcePreviewRoute,
   cloneFigshareSourceRoute,
   listFigshareSyncRunsRoute,

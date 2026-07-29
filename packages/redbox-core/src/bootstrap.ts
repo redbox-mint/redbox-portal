@@ -107,6 +107,11 @@ export async function coreBootstrap(): Promise<void> {
     // bind convenience function to sails.config so that configuration access syntax is consistent
     sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as BrandingAwareFunction;
 
+    // Must run after appconfigservice: the Figshare connection settings it needs live in
+    // the per-brand application configuration, not in sails.config.
+    await sails.services.figsharevocabularyservice.bootstrapData();
+    sails.log.verbose("Figshare vocabulary bootstrap data, loaded.");
+
     sails.log.verbose("Cron service, bootstrapped.");
 
     await sails.services.agendaqueueservice.init();

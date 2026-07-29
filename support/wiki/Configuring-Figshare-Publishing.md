@@ -176,7 +176,7 @@ This section maps record metadata into the Figshare article payload.
 | `Keywords` | Binding for the keywords payload. |
 | `Funding` | Optional funding text or structured value. |
 | `License` | Binding and matching strategy used to resolve a Figshare license value. |
-| `Categories Binding` | Binding that pulls local category codes from the record. |
+| `Categories Binding` | Binding that supplies the article's categories. See [Categories](#categories). |
 | `Related Resource` | Optional title and identifier bindings written to `related_materials`; bindings may resolve to a single value or a repeater array such as related data publications. |
 | `Custom Fields` | Extra Figshare custom fields with optional validation. |
 
@@ -187,6 +187,44 @@ This section maps record metadata into the Figshare article payload.
 | `path` | Straight record-path reads such as `metadata.title` |
 | `handlebars` | String templating from multiple source values |
 | `jsonata` | More complex expression-based mapping and transformation |
+| `crosswalk` | Translating record codes through an approved Figshare vocabulary crosswalk |
+
+`crosswalk` is offered on Figshare bindings only — DOI publishing reuses the same editor
+widget and never shows it.
+
+#### The `crosswalk` Binding Type
+
+A crosswalk binding is a *transform*, so unlike the other three it carries its own inner
+binding to supply the input codes:
+
+| Field | What it means |
+|---|---|
+| `Source Binding` | A nested `path`, `handlebars` or `jsonata` binding that reads the codes from the record. Crosswalk bindings cannot be nested inside one another. |
+| `Source Vocabulary` | The **editable local clone**, not the read-only Figshare mirror. Codes are matched against exactly this vocabulary's entries. |
+| `Approved Figshare Crosswalk` | Only approved crosswalks for this brand whose local side is the vocabulary above are offered. Publishing always reads the *approved* revision — a working revision is never consulted. |
+| `Output` | What each resolved mapping emits: `categoryId`, `label`, or `sourceId`. |
+
+Codes are matched against each local entry's value or its identifier, after stripping any
+URI prefix and query string — so `https://linked.data.gov.au/def/anzsrc-for/2020/300201`,
+`300201`, and an object with `notation: "300201"` all match the same entry. The matcher does
+**not** fall back to label text.
+
+Output modes:
+
+| Output | Emits | Typical use |
+|---|---|---|
+| `categoryId` | The numeric Figshare category id | The `Categories Binding` — this is the only output it accepts |
+| `label` | The mirrored Figshare category label | `Keywords` or a custom field |
+| `sourceId` | The Figshare category source id | A custom field needing the stable upstream id |
+
+Because a crosswalk is just a binding kind, any Figshare binding can use one — keywords, a
+custom field, or an author lookup rule — not only categories.
+
+Crosswalk resolution **fails closed**. Publishing errors rather than falling back to the
+mapping table when the crosswalk has no approved revision, maps a different local vocabulary
+than the one selected, or sits behind an archived Figshare source. Mappings pointing at
+categories Figshare has since retired are dropped, and whether that is fatal is controlled by
+`Allow Unmapped Categories`.
 
 #### License Matching
 
@@ -208,18 +246,97 @@ This section maps record metadata into the Figshare article payload.
 
 ### Categories
 
-This section converts local category codes into Figshare category ids.
+Which record field feeds the article's categories, and how those codes are translated, are
+both configured on **Metadata → Categories Binding**. This section only holds the fallback
+mapping table and the unmapped-category policy.
 
 | Option | What it means |
 |---|---|
-| `Strategy` | Current supported strategy is `for2020Mapping`. |
-| `Mapping Table` | Each row maps a local source code to a Figshare category id. |
-| `Allow Unmapped Categories` | If off, a record with categories but no valid mapping will fail validation. If on, unmapped categories are ignored. |
+| `Mapping Table` | Used when the categories binding is *not* a crosswalk. Each row maps a local source code to a Figshare category id. |
+| `Allow Unmapped Categories` | If off, a record with categories but no valid mapping fails validation. If on, unmapped categories are ignored. Applies to both resolution routes. |
 
-Use `Add Row` to create mappings such as:
+There are two ways to resolve categories, chosen by the **type of the Categories Binding**:
 
-- source code: `0299`
-- Figshare category id: `12345`
+- **Mapping table** — the binding is a `path`, `handlebars` or `jsonata` binding that reads
+  codes from the record, and each code is looked up in the `Mapping Table` below. Use
+  `Add Row` to create mappings such as source code `0299` → Figshare category id `12345`.
+  Codes are compared case-sensitively.
+- **Crosswalk** — the binding is a `crosswalk` binding, and codes are resolved through the
+  approved revision of a Figshare vocabulary crosswalk. The mapping table is ignored and
+  preserved. See [The `crosswalk` Binding Type](#the-crosswalk-binding-type).
+
+A crosswalk used for categories must have its `Output` set to `categoryId`; the categories
+payload needs numeric ids, and any other output is rejected with a validation error.
+
+```json
+"metadata": {
+  "categories": {
+    "source": {
+      "kind": "crosswalk",
+      "source": { "kind": "path", "path": "metadata.forCodes", "defaultValue": [] },
+      "sourceVocabularyId": "<local vocabulary id>",
+      "crosswalkId": "<approved crosswalk id>",
+      "outputs": "categoryId"
+    }
+  }
+}
+```
+
+> Earlier releases selected crosswalk resolution with `categories.resolutionMode`,
+> `categories.sourceVocabularyId` and `categories.crosswalkId`. Those fields are gone; a
+> migration rewrites existing configurations into the binding shape above on upgrade.
+
+#### Bootstrapping a crosswalk for a new environment
+
+Importing a Figshare taxonomy and building a crosswalk is normally done by hand in the
+Figshare Vocabularies admin screen. For a new environment you can instead declare the imports
+in `bootstrap-data/vocabularies/figshare-imports.json` and have them created during the Sails
+lift, in the same spirit as `rva-imports.json`:
+
+```json
+{
+  "imports": [
+    {
+      "scope": "public",
+      "taxonomyId": "1",
+      "localCloneName": "Figshare Categories (FOR)",
+      "localCloneSlug": "figshare-categories-for",
+      "crosswalkName": "ANZSRC FOR → Figshare categories"
+    }
+  ]
+}
+```
+
+| Field | Required | What it means |
+|---|---|---|
+| `scope` | yes | `public` for the open catalogue, `account` for the authenticated one. `account` needs a configured API token. |
+| `taxonomyId` | yes | The Figshare taxonomy to mirror. Discover the available ids on the import wizard's first step. |
+| `localCloneName` | yes | Display name for the editable local vocabulary created alongside the read-only mirror. |
+| `localCloneSlug` | no | Slug for that clone. Generated from the name when omitted. |
+| `crosswalkName` | no | Name for the crosswalk. A `"<local vocab> → Figshare taxonomy <id>"` name is generated when omitted. |
+
+Each entry produces three things: a read-only mirror vocabulary, an editable local clone, and
+an **approved** identity crosswalk between them. This saves the import and approval work; it
+does **not** configure publishing. Bootstrapping never writes to the application
+configuration, so a freshly lifted environment still resolves categories through the mapping
+table until an administrator sets up a crosswalk binding.
+
+Behaviour to be aware of:
+
+- **Runs once.** An entry whose Figshare source already exists for the brand is skipped, so a
+  restart never re-syncs the mirror or disturbs crosswalks an administrator has since edited.
+  Use the admin screen to re-sync.
+- **Never fails the lift.** A malformed file, an unreachable Figshare, or one bad entry is
+  logged and skipped; the remaining entries still run.
+- **Skipped when Figshare is not configured** for the default brand, which is the normal case
+  for most deployments.
+- Set `vocab.bootstrapFigshareImports: false` in config to disable the feature entirely.
+
+You still have to select the crosswalk yourself, on **Metadata → Categories Binding**. A
+crosswalk binding stores a database id, which is not stable across environments, so
+bootstrapping creates the crosswalk but cannot wire it into the configuration for you. This is
+what `crosswalkName` is for — give it a predictable name so it is easy to recognise in the
+picker.
 
 ### Assets
 
@@ -353,7 +470,10 @@ Then provide the real token through environment management in the deployment pla
 |---|---|---|
 | Nothing happens when records are saved | `Enabled` is off | Turn on the master checkbox and submit |
 | Sync fails with a license error | License binding does not match a Figshare license | Check the license source binding and `Match By` strategy |
-| Categories fail validation | No mapping exists for the record's category codes | Add rows in `Mapping Table` or turn on `Allow Unmapped Categories` |
+| Categories fail validation | No mapping exists for the record's category codes | Mapping-table mode: add rows in `Mapping Table`. Crosswalk mode: confirm the codes exist as entry values or identifiers in the source vocabulary. Either way, `Allow Unmapped Categories` relaxes it |
+| Sync fails with `Figshare crosswalk category resolution failed` | The crosswalk is unusable, and resolution fails closed rather than falling back to the mapping table | Check the crosswalk has an approved revision, that its local side is the selected `Source Vocabulary`, and that its Figshare source is not archived |
+| Sync fails with `Figshare crosswalk maps to categories removed upstream` | Mappings point at categories Figshare has retired | Re-sync the mirror and remap those entries, or turn on `Allow Unmapped Categories` to drop them with a warning |
+| Sync fails with `must use the 'categoryId' output` | The Categories Binding's crosswalk emits labels or source ids | Set the binding's `Output` to `categoryId`; use `label`/`sourceId` crosswalks on keywords or custom fields instead |
 | Attachments do not upload | Selection settings exclude them, or hosted files are disabled | Check `Attachment Mode`, `Selected Flag Path`, and `Enable Hosted Files` |
 | Uploads fail on large files | Local staging volume lacks space or timeout is too small | Review `Temp Directory`, `Disk Space Threshold Bytes`, and upload timeouts |
 | Article is not published automatically | `Publish Mode` is `manual`, or delayed publish has not run yet | Check `Publish Mode` and queue delay values |

@@ -150,6 +150,7 @@
     [errorMessage]="crosswalkError"
     [statusMessage]="crosswalkMessage"
     (searchChanged)="onMappingSearchChanged($event)"
+    (mappingAdded)="onMappingAdded($event)"
     (mappingRemoved)="onMappingRemoved($event)"
     (approveRequested)="approveCrosswalk($event)"
     (closed)="closeCrosswalkEditor()"

@@ -127,6 +127,26 @@ export function normalizeCategoryCode(value: unknown): string {
   return segment.trim().toLowerCase();
 }
 
+/**
+ * Coerce the result of a categories binding into candidate code strings: arrays are
+ * flattened, and object entries are reduced through their `notation` or `code` field.
+ * No normalisation is applied — callers pick the normaliser that suits their matcher.
+ */
+export function toSourceCodeCandidates(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : value != null && value !== '' ? [value] : [];
+  return items
+    .filter(Boolean)
+    .map((item: unknown) => {
+      if (typeof item === 'object' && item != null) {
+        const record = item as Record<string, unknown>;
+        return String(record.notation ?? record.code ?? '');
+      }
+      return String(item);
+    })
+    .map((code) => code.trim())
+    .filter((code) => code !== '');
+}
+
 /** Collapse internal whitespace and normalise Unicode so labels compare stably. */
 export function normalizeLabel(value: unknown): string {
   return String(value ?? '').normalize('NFC').replace(/\s+/g, ' ').trim();

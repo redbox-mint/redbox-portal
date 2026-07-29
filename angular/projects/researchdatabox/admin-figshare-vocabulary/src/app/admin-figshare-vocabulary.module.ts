@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
@@ -12,6 +12,7 @@ import { FigshareImportWizardComponent } from './import/figshare-import-wizard.c
 import { FigshareSyncPreviewComponent } from './sync-preview/figshare-sync-preview.component';
 import { FigshareCrosswalkListComponent } from './crosswalks/figshare-crosswalk-list.component';
 import { FigshareCrosswalkEditorComponent } from './crosswalks/figshare-crosswalk-editor.component';
+import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-picker.component';
 
 @NgModule({
   declarations: [
@@ -20,12 +21,14 @@ import { FigshareCrosswalkEditorComponent } from './crosswalks/figshare-crosswal
     FigshareImportWizardComponent,
     FigshareSyncPreviewComponent,
     FigshareCrosswalkListComponent,
-    FigshareCrosswalkEditorComponent
+    FigshareCrosswalkEditorComponent,
+    FigshareMappingPickerComponent
   ],
   imports: [
     BrowserModule,
     A11yModule,
     FormsModule,
+    ReactiveFormsModule,
     RedboxPortalCoreModule,
     CommonModule
   ],

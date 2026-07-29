@@ -39,11 +39,16 @@ type ApiResponse<T> = { data: T };
 type JsonRequestOptions = { responseType: 'json'; observe: 'body'; context: HttpContext };
 
 /**
- * Reads the Figshare crosswalk and vocabulary options offered by the Categories panel.
+ * Reads the Figshare crosswalk and vocabulary options offered by crosswalk bindings.
  * All requests are brand scoped server-side; the browser never sees Figshare credentials.
+ *
+ * Results are memoised: a Figshare publishing config renders one binding editor per
+ * bound field, so without this every page load would fire dozens of identical requests.
  */
 @Injectable()
 export class FigshareCrosswalkApiService extends HttpClientService {
+  private crosswalksPromise?: Promise<FigshareCrosswalkOption[]>;
+  private vocabulariesPromise?: Promise<FigshareLocalVocabularyOption[]>;
   constructor(
     @Inject(HttpClient) http: HttpClient,
     @Inject(APP_BASE_HREF) rootContext: string,
@@ -76,6 +81,27 @@ export class FigshareCrosswalkApiService extends HttpClientService {
       return direct.records;
     }
     return [];
+  }
+
+  /**
+   * Approved, same-brand crosswalks, memoised across binding editors. Callers filter
+   * by local vocabulary client-side, so the unfiltered list is fetched once.
+   */
+  public async listAllApprovedCrosswalks(): Promise<FigshareCrosswalkOption[]> {
+    this.crosswalksPromise = this.crosswalksPromise ?? this.listApprovedCrosswalks();
+    return this.crosswalksPromise;
+  }
+
+  /** Local vocabulary options, memoised across binding editors. */
+  public async listAllLocalVocabularies(): Promise<FigshareLocalVocabularyOption[]> {
+    this.vocabulariesPromise = this.vocabulariesPromise ?? this.listLocalVocabularies();
+    return this.vocabulariesPromise;
+  }
+
+  /** Drop the memoised lists so the next read re-fetches. */
+  public refresh(): void {
+    this.crosswalksPromise = undefined;
+    this.vocabulariesPromise = undefined;
   }
 
   /** Approved, same-brand crosswalks. Optionally restricted to one local vocabulary. */

@@ -126,6 +126,27 @@ export interface FigshareCrosswalkMapping {
   approvedBy: string | null;
 }
 
+/** A mirrored Figshare category offered as a manual crosswalk target. */
+export interface FigshareSourceCategory {
+  id: string;
+  sourceId: string;
+  categoryId: number;
+  title: string;
+  parentSourceId?: string;
+  selectable: boolean;
+  historical: boolean;
+}
+
+/** A local vocabulary term of a crosswalk, with the targets it already has. */
+export interface FigshareCrosswalkLocalEntry {
+  id: string;
+  label: string;
+  value: string;
+  identifier?: string;
+  historical: boolean;
+  targetCount: number;
+}
+
 export interface FigshareSyncRunSummary {
   id: string;
   state: string;
@@ -218,6 +239,17 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return { records, total: Number(envelope?.summary?.numFound ?? records.length) };
   }
 
+  /** Drop empty values so an unused filter never reaches the query string. */
+  private toParams(query: Record<string, unknown>): Record<string, string> {
+    const params: Record<string, string> = {};
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '' && value !== false) {
+        params[key] = String(value);
+      }
+    }
+    return params;
+  }
+
   private get figshareUrl(): string {
     return `${this.brandingAndPortalUrl}/api/figshare-vocabularies`;
   }
@@ -242,6 +274,23 @@ export class FigshareVocabularyApiService extends HttpClientService {
       this.http.get(`${this.figshareUrl}/sources`, { ...this.getJsonRequestOptions(), params })
     );
     return this.unwrapList<FigshareSourceSummary>(response);
+  }
+
+  /** Search the mirrored categories of a source for the manual mapping picker. */
+  public async listSourceCategories(sourceId: string, query: {
+    q?: string;
+    includeHistorical?: boolean;
+    selectableOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<PagedResult<FigshareSourceCategory>> {
+    const response = await firstValueFrom(
+      this.http.get(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/categories`, {
+        ...this.getJsonRequestOptions(),
+        params: this.toParams(query)
+      })
+    );
+    return this.unwrapList<FigshareSourceCategory>(response);
   }
 
   public async listSyncRuns(sourceId?: string): Promise<PagedResult<FigshareSyncRunSummary>> {
@@ -353,24 +402,41 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareCrosswalkSummary>(response as ApiResponse<FigshareCrosswalkSummary>);
   }
 
-  public async getCrosswalkUsage(id: string): Promise<Array<{ brandName: string; configKey: string; resolutionMode: string }>> {
+  public async getCrosswalkUsage(id: string): Promise<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>> {
     const response = await firstValueFrom(
       this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/usage`, this.getJsonRequestOptions())
     );
-    return this.unwrap(response as ApiResponse<Array<{ brandName: string; configKey: string; resolutionMode: string }>>) ?? [];
+    return this.unwrap(response as ApiResponse<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>>) ?? [];
   }
 
   public async listMappings(id: string, query: { q?: string; status?: string; revision?: number; limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareCrosswalkMapping>> {
-    const params: Record<string, string> = {};
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== null && value !== '') {
-        params[key] = String(value);
-      }
-    }
     const response = await firstValueFrom(
-      this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/mappings`, { ...this.getJsonRequestOptions(), params })
+      this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/mappings`, {
+        ...this.getJsonRequestOptions(),
+        params: this.toParams(query)
+      })
     );
     return this.unwrapList<FigshareCrosswalkMapping>(response);
+  }
+
+  /**
+   * Search the local vocabulary terms of a crosswalk. Unlike the mapping list this
+   * includes terms that have no target yet, so they can be mapped for the first time.
+   */
+  public async listCrosswalkLocalEntries(id: string, query: {
+    q?: string;
+    mapped?: 'mapped' | 'unmapped';
+    revision?: number;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<PagedResult<FigshareCrosswalkLocalEntry>> {
+    const response = await firstValueFrom(
+      this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/local-entries`, {
+        ...this.getJsonRequestOptions(),
+        params: this.toParams(query)
+      })
+    );
+    return this.unwrapList<FigshareCrosswalkLocalEntry>(response);
   }
 
   public async saveMappings(id: string, body: {

@@ -11,6 +11,7 @@ export namespace Controllers {
       'get',
       'create',
       'usage',
+      'listLocalEntries',
       'listMappings',
       'saveMappings',
       'approve',
@@ -103,6 +104,26 @@ export namespace Controllers {
         const { params } = getValidatedApiRequest(req);
         const usage = await FigshareVocabularyService.getCrosswalkUsage(String(params.id ?? ''), this.getActor(req));
         return this.sendResp(req, res, { data: usage, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.fail(req, res, error);
+      }
+    }
+
+    public async listLocalEntries(req: Sails.Req, res: Sails.Res) {
+      try {
+        const { params, query } = getValidatedApiRequest(req);
+        const result = await FigshareVocabularyService.listCrosswalkLocalEntries(
+          String(params.id ?? ''),
+          {
+            q: query.q as string | undefined,
+            mapped: query.mapped as string | undefined,
+            revision: query.revision == null ? undefined : Number(query.revision),
+            limit: query.limit as unknown as number | undefined,
+            offset: query.offset as unknown as number | undefined,
+          },
+          this.getActor(req)
+        );
+        return this.sendResp(req, res, { data: this.asListResponse(result), headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.fail(req, res, error);
       }

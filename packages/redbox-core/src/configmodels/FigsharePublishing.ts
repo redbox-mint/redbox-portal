@@ -1,6 +1,6 @@
 import { AppConfig } from './AppConfig.interface';
 
-export type FigshareBindingKind = 'path' | 'handlebars' | 'jsonata';
+export type FigshareBindingKind = 'path' | 'handlebars' | 'jsonata' | 'crosswalk';
 export type FigshareArticleItemType =
   | 'dataset'
   | 'fileset'
@@ -31,7 +31,27 @@ export interface JsonataBinding {
   defaultValue?: unknown;
 }
 
-export type ValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+/** The binding kinds that read a value straight out of the evaluation target. */
+export type SimpleValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+
+/** What a crosswalk binding emits for each resolved mapping. */
+export type FigshareCrosswalkOutput = 'categoryId' | 'label' | 'sourceId';
+
+/**
+ * Resolves the codes produced by `source` through the approved revision of a
+ * Figshare crosswalk. `source` is deliberately a simple binding: a crosswalk
+ * never nests another crosswalk.
+ */
+export interface CrosswalkBinding {
+  kind: 'crosswalk';
+  source: SimpleValueBinding;
+  sourceVocabularyId: string;
+  crosswalkId: string;
+  outputs: FigshareCrosswalkOutput;
+  defaultValue?: unknown;
+}
+
+export type ValueBinding = SimpleValueBinding | CrosswalkBinding;
 
 export interface LicenseBinding {
   source: ValueBinding;
@@ -41,7 +61,6 @@ export interface LicenseBinding {
 
 export interface CategoryBinding {
   source: ValueBinding;
-  mappingStrategy: 'for2020Mapping';
 }
 
 export interface RelatedResourceBinding {
@@ -136,12 +155,6 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
   return value;
 }
 
-/**
- * How record category codes become numeric Figshare category IDs. A missing value
- * means `mappingTable` so no existing AppConfig changes behaviour.
- */
-export type FigshareCategoryResolutionMode = 'mappingTable' | 'crosswalk';
-
 export interface FigsharePublishingConfigData {
   enabled: boolean;
   connection: FigshareConnectionConfig;
@@ -194,13 +207,7 @@ export interface FigsharePublishingConfigData {
     customFields: CustomFieldBinding[];
   };
   categories: {
-    strategy: 'for2020Mapping';
-    /** Missing means `mappingTable`, so existing configurations are behaviourally unchanged. */
-    resolutionMode?: FigshareCategoryResolutionMode;
-    /** Required in crosswalk mode: the local vocabulary record codes are resolved against. */
-    sourceVocabularyId?: string;
-    /** Required in crosswalk mode: publishing reads only its approved revision. */
-    crosswalkId?: string;
+    /** Consulted only when the categories binding is not a crosswalk binding. */
     mappingTable: Array<{ sourceCode: string; figshareCategoryId: number }>;
     allowUnmapped: boolean;
   };
@@ -348,7 +355,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     },
     categories: {
       source: createDefaultBinding('metadata.forCodes', []),
-      mappingStrategy: 'for2020Mapping' as const,
     },
     relatedResource: {
       title: createDefaultBinding('metadata.title', ''),
@@ -358,10 +364,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   categories = {
-    strategy: 'for2020Mapping' as const,
-    resolutionMode: 'mappingTable' as FigshareCategoryResolutionMode,
-    sourceVocabularyId: '',
-    crosswalkId: '',
     mappingTable: [] as Array<{ sourceCode: string; figshareCategoryId: number }>,
     allowUnmapped: false,
   };
@@ -434,14 +436,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   }
 }
 
-const VALUE_BINDING_EDITOR_WIDGET = {
-  widget: {
-    formlyConfig: {
-      type: 'value-binding-editor',
-    },
-  },
-};
-
 const CATEGORY_MAPPING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
@@ -450,50 +444,80 @@ const CATEGORY_MAPPING_EDITOR_WIDGET = {
   },
 };
 
-const FIGSHARE_CROSSWALK_SELECT_WIDGET = {
-  widget: {
-    formlyConfig: {
-      type: 'figshare-category-crosswalk-select',
-    },
+const SIMPLE_BINDING_PROPERTIES = {
+  kind: {
+    type: 'string',
+    title: 'Binding Type',
+    enum: ['path', 'handlebars', 'jsonata'],
+    default: 'path',
+  },
+  path: {
+    type: 'string',
+    title: 'Record Path',
+  },
+  template: {
+    type: 'string',
+    title: 'Handlebars Template',
+  },
+  expression: {
+    type: 'string',
+    title: 'JSONata Expression',
+  },
+  defaultValue: {
+    title: 'Default Value',
   },
 };
 
-const FIGSHARE_SOURCE_VOCABULARY_SELECT_WIDGET = {
-  widget: {
-    formlyConfig: {
-      type: 'figshare-source-vocabulary-select',
-    },
-  },
+/**
+ * The inner source of a crosswalk binding. Deliberately excludes the `crosswalk`
+ * kind so a crosswalk can never nest another crosswalk, and carries no widget of
+ * its own: the parent value-binding-editor renders it inline.
+ */
+const SIMPLE_VALUE_BINDING_SCHEMA = {
+  type: 'object',
+  title: 'Source Binding',
+  properties: SIMPLE_BINDING_PROPERTIES,
+  required: ['kind'],
 };
 
 const VALUE_BINDING_SCHEMA = {
   type: 'object',
   title: 'Binding',
   properties: {
+    ...SIMPLE_BINDING_PROPERTIES,
     kind: {
-      type: 'string',
-      title: 'Binding Type',
-      enum: ['path', 'handlebars', 'jsonata'],
-      default: 'path',
+      ...SIMPLE_BINDING_PROPERTIES.kind,
+      enum: ['path', 'handlebars', 'jsonata', 'crosswalk'],
     },
-    path: {
+    source: SIMPLE_VALUE_BINDING_SCHEMA,
+    sourceVocabularyId: {
       type: 'string',
-      title: 'Record Path',
+      title: 'Source Vocabulary',
+      description: 'Crosswalk kind only. Record codes are resolved against entries of exactly this vocabulary.',
     },
-    template: {
+    crosswalkId: {
       type: 'string',
-      title: 'Handlebars Template',
+      title: 'Approved Figshare Crosswalk',
+      description: 'Crosswalk kind only. Publishing always reads the approved revision.',
     },
-    expression: {
+    outputs: {
       type: 'string',
-      title: 'JSONata Expression',
-    },
-    defaultValue: {
-      title: 'Default Value',
+      title: 'Output',
+      description:
+        'What each resolved mapping emits. The Categories binding must use categoryId; label and sourceId produce strings for fields such as keywords or custom fields.',
+      enum: ['categoryId', 'label', 'sourceId'],
+      default: 'categoryId',
     },
   },
   required: ['kind'],
-  ...VALUE_BINDING_EDITOR_WIDGET,
+  // `allowCrosswalk` gates the crosswalk kind in the shared editor. DOI publishing
+  // has its own copy of this schema without the flag, so it never offers the kind.
+  widget: {
+    formlyConfig: {
+      type: 'value-binding-editor',
+      props: { allowCrosswalk: true },
+    },
+  },
 };
 
 export const FIGSHARE_PUBLISHING_SCHEMA = {
@@ -710,12 +734,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           title: 'Categories Binding',
           properties: {
             source: VALUE_BINDING_SCHEMA,
-            mappingStrategy: {
-              type: 'string',
-              title: 'Mapping Strategy',
-              enum: ['for2020Mapping'],
-              default: 'for2020Mapping',
-            },
           },
         },
         relatedResource: {
@@ -761,35 +779,11 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Categories',
       properties: {
-        strategy: {
-          type: 'string',
-          title: 'Strategy',
-          enum: ['for2020Mapping'],
-          default: 'for2020Mapping',
-        },
-        resolutionMode: {
-          type: 'string',
-          title: 'Resolution Mode',
-          description:
-            'Choose how record category codes resolve to Figshare category IDs. Crosswalk mode reads only the approved revision of the selected crosswalk; legacy mode uses the mapping table below.',
-          enum: ['mappingTable', 'crosswalk'],
-          default: 'mappingTable',
-        },
-        sourceVocabularyId: {
-          type: 'string',
-          title: 'Source Vocabulary',
-          description: 'Required in crosswalk mode. Record codes are resolved against entries of exactly this vocabulary.',
-          ...FIGSHARE_SOURCE_VOCABULARY_SELECT_WIDGET,
-        },
-        crosswalkId: {
-          type: 'string',
-          title: 'Approved Figshare Crosswalk',
-          description: 'Required in crosswalk mode. Only approved, same-brand crosswalks whose local side matches the source vocabulary are offered.',
-          ...FIGSHARE_CROSSWALK_SELECT_WIDGET,
-        },
         mappingTable: {
           type: 'array',
           title: 'Mapping Table',
+          description:
+            'Used only when the Categories binding is not a crosswalk binding. Each row maps a record category code to a Figshare category ID.',
           items: {
             type: 'object',
             properties: {

@@ -157,6 +157,38 @@ describe('AdminFigshareVocabularyComponent', () => {
     expect(component.scopeLabelKey('public')).toBe('figshare-vocab-scope-public');
   });
 
+  it('saves an added target against the working revision and reloads the page', async () => {
+    component.activeCrosswalk = { id: 'crosswalk-1', workingRevision: 2 } as any;
+    (api as any).saveMappings = jasmine.createSpy('saveMappings')
+      .and.resolveTo({ id: 'crosswalk-1', workingRevision: 3 } as any);
+    (api as any).listMappings = jasmine.createSpy('listMappings').and.resolveTo({ records: [], total: 0 });
+    component.crosswalkError = 'a previous failure';
+
+    await component.onMappingAdded({ op: 'add', localEntryId: 'entry-1', figshareCategoryId: 'cat-9' });
+
+    expect((api as any).saveMappings).toHaveBeenCalledWith('crosswalk-1', {
+      revision: 2,
+      changes: [{ op: 'add', localEntryId: 'entry-1', figshareCategoryId: 'cat-9' }]
+    });
+    // The first edit of an approved crosswalk forks a revision server-side.
+    expect(component.activeCrosswalk?.workingRevision).toBe(3);
+    expect(component.crosswalkMessage).toBe('Target added to the working revision.');
+    expect(component.crosswalkError).toBe('');
+    expect(component.crosswalkSaving).toBeFalse();
+    expect((api as any).listMappings).toHaveBeenCalled();
+  });
+
+  it('surfaces a save failure without clearing the working revision', async () => {
+    component.activeCrosswalk = { id: 'crosswalk-1', workingRevision: 2 } as any;
+    (api as any).saveMappings = jasmine.createSpy('saveMappings').and.rejectWith({ status: 409 });
+
+    await component.onMappingAdded({ op: 'add', localEntryId: 'entry-1', figshareCategoryId: 'cat-9' });
+
+    expect(component.crosswalkError).toBe('The request could not be completed. Please try again.');
+    expect(component.crosswalkMessage).toBe('');
+    expect(component.activeCrosswalk?.workingRevision).toBe(2);
+  });
+
   it('clears a stale banner and marks the row busy while a clone runs', async () => {
     const source = { id: 'source-1', displayName: 'Taxonomy' } as any;
     let busyDuringCall = '';
