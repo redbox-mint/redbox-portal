@@ -142,6 +142,27 @@ describe('BrandingLogoService', function() {
         'BrandingLogoService.getBinaryAsync hash mismatch for brand/portal/images/favicon.png'
       )).to.be.true;
     });
+
+    it('should retry current favicon metadata when a superseded object disappears', async function() {
+      const oldBuffer = Buffer.from('old-binary');
+      const currentBuffer = Buffer.from('current-binary');
+      const oldHash = crypto.createHash('sha256').update(oldBuffer).digest('hex');
+      const currentHash = crypto.createHash('sha256').update(currentBuffer).digest('hex');
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        favicon: { storageKey: 'favicon-old.png', sha256: oldHash },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+        favicon: { storageKey: 'favicon-current.png', sha256: currentHash, contentType: 'image/png' },
+      });
+      mockPrimaryDisk.getBytes.onFirstCall().rejects({ code: 'ENOENT' });
+      mockPrimaryDisk.getBytes.onSecondCall().resolves(currentBuffer);
+
+      const result = await service.getCurrentFaviconBinary('brand');
+
+      expect(result?.buffer.toString()).to.equal('current-binary');
+      expect(result?.favicon.storageKey).to.equal('favicon-current.png');
+      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
+    });
   });
 
   describe('putFavicon', function() {

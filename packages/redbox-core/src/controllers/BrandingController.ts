@@ -339,21 +339,12 @@ export namespace Controllers {
       };
       try {
         const branding = req.param('branding');
-        const brand = await BrandingConfig.findOne({ name: branding });
-        const favicon = brand?.favicon as Record<string, unknown> | undefined;
-        const storageId = typeof favicon?.storageKey === 'string'
-          ? favicon.storageKey
-          : typeof favicon?.gridFsId === 'string'
-            ? favicon.gridFsId
-            : null;
-        if (!brand || !favicon || !storageId) {
+        const resolved = await BrandingLogoService.getCurrentFaviconBinary(branding);
+        if (!resolved) {
           return sendDefault();
         }
+        const { buffer: buf, favicon } = resolved;
         const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
-        const buf = await BrandingLogoService.getBinaryAsync(storageId, expectedSha256);
-        if (!buf) {
-          return sendDefault();
-        }
         res.contentType((favicon.contentType as string) || 'image/png');
         const etagSeed = expectedSha256
           ? expectedSha256

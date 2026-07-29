@@ -293,6 +293,32 @@ export namespace Services {
       }
     }
 
+    async getCurrentFaviconBinary(branding: string): Promise<{
+      buffer: Buffer;
+      favicon: Record<string, unknown>;
+    } | null> {
+      let failedStorageId: string | null = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const brand = await BrandingConfig.findOne({ name: branding });
+        const favicon = brand?.favicon as Record<string, unknown> | undefined;
+        const storageId = typeof favicon?.storageKey === 'string'
+          ? favicon.storageKey
+          : typeof favicon?.gridFsId === 'string'
+            ? favicon.gridFsId
+            : null;
+        if (!favicon || !storageId || storageId === failedStorageId) {
+          return null;
+        }
+        const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
+        const buffer = await this.getBinaryAsync(storageId, expectedSha256);
+        if (buffer) {
+          return { buffer, favicon };
+        }
+        failedStorageId = storageId;
+      }
+      return null;
+    }
+
     private async getLegacyGridFsBinary(id: string): Promise<Buffer | null> {
       const datastores = sails.config?.datastores as Record<string, { url?: string }> | undefined;
       const url = datastores?.mongodb?.url;
