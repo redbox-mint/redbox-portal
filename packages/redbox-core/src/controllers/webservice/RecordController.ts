@@ -217,12 +217,35 @@ export namespace Controllers {
       };
     }
 
+    private async requireRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
+      try {
+        const record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return null;
+        }
+        const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
+        if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+          return null;
+        }
+        return record;
+      } catch {
+        return null;
+      }
+    }
+
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
         const record = await this.RecordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
         return this.sendResp(req, res, { data: record['authorization'] });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -470,7 +493,10 @@ export namespace Controllers {
       const oid = validated.params.oid as string;
 
       try {
-        const record = await this.RecordsService.getMeta(oid);
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
         return this.sendResp(req, res, { data: record['metaMetadata'] });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -490,8 +516,8 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [
@@ -547,7 +573,10 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
         record['metaMetadata'] = body as unknown as RecordModel['metaMetadata'];
       } catch (err) {
         return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
@@ -1059,12 +1088,18 @@ export namespace Controllers {
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
+      }
+
+      const record = await this.requireRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, { status: 404 });
       }
 
       const response = await this.RecordsService.restoreRecord(oid, user);
@@ -1084,6 +1119,7 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const permanentlyDelete = req.query.permanent === 'true';
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -1091,18 +1127,17 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.RecordsService.getMeta(oid);
-      if (_.isEmpty(record)) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Record not found!' }],
-        });
-      }
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       if (_.isEmpty(brand)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Missing brand.' }],
+        });
+      }
+      const record = await this.requireRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ detail: 'Record not found!' }],
         });
       }
       const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
@@ -1125,12 +1160,17 @@ export namespace Controllers {
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
+      }
+      const record = await this.requireRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, { status: 404 });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user);
       if (response.isSuccessful()) {

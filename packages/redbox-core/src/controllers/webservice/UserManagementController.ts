@@ -127,6 +127,22 @@ export namespace Controllers {
 
     public bootstrap() { }
 
+    private async requireUserInBrand(userId: string, brandId: string): Promise<UserAttributes | null> {
+      const user = await firstValueFrom(UsersService.getUserWithId(userId));
+      if (!user) {
+        return null;
+      }
+      const hasBrandRole = _.some((user.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
+        const branding = role.branding as string | Record<string, unknown> | undefined;
+        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
+        return roleBrandId === brandId;
+      });
+      if (!hasBrandRole) {
+        return null;
+      }
+      return user;
+    }
+
     public async listUsers(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
@@ -267,6 +283,21 @@ export namespace Controllers {
             UsersService.getUserWithUsername(userReq.username || '').subscribe(
               (existingUser: UserModel | null) => {
                 if (existingUser) {
+                  const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+                  if (brand?.id) {
+                    const hasBrandRole = _.some((existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
+                      const branding = role.branding as string | Record<string, unknown> | undefined;
+                      const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
+                      return roleBrandId === brand.id;
+                    });
+                    if (!hasBrandRole) {
+                      return this.sendResp(req, res, {
+                        status: 403,
+                        displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+                        headers: this.getNoCacheHeaders(),
+                      });
+                    }
+                  }
                   return applyRolesIfRequested(existingUser);
                 }
                 sails.log.error(error);
@@ -300,9 +331,20 @@ export namespace Controllers {
       return;
     }
 
-    public updateUser(req: Sails.Req, res: Sails.Res) {
+    public async updateUser(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+      if (brand?.id) {
+        const targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);
+        if (!targetUser) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+      }
 
       UsersService.updateUserDetails(
         userReq.id || '',
@@ -393,9 +435,21 @@ export namespace Controllers {
       return;
     }
 
-    public generateAPIToken(req: Sails.Req, res: Sails.Res) {
+    public async generateAPIToken(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
+      const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+
+      if (userid && brandId) {
+        const targetUser = await this.requireUserInBrand(userid, brandId);
+        if (!targetUser) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+      }
 
       if (userid) {
         const uuid: string = uuidv4();
@@ -430,9 +484,21 @@ export namespace Controllers {
       return;
     }
 
-    public revokeAPIToken(req: Sails.Req, res: Sails.Res) {
+    public async revokeAPIToken(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
+      const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+
+      if (userid && brandId) {
+        const targetUser = await this.requireUserInBrand(userid, brandId);
+        if (!targetUser) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+      }
 
       if (userid) {
         const uuid: string = '';
@@ -709,6 +775,14 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
+        const targetUser = await this.requireUserInBrand(userId, brand.id);
+        if (!targetUser) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         await UsersService.disableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
         return this.apiRespond(req, res, { status: true, message: 'User disabled successfully' });
       } catch (err) {
@@ -737,6 +811,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Branding context is missing or invalid' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const targetUser = await this.requireUserInBrand(userId, brand.id);
+        if (!targetUser) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
             headers: this.getNoCacheHeaders(),
           });
         }
