@@ -66,19 +66,46 @@ export namespace Services {
       return /^[0-9a-fA-F]{24}$/.test(id);
     }
 
+    private extForContentType(contentType: string): string {
+      switch (contentType) {
+        case 'image/png': return 'png';
+        case 'image/jpeg': return 'jpg';
+        case 'image/svg+xml': return 'svg';
+        case 'image/x-icon':
+        case 'image/vnd.microsoft.icon': return 'ico';
+        default: return 'png';
+      }
+    }
+
     private logoStorageKey(branding: string, portal: string, contentType: string): string {
-      const ext = contentType === 'image/png' ? 'png' : contentType === 'image/jpeg' ? 'jpg' : 'svg';
+      const ext = this.extForContentType(contentType);
       return `${branding}/${portal}/images/logo.${ext}`;
+    }
+
+    private faviconStorageKey(branding: string, portal: string, contentType: string): string {
+      const ext = this.extForContentType(contentType);
+      return `${branding}/${portal}/images/favicon.${ext}`;
     }
 
     getMaxBytes(): number {
       return _.get(sails, 'config.branding.logoMaxBytes', 512 * 1024);
     }
 
+    getFaviconMaxBytes(): number {
+      return _.get(sails, 'config.branding.faviconMaxBytes', 256 * 1024);
+    }
+
     allowedContentTypes = new Set([
       'image/png',
       'image/jpeg',
       'image/svg+xml'
+    ]);
+
+    faviconAllowedContentTypes = new Set([
+      'image/png',
+      'image/svg+xml',
+      'image/x-icon',
+      'image/vnd.microsoft.icon'
     ]);
 
     /** Basic SVG detection */
@@ -88,9 +115,11 @@ export namespace Services {
       return /<svg[\s>]/.test(str);
     }
 
-    async sanitizeAndValidate(fileBuf: Buffer, contentType: string): Promise<{ ok: boolean; sha256?: string; sanitizedBuffer?: Buffer; errors?: string[]; warnings?: string[]; finalContentType?: string; }> {
+    async sanitizeAndValidate(fileBuf: Buffer, contentType: string, opts?: { allowed?: Set<string>; maxBytes?: number }): Promise<{ ok: boolean; sha256?: string; sanitizedBuffer?: Buffer; errors?: string[]; warnings?: string[]; finalContentType?: string; }> {
       const errors: string[] = [];
       const warnings: string[] = [];
+      const allowed = opts?.allowed ?? this.allowedContentTypes;
+      const max = opts?.maxBytes ?? this.getMaxBytes();
 
       if (!fileBuf || !Buffer.isBuffer(fileBuf)) {
         errors.push('empty');
@@ -102,10 +131,9 @@ export namespace Services {
         return { ok: false, errors, warnings };
       }
 
-      if (!this.allowedContentTypes.has(contentType)) {
+      if (!allowed.has(contentType)) {
         errors.push('unsupported-type');
       }
-      const max = this.getMaxBytes();
       if (fileBuf.length > max) {
         errors.push('too-large');
       }
@@ -160,6 +188,40 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       await BrandingConfig.update({ id: brand.id }, { logo: meta });
+      return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
+    }
+
+    async putFavicon(opts: { branding: string; portal: string; fileBuffer: Buffer; contentType: string; }): Promise<{
+      hash: string;
+      gridFsId: string;
+      storageKey: string;
+      contentType: string;
+      updatedAt: string;
+    }> {
+      const brand = await BrandingConfig.findOne({ name: opts.branding });
+      if (!brand) throw new Error('branding-not-found');
+      const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(
+        opts.fileBuffer,
+        opts.contentType,
+        { allowed: this.faviconAllowedContentTypes, maxBytes: this.getFaviconMaxBytes() }
+      );
+      const errorList = errors ?? [];
+      if (!ok) throw new Error('favicon-invalid: ' + errorList.join(','));
+
+      const resolvedContentType = finalContentType ?? opts.contentType;
+      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType);
+
+      await StorageManagerService.primaryDisk().put(storageKey, sanitizedBuffer!, { contentType: resolvedContentType });
+
+      this.setCache(storageKey, sanitizedBuffer!);
+      const meta = {
+        gridFsId: storageKey,
+        storageKey,
+        sha256,
+        contentType: resolvedContentType,
+        updatedAt: new Date().toISOString(),
+      };
+      await BrandingConfig.update({ id: brand.id }, { favicon: meta });
       return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 

@@ -31,6 +31,7 @@ import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
 import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
+import { redactObject } from '../utilities/RedactionUtils';
 
 import * as crypto from 'crypto';
 
@@ -1354,18 +1355,20 @@ export namespace Services {
                 }
                 const strategy = new Strategy(strategyOptions, verifyCallbackFn);
                 const additionalAuthParams = _.omit(authParams, ['scope']);
-                if (!_.isEmpty(additionalAuthParams)) {
-                  strategy.authorizationRequestParams = () => {
-                    const params = new URLSearchParams();
-                    for (const [key, value] of Object.entries(additionalAuthParams)) {
-                      if (_.isNil(value)) {
-                        continue;
-                      }
-                      params.set(key, _.isString(value) ? value : JSON.stringify(value));
+                const defaultAuthorizationRequestParams = strategy.authorizationRequestParams.bind(strategy);
+                strategy.authorizationRequestParams = (req: unknown, options?: AnyRecord) => {
+                  const params = defaultAuthorizationRequestParams(req, options);
+                  for (const [key, value] of Object.entries(additionalAuthParams)) {
+                    if (_.isNil(value)) {
+                      continue;
                     }
-                    return params;
-                  };
-                }
+                    params.set(key, _.isString(value) ? value : JSON.stringify(value));
+                  }
+                  // Okta requires state even when PKCE is used. openid-client only adds
+                  // it automatically when the authorization server does not support PKCE.
+                  params.set('state', openIdClient.randomState());
+                  return params;
+                };
                 (sails.config.passport as PassportLike).use(passportIdentifier, strategy);
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
 
@@ -1410,13 +1413,13 @@ export namespace Services {
       }
 
       sails.log.verbose(`OIDC login success, tokenset: `);
-      sails.log.verbose(JSON.stringify(tokenSet));
+      sails.log.verbose(JSON.stringify(redactObject(tokenSet)));
       sails.log.verbose(`Claims:`);
       const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
-      sails.log.verbose(JSON.stringify(tokenClaims));
+      sails.log.verbose(JSON.stringify(redactObject(tokenClaims)));
       if (!_.isUndefined(userinfo)) {
         sails.log.verbose(`Userinfo:`);
-        sails.log.verbose(JSON.stringify(userinfo));
+        sails.log.verbose(JSON.stringify(redactObject(userinfo)));
       } else {
         userinfo = tokenClaims as AnyRecord;
       }
@@ -1463,7 +1466,7 @@ export namespace Services {
         username: userName
       }, function (err: unknown, user: unknown) {
         sails.log.verbose("At OIDC Strategy verify, payload:");
-        sails.log.verbose(userinfo);
+        sails.log.verbose(redactObject(userinfo));
         sails.log.verbose("User:");
         sails.log.verbose(user);
         sails.log.verbose("Error:");

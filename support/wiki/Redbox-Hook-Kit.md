@@ -26,9 +26,10 @@ npx @researchdatabox/redbox-dev-tools init
 ```
 
 This creates:
-- `typescript/api/controllers/` directory structure (recommended location for hook controllers)
+- `src/` with starter hook registrations for config, form configs, services, controllers, and migrations
+- `support/bootstrap-data`, `assets`, `views`, and `language-defaults` placeholders for client customisation material
+- Docker-backed development and Mocha integration harnesses, including a mounted-core workflow for testing against a local `redbox-portal` checkout
 - `tsconfig.json` extending the shared base configuration
-- A sample controller and registration boilerplate to get started
 
 ## TypeScript Configuration
 
@@ -38,20 +39,19 @@ Your hook's `tsconfig.json` should extend the shared configuration:
 {
     "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "./",
-        "rootDir": "./typescript",
+        "outDir": "./dist",
         "typeRoots": [
-            "node_modules/@types",
-            "node_modules/@researchdatabox/redbox-dev-tools/node_modules/@types"
+            "./node_modules/@types"
         ]
     },
     "include": [
-        "typescript/**/*.ts"
+        "src/**/*.ts",
+        "src/**/*.d.ts"
     ]
 }
 ```
 
-> **Note:** The `typeRoots` configuration allows TypeScript to find type definitions from the dev tools package dependencies.
+> **Note:** Shared runtime resolution for packages supplied by the Redbox contract is handled by the dev-tools compile and test wrappers, not by hook-local `paths` entries.
 
 ## Compiling TypeScript
 
@@ -125,7 +125,7 @@ Package versions match ReDBox Portal releases. For example, version `4.5.1` is c
 
 | Command | Description |
 |---|---|
-| `npx @researchdatabox/redbox-dev-tools init` | Initialize a new ReDBox hook project with TypeScript setup |
+| `npx @researchdatabox/redbox-dev-tools init` | Initialize a migration-friendly ReDBox client hook archetype |
 | `npx @researchdatabox/redbox-dev-tools migrate-form-config --input <legacy.js> --output <migrated.ts>` | Migrate a legacy v4 JS form config file to v5 TS format |
 | `npx @researchdatabox/redbox-dev-tools completion <shell>` | Output shell completion script for `bash`, `zsh`, `fish`, and `powershell` |
 | `npx @researchdatabox/redbox-dev-tools help` | Show CLI help and usage information |
