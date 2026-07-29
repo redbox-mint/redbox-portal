@@ -772,9 +772,15 @@ describe('AsynchController authorization', () => {
       }
       throw new Error('not found');
     });
-    (global as any).AsynchsService.get.callsFake(({ id }: { id: string }) =>
-      of(id === 'job-1' ? [{ id, relatedRecordId: 'record-1' }] : [])
-    );
+    (global as any).AsynchsService.get.callsFake((criteria: Record<string, string>) => {
+      if (criteria.id === 'job-1') {
+        return of([{ id: 'job-1', relatedRecordId: 'record-1' }]);
+      }
+      if (criteria.relatedRecordId === 'record-1' && criteria.taskType === 'export') {
+        return of([{ relatedRecordId: 'record-1', taskType: 'export' }]);
+      }
+      return of([]);
+    });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
@@ -784,6 +790,31 @@ describe('AsynchController authorization', () => {
     expect(recordsService.hasViewAccess.callCount).to.equal(3);
     expect((global as any).sails.sockets.join.callCount).to.equal(3);
     expect(sendResp.thirdCall.args[2].data.status).to.be.true;
+  });
+
+  it('rejects ambiguous composite room names instead of authorizing a shorter prefix', async () => {
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getMeta.callsFake(async (oid: string) => {
+      if (oid === 'record') {
+        return { redboxOid: oid };
+      }
+      throw new Error('not found');
+    });
+    (global as any).AsynchsService.get.callsFake((criteria: Record<string, string>) => {
+      if (
+        (criteria.relatedRecordId === 'record' && criteria.taskType === 'one-export') ||
+        (criteria.relatedRecordId === 'record-one' && criteria.taskType === 'export')
+      ) {
+        return of([{ ...criteria }]);
+      }
+      return of([]);
+    });
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.subscribe(makeRequest({ roomId: 'record-one-export' }), {} as Sails.Res);
+
+    expect(sendResp.firstCall.args[2].status).to.equal(403);
+    expect((global as any).sails.sockets.join.called).to.be.false;
   });
 
   it('rejects invalid subscription attempts and reports join errors', async () => {

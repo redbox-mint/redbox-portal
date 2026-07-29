@@ -178,20 +178,35 @@ export namespace Controllers {
       }
 
       // Composite task rooms are broadcast as `${relatedRecordId}-${taskType}`.
-      // Try each prefix from longest to shortest so record IDs containing hyphens
-      // are resolved without making assumptions about the task type.
+      // Resolve them through persisted field pairs instead of trusting a prefix,
+      // because both values may contain hyphens.
+      const relatedRecordIds = new Set<string>();
       let separatorIndex = roomId.lastIndexOf('-');
       while (separatorIndex > 0) {
-        const record = await this.tryFindDirectRelatedRecord(
-          roomId.substring(0, separatorIndex),
-          visitedRoomIds
-        );
-        if (record) {
-          return record;
+        const relatedRecordId = roomId.substring(0, separatorIndex);
+        const taskType = roomId.substring(separatorIndex + 1);
+        try {
+          const progressRecords = await AsynchsService.get({ relatedRecordId, taskType }).toPromise();
+          for (const progressRecord of (progressRecords ?? []) as Array<Record<string, unknown>>) {
+            if (
+              progressRecord.relatedRecordId === relatedRecordId &&
+              progressRecord.taskType === taskType
+            ) {
+              relatedRecordIds.add(relatedRecordId);
+            }
+          }
+        } catch {
+          sails.log.verbose(`AsynchController: failed to resolve composite roomId ${roomId}`);
         }
         separatorIndex = roomId.lastIndexOf('-', separatorIndex - 1);
       }
-      return null;
+
+      // A room name that maps to multiple record/task pairs is ambiguous and
+      // cannot be authorized safely.
+      if (relatedRecordIds.size !== 1) {
+        return null;
+      }
+      return this.tryFindRelatedRecord([...relatedRecordIds][0], visitedRoomIds);
     }
 
     private async tryFindDirectRelatedRecord(
