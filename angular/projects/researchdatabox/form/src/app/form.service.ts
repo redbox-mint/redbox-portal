@@ -825,17 +825,18 @@ export class FormService extends HttpClientService {
   public updateValidators(
     mapEntry: FormFieldCompMapEntry, enabledValidationGroups?: string[] | null, validationGroups?: FormValidationGroups | null
   ): void {
+    // Update descendants first so container controls recalculate their aggregate
+    // status from the refreshed child validation state.
+    for (const childMapEntry of mapEntry?.component?.formFieldCompMapEntries ?? []) {
+      this.updateValidators(childMapEntry, enabledValidationGroups, validationGroups)
+    }
+
     // Set the validators for the form control.
     if (mapEntry?.model?.formControl) {
       const formControl = mapEntry?.model?.formControl;
       const validators = mapEntry?.model?.validators;
       const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };
       this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts, mapEntry);
-    }
-
-    // Set the validators for any child controls.
-    for (const childMapEntry of mapEntry?.component?.formFieldCompMapEntries ?? []) {
-      this.updateValidators(childMapEntry, enabledValidationGroups, validationGroups)
     }
   }
 

@@ -166,6 +166,7 @@ describe('BrandingAdminComponent', () => {
     expect(allKeys).toContain('dark');
     expect(allKeys).toContain('main-menu-active-dropdown-item-background-color');
     expect(allKeys).toContain('footer-bottom-area-branding-background-color');
+    expect(allKeys).toContain('logo-heading-text-color');
   });
 
   it('publish saves draft before publishing and reloads config', async () => {

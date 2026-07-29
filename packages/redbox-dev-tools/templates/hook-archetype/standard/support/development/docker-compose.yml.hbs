@@ -4,47 +4,58 @@ networks:
 services:
   rbportal:
     build:
-      context: '../../..'
-      dockerfile: '{{packageName}}/Dockerfile'
+      context: '../..'
+      dockerfile: 'Dockerfile'
       target: '{{packageName}}'
     ports:
       - "1500:1500"
+      - "9876:9876"
     volumes:
       - "../../:/opt/redbox-portal/node_modules/{{packageName}}"
-      - "../../../redbox-portal/packages/redbox-core:/opt/redbox-portal/packages/redbox-core"
-      - "../../../redbox-portal/packages/redbox-dev-tools:/opt/redbox-portal/packages/redbox-dev-tools"
-      - "../../../redbox-portal/packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common"
-      - "../../../redbox-portal/.tmp/public/angular/form:/opt/redbox-portal/.tmp/public/angular/form"
-      - "../../../redbox-portal/.tmp/public/angular/local-auth:/opt/redbox-portal/.tmp/public/angular/local-auth"
-      - "../../../redbox-portal/.tmp/public/angular/export:/opt/redbox-portal/.tmp/public/angular/export"
-      - "../../../redbox-portal/.tmp/public/angular/dashboard:/opt/redbox-portal/.tmp/public/angular/dashboard"
-      - "../../../redbox-portal/.tmp/public/angular/report:/opt/redbox-portal/.tmp/public/angular/report"
-      - "../../../redbox-portal/.tmp/public/angular/manage-users:/opt/redbox-portal/.tmp/public/angular/manage-users"
-      - "../../../redbox-portal/.tmp/public/angular/admin-vocabulary:/opt/redbox-portal/.tmp/public/angular/admin-vocabulary"
-      - "../../../redbox-portal/.tmp/public/angular/manage-roles:/opt/redbox-portal/.tmp/public/angular/manage-roles"
-      - "../../../redbox-portal/.tmp/public/angular/app-config:/opt/redbox-portal/.tmp/public/angular/app-config"
-      - "../../../redbox-portal/.tmp/public/angular/deleted-records:/opt/redbox-portal/.tmp/public/angular/deleted-records"
-      - "../../../redbox-portal/.tmp/public/angular/branding:/opt/redbox-portal/.tmp/public/angular/branding"
-      - "../../../redbox-portal/.tmp/public/angular/translation:/opt/redbox-portal/.tmp/public/angular/translation"
-      - "../../../redbox-portal/.tmp/public/angular/record-search:/opt/redbox-portal/.tmp/public/angular/record-search"
+      - "../../language-defaults:/opt/redbox-portal/language-defaults"
+      - "../../support/bootstrap-data:/opt/redbox-portal/bootstrap-data"
       - "./.tmp/attachments/staging:/attachments/staging"
     expose:
       - "1500"
     environment:
+      - sails_appUrl=http://localhost:1500
       - NODE_ENV=docker
       - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
       - LOAD_DEFAULT_FORMS=true
       - PORT=1500
       - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - sails_angularDev='true'
+      - sails_security__csrf=false
+      - sails_redbox__apiKey=development-api-key
+      - sails_auth__default__local__default__token=development-token
+      - sails_brandingConfigurationDefaults__auth__local__default__token=development-token
+      - HOOK_S3_ACCESS_KEY=minioadmin
+      - HOOK_S3_SECRET_KEY=minioadmin
+      - HOOK_S3_REGION=ap-southeast-2
+      - HOOK_S3_BUCKET=test-aws-{{packageName}}-attachments
+      - HOOK_S3_ENDPOINT=http://minio:9000
+      - HOOK_S3_KEY_PREFIX=attachments/
+      - HOOK_ATTACHMENTS_STAGE_DIR=/attachments/staging
+      - HOOK_S3_FORCE_PATH_STYLE=true
+      - HOOK_S3_SUPPORTS_ACL=false
+      - MINIO_WAIT_SECONDS=180
+      - REGENERATE_SHIMS=true
     networks:
       main:
         aliases:
           - rbportal
     entrypoint: >-
       /bin/bash -c "set -x;
+      if [ -n \"$${HOOK_S3_BUCKET:-}\" ]; then bash /opt/redbox-portal/node_modules/{{packageName}}/support/prepare-minio.sh development || true; fi;
       cd /opt/redbox-portal &&
-      node --enable-source-maps app.js;"
+      npm --prefix /opt/redbox-portal/node_modules/{{packageName}} run compile &&
+      node --enable-source-maps --inspect=0.0.0.0:9876 app.js;"
+    depends_on:
+      mongodb:
+        condition: service_started
+      solr:
+        condition: service_started
+      minio:
+        condition: service_healthy
 
   mongodb:
     image: mongo:7
@@ -73,3 +84,25 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    networks:
+      main:
+        aliases:
+          - minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - "./.tmp/minio/data:/data"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 5s
+      retries: 90
+      start_period: 5s

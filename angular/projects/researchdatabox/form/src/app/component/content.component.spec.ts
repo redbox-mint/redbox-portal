@@ -100,6 +100,32 @@ describe('ContentComponent', () => {
     expect(compiled.querySelector('.rb-form-content')?.classList.contains('rb-form-rich-text-content')).toBeFalse();
   });
 
+  for (const content of [0, false]) {
+    it(`should render falsy content ${JSON.stringify(content)} through a template`, async () => {
+      const formConfig: FormConfigFrame = {
+        name: 'testing',
+        componentDefinitions: [
+          {
+            name: 'falsy_content',
+            component: {
+              class: 'ContentComponent',
+              config: {
+                content,
+                template: '<h3>{{content}}</h3>'
+              }
+            }
+          }
+        ]
+      };
+
+      const {fixture} = await createFormAndWaitForReady(
+        formConfig, undefined, undefined, dynamicAssetOptions);
+
+      expect(lastTemplateContext?.content).toBe(content);
+      expect(fixture.nativeElement.querySelector('h3')?.textContent).toBe(String(content));
+    });
+  }
+
   it('should expose outputFormat to content templates for markdown rich text view rendering', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

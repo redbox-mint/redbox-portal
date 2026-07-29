@@ -15,7 +15,8 @@ import {
   FigshareCreateFilePayload,
   FigshareEmbargoPayload,
 } from './types';
-import { logEvent, redactObject, withSpan } from './observability';
+import { logEvent, withSpan } from './observability';
+import { redactObject } from '../../utilities/RedactionUtils';
 
 export class FigshareHttpError extends Error {
   statusCode?: number;

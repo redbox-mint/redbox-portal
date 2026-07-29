@@ -52,6 +52,7 @@ type AgendaQueueMongoCollection = {
   find: (filter: Record<string, unknown>) => { toArray: () => Promise<Record<string, unknown>[]> };
   replaceOne: (filter: Record<string, unknown>, doc: Record<string, unknown>, options: { upsert: boolean }) => Promise<unknown>;
   deleteOne: (filter: Record<string, unknown>) => Promise<unknown>;
+  deleteMany: (filter: Record<string, unknown>) => Promise<unknown>;
 };
 type AgendaQueueMongoManager = {
   collection: (name: string) => AgendaQueueMongoCollection;
@@ -247,6 +248,8 @@ export namespace Services {
      * @param job 
      */
     public async moveCompletedJobsToHistory(_job: Job) {
+      const historyRetentionHours = sails.config.agendaQueue.options?.historyRetentionHours ?? 25;
+      const historyRetentionMs = historyRetentionHours * 60 * 60 * 1000;
       const dbManager = User.getDatastore().manager as unknown as AgendaQueueMongoManager;
       const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       const jobsCollection = dbManager.collection(collectionName);
@@ -258,7 +261,10 @@ export namespace Services {
         await jobsCollection.deleteOne({ _id: (doc as { _id?: unknown })._id });
       }
 
-      sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history`);
+      const historyCutoff = new Date(Date.now() - historyRetentionMs);
+      await historyCollection.deleteMany({ lastFinishedAt: { $lt: historyCutoff } });
+
+      sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history and removed history older than ${historyRetentionHours} hours`);
     }
 
     private getDefaultBackend(options: AgendaQueueOptions): AgendaQueueBackend {
