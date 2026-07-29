@@ -20,6 +20,7 @@ export interface StorageService {
 
   restoreRecord(oid: unknown): Promise<StorageServiceResponse>;
   destroyDeletedRecord(oid: unknown): Promise<StorageServiceResponse>;
+  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
 
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
   getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;

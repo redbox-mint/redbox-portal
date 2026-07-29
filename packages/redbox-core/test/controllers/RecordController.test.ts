@@ -214,9 +214,14 @@ describe('RecordController getWorkflowSteps', () => {
     const req = {
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       user: { username: 'alice' },
+      session: { branding: 'default' },
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1' },
+    });
     (controller.recordsService.getAttachments as sinon.SinonStub).rejects(new Error('boom'));
 
     controller.getAttachments(req, res);

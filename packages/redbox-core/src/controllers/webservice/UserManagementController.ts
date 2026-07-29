@@ -132,15 +132,32 @@ export namespace Controllers {
       if (!user) {
         return null;
       }
-      const hasBrandRole = _.some((user.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
+      const roles = (user.roles ?? []) as unknown as Array<Record<string, unknown>>;
+      const hasBrandRole = _.some(roles, (role: Record<string, unknown>) => {
         const branding = role.branding as string | Record<string, unknown> | undefined;
         const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
         return roleBrandId === brandId;
       });
-      if (!hasBrandRole) {
-        return null;
+      if (hasBrandRole) {
+        return user;
       }
-      return user;
+      if (roles.length === 0) {
+        return user;
+      }
+      const isLinked = typeof UserLink !== 'undefined'
+        ? await UserLink.findOne({
+            brandId: brandId,
+            status: 'active',
+            or: [
+              { primaryUserId: userId },
+              { secondaryUserId: userId }
+            ]
+          } as any)
+        : null;
+      if (isLinked) {
+        return user;
+      }
+      return null;
     }
 
     public async listUsers(req: Sails.Req, res: Sails.Res) {

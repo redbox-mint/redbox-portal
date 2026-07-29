@@ -1440,6 +1440,22 @@ export namespace Services {
       }
     }
 
+    async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
+      if (_.isEmpty(oid)) {
+        return null;
+      }
+      try {
+        const deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
+        if (!deletedRecord) {
+          return null;
+        }
+        return deletedRecord.deletedRecordMetadata as RecordModel;
+      } catch (err) {
+        sails.log.error(`${this.logHeader} Failed to find deleted record meta for OID: ${oid}`, err);
+        return null;
+      }
+    }
+
     async destroyDeletedRecord(oid: string): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 

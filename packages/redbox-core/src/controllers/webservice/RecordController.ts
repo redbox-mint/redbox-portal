@@ -233,6 +233,26 @@ export namespace Controllers {
       }
     }
 
+    private async requireRecordInBrandOrDeleted(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
+      const active = await this.requireRecordInBrand(oid, brand);
+      if (active) {
+        return active;
+      }
+      try {
+        const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
+        if (_.isEmpty(deleted)) {
+          return null;
+        }
+        const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
+        if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+          return null;
+        }
+        return deleted as RecordModel;
+      } catch {
+        return null;
+      }
+    }
+
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
@@ -1097,7 +1117,7 @@ export namespace Controllers {
         });
       }
 
-      const record = await this.requireRecordInBrand(oid, brand);
+      const record = await this.requireRecordInBrandOrDeleted(oid, brand);
       if (!record) {
         return this.sendResp(req, res, { status: 404 });
       }
@@ -1168,7 +1188,7 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.requireRecordInBrand(oid, brand);
+      const record = await this.requireRecordInBrandOrDeleted(oid, brand);
       if (!record) {
         return this.sendResp(req, res, { status: 404 });
       }
