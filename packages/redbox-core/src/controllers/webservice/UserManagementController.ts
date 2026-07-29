@@ -149,7 +149,7 @@ export namespace Controllers {
               { primaryUserId: userId },
               { secondaryUserId: userId }
             ]
-          } as any)
+          } as Record<string, unknown>)
         : null;
       if (isLinked) {
         return user;
@@ -317,7 +317,7 @@ export namespace Controllers {
                                 { primaryUserId: existingUser.id },
                                 { secondaryUserId: existingUser.id }
                               ]
-                            } as any)
+                            } as Record<string, unknown>)
                           : null;
                         if (!isLinked) {
                           return this.sendResp(req, res, {
