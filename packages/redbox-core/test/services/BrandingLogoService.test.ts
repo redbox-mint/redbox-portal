@@ -173,7 +173,35 @@ describe('BrandingLogoService', function() {
       });
     });
 
-    it('should retain superseded content-addressed favicons for in-flight and replicated readers', async function() {
+    it('should clean up a superseded favicon after the reader cache TTL', async function() {
+      const clock = sinon.useFakeTimers();
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: 'brand/portal/images/favicon-current.png' },
+      });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+
+      expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.delete.called).to.be.false;
+
+      await clock.tickAsync(24 * 60 * 60 * 1000);
+      expect(mockPrimaryDisk.delete.calledOnceWithExactly(previousStorageKey)).to.be.true;
+    });
+
+    it('should not delete a superseded favicon that becomes active again before cleanup', async function() {
+      const clock = sinon.useFakeTimers();
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
       (global as any).BrandingConfig.findOne.resolves({
         id: 'brand1',
@@ -187,8 +215,9 @@ describe('BrandingLogoService', function() {
         fileBuffer: Buffer.from('replacement'),
         contentType: 'image/png',
       });
+      await clock.tickAsync(24 * 60 * 60 * 1000);
 
-      expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
+      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
       expect(mockPrimaryDisk.delete.called).to.be.false;
     });
 
