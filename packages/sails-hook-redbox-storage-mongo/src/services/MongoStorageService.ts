@@ -89,6 +89,7 @@ export namespace Services {
       'restoreRecord',
       'destroyDeletedRecord',
       'getDeletedRecords',
+      'getDeletedRecordMeta',
       'exportAllPlans',
       'addDatastreams',
       'updateDatastream',
