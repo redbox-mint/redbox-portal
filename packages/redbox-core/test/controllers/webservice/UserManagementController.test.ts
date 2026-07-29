@@ -423,6 +423,33 @@ describe('Webservice UserManagementController', () => {
     });
 
     describe('brand-scoped user mutations', () => {
+        it('rejects reusing a username owned by another brand', async () => {
+            (global as any).UsersService.addLocalUser = sinon.stub().returns(
+                throwError(() => new Error('Username already exists'))
+            );
+            (global as any).UsersService.getUserWithUsername = sinon.stub().returns(of({
+                id: 'other-user',
+                username: 'existing-user',
+                roles: [{ branding: { id: 'brand-2' } }]
+            }));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                body: {
+                    username: 'existing-user',
+                    name: 'Existing User',
+                    email: 'existing@example.org',
+                    password: 'secret'
+                }
+            });
+
+            controller.createUser(req, {} as Sails.Res);
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect((global as any).UsersService.getUserWithUsername.calledOnceWithExactly('existing-user')).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
         it('rejects updating a user outside the current brand', async () => {
             (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
                 id: 'other-user',
