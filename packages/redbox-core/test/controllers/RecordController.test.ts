@@ -68,6 +68,7 @@ describe('RecordController getWorkflowSteps', () => {
       getMeta: sinon.stub(),
       hasViewAccess: sinon.stub().returns(true),
       getAttachments: sinon.stub(),
+      getResolvedPermissionsSummary: sinon.stub(),
     } as any;
   });
 
@@ -249,6 +250,64 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect((controller.recordsService.getAttachments as sinon.SinonStub).called).to.be.false;
     expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 403 });
+  });
+
+  it('returns resolved permissions when the user can view the record', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      user: { username: 'alice' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1' },
+    });
+    (controller.recordsService.getResolvedPermissionsSummary as sinon.SinonStub).resolves({
+      edit: true,
+      view: true,
+    });
+
+    await controller.getPermissions(req, res);
+
+    expect((controller.recordsService.getResolvedPermissionsSummary as sinon.SinonStub).calledOnceWithExactly('oid-1')).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal({ edit: true, view: true });
+  });
+
+  it('rejects permission requests when the user cannot view the record', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      user: { username: 'alice' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1' },
+    });
+    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
+
+    await controller.getPermissions(req, res);
+
+    expect((controller.recordsService.getResolvedPermissionsSummary as sinon.SinonStub).called).to.be.false;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+  });
+
+  it('returns not found when permission metadata does not exist', async () => {
+    const req = {
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+      user: { username: 'alice' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves(null);
+
+    await controller.getPermissions(req, res);
+
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
   });
 
   it('uses saved metadata title on existing edit routes', async () => {
