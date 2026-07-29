@@ -489,6 +489,26 @@ describe('Webservice UserManagementController', () => {
 
                 expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
             });
+
+            it(`allows ${method} for a user in the current brand`, async () => {
+                (global as any).UsersService.setUserKey = sinon.stub().returns(of({
+                    id: 'user-1',
+                    username: 'target-user'
+                }));
+                const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+                const req = makeReq({
+                    session: { branding: 'default' },
+                    user: { username: 'admin-user' },
+                    query: { id: 'user-1' }
+                });
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect((global as any).UsersService.setUserKey.calledOnce).to.be.true;
+                expect((global as any).UsersService.setUserKey.firstCall.args[0]).to.equal('user-1');
+                expect(apiRespondStub.calledOnce).to.be.true;
+                expect(apiRespondStub.firstCall.args[2]?.username).to.equal('target-user');
+            });
         }
     });
 });
