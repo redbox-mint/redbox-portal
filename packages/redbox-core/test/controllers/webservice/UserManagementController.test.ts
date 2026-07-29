@@ -436,6 +436,18 @@ describe('Webservice UserManagementController', () => {
     });
 
     describe('brand-scoped user mutations', () => {
+        it('replaces current-brand roles while preserving roles from other brands', () => {
+            const roleIds = (controller as any).mergeBrandRoleIds({
+                roles: [
+                    { id: 'brand-1-old', branding: 'brand-1' },
+                    { id: 'brand-2-role', branding: { id: 'brand-2' } },
+                    { id: 'global-role' }
+                ]
+            }, 'brand-1', ['brand-1-new']);
+
+            expect(roleIds).to.deep.equal(['brand-2-role', 'global-role', 'brand-1-new']);
+        });
+
         it('rejects reusing a username owned by another brand', async () => {
             (global as any).UsersService.addLocalUser = sinon.stub().returns(
                 throwError(() => new Error('Username already exists'))

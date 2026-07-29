@@ -190,12 +190,17 @@ describe('RecordsService', function () {
       expect(result).to.equal(null);
     });
 
-    it('returns null when storage lookup fails', async function () {
+    it('propagates storage lookup failures', async function () {
       mockStorageService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));
 
-      const result = await RecordsService.getDeletedRecordMeta('deleted-record-123');
+      let caught: unknown;
+      try {
+        await RecordsService.getDeletedRecordMeta('deleted-record-123');
+      } catch (error) {
+        caught = error;
+      }
 
-      expect(result).to.equal(null);
+      expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
     });
   });
 

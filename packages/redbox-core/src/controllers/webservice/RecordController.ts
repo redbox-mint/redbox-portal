@@ -234,19 +234,15 @@ export namespace Controllers {
     }
 
     private async requireDeletedRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
-      try {
-        const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
-        if (_.isEmpty(deleted)) {
-          return null;
-        }
-        const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
-        if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
-          return null;
-        }
-        return deleted as RecordModel;
-      } catch {
+      const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
+      if (_.isEmpty(deleted)) {
         return null;
       }
+      const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
+      if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+        return null;
+      }
+      return deleted as RecordModel;
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {

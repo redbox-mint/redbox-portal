@@ -1645,11 +1645,7 @@ export namespace Services {
       if (_.isEmpty(oid)) {
         return null;
       }
-      try {
-        return await this.storageService.getDeletedRecordMeta(oid);
-      } catch {
-        return null;
-      }
+      return this.storageService.getDeletedRecordMeta(oid);
     }
 
     async getDeletedRecords(

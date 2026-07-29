@@ -460,6 +460,26 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.calledOnce).to.be.true;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
         });
+
+        it('propagates deleted-record storage failures', async () => {
+            recordsService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+
+            let caught: unknown;
+            try {
+                await controller.restoreRecord(req, {} as Sails.Res);
+            } catch (error) {
+                caught = error;
+            }
+
+            expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
+            expect(recordsService.restoreRecord.called).to.be.false;
+        });
     });
 
     describe('harvest handlers', () => {

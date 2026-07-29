@@ -157,6 +157,20 @@ export namespace Controllers {
       return null;
     }
 
+    private mergeBrandRoleIds(user: UserModel | UserAttributes, brandId: string, brandRoleIds: Array<string | number>): Array<string | number> {
+      const foreignRoleIds = ((user.roles ?? []) as unknown as Array<Record<string, unknown>>)
+        .filter((role: Record<string, unknown>) => {
+          const branding = role.branding as string | Record<string, unknown> | undefined;
+          const roleBrandId = _.isObject(branding)
+            ? String((branding as Record<string, unknown>).id ?? '')
+            : String(branding ?? '');
+          return roleBrandId !== brandId;
+        })
+        .map((role: Record<string, unknown>) => role.id as string | number)
+        .filter((roleId: string | number | undefined) => roleId != null);
+      return _.uniq([...foreignRoleIds, ...brandRoleIds]);
+    }
+
     public async listUsers(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
@@ -264,7 +278,8 @@ export namespace Controllers {
             sails.log.warn('UserManagementController.createUser - No role ids resolved, skipping role assignment.');
             return respondWithUser(response);
           }
-          UsersService.updateUserRoles(response.id, roleIds).subscribe(
+          const mergedRoleIds = this.mergeBrandRoleIds(response, brand.id, roleIds);
+          UsersService.updateUserRoles(response.id, mergedRoleIds).subscribe(
             (roleUser: UserModel) => {
               const user: UserModel = roleUser;
               sails.log.verbose(user);
@@ -370,8 +385,9 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+      let targetUser: UserAttributes | null = null;
       if (brand?.id) {
-        const targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);
+        targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);
         if (!targetUser) {
           return this.sendResp(req, res, {
             status: 403,
@@ -409,7 +425,8 @@ export namespace Controllers {
               .filter((roleName: unknown) => !_.isEmpty(roleName));
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
-            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, roleIds).subscribe(
+            const mergedRoleIds = this.mergeBrandRoleIds(targetUser ?? userReq, brand.id, roleIds);
+            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, mergedRoleIds).subscribe(
               (user: unknown) => {
             //TODO: Add roles to the response
             const u = user as globalThis.Record<string, unknown>;
