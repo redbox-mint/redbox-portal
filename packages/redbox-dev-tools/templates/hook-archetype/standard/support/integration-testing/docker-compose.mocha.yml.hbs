@@ -5,35 +5,49 @@ x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
   - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
   - PORT=1500
+  - sails_redbox__apiKey=integration-api-key
   - sails_redbox__mochaTesting=true
+  - sails_brandingConfigurationDefaults__auth__local__default__token=integration-token
   - sails_security__csrf=false
   - LOAD_DEFAULT_FORMS=true
+  - HOOK_S3_ACCESS_KEY=minioadmin
+  - HOOK_S3_SECRET_KEY=minioadmin
+  - HOOK_S3_REGION=ap-southeast-2
+  - HOOK_S3_BUCKET=test-aws-{{packageName}}-attachments
+  - HOOK_S3_ENDPOINT=http://minio:9000
+  - HOOK_S3_KEY_PREFIX=attachments/
+  - HOOK_ATTACHMENTS_STAGE_DIR=/attachments/staging
+  - HOOK_S3_FORCE_PATH_STYLE=true
+  - HOOK_S3_SUPPORTS_ACL=false
+  - MINIO_WAIT_SECONDS=180
+  - REGENERATE_SHIMS=true
   - CI=${CI:-false}
-  - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
+  - RBPORTAL_COVERAGE_DIR=/tmp/redbox-coverage/mocha
 
 x-rbportal-depends: &rbportal-depends
   mongodb:
     condition: service_healthy
   solr:
     condition: service_healthy
+  minio:
+    condition: service_healthy
 
 services:
   redboxportal:
     build:
-      context: ../../..
-      dockerfile: {{packageName}}/Dockerfile
+      context: ../..
+      dockerfile: Dockerfile
       target: {{packageName}}
     ports:
       - "1500:1500"
     volumes:
-      - "../../:/opt/redbox-portal/node_modules/{{packageName}}:delegated"
-      - "../../../redbox-portal/test:/opt/redbox-portal/test"
-      - "../../../redbox-portal/support/integration-testing:/opt/redbox-portal/support/integration-testing"
-      - "../../../redbox-portal/tsconfig.json:/opt/redbox-portal/tsconfig.json"
+      - "../../language-defaults:/opt/redbox-portal/language-defaults"
+      - "../../support/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro"
+      - "../../support/prepare-minio.sh:/opt/redbox-portal/support/prepare-minio.sh:ro"
+      - "../../support/integration-testing:/opt/redbox-portal/support/integration-testing:ro"
+      - "../../tsconfig.json:/opt/redbox-portal/tsconfig.json:ro"
       - "../../test/integration:/opt/redbox-portal/test/integration/{{integrationDirName}}"
-      - "../../../redbox-portal/packages/redbox-core:/opt/redbox-portal/packages/redbox-core"
-      - "../../../redbox-portal/packages/redbox-dev-tools:/opt/redbox-portal/packages/redbox-dev-tools"
-      - "../../../redbox-portal/packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common"
+      - "./.tmp/attachments/staging:/attachments/staging"
     depends_on: *rbportal-depends
     expose:
       - "1500"
@@ -45,7 +59,7 @@ services:
     init: true
     entrypoint:
       - bash
-      - /opt/redbox-portal/node_modules/{{packageName}}/support/integration-testing/run-mocha-hook.sh
+      - /opt/redbox-portal/support/integration-testing/run-mocha-hook.sh
 
   mongodb:
     image: mongo:7
@@ -82,3 +96,23 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    networks:
+      main:
+        aliases:
+          - minio
+    expose:
+      - "9000"
+      - "9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl -fsS http://localhost:9000/minio/health/ready' ]
+      interval: '5s'
+      timeout: '5s'
+      retries: 20
+      start_period: '10s'

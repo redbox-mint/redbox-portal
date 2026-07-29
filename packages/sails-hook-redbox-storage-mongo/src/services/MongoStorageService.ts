@@ -949,14 +949,14 @@ export namespace Services {
             if (isCancelled()) {
               return;
             }
-            passThrough.write(UTF8_BOM);
             if (_.isEmpty(fields)) {
               // No matching records means no columns to derive a header from; emit an empty file
-              // deterministically rather than relying on json2csv's empty-fields behaviour. The
-              // UTF-8 BOM remains so spreadsheet apps detect the file encoding correctly.
+              // deterministically rather than relying on json2csv's empty-fields behaviour.
               passThrough.end();
               return;
             }
+            // Populated CSVs retain a UTF-8 BOM so spreadsheet apps detect their encoding correctly.
+            passThrough.write(UTF8_BOM);
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), json2csv, passThrough);
           } catch (err) {

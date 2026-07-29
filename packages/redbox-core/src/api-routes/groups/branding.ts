@@ -10,6 +10,7 @@ import {
   brandingDraftBody,
   brandingPublishBody,
   logoUploadBody,
+  faviconUploadBody,
   objectField,
   responseField,
   stringField,
@@ -97,6 +98,30 @@ export const brandingLogoRoute = apiRoute(
   }
 );
 
+export const brandingFaviconRoute = apiRoute(
+  'post',
+  '/:branding/:portal/api/branding/favicon',
+  'webservice/BrandingController',
+  'favicon',
+  {
+    body: { content: { 'multipart/form-data': { schema: faviconUploadBody } } },
+    files: {
+      favicon: {
+        required: true,
+        multiple: false,
+        maxBytes: 256 * 1024,
+        mimeTypes: ['image/png', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'],
+        description: 'Branding favicon upload',
+      },
+    },
+  },
+  {
+    tags: ['Branding'],
+    summary: 'Upload branding favicon',
+    responses: { 200: responseField(brandingLogoResponseSchema, 'Branding favicon uploaded') },
+  }
+);
+
 export const brandingHistoryRoute = apiRoute(
   'get',
   '/:branding/:portal/api/branding/history',
@@ -116,5 +141,6 @@ export const brandingApiRoutes = [
   brandingPublishRoute,
   brandingRollbackRoute,
   brandingLogoRoute,
+  brandingFaviconRoute,
   brandingHistoryRoute,
 ];

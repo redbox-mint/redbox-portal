@@ -9,6 +9,7 @@ export interface BrandingThemeToken {
 export const brandingThemeTokens: BrandingThemeToken[] = [
   { key: 'site-branding-area-background-color', cssVar: '--rb-site-branding-area-background-color', defaultValue: '#b1101a', aliases: ['site-branding-area-background-colour'], exposed: true },
   { key: 'site-branding-area-heading-color', cssVar: '--rb-site-branding-area-heading-color', defaultValue: '#888888', aliases: ['site-branding-area-heading-colour'], exposed: false },
+  { key: 'logo-heading-text-color', cssVar: '--rb-logo-heading-text-color', defaultValue: '#ffffff', aliases: ['logo-heading-text-colour'], exposed: true },
   { key: 'panel-branding-background-color', cssVar: '--rb-panel-branding-background-color', defaultValue: '#b1101a', aliases: ['panel-branding-background-colour'], exposed: true },
   { key: 'panel-branding-color', cssVar: '--rb-panel-branding-color', defaultValue: '#ffffff', aliases: ['panel-branding-colour'], exposed: true },
   { key: 'panel-branding-border-color', cssVar: '--rb-panel-branding-border-color', defaultValue: '#dddddd', aliases: ['panel-branding-border-colour'], exposed: true },

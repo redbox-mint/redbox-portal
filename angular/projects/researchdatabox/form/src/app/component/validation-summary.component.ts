@@ -10,6 +10,7 @@ import {
   GroupFieldModelName,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
+  TabComponentName,
   TabContentComponentName,
   TabContentLayoutName,
   ValidationSummaryComponentName,
@@ -281,8 +282,12 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       const containerName = String(angularPath[index]);
       const targetTabId = String(angularPath[index + 1]);
       const candidate = this.findComponentEntryByName(containerName);
-      if (candidate?.component instanceof TabComponent) {
-        candidate.component.selectTab(targetTabId);
+      const tabComponent = candidate?.component as Pick<TabComponent, 'selectTab'> | undefined;
+      if (
+        candidate?.compConfigJson?.component?.class === TabComponentName &&
+        typeof tabComponent?.selectTab === 'function'
+      ) {
+        tabComponent.selectTab(targetTabId);
       }
     }
   }

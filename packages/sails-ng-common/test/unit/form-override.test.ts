@@ -10,8 +10,11 @@ import {
  CheckboxInputComponentName,
  TypeaheadInputComponentName,
  FileUploadComponentName,
+ DateInputComponentName,
+ RichTextEditorComponentName,
  isTypeFieldDefinitionName,
  ILogger,
+ handlebarsCompile,
 } from '../../src';
 
 let expect: Chai.ExpectStatic;
@@ -161,6 +164,17 @@ describe('FormOverride reusable expansion', () => {
     );
 
     expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+  });
+
+  it('reports component classes with default view transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    expect(formOverride.hasDefaultViewTransform(SimpleInputComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(DateInputComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(RepeatableComponentName)).to.equal(true);
+    expect(formOverride.hasDefaultViewTransform(ContentComponentName)).to.equal(false);
+    expect(formOverride.hasDefaultViewTransform('UnknownComponent')).to.equal(false);
+    expect(formOverride.hasDefaultViewTransform(undefined)).to.equal(false);
   });
 
   it('renders dropdown leaf option labels in generated view templates', () => {
@@ -787,5 +801,420 @@ describe('FormOverride reusable expansion', () => {
     expect(template).to.not.contain('<th>{{t "Nickname"}}</th>');
     expect(template).to.not.contain('get this "orcid"');
     expect(template).to.not.contain('get this "nickname"');
+  });
+
+  it('renders repeatable table values from unflattened leaf components', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'events',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: GroupFieldComponentName,
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'startDate',
+                      component: {
+                        class: DateInputComponentName,
+                        config: { label: 'Start date', dateFormat: 'DD/MM/YYYY' },
+                      },
+                    },
+                    {
+                      name: 'endDate',
+                      component: {
+                        class: DateInputComponentName,
+                        config: { label: 'End date' },
+                      },
+                    },
+                    {
+                      name: 'description',
+                      component: {
+                        class: RichTextEditorComponentName,
+                        config: { label: 'Description', outputFormat: 'markdown' },
+                      },
+                    },
+                    {
+                      name: 'person',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Person' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        model: {
+          class: 'RepeatableModel',
+          config: {
+            value: [
+              {
+                startDate: '2026-07-09',
+                endDate: '2026-07-10',
+                description: '**Details**',
+                person: { dc_title: 'Ada Lovelace' },
+              },
+            ],
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.contain('<span data-value="{{default (get this "startDate" "") ""}}">{{formatDate (get this "startDate" "") "DD/MM/YYYY"}}</span>');
+    expect(template).to.contain('<span data-value="{{default (get this "endDate" "") ""}}">{{formatDate (get this "endDate" "") "YYYY/MM/DD"}}</span>');
+    expect(template).to.contain('{{{markdownToHtml (get this "description" "") "markdown"}}}');
+    expect(template).to.contain('(get (get this "person" "") "dc_title" "")');
+    expect(template).to.contain('{{{renderMetadataValue (get this "person" "")}}}');
+    expect(template).to.not.contain('{{default (get this "person" "") ""}}');
+  });
+
+  it('renders standalone url simple inputs as links without changing plain simple inputs', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const urlTransformed = formOverride.applyOverrideTransform(
+      {
+        name: 'projectUrl',
+        component: {
+          class: SimpleInputComponentName,
+          config: { type: 'url' },
+        },
+        model: {
+          class: 'SimpleInputModel',
+          config: {
+            value: 'https://example.test/project',
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(urlTransformed.component.class).to.equal(ContentComponentName);
+    expect((urlTransformed.component.config as { content?: string }).content).to.equal('https://example.test/project');
+    const urlTemplate = normalizeTemplate((urlTransformed.component.config as { template?: string }).template ?? '');
+    expect(urlTemplate).to.contain('<a href="{{default content ""}}" target="_blank" rel="noopener noreferrer">{{default content ""}}</a>');
+    const renderedUrlTemplate = handlebarsCompile(urlTemplate)({ content: 'https://example.test/project' });
+    expect(renderedUrlTemplate).to.contain('<a href="https://example.test/project" target="_blank" rel="noopener noreferrer">https://example.test/project</a>');
+
+    const plainTransformed = formOverride.applyOverrideTransform(
+      {
+        name: 'projectTitle',
+        component: {
+          class: SimpleInputComponentName,
+          config: { type: 'text' },
+        },
+        model: {
+          class: 'SimpleInputModel',
+          config: {
+            value: 'Project title',
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(plainTransformed.component.class).to.equal(ContentComponentName);
+    expect((plainTransformed.component.config as { content?: string }).content).to.equal('Project title');
+    const plainTemplate = normalizeTemplate((plainTransformed.component.config as { template?: string }).template ?? '');
+    expect(plainTemplate).to.equal('<span>{{content}}</span>');
+    expect(plainTemplate).to.not.contain('<a ');
+  });
+
+  it('renders url simple inputs as links in repeatable group tables', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'resources',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: GroupFieldComponentName,
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'title',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Title' },
+                      },
+                    },
+                    {
+                      name: 'link',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Link', type: 'url' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        model: {
+          class: 'RepeatableModel',
+          config: {
+            value: [
+              {
+                title: 'Repository',
+                link: 'https://example.test/repository',
+              },
+            ],
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.contain('<a href="{{default (get this "link" "") ""}}" target="_blank" rel="noopener noreferrer">{{default (get this "link" "") ""}}</a>');
+    const renderedTemplate = handlebarsCompile(template)({
+      content: [
+        {
+          title: 'Repository',
+          link: 'https://example.test/repository',
+        },
+      ],
+    });
+    expect(renderedTemplate).to.contain('<a href="https://example.test/repository" target="_blank" rel="noopener noreferrer">https://example.test/repository</a>');
+  });
+
+  it('substitutes the reusable repeatable-list item class', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'keywords',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: 'keyword',
+              component: {class: SimpleInputComponentName},
+              model: {class: 'SimpleInputModel'},
+            },
+          },
+        },
+        model: {class: 'RepeatableModel', config: {value: ['one']}},
+      } as never,
+      'view',
+      {
+        phase: 'client',
+        reusableFormDefs: {
+          'view-template-repeatable-list': [
+            {
+              name: 'repeatable-list-template',
+              component: {
+                class: ContentComponentName,
+                config: {
+                  template: '{{#if [[rootExpr]]}}<div>{{#each [[rootExpr]]}}<div class="[[itemClass]]">[[itemBodyHtml]]</div>{{/each}}</div>{{/if}}',
+                },
+              },
+            } as never,
+          ],
+        },
+      }
+    );
+
+    const template = normalizeTemplate((transformed.component.config as {template?: string}).template ?? '');
+    expect(template).to.contain('class="rb-view-repeatable-card rb-view-repeatable-card--leaf"');
+    expect(template).to.not.contain('[[itemClass]]');
+  });
+
+  it('applies template-only view overrides to repeatable content transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+    const customTemplate = '<div class="custom">{{#each content}}<span>{{title}}</span>{{/each}}</div>';
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'resources',
+        component: {
+          class: RepeatableComponentName,
+          config: {
+            elementTemplate: {
+              name: '',
+              component: {
+                class: GroupFieldComponentName,
+                config: {
+                  componentDefinitions: [
+                    {
+                      name: 'title',
+                      component: {
+                        class: SimpleInputComponentName,
+                        config: { label: 'Title' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        model: {
+          class: 'RepeatableModel',
+          config: {
+            value: [
+              { title: 'Kept' },
+              { title: '' },
+              { title: 'Also kept' },
+            ],
+          },
+        },
+        overrides: {
+          formModeClasses: {
+            view: {
+              template: customTemplate,
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    expect((transformed.component.config as { template?: string }).template).to.equal(customTemplate);
+    expect((transformed.component.config as { content?: unknown[] }).content).to.deep.equal([
+      { title: 'Kept' },
+      { title: 'Also kept' },
+    ]);
+  });
+
+  it('applies template-only view overrides to leaf simple input content transforms', () => {
+    const formOverride = new FormOverride(createLogger());
+    const customTemplate = '<strong>{{content}}</strong>';
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'title',
+        component: {
+          class: SimpleInputComponentName,
+          config: {visible: false},
+        },
+        layout: {class: 'DefaultLayout', config: {visible: false}},
+        model: {
+          class: 'SimpleInputModel',
+          config: {
+            value: 'Project title',
+          },
+        },
+        overrides: {
+          formModeClasses: {
+            view: {
+              template: customTemplate,
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    expect((transformed.component.config as { template?: string }).template).to.equal(customTemplate);
+    expect((transformed.component.config as { content?: string }).content).to.equal('Project title');
+    expect((transformed.component.config as { visible?: boolean }).visible).to.equal(true);
+    expect((transformed.layout?.config as { visible?: boolean }).visible).to.equal(true);
+
+    const emptyTransformed = formOverride.applyOverrideTransform(
+      {
+        name: 'title',
+        component: {class: SimpleInputComponentName, config: {visible: false}},
+        layout: {class: 'DefaultLayout', config: {visible: false}},
+        model: {class: 'SimpleInputModel', config: {value: ''}},
+        overrides: {formModeClasses: {view: {template: customTemplate}}},
+      } as never,
+      'view',
+      {phase: 'client'}
+    );
+    expect((emptyTransformed.component.config as {visible?: boolean}).visible).to.equal(true);
+    expect((emptyTransformed.layout?.config as {visible?: boolean}).visible).to.equal(false);
+  });
+
+  it('ignores templates on identity view overrides', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'title',
+        component: {
+          class: SimpleInputComponentName,
+        },
+        overrides: {
+          formModeClasses: {
+            view: {
+              component: SimpleInputComponentName,
+              template: '<strong>{{content}}</strong>',
+            },
+          },
+        },
+      } as never,
+      'view',
+      { phase: 'client' }
+    );
+
+    expect(transformed.component.class).to.equal(SimpleInputComponentName);
+    expect((transformed.component.config as { template?: string } | undefined)?.template).to.equal(undefined);
+  });
+
+  it('uses reusable view templates for url simple input links', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const transformed = formOverride.applyOverrideTransform(
+      {
+        name: 'projectUrl',
+        component: {
+          class: SimpleInputComponentName,
+          config: { type: 'url' },
+        },
+        model: {
+          class: 'SimpleInputModel',
+          config: {
+            value: 'https://example.test/project',
+          },
+        },
+      } as never,
+      'view',
+      {
+        phase: 'client',
+        reusableFormDefs: {
+          'view-template-leaf-link': [
+            {
+              name: 'x',
+              component: {
+                class: ContentComponentName,
+                config: {
+                  template: '<span class="custom-link">{{[[valueExpr]]}}</span>',
+                },
+              },
+            } as never,
+          ],
+        },
+      }
+    );
+
+    expect(transformed.component.class).to.equal(ContentComponentName);
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
+    expect(template).to.equal('<span class="custom-link">{{content}}</span>');
+    expect(template).to.not.contain('target="_blank"');
   });
 });

@@ -113,4 +113,66 @@ describe('BrandingLogoService', function() {
       expect(mockPrimaryDisk.getBytes.calledOnce).to.be.true;
     });
   });
+
+  describe('putFavicon', function() {
+    it('should throw if brand not found', async function() {
+      (global as any).BrandingConfig.findOne.resolves(null);
+      try {
+        await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.equal('branding-not-found');
+      }
+    });
+
+    it('should store a PNG favicon and update config', async function() {
+      const brand = { id: 'brand1' };
+      (global as any).BrandingConfig.findOne.resolves(brand);
+      (global as any).BrandingConfig.update.resolves([]);
+
+      const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
+
+      expect(result.contentType).to.equal('image/png');
+      expect(result.storageKey).to.equal('brand/portal/images/favicon.png');
+      expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal('brand/portal/images/favicon.png');
+      expect((global as any).BrandingConfig.update.firstCall.args[1].favicon).to.include({
+        storageKey: 'brand/portal/images/favicon.png',
+        contentType: 'image/png',
+      });
+    });
+
+    it('should accept an ICO favicon', async function() {
+      const brand = { id: 'brand1' };
+      (global as any).BrandingConfig.findOne.resolves(brand);
+      (global as any).BrandingConfig.update.resolves([]);
+
+      const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('icodata'), contentType: 'image/x-icon' });
+
+      expect(result.contentType).to.equal('image/x-icon');
+      expect(result.storageKey).to.equal('brand/portal/images/favicon.ico');
+    });
+
+    it('should reject an unsupported favicon content type', async function() {
+      const brand = { id: 'brand1' };
+      (global as any).BrandingConfig.findOne.resolves(brand);
+      try {
+        await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/jpeg' });
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.match(/favicon-invalid: .*unsupported-type/);
+      }
+    });
+
+    it('should reject an oversized favicon', async function() {
+      const brand = { id: 'brand1' };
+      (global as any).BrandingConfig.findOne.resolves(brand);
+      mockSails.config.branding = { faviconMaxBytes: 10 };
+      try {
+        await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.alloc(20, 0), contentType: 'image/png' });
+        expect.fail('Should have thrown');
+      } catch (e: unknown) {
+        expect(e instanceof Error ? e.message : String(e)).to.match(/favicon-invalid: .*too-large/);
+      }
+    });
+  });
 });
