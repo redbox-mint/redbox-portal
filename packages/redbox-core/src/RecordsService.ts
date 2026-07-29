@@ -81,6 +81,7 @@ export interface RecordsService {
   getMeta(oid: string): Promise<RecordModel>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
+  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
   getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
   getMetaWithRelationships(oid: string, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordMetaWithRelationships>;

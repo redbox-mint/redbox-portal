@@ -115,6 +115,7 @@ export namespace Services {
       'restoreRecord',
       'destroyDeletedRecord',
       'getDeletedRecords',
+      'getDeletedRecordMeta',
       'exportAllPlans',
       'addDatastreams',
       'updateDatastream',
@@ -1470,6 +1471,17 @@ export namespace Services {
         response.message = this.getErrorMessage(err);
         return response;
       }
+    }
+
+    async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
+      if (_.isEmpty(oid)) {
+        return null;
+      }
+      const deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
+      if (!deletedRecord) {
+        return null;
+      }
+      return deletedRecord.deletedRecordMetadata as RecordModel;
     }
 
     async destroyDeletedRecord(oid: string): Promise<StorageServiceResponse> {
