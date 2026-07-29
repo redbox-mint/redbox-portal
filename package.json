@@ -232,7 +232,8 @@
   },
   "nyc": {
     "check-coverage": false,
-    "all": true,
+    "all": false,
+    "exclude-node-modules": false,
     "lines": 45,
     "statements": 45,
     "functions": 45,
@@ -244,8 +245,8 @@
       ".tsx"
     ],
     "include": [
-      "api/**/!(*.test.*).[tj]s?(x)",
-      "config/**/!(*.test.*).[tj]s?(x)"
+      "config/env/**/*.js",
+      "packages/*/dist/**/*.js"
     ],
     "reporter": [
       "lcov",
