@@ -227,15 +227,6 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       await BrandingConfig.update({ id: brand.id }, { favicon: meta });
-      const previousStorageKey = _.get(brand, 'favicon.storageKey') as string | undefined;
-      if (previousStorageKey && previousStorageKey !== storageKey) {
-        try {
-          await StorageManagerService.primaryDisk().delete(previousStorageKey);
-          delete this._binaryById[previousStorageKey];
-        } catch (error) {
-          sails.log.warn(`BrandingLogoService.putFavicon failed to remove superseded favicon ${previousStorageKey}:`, error);
-        }
-      }
       return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 
