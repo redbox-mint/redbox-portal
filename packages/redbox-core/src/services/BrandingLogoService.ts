@@ -105,7 +105,7 @@ export namespace Services {
 
     private faviconStorageKey(branding: string, portal: string, contentType: string, sha256: string): string {
       const ext = this.extForContentType(contentType);
-      return `${branding}/${portal}/images/favicon-${sha256}.${ext}`;
+      return `${branding}/${portal}/images/favicon-${sha256}-${crypto.randomUUID()}.${ext}`;
     }
 
     getMaxBytes(): number {

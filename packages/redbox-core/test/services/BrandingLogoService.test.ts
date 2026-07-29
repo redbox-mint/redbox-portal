@@ -162,15 +162,37 @@ describe('BrandingLogoService', function() {
 
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
       const expectedHash = crypto.createHash('sha256').update('data').digest('hex');
-      const expectedStorageKey = `brand/portal/images/favicon-${expectedHash}.png`;
 
       expect(result.contentType).to.equal('image/png');
-      expect(result.storageKey).to.equal(expectedStorageKey);
-      expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal(expectedStorageKey);
+      expect(result.storageKey).to.match(
+        new RegExp(`^brand/portal/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.png$`)
+      );
+      expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal(result.storageKey);
       expect((global as any).BrandingConfig.update.firstCall.args[1].favicon).to.include({
-        storageKey: expectedStorageKey,
+        storageKey: result.storageKey,
         contentType: 'image/png',
       });
+    });
+
+    it('should use distinct storage keys when identical favicon bytes are uploaded again', async function() {
+      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      const first = await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('same-data'),
+        contentType: 'image/png',
+      });
+      const second = await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('same-data'),
+        contentType: 'image/png',
+      });
+
+      expect(first.hash).to.equal(second.hash);
+      expect(first.storageKey).to.not.equal(second.storageKey);
     });
 
     it('should clean up a superseded favicon after the reader cache TTL', async function() {
@@ -254,7 +276,9 @@ describe('BrandingLogoService', function() {
       const expectedHash = crypto.createHash('sha256').update('icodata').digest('hex');
 
       expect(result.contentType).to.equal('image/x-icon');
-      expect(result.storageKey).to.equal(`brand/portal/images/favicon-${expectedHash}.ico`);
+      expect(result.storageKey).to.match(
+        new RegExp(`^brand/portal/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.ico$`)
+      );
     });
 
     it('should not overwrite the active favicon before its metadata update succeeds', async function() {
