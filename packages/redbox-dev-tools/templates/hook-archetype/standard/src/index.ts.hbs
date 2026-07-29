@@ -1,10 +1,11 @@
 import '@researchdatabox/redbox-core';
-import { defineRedboxHook, type SailsConfig } from '@researchdatabox/redbox-core';
+import { defineRedboxHook, type HookRegistrationMap } from '@researchdatabox/redbox-core';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import type { HookRedboxControllers } from './api/controllers';
 import type { HookRedboxServices } from './api/services';
 import { brandingConfigurationDefaults } from './config/brandingConfigurationDefaults';
 import { reusableFormDefinitions } from './config/reusableFormDefinitions';
+import { MigrationExports, registerRedboxMigrations } from './migrations';
 
 export {};
 
@@ -20,21 +21,18 @@ const hook = defineRedboxHook({
       }
     };
   },
-  configure(sails) {
-    const brandingDefaults = (sails.config.brandingConfigurationDefaults || {}) as SailsConfig['brandingConfigurationDefaults'];
-    brandingDefaults.menu = brandingConfigurationDefaults.menu as SailsConfig['brandingConfigurationDefaults']['menu'];
-    brandingDefaults.homePanels = brandingConfigurationDefaults.homePanels as SailsConfig['brandingConfigurationDefaults']['homePanels'];
-    sails.config.brandingConfigurationDefaults = brandingDefaults;
-    sails.config.reusableFormDefinitions = reusableFormDefinitions;
-  },
+  configure() {},
   defaults: {
     __configKey__: {
       _hookTimeout: 120000
     },
     policies: {}
   },
-  registerRedboxConfig(): Partial<SailsConfig> {
-    return {};
+  registerRedboxConfig(): HookRegistrationMap {
+    return {
+      brandingConfigurationDefaults,
+      reusableFormDefinitions
+    };
   },
   registerRedboxControllers(): HookRedboxControllers {
     return require('./api/controllers').ControllerExports as HookRedboxControllers;
@@ -48,7 +46,9 @@ const hook = defineRedboxHook({
   additionalExports: {
     ControllerExports: require('./api/controllers').ControllerExports,
     ServiceExports: require('./api/services').ServiceExports,
-    FormConfigExports: require('./form-config').FormConfigExports
+    FormConfigExports: require('./form-config').FormConfigExports,
+    MigrationExports,
+    registerRedboxMigrations
   }
 });
 

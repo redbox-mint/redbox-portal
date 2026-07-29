@@ -35,6 +35,24 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(component).toBeDefined();
   });
 
+  it('should reveal tabs implemented by a dynamically loaded component instance', () => {
+    const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+    const component = fixture.componentInstance as any;
+    const selectTab = jasmine.createSpy('selectTab');
+    spyOn(component, 'findComponentEntryByName').and.callFake((name: string) =>
+      name === 'mainTab'
+        ? {
+            compConfigJson: { component: { class: 'TabComponent' } },
+            component: { selectTab },
+          }
+        : undefined,
+    );
+
+    component.revealTabParents(['mainTab', 'storage', 'field']);
+
+    expect(selectTab).toHaveBeenCalledOnceWith('storage');
+  });
+
   it('should cancel a deferred validation refresh when destroyed', fakeAsync(() => {
     const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
     const component = fixture.componentInstance as any;

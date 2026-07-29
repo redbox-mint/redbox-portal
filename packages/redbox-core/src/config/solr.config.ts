@@ -19,6 +19,7 @@ export interface SolrFieldDefinition {
     stored: boolean;
     multiValued?: boolean;
     required?: boolean;
+    docValues?: boolean;
 }
 
 export interface SolrCopyFieldDefinition {
@@ -116,7 +117,8 @@ export const solr: SolrSearchConfig = {
                     { name: 'workflow_step', type: 'text_general', indexed: true, stored: true, multiValued: false }
                 ],
                 'add-dynamic-field': [
-                    { name: 'date_*', type: 'pdate', indexed: true, stored: true }
+                    { name: 'date_*', type: 'pdate', indexed: true, stored: true },
+                    { name: '*', type: 'string', indexed: true, stored: true, multiValued: true }
                 ],
                 'add-copy-field': [
                     { source: '*', dest: 'full_text' },

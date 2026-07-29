@@ -20,6 +20,7 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.contain(':root {');
     expect(result.css).to.contain(':host {');
     expect(result.css).to.contain('--rb-site-branding-area-background-color: #b1101a;');
+    expect(result.css).to.contain('--rb-logo-heading-text-color: #ffffff;');
     expect(result.css).to.contain('--mu-panel-bg: var(--rb-panel-branding-background-color, #b1101a);');
     expect(result.css).to.contain('--bs-btn-hover-bg: var(--rb-primary);');
     expect(result.css).to.not.contain('background-color: var(--rb-primary) !important;\n  border-color: var(--rb-primary) !important;');
@@ -49,9 +50,11 @@ describe('BrandingThemeCssService', function () {
       'anchor-color': '#112233',
     });
     const alias = service.generate({ 'site-branding-area-background-colour': '#123456' });
+    const logoHeading = service.generate({ 'logo-heading-text-colour': '#abcdef' });
 
     expect(first.hash).to.equal(second.hash);
     expect(alias.css).to.contain('--rb-site-branding-area-background-color: #123456;');
+    expect(logoHeading.css).to.contain('--rb-logo-heading-text-color: #abcdef;');
     expect(first.css).to.contain('--mu-submit-btn-bg: var(--rb-submit-button-background-color, #428bca);');
   });
 

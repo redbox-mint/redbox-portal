@@ -116,19 +116,26 @@ describe('sync-translation command', () => {
     const tempEnTranslationData = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
     const tempMetaData = readJsonFile(tempMetaFile) as Record<string, unknown>;
 
-    expect(targetTranslation).to.eql(tempEnTranslationData);
-    expect(targetMeta).to.eql(tempMetaData);
+    expect(tempEnTranslationData).to.eql(targetTranslation);
+    expect(tempMetaData).to.eql(targetMeta);
 
-    expect(Object.keys(tempEnTranslationData)).to.have.length(3);
-    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1");
+    expect(Object.keys(tempEnTranslationData)).to.have.length(4);
+    expect(tempEnTranslationData["_meta"]).to.eql({
+      "@name-test1": {
+        "category": "naming"
+      },
+      "@name-test2": {
+        "category": "naming"
+      }
+    });
+    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1 <a href=\"https://qcif.edu.au\">link</a>");
     expect(tempEnTranslationData["@name-test2"]).to.eql("Name 2");
     expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
 
     expect(Object.keys(tempMetaData)).to.have.length(3);
     expect(tempMetaData["@name-test1"]).to.eql({
-      "category": "name",
-      "description": "Name for test 1.",
-      "contentFormat": "plain"
+      "category": "naming",
+      "description": "Name for test 1."
     });
     expect(tempMetaData["@name-test2"]).to.eql({
       "category": "name",
@@ -136,6 +143,7 @@ describe('sync-translation command', () => {
       "contentFormat": "plain"
     });
     expect(tempMetaData["@name-test3"]).to.eql({
+      "category": "name",
       "description": "Name for test 3."
     });
 
@@ -192,15 +200,21 @@ describe('sync-translation command', () => {
     expect(originalEnTranslationData).to.eql(tempEnTranslationData);
     expect(originalMetaData).to.eql(tempMetaData);
 
-    expect(Object.keys(tempEnTranslationData)).to.have.length(2);
+    expect(Object.keys(tempEnTranslationData)).to.have.length(3);
+    expect(tempEnTranslationData["_meta"]).to.eql({
+      "@name-test1": {
+        "category": "naming"
+      },
+      "@name-test2": {
+        "category": "naming"
+      }
+    });
     expect(tempEnTranslationData["@name-test1"]).to.eql("");
     expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
 
     expect(Object.keys(tempMetaData)).to.have.length(2);
     expect(tempMetaData["@name-test1"]).to.eql({
-      "category": "name",
-      "description": "Name for test 1.",
-      "contentFormat": "plain"
+      "description": "Name for test 1."
     });
     expect(tempMetaData["@name-test3"]).to.eql({
       "description": "Name for test 3."

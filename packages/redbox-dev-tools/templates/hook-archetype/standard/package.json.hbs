@@ -9,18 +9,22 @@
     "hasControllers": true,
     "hasServices": true,
     "hasConfig": true,
-    "hasFormConfigs": true
+    "hasFormConfigs": true,
+    "hasMigrations": true
   },
   "scripts": {
     "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
     "test": "npm run test:unit && npm run test:integration:mocha",
-    "test:unit": "TS_NODE_PROJECT=./test/tsconfig.json npm run compile && node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs ./test/unit",
-    "test:integration:mocha": "npm run compile &&docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --build --menu=false --abort-on-container-exit --exit-code-from redboxportal",
+    "test:unit": "TS_NODE_PROJECT=./test/tsconfig.json npm run compile && node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs \"./test/unit/**/*.test.ts\"",
+    "test:integration:mocha": "npm run compile && docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --build --menu=false --abort-on-container-exit --exit-code-from redboxportal",
     "test:integration:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180",
-    "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
-    "dev:run:build": "docker compose -f ./support/development/docker-compose.yml build",
+    "dev:run:prepare": "mkdir -p ./support/development/.tmp/attachments/staging ./support/development/.tmp/mongo ./support/development/.tmp/minio/data",
+    "dev:run": "npm run dev:run:prepare && docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "dev:run:build": "docker compose -f ./support/development/docker-compose.yml build --pull",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down -v --remove-orphans --timeout 180",
-    "dev:run:prepare": "mkdir -p ./support/development/.tmp/attachments/staging"
+    "dev:run:core:prepare": "bash ./support/development/prepare-core-mount.sh",
+    "dev:run:core": "npm run dev:run:core:prepare && docker compose --env-file ./support/development/.tmp/core-mount.env -f ./support/development/docker-compose.yml -f ./support/development/docker-compose.core-mount.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "dev:run:core:clean": "REDBOX_PORTAL_PATH=/tmp/unused docker compose -f ./support/development/docker-compose.yml -f ./support/development/docker-compose.core-mount.yml down -v --remove-orphans --timeout 180"
   },
   "keywords": [
     "sails",

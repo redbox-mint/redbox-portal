@@ -25,6 +25,7 @@
     "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -b",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcov --coverage.reportsDirectory=coverage/agenda-sqs-backend",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "@tsconfig/node24": "24.0.4",
     "@types/debug": "4.1.13",
     "@types/node": "24.12.4",
+    "@vitest/coverage-v8": "4.1.5",
     "typescript": "5.9.3",
     "vitest": "4.1.5"
   }

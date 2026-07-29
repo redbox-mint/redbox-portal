@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { AgendaQueueUnsupportedFeatureError, Services } from '../../src/services/AgendaQueueService';
-import { parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
+import { parseAgendaHistoryRetentionHours, parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
 import { cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('AgendaQueueService', function () {
@@ -115,6 +115,17 @@ describe('AgendaQueueService', function () {
 
     it('rejects unsupported backend values', function () {
       expect(() => parseAgendaQueueBackend('redis', 'test-env')).to.throw("Invalid test-env value 'redis'. Expected one of: mongodb, sqs.");
+    });
+
+    it('parses non-negative history retention hours', function () {
+      expect(parseAgendaHistoryRetentionHours('36', 'test-env')).to.equal(36);
+      expect(parseAgendaHistoryRetentionHours('0', 'test-env')).to.equal(0);
+      expect(parseAgendaHistoryRetentionHours(undefined, 'test-env')).to.equal(undefined);
+    });
+
+    it('rejects invalid history retention hours', function () {
+      expect(() => parseAgendaHistoryRetentionHours('-1', 'test-env')).to.throw("Invalid test-env value '-1'. Expected a non-negative number of hours.");
+      expect(() => parseAgendaHistoryRetentionHours('invalid', 'test-env')).to.throw("Invalid test-env value 'invalid'. Expected a non-negative number of hours.");
     });
   });
 
@@ -308,6 +319,7 @@ describe('AgendaQueueService', function () {
     });
 
     it('moves completed jobs to history idempotently', async function () {
+      const clock = sinon.useFakeTimers(new Date('2026-07-16T12:00:00.000Z'));
       const service = new Services.AgendaQueue();
       const completedJob = { _id: 'job-id', name: 'completed-job', nextRunAt: null };
       const jobsCollection = {
@@ -317,7 +329,8 @@ describe('AgendaQueueService', function () {
         deleteOne: sinon.stub().resolves(undefined)
       };
       const historyCollection = {
-        replaceOne: sinon.stub().resolves(undefined)
+        replaceOne: sinon.stub().resolves(undefined),
+        deleteMany: sinon.stub().resolves(undefined)
       };
       const collection = sinon.stub();
       collection.withArgs('agendaJobs').returns(jobsCollection);
@@ -328,7 +341,7 @@ describe('AgendaQueueService', function () {
         })
       };
       (global as any).sails.config.agendaQueue = {
-        options: { collection: 'agendaJobs' },
+        options: { collection: 'agendaJobs', historyRetentionHours: 36 },
         jobs: {}
       };
 
@@ -336,6 +349,10 @@ describe('AgendaQueueService', function () {
 
       expect(historyCollection.replaceOne.calledOnceWithExactly({ _id: 'job-id' }, completedJob, { upsert: true })).to.equal(true);
       expect(jobsCollection.deleteOne.calledOnceWithExactly({ _id: 'job-id' })).to.equal(true);
+      expect(historyCollection.deleteMany.calledOnceWithExactly({
+        lastFinishedAt: { $lt: new Date('2026-07-15T00:00:00.000Z') }
+      })).to.equal(true);
+      clock.restore();
     });
   });
 

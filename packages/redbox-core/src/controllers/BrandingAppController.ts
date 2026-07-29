@@ -20,12 +20,13 @@ function mapError(e: Error): { status: number; body: unknown } {
   if (msg === 'history-not-found') return { status: 404, body: { error: 'history-not-found' } };
   if (msg === 'publish-conflict') return { status: 409, body: { error: 'publish-conflict' } };
   if (msg.startsWith('logo-invalid')) return { status: 400, body: { error: 'logo-invalid', detail: msg } };
+  if (msg.startsWith('favicon-invalid')) return { status: 400, body: { error: 'favicon-invalid', detail: msg } };
   return { status: 500, body: { error: 'server-error', detail: msg } };
 }
 
 export namespace Controllers {
   export class BrandingApp extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = ['config', 'draft', 'preview', 'publish', 'logo'];
+    protected override _exportedMethods: string[] = ['config', 'draft', 'preview', 'publish', 'logo', 'favicon'];
 
     /** 9.1 Return current draft/active branding config + logo meta */
     async config(req: Sails.Req, res: Sails.Res) {
@@ -119,6 +120,35 @@ export namespace Controllers {
         const buf = await fs.readFile(f.fd);
         try {
           const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type as string });
+          await fs.unlink(f.fd);
+          return res.ok({ hash });
+        } catch (e) {
+          await fs.unlink(f.fd);
+          throw e;
+        }
+      } catch (e: unknown) {
+        const { status, body } = mapError(e as Error);
+        return res.status(status).json(body);
+      }
+    }
+
+    /** 9.6 Upload favicon */
+    async favicon(req: Sails.Req, res: Sails.Res) {
+      const branding = getRouteParam(req, 'branding');
+      const portal = getRouteParam(req, 'portal');
+      try {
+        if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
+          return res.badRequest({ error: 'no-file' });
+        }
+        const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
+          try { ((req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void })('favicon').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded)); } catch (_e) { resolve([]); }
+        });
+        if (!files || !files.length) return res.badRequest({ error: 'no-file' });
+        const f = files[0];
+        const fs = require('fs').promises;
+        const buf = await fs.readFile(f.fd);
+        try {
+          const { hash } = await BrandingLogoService.putFavicon({ branding, portal, fileBuffer: buf, contentType: f.type as string });
           await fs.unlink(f.fd);
           return res.ok({ hash });
         } catch (e) {
