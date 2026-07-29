@@ -18,23 +18,29 @@ describe('hook entrypoint', function () {
   });
 
   it('exports the standard hook registrations and aliases', async function () {
-    expect(hookModule.registerRedboxConfig()).to.deep.equal({});
+    const config = hookModule.registerRedboxConfig();
+
+    expect(config).to.have.property('brandingConfigurationDefaults');
+    expect(config).to.have.property('reusableFormDefinitions');
+    expect(config.brandingConfigurationDefaults.menu).to.deep.equal({ items: [], showSearch: true });
+    expect(config.brandingConfigurationDefaults.homePanels).to.deep.equal({ panels: [] });
     expect(hookModule.registerRedboxServices()).to.have.property('ExampleService');
     expect(hookModule.registerRedboxControllers()).to.have.property('ExampleController');
     expect(hookModule.registerRedboxFormConfigs()).to.have.property('generated-view-only');
+    expect(hookModule.registerRedboxMigrations()).to.deep.equal([]);
+    expect(hookModule.MigrationExports).to.equal(hookModule.registerRedboxMigrations());
     expect(hookModule.registerFormConfig()).to.equal(hookModule.registerRedboxFormConfigs());
 
     const result = await firstValueFrom(hookModule.registerRedboxServices().ExampleService.describe());
     expect(result).to.deep.equal({ hook: '{{packageName}}', status: 'ready' });
   });
 
-  it('applies reusable form definitions and branding defaults during configure', function () {
+  it('keeps configure empty while config is provided through registerRedboxConfig', function () {
     const hook = hookModule((global as any).sails);
 
     hook.configure?.();
 
-    expect((global as any).sails.config.brandingConfigurationDefaults.menu).to.deep.equal({ items: [], showSearch: true });
-    expect((global as any).sails.config.brandingConfigurationDefaults.homePanels).to.deep.equal({ panels: [] });
-    expect((global as any).sails.config.reusableFormDefinitions).to.exist;
+    expect((global as any).sails.config.brandingConfigurationDefaults).to.deep.equal({});
+    expect((global as any).sails.config.reusableFormDefinitions).to.deep.equal({});
   });
 });

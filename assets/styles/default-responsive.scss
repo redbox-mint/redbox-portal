@@ -35,6 +35,10 @@
   margin: 20px 0;
   text-align: center;
 }
+.logo h1.logo-with-heading {
+  flex-direction: column;
+  gap: 10px;
+}
 
 .navbar-header {
   text-align: center;

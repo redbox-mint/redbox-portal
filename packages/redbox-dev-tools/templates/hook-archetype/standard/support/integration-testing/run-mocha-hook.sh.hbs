@@ -5,5 +5,10 @@ set -euo pipefail
 cd /opt/redbox-portal
 
 export RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-$'test/integration/{{integrationDirName}}/**/*.test.ts'}
+export RBPORTAL_SAILS_LOG_LEVEL=${RBPORTAL_SAILS_LOG_LEVEL:-error}
+
+if [ -n "${HOOK_S3_BUCKET:-}" ] && [ -f /opt/redbox-portal/support/prepare-minio.sh ]; then
+  bash /opt/redbox-portal/support/prepare-minio.sh integration
+fi
 
 exec bash /opt/redbox-portal/support/integration-testing/run-mocha-redbox.sh

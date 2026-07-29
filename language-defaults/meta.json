@@ -4104,6 +4104,11 @@
     "description": "Alt text for the site logo",
     "contentFormat": "plain"
   },
+  "logo-heading-text": {
+    "category": "logo",
+    "description": "Optional heading displayed next to the site logo",
+    "contentFormat": "plain"
+  },
   "aaf-logo-alt-text": {
     "category": "aaf",
     "description": "Alt text for the AAF logo on the login page",
@@ -5342,6 +5347,16 @@
   "branding-site-branding-background-color-help": {
     "category": "branding",
     "description": "Help text for site branding background color in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-logo-heading-text-color-label": {
+    "category": "branding",
+    "description": "Label for the logo heading text colour setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-logo-heading-text-color-help": {
+    "category": "branding",
+    "description": "Help text for the logo heading text colour setting in the branding configuration admin UI",
     "contentFormat": "plain"
   },
   "branding-menu-name": {

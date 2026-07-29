@@ -25,6 +25,36 @@ describe('RepeatableComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  for (const [description, value] of [
+    ['object', {title: 'First'}],
+    ['array', [{title: 'First'}]],
+  ] as const) {
+    it(`should preserve ${description} values as content when creating repeatable entries`, () => {
+      const fixture = TestBed.createComponent(RepeatableComponent);
+      const component = fixture.componentInstance;
+      spyOnProperty(component as any, 'getFormComponent', 'get').and.returnValue({
+        enabledValidationGroups: [],
+        validationGroups: [],
+      });
+      const templateEntry = {
+        compConfigJson: {
+          name: 'repeatable_content',
+          component: {
+            class: 'ContentComponent',
+            config: {
+              template: '{{content.title}}'
+            }
+          }
+        }
+      };
+
+      const entry = (component as any).createFieldNewMapEntry(templateEntry, value);
+
+      expect(entry.defEntry.compConfigJson.component.config.content).toBe(value);
+    });
+  }
+
   it('should render the repeatable and array components', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

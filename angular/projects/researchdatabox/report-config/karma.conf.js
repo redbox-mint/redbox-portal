@@ -17,7 +17,16 @@ module.exports = function (config) {
     jasmineHtmlReporter: {
       suppressAll: true
     },
-    reporters: ['progress', 'kjhtml', 'junit'],
+    coverageReporter: {
+      dir: require('path').join(__dirname, './coverage/'),
+      subdir: '.',
+      reporters: [
+        { type: 'html' },
+        { type: 'text-summary' },
+        { type: 'json' }
+      ]
+    },
+    reporters: ['progress', 'kjhtml', 'junit', 'coverage'],
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-report-config')
     },

@@ -311,6 +311,14 @@ export type FormOverrideModeClassesConfig = {
     component?: ComponentClassNamesType;
     model?: ModelClassNamesType;
     layout?: LayoutClassNamesType;
+    /**
+     * When the mode's transform produces a ContentComponent, this Handlebars template replaces the generated one.
+     * It renders with the client content-component context (`content` = the field's pruned value, plus `formData`,
+     * `branding`, `portal`, `oid`, `workflow`). The transformed component is made visible so edit-mode visibility
+     * defaults do not suppress the custom view. A layout hidden for edit mode is shown when transformed content is
+     * non-empty and remains hidden when it is empty. It is ignored when no transform to ContentComponent occurs.
+     */
+    template?: string;
 }
 
 /**

@@ -9,8 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="<%= typeof description == 'undefined' ? 'ReDBox research data management portal' : description %>">
   <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="<%= BrandingService.getRootContext() %>/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="<%= BrandingService.getRootContext() %>/favicon-16x16.png">
+  <link rel="icon" href="<%= BrandingService.getBrandAndPortalPath(req) %>/images/favicon" type="image/png">
 
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>

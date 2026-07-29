@@ -100,3 +100,58 @@ describe('generateHookArchetype version resolution', () => {
     });
   });
 });
+
+describe('generateHookArchetype standard template', () => {
+  let tempRoot: string;
+  let hookArchetypeModule: any;
+
+  beforeEach(() => {
+    const tempParent = path.join(testRoot, '.tmp');
+    fs.mkdirSync(tempParent, { recursive: true });
+    tempRoot = fs.mkdtempSync(path.join(tempParent, 'rich-hook-archetype-'));
+    hookArchetypeModule = loadTs(module, '../../src/templates/hook-archetype');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  function readGenerated(relativePath: string): string {
+    return fs.readFileSync(path.join(tempRoot, relativePath), 'utf8');
+  }
+
+  it('generates the richer client hook scaffold by default', () => {
+    hookArchetypeModule.generateHookArchetype({
+      cwd: tempRoot,
+      packageName: 'redbox-hook-demo-client',
+    });
+
+    const pkg = JSON.parse(readGenerated('package.json'));
+    expect(pkg.sails).to.include({
+      isHook: true,
+      hookName: 'redbox-hook-demo-client',
+      hasConfig: true,
+      hasFormConfigs: true,
+      hasMigrations: true,
+    });
+    expect(pkg.scripts).to.have.property('dev:run:core');
+    expect(pkg.devDependencies).to.have.property('@researchdatabox/redbox-core');
+    expect(pkg.devDependencies).to.have.property('@researchdatabox/redbox-dev-tools');
+
+    expect(readGenerated('src/index.ts')).to.contain('registerRedboxMigrations');
+    expect(readGenerated('src/migrations/index.ts')).to.contain('export function registerRedboxMigrations()');
+    expect(readGenerated('Dockerfile')).to.contain('npm pack --pack-destination /tmp --silent');
+    expect(readGenerated('support/development/docker-compose.yml')).to.contain('minio:');
+    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain('@researchdatabox/redbox-core');
+    expect(readGenerated('support/integration-testing/run-mocha-hook.sh')).to.contain('RBPORTAL_MOCHA_TEST_PATHS');
+    expect(readGenerated('support/integration-testing/run-mocha-redbox.sh')).to.contain('generateAllShims');
+    expect(readGenerated('language-defaults/en/translation.json')).to.contain('DemoClient hook ready');
+    expect(fs.existsSync(path.join(tempRoot, 'support', 'bootstrap-data', 'namedqueries'))).to.equal(true);
+    expect(fs.existsSync(path.join(tempRoot, 'assets', 'images'))).to.equal(true);
+
+    const prepareMinioMode = fs.statSync(path.join(tempRoot, 'support', 'prepare-minio.sh')).mode;
+    const prepareCoreMode = fs.statSync(path.join(tempRoot, 'support', 'development', 'prepare-core-mount.sh')).mode;
+    expect((prepareMinioMode & 0o111) > 0).to.equal(true);
+    expect((prepareCoreMode & 0o111) > 0).to.equal(true);
+  });
+});

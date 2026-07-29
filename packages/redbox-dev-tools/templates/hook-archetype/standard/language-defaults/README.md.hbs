@@ -1,0 +1,10 @@
+This folder contains hook-provided i18n defaults that can seed the database
+and serve as runtime fallbacks when the database has no matching value.
+
+Expected structure:
+
+- `language-defaults/<lng>/translation.json`
+- `language-defaults/meta.json` for optional category/description metadata
+
+Keep generated client locale assets out of this folder; those belong under
+the portal asset build output, not in the hook source.
