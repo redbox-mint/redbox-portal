@@ -41,6 +41,16 @@ function sanitizeCsvCell(value: unknown): unknown {
   if (typeof value === 'string' && CSV_DANGEROUS_PREFIX.test(value)) {
     return "'" + value;
   }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeCsvCell);
+  }
+  if (
+    value != null &&
+    typeof value === 'object' &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+  ) {
+    return sanitizeCsvRecord(value as Record<string, unknown>);
+  }
   return value;
 }
 

@@ -330,13 +330,14 @@ export namespace Services {
     }
 
 
-    public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
+    public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
-      const url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
-      sails.log.verbose(`Searching advanced using: ${url}`);
-      const response = await axios.get(url).then((response: { data: Record<string, unknown> }) => response.data);
+      const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
+      const params = query instanceof URLSearchParams ? query : new URLSearchParams(query);
+      sails.log.verbose(`Searching advanced using: ${url}?${params.toString()}`);
+      const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
     }
 

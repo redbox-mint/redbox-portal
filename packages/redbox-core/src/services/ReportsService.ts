@@ -362,34 +362,36 @@ export namespace Services {
     }
 
     private buildSolrParams(brand: BrandingModel, req: Sails.ReqParamProvider, report: ReportConfig, start: number, rows: number, format = 'json') {
-      let params = this.getQueryValue(report);
-      params = this.addPaginationParams(params, start, rows);
-      params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+      if (!report.solrQuery) {
+        throw new Error('Missing solrQuery in report config');
+      }
+      const params = new URLSearchParams(report.solrQuery.baseQuery);
+      params.append('sort', 'date_object_modified desc');
+      params.append('version', '2.2');
+      params.append('fl', report.columns.map(column => column.property).join(','));
+      params.append('start', String(start));
+      params.append('rows', String(rows));
+      params.append('fq', `metaMetadata_brandId:${brand.id}`);
+      params.append('wt', format);
 
       if (report.filter != null) {
-        let filterQuery = ""
         for (const filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
             const paramName = filter.paramName;
             const fromDate = req.param(paramName + "_fromDate");
             const toDate = req.param(paramName + "_toDate");
             const searchProperty = filter.property;
-            filterQuery = filterQuery + "&fq=" + searchProperty + ":[";
-            filterQuery = filterQuery + (fromDate == null ? "*" : fromDate);
-            filterQuery = filterQuery + " TO ";
-            filterQuery = filterQuery + (toDate == null ? "NOW" : toDate) + "]";
+            params.append('fq', `${searchProperty}:[${fromDate == null ? '*' : fromDate} TO ${toDate == null ? 'NOW' : toDate}]`);
           }
           if (filter.type == ReportFilterType.text) {
             const paramName = filter.paramName;
             const value = req.param(paramName)
             if (!_.isEmpty(value)) {
               const searchProperty = filter.property;
-              filterQuery = filterQuery + "&fq=" + searchProperty + ":"
-              filterQuery = filterQuery + value + "*"
+              params.append('fq', `${searchProperty}:${value}*`);
             }
           }
         }
-        params = params + filterQuery;
       }
 
       return params;
