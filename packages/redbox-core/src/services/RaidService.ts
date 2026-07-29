@@ -23,6 +23,36 @@ export namespace Services {
     return path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean).reduce<unknown>((cur, key) => cur != null && typeof cur === 'object' ? (cur as AnyRecord)[key] : undefined, value);
   }
 
+  function legacyPathToJsonata(path: string): string {
+    const parts = _.toPath(path);
+    const expression = parts.map((part, index) => {
+      if (/^\d+$/.test(part)) return `[${part}]`;
+      const segment = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(part)
+        ? part
+        : `"${part.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+      return index === 0 ? segment : `.${segment}`;
+    }).join('');
+    return /^(record|options|mappedData|types)(\.|\[|$)/.test(expression) ? expression : `record.${expression}`;
+  }
+
+  function normalizeLegacyMapping(mapping: AnyRecord): RaidPublishingConfigData['mapping'] {
+    return Object.fromEntries(Object.entries(mapping ?? {}).map(([profile, rawFields]) => [
+      profile,
+      Object.fromEntries(Object.entries(rawFields as AnyRecord).map(([name, rawField]) => {
+        const field = rawField as AnyRecord;
+        if (field.engine || typeof field.src !== 'string') return [name, field as RaidMappingField];
+        const normalized = {
+          ...field,
+          engine: 'jsonata',
+          expression: legacyPathToJsonata(field.src),
+          parseJson: undefined,
+          src: undefined,
+        };
+        return [name, normalized as unknown as RaidMappingField];
+      })),
+    ]));
+  }
+
   function legacyConfigToPublishing(raw: AnyRecord): RaidPublishingConfigData {
     return {
       enabled: raw.enabled !== false,
@@ -33,7 +63,7 @@ export namespace Services {
       },
       durableRetry: { jobName: String(raw.retryJobName ?? 'RaidMintRetryJob'), schedule: String(raw.retryJobSchedule ?? 'in 5 minutes'), maxAttempts: Number(raw.retryJobMaxAttempts ?? 5) },
       saveBodyInMeta: raw.saveBodyInMeta !== false, raidFieldName: String(raw.raidFieldName ?? 'raidUrl'), orcidBaseUrl: String(raw.orcidBaseUrl ?? 'https://orcid.org/'),
-      types: raw.types ?? {}, mapping: raw.mapping ?? {}
+      types: raw.types ?? {}, mapping: normalizeLegacyMapping(raw.mapping ?? {})
     };
   }
 
@@ -53,9 +83,7 @@ export namespace Services {
     private resolveConfig(record: RecordLike): { brand: { id: string; name: string }; config: RaidPublishingConfigData } {
       const brand = this.resolveBrand(record);
       const branded = AppConfigService?.getAppConfigurationForBrand?.(brand.name)?.raidPublishing as RaidPublishingConfigData | undefined;
-      const defaultBrand = BrandingService.getDefault?.();
-      const fallback = defaultBrand ? AppConfigService?.getAppConfigurationForBrand?.(defaultBrand.name)?.raidPublishing as RaidPublishingConfigData | undefined : undefined;
-      const config = branded ?? fallback ?? legacyConfigToPublishing(sails.config.raid as AnyRecord);
+      const config = branded ?? legacyConfigToPublishing(sails.config.raid as AnyRecord);
       if (!config?.connection?.baseUrl) throw new RBValidationError({ message: `RAiD base URL is not configured for brand '${brand.name}'`, displayErrors: [{ code: 'raid-mint-transform-validation-error' }] });
       if (config.connection.retry.maxAttempts < 1 || config.connection.timeoutMs < 1) throw new RBValidationError({ message: `Invalid RAiD retry/timeout configuration for brand '${brand.name}'`, displayErrors: [{ code: 'raid-mint-transform-validation-error' }] });
       for (const [profile, fields] of Object.entries(config.mapping)) for (const [name, field] of Object.entries(fields)) {
