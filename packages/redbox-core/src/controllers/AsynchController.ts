@@ -1,7 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
-
 export namespace Controllers {
   /**
    * Responsible for all things related to exporting anything
@@ -42,18 +41,46 @@ export namespace Controllers {
 
     public stop(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
-      AsynchsService.finish(id).subscribe((progress: globalThis.Record<string, unknown>[]) => {
-        this.broadcast(req, 'stop', progress[0]);
-        this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+      AsynchsService.get({ id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
+        if (existing && existing.length > 0) {
+          const existingProgress = existing[0];
+          const startedBy = String(existingProgress.started_by ?? '');
+          const username = String(req.user?.username ?? '');
+          if (startedBy && username && startedBy !== username) {
+            return this.sendResp(req, res, {
+              status: 403,
+              data: { status: false, message: 'Access denied' },
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+        }
+        AsynchsService.finish(id).subscribe((progress: globalThis.Record<string, unknown>[]) => {
+          this.broadcast(req, 'stop', progress[0]);
+          this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+        });
       });
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
       const progressObj = this.createProgressObjFromRequest(req);
-      AsynchsService.update({id: id}, progressObj).subscribe((progress: globalThis.Record<string, unknown>[]) => {
-        this.broadcast(req, 'update', progress[0]);
-        this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+      AsynchsService.get({ id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
+        if (existing && existing.length > 0) {
+          const existingProgress = existing[0];
+          const startedBy = String(existingProgress.started_by ?? '');
+          const username = String(req.user?.username ?? '');
+          if (startedBy && username && startedBy !== username) {
+            return this.sendResp(req, res, {
+              status: 403,
+              data: { status: false, message: 'Access denied' },
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+        }
+        AsynchsService.update({ id }, progressObj).subscribe((progress: globalThis.Record<string, unknown>[]) => {
+          this.broadcast(req, 'update', progress[0]);
+          this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+        });
       });
     }
 
@@ -106,11 +133,33 @@ export namespace Controllers {
       return result;
     }
 
-    public subscribe(req: Sails.Req, res: Sails.Res) {
+    public async subscribe(req: Sails.Req, res: Sails.Res) {
       const roomId = req.param('roomId');
       console.log(`Trying to join: ${roomId}`);
       if (!req.isSocket) {
         return res.badRequest();
+      }
+
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+
+      if (brand?.id) {
+        const record = await this.tryFindRelatedRecord(roomId);
+        if (record != null) {
+          const recordsService = sails.services.recordsservice as unknown as { hasViewAccess: (brand: BrandingModel, user: Record<string, unknown>, roles: Record<string, unknown>[], record: Record<string, unknown>) => boolean };
+          const hasViewAccess = recordsService.hasViewAccess(
+            brand,
+            req.user ?? {},
+            (req.user?.roles ?? []) as unknown as Record<string, unknown>[],
+            record as Record<string, unknown>
+          );
+          if (!hasViewAccess) {
+            return this.sendResp(req, res, {
+              status: 403,
+              data: { status: false, message: 'Access denied' },
+              headers: this.getNoCacheHeaders(),
+            });
+          }
+        }
       }
 
       sails.sockets.join(req, roomId, (err: unknown) => {
@@ -124,6 +173,32 @@ export namespace Controllers {
           message: `Successfully joined: ${roomId}`
         }, headers: this.getNoCacheHeaders() });
       });
+    }
+
+    private async tryFindRelatedRecord(roomId: string): Promise<Record<string, unknown> | null> {
+      try {
+        const recordService = sails.services.recordsservice as unknown as { getMeta: (oid: string) => Promise<Record<string, unknown>> };
+        if (typeof recordService?.getMeta === 'function') {
+          const record = await recordService.getMeta(roomId);
+          if (record && !_.isEmpty(record)) {
+            return record;
+          }
+        }
+      } catch {
+        sails.log.verbose(`AsynchController: failed to resolve roomId ${roomId} as record`);
+      }
+      try {
+        const progressRecords = await AsynchsService.get({ id: roomId }).toPromise();
+        if (progressRecords && (progressRecords as Array<Record<string, unknown>>).length > 0) {
+          const relatedRecordId = (progressRecords as Array<Record<string, unknown>>)[0]?.relatedRecordId as string;
+          if (relatedRecordId) {
+            return this.tryFindRelatedRecord(relatedRecordId);
+          }
+        }
+      } catch {
+        sails.log.verbose(`AsynchController: failed to resolve roomId ${roomId} as progress`);
+      }
+      return null;
     }
 
     public unsubscribe(req: Sails.Req, res: Sails.Res) {
