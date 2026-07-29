@@ -1,8 +1,8 @@
 import {
-    FormConfig,
-    FormConfigFrame,
-    FormModesConfig,
-    ReusableFormDefinitions,
+  FormConfig,
+  FormConfigFrame,
+  FormModesConfig,
+  ReusableFormDefinitions,
   FormOverride,
   GroupFieldComponentConfig,
   GroupFieldComponentDefinition,
@@ -19,6 +19,7 @@ import {
   RepeatableFieldModelConfig,
   RepeatableFieldModelDefinition,
   RepeatableFormComponentDefinition,
+  SimpleInputFormComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { ConstructFormConfigVisitor } from "../../src";
 import {formConfigExample2, reusableFormDefinitionsExample2} from "./example-data";
@@ -794,6 +795,113 @@ describe("Construct Visitor", async () => {
                         .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.component.class));
                 }
             });
+        });
+
+        it("should retain hidden simple input in view mode", async function () {
+          const visitor = new ConstructFormConfigVisitor(logger);
+          const actual = await visitor.start({
+            formMode: "view",
+            data: {
+              name: "form",
+              componentDefinitions: [
+                {
+                  name: "legacyId",
+                  overrides: {
+                    formModeClasses: {
+                      view: {
+                        component: "SimpleInputComponent",
+                      },
+                    },
+                  },
+                  component: {
+                    "class": "SimpleInputComponent",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      type: "hidden"
+                    }
+                  },
+                  model: {
+                    "class": "SimpleInputModel",
+                  },
+                  layout: {
+                    "class": "DefaultLayout",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      labelRequiredStr: "*",
+                      helpTextVisible: false
+                    }
+                  }
+                },
+              ]
+            }
+          });
+
+          const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+          expect(simpleInput.overrides?.formModeClasses?.view?.component).to.equal("SimpleInputComponent");
+          expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+          expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+          expect(simpleInput.component.config?.visible).to.be.false;
+          expect(simpleInput.component.config?.label).to.equal("legacyId");
+          expect(simpleInput.component.config?.type).to.equal("hidden");
+          expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+          expect(simpleInput.layout?.config?.visible).to.be.false;
+          expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+        });
+
+        it("should remove overrides when removeOverrides is true", async function () {
+          const visitor = new ConstructFormConfigVisitor(logger);
+          const actual = await visitor.start({
+            formMode: "view",
+            removeOverrides: true,
+            data: {
+              name: "form",
+              componentDefinitions: [
+                {
+                  name: "legacyId",
+                  overrides: {
+                    formModeClasses: {
+                      view: {
+                        component: "SimpleInputComponent",
+                      },
+                    },
+                  },
+                  component: {
+                    "class": "SimpleInputComponent",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      type: "hidden"
+                    }
+                  },
+                  model: {
+                    "class": "SimpleInputModel",
+                  },
+                  layout: {
+                    "class": "DefaultLayout",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      labelRequiredStr: "*",
+                      helpTextVisible: false
+                    }
+                  }
+                },
+              ]
+            }
+          });
+
+          const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+          expect(simpleInput.overrides).to.equal(undefined);
+          expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+          expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+          expect(simpleInput.component.config?.visible).to.be.false;
+          expect(simpleInput.component.config?.label).to.equal("legacyId");
+          expect(simpleInput.component.config?.type).to.equal("hidden");
+          expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+          expect(simpleInput.layout?.config?.visible).to.be.false;
+          expect(simpleInput.layout?.config?.label).to.equal("legacyId");
         });
     });
     describe("expected errors", async () => {

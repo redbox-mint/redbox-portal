@@ -675,7 +675,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
         (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
           if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
-            this.broadcastFormStatus();
+            // Angular has already recalculated the form for these events. Re-running
+            // validation here restarts form-level async validators and can leave
+            // consumers permanently observing PENDING instead of the settled status.
+            this.broadcastFormStatus(false);
           }
         }
       );
@@ -713,12 +716,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * — e.g. expression-driven model updates — so consumers like the Save button
    * effect can re-evaluate. Without this, silent updates can leave the UI's idea
    * of validity out of sync with the FormGroup's actual state.
+   *
+   * Pass `false` when Angular has already recalculated validation for the event
+   * being broadcast, particularly for settled async-validation status changes.
    */
-  public broadcastFormStatus(): void {
+  public broadcastFormStatus(revalidate = true): void {
     if (!this.form) {
       return;
     }
-    this.form.updateValueAndValidity({ emitEvent: false });
+    if (revalidate) {
+      this.form.updateValueAndValidity({ emitEvent: false });
+    }
     this.formGroupStatus.set(this.dataStatus);
     this.eventBus.publish(
       createFormValidationBroadcastEvent({

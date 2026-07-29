@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+HOOK_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
+DEFAULT_ENV_FILE="${SCRIPT_DIR}/core-mount.env"
+TMP_DIR="${HOOK_ROOT}/support/development/.tmp"
+RESOLVED_ENV_FILE="${TMP_DIR}/core-mount.env"
+
+if [[ -z "${REDBOX_PORTAL_PATH:-}" && -f "${DEFAULT_ENV_FILE}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${DEFAULT_ENV_FILE}"
+  set +a
+fi
+
+if [[ -z "${REDBOX_PORTAL_PATH:-}" ]]; then
+  echo "FATAL: Set REDBOX_PORTAL_PATH to the redbox-portal checkout you want to mount." >&2
+  exit 1
+fi
+
+if [[ "${REDBOX_PORTAL_PATH}" = /* ]]; then
+  PORTAL_ROOT="$(cd "${REDBOX_PORTAL_PATH}" && pwd -P)"
+else
+  PORTAL_ROOT="$(cd "${HOOK_ROOT}/${REDBOX_PORTAL_PATH}" && pwd -P)"
+fi
+
+for required_path in \
+  package.json \
+  app.js \
+  packages/redbox-core/package.json \
+  packages/redbox-dev-tools/package.json \
+  packages/sails-ng-common/package.json \
+  packages/raido/package.json \
+  packages/rva-registry/package.json \
+  packages/sails-hook-redbox-storage-mongo/package.json
+do
+  if [[ ! -e "${PORTAL_ROOT}/${required_path}" ]]; then
+    echo "FATAL: Missing required portal path: ${PORTAL_ROOT}/${required_path}" >&2
+    exit 1
+  fi
+done
+
+mkdir -p "${TMP_DIR}/attachments/staging" "${TMP_DIR}/mongo" "${TMP_DIR}/minio/data"
+chmod -R 777 "${TMP_DIR}" || true
+
+printf 'REDBOX_PORTAL_PATH=%s\n' "${PORTAL_ROOT}" > "${RESOLVED_ENV_FILE}"
+
+if [[ ! -d "${PORTAL_ROOT}/node_modules" ]]; then
+  (cd "${PORTAL_ROOT}" && npm install --ignore-scripts --strict-peer-deps)
+fi
+
+if [[ ! -d "${HOOK_ROOT}/node_modules" ]]; then
+  (cd "${HOOK_ROOT}" && npm install --ignore-scripts)
+fi
+
+(cd "${HOOK_ROOT}" && npm run compile)
+(cd "${PORTAL_ROOT}" && npm run compile:server)
+
+echo "Prepared core mount against: ${PORTAL_ROOT}"

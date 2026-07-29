@@ -30,6 +30,17 @@ export function parseAgendaQueueBackend(value: string | undefined, source = 'age
     throw new Error(`Invalid ${source} value '${value}'. Expected one of: ${AGENDA_QUEUE_BACKENDS.join(', ')}.`);
 }
 
+export function parseAgendaHistoryRetentionHours(value: string | undefined, source = 'agendaQueue.options.historyRetentionHours'): number | undefined {
+    if (typeof value === 'undefined') {
+        return undefined;
+    }
+    const hours = Number(value);
+    if (Number.isFinite(hours) && hours >= 0) {
+        return hours;
+    }
+    throw new Error(`Invalid ${source} value '${value}'. Expected a non-negative number of hours.`);
+}
+
 export interface AgendaQueueSqsOptions {
     queueUrl: string;
     region?: string;
@@ -82,6 +93,8 @@ export interface AgendaQueueOptions {
     defaultLockLifetime?: number;
     /** Process every interval */
     processEvery?: string;
+    /** Hours to retain completed jobs in the history collection */
+    historyRetentionHours?: number;
     /** SQS backend configuration */
     sqs?: AgendaQueueSqsOptions;
 }
@@ -99,6 +112,7 @@ export const agendaQueue: AgendaQueueConfig = {
         db: process.env['sails__agendaQueue_options_db'] ?? '',
         collection: process.env['sails__agendaQueue_options_collection'] ?? 'agendaJobs',
         processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? '5 seconds',
+        historyRetentionHours: parseAgendaHistoryRetentionHours(process.env['sails__agendaQueue_options_historyRetentionHours'], 'sails__agendaQueue_options_historyRetentionHours') ?? 25,
     },
     jobs: {
         'SolrSearchService-CreateOrUpdateIndex': {

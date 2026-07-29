@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@usebruno/cli": "3.5.1",
+    "@usebruno/cli": "3.5.2",
     "cheerio": "1.2.0",
-    "ws": "8.21.0"
+    "ws": "8.21.1"
   },
   "overrides": {
     "@types/node": "25.6.0",

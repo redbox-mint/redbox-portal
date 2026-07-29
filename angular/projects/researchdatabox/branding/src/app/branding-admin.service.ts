@@ -93,4 +93,23 @@ export class BrandingAdminService extends HttpClientService {
     const result$ = this.http.post(url, formData, uploadOptions);
     return await firstValueFrom(result$);
   }
+
+  /**
+   * Upload favicon file
+   */
+  public async uploadFavicon(formData: FormData): Promise<any> {
+    const url = `${this.brandingAndPortalUrl}/app/branding/favicon`;
+
+    // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
+    const fileUploadContext = new HttpContext();
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
+
+    const uploadOptions = {
+      context: fileUploadContext
+    };
+
+    const result$ = this.http.post(url, formData, uploadOptions);
+    return await firstValueFrom(result$);
+  }
 }
