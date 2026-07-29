@@ -154,9 +154,6 @@ export namespace Controllers {
       if (isLinked) {
         return user;
       }
-      if (roles.length === 0) {
-        return user;
-      }
       return null;
     }
 

@@ -71,8 +71,11 @@ describe('Webservice RecordController body source', () => {
     let originalHarvestRunService: any;
     let recordsService: {
         getMeta: sinon.SinonStub;
+        getDeletedRecordMeta: sinon.SinonStub;
         updateMeta: sinon.SinonStub;
         create: sinon.SinonStub;
+        restoreRecord: sinon.SinonStub;
+        destroyDeletedRecord: sinon.SinonStub;
     };
 
     before(async () => {
@@ -130,8 +133,11 @@ describe('Webservice RecordController body source', () => {
         controller = new Controllers.Record();
         recordsService = {
             getMeta: sinon.stub(),
+            getDeletedRecordMeta: sinon.stub(),
             updateMeta: sinon.stub(),
             create: sinon.stub(),
+            restoreRecord: sinon.stub(),
+            destroyDeletedRecord: sinon.stub(),
         };
         controller.RecordsService = recordsService as never;
         controller.DatastreamService = {
@@ -407,6 +413,52 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.firstCall.args[2]?.headers?.Location).to.equal(
                 'https://portal.example/default/default/api/records/metadata/created-record'
             );
+        });
+    });
+
+    describe('deleted record handlers', () => {
+        it('does not restore an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.restoreRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.restoreRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
+
+        it('does not permanently delete an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.destroyDeletedRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.destroyDeletedRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
         });
     });
 

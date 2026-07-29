@@ -233,11 +233,7 @@ export namespace Controllers {
       }
     }
 
-    private async requireRecordInBrandOrDeleted(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
-      const active = await this.requireRecordInBrand(oid, brand);
-      if (active) {
-        return active;
-      }
+    private async requireDeletedRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
       try {
         const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
         if (_.isEmpty(deleted)) {
@@ -1117,7 +1113,7 @@ export namespace Controllers {
         });
       }
 
-      const record = await this.requireRecordInBrandOrDeleted(oid, brand);
+      const record = await this.requireDeletedRecordInBrand(oid, brand);
       if (!record) {
         return this.sendResp(req, res, { status: 404 });
       }
@@ -1188,7 +1184,7 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.requireRecordInBrandOrDeleted(oid, brand);
+      const record = await this.requireDeletedRecordInBrand(oid, brand);
       if (!record) {
         return this.sendResp(req, res, { status: 404 });
       }
