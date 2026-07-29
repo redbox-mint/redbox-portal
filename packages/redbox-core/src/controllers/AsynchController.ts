@@ -163,8 +163,16 @@ export namespace Controllers {
       });
     }
 
-    private async tryFindRelatedRecord(roomId: string): Promise<Record<string, unknown> | null> {
-      const directRecord = await this.tryFindDirectRelatedRecord(roomId);
+    private async tryFindRelatedRecord(
+      roomId: string,
+      visitedRoomIds: Set<string> = new Set<string>()
+    ): Promise<Record<string, unknown> | null> {
+      if (visitedRoomIds.has(roomId)) {
+        return null;
+      }
+      visitedRoomIds.add(roomId);
+
+      const directRecord = await this.tryFindDirectRelatedRecord(roomId, visitedRoomIds);
       if (directRecord) {
         return directRecord;
       }
@@ -174,7 +182,10 @@ export namespace Controllers {
       // are resolved without making assumptions about the task type.
       let separatorIndex = roomId.lastIndexOf('-');
       while (separatorIndex > 0) {
-        const record = await this.tryFindDirectRelatedRecord(roomId.substring(0, separatorIndex));
+        const record = await this.tryFindDirectRelatedRecord(
+          roomId.substring(0, separatorIndex),
+          visitedRoomIds
+        );
         if (record) {
           return record;
         }
@@ -183,7 +194,10 @@ export namespace Controllers {
       return null;
     }
 
-    private async tryFindDirectRelatedRecord(roomId: string): Promise<Record<string, unknown> | null> {
+    private async tryFindDirectRelatedRecord(
+      roomId: string,
+      visitedRoomIds: Set<string>
+    ): Promise<Record<string, unknown> | null> {
       try {
         const recordService = sails.services.recordsservice as unknown as { getMeta: (oid: string) => Promise<Record<string, unknown>> };
         if (typeof recordService?.getMeta === 'function') {
@@ -200,7 +214,7 @@ export namespace Controllers {
         if (progressRecords && (progressRecords as Array<Record<string, unknown>>).length > 0) {
           const relatedRecordId = (progressRecords as Array<Record<string, unknown>>)[0]?.relatedRecordId as string;
           if (relatedRecordId && relatedRecordId !== roomId) {
-            return this.tryFindRelatedRecord(relatedRecordId);
+            return this.tryFindRelatedRecord(relatedRecordId, visitedRoomIds);
           }
         }
       } catch {

@@ -812,6 +812,21 @@ describe('AsynchController authorization', () => {
     expect(sendResp.callCount).to.equal(4);
   });
 
+  it('rejects cyclic progress room references without recursing indefinitely', async () => {
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getMeta.rejects(new Error('not found'));
+    (global as any).AsynchsService.get.callsFake(({ id }: { id: string }) =>
+      of([{ id, relatedRecordId: id === 'job-1' ? 'job-2' : 'job-1' }])
+    );
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.subscribe(makeRequest({ roomId: 'job-1' }), {} as Sails.Res);
+
+    expect(sendResp.firstCall.args[2].status).to.equal(403);
+    expect((global as any).AsynchsService.get.callCount).to.be.lessThan(10);
+    expect((global as any).sails.sockets.join.called).to.be.false;
+  });
+
   it('only stops jobs owned by the authenticated user', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).AsynchsService.get.returns(of([{ id: 'job-1', started_by: 'alice' }]));
