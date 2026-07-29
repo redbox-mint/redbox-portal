@@ -262,33 +262,32 @@ export namespace Services {
       return response;
     }
 
-    private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): string {
-      // The configured base query is a raw Solr expression, so it is kept verbatim. Encoding of
-      // the resulting query string fragment is handled by the search service.
-      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
-      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+    private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): URLSearchParams {
+      const params = new URLSearchParams(queryConfig.searchQuery.baseQuery);
+      params.append('sort', 'date_object_modified desc');
+      params.append('version', '2.2');
+      params.append('start', String(start));
+      params.append('rows', String(rows));
+      params.append('fq', `metaMetadata_brandId:${brand.id}`);
+      params.append('wt', format);
 
       if (queryConfig.queryField.type == 'text') {
         const value = searchString;
         if (!_.isEmpty(value)) {
           const searchProperty = queryConfig.queryField.property;
-          query = query + '&fq=' + searchProperty + ':';
-          if (value.indexOf('*') != -1) {
-            query = query + value.replaceAll('*', '') + '*';
-          } else {
-            query = query + value + '*';
-          }
+          const normalizedValue = value.indexOf('*') !== -1 ? value.replaceAll('*', '') : value;
+          params.append('fq', `${searchProperty}:${normalizedValue}*`);
         }
       }
 
       if (queryConfig.userQueryFields != null) {
         for (const userQueryField of queryConfig.userQueryFields) {
           const searchProperty = userQueryField.property;
-          query = query + '&fq=' + searchProperty + ':' + _.get(user, userQueryField.userValueProperty, null);
+          params.append('fq', `${searchProperty}:${_.get(user, userQueryField.userValueProperty, null)}`);
         }
       }
 
-      return query;
+      return params;
     }
 
     private getSearchService(): SearchService {
