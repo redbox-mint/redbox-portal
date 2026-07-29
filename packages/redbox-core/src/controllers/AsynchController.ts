@@ -42,17 +42,11 @@ export namespace Controllers {
     public stop(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
       AsynchsService.get({ id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
-        if (existing && existing.length > 0) {
-          const existingProgress = existing[0];
-          const startedBy = String(existingProgress.started_by ?? '');
-          const username = String(req.user?.username ?? '');
-          if (startedBy && username && startedBy !== username) {
-            return this.sendResp(req, res, {
-              status: 403,
-              data: { status: false, message: 'Access denied' },
-              headers: this.getNoCacheHeaders(),
-            });
-          }
+        const existingProgress = existing?.[0];
+        const startedBy = String(existingProgress?.started_by ?? '');
+        const username = String(req.user?.username ?? '');
+        if (!existingProgress || !startedBy || !username || startedBy !== username) {
+          return this.sendAccessDenied(req, res);
         }
         AsynchsService.finish(id).subscribe((progress: globalThis.Record<string, unknown>[]) => {
           this.broadcast(req, 'stop', progress[0]);
@@ -63,20 +57,14 @@ export namespace Controllers {
 
     public update(req: Sails.Req, res: Sails.Res) {
       const id = req.param('id');
-      const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.get({ id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
-        if (existing && existing.length > 0) {
-          const existingProgress = existing[0];
-          const startedBy = String(existingProgress.started_by ?? '');
-          const username = String(req.user?.username ?? '');
-          if (startedBy && username && startedBy !== username) {
-            return this.sendResp(req, res, {
-              status: 403,
-              data: { status: false, message: 'Access denied' },
-              headers: this.getNoCacheHeaders(),
-            });
-          }
+        const existingProgress = existing?.[0];
+        const startedBy = String(existingProgress?.started_by ?? '');
+        const username = String(req.user?.username ?? '');
+        if (!existingProgress || !startedBy || !username || startedBy !== username) {
+          return this.sendAccessDenied(req, res);
         }
+        const progressObj = this.createProgressObjFromRequest(req);
         AsynchsService.update({ id }, progressObj).subscribe((progress: globalThis.Record<string, unknown>[]) => {
           this.broadcast(req, 'update', progress[0]);
           this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
@@ -142,24 +130,24 @@ export namespace Controllers {
 
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
 
-      if (brand?.id) {
-        const record = await this.tryFindRelatedRecord(roomId);
-        if (record != null) {
-          const recordsService = sails.services.recordsservice as unknown as { hasViewAccess: (brand: BrandingModel, user: Record<string, unknown>, roles: Record<string, unknown>[], record: Record<string, unknown>) => boolean };
-          const hasViewAccess = recordsService.hasViewAccess(
-            brand,
-            req.user ?? {},
-            (req.user?.roles ?? []) as unknown as Record<string, unknown>[],
-            record as Record<string, unknown>
-          );
-          if (!hasViewAccess) {
-            return this.sendResp(req, res, {
-              status: 403,
-              data: { status: false, message: 'Access denied' },
-              headers: this.getNoCacheHeaders(),
-            });
-          }
-        }
+      if (!brand?.id || !req.user?.username) {
+        return this.sendAccessDenied(req, res);
+      }
+
+      const record = await this.tryFindRelatedRecord(roomId);
+      if (record == null) {
+        return this.sendAccessDenied(req, res);
+      }
+
+      const recordsService = sails.services.recordsservice as unknown as { hasViewAccess: (brand: BrandingModel, user: Record<string, unknown>, roles: Record<string, unknown>[], record: Record<string, unknown>) => boolean };
+      const hasViewAccess = recordsService.hasViewAccess(
+        brand,
+        req.user,
+        (req.user.roles ?? []) as unknown as Record<string, unknown>[],
+        record
+      );
+      if (!hasViewAccess) {
+        return this.sendAccessDenied(req, res);
       }
 
       sails.sockets.join(req, roomId, (err: unknown) => {
@@ -176,6 +164,26 @@ export namespace Controllers {
     }
 
     private async tryFindRelatedRecord(roomId: string): Promise<Record<string, unknown> | null> {
+      const directRecord = await this.tryFindDirectRelatedRecord(roomId);
+      if (directRecord) {
+        return directRecord;
+      }
+
+      // Composite task rooms are broadcast as `${relatedRecordId}-${taskType}`.
+      // Try each prefix from longest to shortest so record IDs containing hyphens
+      // are resolved without making assumptions about the task type.
+      let separatorIndex = roomId.lastIndexOf('-');
+      while (separatorIndex > 0) {
+        const record = await this.tryFindDirectRelatedRecord(roomId.substring(0, separatorIndex));
+        if (record) {
+          return record;
+        }
+        separatorIndex = roomId.lastIndexOf('-', separatorIndex - 1);
+      }
+      return null;
+    }
+
+    private async tryFindDirectRelatedRecord(roomId: string): Promise<Record<string, unknown> | null> {
       try {
         const recordService = sails.services.recordsservice as unknown as { getMeta: (oid: string) => Promise<Record<string, unknown>> };
         if (typeof recordService?.getMeta === 'function') {
@@ -191,7 +199,7 @@ export namespace Controllers {
         const progressRecords = await AsynchsService.get({ id: roomId }).toPromise();
         if (progressRecords && (progressRecords as Array<Record<string, unknown>>).length > 0) {
           const relatedRecordId = (progressRecords as Array<Record<string, unknown>>)[0]?.relatedRecordId as string;
-          if (relatedRecordId) {
+          if (relatedRecordId && relatedRecordId !== roomId) {
             return this.tryFindRelatedRecord(relatedRecordId);
           }
         }
@@ -199,6 +207,14 @@ export namespace Controllers {
         sails.log.verbose(`AsynchController: failed to resolve roomId ${roomId} as progress`);
       }
       return null;
+    }
+
+    private sendAccessDenied(req: Sails.Req, res: Sails.Res) {
+      return this.sendResp(req, res, {
+        status: 403,
+        data: { status: false, message: 'Access denied' },
+        headers: this.getNoCacheHeaders(),
+      });
     }
 
     public unsubscribe(req: Sails.Req, res: Sails.Res) {

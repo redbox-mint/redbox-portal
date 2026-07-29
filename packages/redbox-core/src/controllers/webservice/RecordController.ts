@@ -233,16 +233,31 @@ export namespace Controllers {
       }
     }
 
-    private async requireDeletedRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
-      const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
-      if (_.isEmpty(deleted)) {
-        return null;
+    private async requireDeletedRecordInBrand(
+      oid: string,
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown>
+    ): Promise<boolean> {
+      if (!brand?.id) {
+        return false;
       }
-      const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
-      if (!brand?.id || recordBrandId !== String(brand.id)) {
-        return null;
-      }
-      return deleted as RecordModel;
+      const roles = (user.roles ?? []) as globalThis.Record<string, unknown>[];
+      const response = await this.RecordsService.getDeletedRecords(
+        undefined,
+        undefined,
+        0,
+        1,
+        String(user.username ?? ''),
+        roles,
+        brand,
+        undefined,
+        undefined,
+        undefined,
+        ['redboxOid'],
+        oid,
+        'equal'
+      );
+      return response.isSuccessful() && response.items.some(item => item.redboxOid === oid);
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
@@ -1109,8 +1124,7 @@ export namespace Controllers {
         });
       }
 
-      const record = await this.requireDeletedRecordInBrand(oid, brand);
-      if (!record) {
+      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
         return this.sendResp(req, res, { status: 404 });
       }
 
@@ -1180,8 +1194,7 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const record = await this.requireDeletedRecordInBrand(oid, brand);
-      if (!record) {
+      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
         return this.sendResp(req, res, { status: 404 });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user);

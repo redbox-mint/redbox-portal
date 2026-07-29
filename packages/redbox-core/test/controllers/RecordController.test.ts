@@ -221,13 +221,11 @@ describe('RecordController getWorkflowSteps', () => {
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'brand-1' },
+      metaMetadata: { type: 'rdmp', brandId: 'brand-1' },
     });
     (controller.recordsService.getAttachments as sinon.SinonStub).rejects(new Error('boom'));
 
-    controller.getAttachments(req, res);
-
-    await new Promise((resolve) => setImmediate(resolve));
+    await controller.getAttachments(req, res);
 
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 500 });
