@@ -1,9 +1,9 @@
 import { z } from '../zod-openapi';
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
 
-function withOpenApi<T extends ZodTypeAny>(schema: T, metadata: Record<string, unknown>): T {
+function withOpenApi<T extends ZodType>(schema: T, metadata: Record<string, unknown>): T {
     return (schema as unknown as { openapi: (metadata: Record<string, unknown>) => T }).openapi(metadata);
 }
 
@@ -59,7 +59,7 @@ export const buildResponseTypeSchema = withOpenApi(
         format: z.literal('json').optional(),
         data: z.unknown().optional(),
         status: z.number().int().optional(),
-        headers: z.record(z.string()).optional(),
+        headers: z.record(z.string(), z.string()).optional(),
         errors: z.array(z.object({}).passthrough()).optional(),
         displayErrors: z.array(errorResponseItemV2Schema).optional(),
         meta: metaResponseItemV2Schema.optional(),

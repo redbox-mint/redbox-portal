@@ -1,0 +1,358 @@
+// ============================================================
+// Record Audit – Structural & functional styles only.
+// Colours come from the site theme / Bootstrap utilities.
+// ============================================================
+
+// -- Page heading (matches #main-title styling) --------
+.rb-page-heading {
+  text-align: center;
+  margin-bottom: 28px;
+
+  h1 {
+    margin: 20px 0 10px;
+    padding: 0 15px;
+    font-size: 36px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    padding: 0 15px;
+    font-size: 1rem;
+  }
+}
+
+.rb-audit-tabs {
+  margin-bottom: 16px;
+}
+
+.rb-tab-icon,
+.rb-audit-panel-title i,
+.rb-perm-icon,
+.rb-actor-icon,
+.rb-action-icon {
+  margin-right: 6px;
+}
+
+.rb-audit-tab {
+  margin-top: 16px;
+}
+
+// -- Panel heading: flex layout for title + actions ------
+.rb-audit-heading {
+  // Needs to beat .panel-heading { display: block } from the global theme
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.rb-audit-panel-title {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.rb-audit-header-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.rb-audit-filters,
+.rb-integration-filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 16px;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.rb-audit-record-count,
+.rb-timestamp-relative,
+.rb-pagination-info {
+  font-size: 0.9em;
+}
+
+// -- Tables -----------------------------------------------
+.rb-audit-table {
+  margin-bottom: 0;
+}
+
+.rb-audit-table td,
+.rb-audit-table th,
+.rb-permissions-table td,
+.rb-permissions-table th,
+.rb-audit-diff-table td,
+.rb-audit-diff-table th {
+  vertical-align: top;
+}
+
+// -- Timestamp --------------------------------------------
+.rb-timestamp-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// -- Badges (action, diff-kind, role, pending) ------------
+.rb-action-badge,
+.rb-diff-kind-badge,
+.rb-role-badge,
+.rb-pending-badge {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.rb-action-badge {
+  border-radius: 12px;
+}
+
+// -- Changes count pill -----------------------------------
+.rb-changes-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1;
+  background-color: var(--bs-info-bg-subtle, #cff4fc);
+  color: var(--bs-info-text-emphasis, #055160);
+}
+
+// -- Toggle / expand buttons ------------------------------
+.rb-toggle-btn {
+  padding: 0;
+  white-space: nowrap;
+}
+
+.rb-toggle-chevron {
+  margin-right: 6px;
+  transition: transform 0.15s ease-in-out;
+}
+
+.rb-chevron-open {
+  transform: rotate(90deg);
+}
+
+// -- Expanded rows ----------------------------------------
+.rb-expanded-row .rb-audit-expanded-cell {
+  padding: 0;
+}
+
+.rb-diff-container,
+.rb-technical-container {
+  padding: 12px 16px;
+}
+
+.rb-diff-header {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.rb-diff-field-name {
+  font-weight: 600;
+}
+
+.rb-audit-diff-table {
+  margin-bottom: 0;
+}
+
+// -- Diff value cells: semantic red/green colouring -------
+// These are functional UX colours (not branding) so they
+// are defined here rather than in the site theme.
+.rb-diff-value pre {
+  background: transparent;
+  border: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rb-diff-value-old pre {
+  background-color: var(--bs-danger-bg-subtle, #f8d7da);
+  color: var(--bs-danger-text-emphasis, #58151c);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.rb-diff-value-new pre {
+  background-color: var(--bs-success-bg-subtle, #d1e7dd);
+  color: var(--bs-success-text-emphasis, #0a3622);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.rb-diff-path code {
+  word-break: break-all;
+}
+
+// -- Diff-kind badges: semantic colours -------------------
+.rb-diff-kind-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+
+  &.rb-diff-change {
+    background-color: var(--bs-warning-bg-subtle, #fff3cd);
+    color: var(--bs-warning-text-emphasis, #664d03);
+  }
+
+  &.rb-diff-add {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd);
+    color: var(--bs-success-text-emphasis, #0a3622);
+  }
+
+  &.rb-diff-remove {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    color: var(--bs-danger-text-emphasis, #58151c);
+  }
+}
+
+// -- JSON / technical data block --------------------------
+.rb-json-block {
+  background: var(--bs-dark, #212529);
+  color: var(--bs-light, #f8f9fa);
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding: 16px;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// -- Integration tab: message cell ------------------------
+.rb-message-cell {
+  min-width: 220px;
+}
+
+.rb-trace-toggle {
+  font-weight: 600;
+  text-align: left;
+}
+
+.rb-trace-events-container {
+  padding: 12px 16px;
+}
+
+.rb-trace-events-table {
+  margin-bottom: 0;
+}
+
+.rb-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.rb-filter-actions {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+}
+
+.rb-integration-empty {
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.rb-trace-event-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.rb-trace-event-branch {
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.rb-trace-event-span {
+  font-size: 0.85em;
+}
+
+// -- Permissions tab --------------------------------------
+.rb-permissions-grid {
+  row-gap: 16px;
+}
+
+.rb-permissions-panel {
+  height: 100%;
+}
+
+.rb-permissions-table {
+  margin-bottom: 0;
+}
+
+.rb-permissions-table th {
+  width: 32%;
+}
+
+.rb-permissions-list {
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.rb-permissions-list li + li {
+  margin-top: 6px;
+}
+
+.rb-permissions-user {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.rb-actor {
+  display: inline-flex;
+  align-items: center;
+}
+
+// -- Pagination -------------------------------------------
+.rb-audit-pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 16px 16px;
+}
+
+.rb-pagination-controls {
+  display: flex;
+  gap: 8px;
+}
+
+// -- Responsive -------------------------------------------
+@media (max-width: 767px) {
+  .rb-audit-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rb-audit-header-actions {
+    flex-wrap: wrap;
+  }
+
+  .rb-audit-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

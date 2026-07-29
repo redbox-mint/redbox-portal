@@ -41,7 +41,7 @@ export interface MapFeatureCollection {
 }
 
 export type MapModelValueType = MapFeatureCollection;
-export type MapDrawingMode = "point" | "polygon" | "linestring" | "rectangle" | "select";
+export type MapDrawingMode = "point" | "polygon" | "linestring" | "rectangle" | "circle" | "select";
 
 export interface MapTileLayerConfig {
     name: string;

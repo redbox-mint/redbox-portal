@@ -25,6 +25,7 @@ import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateServ
 import * as FormsServiceModule from './FormsService';
 import * as HarvestRunServiceModule from './HarvestRunService';
 import * as IntegrationAuditServiceModule from './IntegrationAuditService';
+import * as IntegrationNotificationServiceModule from './IntegrationNotificationService';
 import * as I18nEntriesServiceModule from './I18nEntriesService';
 import * as NamedQueryServiceModule from './NamedQueryService';
 import * as NavigationServiceModule from './NavigationService';
@@ -78,6 +79,7 @@ export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
 export { FormsServiceModule as FormsService };
 export { HarvestRunServiceModule as HarvestRunService };
 export { IntegrationAuditServiceModule as IntegrationAuditService };
+export { IntegrationNotificationServiceModule as IntegrationNotificationService };
 export { I18nEntriesServiceModule as I18nEntriesService };
 export { NamedQueryServiceModule as NamedQueryService };
 export { NavigationServiceModule as NavigationService };
@@ -193,6 +195,9 @@ export const ServiceExports = {
   },
   get IntegrationAuditService() {
     return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
+  },
+  get IntegrationNotificationService() {
+    return getOrCreateService('IntegrationNotificationService', () => new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports());
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>

@@ -36,7 +36,8 @@ export interface QuestionTreeOutcome {
     value: QuestionTreeOutcomeValue;
     /**
      * The optional translation message to use as the label, or the actual label text.
-     * Leave out or set 'falsy' to use a translation message id of `${question-tree-name}-${outcome-value}`.
+     * Leave out or set 'falsy' to use a translation message id of
+     * `${question-tree-name}-outcome-${outcome-value}-label`.
      */
     label?: string | null;
 }
@@ -54,7 +55,8 @@ export interface QuestionTreeMeta {
         /**
          * The key is an available property value.
          * The optional value is the translation message id.
-         * Set value 'falsy' to use a translation message id of `${question-tree-name}-${outcome-meta-property-key}-${outcome-meta-property-value}`.
+         * Set value 'falsy' to use a translation message id of
+         * `${question-tree-name}-meta-${outcome-meta-property-key}-${outcome-meta-property-value}-label`.
          */
         [key: string]: string | null,
     }
@@ -77,7 +79,8 @@ export interface QuestionTreeQuestionAnswer {
     value: string;
     /**
      * The optional translation message to use as the label, or the actual label text.
-     * Leave out or set 'falsy' to use a translation message id of `${question-tree-name}-${question-id}-${answer-id}`.
+     * Leave out or set 'falsy' to use a translation message id of
+     * `${question-tree-name}-item-${question-id}-${answer-id}-label`.
      */
     label?: string | null;
     /**

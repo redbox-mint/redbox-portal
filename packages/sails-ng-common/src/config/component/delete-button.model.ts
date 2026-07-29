@@ -11,14 +11,14 @@ import {
 } from './delete-button.outline';
 
 export class DeleteButtonFieldComponentConfig extends FieldComponentConfig implements DeleteButtonFieldComponentConfigOutline {
-  buttonCssClasses?: string;
-  closeOnDelete?: boolean;
-  redirectLocation?: string;
-  redirectDelaySeconds?: number;
   confirmationMessage?: string;
   confirmationTitle?: string;
   cancelButtonMessage?: string;
   confirmButtonMessage?: string;
+  buttonCssClasses?: string;
+  closeOnDelete?: boolean;
+  redirectLocation?: string;
+  redirectDelaySeconds?: number;
 }
 
 export class DeleteButtonFieldComponentDefinition

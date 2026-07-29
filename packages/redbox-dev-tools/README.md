@@ -31,11 +31,11 @@ npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client
 This will:
 
 - Generate the standard hook archetype in the current directory
-- Create `src/`, `test/`, `support/`, `assets/`, `views/`, and `language-defaults/`
+- Create `src/`, `test/`, `support/`, `assets/`, `views/`, `language-defaults/`, and `support/bootstrap-data/`
 - Create a `package.json` with the shared Redbox dependency contract
-- Generate starter controller, service, form-config, config, Docker, and test files
+- Generate starter controller, service, form-config, config, migration registry, Docker, development, and test files
 
-The standard archetype is based on the current hook structure used for `redbox-hook-jcu`, but stripped back to generic placeholders so a new client hook can start from the same shape without inheriting client-specific logic.
+The standard archetype is based on the current hook structure used for migrated client hooks such as `redbox-hook-jcu` and `redbox-hook-cqu`, but stripped back to generic placeholders so a new client hook can start from the same shape without inheriting client-specific logic.
 
 The archetype is now backed by file-based Handlebars templates under [templates/hook-archetype](templates/hook-archetype), which gives us a clean path for future variants such as branding-heavy hooks, lighter hooks, or alternate TypeScript setups.
 
@@ -102,6 +102,7 @@ module.exports = hook;
 Hooks should declare only:
 
 - `peerDependencies.@researchdatabox/redbox-core`
+- `devDependencies.@researchdatabox/redbox-core`
 - `devDependencies.@researchdatabox/redbox-dev-tools`
 - direct `dependencies` for hook-owned runtime libraries only
 
@@ -140,6 +141,19 @@ Template variants are selected with `--template`:
 
 ```bash
 npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client --template standard
+```
+
+The generated project includes a typed migration registry under `src/migrations`, client customisation slots under `support/bootstrap-data`, `assets`, `views`, and `language-defaults`, and Docker-backed local development scripts:
+
+```bash
+npm run dev:run:build
+npm run dev:run
+```
+
+To mount a local `redbox-portal` checkout while migrating a client hook, set `REDBOX_PORTAL_PATH` in `support/development/core-mount.env` and run:
+
+```bash
+npm run dev:run:core
 ```
 
 ### `check`
@@ -207,6 +221,14 @@ Optional Angular service scaffold:
 
 ```bash
 npx @researchdatabox/redbox-dev-tools generate form-component my-widget --app form --with-service
+```
+
+### `sync-translation`
+
+Read translations from API and write to language defaults files.
+
+```bash
+npx @researchdatabox/redbox-dev-tools sync-translation -a "https://example.com" -l ~/redbox-portal/language-defaults
 ```
 
 ### `help`

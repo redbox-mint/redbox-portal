@@ -1,10 +1,11 @@
 {
   "dependencies": {
-    "@usebruno/cli": "3.4.0",
+    "@usebruno/cli": "3.5.2",
     "cheerio": "1.2.0",
-    "ws": "8.21.0"
+    "ws": "8.21.1"
   },
   "overrides": {
+    "@types/node": "25.6.0",
     "axios": "1.16.1",
     "uuid": "14.0.0"
   }

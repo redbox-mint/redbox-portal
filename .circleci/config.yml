@@ -22,11 +22,11 @@ jobs:
             - ~/.npm
       - setup_remote_docker
       - run:
-          name: Build runtime image via Dockerfile
+          name: Build test image via Dockerfile
           command: |
             docker build \
               --progress plain \
-              --target runtime \
+              --target test \
               --tag redbox-portal:test \
               .
       - run:
@@ -108,30 +108,6 @@ jobs:
 
             git commit -m 'Build(deps): refresh package locks'
             git push origin "HEAD:${CIRCLE_BRANCH}"
-  build-runtime-datastream-cloud:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build runtime_datastream_cloud image via Dockerfile
-          command: |
-            docker build \
-              --progress plain \
-              --target runtime_datastream_cloud \
-              --tag redbox-portal:runtime-datastream-cloud-test \
-              .
-      - run:
-          name: Save Docker image
-          command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-runtime-datastream-cloud-test.tar redbox-portal:runtime-datastream-cloud-test
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-            - docker-images/redbox-portal-runtime-datastream-cloud-test.tar
   build-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -156,33 +132,9 @@ jobs:
           root: /tmp
           paths:
             - docker-images/redbox-portal-runtime-pdfgen-test.tar
-  build-runtime-cloud-pdfgen:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build runtime_cloud_pdfgen image via Dockerfile
-          command: |
-            docker build \
-              --progress plain \
-              --target runtime_cloud_pdfgen \
-              --tag redbox-portal:runtime-cloud-pdfgen-test \
-              .
-      - run:
-          name: Save Docker image
-          command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar redbox-portal:runtime-cloud-pdfgen-test
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-            - docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
   test-bruno-general:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -205,17 +157,19 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run: &installCodecov
+          # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
           name: Install codecov
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
             curl -Os https://cli.codecov.io/latest/linux/codecov
             curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
             curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
+            /tmp/.codecov-cli/codecov --help
       - run:
           name: Setup test directories
           command: |
@@ -233,7 +187,10 @@ jobs:
       - run:
           name: Upload Bruno General code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-general/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-general" --file "./coverage/bruno-general/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -245,7 +202,7 @@ jobs:
             - ~/.npm
   test-bruno-oidc:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -286,7 +243,10 @@ jobs:
       - run:
           name: Upload Bruno OIDC code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-oidc/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-oidc" --file "./coverage/bruno-oidc/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -298,7 +258,7 @@ jobs:
             - ~/.npm
   test-bruno-s3:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -339,7 +299,10 @@ jobs:
       - run:
           name: Upload Bruno S3 code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/bruno-s3/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-bruno-s3" --file "./coverage/bruno-s3/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -351,7 +314,7 @@ jobs:
             - ~/.npm
   test-playwright:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -374,8 +337,11 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
+          <<: *installCodecov
+      - run:
           name: Setup test directories
           command: |
+            sudo mkdir -p coverage/playwright
             sudo mkdir -p .tmp/junit/backend-playwright
             sudo mkdir -p .tmp/playwright
             sudo mkdir -p .tmp/attachments/staging
@@ -388,6 +354,16 @@ jobs:
           name: Clean up Playwright containers
           command: npm run test:playwright:clean || true
           when: always
+      - run:
+          name: Upload Playwright code coverage
+          command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/playwright/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-playwright" --file "./coverage/playwright/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
       - store_test_results:
           path: .tmp/junit
       - store_artifacts:
@@ -398,7 +374,7 @@ jobs:
             - ~/.npm
   test-mocha:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
@@ -439,7 +415,10 @@ jobs:
       - run:
           name: Upload Mocha code coverage
           command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -454,7 +433,7 @@ jobs:
       angular_app:
         type: string
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -469,7 +448,7 @@ jobs:
       - run:
           name: Compile shared Angular packages
           command: >-
-            npm run compile:sails-ng-common:prod
+            npm run compile:sails-ng-common
             && source support/build/compileProductionAngular.sh portal-ng-common
             && cd .. && source support/build/compileProductionAngular.sh portal-ng-form-custom
       - run:
@@ -493,7 +472,7 @@ jobs:
             - ~/.npm
   test-sails-ng-common:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -512,14 +491,18 @@ jobs:
           no_output_timeout: 30m
           command: |
             cd ./packages/sails-ng-common
-            npm run pretest
+            npm run test:compile
+            npm run test:prepare
             npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
               npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
       - run:
           name: Upload Mocha code coverage
           command: |
             cd ./packages/sails-ng-common
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/sails-ng-common/lcov.info" "packages/sails-ng-common"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-sails-ng-common" --file "./coverage/sails-ng-common/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -527,7 +510,7 @@ jobs:
           path: packages/sails-ng-common/support/junit
   test-redbox-core:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - checkout
@@ -556,7 +539,10 @@ jobs:
           name: Upload redbox-core code coverage
           command: |
             cd ./packages/redbox-core
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/redbox-core/lcov.info" "packages/redbox-core"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-core" --file "./coverage/redbox-core/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -579,17 +565,68 @@ jobs:
             cd ./packages/agenda-sqs-backend
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
-          name: Run agenda SQS backend tests
+          <<: *installCodecov
+      - run:
+          name: Run agenda SQS backend tests with coverage
           command: |
             cd ./packages/agenda-sqs-backend
-            npm test
+            npm run test:coverage
+      - run:
+          name: Upload agenda SQS backend code coverage
+          command: |
+            cd ./packages/agenda-sqs-backend
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/agenda-sqs-backend/lcov.info" "packages/agenda-sqs-backend"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-agenda-sqs" --file "./coverage/agenda-sqs-backend/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+  test-rva-registry:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          <<: *installCodecov
+      - run:
+          name: Install RVA registry dependencies
+          command: |
+            cd ./packages/rva-registry
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run deterministic RVA registry client tests with coverage
+          command: |
+            cd ./packages/rva-registry
+            npm run test:coverage
+      - run:
+          name: Upload RVA registry code coverage
+          command: |
+            cd ./packages/rva-registry
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/rva-registry/lcov.info" "packages/rva-registry"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-rva-registry" --file "./coverage/rva-registry/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
   test-redbox-dev-tools-cli:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     steps:
       - checkout
@@ -634,7 +671,10 @@ jobs:
           name: Upload redbox-dev-tools CLI code coverage
           command: |
             cd ./packages/redbox-dev-tools
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/redbox-dev-tools/lcov.info" "packages/redbox-dev-tools"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-redbox-dev-tools-cli" --file "./coverage/redbox-dev-tools/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -678,7 +718,10 @@ jobs:
           name: Upload storage-mongo code coverage
           command: |
             cd ./packages/sails-hook-redbox-storage-mongo
+            node ../../support/unit-testing/codecov/prepare-report.cjs \
+              "./coverage/storage-mongo/lcov.info" "packages/sails-hook-redbox-storage-mongo"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-storage-mongo" --file "./coverage/storage-mongo/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
@@ -709,7 +752,7 @@ jobs:
             npm run lint
   # test-sails-hook-redbox-storage-mongo:
   #   machine:
-  #     image: ubuntu-2204:current
+  #     image: ubuntu-2404:current
   #   resource_class: medium
   #   environment:
   #     BUILDKIT_PROGRESS: 'plain'
@@ -807,8 +850,11 @@ jobs:
       - image: 'cimg/node:24.16.0'
     steps:
       - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: /tmp
       - run:
-          name: Upload container to Nexus
+          name: Upload package to Nexus
           command: |
             echo $CIRCLE_BRANCH
             npm pack
@@ -819,44 +865,15 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
-  publish-runtime-multiarch:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker
       - run:
-          name: Publish runtime multi-arch image
-          no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime ""
-  deploy-runtime-datastream-cloud:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load and push datastream cloud image
+          name: Publish amd64 runtime image
           command: |
-            docker load -i /tmp/docker-images/redbox-portal-runtime-datastream-cloud-test.tar
+            docker load -i /tmp/docker-images/redbox-portal-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-
-            docker tag redbox-portal:runtime-datastream-cloud-test "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-datastream-cloud-amd64"
-  publish-runtime-pdfgen-multiarch:
+            source support/build/docker-build-vars.sh
+            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
+            docker push "${REPO}:${DEPLOY_TAG}-amd64"
+  publish-runtime-amd64:
     docker:
       - image: 'cimg/node:24.16.0'
     resource_class: large
@@ -864,10 +881,20 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Publish runtime pdfgen multi-arch image
+          name: Publish amd64 runtime image
           no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_pdfgen "-pdfgen"
-  publish-runtime-cloud-pdfgen-multiarch:
+          command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime ""
+  publish-runtime-arm64:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Publish arm64 runtime image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
+  publish-runtime-pdfgen-amd64:
     docker:
       - image: 'cimg/node:24.16.0'
     resource_class: large
@@ -875,9 +902,19 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Publish runtime datastream cloud + pdfgen multi-arch image
+          name: Publish amd64 runtime pdfgen image
           no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-multiarch.sh && support/build/docker-publish-multiarch.sh runtime_cloud_pdfgen "-cloud-pdfgen"
+          command: chmod +x support/build/docker-publish-amd64-variant.sh && support/build/docker-publish-amd64-variant.sh runtime_pdfgen "-pdfgen"
+  publish-runtime-pdfgen-arm64:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Publish arm64 runtime pdfgen image
+          no_output_timeout: 30m
+          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   deploy-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -904,35 +941,9 @@ jobs:
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
-  deploy-runtime-cloud-pdfgen:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Load and push datastream cloud + pdfgen image
-          command: |
-            docker load -i /tmp/docker-images/redbox-portal-runtime-cloud-pdfgen-test.tar
-            echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
-
-            docker tag redbox-portal:runtime-cloud-pdfgen-test "${REPO}:${DEPLOY_TAG}-cloud-pdfgen-amd64"
-            docker push "${REPO}:${DEPLOY_TAG}-cloud-pdfgen-amd64"
   deploy-arm64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -942,7 +953,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
   deploy-runtime-pdfgen-arm64:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     steps:
       - checkout
@@ -950,16 +961,6 @@ jobs:
           name: Build and push arm64 pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
-  deploy-runtime-cloud-pdfgen-arm64:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: arm.medium
-    steps:
-      - checkout
-      - run:
-          name: Build and push arm64 datastream cloud + pdfgen image
-          no_output_timeout: 30m
-          command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_cloud_pdfgen "-cloud-pdfgen"
   publish-manifest:
     docker:
       - image: 'cimg/node:24.16.0'
@@ -978,18 +979,9 @@ jobs:
       - run:
           name: Create and push multi-arch pdfgen manifest
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-pdfgen"
-  publish-runtime-cloud-pdfgen-manifest:
-    docker:
-      - image: 'cimg/node:24.16.0'
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Create and push multi-arch datastream cloud + pdfgen manifest
-          command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh "-cloud-pdfgen"
   generate-docs:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -1065,10 +1057,18 @@ parameters:
       - next
       - alpha
     default: beta
+  docker_publish_mode:
+    type: enum
+    enum:
+      - none
+      - manual
+    default: none
 workflows:
   build_test_gendocs_and_deploy:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - build:
           filters:
@@ -1080,24 +1080,12 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - build-runtime-datastream-cloud:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /^dependabot.*/
       - build-runtime-pdfgen:
           requires:
             - build
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - build-runtime-cloud-pdfgen:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - test-bruno-general:
           requires:
             - build
@@ -1124,12 +1112,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1145,6 +1138,9 @@ workflows:
           requires:
             - build
       - test-agenda-sqs-backend:
+          requires:
+            - build
+      - test-rva-registry:
           requires:
             - build
       - test-redbox-dev-tools-cli:
@@ -1167,14 +1163,14 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - publish-manifest:
           requires:
             - deploy
             - deploy-arm64
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy:
           requires:
             - test-bruno-general
@@ -1189,23 +1185,7 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
@@ -1221,23 +1201,7 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen-arm64:
           requires:
             - build-runtime-pdfgen
@@ -1253,41 +1217,19 @@ workflows:
             - test-storage-mongo
           filters:
             branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
       - publish-runtime-pdfgen-manifest:
           requires:
             - deploy-runtime-pdfgen
             - deploy-runtime-pdfgen-arm64
           filters:
             branches:
-              ignore: /^dependabot.*/
-      - deploy-runtime-cloud-pdfgen-arm64:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              ignore: /^dependabot.*/
-      - publish-runtime-cloud-pdfgen-manifest:
-          requires:
-            - deploy-runtime-cloud-pdfgen
-            - deploy-runtime-cloud-pdfgen-arm64
-            - publish-runtime-pdfgen-manifest
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+              only: /^(master|develop|support\/.*)$/
   build_test_dependabot:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
           filters:
@@ -1337,12 +1279,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1355,6 +1302,9 @@ workflows:
           requires:
             - build
       - test-agenda-sqs-backend:
+          requires:
+            - build
+      - test-rva-registry:
           requires:
             - build
       - test-redbox-dev-tools-cli:
@@ -1395,18 +1345,11 @@ workflows:
               ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     when:
-      equal: [none, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - build:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-manifest:
-          requires:
-            - deploy
-            - deploy-arm64
           filters:
             tags:
               only: /^v.*/
@@ -1420,23 +1363,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - build-runtime-datastream-cloud:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - build-runtime-pdfgen:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - build-runtime-cloud-pdfgen:
           requires:
             - build
           filters:
@@ -1487,12 +1414,17 @@ workflows:
                 - export
                 - dashboard
                 - report
+                - report-config
                 - manage-users
+                - record-audit
                 - admin-vocabulary
+                - dashboard-config-editor
+                - named-query-editor
                 - manage-roles
                 - form
                 - app-config
                 - deleted-records
+                - harvest-runs
                 - branding
                 - translation
                 - record-search
@@ -1520,6 +1452,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-agenda-sqs-backend:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-rva-registry:
           requires:
             - build
           filters:
@@ -1584,43 +1524,9 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-runtime-datastream-cloud:
-          requires:
-            - build-runtime-datastream-cloud
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - deploy-runtime-cloud-pdfgen:
-          requires:
-            - build-runtime-cloud-pdfgen
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1661,33 +1567,6 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-runtime-cloud-pdfgen-arm64:
-          requires:
-            - build-runtime-cloud-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - publish-runtime-cloud-pdfgen-manifest:
-          requires:
-            - deploy-runtime-cloud-pdfgen
-            - deploy-runtime-cloud-pdfgen-arm64
-            - publish-runtime-pdfgen-manifest
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
       - npm-publish-backend:
           release_kind: release
           release_version: ''
@@ -1710,9 +1589,27 @@ workflows:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
             branches:
               ignore: /.*/
+  docker_manual_publish:
+    when:
+      equal: [manual, << pipeline.parameters.docker_publish_mode >>]
+    jobs:
+      - publish-runtime-amd64
+      - publish-runtime-arm64
+      - publish-manifest:
+          requires:
+            - publish-runtime-amd64
+            - publish-runtime-arm64
+      - publish-runtime-pdfgen-amd64
+      - publish-runtime-pdfgen-arm64
+      - publish-runtime-pdfgen-manifest:
+          requires:
+            - publish-runtime-pdfgen-amd64
+            - publish-runtime-pdfgen-arm64
   npm_beta_publish:
     when:
-      equal: [beta, << pipeline.parameters.npm_publish_mode >>]
+      and:
+        - equal: [beta, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - npm-publish-backend:
           release_kind: beta

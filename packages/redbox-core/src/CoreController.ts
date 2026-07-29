@@ -1,8 +1,10 @@
-import { existsSync } from 'fs';
 import type { Response } from 'express';
 import * as _ from 'lodash';
+import path from 'path';
 import { ILogger } from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
+import { resolveHookViewFile } from './hooks/hookResources';
+import type { ResolvedHookFile } from './hooks/hookResources';
 import {
   BuildResponseType,
   APIErrorResponse,
@@ -17,6 +19,8 @@ import {
 
 
 export namespace Controllers.Core {
+
+  type ResolvedViewFile = ResolvedHookFile;
 
   /**
    * Core controller which defines common logic between controllers.
@@ -247,58 +251,87 @@ export namespace Controllers.Core {
     }
 
 
+    private getCoreViewRoot(): string {
+      return path.resolve(sails.config.appPath, 'views');
+    }
+
+    private resolveCoreViewFile(viewPath: string): ResolvedViewFile | null {
+      return resolveHookViewFile(sails.config.appPath, viewPath, {
+        roots: [this.getCoreViewRoot()],
+        extension: '.ejs',
+      });
+    }
+
+    private resolveViewCandidate(viewPath: string): ResolvedViewFile | null {
+      return resolveHookViewFile(sails.config.appPath, viewPath)
+        ?? this.resolveCoreViewFile(viewPath);
+    }
+
+    private resolveViewFile(branding: string, portal: string, view: string): ResolvedViewFile | null {
+      const candidates = [
+        `${branding}/${portal}/${view}`,
+        `default/${portal}/${view}`,
+        `default/default/${view}`,
+      ];
+
+      for (const candidate of candidates) {
+        const resolvedView = this.resolveViewCandidate(candidate);
+        if (resolvedView) {
+          return resolvedView;
+        }
+      }
+
+      return null;
+    }
+
+    private resolveLayoutFile(branding: string, portal: string): ResolvedViewFile | null {
+      const candidates = [
+        `${branding}/${portal}/${this._layoutRelativePath}${this._layout}`,
+        `default/${portal}/${this._layoutRelativePath}${this._layout}`,
+        `default/default/${this._layoutRelativePath}${this._layout}`,
+        `${branding}/${portal}/layout/layout`,
+        `default/${portal}/layout`,
+        'default/default/layout',
+      ];
+
+      for (const candidate of candidates) {
+        const resolvedLayout = this.resolveViewCandidate(candidate);
+        if (resolvedLayout) {
+          return resolvedLayout;
+        }
+      }
+
+      return null;
+    }
+
+    private getSailsViewPath(resolvedFile: ResolvedViewFile): string {
+      return resolvedFile.relativePath.endsWith('.ejs')
+        ? resolvedFile.relativePath.slice(0, -'.ejs'.length)
+        : resolvedFile.relativePath;
+    }
+
+    private getRenderViewPath(resolvedFile: ResolvedViewFile): string {
+      const sailsViewPath = this.getSailsViewPath(resolvedFile);
+      if (resolvedFile.rootPath === this.getCoreViewRoot()) {
+        return sailsViewPath;
+      }
+      return resolvedFile.absolutePath.endsWith('.ejs')
+        ? resolvedFile.absolutePath.slice(0, -'.ejs'.length)
+        : resolvedFile.absolutePath;
+    }
+
+    private getCoreMirrorDirectory(resolvedFile: ResolvedViewFile): string {
+      return path.resolve(this.getCoreViewRoot(), path.dirname(resolvedFile.relativePath));
+    }
+
     public _getResolvedView(branding: string, portal: string, view: string): string | null {
-      let resolvedView: string | null = null;
-
-      //Check if view exists for branding and portal
-      const viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
-      if (existsSync(viewToTest)) {
-        resolvedView = branding + "/" + portal + "/" + view;
-      }
-      // If view doesn't exist, next try for portal with default branding
-      if (resolvedView === null) {
-        const viewToTest2 = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
-        if (existsSync(viewToTest2)) {
-          resolvedView = "default/" + portal + "/" + view;
-        }
-      }
-
-      // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedView === null) {
-        const viewToTest3 = sails.config.appPath + "/views/default/default/" + view + ".ejs";
-        if (existsSync(viewToTest3)) {
-          resolvedView = "default/default/" + view;
-        }
-      }
-
-      return resolvedView;
+      const resolvedView = this.resolveViewFile(branding, portal, view);
+      return resolvedView ? this.getSailsViewPath(resolvedView) : null;
     }
 
     public _getResolvedLayout(branding: string, portal: string): string | null {
-      let resolvedLayout: string | null = null;
-
-      //Check if view exists for branding and portal
-      let layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
-      if (existsSync(layoutToTest)) {
-        resolvedLayout = branding + "/" + portal + "/layout";
-      }
-      // If view doesn't exist, next try for portal with default branding
-      if (resolvedLayout === null) {
-        layoutToTest = sails.config.appPath + "/views/default/" + portal + "/layout.ejs";
-        if (existsSync(layoutToTest)) {
-          resolvedLayout = "/default/" + portal + "/layout";
-        }
-      }
-
-      // If view still doesn't exist, next try for default portal with default branding
-      if (resolvedLayout === null) {
-        layoutToTest = sails.config.appPath + "/views/default/default/" + "layout.ejs";
-        if (existsSync(layoutToTest)) {
-          resolvedLayout = "default/default/layout";
-        }
-      }
-
-      return resolvedLayout;
+      const resolvedLayout = this.resolveLayoutFile(branding, portal);
+      return resolvedLayout ? this.getSailsViewPath(resolvedLayout) : null;
     }
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
@@ -314,13 +347,8 @@ export namespace Controllers.Core {
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;
 
-      const resolvedView: string | null = this._getResolvedView(branding, portal, view);
-      const resolvedLayout: string | null = this._getResolvedLayout(branding, portal);
-
-      // If we can resolve a layout set it.
-      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
-        res.locals.layout = resolvedLayout;
-      }
+      const resolvedView = this.resolveViewFile(branding, portal, view);
+      const resolvedLayout = this.resolveLayoutFile(branding, portal);
 
       // View still doesn't exist so return a 404
       if (resolvedView === null) {
@@ -328,23 +356,36 @@ export namespace Controllers.Core {
         return;
       }
 
+      // If we can resolve a layout set it explicitly for ejs-locals. Sails' built-in
+      // layout calculation assumes one app views root, but hook views live elsewhere.
+      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
+        mergedLocal["_layoutFile"] = path.relative(path.dirname(resolvedView.absolutePath), resolvedLayout.absolutePath);
+        mergedLocal["layout"] = false;
+        mergedLocal["layoutDirectoryLocation"] = `${path.dirname(resolvedLayout.absolutePath)}${path.sep}`;
+      }
+
       // Add some properties blueprints usually adds
       // TODO: Doesn't seem to be binding properly. Investigate
       mergedLocal.view = {};
-      (mergedLocal.view as Record<string, string>).pathFromApp = resolvedView;
+      const sailsViewPath = this.getSailsViewPath(resolvedView);
+      (mergedLocal.view as Record<string, string>).pathFromApp = sailsViewPath;
       (mergedLocal.view as Record<string, string>).ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      const fullViewPath = sails.config.appPath + "/views/" + resolvedView;
-      mergedLocal['templateDirectoryLocation'] = fullViewPath.substring(0, fullViewPath.lastIndexOf('/') + 1);
+      mergedLocal['templateDirectoryLocation'] = `${path.dirname(resolvedView.absolutePath)}${path.sep}`;
+      mergedLocal['__dirname'] = resolvedView.absolutePath;
+      mergedLocal['views'] = Array.from(new Set([
+        this.getCoreMirrorDirectory(resolvedView),
+        ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
+      ]));
 
       this.logger.debug("resolvedView");
-      this.logger.debug(resolvedView);
+      this.logger.debug(sailsViewPath);
       // this.logger.debug("mergedLocal");
       // this.logger.debug(mergedLocal);
 
 
-      res.view(resolvedView, mergedLocal);
+      res.view(this.getRenderViewPath(resolvedView), mergedLocal);
     }
 
     protected getSiteTitle(locals?: Record<string, unknown>): string {

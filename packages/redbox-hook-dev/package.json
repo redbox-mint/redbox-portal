@@ -1,0 +1,38 @@
+{
+  "name": "redbox-hook-dev",
+  "version": "1.0.0",
+  "description": "ReDBox development hook. Supplies the demo record types, workflows, dashboards and forms that ship with the core repo for development and testing only. Not installed into client or published production images.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sails": {
+    "isHook": true,
+    "hookName": "redbox-hook-dev",
+    "hasConfig": true,
+    "hasFormConfigs": true
+  },
+  "scripts": {
+    "compile": "npm run build",
+    "build": "tsc -p tsconfig.json"
+  },
+  "keywords": [
+    "sails",
+    "hook",
+    "redbox",
+    "redbox dev"
+  ],
+  "author": "QCIF Engineering dev@redboxresearchdata.com.au",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@researchdatabox/redbox-core": "file:../redbox-core",
+    "@researchdatabox/sails-ng-common": "file:../sails-ng-common"
+  },
+  "devDependencies": {
+    "@researchdatabox/redbox-dev-tools": "file:../redbox-dev-tools",
+    "@types/node": "24.12.4",
+    "typescript": "5.9.3"
+  }
+}

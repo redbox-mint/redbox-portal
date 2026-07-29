@@ -1,8 +1,8 @@
 import {
-    FormConfig,
-    FormConfigFrame,
-    FormModesConfig,
-    ReusableFormDefinitions,
+  FormConfig,
+  FormConfigFrame,
+  FormModesConfig,
+  ReusableFormDefinitions,
   FormOverride,
   GroupFieldComponentConfig,
   GroupFieldComponentDefinition,
@@ -19,6 +19,7 @@ import {
   RepeatableFieldModelConfig,
   RepeatableFieldModelDefinition,
   RepeatableFormComponentDefinition,
+  SimpleInputFormComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { ConstructFormConfigVisitor } from "../../src";
 import {formConfigExample2, reusableFormDefinitionsExample2} from "./example-data";
@@ -298,6 +299,43 @@ describe("Construct Visitor", async () => {
             expect(cfg?.cacheResults).to.equal(false);
         });
 
+        it("should preserve typeahead optionObjectFields config", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                        {
+                            name: "research-master-project-id",
+                            component: {
+                                class: "TypeaheadInputComponent",
+                                config: {
+                                    sourceType: "namedQuery",
+                                    queryId: "activity",
+                                    labelField: "dc_title",
+                                    valueField: "grant_number",
+                                    valueMode: "optionObject",
+                                    optionObjectFields: {
+                                        dc_title: "dc_title",
+                                        grant_number: "grant_number"
+                                    }
+                                }
+                            },
+                            model: { class: "TypeaheadInputModel", config: {} }
+                        }
+                    ]
+                }
+            });
+            const cfg = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
+            expect(cfg?.valueMode).to.equal("optionObject");
+            // The Angular component cannot build custom stored objects if this is dropped.
+            expect(cfg?.optionObjectFields).to.deep.equal({
+                dc_title: "dc_title",
+                grant_number: "grant_number"
+            });
+        });
+
         it("should preserve external typeahead provider config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
@@ -521,6 +559,16 @@ describe("Construct Visitor", async () => {
                             redirectLocation: '/@branding/@portal/dashboard/dataRecord',
                           }
                         }
+                      },
+                      {
+                        name: "cancel_button",
+                        component: {
+                          class: "CancelButtonComponent",
+                          config: {
+                            redirectDelaySeconds: 3,
+                            redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                          }
+                        }
                       }
                     ]
                 }
@@ -537,6 +585,43 @@ describe("Construct Visitor", async () => {
               closeOnSave: true,
               redirectDelaySeconds: 5,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+            expect(actual.componentDefinitions?.[2]?.component?.class).to.equal("CancelButtonComponent");
+            expect(actual.componentDefinitions?.[2]?.component?.config).to.containSubset({
+              redirectDelaySeconds: 3,
+              redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+            });
+        });
+
+        it("should include integration status properties", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                      {
+                        name: "integration_status",
+                        component: {
+                          class: "IntegrationStatusComponent",
+                          config: {
+                            integrationNames: ["doi"],
+                            pollIntervalMs: 5000,
+                            maxPollAttempts: 60,
+                            hideWhenInactive: true,
+                          }
+                        }
+                      }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("IntegrationStatusComponent");
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset({
+              integrationNames: ["doi"],
+              pollIntervalMs: 5000,
+              maxPollAttempts: 60,
+              hideWhenInactive: true,
             });
         });
     });
@@ -710,6 +795,113 @@ describe("Construct Visitor", async () => {
                         .to.deep.include.members(expectedOrcidNested.map(componentDef => componentDef.component.class));
                 }
             });
+        });
+
+        it("should retain hidden simple input in view mode", async function () {
+          const visitor = new ConstructFormConfigVisitor(logger);
+          const actual = await visitor.start({
+            formMode: "view",
+            data: {
+              name: "form",
+              componentDefinitions: [
+                {
+                  name: "legacyId",
+                  overrides: {
+                    formModeClasses: {
+                      view: {
+                        component: "SimpleInputComponent",
+                      },
+                    },
+                  },
+                  component: {
+                    "class": "SimpleInputComponent",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      type: "hidden"
+                    }
+                  },
+                  model: {
+                    "class": "SimpleInputModel",
+                  },
+                  layout: {
+                    "class": "DefaultLayout",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      labelRequiredStr: "*",
+                      helpTextVisible: false
+                    }
+                  }
+                },
+              ]
+            }
+          });
+
+          const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+          expect(simpleInput.overrides?.formModeClasses?.view?.component).to.equal("SimpleInputComponent");
+          expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+          expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+          expect(simpleInput.component.config?.visible).to.be.false;
+          expect(simpleInput.component.config?.label).to.equal("legacyId");
+          expect(simpleInput.component.config?.type).to.equal("hidden");
+          expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+          expect(simpleInput.layout?.config?.visible).to.be.false;
+          expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+        });
+
+        it("should remove overrides when removeOverrides is true", async function () {
+          const visitor = new ConstructFormConfigVisitor(logger);
+          const actual = await visitor.start({
+            formMode: "view",
+            removeOverrides: true,
+            data: {
+              name: "form",
+              componentDefinitions: [
+                {
+                  name: "legacyId",
+                  overrides: {
+                    formModeClasses: {
+                      view: {
+                        component: "SimpleInputComponent",
+                      },
+                    },
+                  },
+                  component: {
+                    "class": "SimpleInputComponent",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      type: "hidden"
+                    }
+                  },
+                  model: {
+                    "class": "SimpleInputModel",
+                  },
+                  layout: {
+                    "class": "DefaultLayout",
+                    config: {
+                      visible: false,
+                      label: "legacyId",
+                      labelRequiredStr: "*",
+                      helpTextVisible: false
+                    }
+                  }
+                },
+              ]
+            }
+          });
+
+          const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+          expect(simpleInput.overrides).to.equal(undefined);
+          expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+          expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+          expect(simpleInput.component.config?.visible).to.be.false;
+          expect(simpleInput.component.config?.label).to.equal("legacyId");
+          expect(simpleInput.component.config?.type).to.equal("hidden");
+          expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+          expect(simpleInput.layout?.config?.visible).to.be.false;
+          expect(simpleInput.layout?.config?.label).to.equal("legacyId");
         });
     });
     describe("expected errors", async () => {
@@ -1221,6 +1413,31 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it("should preserve text area line breaks in view mode", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                data: {
+                    name: "form",
+                    componentDefinitions: [
+                        {
+                            name: "description",
+                            component: { class: "TextAreaComponent" },
+                            model: { class: "TextAreaModel", config: {} },
+                        }
+                    ]
+                },
+                formMode: "view",
+                reusableFormDefs: reusableFormDefinitions,
+                record: { description: "Line 1\nLine 2" }
+            });
+
+            expect(actual.componentDefinitions[0].component).to.deep.include({ class: "ContentComponent" });
+            expect(actual.componentDefinitions[0].component.config).to.deep.include({
+                content: "Line 1\nLine 2",
+                template: `<span>{{{plaintextToHtml content}}}</span>`
+            });
+        });
+
         it("should transform data location components to content in view mode", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
@@ -1690,6 +1907,11 @@ describe("Construct Visitor", async () => {
             const template = (transformed.component?.config as { template?: string } | undefined)?.template ?? "";
             expect(transformed.component.class).to.equal("ContentComponent");
             expect(template).to.contain("custom-leaf");
+        });
+
+        it("should preserve line breaks in the default plain reusable view fragment", async () => {
+            const leafPlainTemplate = (reusableFormDefinitions["view-template-leaf-plain"]?.[0]?.component?.config as { template?: string } | undefined)?.template;
+            expect(leafPlainTemplate).to.equal("<span>{{{plaintextToHtml content}}}</span>");
         });
 
         it("should keep repeatable and group components untransformed in view mode during construct phase", async () => {

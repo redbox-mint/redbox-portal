@@ -13,6 +13,7 @@ export * from './HarvestRun';
 export * from './HarvestRunChunk';
 export * from './I18nBundle';
 export * from './I18nTranslation';
+export * from './Migration';
 export * from './NamedQuery';
 export * from './PathRule';
 export * from './RecordType';
@@ -47,6 +48,7 @@ import { HarvestRunWLDef } from './HarvestRun';
 import { HarvestRunChunkWLDef } from './HarvestRunChunk';
 import { I18nBundleWLDef } from './I18nBundle';
 import { I18nTranslationWLDef } from './I18nTranslation';
+import { MigrationWLDef } from './Migration';
 import { NamedQueryWLDef } from './NamedQuery';
 import { PathRuleWLDef } from './PathRule';
 import { RecordTypeWLDef } from './RecordType';
@@ -84,6 +86,7 @@ export const WaterlineModels = {
   HarvestRunChunk: HarvestRunChunkWLDef,
   I18nBundle: I18nBundleWLDef,
   I18nTranslation: I18nTranslationWLDef,
+  Migration: MigrationWLDef,
   NamedQuery: NamedQueryWLDef,
   PathRule: PathRuleWLDef,
   RecordType: RecordTypeWLDef,

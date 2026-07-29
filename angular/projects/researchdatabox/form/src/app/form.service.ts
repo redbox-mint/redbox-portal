@@ -66,7 +66,6 @@ import {
   FormPrehydratePayload,
   getObjectWithJsonPointer,
   jsonataEvaluateFunc,
-  jsonataLibrary,
   JSONataQueryRuntimeContext,
   JSONataQuerySource,
   JSONataQuerySourceProperty,
@@ -78,6 +77,7 @@ import {
   LineagePathsOptional,
   isPrefixLineagePaths,
   isMatchingLineagePaths,
+  jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -264,12 +264,17 @@ export class FormService extends HttpClientService {
       this.loadedValidatorDefinitions = this.validatorsSupport.createValidatorDefinitionMapping(definitions);
       this.loggerService.debug(`Loaded validator definitions`, this.loadedValidatorDefinitions);
     }
+    // Pass the record oid (when known) so the compiled items are built from the record's
+    // current workflow-stage form rather than the starting-step form. Workflow-stage forms
+    // can differ structurally (e.g. extra tabs), which shifts expression keys and otherwise
+    // produces "Unknown key" errors when evaluating expressions on non-draft records.
+    const metaOid = typeof meta?.['oid'] === 'string' && meta['oid'] ? (meta['oid'] as string) : undefined;
     this.formCompiledItems = formConfig?.type
-      ? this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode)
+      ? this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode)
       : undefined;
 
     if ((this.formCompiledItems === null || this.formCompiledItems === undefined) && formConfig?.type) {
-      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, undefined, this.currentFormMode);
+      this.formCompiledItems = this.getDynamicImportFormCompiledItems(formConfig.type, metaOid, this.currentFormMode);
     }
 
     const componentDefinitions = Array.isArray(formConfig?.componentDefinitions) ? formConfig?.componentDefinitions : [];
@@ -820,17 +825,18 @@ export class FormService extends HttpClientService {
   public updateValidators(
     mapEntry: FormFieldCompMapEntry, enabledValidationGroups?: string[] | null, validationGroups?: FormValidationGroups | null
   ): void {
+    // Update descendants first so container controls recalculate their aggregate
+    // status from the refreshed child validation state.
+    for (const childMapEntry of mapEntry?.component?.formFieldCompMapEntries ?? []) {
+      this.updateValidators(childMapEntry, enabledValidationGroups, validationGroups)
+    }
+
     // Set the validators for the form control.
     if (mapEntry?.model?.formControl) {
       const formControl = mapEntry?.model?.formControl;
       const validators = mapEntry?.model?.validators;
       const updateValueAndValidityOpts = { doUpdate: true, onlySelf: true, emitEvent: false };
       this.setValidators(formControl, validators, enabledValidationGroups, validationGroups, updateValueAndValidityOpts, mapEntry);
-    }
-
-    // Set the validators for any child controls.
-    for (const childMapEntry of mapEntry?.component?.formFieldCompMapEntries ?? []) {
-      this.updateValidators(childMapEntry, enabledValidationGroups, validationGroups)
     }
   }
 
@@ -1249,7 +1255,7 @@ export class FormService extends HttpClientService {
           try {
             const compiledItems = await this.formCompiledItems;
             for (const key of keys) {
-              const result = await compiledItems.evaluate(key, value, { libraries: jsonataLibrary });
+              const result = await compiledItems.evaluate(key, value, { libraries: { jsonata: jsonataDecodeCompile} });
               if (result !== undefined) {
                 return result;
               }

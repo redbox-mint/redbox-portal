@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as vm from 'vm';
 const fsPromises = fs.promises;
 import * as os from 'os';
+import * as sinon from 'sinon';
 
 import * as redboxLoader from '../../src/loader';
 
@@ -12,6 +13,13 @@ async function createHookModule(sandboxDir: string, packageName: string, package
     await fsPromises.mkdir(moduleDir, { recursive: true });
     await fsPromises.writeFile(path.join(moduleDir, 'package.json'), JSON.stringify(packageJson, null, 2));
     await fsPromises.writeFile(path.join(moduleDir, 'index.js'), indexJs);
+    for (const request of [`${packageName}/package.json`, packageName]) {
+        try {
+            delete require.cache[require.resolve(request, { paths: [sandboxDir] })];
+        } catch {
+            // Ignore unresolved cache entries for freshly created test modules.
+        }
+    }
 }
 
 describe('redbox-loader', function () {
@@ -90,6 +98,63 @@ describe('redbox-loader', function () {
 
             const stat = await fsPromises.stat(file);
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
+        });
+    });
+
+    describe('mergeRedboxConfig', function () {
+        it('replaces brandingConfigurationDefaults arrays from hook config', function () {
+            const merged = redboxLoader.mergeRedboxConfig(
+                'brandingConfigurationDefaults',
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'admin',
+                                labelKey: 'menu-admin',
+                                href: '/admin',
+                                requiredRoles: ['Admin'],
+                            },
+                        ],
+                    },
+                    homePanels: { panels: [] },
+                },
+                {
+                    menu: {
+                        items: [
+                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
+                            {
+                                id: 'plan',
+                                labelKey: 'menu-plan-nav',
+                                href: '#',
+                                children: [
+                                    { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
+                                ],
+                            },
+                        ],
+                    },
+                    homePanels: {
+                        panels: [
+                            {
+                                id: 'plan',
+                                titleKey: 'menu-plan',
+                                iconClass: 'icon-checklist icon-3x',
+                                columnClass: 'col-md-3 homepanel',
+                                items: [],
+                            },
+                        ],
+                    },
+                }
+            );
+
+            const brandingDefaults = merged as {
+                menu: { items: Array<{ id: string; requiredRoles?: string[] }> };
+                homePanels: { panels: Array<{ id: string }> };
+            };
+
+            expect(brandingDefaults.menu.items.map(item => item.id)).to.deep.equal(['home-auth', 'plan']);
+            expect(brandingDefaults.menu.items[1]).to.not.have.property('requiredRoles');
+            expect(brandingDefaults.homePanels.panels.map(panel => panel.id)).to.deep.equal(['plan']);
         });
     });
 
@@ -204,6 +269,16 @@ describe('redbox-loader', function () {
             expect(result.stats.bootstrapStats.total).to.equal(1);
             expect(result.stats.bootstrapStats.hookCount).to.be.a('number');
         });
+
+        it('should include migrationStats in result', async function () {
+            const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
+            expect(result.skipped).to.be.false;
+            if (result.skipped) {
+                throw new Error('Expected shim generation to run');
+            }
+            expect(result.stats.migrationStats).to.exist;
+            expect(result.stats.migrationStats.total).to.equal(1);
+        });
     });
 
     describe('generateFormConfigShims', function () {
@@ -219,7 +294,7 @@ describe('redbox-loader', function () {
             await redboxLoader.generateFormConfigShims(formConfigDir, {});
 
             const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("default-1.0-draft");
+            expect(content).to.include("generated-view-only");
         });
 
         it('should use hook-only registry when LOAD_DEFAULT_FORMS=false', async function () {
@@ -319,6 +394,63 @@ describe('redbox-loader', function () {
             )).to.be.true;
             expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
         });
+
+        it('should merge agenda queue jobs as a map keyed by name', function () {
+            const merged = redboxLoader.mergeRedboxConfig('agendaQueue', {
+                jobs: {
+                    'IntegrationAuditService-StoreIntegrationAudit': {
+                        fnName: 'integrationauditservice.storeIntegrationAudit',
+                        options: { lockLifetime: 30000 }
+                    },
+                    'MoveCompletedJobsToHistory': {
+                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '5 minutes'
+                        }
+                    }
+                }
+            }, {
+                jobs: {
+                    'MoveCompletedJobsToHistory': {
+                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '5 minutes'
+                        }
+                    },
+                    'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties': {
+                        fnName: 'figshareservice.transitionRecordWorkflowFromFigshareArticlePropertiesJob',
+                        schedule: {
+                            method: 'every',
+                            intervalOrSchedule: '50 minutes'
+                        }
+                    },
+                    'IntegrationAuditService-StoreIntegrationAudit': {
+                        fnName: 'integrationauditservice.storeIntegrationAudit',
+                        options: { concurrency: 1 }
+                    }
+                }
+            }) as { jobs: Record<string, Record<string, unknown>> };
+
+            const auditJob = merged.jobs['IntegrationAuditService-StoreIntegrationAudit'];
+            const moveHistoryJob = merged.jobs['MoveCompletedJobsToHistory'];
+            expect(Object.keys(merged.jobs)).to.include.members([
+                'IntegrationAuditService-StoreIntegrationAudit',
+                'MoveCompletedJobsToHistory',
+                'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties'
+            ]);
+            expect(auditJob).to.not.have.property('schedule');
+            expect(auditJob?.fnName).to.equal('integrationauditservice.storeIntegrationAudit');
+            expect(auditJob?.options).to.deep.equal({
+                lockLifetime: 30000,
+                concurrency: 1
+            });
+            expect(moveHistoryJob?.schedule).to.deep.equal({
+                method: 'every',
+                intervalOrSchedule: '5 minutes'
+            });
+        });
     });
 
     describe('generateBootstrapShim', function () {
@@ -340,6 +472,7 @@ describe('redbox-loader', function () {
             expect(content).to.include('coreBootstrap');
             expect(content).to.include('preLiftSetup');
             expect(content).to.include('createGeneratedBootstrap');
+            expect(content).to.include("require('./migrations').migrations");
             expect(content).to.include('module.exports.bootstrap');
             expect(content).to.not.include('{{{');
             expect(() => new vm.Script(content)).to.not.throw();
@@ -383,6 +516,68 @@ describe('redbox-loader', function () {
             const stat = await fsPromises.stat(file);
             expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
         });
+
+        function runBootstrapShim(content: string, migrationsRequire: () => unknown): { exports: Record<string, unknown>; capturedMigrations: unknown } {
+            let capturedMigrations: unknown;
+            const fakeCore = {
+                coreBootstrap: async () => undefined,
+                preLiftSetup: () => undefined,
+                createGeneratedBootstrap: (
+                    _preLift: unknown,
+                    _core: unknown,
+                    _hooks: unknown,
+                    migrations: unknown
+                ) => {
+                    capturedMigrations = migrations;
+                    return () => undefined;
+                },
+            };
+            const fakeRequire = (id: string) => {
+                if (id === '@researchdatabox/redbox-core') {
+                    return fakeCore;
+                }
+                if (id === './migrations') {
+                    return migrationsRequire();
+                }
+                throw new Error(`Unexpected require: ${id}`);
+            };
+            const moduleStub = { exports: {} as Record<string, unknown> };
+            vm.runInNewContext(content, {
+                require: fakeRequire,
+                module: moduleStub,
+                exports: moduleStub.exports,
+                console: { warn: () => undefined },
+            });
+            return { exports: moduleStub.exports, capturedMigrations };
+        }
+
+        it('should tolerate a missing config/migrations.js and default to no migrations', async function () {
+            await redboxLoader.generateBootstrapShim(configDir, []);
+            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
+
+            const missingShim = () => {
+                const error = new Error("Cannot find module './migrations'") as NodeJS.ErrnoException;
+                error.code = 'MODULE_NOT_FOUND';
+                throw error;
+            };
+
+            const { exports: shimExports, capturedMigrations } = runBootstrapShim(content, missingShim);
+            expect(shimExports.bootstrap).to.be.a('function');
+            expect(capturedMigrations).to.deep.equal([]);
+        });
+
+        it('should rethrow MODULE_NOT_FOUND raised inside config/migrations.js', async function () {
+            await redboxLoader.generateBootstrapShim(configDir, []);
+            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
+
+            const missingHookInsideShim = () => {
+                const error = new Error("Cannot find module 'some-uninstalled-hook'") as NodeJS.ErrnoException;
+                error.code = 'MODULE_NOT_FOUND';
+                throw error;
+            };
+
+            expect(() => runBootstrapShim(content, missingHookInsideShim)).to.throw("Cannot find module 'some-uninstalled-hook'");
+        });
     });
 
     describe('findAndRegisterHooks', function () {
@@ -392,6 +587,7 @@ describe('redbox-loader', function () {
             expect(result.hookPolicies).to.deep.equal({});
             expect(result.hookBootstraps).to.deep.equal([]);
             expect(result.hookApiRoutes).to.deep.equal([]);
+            expect(result.hookMigrations).to.deep.equal([]);
         });
 
         // Note: Testing actual hook discovery requires real modules in node_modules
@@ -410,6 +606,41 @@ describe('redbox-loader', function () {
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
             // Should not crash, just return empty
             expect(result.hookBootstraps).to.be.an('array');
+            expect(result.hookMigrations).to.be.an('array');
+        });
+
+        it('should discover hook migrations exported by a hook dependency', async function () {
+            const packageName = 'redbox-hook-migrations';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasMigrations: true },
+                },
+                `module.exports.registerRedboxMigrations = function() {
+                    return [{
+                        name: '2026.06.08T10.00.00-hook',
+                        up: async function() {}
+                    }];
+                };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    dependencies: {
+                        [packageName]: '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookMigrations).to.deep.equal([{ name: packageName, module: packageName }]);
         });
 
         it('should discover hook API routes exported by a hook dependency', async function () {
@@ -447,6 +678,201 @@ describe('redbox-loader', function () {
 
             expect(result.hookApiRoutes).to.deep.equal([{ name: packageName, module: packageName }]);
         });
+
+        it('should resolve hook registry collisions using root hookLoadPriority', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: {
+                        hasModels: true,
+                        hasServices: true,
+                        hasControllers: true,
+                        hasFormConfigs: true,
+                    },
+                },
+                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
+                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
+                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: {
+                        hasModels: true,
+                        hasServices: true,
+                        hasControllers: true,
+                        hasFormConfigs: true,
+                    },
+                },
+                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
+                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
+                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookModels.SharedModel.module).to.equal('redbox-hook-alpha');
+            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-alpha');
+            expect(result.hookControllers.SharedController.module).to.equal('redbox-hook-alpha');
+            expect(result.hookFormConfigs.sharedForm.module).to.equal('redbox-hook-alpha');
+        });
+
+        it('should preserve alphabetically-later-wins registry behavior without hookLoadPriority', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasServices: true },
+                },
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasServices: true },
+                },
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-zeta');
+        });
+
+        it('should return hook config registrations in processing order', async function () {
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasConfig: true },
+                },
+                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'alpha' } }; };`
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasConfig: true },
+                },
+                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'zeta' } }; };`
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
+
+            expect(result.hookConfigs.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+        });
+
+        it('should return bootstrap, api route, and migration registrations in processing order', async function () {
+            const indexJs = `module.exports.registerRedboxBootstrap = function() { return async function() {}; };
+                module.exports.registerHookApiRoutes = function() { return []; };
+                module.exports.registerRedboxMigrations = function() { return []; };`;
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-alpha',
+                {
+                    name: 'redbox-hook-alpha',
+                    version: '1.0.0',
+                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
+                },
+                indexJs
+            );
+            await createHookModule(
+                sandboxDir,
+                'redbox-hook-zeta',
+                {
+                    name: 'redbox-hook-zeta',
+                    version: '1.0.0',
+                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
+                },
+                indexJs
+            );
+
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({
+                    name: 'test-app',
+                    hookLoadPriority: ['redbox-hook-alpha'],
+                    dependencies: {
+                        'redbox-hook-alpha': '1.0.0',
+                        'redbox-hook-zeta': '1.0.0',
+                    },
+                    devDependencies: {},
+                })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookBootstraps.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+            expect(result.hookApiRoutes.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+            expect(result.hookMigrations.map(hook => hook.name)).to.deep.equal([
+                'redbox-hook-zeta',
+                'redbox-hook-alpha',
+            ]);
+        });
     });
 
     describe('generateApiRouteHookConfig', function () {
@@ -471,6 +897,197 @@ describe('redbox-loader', function () {
             expect(content).to.include("module.exports.apiRoutesHooks = [");
             expect(content).to.include("require('redbox-hook-api-routes').registerHookApiRoutes");
             expect(() => new vm.Script(content)).to.not.throw();
+        });
+    });
+
+    describe('discoverLocalMigrationFiles', function () {
+        it('should list local migration JavaScript files in sorted order', async function () {
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(path.join(migrationsDir, '002-second.js'), 'module.exports = {};');
+            await fsPromises.writeFile(path.join(migrationsDir, '001-first.js'), 'module.exports = {};');
+            await fsPromises.writeFile(path.join(migrationsDir, 'notes.txt'), '');
+
+            const files = await redboxLoader.discoverLocalMigrationFiles(sandboxDir);
+
+            expect(files).to.deep.equal(['001-first.js', '002-second.js']);
+        });
+
+        it('should return an empty list when api/migrations does not exist', async function () {
+            const files = await redboxLoader.discoverLocalMigrationFiles(sandboxDir);
+            expect(files).to.deep.equal([]);
+        });
+    });
+
+    describe('generateMigrationConfigShim', function () {
+        let configDir: string;
+        let originalNodeEnv: string | undefined;
+
+        beforeEach(async function () {
+            originalNodeEnv = process.env.NODE_ENV;
+            configDir = path.join(sandboxDir, 'config');
+            await fsPromises.mkdir(configDir, { recursive: true });
+        });
+
+        afterEach(function () {
+            process.env.NODE_ENV = originalNodeEnv;
+        });
+
+        it('should generate a migrations.js shim aggregating hook and app-local migrations in name order', async function () {
+            const packageName = 'redbox-hook-migrations';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasMigrations: true },
+                },
+                `module.exports.registerRedboxMigrations = function() {
+                    return [{
+                        name: '2026.06.08T10.00.00-hook',
+                        up: async function() {}
+                    }];
+                };`
+            );
+
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '001-local.js'),
+                `module.exports = {
+                    name: '2026.06.08T09.00.00-local',
+                    source: 'app',
+                    up: async function() {}
+                };`
+            );
+
+            const result = await redboxLoader.generateMigrationConfigShim(
+                configDir,
+                sandboxDir,
+                [{ name: packageName, module: packageName }]
+            );
+
+            expect(result.generated).to.equal(1);
+            const content = await fsPromises.readFile(path.join(configDir, 'migrations.js'), 'utf8');
+            expect(content).to.include("require('redbox-hook-migrations').registerRedboxMigrations()");
+            expect(content).to.include("require('../api/migrations/001-local.js')");
+            expect(() => new vm.Script(content)).to.not.throw();
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            const loaded = require(shimPath) as { migrations: Array<{ name: string }> };
+            expect(loaded.migrations.map(migration => migration.name)).to.deep.equal([
+                '2026.06.08T09.00.00-local',
+                '2026.06.08T10.00.00-hook'
+            ]);
+        });
+
+        it('should warn about duplicate migration names in development', async function () {
+            process.env.NODE_ENV = 'development';
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '003-duplicate-a.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '004-duplicate-b.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+            const warn = sinon.stub(console, 'warn');
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            const loaded = require(shimPath) as { migrations: Array<{ name: string }> };
+            expect(loaded.migrations.map(migration => migration.name)).to.deep.equal(['duplicate']);
+            expect(warn.calledWithMatch('[redbox-loader:warn]', 'Duplicate Redbox migration name: duplicate')).to.be.true;
+            warn.restore();
+        });
+
+        it('should throw on duplicate migration names in production', async function () {
+            process.env.NODE_ENV = 'production';
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '005-duplicate-a.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '006-duplicate-b.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw('Duplicate Redbox migration name: duplicate');
+        });
+
+        it('should name the offending source when a migration export is invalid', async function () {
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '007-bad.js'),
+                `module.exports = { name: 'bad-migration' };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw('Invalid Redbox migration export from api/migrations/007-bad.js');
+        });
+
+        it('should reject a hook whose registerRedboxMigrations is async', async function () {
+            const packageName = 'redbox-hook-async-migrations';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasMigrations: true },
+                },
+                `module.exports.registerRedboxMigrations = async function() {
+                    return [];
+                };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, [
+                { name: packageName, module: packageName }
+            ]);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw(
+                `Invalid Redbox migration export from hook:${packageName}. Expected an array of migrations (registerRedboxMigrations() must be synchronous).`
+            );
+        });
+
+        it('should name both sources for duplicate migration names', async function () {
+            process.env.NODE_ENV = 'production';
+            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
+            await fsPromises.mkdir(migrationsDir, { recursive: true });
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '008-duplicate-a.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+            await fsPromises.writeFile(
+                path.join(migrationsDir, '009-duplicate-b.js'),
+                `module.exports = { name: 'duplicate', up: async function() {} };`
+            );
+
+            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
+
+            const shimPath = path.join(configDir, 'migrations.js');
+            delete require.cache[require.resolve(shimPath)];
+            expect(() => require(shimPath)).to.throw(
+                'Duplicate Redbox migration name: duplicate (from api/migrations/009-duplicate-b.js, first defined in api/migrations/008-duplicate-a.js)'
+            );
         });
     });
 });

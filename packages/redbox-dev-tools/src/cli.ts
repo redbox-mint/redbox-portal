@@ -19,13 +19,15 @@ import {
   parseNavMappings,
   parseRoutes,
 } from './cli-parsers';
+import {registerSyncTranslationCommand} from "./commands/sync-translation";
 
 const program = new Command();
+const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
 // List of dependencies that are common in our legacy hooks but should not be in modern hook packages as they are supplied by redbox-core
 const forbiddenHookDeps = ['axios', 'rxjs', 'lodash', 'mocha', 'chai', 'ts-node', 'typescript'];
 const allowedSharedHookDeps: Record<'dependencies' | 'devDependencies' | 'peerDependencies', Set<string>> = {
   dependencies: new Set<string>(),
-  devDependencies: new Set(['@researchdatabox/redbox-dev-tools']),
+  devDependencies: new Set(['@researchdatabox/redbox-core', '@researchdatabox/redbox-dev-tools']),
   peerDependencies: new Set(['@researchdatabox/redbox-core']),
 };
 
@@ -66,6 +68,7 @@ function migrateHookDependencyContract(pkg: any): any {
   }
 
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] = nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+  nextPkg.devDependencies['@researchdatabox/redbox-core'] = nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
   nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
 
   return nextPkg;
@@ -97,7 +100,7 @@ function findForbiddenHookDeps(pkg: any): string[] {
 program
   .name('redbox-dev-tools')
   .description('CLI for ReDBox hook development and code generation')
-  .version('1.0.0')
+  .version(packageJson.version ?? '0.0.0')
   .option('--root <path>', 'ReDBox repo root directory (required for generators)')
   .option('--core-types-root <path>', 'Override core-types package root')
   .option('--angular-root <path>', 'Override angular projects root')
@@ -126,6 +129,7 @@ registerMigrateDataClassificationCommand(program);
 registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
+registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')
@@ -419,6 +423,34 @@ generate
       console.log(`\n🛠️  Generating form component scaffold: ${name}...\n`);
       await generator.generate();
       console.log('\n✅ Done!\n');
+    } catch (error: any) {
+      console.error(`\n❌ Error: ${error.message}\n`);
+      process.exit(1);
+    }
+  });
+
+generate
+  .command('migration <description>')
+  .description('Generate an app-local data migration in api/migrations/ (runs at lift, before coreBootstrap)')
+  .action(async (description: string) => {
+    try {
+      const globalOptions = program.opts();
+      const paths = resolvePaths(globalOptions);
+
+      const { MigrationGenerator } = require('./generators/migration');
+      const generator = new MigrationGenerator({
+        description,
+        dryRun: globalOptions.dryRun,
+        root: paths.root,
+      });
+
+      console.log(`\n🛠️  Generating data migration: ${description}...\n`);
+      await generator.generate();
+      console.log(`\n✅ Done! Created migration '${generator.migrationName}'.\n`);
+      console.log('Next steps:');
+      console.log(`  1. Implement up() in ${path.relative(paths.root, generator.migrationPath)} (remove the placeholder throw)`);
+      console.log('  2. Make sure up() is idempotent - it can run more than once');
+      console.log('  3. Test by lifting the app, then verify the Migration table contains the new name\n');
     } catch (error: any) {
       console.error(`\n❌ Error: ${error.message}\n`);
       process.exit(1);

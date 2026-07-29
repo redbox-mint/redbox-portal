@@ -76,5 +76,11 @@ export const storage: StorageConfig = {
         root: '/attachments/primary',
       },
     },
+    'figshare-staging': {
+      driver: 'fs',
+      config: {
+        root: '/attachments/figshare-staging',
+      },
+    },
   },
 };

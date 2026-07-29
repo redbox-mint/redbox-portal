@@ -1,7 +1,3 @@
-declare const TranslationService: {
-    handle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): Promise<void>;
-};
-
 /**
  * SetLang Policy
  *

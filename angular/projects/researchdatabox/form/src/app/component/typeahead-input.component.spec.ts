@@ -2,22 +2,37 @@ import { TestBed } from "@angular/core/testing";
 import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
-import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
 import type { TypeaheadMatch } from "ngx-bootstrap/typeahead";
+import i18next from "i18next";
+import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
+import {SimpleInputComponent} from "./simple-input.component";
+import {ContentComponent} from "./content.component";
+import {GroupFieldComponent} from "./group.component";
 
 describe("TypeaheadInputComponent", () => {
+  let translationService: any;
+
     beforeEach(async () => {
-        await createTestbedModule({
+      ({ translationService } = await createTestbedModule({
             declarations: {
-                "TypeaheadInputComponent": TypeaheadInputComponent
+                "TypeaheadInputComponent": TypeaheadInputComponent,
+                "SimpleInputComponent": SimpleInputComponent,
+                "ContentComponent": ContentComponent,
+                "RepeatableComponent": RepeatableComponent,
+                "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+                "GroupFieldComponent": GroupFieldComponent,
             },
             imports: {
                 "TypeaheadModule": TypeaheadModule.forRoot()
             }
-        });
+        }));
+      translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
+      translationService.translationMap = translationService.translationMap || {};
+      translationService.t = jasmine.createSpy('t').and.callFake((key: string) => translationService.translationMap[key] ?? key);
     });
 
     it("should create component", () => {
@@ -56,6 +71,188 @@ describe("TypeaheadInputComponent", () => {
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
         expect(input.value).toBe("Jane Doe");
+    });
+
+    it("stores configured optionObject fields from the selected raw result", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "namedQuery",
+                            queryId: "activity",
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            valueMode: "optionObject",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        // Mirrors CQU Research Master grants: persist the configured fields, not label/value.
+        component.onSelect({
+            item: {
+                label: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+                value: "0980024219",
+                sourceType: "namedQuery",
+                raw: {
+                    dc_title: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+                    grant_number: "0980024219"
+                }
+            }
+        } as TypeaheadMatch);
+
+        expect((formComponent as any).form.get("research_master_project_id")?.value).toEqual({
+            dc_title: "Improving the transition of agricultural students between vocational and higher education - RSH/4414",
+            grant_number: "0980024219"
+        });
+        expect((fixture.nativeElement.querySelector("input") as HTMLInputElement).value).toBe(
+            "Improving the transition of agricultural students between vocational and higher education - RSH/4414"
+        );
+    });
+
+    it("prevents free text for configured optionObject fields without a label or value mapping", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "external_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: false,
+                            labelField: "name",
+                            valueField: "code",
+                            optionObjectFields: {
+                                identifier: "id"
+                            },
+                            staticOptions: [
+                                {
+                                    label: "Known item",
+                                    value: "known",
+                                    raw: { id: "known-id", name: "Known item", code: "known" }
+                                }
+                            ],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        expect(component.allowFreeText).toBeFalse();
+
+        input.value = "Custom Entry";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.get("external_id")?.value).toBeNull();
+    });
+
+    it("stores configured free text only in label-equivalent fields", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: false,
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            staticOptions: [
+                                {
+                                    label: "Known project",
+                                    value: "RSH/4414",
+                                    raw: { dc_title: "Known project", grant_number: "RSH/4414" }
+                                }
+                            ]
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+
+        input.value = "Custom project";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+
+        expect((formComponent as any).form.get("research_master_project_id")?.value).toEqual({
+            dc_title: "Custom project"
+        });
+    });
+
+    it("renders a pre-populated configured optionObject label", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "research_master_project_id",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "namedQuery",
+                            queryId: "activity",
+                            labelField: "dc_title",
+                            valueField: "grant_number",
+                            valueMode: "optionObject",
+                            optionObjectFields: {
+                                dc_title: "dc_title",
+                                grant_number: "grant_number"
+                            },
+                            minChars: 1
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {
+                            value: {
+                                dc_title: "Improving nursing workforce retention in rural Central Queensland",
+                                grant_number: "14875"
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        // Existing records with custom object fields must still render a readable label.
+        expect(input.value).toBe("Improving nursing workforce retention in rural Central Queensland");
     });
 
     it("updates displayed text when the underlying model value changes after init", async () => {
@@ -188,12 +385,94 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
         input.value = "Custom Person";
         input.dispatchEvent(new Event("input"));
         input.dispatchEvent(new Event("blur"));
         await fixture.whenStable();
 
         expect((formComponent as any).form.value?.person_lookup).toBeNull();
+        // Free text must not linger in the display when selection is required.
+        expect(component.displayControl.value).toBe("");
+    });
+
+    it("restores the last selected option when free text is entered and selection is required", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            requireSelection: true,
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: {}
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        // Confirm a valid lookup selection first.
+        component.onSelect({
+            item: { label: "Jane Doe", value: "jane", sourceType: "static" }
+        } as TypeaheadMatch);
+        expect(component.displayControl.value).toBe("Jane Doe");
+
+        // Then overwrite it with free text and blur.
+        component.displayControl.setValue("Custom Person");
+        component.onBlur();
+
+        // The free text is discarded and the confirmed selection is restored.
+        expect(component.displayControl.value).toBe("Jane Doe");
+        expect((formComponent as any).form.get("person_lookup")?.value).toEqual({
+            label: "Jane Doe",
+            value: "jane",
+            sourceType: "static"
+        });
+    });
+
+    it("restores a pre-populated value when free text is entered and selection is required", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            requireSelection: true,
+                            staticOptions: [{ label: "Jane Doe", value: "Jane Doe" }]
+                        }
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: { value: "Jane Doe" }
+                    }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        expect(component.displayControl.value).toBe("Jane Doe");
+
+        // Overwrite the pre-populated value with free text and blur.
+        component.displayControl.setValue("Custom Person");
+        component.onBlur();
+
+        expect(component.displayControl.value).toBe("Jane Doe");
+        expect((formComponent as any).form.get("person_lookup")?.value).toBe("Jane Doe");
     });
 
     it("marks the control dirty when a suggestion is selected", async () => {
@@ -206,6 +485,7 @@ describe("TypeaheadInputComponent", () => {
                         class: "TypeaheadInputComponent",
                         config: {
                             sourceType: "static",
+                          // valueMode is 'value' by default
                             staticOptions: [{ label: "Jane Doe", value: "jane" }]
                         }
                     },
@@ -610,6 +890,91 @@ describe("TypeaheadInputComponent", () => {
         expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
     });
 
+    it("preserves historical vocabulary state for configured optionObject fields", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        const searchVocabularyEntries = spyOn(typeaheadDataService, "searchVocabularyEntries").and.callFake(async (
+            _vocabRef: string,
+            _search: string,
+            _limit: number,
+            _offset: number,
+            includeHistoricalValues?: boolean
+        ) => includeHistoricalValues
+            ? [{ label: "Legacy", value: "legacy", sourceType: "vocabulary", historical: true }]
+            : []
+        );
+        const config = {
+            sourceType: "vocabulary",
+            vocabRef: "access-rights",
+            valueMode: "optionObject",
+            labelField: "label",
+            valueField: "value",
+            optionObjectFields: {
+                term: "label",
+                code: "value"
+            },
+            minChars: 1,
+            historicalVocabMode: "hide"
+        } as const;
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.onSelect({
+            item: {
+                label: "Legacy",
+                value: "legacy",
+                sourceType: "vocabulary",
+                historical: true
+            }
+        } as TypeaheadMatch);
+
+        const storedValue = (formComponent as any).form.get("vocab_lookup")?.value;
+        expect(storedValue).toEqual({
+            term: "Legacy",
+            code: "legacy",
+            sourceType: "vocabulary",
+            historical: true
+        });
+
+        const reloadedConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "vocab_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config
+                    },
+                    model: {
+                        class: "TypeaheadInputModel",
+                        config: { value: storedValue }
+                    }
+                }
+            ]
+        };
+        const { fixture: reloadedFixture } = await createFormAndWaitForReady(reloadedConfig);
+        const reloadedComponent = reloadedFixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        searchVocabularyEntries.calls.reset();
+
+        reloadedComponent.displayControl.setValue("leg");
+        const options = await firstValueFrom(reloadedComponent.suggestions$);
+
+        expect(options.map(option => option.value)).toEqual(["legacy"]);
+        expect(searchVocabularyEntries).toHaveBeenCalledOnceWith("access-rights", "leg", 25, 0, true);
+    });
+
     it("retains historical vocabulary suggestions in disable mode", async () => {
         const typeaheadDataService = TestBed.inject(TypeaheadDataService);
         spyOn(typeaheadDataService, "searchVocabularyEntries").and.resolveTo([
@@ -686,4 +1051,218 @@ describe("TypeaheadInputComponent", () => {
 
         expect((formComponent as any).form.get("vocab_lookup")?.value).toBeNull();
     });
+
+    it("displays translated placeholder", async () => {
+      const translationMapItems = {
+        '@lookup-placeholder-party': "Start typing a party name...",
+      }
+      if (!i18next.isInitialized) {
+        await i18next.init({
+          lng: 'en',
+          fallbackLng: 'en',
+          returnEmptyString: false,
+          resources: {
+            en: {
+              translation: {},
+            },
+          },
+        });
+      }
+      i18next.addResourceBundle('en', 'translation', translationMapItems, true, true);
+      await i18next.changeLanguage('en');
+
+      Object.assign(translationService.translationMap, translationMapItems);
+
+      const formConfig: FormConfigFrame = {
+        name: "testing",
+        componentDefinitions: [
+          {
+            name: "person_lookup",
+            component: {
+              class: "TypeaheadInputComponent",
+              config: {
+                sourceType: "static",
+                staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                placeholder: '@lookup-placeholder-party',
+              }
+            },
+            model: {
+              class: "TypeaheadInputModel",
+              config: {}
+            }
+          }
+        ]
+      };
+      const { fixture } = await createFormAndWaitForReady(formConfig);
+
+      const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+      expect(input.placeholder).toEqual("Start typing a party name...");
+
+      expect(translationService.t).toHaveBeenCalledWith('@lookup-placeholder-party');
+    });
+  it("stores free text entered after selecting from lookup when requireSelection is false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "person_lookup",
+          component: {
+            class: "TypeaheadInputComponent",
+            config: {
+              sourceType: "static",
+              valueMode: "optionObject",
+              staticOptions: [{label: "Item 1", value: "item1"}],
+              requireSelection: false,
+            }
+          },
+          model: {
+            class: "TypeaheadInputModel",
+            config: {}
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+    const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+    // Select item from lookup
+    component.onSelect({
+      item: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }
+    } as TypeaheadMatch);
+
+    expect((formComponent as any).form.get("person_lookup")?.value).toEqual({
+      label: "Item 1",
+      value: "item1",
+      sourceType: "static"
+    });
+    expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
+    expect(input.value).toBe("Item 1");
+
+    // Change to free text entry
+    input.value = "Custom Entry";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new Event("blur"));
+    await fixture.whenStable();
+
+    const value = (formComponent as any).form.value?.person_lookup;
+    expect(value).toEqual({
+      label: "Custom Entry",
+      value: "Custom Entry",
+      sourceType: "freeText"
+    });
+    expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
+  });
+  it("should store free text entered after selecting from lookup in a group when requireSelection is false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      debugValue: false,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: "redbox-form form",
+      componentDefinitions: [
+        {
+          name: "related_services",
+          component: {
+            class: "RepeatableComponent", config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent", config: {
+                    componentDefinitions: [
+                      {
+                        name: "related_title",
+                        component: {
+                          class: 'TypeaheadInputComponent',
+                          config: {
+                            sourceType: "static",
+                            valueMode: "optionObject",
+                            staticOptions: [{label: "Item 1", value: "item1"}],
+                            requireSelection: false,
+                            placeholder: '@lookup-placeholder-service',
+                            minChars: 1,
+                            debounceMs: 250,
+                            maxResults: 25,
+                            label: "@dataPublication-related-service-title",
+                            wrapperCssClasses: "rb-form-related-link-inline__field"
+                          },
+                        },
+                        model: {class: "TypeaheadInputModel"},
+                        layout: {
+                          class: "InlineLayout",
+                          config: {
+                            label: "@dataPublication-related-service-title",
+                          }
+                        }
+                      },
+                    ]
+                  }
+                },
+                model: {class: "GroupModel"},
+                layout: {class: "RepeatableElementLayout"}
+              }
+            }
+          },
+          layout: {
+            class: "DefaultLayout",
+            config: {
+              label: "@dataPublication-related-services",
+              helpText: "@dataPublication-related-services-help",
+            }
+          },
+          model: {
+            class: "RepeatableModel",
+            config: {value: [{related_title: {label: "", value: "", sourceType: "static"}}]}
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    let inputElements = compiled.querySelectorAll('input');
+    expect(Array.from(inputElements)).toHaveSize(1);
+
+    const input = inputElements[0];
+
+    const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+    // Select item from lookup
+    component?.onSelect({
+      item: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }
+    } as TypeaheadMatch);
+
+    expect((formComponent as any).form.value).toEqual({related_services: [{related_title: {
+        label: "Item 1",
+        value: "item1",
+        sourceType: "static"
+      }}]});
+    expect((formComponent as any).form.get("related_services")?.dirty).toBeTrue();
+    expect(input.value).toBe("Item 1");
+
+    // Change to free text entry
+    input.value = "Custom Entry";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new Event("blur"));
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.value).toEqual({related_services: [{related_title: {
+      label: "Custom Entry",
+      value: "Custom Entry",
+      sourceType: "freeText"
+    }}]});
+    expect((formComponent as any).form.get("related_services")?.dirty).toBeTrue();
+  });
 });

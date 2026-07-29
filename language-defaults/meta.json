@@ -4099,6 +4099,11 @@
     "description": "Alt text for the site logo",
     "contentFormat": "plain"
   },
+  "logo-heading-text": {
+    "category": "logo",
+    "description": "Optional heading displayed next to the site logo",
+    "contentFormat": "plain"
+  },
   "aaf-logo-alt-text": {
     "category": "aaf",
     "description": "Alt text for the AAF logo on the login page",
@@ -4974,6 +4979,26 @@
     "description": "Empty-state message shown when no record audit data is available",
     "contentFormat": "plain"
   },
+  "@record-audit-launcher-title": {
+    "category": "view",
+    "description": "Tooltip for the audit sidebar button in the form app",
+    "contentFormat": "plain"
+  },
+  "@record-audit-launcher-label": {
+    "category": "view",
+    "description": "Label for the audit sidebar button in the form app",
+    "contentFormat": "plain"
+  },
+  "@record-audit-modal-close": {
+    "category": "view",
+    "description": "Close button label for the record audit modal",
+    "contentFormat": "plain"
+  },
+  "@record-audit-launcher-open-standalone": {
+    "category": "view",
+    "description": "Button to open the full record audit page in a new window",
+    "contentFormat": "plain"
+  },
   "not-enough-disk-space": {
     "category": "not",
     "description": "Error message shown when there is not enough disk space to upload files",
@@ -5317,6 +5342,16 @@
   "branding-site-branding-background-color-help": {
     "category": "branding",
     "description": "Help text for site branding background color in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-logo-heading-text-color-label": {
+    "category": "branding",
+    "description": "Label for the logo heading text colour setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-logo-heading-text-color-help": {
+    "category": "branding",
+    "description": "Help text for the logo heading text colour setting in the branding configuration admin UI",
     "contentFormat": "plain"
   },
   "branding-menu-name": {
@@ -5952,6 +5987,71 @@
   "manage-users-audit-event-link-generic": {
     "category": "users",
     "description": "User audit history label for generic account linking events",
+    "contentFormat": "plain"
+  },
+  "@validator-error-custom-text_2": {
+    "category": "validator",
+    "description": "Error message for a failed custom-text_2 validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-min": {
+    "category":  "validator",
+    "description":  "Error message for a failed min validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-max": {
+    "category":  "validator",
+    "description":  "Error message for a failed max validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-min-length": {
+    "category":  "validator",
+    "description":  "Error message for a failed min-length validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-max-length": {
+    "category":  "validator",
+    "description":  "Error message for a failed max-length validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-required": {
+    "category":  "validator",
+    "description":  "Error message for a failed required validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-required-true": {
+    "category":  "validator",
+    "description":  "Error message for a failed required-true validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-email": {
+    "category":  "validator",
+    "description":  "Error message for a failed email validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-pattern": {
+    "category":  "validator",
+    "description":  "Error message for a failed pattern validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-different-values": {
+    "category":  "validator",
+    "description":  "Error message for a failed different-values validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-orcid": {
+    "category":  "validator",
+    "description":  "Error message for a failed orcid validator",
+    "contentFormat":  "plain"
+  },
+  "@validator-error-url": {
+    "category":  "validator",
+    "description":  "Error message for a failed url validator",
+    "contentFormat":  "plain"
+  },
+  "@lookup-placeholder-party": {
+    "category": "lookup",
+    "description": "Placeholder text in lookup field for party records",
     "contentFormat": "plain"
   }
 }

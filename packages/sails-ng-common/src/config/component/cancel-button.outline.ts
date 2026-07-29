@@ -43,6 +43,16 @@ export interface CancelButtonFieldComponentConfigFrame extends FieldComponentCon
    * Example: 'btn-warning' or 'btn btn-warning'.
    */
   buttonCssClasses?: string;
+  /**
+   * The relative url to redirect to.
+   * Leave empty to use the browser's location.back.
+   */
+  redirectLocation?: string;
+  /**
+   * The delay before redirecting.
+   * Default is 3 seconds delay.
+   */
+  redirectDelaySeconds?: number;
 }
 
 export interface CancelButtonFieldComponentConfigOutline

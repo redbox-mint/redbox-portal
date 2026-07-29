@@ -19,7 +19,29 @@ export interface ResolvedFigsharePublishingConfigData extends FigsharePublishing
 export function getBrandName(record?: RecordModel): string {
   if (record == null) return 'default';
   const rm = record as RecordModel;
-  return rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding as string ?? 'default';
+  const rawBrand = String(rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding ?? '').trim();
+  if (rawBrand === '') return 'default';
+
+  // `metaMetadata.brandId` holds the brand id, but AppConfigService keys its per-brand
+  // config map by brand NAME - resolve id -> name (mirrors doi-v2/config). Without this,
+  // id lookups silently fall through to the global brandingConfigurationDefaults and
+  // per-brand admin-UI overrides are ignored.
+  const brandingService = typeof BrandingService === 'undefined' ? undefined : BrandingService;
+  if (brandingService == null) return rawBrand;
+  const brandById = typeof brandingService.getBrandById === 'function' ? brandingService.getBrandById(rawBrand) : undefined;
+  if (brandById?.name != null && String(brandById.name).trim() !== '') {
+    return String(brandById.name);
+  }
+  // Some callers (queue jobs, the workflow transition job) already pass a brand name.
+  const brandByName = typeof brandingService.getBrand === 'function' ? brandingService.getBrand(rawBrand) : undefined;
+  if (brandByName != null) return rawBrand;
+  // Unknown brand (e.g. deleted): do NOT throw - resolveFigsharePublishingConfig must keep
+  // its `null -> graceful no-op` contract for lifecycle hooks (createUpdateFigshareArticle,
+  // uploadFilesToFigshareArticle, ...). Returning the raw value preserves the previous
+  // fallback semantics (AppConfigService serves the global brandingConfigurationDefaults
+  // for unknown keys), now with a warning instead of silence.
+  sails.log.warn(`FigService - unable to resolve brand id or name '${rawBrand}'; global branding configuration defaults will apply`);
+  return rawBrand;
 }
 
 function resolveFigshareDevConfig(): FigshareDevConfig {

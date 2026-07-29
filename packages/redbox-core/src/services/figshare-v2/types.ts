@@ -72,6 +72,7 @@ export interface FigshareLicense {
 
 export interface FigshareInstitutionAccount {
   id: number | string;
+  user_id?: number | string;
   email?: string;
   first_name?: string;
   last_name?: string;
@@ -208,6 +209,9 @@ export interface FigsharePublicationPlan {
 
 export interface FigshareRunContext {
   recordOid: string;
+  /** Raw brand identifier from the record (`metaMetadata.brandId`), as used by audit consumers. */
+  brandId: string;
+  /** Resolved brand name, as used for per-brand config lookups. */
   brandName: string;
   articleId?: string;
   jobId?: string;

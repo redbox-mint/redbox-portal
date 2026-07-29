@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "@name-test1": {
+      "category": "naming"
+    },
+    "@name-test2": {
+      "category": "naming"
+    }
+  },
+  "@name-test1": "",
+  "@name-test3": "Name 3"
+}

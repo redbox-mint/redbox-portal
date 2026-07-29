@@ -1,10 +1,5 @@
-import * as BrandingServiceModule from '../services/BrandingService';
 import * as I18nEntriesServiceModule from '../services/I18nEntriesService';
 
-declare const BrandingService: {
-    getBrandNameFromReq(req: Sails.Req): string;
-    getBrand(name: string): ReturnType<BrandingServiceModule.Services.Branding['getBrand']>;
-};
 declare const I18nEntriesService: I18nEntriesServiceModule.Services.I18nEntries;
 
 interface LanguageInfo {

@@ -1,10 +1,13 @@
 import {
-  FormConfigFrame, FormExpressionsTemplateLayoutConfigFrame,
+  FormConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
-  QuestionTreeFormComponentDefinitionOutline, QuestionTreeMeta, QuestionTreeOutcome, QuestionTreeOutcomeInfoKey,
-  QuestionTreeQuestion,
+  QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeMeta, QuestionTreeOutcome,
+  QuestionTreeOutcomeInfoKey, QuestionTreeQuestion,
   RepeatableFieldComponentConfigFrame,
-  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame
+  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame,
+  handlebarsCompile,
+  SimpleInputFormComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import {formConfigExample1} from "./example-data";
 import {logger} from "./helpers";
@@ -542,6 +545,600 @@ describe("Client Visitor", async () => {
           }
         }]
       });
+    });
+  });
+
+  describe("Repeatable view mode data retention (#4284)", async () => {
+    const dateFormat = "DD/MM/YYYY";
+    const recordRows = [
+      {
+        title: "Initial planning",
+        startDate: "2026-01-15",
+        categories: ["a", "b"],
+      },
+      {
+        title: "Final review",
+        startDate: "2026-02-20",
+        categories: ["b"],
+      },
+    ];
+
+    const buildData = (
+      entriesName = "entries",
+      childDefinitions: any[] = [
+        {
+          name: "title",
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+        {
+          name: "startDate",
+          component: {class: "DateInputComponent", config: {dateFormat}},
+          model: {class: "DateInputModel", config: {}},
+        },
+        {
+          name: "categories",
+          component: {
+            class: "CheckboxInputComponent",
+            config: {
+              options: [
+                {value: "a", label: "A"},
+                {value: "b", label: "B"},
+              ],
+              multipleValues: true,
+            },
+          },
+          model: {class: "CheckboxInputModel", config: {}},
+        },
+      ],
+      repeatableDefinition: Record<string, unknown> = {}
+    ): FormConfigFrame => ({
+      name: "repeatable-view-mode-data-retention",
+      componentDefinitions: [
+        {
+          name: entriesName,
+          ...repeatableDefinition,
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent",
+                  config: {
+                    componentDefinitions: childDefinitions,
+                  },
+                },
+                model: {class: "GroupModel", config: {}},
+              },
+            },
+          },
+          model: {class: "RepeatableModel", config: {}},
+        },
+      ],
+    });
+
+    const constructAndVisit = async (
+      data: FormConfigFrame,
+      record: Record<string, unknown>,
+      userRoles: string[] = []
+    ): Promise<FormConfigFrame> => {
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      return await visitor.start({
+        form: constructed,
+        formMode: "view",
+        userRoles,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+    };
+
+    it("should retain grouped repeatable row data when transforming to content in view mode", async function () {
+      const actual = await constructAndVisit(buildData(), {entries: recordRows});
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.content).to.deep.equal(recordRows);
+      expect(config.template).to.contain('(get this "title" "")');
+      expect(config.template).to.contain("formatDate");
+      expect(config.template).to.contain("startDate");
+      expect(config.template).to.contain(dateFormat);
+      expect(config.template).to.contain("categories");
+    });
+
+    it("should prune constrained grouped repeatable row data in view mode", async function () {
+      const data = buildData("entries", [
+        {
+          name: "title",
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+        {
+          name: "startDate",
+          constraints: {allowModes: ["edit"]},
+          component: {class: "DateInputComponent", config: {dateFormat}},
+          model: {class: "DateInputModel", config: {}},
+        },
+        {
+          name: "categories",
+          constraints: {authorization: {allowRoles: ["Admin"]}},
+          component: {
+            class: "CheckboxInputComponent",
+            config: {
+              options: [
+                {value: "a", label: "A"},
+                {value: "b", label: "B"},
+              ],
+              multipleValues: true,
+            },
+          },
+          model: {class: "CheckboxInputModel", config: {}},
+        },
+      ]);
+
+      const actual = await constructAndVisit(data, {entries: recordRows}, ["Librarian"]);
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(config.content).to.deep.equal([
+        {title: "Initial planning"},
+        {title: "Final review"},
+      ]);
+      expect(config.content?.every(row => "title" in row)).to.equal(true);
+      expect(config.content?.every(row => !("startDate" in row))).to.equal(true);
+      expect(config.content?.every(row => !("categories" in row))).to.equal(true);
+      expect(config.template).to.not.contain('(get this "startDate"');
+      expect(config.template).to.not.contain('(get this "categories"');
+    });
+
+    it("should retain grouped repeatable model data when explicit view mode skips repeatable transform", async function () {
+      const actual = await constructAndVisit(
+        buildData("entries", undefined, {constraints: {allowModes: ["view"]}}),
+        {entries: recordRows}
+      );
+      const component = actual.componentDefinitions[0];
+      const stringifiedComponent = JSON.stringify(component);
+      const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
+
+      expect(component.component.class).to.equal("RepeatableComponent");
+      expect(stringifiedComponent).to.not.contain("SimpleInputComponent");
+      expect(stringifiedComponent).to.not.contain("DateInputComponent");
+      expect(stringifiedComponent).to.not.contain("CheckboxInputComponent");
+      expect(component.model?.config?.value).to.deep.equal(recordRows);
+      expect(stringifiedDefinitions).to.not.contain("constraints");
+      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+    });
+
+    it("should strip empty overrides after replaceName inside explicit view repeatable templates", async function () {
+      const rows = [
+        {displayTitle: "Explicit first title"},
+        {displayTitle: "Explicit second title"},
+      ];
+      const data = buildData(
+        "entries",
+        [
+          {
+            name: "legacyTitle",
+            constraints: {allowModes: ["view"]},
+            overrides: {replaceName: "displayTitle"},
+            component: {class: "SimpleInputComponent", config: {}},
+            model: {class: "SimpleInputModel", config: {}},
+          },
+        ],
+        {constraints: {allowModes: ["view"]}}
+      );
+      const repeatable = data.componentDefinitions[0];
+      (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate.constraints = {
+        allowModes: ["view"],
+      };
+
+      const actual = await constructAndVisit(data, {entries: rows});
+      const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
+
+      expect(actual.componentDefinitions[0].component.class).to.equal("RepeatableComponent");
+      expect(actual.componentDefinitions[0].model?.config?.value).to.deep.equal(rows);
+      expect(stringifiedDefinitions).to.not.contain("overrides");
+      expect(stringifiedDefinitions).to.not.contain("constraints");
+      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+    });
+
+    it("should apply an explicit element view override without a default transform", async function () {
+      const data = buildData("entries", undefined, {constraints: {allowModes: ["view"]}});
+      const repeatable = data.componentDefinitions[0];
+      const elementTemplate = (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate;
+      elementTemplate.constraints = {allowModes: ["view"]};
+      elementTemplate.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
+
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record: {entries: recordRows},
+      });
+      const constructedElement = (
+        constructed.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
+      ).elementTemplate;
+      expect(constructedElement.component.class).to.equal("GroupComponent");
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const formOverride = (
+        visitor as unknown as {formOverride: {defaultTransforms: Record<string, unknown>}}
+      ).formOverride;
+      delete formOverride.defaultTransforms.GroupComponent;
+      const actual = await visitor.start({
+        form: constructed,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+      const actualElement = (
+        actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
+      ).elementTemplate;
+
+      expect(actualElement.component.class).to.equal("ContentComponent");
+      expect(JSON.stringify(actualElement)).to.not.contain("overrides");
+    });
+
+    it("should post-process expressions on an identity view override", async function () {
+      const data: FormConfigFrame = {
+        name: "identity-view-override",
+        componentDefinitions: [
+          {
+            name: "details",
+            constraints: {allowModes: ["view"]},
+            overrides: {formModeClasses: {view: {component: "GroupComponent"}}},
+            component: {
+              class: "GroupComponent",
+              config: {
+                componentDefinitions: [
+                  {
+                    name: "title",
+                    component: {class: "SimpleInputComponent", config: {}},
+                    model: {class: "SimpleInputModel", config: {}},
+                  },
+                ],
+              },
+            },
+            model: {class: "GroupModel", config: {}},
+            expressions: [
+              {
+                name: "details-expression",
+                config: {
+                  template: "true",
+                  conditionKind: "jsonpointer",
+                  condition: "/source::field.value.changed",
+                  target: "field.visible",
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const actual = await constructAndVisit(data, {});
+      const expression = actual.componentDefinitions[0].expressions?.[0];
+
+      expect(expression?.config.hasTemplate).to.equal(true);
+      expect(JSON.stringify(actual.componentDefinitions[0])).to.not.contain("overrides");
+    });
+
+    it("should retain replaceName row data and template references inside grouped repeatable templates", async function () {
+      const rows = [
+        {displayTitle: "Renamed first title"},
+        {displayTitle: "Renamed second title"},
+      ];
+      const data = buildData("entries", [
+        {
+          name: "legacyTitle",
+          overrides: {replaceName: "displayTitle"},
+          component: {class: "SimpleInputComponent", config: {}},
+          model: {class: "SimpleInputModel", config: {}},
+        },
+      ]);
+
+      const actual = await constructAndVisit(data, {entries: rows});
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(config.content).to.deep.equal(rows);
+      expect(config.content?.every(row => "displayTitle" in row)).to.equal(true);
+      expect(config.content?.every(row => !("legacyTitle" in row))).to.equal(true);
+      expect(config.template).to.contain('(get this "displayTitle" "")');
+    });
+  });
+
+  describe("Custom view templates and url leaf rendering", async () => {
+    const constructAndVisit = async (
+      data: FormConfigFrame,
+      record: Record<string, unknown>
+    ): Promise<FormConfigFrame> => {
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+        record,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      return await visitor.start({
+        form: constructed,
+        formMode: "view",
+        reusableFormDefs: reusableFormDefinitions,
+      });
+    };
+
+    const buildRepeatableData = (
+      childDefinitions: any[],
+      repeatableDefinition: Record<string, unknown> = {}
+    ): FormConfigFrame => ({
+      name: "custom-view-templates-and-url-leaf-rendering",
+      componentDefinitions: [
+        {
+          name: "entries",
+          ...repeatableDefinition,
+          component: {
+            class: "RepeatableComponent",
+            config: {
+              elementTemplate: {
+                name: "",
+                component: {
+                  class: "GroupComponent",
+                  config: {
+                    componentDefinitions: childDefinitions,
+                  },
+                },
+                model: {class: "GroupModel", config: {}},
+              },
+            },
+          },
+          model: {class: "RepeatableModel", config: {}},
+        },
+      ],
+    });
+
+    it("should replace a top-level view template while retaining generated content", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "custom-view-template-top-level",
+          componentDefinitions: [
+            {
+              name: "title",
+              overrides: {formModeClasses: {view: {template: "<h1>{{content}}</h1>"}}},
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+        },
+        {title: "Custom Title"}
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.equal("<h1>{{content}}</h1>");
+      expect(config.content).to.equal("Custom Title");
+    });
+
+    it("should prune constrained repeatable row data when replacing the view template", async function () {
+      const template = '<ul>{{#each content}}<li>{{get this "title" ""}}</li>{{/each}}</ul>';
+      const actual = await constructAndVisit(
+        buildRepeatableData(
+          [
+            {
+              name: "title",
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+            {
+              name: "secret",
+              constraints: {allowModes: ["edit"]},
+              component: {class: "SimpleInputComponent", config: {}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+          {overrides: {formModeClasses: {view: {template}}}}
+        ),
+        {
+          entries: [
+            {title: "First title", secret: "First secret"},
+            {title: "Second title", secret: "Second secret"},
+          ],
+        }
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.equal(template);
+      expect(config.content).to.deep.equal([
+        {title: "First title"},
+        {title: "Second title"},
+      ]);
+      expect(config.content?.every(row => "title" in row)).to.equal(true);
+      expect(config.content?.every(row => !("secret" in row))).to.equal(true);
+    });
+
+    it("should render url leaves as links inside generated repeatable table templates", async function () {
+      const actual = await constructAndVisit(
+        buildRepeatableData([
+          {
+            name: "website",
+            component: {class: "SimpleInputComponent", config: {type: "url"}},
+            model: {class: "SimpleInputModel", config: {}},
+          },
+        ]),
+        {
+          entries: [
+            {website: "https://example.org"},
+            {website: "https://example.com"},
+          ],
+        }
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.contain('target="_blank"');
+      expect(config.template).to.contain('<a href="{{default (get this "website" "") ""}}"');
+      const renderedTemplate = handlebarsCompile(config.template)({
+        content: [
+          {website: "https://example.org"},
+          {website: "https://example.com"},
+        ],
+      });
+      expect(renderedTemplate).to.contain('<a href="https://example.org" target="_blank" rel="noopener noreferrer">https://example.org</a>');
+      expect(renderedTemplate).to.contain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>');
+      expect(config.content).to.deep.equal([
+        {website: "https://example.org"},
+        {website: "https://example.com"},
+      ]);
+    });
+
+    it("should render standalone url leaves as links in view mode", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "standalone-url-leaf",
+          componentDefinitions: [
+            {
+              name: "website",
+              component: {class: "SimpleInputComponent", config: {type: "url"}},
+              model: {class: "SimpleInputModel", config: {}},
+            },
+          ],
+        },
+        {website: "https://example.org"}
+      );
+      const component = actual.componentDefinitions[0];
+      const config = component.component.config as {content?: unknown; template?: string};
+
+      expect(component.component.class).to.equal("ContentComponent");
+      expect(config.template).to.contain('target="_blank"');
+      expect(config.template).to.contain('href="{{default content ""}}"');
+      expect(config.content).to.equal("https://example.org");
+    });
+
+    it("should retain hidden simple input in view mode", async function () {
+      const actual = await constructAndVisit(
+        {
+          name: "form",
+          componentDefinitions: [
+            {
+              name: "legacyId",
+              overrides: {
+                formModeClasses: {
+                  view: {
+                    component: "SimpleInputComponent",
+                  },
+                },
+              },
+              component: {
+                "class": "SimpleInputComponent",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  type: "hidden"
+                }
+              },
+              model: {
+                "class": "SimpleInputModel",
+              },
+              layout: {
+                "class": "DefaultLayout",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  labelRequiredStr: "*",
+                  helpTextVisible: false
+                }
+              }
+            },
+          ]
+        },
+        {},
+      );
+
+      const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+      expect(simpleInput.overrides).to.equal(undefined);
+      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.component.config?.visible).to.be.false;
+      expect(simpleInput.component.config?.label).to.equal("legacyId");
+      expect(simpleInput.component.config?.type).to.equal("hidden");
+      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.layout?.config?.visible).to.be.false;
+      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+    });
+
+    it("should remove overrides in edit mode", async function () {
+      const data: FormConfigFrame = {
+          name: "form",
+          componentDefinitions: [
+            {
+              name: "legacyId",
+              overrides: {
+                formModeClasses: {
+                  view: {
+                    component: "SimpleInputComponent",
+                  },
+                },
+              },
+              component: {
+                "class": "SimpleInputComponent",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  type: "hidden"
+                }
+              },
+              model: {
+                "class": "SimpleInputModel",
+              },
+              layout: {
+                "class": "DefaultLayout",
+                config: {
+                  visible: false,
+                  label: "legacyId",
+                  labelRequiredStr: "*",
+                  helpTextVisible: false
+                }
+              }
+            },
+          ]
+      };
+      const formMode = "edit";
+      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructed = await constructor.start({
+        data,
+        formMode,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const visitor = new ClientFormConfigVisitor(logger);
+      const actual = await visitor.start({
+        form: constructed,
+        formMode,
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
+      expect(simpleInput.overrides).to.equal(undefined);
+      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
+      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.component.config?.visible).to.be.false;
+      expect(simpleInput.component.config?.label).to.equal("legacyId");
+      expect(simpleInput.component.config?.type).to.equal("hidden");
+      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.layout?.config?.visible).to.be.false;
+      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
     });
   });
 
@@ -1659,12 +2256,6 @@ describe("Client Visitor", async () => {
         }
       ]
     };
-    const expressionBase: FormExpressionsTemplateLayoutConfigFrame = {
-      condition: "/questiontree_1::field.value.changed",
-      template: "",
-      conditionKind: 'jsonpointer',
-      target: `layout.visible`,
-    };
     const expected: FormConfigFrame = {
       name: "form",
       componentDefinitions: [
@@ -1683,8 +2274,8 @@ describe("Client Visitor", async () => {
                     class: "RadioInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_1-yes"},
-                        {value: "no", label: "@questiontree_1-question_1-no"},
+                        {value: "yes", label: "@questiontree_1-item-question_1-yes-label"},
+                        {value: "no", label: "@questiontree_1-item-question_1-no-label"},
                       ]
                     }
                   },
@@ -1702,8 +2293,8 @@ describe("Client Visitor", async () => {
                     class: "CheckboxInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_2-yes"},
-                        {value: "no", label: "@questiontree_1-question_2-no"},
+                        {value: "yes", label: "@questiontree_1-item-question_2-yes-label"},
+                        {value: "no", label: "@questiontree_1-item-question_2-no-label"},
                       ]
                     }
                   },
@@ -1714,15 +2305,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_2-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase,
-                        template: "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0"
-                      }
-                    }
-                  ],
                 },
                 {
                   name: "question_3",
@@ -1730,9 +2312,9 @@ describe("Client Visitor", async () => {
                     class: "CheckboxInputComponent",
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-question_3-yes"},
-                        {value: "maybe", label: "@questiontree_1-question_3-maybe"},
-                        {value: "no", label: "@questiontree_1-question_3-no"}]
+                        {value: "yes", label: "@questiontree_1-item-question_3-yes-label"},
+                        {value: "maybe", label: "@questiontree_1-item-question_3-maybe-label"},
+                        {value: "no", label: "@questiontree_1-item-question_3-no-label"}]
                     }
                   },
                   layout: {
@@ -1742,15 +2324,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_3-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase,
-                        template: "$count(formData.`questiontree_1`.`question_2`[][$ in [\"yes\"]]) > 0"
-                      }
-                    }
-                  ],
                 },
                 {
                   name: "question_4",
@@ -1770,28 +2343,6 @@ describe("Client Visitor", async () => {
                       visible: false,
                     }
                   },
-                  expressions: [
-                    {
-                      name: "questiontree_1-question_4-layoutvis-qt", description: undefined,
-                      config: {
-                        ...expressionBase, template: "(" +
-                          "(" +
-                          "$count(formData.`questiontree_1`.`question_1`[][$ in [\"no\"]]) > 0" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_2`[][$ in [\"no\"]]) > 0" +
-                          ")" +
-                          ") or (" +
-                          "(" +
-                          "formData.`questiontree_1`.`question_1`[] = [\"no\"]" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_2`[][$not($ in [\"no\"])]) = $count(formData.`questiontree_1`.`question_2`)" +
-                          ") and (" +
-                          "$count(formData.`questiontree_1`.`question_3`[][$ in [\"no\",\"maybe\"]]) > 0" +
-                          ")" +
-                          ")"
-                      }
-                    }
-                  ],
                 },
               ],
             }
@@ -1812,13 +2363,6 @@ describe("Client Visitor", async () => {
 
     expect(actual).to.containSubset(expected);
     const questionTree = actual.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
-    for (const componentDefinition of questionTree.component.config?.componentDefinitions ?? []) {
-      for (const expression of componentDefinition.expressions ?? []) {
-        if (expression.config.template !== undefined) {
-          expect(expression.config.hasTemplate, expression.name).to.equal(true);
-        }
-      }
-    }
   });
 
   it("should transform question tree answers to content in view mode", async () => {

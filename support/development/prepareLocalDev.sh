@@ -36,6 +36,12 @@ npm run compile:core
 show_step 'Build sails-ng-common.'
 npm run compile:sails-ng-common
 
+show_step 'Build dev hook (demo record types and forms).'
+# redbox-hook-dev supplies the demo record types/workflows/dashboards/forms that
+# used to ship in core. It is a devDependency, loaded by the redbox-loader in dev
+# and test only. Requires core + sails-ng-common to be built first (above).
+npm run compile:dev-hook
+
 show_step 'Build raido.'
 npm run compile:raido
 

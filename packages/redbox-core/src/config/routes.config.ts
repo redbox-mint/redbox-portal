@@ -30,8 +30,7 @@ export const routes: RoutesConfig = {
     // CSRF Token
     'GET /csrfToken': { action: 'security/grant-csrf-token' },
 
-    // Home routes
-    '/': '/default/rdmp/home',
+    // Home routes (demo hook overrides to /default/rdmp/home)
     '/:branding/:portal/home': {
         controller: 'RenderViewController',
         action: 'render',
@@ -81,6 +80,10 @@ export const routes: RoutesConfig = {
     '/:branding/:portal/images/logo': {
         controller: 'BrandingController',
         action: 'renderImage'
+    },
+    '/:branding/:portal/images/favicon': {
+        controller: 'BrandingController',
+        action: 'renderFavicon'
     },
 
     // Admin routes
@@ -199,6 +202,7 @@ export const routes: RoutesConfig = {
     'post /:branding/:portal/app/branding/preview': { controller: 'BrandingAppController', action: 'preview' },
     'post /:branding/:portal/app/branding/publish': { controller: 'BrandingAppController', action: 'publish' },
     'post /:branding/:portal/app/branding/logo': { controller: 'BrandingAppController', action: 'logo' },
+    'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
     // Admin user management routes
     'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
@@ -232,6 +236,7 @@ export const routes: RoutesConfig = {
     'get /:branding/:portal/record/viewAudit/:oid/audit': 'RecordAuditController.getAuditData',
     'get /:branding/:portal/record/viewAudit/:oid/permissions': 'RecordAuditController.getPermissionsData',
     'get /:branding/:portal/record/viewAudit/:oid/integration-audit': 'RecordAuditController.getIntegrationAuditData',
+    'get /:branding/:portal/record/integrationStatus/:oid': 'RecordAuditController.getIntegrationStatusData',
     'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
         controller: 'RecordController',
         action: 'edit',

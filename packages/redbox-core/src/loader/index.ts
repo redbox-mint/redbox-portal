@@ -1,10 +1,14 @@
 import { promises as fs } from 'fs';
 import fsSync from 'fs';
-import Handlebars from 'handlebars';
 import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
+import { getHookProcessingOrder } from '../hooks/hookDiscovery';
+import type { RedboxMigration } from './MigrationRunner';
+import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+
+export type { RedboxMigration } from './MigrationRunner';
 
 export interface LoaderOptions {
     forceRegenerate?: boolean;
@@ -12,6 +16,11 @@ export interface LoaderOptions {
 }
 
 export interface HookBootstrapRegistration {
+    name: string;
+    module: string;
+}
+
+export interface HookMigrationRegistration {
     name: string;
     module: string;
 }
@@ -38,6 +47,7 @@ export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
     hookPolicies: Record<string, HookPolicyRegistration>;
     hookBootstraps: HookBootstrapRegistration[];
+    hookMigrations: HookMigrationRegistration[];
     hookApiRoutes: HookApiRouteRegistration[];
     hookServices: Record<string, HookServiceRegistration>;
     hookControllers: Record<string, HookControllerRegistration>;
@@ -89,6 +99,7 @@ export interface GenerateAllShimsStats {
     configShimStats: GenerationStats;
     apiRouteHookStats: GenerationStats;
     bootstrapStats: BootstrapGenerationStats;
+    migrationStats: GenerationStats;
 }
 
 export interface GenerateAllShimsSkippedResult {
@@ -104,6 +115,78 @@ export interface GenerateAllShimsSuccessResult {
 }
 
 export type GenerateAllShimsResult = GenerateAllShimsSkippedResult | GenerateAllShimsSuccessResult;
+
+type RedboxConfigMap = Record<string, unknown>;
+
+function normalizeAgendaJobsConfig(jobs: unknown): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    const normalized: RedboxConfigMap = {};
+    if (Array.isArray(jobs)) {
+        for (const job of jobs) {
+            if (!_.isPlainObject(job)) {
+                continue;
+            }
+            const jobRecord = job as RedboxConfigMap;
+            const jobName = String(jobRecord.name ?? '').trim();
+            if (jobName === '') {
+                continue;
+            }
+            const { name: _name, ...jobConfig } = jobRecord;
+            normalized[jobName] = jobConfig;
+        }
+        return normalized;
+    }
+    if (_.isPlainObject(jobs)) {
+        for (const [jobName, jobConfig] of Object.entries(jobs as RedboxConfigMap)) {
+            if (!_.isPlainObject(jobConfig)) {
+                continue;
+            }
+            const { name: _name, ...jobRecord } = jobConfig as RedboxConfigMap;
+            normalized[jobName] = jobRecord;
+        }
+    }
+    return normalized;
+}
+
+function mergeAgendaQueueConfig(...configs: RedboxConfigMap[]): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    const mergedConfig = _.merge(
+        {},
+        ...configs.map(config => {
+            const { jobs: _jobs, ...rest } = config as RedboxConfigMap & { jobs?: unknown };
+            return rest;
+        })
+    ) as RedboxConfigMap;
+    const jobsByName: RedboxConfigMap = {};
+
+    for (const config of configs) {
+        const jobs = normalizeAgendaJobsConfig((config as { jobs?: unknown }).jobs);
+        for (const [jobName, jobConfig] of Object.entries(jobs)) {
+            jobsByName[jobName] = _.merge({}, jobsByName[jobName] ?? {}, jobConfig);
+        }
+    }
+
+    return {
+        ...mergedConfig,
+        jobs: jobsByName,
+    };
+}
+
+export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): RedboxConfigMap {
+    const _ = require('lodash') as typeof import('lodash');
+    if (name === 'agendaQueue') {
+        return mergeAgendaQueueConfig(...configs);
+    }
+    if (name === 'brandingConfigurationDefaults') {
+        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
+            if (Array.isArray(srcValue)) {
+                return srcValue;
+            }
+            return undefined;
+        }) as RedboxConfigMap;
+    }
+    return _.merge({}, ...configs) as RedboxConfigMap;
+}
 
 type CoreTypesRegistry = {
     WaterlineModels: Record<string, unknown>;
@@ -147,7 +230,7 @@ async function readLoaderTemplate(templateName: string): Promise<string> {
 }
 
 async function renderLoaderTemplate(templateName: string, replacements: Record<string, string>): Promise<string> {
-    const template = Handlebars.compile(await readLoaderTemplate(templateName), { noEscape: true });
+    const template = handlebarsCompile(await readLoaderTemplate(templateName), { noEscape: true });
     return template(replacements);
 }
 
@@ -232,59 +315,29 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
     const hookModels: Record<string, HookModelRegistration> = {};
     const hookPolicies: Record<string, HookPolicyRegistration> = {};
     const hookBootstraps: HookBootstrapRegistration[] = [];
+    const hookMigrations: HookMigrationRegistration[] = [];
     const hookApiRoutes: HookApiRouteRegistration[] = [];
     const hookServices: Record<string, HookServiceRegistration> = {};
     const hookControllers: Record<string, HookControllerRegistration> = {};
     const hookWebserviceControllers: Record<string, HookControllerRegistration> = {};
     const hookFormConfigs: Record<string, HookModuleRegistration> = {};
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hooks', message);
-        return {
-            hookModels,
-            hookPolicies,
-            hookBootstraps,
-            hookApiRoutes,
-            hookServices,
-            hookControllers,
-            hookWebserviceControllers,
-            hookFormConfigs,
-        };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as {
+            const depPackageJson = { sails: hookPackage.sails } as {
                 sails?: {
                     hasModels?: boolean;
                     hasPolicies?: boolean;
                     hasBootstrap?: boolean;
+                    hasMigrations?: boolean;
                     hasApiRoutes?: boolean;
                     hasServices?: boolean;
                     hasControllers?: boolean;
@@ -332,6 +385,19 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     log.verbose(`Registered bootstrap from ${depName}`);
                 } else {
                     log.warn(`Hook ${depName} has 'hasBootstrap: true' but no 'registerRedboxBootstrap' function`);
+                }
+            }
+
+            if (depPackageJson.sails?.hasMigrations === true) {
+                log.verbose(`Found hook with migrations: ${depName}`);
+                const hookModule = require(depModulePath) as {
+                    registerRedboxMigrations?: () => RedboxMigration[];
+                };
+                if (typeof hookModule.registerRedboxMigrations === 'function') {
+                    hookMigrations.push({ name: depName, module: depName });
+                    log.verbose(`Registered migrations from ${depName}`);
+                } else {
+                    log.warn(`Hook ${depName} has 'hasMigrations: true' but no 'registerRedboxMigrations' function`);
                 }
             }
 
@@ -411,12 +477,105 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
         hookModels,
         hookPolicies,
         hookBootstraps,
+        hookMigrations,
         hookApiRoutes,
         hookServices,
         hookControllers,
         hookWebserviceControllers,
         hookFormConfigs,
     };
+}
+
+export async function discoverLocalMigrationFiles(appPath: string): Promise<string[]> {
+    const migrationsDir = path.join(appPath, 'api', 'migrations');
+    try {
+        const entries = await fs.readdir(migrationsDir, { withFileTypes: true });
+        return entries
+            .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+            .map(entry => entry.name)
+            .sort();
+    } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
+}
+
+export async function generateMigrationConfigShim(
+    configDir: string,
+    appPath: string,
+    hookMigrations: HookMigrationRegistration[]
+): Promise<GenerationStats> {
+    const filePath = path.join(configDir, 'migrations.js');
+    const localMigrationFiles = await discoverLocalMigrationFiles(appPath);
+
+    const hookImports = hookMigrations
+        .map(hook => {
+            const varName = sanitizePackageNameForVar(hook.name, 'migrations');
+            return `const ${varName} = require('${hook.module}').registerRedboxMigrations();`;
+        })
+        .join('\n');
+
+    const localImports = localMigrationFiles
+        .map((fileName, index) => `const appMigration_${index} = require('../api/migrations/${fileName}');`)
+        .join('\n');
+
+    const migrationSourceEntries = [
+        ...hookMigrations.map(
+            hook => `  { source: 'hook:${hook.name}', migrations: ${sanitizePackageNameForVar(hook.name, 'migrations')} },`
+        ),
+        ...localMigrationFiles.map(
+            (fileName, index) => `  { source: 'api/migrations/${fileName}', migrations: [appMigration_${index}] },`
+        ),
+    ].join('\n');
+
+    const content = [
+        `'use strict';`,
+        `/**`,
+        ` * Migration config shim`,
+        ` * Auto-generated by @researchdatabox/redbox-core loader`,
+        ` * Do not edit manually - regenerated when .regenerate-shims marker exists`,
+        ` */`,
+        hookImports,
+        localImports,
+        ``,
+        `const migrationSources = [`,
+        migrationSourceEntries,
+        `];`,
+        ``,
+        `const seenMigrationNames = new Map();`,
+        `const migrations = [];`,
+        `for (const { source, migrations: sourceMigrations } of migrationSources) {`,
+        `  if (!Array.isArray(sourceMigrations)) {`,
+        `    throw new Error('Invalid Redbox migration export from ' + source + '. Expected an array of migrations (registerRedboxMigrations() must be synchronous).');`,
+        `  }`,
+        `  for (const migration of sourceMigrations) {`,
+        `    if (!migration || typeof migration.name !== 'string' || typeof migration.up !== 'function') {`,
+        `      throw new Error('Invalid Redbox migration export from ' + source + '. Each migration must include name and up().');`,
+        `    }`,
+        `    if (seenMigrationNames.has(migration.name)) {`,
+        `      const message = 'Duplicate Redbox migration name: ' + migration.name + ' (from ' + source + ', first defined in ' + seenMigrationNames.get(migration.name) + ')';`,
+        `      if (process.env.NODE_ENV === 'production') {`,
+        `        throw new Error(message);`,
+        `      }`,
+        `      console.warn('[redbox-loader:warn]', message);`,
+        `      continue;`,
+        `    }`,
+        `    seenMigrationNames.set(migration.name, source);`,
+        `    migrations.push(migration);`,
+        `  }`,
+        `}`,
+        ``,
+        `migrations.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));`,
+        ``,
+        `module.exports.migrations = migrations;`,
+        ``,
+    ].join('\n');
+
+    const written = await writeFileIfChanged(filePath, content);
+    return { generated: written ? 1 : 0, total: 1 };
 }
 
 export async function generateApiRouteHookConfig(
@@ -771,40 +930,17 @@ export async function generateFormConfigShims(
 export async function findAndRegisterHookConfigs(appPath: string): Promise<HookConfigRegistrations> {
     const hookConfigs: HookConfigRegistration[] = [];
 
-    let packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-    try {
-        const packageJsonContent = await fs.readFile(path.join(appPath, 'package.json'), 'utf8');
-        packageJson = JSON.parse(packageJsonContent) as typeof packageJson;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.warn('Could not load package.json to find hook configs', message);
-        return { hookConfigs };
-    }
+    const hooks = getHookProcessingOrder(appPath);
 
-    const allDependencies = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.devDependencies ?? {}),
-    };
-
-    const dependencies = Object.keys(allDependencies).sort();
-
-    for (const depName of dependencies) {
+    for (const hookPackage of hooks) {
+        const depName = hookPackage.name;
         try {
-            let depPackageJsonPath: string;
-            try {
-                depPackageJsonPath = require.resolve(`${depName}/package.json`, { paths: [appPath] });
-            } catch {
-                continue;
-            }
-
             const depModulePath = resolveDependencyModulePath(depName, appPath);
             if (!depModulePath) {
                 continue;
             }
 
-            const depPackageJson = JSON.parse(
-                await fs.readFile(depPackageJsonPath, 'utf8')
-            ) as { sails?: { hasConfig?: boolean } };
+            const depPackageJson = { sails: hookPackage.sails } as { sails?: { hasConfig?: boolean } };
 
             if (depPackageJson.sails?.hasConfig === true) {
                 log.verbose(`Found hook with config: ${depName}`);
@@ -853,10 +989,11 @@ export async function generateConfigShims(
                 return `${varName}['${name}'] || {}`;
             });
 
+            const mergeArgs = [`Config.${name} || {}`, ...hookMerges];
             const mergeStatement =
-                hookMerges.length > 0 ? `_.merge({}, Config.${name} || {}, ${hookMerges.join(', ')})` : `Config.${name}`;
+                hookMerges.length > 0 ? `mergeRedboxConfig('${name}', ${mergeArgs.join(', ')})` : `Config.${name}`;
 
-            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (alphabetical order)\n * Debug view: see support/debug-config/resolved.js\n */\nconst _ = require('lodash');\nconst { Config } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
+            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (root hookLoadPriority precedence; unlisted hooks use package-name fallback)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
             const written = await writeFileIfChanged(filePath, content);
             if (written) {
                 generated++;
@@ -916,7 +1053,10 @@ export async function generatePreLiftSnapshot(appPath: string, hookConfigs: Hook
             const hookModule = require(hook.module) as { registerRedboxConfig?: () => Record<string, unknown> };
             if (typeof hookModule.registerRedboxConfig === 'function') {
                 const hookConfig = hookModule.registerRedboxConfig();
-                mergedConfig = _.merge(mergedConfig, hookConfig);
+                mergedConfig = Object.keys(hookConfig).reduce((config, name) => {
+                    config[name] = mergeRedboxConfig(name, config[name] as RedboxConfigMap ?? {}, hookConfig[name] as RedboxConfigMap ?? {});
+                    return config;
+                }, mergedConfig as RedboxConfigMap);
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
@@ -1008,6 +1148,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             hookModels,
             hookPolicies,
             hookBootstraps,
+            hookMigrations,
             hookApiRoutes,
             hookServices,
             hookControllers,
@@ -1050,6 +1191,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             configShimStats,
             apiRouteHookStats,
             bootstrapStats,
+            migrationStats,
         ] = await Promise.all([
             generateModelShims(modelsDir, hookModels),
             generatePolicyShims(policiesDir, hookPolicies),
@@ -1061,6 +1203,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             generateConfigShims(configDir, hookConfigs),
             generateApiRouteHookConfig(configDir, hookApiRoutes),
             generateBootstrapShim(configDir, hookBootstraps),
+            generateMigrationConfigShim(configDir, appPath, hookMigrations),
         ]);
 
         log.verbose(`Shim generation took ${(performance.now() - genStart).toFixed(2)}ms`);
@@ -1076,6 +1219,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
         log.verbose(`API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`);
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
+        log.verbose(`Migrations: ${migrationStats.generated}/${migrationStats.total} written (${hookMigrations.length} hooks)`);
 
         await generatePreLiftSnapshot(appPath, hookConfigs);
 
@@ -1107,6 +1251,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 configShimStats,
                 apiRouteHookStats,
                 bootstrapStats,
+                migrationStats,
             },
             totalTimeMs: Number.parseFloat(totalTime),
         };

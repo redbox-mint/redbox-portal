@@ -12,6 +12,7 @@ import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model'
 import { GroupDefaults, GroupMap } from './component/group.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
 import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
+import { IntegrationStatusDefaults, IntegrationStatusMap } from './component/integration-status.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
@@ -66,6 +67,7 @@ export const AllDefs = [
   ...GroupMap,
   ...SaveButtonMap,
   ...SaveStatusMap,
+  ...IntegrationStatusMap,
   ...CancelButtonMap,
   ...DeleteButtonMap,
   ...TabNavButtonMap,
@@ -108,6 +110,7 @@ const RawDefaults = [
   GroupDefaults,
   SaveButtonDefaults,
   SaveStatusDefaults,
+  IntegrationStatusDefaults,
   CancelButtonDefaults,
   DeleteButtonDefaults,
   TabNavButtonDefaults,

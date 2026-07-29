@@ -50,7 +50,7 @@ import { DateTime } from 'luxon';
 
 import { isObservable } from 'rxjs';
 
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import {
@@ -86,6 +86,25 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'RecordsService::';
+    }
+
+    private describeError(error: unknown, depth = 0): string {
+      if (depth >= 5) {
+        return '[cause chain truncated]';
+      }
+      if (error instanceof Error) {
+        const cause = (error as Error & { cause?: unknown }).cause;
+        const causeMessage = cause == null ? '' : `; cause=${this.describeError(cause, depth + 1)}`;
+        return `${error.name}: ${error.message}${causeMessage}`;
+      }
+      if (typeof error === 'string') {
+        return error;
+      }
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return String(error);
+      }
     }
 
     private asArray(value: unknown): string[] | undefined {
@@ -358,9 +377,43 @@ export namespace Services {
       }
 
       _.set(metaMetadata, 'form', _.get(metaMetadataWorkflowStep, 'config.form'));
-      _.set(metaMetadata, 'attachmentFields', formObj.attachmentFields);
+      _.set(
+        metaMetadata,
+        'attachmentFields',
+        _.get(formObj, 'configuration.attachmentFields', formObj.attachmentFields ?? [])
+      );
 
       return metaMetadata;
+    }
+
+    protected bindPendingAttachmentOids(
+      recordMetadata: AnyRecord,
+      attachmentFields: unknown[],
+      oid: string
+    ): void {
+      const fieldsToCheck = ['location', 'uploadUrl'];
+      _.each(attachmentFields, (attFieldName: unknown) => {
+        const attFieldKey = String(attFieldName ?? '');
+        _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
+          if (_.isEmpty(attFieldEntry)) {
+            return;
+          }
+          _.each(fieldsToCheck, (fldName: unknown) => {
+            const fldKey = String(fldName ?? '');
+            const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
+            if (!_.isEmpty(fldVal)) {
+              _.set(
+                recordMetadata,
+                `${attFieldKey}[${attFieldIdx}].${fldKey}`,
+                _.replace(String(fldVal), /pending-oid/g, oid)
+              );
+            }
+          });
+          if (_.get(attFieldEntry as AnyRecord, 'pending') === true) {
+            _.set(recordMetadata, `${attFieldKey}[${attFieldIdx}].pending`, false);
+          }
+        });
+      });
     }
 
     async create(
@@ -467,32 +520,12 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
       createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
       if (createResponse.isSuccessful()) {
-        const fieldsToCheck = ['location', 'uploadUrl'];
         const oid = createResponse.oid;
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         const recordMetadata = recordObj.metadata as AnyRecord;
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
         if (!_.isEmpty(attachmentFields)) {
-          // check if we have any pending-oid elements
-          _.each(attachmentFields, (attFieldName: unknown) => {
-            const attFieldKey = String(attFieldName ?? '');
-            _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-              if (!_.isEmpty(attFieldEntry)) {
-                _.each(fieldsToCheck, (fldName: unknown) => {
-                  const fldKey = String(fldName ?? '');
-                  const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
-                  if (!_.isEmpty(fldVal)) {
-                    sails.log.verbose(`RecordsService - create - fldVal ${fldVal}`);
-                    _.set(
-                      recordMetadata,
-                      `${attFieldKey}[${attFieldIdx}].${fldKey}`,
-                      _.replace(String(fldVal), 'pending-oid', oid)
-                    );
-                  }
-                });
-              }
-            });
-          });
+          this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid);
 
           try {
             // handle datastream update
@@ -731,29 +764,9 @@ export namespace Services {
       )) as StorageServiceResponse;
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
-      const fieldsToCheck = ['location', 'uploadUrl'];
       if (!_.isEmpty(recordMeta.attachmentFields)) {
         const recordMetadata = recordObj.metadata as AnyRecord;
-        // check if we have any pending-oid elements
-        _.each(recordMeta.attachmentFields as unknown[], (attFieldName: unknown) => {
-          const attFieldKey = String(attFieldName ?? '');
-          _.each(_.get(recordMetadata, attFieldKey) as unknown[], (attFieldEntry: unknown, attFieldIdx: unknown) => {
-            if (!_.isEmpty(attFieldEntry)) {
-              _.each(fieldsToCheck, (fldName: unknown) => {
-                const fldKey = String(fldName ?? '');
-                const fldVal = _.get(attFieldEntry as AnyRecord, fldKey);
-                if (!_.isEmpty(fldVal)) {
-                  sails.log.verbose(`RecordService - updateMeta - fldVal ${fldVal}`);
-                  _.set(
-                    recordMetadata,
-                    `${attFieldKey}[${attFieldIdx}].${fldKey}`,
-                    _.replace(String(fldVal), 'pending-oid', oid)
-                  );
-                }
-              });
-            }
-          });
-        });
+        this.bindPendingAttachmentOids(recordMetadata, recordMeta.attachmentFields as unknown[], oid);
       }
       // End of potential dead code
 
@@ -1963,21 +1976,22 @@ export namespace Services {
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
           if (Array.isArray(reqs) && reqs.length > 0) {
-            sails.log.verbose(`Updating data streams...`);
+            this.logger.verbose(`Updating data streams...`);
             return from(reqs);
           }
-          sails.log.verbose(`No datastreams to update...`);
+          this.logger.verbose(`No datastreams to update...`);
           return of(null);
         }),
         concatMap((promise: Promise<unknown> | null) => {
           if (promise) {
-            sails.log.verbose(`Update datastream request is...`);
-            sails.log.verbose(JSON.stringify(promise));
+            this.logger.verbose(`Update datastream request is...`);
+            this.logger.verbose(JSON.stringify(promise));
             return from(promise).pipe(
               catchError((e: unknown) => {
-                sails.log.verbose(`Error in updating stream::::`);
-                sails.log.verbose(JSON.stringify(e));
-                return throwError(new Error(TranslationService.t('attachment-upload-error')));
+                const detail = this.describeError(e);
+                this.logger.verbose(`Error in updating stream::::`);
+                this.logger.verbose(detail);
+                return throwError(() => new Error(`${TranslationService.t('attachment-upload-error')}: ${detail}`));
               })
             );
           }
@@ -1985,8 +1999,8 @@ export namespace Services {
         }),
         concatMap(updateResp => {
           if (updateResp) {
-            sails.log.verbose(`Got response from update datastream request...`);
-            sails.log.verbose(JSON.stringify(updateResp));
+            this.logger.verbose(`Got response from update datastream request...`);
+            this.logger.verbose(JSON.stringify(updateResp));
           }
           return of(updateResp);
         }),

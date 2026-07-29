@@ -74,7 +74,10 @@ import {
   PublishDataLocationSelectorComponentName,
   PublishDataLocationSelectorFormComponentDefinitionOutline,
 } from './component/publish-data-location-selector.outline';
-import { TypeaheadInputModelOptionValue } from './component/typeahead-input.outline';
+import {
+  TypeaheadInputModelOptionValue,
+  TypeaheadInputModelValueType,
+} from './component/typeahead-input.outline';
 import { FormConstraintConfigOutline } from './form-component.outline';
 import { SimpleInputFormComponentDefinitionFrame } from './component/simple-input.outline';
 import { LineagePaths } from './names/naming-helpers';
@@ -92,6 +95,7 @@ export class FormOverride {
     'cellsHtml',
     'rowsHtml',
     'itemBodyHtml',
+    'itemClass',
     'labelHtml',
     'valueHtml',
     'valueExpr',
@@ -114,12 +118,15 @@ export class FormOverride {
     leafDataLocation: 'view-template-leaf-data-location',
     leafPublishDataLocationSelector: 'view-template-leaf-publish-data-location-selector',
     leafCheckboxTree: 'view-template-leaf-checkbox-tree',
+    leafLink: 'view-template-leaf-link',
     groupContainer: 'view-template-group-container',
     groupRowWithLabel: 'view-template-group-row-with-label',
     groupRowNoLabel: 'view-template-group-row-no-label',
     repeatableTable: 'view-template-repeatable-table',
     repeatableList: 'view-template-repeatable-list',
   } as const;
+  private readonly linkLeafFallbackTemplate =
+    `{{#if [[valueExpr]]}}<a href="{{default [[valueExpr]] ""}}" target="_blank" rel="noopener noreferrer">{{default [[valueExpr]] ""}}</a>{{/if}}`;
   private readonly dataLocationLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
   private readonly pdfListLeafFallbackTemplate =
@@ -304,6 +311,13 @@ export class FormOverride {
     PublishDataLocationSelectorComponentName,
   ]);
 
+  public hasDefaultViewTransform(className: string | undefined): boolean {
+    if (!className || !(className in this.defaultTransforms)) {
+      return false;
+    }
+    return !!this.defaultTransforms[className as keyof DefaultTransformsType]?.view;
+  }
+
   /**
    * Apply any reusable form configs in the form component definitions.
    * @param items The form component definitions.
@@ -456,12 +470,16 @@ export class FormOverride {
    * Apply any overrides that transform a component into another component.
    * @param source The original component.
    * @param formMode The current form mode.
+   * @param options Additional options for applying override transforms.
+   * @param options.phase The phase of the form config processing to run.
+   * @param options.reusableFormDefs The available reusable form definitions.
+   * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
    * @returns The transformed form component.
    */
   public applyOverrideTransform(
     source: AllFormComponentDefinitionOutlines,
     formMode: FormModesConfig,
-    options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions }
+    options?: { phase?: 'construct' | 'client'; reusableFormDefs?: ReusableFormDefinitions; removeOverrides?: boolean; }
   ): AllFormComponentDefinitionOutlines {
     const original: AllFormComponentDefinitionOutlines = _cloneDeep(source);
     const phase = options?.phase ?? 'construct';
@@ -485,10 +503,11 @@ export class FormOverride {
       !shouldForceViewTransform &&
       this.hasExplicitAllowedMode(original?.constraints, 'view');
 
+    const hasExplicitTemplate = typeof transforms.template === 'string' && transforms.template.trim().length > 0;
     if (
       originalComponentClassName in this.defaultTransforms &&
       !deferViewModeContentFlatteningAtConstruct &&
-      !skipAutomaticViewTransform
+      (!skipAutomaticViewTransform || hasExplicitTemplate)
     ) {
       const defaultTransform = this.defaultTransforms[originalComponentClassName] ?? {};
       if (formMode in defaultTransform) {
@@ -538,6 +557,20 @@ export class FormOverride {
     // Apply the transform.
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
+    if (
+      formMode === 'view' &&
+      hasTransform &&
+      result?.component?.class === ContentComponentName &&
+      typeof transforms.template === 'string' &&
+      transforms.template.trim().length > 0 &&
+      result.component.config !== undefined
+    ) {
+      result.component.config.template = transforms.template;
+      result.component.config.visible = true;
+      if (original.layout?.config?.visible === false && result.layout?.config !== undefined) {
+        result.layout.config.visible = !this.isDeepEmpty(result.component.config.content);
+      }
+    }
 
     // Use 'replaceName' to update the form component name.
     if (original.overrides?.replaceName !== undefined) {
@@ -545,8 +578,15 @@ export class FormOverride {
     }
 
     // Remove the 'overrides' property, as it has been applied and so should not be present in the form config.
-    if ('overrides' in result) {
-      delete result['overrides'];
+    if ('overrides' in result && (phase === 'client' || options?.removeOverrides === true || formMode !== 'view')) {
+      // In the client phase or if the formMode is not 'view', the overrides have already been applied.
+      // The 'options.removeOverrides' setting provides a way to obtain the 'construct' phase with the overrides removed.
+      delete result.overrides;
+    } else if ('overrides' in result && phase === 'construct') {
+      // The client visitor might use the overrides.formModeClasses[formMode] properties.
+      // Keep them in the construct phase, unless options?.removeOverrides is true.
+      delete result.overrides?.replaceName;
+      delete result.overrides?.reusableFormName;
     }
 
     if (isTransformExpected) {
@@ -567,13 +607,18 @@ export class FormOverride {
    * @param name The form component name.
    * @param lineagePath The form component lineage path.
    * @param item The question tree component.
+   * @param modelData The question tree model data.
    * @private
    */
   public applyQuestionTreeDsl(
     name: string | null,
     lineagePath: LineagePaths,
-    item: QuestionTreeFieldComponentDefinitionOutline
+    item: QuestionTreeFieldComponentDefinitionOutline,
+    modelData?: unknown,
   ): AvailableFormComponentDefinitionFrames[] {
+    if (!name) {
+      throw new Error(`${this.logName}: A name is required to apply the question tree DSL.`);
+    }
     const availableOutcomeValues = (item.config?.availableOutcomes ?? []).map(i => i.value);
     const availableMeta = item.config?.availableMeta ?? {};
     const questions = item.config?.questions ?? [];
@@ -587,7 +632,7 @@ export class FormOverride {
       errors.push(...this.questionTreeHelper.validateQuestion(question, questionIndex, availableOutcomeValues, availableMeta, questionAnswerValuesMap));
 
       // Transform rules DSL to expressions.
-      result.push(this.questionTreeHelper.transformQuestionConfig(name, lineagePath, item, question));
+      result.push(this.questionTreeHelper.transformQuestionConfig(name, lineagePath, item, modelData, question.id, questions));
     });
 
       if (errors.length > 0) {
@@ -692,6 +737,13 @@ export class FormOverride {
     this.commonContentPlain(source, target);
 
     const sourceConfig = source.component?.config as { type?: string } | undefined;
+    if (sourceConfig?.type === 'url' && target.component.config !== undefined) {
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafLink,
+        this.linkLeafFallbackTemplate
+      );
+      target.component.config.template = this.substituteReusableTemplateSlots(template, { valueExpr: 'content' });
+    }
     if (sourceConfig?.type === 'hidden') {
       if (target.component.config) {
         target.component.config.visible = false;
@@ -711,7 +763,10 @@ export class FormOverride {
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    this.commonContentPlain(source, target);
+    if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
+      target.component.config.content = source.model.config.value;
+      target.component.config.template = `<span>{{{plaintextToHtml content}}}</span>`;
+    }
     return target;
   }
 
@@ -787,7 +842,7 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
-      const configuredDateFormat = source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
+      const configuredDateFormat = this.resolveDateInputFormat(source);
       target.component.config.content = source.model.config.value;
       target.component.config.template = `<span data-value="{{content}}">{{formatDate content "${configuredDateFormat}"}}</span>`;
     }
@@ -804,13 +859,7 @@ export class FormOverride {
       return target;
     }
 
-    const value = source.model.config.value;
-    const displayValue =
-      value && typeof value === 'object' && 'label' in value
-        ? (value as TypeaheadInputModelOptionValue).label
-        : typeof value === 'string'
-          ? value
-          : '';
+    const displayValue = this.resolveTypeaheadContentValue(source.model.config.value, source);
     target.component.config.content = displayValue;
     target.component.config.template = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafPlain,
@@ -820,12 +869,113 @@ export class FormOverride {
     return target;
   }
 
+  private resolveTypeaheadContentValue(
+    value: TypeaheadInputModelValueType | undefined,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (!value || typeof value !== 'object') {
+      return '';
+    }
+
+    const configuredValue = value as TypeaheadInputModelOptionValue;
+    const componentConfig = source.component.config as {
+      labelField?: string;
+      valueField?: string;
+      optionObjectFields?: Record<string, string>;
+    } | undefined;
+
+    const labelField = componentConfig?.labelField?.trim?.() || 'label';
+    const valueField = componentConfig?.valueField?.trim?.() || 'value';
+    const preferredFields = this.getTypeaheadDisplayFields(source);
+    const candidates = [
+      configuredValue.label,
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        labelField,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      ),
+      configuredValue[labelField],
+      ...preferredFields.map(field => this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        field,
+        source,
+        this.isConfiguredTypeaheadLabelField.bind(this)
+      )),
+      ...preferredFields.map(field => configuredValue[field]),
+      this.getConfiguredTypeaheadStoredValue(
+        configuredValue,
+        valueField,
+        source,
+        this.isConfiguredTypeaheadValueField.bind(this)
+      ),
+      configuredValue[valueField],
+      configuredValue.value,
+    ];
+
+    const resolvedValue = candidates.find(candidate => candidate !== undefined && candidate !== null);
+    return resolvedValue === undefined ? '' : String(resolvedValue);
+  }
+
+  private getConfiguredTypeaheadStoredValue(
+    value: TypeaheadInputModelOptionValue,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline,
+    matchesField: (
+      fieldName: string,
+      configuredSourcePath: string,
+      source: TypeaheadInputFormComponentDefinitionOutline
+    ) => boolean
+  ): unknown {
+    const optionObjectFields = this.getTypeaheadOptionObjectFields(source);
+    const directMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      configuredSourcePath === sourcePath && value[fieldName] !== undefined
+    );
+    if (directMatch) {
+      return value[directMatch[0]];
+    }
+
+    const semanticMatch = Object.entries(optionObjectFields).find(([fieldName, configuredSourcePath]) =>
+      matchesField(fieldName, configuredSourcePath, source) && value[fieldName] !== undefined
+    );
+    return semanticMatch ? value[semanticMatch[0]] : undefined;
+  }
+
+  private getTypeaheadOptionObjectFields(source: TypeaheadInputFormComponentDefinitionOutline): Record<string, string> {
+    const optionObjectFields = (source.component.config as { optionObjectFields?: unknown } | undefined)?.optionObjectFields;
+    if (!optionObjectFields || typeof optionObjectFields !== 'object' || Array.isArray(optionObjectFields)) {
+      return {};
+    }
+    return optionObjectFields as Record<string, string>;
+  }
+
+  private isConfiguredTypeaheadLabelField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const labelField = (source.component.config as { labelField?: string } | undefined)?.labelField ?? 'label';
+    return fieldName === labelField || sourcePath === labelField || fieldName === 'label' || sourcePath === 'label';
+  }
+
+  private isConfiguredTypeaheadValueField(
+    fieldName: string,
+    sourcePath: string,
+    source: TypeaheadInputFormComponentDefinitionOutline
+  ): boolean {
+    const valueField = (source.component.config as { valueField?: string } | undefined)?.valueField ?? 'value';
+    return fieldName === valueField || sourcePath === valueField || fieldName === 'value' || sourcePath === 'value';
+  }
+
   private sourceRichTextEditorComponentTargetContentComponent(
     source: RichTextEditorFormComponentDefinitionOutline,
     formMode: FormModesConfig
   ): ContentFormComponentDefinitionOutline {
     const target = this.commonContentComponent(source, formMode);
-    const outputFormat = (source.component?.config as { outputFormat?: 'html' | 'markdown' } | undefined)?.outputFormat ?? 'html';
+    const outputFormat = this.resolveRichTextOutputFormat(source);
     if (!target.component.config || source.model?.config?.value === undefined) {
       return target;
     }
@@ -844,6 +994,14 @@ export class FormOverride {
     return target;
   }
 
+  private resolveDateInputFormat(source: DateInputFormComponentDefinitionOutline): string {
+    return source.component?.config?.dateFormat?.trim?.() || 'YYYY/MM/DD';
+  }
+
+  private resolveRichTextOutputFormat(source: RichTextEditorFormComponentDefinitionOutline): 'html' | 'markdown' {
+    return (source.component?.config as { outputFormat?: 'html' | 'markdown' } | undefined)?.outputFormat ?? 'html';
+  }
+
   private sourceFileUploadComponentTargetContentComponent(
     source: FileUploadFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -855,7 +1013,7 @@ export class FormOverride {
     target.component.config.content = source.model.config.value;
     const uploadTemplate = this.resolveReusableViewTemplate(
       this.reusableViewTemplateKeys.leafFileUpload,
-      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+      `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
     );
     target.component.config.template = this.substituteReusableTemplateSlots(uploadTemplate, { valueExpr: 'content' });
     return target;
@@ -1156,6 +1314,54 @@ export class FormOverride {
     return values;
   }
 
+  private pruneGroupValue(
+    value: unknown,
+    componentDefinitions: AllFormComponentDefinitionOutlines[]
+  ): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || this.isDeepEmpty(value as Record<string, unknown>)) {
+      return undefined;
+    }
+    const result: Record<string, unknown> = {};
+    const renderableDefs = componentDefinitions.filter(c => this.isViewRenderableComponent(c));
+    const childNames = new Set(renderableDefs.map(c => c.name).filter((n): n is string => typeof n === 'string'));
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      if (!childNames.has(key)) {
+        continue;
+      }
+      const childDef = renderableDefs.find(c => c.name === key);
+      const childIsGroup = childDef?.component?.class === GroupFieldComponentName;
+      const childIsRepeatable = childDef?.component?.class === RepeatableComponentName;
+      if (childIsGroup && val && typeof val === 'object' && !Array.isArray(val)) {
+        const childChildren = (childDef?.component?.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] } | undefined)
+          ?.componentDefinitions ?? [];
+        const nestedPruned = this.pruneGroupValue(val, childChildren);
+        if (nestedPruned !== undefined) {
+          result[key] = nestedPruned;
+        }
+      } else if (childIsRepeatable && Array.isArray(val)) {
+        const elementTemplate = (childDef?.component?.config as { elementTemplate?: AllFormComponentDefinitionOutlines } | undefined)
+          ?.elementTemplate;
+        const elementChildren = elementTemplate?.component?.class === GroupFieldComponentName
+          ? ((elementTemplate?.component?.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] } | undefined)
+            ?.componentDefinitions ?? [])
+          : [];
+        if (elementChildren.length > 0) {
+          result[key] = val.map((item: unknown) => {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+              return this.pruneGroupValue(item, elementChildren) ?? {};
+            }
+            return item;
+          });
+        } else {
+          result[key] = val;
+        }
+      } else {
+        result[key] = val;
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
   private sourceGroupComponentTargetContentComponent(
     source: GroupFormComponentDefinitionOutline,
     formMode: FormModesConfig
@@ -1163,9 +1369,11 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
     if (target.component.config) {
       const contentValue = source.model?.config?.value;
+      const children = source?.component?.config?.componentDefinitions ?? [];
+      const prunedValue = this.pruneGroupValue(contentValue, children);
       target.component.config.content =
-        contentValue && typeof contentValue === 'object' && !this.isDeepEmpty(contentValue)
-          ? contentValue
+        prunedValue && !this.isDeepEmpty(prunedValue)
+          ? prunedValue
           : this.extractDescendantValues(source);
       target.component.config.template = this.generateTemplateForComponent(source, 'content');
     }
@@ -1187,6 +1395,16 @@ export class FormOverride {
     const elementTemplate = component?.component?.config?.elementTemplate;
     if (!elementTemplate) {
       return `<div class="rb-view-repeatable rb-view-repeatable-list"></div>`;
+    }
+
+    const elementViewOverride = (elementTemplate as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const elementClassName = elementTemplate?.component?.class ?? '';
+    const elementIsIdentity = elementViewOverride?.component === elementClassName;
+    const elementHasCustomTemplate = !elementIsIdentity && typeof elementViewOverride?.template === 'string' &&
+      elementViewOverride.template.trim().length > 0 &&
+      this.effectiveViewTargetsContentComponent(elementClassName, elementViewOverride);
+    if (elementHasCustomTemplate) {
+      return this.renderRepeatableFallback(elementTemplate, rootExpr);
     }
 
     const groupChildren = this.getRenderableGroupChildren(elementTemplate);
@@ -1222,8 +1440,11 @@ export class FormOverride {
   }
 
   private renderRepeatableFallback(elementTemplate: AllFormComponentDefinitionOutlines, rootExpr: string): string {
-    const itemBody = this.renderComponentBody(elementTemplate, 'this');
     const elementClassName = elementTemplate?.component?.class ?? '';
+    const isLeafElement = elementClassName !== GroupFieldComponentName && elementClassName !== RepeatableComponentName;
+    const itemBody = isLeafElement
+      ? this.renderLeafValue(elementTemplate, 'this', [])
+      : this.renderComponentBody(elementTemplate, 'this');
     const itemClass =
       elementClassName === GroupFieldComponentName || elementClassName === RepeatableComponentName
         ? 'rb-view-repeatable-card'
@@ -1235,8 +1456,25 @@ export class FormOverride {
     return this.substituteReusableTemplateSlots(template, { rootExpr, itemBodyHtml: itemBody, itemClass });
   }
 
+  private effectiveViewTargetsContentComponent(className: string | undefined, viewOverride: { component?: string; template?: string } | undefined): boolean {
+    if (!className) return false;
+    if (viewOverride?.component === ContentComponentName) return true;
+    if (this.hasDefaultViewTransform(className)) {
+      const defaultTransform = this.defaultTransforms[className as keyof DefaultTransformsType]?.view;
+      return defaultTransform?.component === ContentComponentName || defaultTransform?.component === undefined;
+    }
+    return false;
+  }
+
   private renderComponentBody(component: AllFormComponentDefinitionOutlines, rootExpr: string): string {
     const className = component?.component?.class;
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const overrideComponent = viewOverride?.component;
+    const isIdentityViewOverride = typeof overrideComponent === 'string' && overrideComponent === className;
+    if (!isIdentityViewOverride && typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+        this.effectiveViewTargetsContentComponent(className, viewOverride)) {
+      return `{{#with ${rootExpr} includeZero=true as |content|}}{{#with @root as |__root__|}}${viewOverride.template}{{/with}}{{/with}}`;
+    }
     if (className === GroupFieldComponentName) {
       const children = this.getRenderableGroupChildren(component) ?? [];
       return children.map(child => this.renderLabelValueRow(child, rootExpr)).join('');
@@ -1273,10 +1511,18 @@ export class FormOverride {
     const className = component?.component?.class ?? '';
     const expression = this.safeValueExpression(rootExpr, pathParts);
 
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { component?: string; template?: string }> } })?.overrides?.formModeClasses?.view;
+    const overrideComponent = viewOverride?.component;
+    const isIdentityViewOverride = typeof overrideComponent === 'string' && overrideComponent === className;
+    if (!isIdentityViewOverride && typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+        this.effectiveViewTargetsContentComponent(className, viewOverride)) {
+      return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${viewOverride.template}{{/with}}{{/with}}`;
+    }
+
     if (className === FileUploadComponentName) {
       const fileTemplate = this.resolveReusableViewTemplate(
         this.reusableViewTemplateKeys.leafFileUpload,
-        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{default this.name this.fileId}}</li>{{/each}}</ul>`
+        `<ul class="rb-view-file-upload">{{#each [[valueExpr]]}<li>{{#if (attachmentDownloadUrl this oid branding portal)}}<a href="{{attachmentDownloadUrl this oid branding portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.fileId}}</a>{{else}}{{default this.name this.fileId}}{{/if}}{{#if this.notes}}<div class="text-muted"><small>{{this.notes}}</small></div>{{/if}}</li>{{/each}}</ul>`
       );
       return this.substituteReusableTemplateSlots(fileTemplate, { valueExpr: expression });
     }
@@ -1335,9 +1581,9 @@ export class FormOverride {
         trimmedTemplate === '{{{content}}}' ||
         trimmedTemplate === '<span>{{content}}</span>'
       ) {
-        return `{{default ${expression} ""}}`;
+        return this.renderDisplayValue(expression);
       }
-      return `{{default ${expression} ""}}`;
+      return `{{#with ${expression} includeZero=true as |content|}}{{#with @root as |__root__|}}${trimmedTemplate}{{/with}}{{/with}}`;
     }
     if (className === CheckboxTreeComponentName) {
       const template = this.resolveReusableViewTemplate(
@@ -1346,7 +1592,134 @@ export class FormOverride {
       );
       return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
     }
+    if (className === SimpleInputComponentName && (component?.component?.config as { type?: string })?.type === 'url') {
+      const template = this.resolveReusableViewTemplate(
+        this.reusableViewTemplateKeys.leafLink,
+        this.linkLeafFallbackTemplate
+      );
+      return this.substituteReusableTemplateSlots(template, { valueExpr: expression });
+    }
+    if (className === TextAreaComponentName) {
+      return `<span>{{{plaintextToHtml ${expression}}}}</span>`;
+    }
+    if (className === TypeaheadInputComponentName) {
+      return this.renderTypeaheadValue(expression, component);
+    }
+    if (className === DateInputComponentName) {
+      return this.renderDateInputValue(expression, component as DateInputFormComponentDefinitionOutline);
+    }
+    if (className === RichTextEditorComponentName) {
+      return this.renderRichTextEditorValue(expression, component as RichTextEditorFormComponentDefinitionOutline);
+    }
+    if (className === SimpleInputComponentName) {
+      return this.renderDisplayValue(expression);
+    }
+    if (
+      className === DropdownInputComponentName ||
+      className === CheckboxInputComponentName ||
+      className === RadioInputComponentName
+    ) {
+      const options = this.getOptionLabelPairs(component);
+      if (className === CheckboxInputComponentName) {
+        return this.renderOptionListValue(expression, options);
+      }
+      return this.renderOptionSingleValue(expression, options);
+    }
     return `{{default ${expression} ""}}`;
+  }
+
+  private renderDateInputValue(expression: string, component: DateInputFormComponentDefinitionOutline): string {
+    const configuredDateFormat = this.resolveDateInputFormat(component);
+    const dateValueTemplate = `{{default ${expression} ""}}`;
+    return `<span data-value="${dateValueTemplate}">{{formatDate ${expression} "${configuredDateFormat}"}}</span>`;
+  }
+
+  private renderRichTextEditorValue(expression: string, component: RichTextEditorFormComponentDefinitionOutline): string {
+    const outputFormat = this.resolveRichTextOutputFormat(component);
+    return `{{{markdownToHtml ${expression} "${this.escapeForHandlebarsLiteral(outputFormat)}"}}}`;
+  }
+
+  private renderTypeaheadValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const arrayItem = this.renderTypeaheadScalarValue('this', component);
+    const singleValue = this.renderTypeaheadScalarValue(expression, component);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderTypeaheadScalarValue(expression: string, component: AllFormComponentDefinitionOutlines): string {
+    const fields = this.getTypeaheadDisplayFields(component);
+    return this.renderDisplayScalarValue(expression, fields);
+  }
+
+  private renderDisplayValue(expression: string): string {
+    const fields = this.getCommonDisplayFields();
+    const arrayItem = this.renderDisplayScalarValue('this', fields);
+    const singleValue = this.renderDisplayScalarValue(expression, fields);
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}<li>${arrayItem}</li>{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
+  }
+
+  private renderDisplayScalarValue(expression: string, fields: string[]): string {
+    const objectBranches = fields.map(field =>
+      `{{#if (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}` +
+      `<span>{{{plaintextToHtml (get ${expression} "${this.escapeForHandlebarsLiteral(field)}" "")}}}</span>` +
+      '{{else}}'
+    ).join('');
+
+    return `{{#if (isObject ${expression})}}${objectBranches}` +
+      `{{{renderMetadataValue ${expression}}}}${'{{/if}}'.repeat(fields.length)}` +
+      `{{else}}<span>{{{plaintextToHtml ${expression}}}}</span>{{/if}}`;
+  }
+
+  private getTypeaheadDisplayFields(component: AllFormComponentDefinitionOutlines): string[] {
+    const componentConfig =
+      component?.component?.config as { labelField?: string; valueField?: string } | undefined;
+    const fields = [
+      componentConfig?.labelField,
+      ...this.getCommonDisplayFields(),
+      componentConfig?.valueField,
+    ];
+    return Array.from(
+      new Set(fields.filter((field): field is string => typeof field === 'string' && field.trim().length > 0))
+    );
+  }
+
+  private getCommonDisplayFields(): string[] {
+    return ['label', 'name', 'title', 'dc_title', 'dc_description', 'utf8_name', 'value'];
+  }
+
+  private getOptionLabelPairs(component: AllFormComponentDefinitionOutlines): Array<{ value: string; label: string }> {
+    const componentConfig = component?.component?.config as { options?: Array<{ value?: unknown; label?: unknown }> } | undefined;
+    return (componentConfig?.options ?? [])
+      .filter(option => option?.value !== undefined && option?.label !== undefined)
+      .map(option => ({
+        value: String(option.value),
+        label: String(option.label),
+      }));
+  }
+
+  private renderOptionSingleValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const optionBranches = options.map(option =>
+      `{{#if (eq ${expression} "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<span data-value="{{default ${expression} ""}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</span>` +
+      '{{else}}'
+    ).join('');
+    return `${optionBranches}<span>{{default ${expression} ""}}</span>${'{{/if}}'.repeat(options.length)}`;
+  }
+
+  private renderOptionListValue(expression: string, options: Array<{ value: string; label: string }>): string {
+    if (options.length === 0) {
+      return `{{default ${expression} ""}}`;
+    }
+    const singleValue = this.renderOptionSingleValue(expression, options);
+    const optionBranches = options.map(option =>
+      `{{#if (eq this "${this.escapeForHandlebarsLiteral(option.value)}")}}` +
+      `<li data-value="{{this}}">{{t "${this.escapeForHandlebarsLiteral(option.label)}"}}</li>` +
+      '{{else}}'
+    ).join('');
+    return `{{#if ${expression}}}{{#if (isArray ${expression})}}<ul>{{#each ${expression}}}${optionBranches}` +
+      `<li>{{this}}</li>${'{{/if}}'.repeat(options.length)}{{/each}}</ul>{{else}}${singleValue}{{/if}}{{/if}}`;
   }
 
   private getGroupChildren(component: AllFormComponentDefinitionOutlines): AllFormComponentDefinitionOutlines[] | null {
@@ -1363,6 +1736,12 @@ export class FormOverride {
 
   private isViewRenderableComponent(component: AllFormComponentDefinitionOutlines): boolean {
     const componentConfig = component?.component?.config as { visible?: boolean; type?: string } | undefined;
+    const viewOverride = (component as { overrides?: { formModeClasses?: Record<string, { template?: string }> } })?.overrides?.formModeClasses?.view;
+    const hasEffectiveViewTemplate = typeof viewOverride?.template === 'string' && viewOverride.template.trim().length > 0 &&
+      this.effectiveViewTargetsContentComponent(component?.component?.class, viewOverride);
+    if (hasEffectiveViewTemplate) {
+      return true;
+    }
     if (componentConfig?.visible === false || componentConfig?.type === 'hidden') {
       return false;
     }

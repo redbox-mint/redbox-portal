@@ -119,7 +119,7 @@ const { Config } = require('@researchdatabox/redbox-core');
 module.exports.appmode = Config.appmode;
 ```
 
-Config shims also merge hook-provided configurations in alphabetical order.
+Config shims also merge hook-provided configurations according to the installation's root `package.json` `hookLoadPriority` list. The first listed hook has the highest precedence, so generated config shims process lower-precedence hooks first and higher-precedence hooks later. If `hookLoadPriority` is missing, the loader keeps the previous package-name fallback behavior.
 
 ### Form-Config Shims (`api/form-config/`)
 
@@ -180,6 +180,23 @@ Hooks must export registration functions:
 | `hasApiRoutes` | `registerHookApiRoutes()` | Returns an array of contract-first API route definitions |
 | `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
 | `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
+
+### Hook Load Priority
+
+Installations can define hook precedence in the root portal `package.json`:
+
+```json
+{
+    "hookLoadPriority": [
+        "redbox-hook-jcu",
+        "sails-hook-redbox-pdfgen"
+    ]
+}
+```
+
+The first listed hook has the highest precedence. Listed hooks override unlisted hooks, and unlisted hooks keep the previous deterministic package-name fallback. Merge and shim generation paths process hooks from lowest to highest precedence because those registries are last-write-wins. Direct lookup paths such as hook views and assets search highest precedence first.
+
+Migrations are collected in hook processing order, but final migration execution remains sorted by migration name/timestamp.
 
 ### Service Override Precedence
 

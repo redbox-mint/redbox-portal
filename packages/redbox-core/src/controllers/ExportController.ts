@@ -17,14 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { default as util } from 'util';
-import { default as stream } from 'stream';
-const pipeline = util.promisify(stream.pipeline);
+import { pipeline } from 'node:stream/promises';
 /**
  * Package that contains all Controllers.
  */
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
+import { EXPORT_CONTENT_TYPES } from '../constants/export';
 
 export namespace Controllers {
   /**
@@ -59,9 +58,9 @@ export namespace Controllers {
       const after = _.isEmpty(req.query.after) ? null : req.query.after;
       const filename = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
       if (format == 'csv' || format == 'json') {
-        res.set('Content-Type', `text/${format}`);
-        sails.log.verbose("filename "+filename);
         res.attachment(filename);
+        res.set('Content-Type', EXPORT_CONTENT_TYPES[format]);
+        sails.log.verbose("filename "+filename);
         await pipeline(
           RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
           res

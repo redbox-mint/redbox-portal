@@ -211,4 +211,47 @@ describe('RadioInputComponent', () => {
 
     expect((formComponent as any).form.get('radio_field_disabled_test')?.value).toBe('legacy');
   });
+
+  it('should deselect option when using setValue with null', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      componentDefinitions: [
+        {
+          name: 'radio_field_set_test',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              value: 'legacy'
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [
+                { label: 'Active', value: 'active' },
+                { label: 'Legacy', value: 'legacy' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(RadioInputComponent)).componentInstance as RadioInputComponent;
+    const compiled = fixture.nativeElement as HTMLElement;
+    const activeInput = compiled.querySelector<HTMLInputElement>('#radio_field_set_test-active');
+    const legacyInput = compiled.querySelector<HTMLInputElement>('#radio_field_set_test-legacy');
+
+    component.model?.setValue(null);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((formComponent as any).form.value?.radio_field_set_test).toEqual(null);
+    expect(component?.model?.getValue()).toEqual(null);
+    expect(component?.formControl?.value).toEqual(null);
+    expect(activeInput?.checked).toBeFalse();
+    expect(legacyInput?.checked).toBeFalse();
+  });
 });

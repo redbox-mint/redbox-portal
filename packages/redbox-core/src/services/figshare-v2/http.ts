@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
 import { Context, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { ResolvedFigsharePublishingConfigData } from './config';
@@ -15,7 +15,23 @@ import {
   FigshareCreateFilePayload,
   FigshareEmbargoPayload,
 } from './types';
-import { logEvent, redactObject, withSpan } from './observability';
+import { logEvent, withSpan } from './observability';
+import { redactObject } from '../../utilities/RedactionUtils';
+
+export class FigshareHttpError extends Error {
+  statusCode?: number;
+  responseBody?: unknown;
+
+  constructor(message: string, options: { statusCode?: number; responseBody?: unknown; cause?: unknown } = {}) {
+    super(message);
+    this.name = 'FigshareHttpError';
+    this.statusCode = options.statusCode;
+    this.responseBody = options.responseBody;
+    if (options.cause != null) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
+  }
+}
 
 function isReadablePayload(payload: unknown): payload is { pipe: (...args: unknown[]) => unknown } {
   return payload != null && typeof payload === 'object' && typeof (payload as { pipe?: unknown }).pipe === 'function';
@@ -89,6 +105,13 @@ type RequestOptions = {
   params?: Record<string, unknown>;
   maxContentLength?: number;
   maxBodyLength?: number;
+  responseMapper?: <T>(response: AxiosResponse) => T;
+};
+
+type FigshareResponseHeaders = Record<string, unknown> | AxiosResponse['headers'];
+type FigshareResponseLike = {
+  data?: unknown;
+  headers?: FigshareResponseHeaders;
 };
 
 async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePublishingConfigData, runContext: FigshareRunContext, options: RequestOptions): Promise<T> {
@@ -122,7 +145,7 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
           maxContentLength: options.maxContentLength,
           maxBodyLength: options.maxBodyLength
         });
-        return response.data as T;
+        return options.responseMapper != null ? options.responseMapper<T>(response) : response.data as T;
       });
     } catch (error) {
       const axiosErr = error as AxiosError;
@@ -136,12 +159,48 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
         error: redactObject(error)
       });
       if (!retryable || attempt === retryConfig.maxAttempts) {
-        throw error;
+        // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
+        // request config (including the Authorization header) and must not propagate.
+        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || url}`, {
+          statusCode: status == null ? undefined : Number(status),
+          responseBody: axiosErr?.response?.data,
+          cause: error
+        });
       }
       await new Promise((resolve) => setTimeout(resolve, getRetryDelay(retryConfig.baseDelayMs, retryConfig.maxDelayMs, attempt)));
     }
   }
-  throw new Error(`Figshare request failed for ${method} ${path}`);
+  throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path}`);
+}
+
+function getResponseHeader(response: FigshareResponseLike, name: string): string | undefined {
+  const value = response.headers?.[name] ?? response.headers?.[name.toLowerCase()];
+  if (Array.isArray(value)) {
+    return value[0] == null ? undefined : String(value[0]);
+  }
+  return value == null ? undefined : String(value);
+}
+
+function getFigshareIdFromLocation(location: string): string | undefined {
+  const path = location.split('?')[0] ?? '';
+  const match = /\/articles\/(\d+)(?:\/|$)/.exec(path) ?? /\/account\/articles\/(\d+)(?:\/|$)/.exec(path);
+  return match?.[1];
+}
+
+export function mapCreateArticleResponse<T>(response: FigshareResponseLike): T {
+  const article = response.data != null && typeof response.data === 'object'
+    ? response.data as FigshareArticle
+    : {} as FigshareArticle;
+  if (article.id != null && String(article.id).trim() !== '') {
+    return article as T;
+  }
+  const location = getResponseHeader(response, 'Location');
+  const articleId = location == null ? undefined : getFigshareIdFromLocation(location);
+  return {
+    ...article,
+    ...(articleId != null ? { id: articleId } : {}),
+    ...(location != null ? { location } : {})
+  } as T;
 }
 
 export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData): FigshareClient {
@@ -234,7 +293,13 @@ export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData):
 export function makeLiveClient(config: FigsharePublishingConfigData, runContext: FigshareRunContext): FigshareClient {
   return {
     createArticle(payload: FigshareArticlePayload) {
-      return requestWithRetry<FigshareArticle>(config, runContext, { method: 'post', path: '/account/articles', payload, timeoutMs: config.connection.operationTimeouts.metadataMs });
+      return requestWithRetry<FigshareArticle>(config, runContext, {
+        method: 'post',
+        path: '/account/articles',
+        payload,
+        timeoutMs: config.connection.operationTimeouts.metadataMs,
+        responseMapper: mapCreateArticleResponse
+      });
     },
     updateArticle(articleId: string, payload: FigshareArticlePayload) {
       const normalizedArticleId = assertNumericPathId('articleId', articleId);

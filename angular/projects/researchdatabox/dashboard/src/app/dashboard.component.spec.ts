@@ -186,6 +186,102 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
   });
 
+  it('keeps the default sort when paginating before any column sort is selected', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const getRecordsSpy = spyOn(recordService, 'getRecords').and.returnValue(Promise.resolve(recordDataStandard.records as any));
+    spyOn(dashboardComponent, 'evaluatePlanTableColumns').and.returnValue({
+      items: recordDataStandard.records.items,
+      totalItems: recordDataStandard.records.totalItems,
+      currentPage: recordDataStandard.records.currentPage,
+      noItems: recordDataStandard.records.noItems,
+    } as any);
+
+    dashboardComponent.dashboardTypeSelected = 'standard';
+    dashboardComponent.recordType = 'rdmp';
+    dashboardComponent.filterFieldPath = 'metadata.title';
+    dashboardComponent.sortFields = {
+      draft: ['metadata.title', 'metadata.contributor_data_manager.text_full_name', 'metaMetadata.lastSaveDate'],
+    };
+    dashboardComponent.sortMap = {
+      draft: {
+        'metadata.title': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metadata.contributor_data_manager.text_full_name': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metaMetadata.lastSaveDate': { sort: 'desc', secondarySort: '', defaultSort: true },
+      },
+    };
+
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'draft');
+
+    expect(getRecordsSpy).toHaveBeenCalledWith(
+      'rdmp',
+      'draft',
+      2,
+      '',
+      'metaMetadata.lastSaveDate:-1',
+      'metadata.title',
+      '',
+      '',
+      ''
+    );
+  });
+
+  it('keeps the clicked sort when paginating after a column sort is selected', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const getRecordsSpy = spyOn(recordService, 'getRecords').and.returnValue(Promise.resolve(recordDataStandard.records as any));
+    spyOn(dashboardComponent, 'evaluatePlanTableColumns').and.returnValue({
+      items: recordDataStandard.records.items,
+      totalItems: recordDataStandard.records.totalItems,
+      currentPage: recordDataStandard.records.currentPage,
+      noItems: recordDataStandard.records.noItems,
+    } as any);
+
+    dashboardComponent.dashboardTypeSelected = 'standard';
+    dashboardComponent.recordType = 'rdmp';
+    dashboardComponent.filterFieldPath = 'metadata.title';
+    dashboardComponent.sortFields = {
+      draft: ['metadata.contributor_data_manager.text_full_name', 'metadata.title', 'metaMetadata.lastSaveDate'],
+    };
+    dashboardComponent.tableConfig = {
+      draft: [
+        { variable: 'metadata.contributor_data_manager.text_full_name', noSort: '', secondarySort: '' },
+        { variable: 'metadata.title', noSort: '', secondarySort: '' },
+        { variable: 'metaMetadata.lastSaveDate', noSort: '', secondarySort: '' },
+      ],
+    };
+    dashboardComponent.sortMap = {
+      draft: {
+        'metadata.contributor_data_manager.text_full_name': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metadata.title': { sort: 'desc', secondarySort: '', defaultSort: false },
+        'metaMetadata.lastSaveDate': { sort: 'desc', secondarySort: '', defaultSort: true },
+      },
+    };
+
+    await dashboardComponent.sortChanged({
+      step: 'draft',
+      sort: 'asc',
+      secondarySort: '',
+      variable: 'metadata.title',
+    } as any);
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'draft');
+
+    expect(getRecordsSpy).toHaveBeenCalledTimes(2);
+    expect(getRecordsSpy.calls.mostRecent().args).toEqual([
+      'rdmp',
+      'draft',
+      2,
+      '',
+      'metadata.title:1',
+      'metadata.title',
+      '',
+      '',
+      '',
+    ]);
+  });
+
   it('initializes a dashboard view and loads view templates', async () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
@@ -444,7 +540,7 @@ describe('DashboardComponent standard', () => {
       dashboardComponent.sortFields = { draft: [''] };
       const sortMapAtStep = { '': { sort: 'desc', secondarySort: 'dateCreated' } };
       const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('dateCreated:-1');
+      expect(secondarySort).toEqual('');
     });
 
     it('handles step that does not exist in sortFields', () => {
@@ -588,7 +684,7 @@ describe('DashboardComponent standard', () => {
       expect(sortString).toEqual('title:-1');
     });
 
-    it('uses last matching field with sort when multiple fields exist', () => {
+    it('uses first matching field with sort when multiple fields exist', () => {
       const fixture = TestBed.createComponent(DashboardComponent);
       const dashboardComponent = fixture.componentInstance as any;
       dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
@@ -598,7 +694,7 @@ describe('DashboardComponent standard', () => {
         name: { sort: 'desc' },
       };
       const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('name:-1');
+      expect(sortString).toEqual('date:1');
     });
 
     it('returns default sort when sortField is empty string', () => {

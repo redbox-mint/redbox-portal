@@ -1,8 +1,14 @@
-import { handlebarsHelperDefinitions } from '../../src/handlebars-helpers';
-import { escapeHtmlText } from '../../src/html-helpers';
+import {
+  handlebarsHelperDefinitions,
+  escapeHtmlText,
+  handlebarsInstance,
+  handlebarsPrecompile,
+  handlebarsCompile,
+  handlebarsTemplate
+} from '../../src';
 
-describe('Shared Handlebars Helpers', function () {
-    let expect: any;
+describe('Shared Handlebars Helpers', async function () {
+    let expect: Chai.ExpectStatic;
 
     before(async function () {
         const chai = await import('chai');
@@ -228,6 +234,32 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('pluck', function () {
+        it('should extract a property from each item using dot notation', function () {
+            const creators = [{ email: 'a@x' }, { email: 'b@x' }, { email: 'c@x' }];
+            const result = handlebarsHelperDefinitions.pluck(creators, 'email');
+            expect(result).to.deep.equal(['a@x', 'b@x', 'c@x']);
+        });
+
+        it('should support nested paths and default missing values to empty string', function () {
+            const items = [{ meta: { name: 'one' } }, { meta: {} }];
+            const result = handlebarsHelperDefinitions.pluck(items, 'meta.name');
+            expect(result).to.deep.equal(['one', '']);
+        });
+
+        it('should return empty array for non-array input', function () {
+            const result = handlebarsHelperDefinitions.pluck('not an array' as any, 'email');
+            expect(result).to.deep.equal([]);
+        });
+
+        it('should combine with join to build a delimited string', function () {
+            const creators = [{ email: 'a@x' }, { email: 'b@x' }];
+            const plucked = handlebarsHelperDefinitions.pluck(creators, 'email');
+            const result = handlebarsHelperDefinitions.join(plucked, ',');
+            expect(result).to.equal('a@x,b@x');
+        });
+    });
+
     describe('substring', function () {
         it('should return sliced substring', function () {
             const result = handlebarsHelperDefinitions.substring('https://linked.data.gov.au/def/anzsrc-for/2020/300101', -6);
@@ -261,6 +293,74 @@ describe('Shared Handlebars Helpers', function () {
         });
     });
 
+    describe('attachmentDownloadUrl', function () {
+        it('should build a branded attachment download URL from fileId and oid', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { fileId: 'content 1.txt', name: 'content1.txt' },
+                'oid/1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid%2F1/attach/content%201.txt');
+        });
+
+        it('should prefix record-relative attachment locations with branding and portal', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { location: '/record/oid-1/attach/file-1' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should normalize migrated attachment locations without a leading record segment', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { location: 'oid-1/attach/file-1' },
+                '',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should derive a branded attachment path from uploadUrl', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { uploadUrl: 'https://researchdata.example/default/rdmp/record/oid-1/attach/file-1' },
+                '',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+        });
+
+        it('should keep safe absolute URLs', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { url: 'https://example.test/download/file-1' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('https://example.test/download/file-1');
+        });
+
+        it('should reject unsafe attachment URLs', function () {
+            const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
+                { url: 'javascript:alert(1)', location: 'javascript:alert(2)' },
+                'oid-1',
+                'default',
+                'rdmp'
+            );
+
+            expect(result).to.equal('');
+        });
+    });
+
     describe('default', function () {
         it('should return value if truthy', function () {
             const result = handlebarsHelperDefinitions.default('hello', 'default');
@@ -288,6 +388,13 @@ describe('Shared Handlebars Helpers', function () {
         it('should return empty string when value is nullish', function () {
             const result = handlebarsHelperDefinitions.markdownToHtml(null, 'markdown');
             expect(result).to.equal('');
+        });
+    });
+
+    describe('plaintextToHtml', function () {
+        it('should escape text and preserve line breaks', function () {
+            const result = handlebarsHelperDefinitions.plaintextToHtml('Line 1\n<script>alert("x")</script>\r\nLine 3');
+            expect(result).to.equal('Line 1<br>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;<br>Line 3');
         });
     });
 
@@ -359,5 +466,32 @@ describe('Shared Handlebars Helpers', function () {
             expect(result).to.contain('nested');
             expect(result).to.contain('<li>two</li>');
         });
+    });
+
+    describe('wrapper functions', async function () {
+      it('should return the same instance', function () {
+        const one = handlebarsInstance();
+        const two = handlebarsInstance();
+
+        expect(one).to.eql(two);
+      });
+      it('should precompile a template and render it', function () {
+        const precompiled = handlebarsPrecompile('{{renderMetadataValue content}}');
+        const precompiledString = precompiled.toString();
+        expect(precompiled).to.contain('\"renderMetadataValue\"');
+        expect(precompiled).to.contain('\"content\"');
+        expect(precompiled).to.contain("{\"compiler\":");
+
+        let precompiledEval = {};
+        eval(`precompiledEval = ${precompiledString}`);
+        const compiled = handlebarsTemplate(precompiledEval);
+        const result = compiled({content: ["one", "two"]});
+        expect(result).to.eql('&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;');
+      });
+      it('should compile a template to a function', function () {
+        const compiled = handlebarsCompile('{{renderMetadataValue content}}');
+        const result = compiled({content: ["one", "two"]}, {allowCallsToHelperMissing: false});
+        expect(result).to.eql('&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;');
+      });
     });
 });

@@ -244,7 +244,9 @@ export class BehaviourHandler {
    */
   private async getCompiledTemplateEvaluator(): Promise<BehaviourCompiledTemplateEvaluator> {
     if (!this.compiledItems) {
-      this.compiledItems = await this.ctx.formComponent.getFormCompiledItems();
+      // Use the record's current workflow-stage form (oid-aware) so behaviour/expression keys
+      // match the rendered form; stage forms can differ structurally from the starting-step form.
+      this.compiledItems = await this.ctx.formComponent.getRecordCompiledItems();
     }
     if (!this.compiledTemplateEvaluator) {
       this.compiledTemplateEvaluator = new BehaviourCompiledTemplateEvaluator(this.compiledItems!, this.ctx.logger);

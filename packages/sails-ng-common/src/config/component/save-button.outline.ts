@@ -17,24 +17,24 @@ export const SaveButtonComponentName = "SaveButtonComponent" as const;
 export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
 export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    /**
-     * Try to transition to this workflow step as part of the save process on the server.
-     */
-    targetStep?: string;
-    /**
-     * Save the form, even if it would otherwise not be able to save.
-     * For example, save even if nothing has changed or there are validation failures.
-     */
-    forceSave?: boolean;
-    /**
-     * The label to set to the button while saving.
-     */
-    labelSaving?: string;
-    /**
-     * CSS classes to apply to the underlying button element.
-     * Example: 'btn-success' or 'btn btn-success'.
-     */
-    buttonCssClasses?: string;
+  /**
+   * Try to transition to this workflow step as part of the save process on the server.
+   */
+  targetStep?: string;
+  /**
+   * Save the form, even if it would otherwise not be able to save.
+   * For example, save even if nothing has changed or there are validation failures.
+   */
+  forceSave?: boolean;
+  /**
+   * The label to set to the button while saving.
+   */
+  labelSaving?: string;
+  /**
+   * CSS classes to apply to the underlying button element.
+   * Example: 'btn-success' or 'btn btn-success'.
+   */
+  buttonCssClasses?: string;
   /**
    * Validation groups to enable for this save request.
    * Defaults to the form's current enabled validation groups.
@@ -46,10 +46,12 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
   closeOnSave?: boolean;
   /**
    * The relative url to redirect to on a successful save if closeOnSave is true.
+   * Leave empty to use the browser's location.back.
    */
-    redirectLocation?: string;
+  redirectLocation?: string;
   /**
    * The delay before redirecting on a successful save if closeOnSave is true.
+   * Default is 3 seconds delay.
    */
   redirectDelaySeconds?: number;
 }
