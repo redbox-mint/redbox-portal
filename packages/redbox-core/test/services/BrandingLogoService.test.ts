@@ -221,6 +221,30 @@ describe('BrandingLogoService', function() {
       expect(mockPrimaryDisk.delete.called).to.be.false;
     });
 
+    it('should log deferred cleanup failures without failing the completed upload', async function() {
+      const clock = sinon.useFakeTimers();
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().rejects(new Error('database unavailable'));
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+      await clock.tickAsync(24 * 60 * 60 * 1000);
+
+      expect(mockSails.log.warn.calledWith(
+        `BrandingLogoService failed to remove superseded favicon ${previousStorageKey}:`,
+        sinon.match.instanceOf(Error)
+      )).to.be.true;
+    });
+
     it('should accept an ICO favicon', async function() {
       const brand = { id: 'brand1' };
       (global as any).BrandingConfig.findOne.resolves(brand);
