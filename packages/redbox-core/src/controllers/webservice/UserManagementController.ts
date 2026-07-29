@@ -298,24 +298,45 @@ export namespace Controllers {
         (error: unknown) => {
           if ((error as Error)?.message?.includes('Username already exists')) {
             UsersService.getUserWithUsername(userReq.username || '').subscribe(
-              (existingUser: UserModel | null) => {
-                if (existingUser) {
-                  const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
-                  if (brand?.id) {
-                    const hasBrandRole = _.some((existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
-                      const branding = role.branding as string | Record<string, unknown> | undefined;
-                      const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
-                      return roleBrandId === brand.id;
-                    });
-                    if (!hasBrandRole) {
-                      return this.sendResp(req, res, {
-                        status: 403,
-                        displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
-                        headers: this.getNoCacheHeaders(),
+              async (existingUser: UserModel | null) => {
+                try {
+                  if (existingUser) {
+                    const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+                    if (brand?.id) {
+                      const hasBrandRole = _.some((existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
+                        const branding = role.branding as string | Record<string, unknown> | undefined;
+                        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
+                        return roleBrandId === brand.id;
                       });
+                      if (!hasBrandRole) {
+                        const isLinked = typeof UserLink !== 'undefined'
+                          ? await UserLink.findOne({
+                              brandId: brand.id,
+                              status: 'active',
+                              or: [
+                                { primaryUserId: existingUser.id },
+                                { secondaryUserId: existingUser.id }
+                              ]
+                            } as any)
+                          : null;
+                        if (!isLinked) {
+                          return this.sendResp(req, res, {
+                            status: 403,
+                            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+                            headers: this.getNoCacheHeaders(),
+                          });
+                        }
+                      }
                     }
+                    return applyRolesIfRequested(existingUser);
                   }
-                  return applyRolesIfRequested(existingUser);
+                } catch (err) {
+                  sails.log.error('Failed to check brand membership for existing user:', err);
+                  return this.sendResp(req, res, {
+                    status: 500,
+                    displayErrors: [{ detail: 'An error has occurred' }],
+                    headers: this.getNoCacheHeaders(),
+                  });
                 }
                 sails.log.error(error);
                 return this.sendResp(req, res, {
