@@ -96,7 +96,8 @@ class FlydriveOniRepository implements OniOcflRepository {
     private readonly config: ResolvedOniPublishingConfigData,
     private readonly site: OniPublishingSiteConfig,
     private readonly datastreamLayer: Layer.Layer<DatastreamService>,
-    private readonly storageManager: StorageManagerServices.StorageManager = resolveStorageManager()
+    private readonly storageManager: StorageManagerServices.StorageManager = resolveStorageManager(),
+    private readonly loadOcflModule: () => Promise<OcflModuleAdapter> = importOcflModule
   ) {}
 
   private async getStorage(): Promise<OcflStorageAdapter> {
@@ -110,7 +111,7 @@ class FlydriveOniRepository implements OniOcflRepository {
     }
 
     this.storagePromise = (async () => {
-      const ocfl = await importOcflModule();
+      const ocfl = await this.loadOcflModule();
       const disk = await resolveStorageDisk(this.storageManager, storageConfig.diskName);
       const storeClass = createStorageManagerOcflStoreClass(ocfl.OcflStore);
       const storeOptions = {
@@ -195,7 +196,8 @@ export function createOniRepository(
   config: ResolvedOniPublishingConfigData,
   site: OniPublishingSiteConfig,
   datastreamService: DatastreamService,
-  storageManager?: StorageManagerServices.StorageManager
+  storageManager?: StorageManagerServices.StorageManager,
+  loadOcflModule?: () => Promise<OcflModuleAdapter>
 ): OniOcflRepository {
   const storageDriver = getStorageDriver(site.storage);
   if (storageDriver !== 'flydrive') {
@@ -203,5 +205,11 @@ export function createOniRepository(
       `Oni publishing site storage driver '${storageDriver}' is not supported. Configure site.storage.driver as 'flydrive'.`
     );
   }
-  return new FlydriveOniRepository(config, site, makeOniDatastreamLayer(datastreamService), storageManager);
+  return new FlydriveOniRepository(
+    config,
+    site,
+    makeOniDatastreamLayer(datastreamService),
+    storageManager,
+    loadOcflModule
+  );
 }
