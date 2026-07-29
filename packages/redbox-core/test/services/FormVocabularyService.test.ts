@@ -156,6 +156,23 @@ describe('FormVocabularyService', function () {
         'user_field:alice&bob',
       ]);
     });
+
+    it('maps a raw base expression to the required q parameter', function () {
+      const brand = { id: 'brand-1' };
+      const config = _.cloneDeep(mockSails.config.vocab.queries['solr-source']);
+      config.searchQuery.baseQuery = 'type:vocabulary&fq=status:active';
+
+      const query = (FormVocabularyService as any).buildSolrParams(
+        brand, '', config, 0, 10, 'json', { username: 'testuser' }
+      );
+
+      expect(query.get('q')).to.equal('type:vocabulary');
+      expect(query.getAll('fq')).to.deep.equal([
+        'status:active',
+        'metaMetadata_brandId:brand-1',
+        'user_field:testuser',
+      ]);
+    });
   });
 
   describe('findRecords', function () {

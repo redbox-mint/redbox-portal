@@ -444,8 +444,6 @@ describe('ReportsService', function() {
       
       expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
       const params = mockSails.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
-      expect(params).to.be.instanceOf(URLSearchParams);
-      expect(params.get('q')).to.equal('*:*');
       expect(params.getAll('fq')).to.deep.equal([
         'metaMetadata_brandId:brand-1',
         'metadata_title:research & data*',

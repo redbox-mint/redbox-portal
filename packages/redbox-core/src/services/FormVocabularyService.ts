@@ -263,7 +263,14 @@ export namespace Services {
     }
 
     private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): URLSearchParams {
-      const params = new URLSearchParams(queryConfig.searchQuery.baseQuery);
+      const baseQuery = String(queryConfig.searchQuery.baseQuery ?? '');
+      const firstSeparator = baseQuery.indexOf('&');
+      const firstSegment = firstSeparator === -1 ? baseQuery : baseQuery.substring(0, firstSeparator);
+      const remainingSegments = firstSeparator === -1 ? '' : baseQuery.substring(firstSeparator + 1);
+      const params = new URLSearchParams(firstSegment.includes('=') ? baseQuery : remainingSegments);
+      if (!firstSegment.includes('=')) {
+        params.set('q', firstSegment);
+      }
       params.append('sort', 'date_object_modified desc');
       params.append('version', '2.2');
       params.append('start', String(start));
