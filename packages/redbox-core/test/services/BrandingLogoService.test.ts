@@ -173,8 +173,7 @@ describe('BrandingLogoService', function() {
       });
     });
 
-    it('should defer cleanup of a superseded favicon for requests using previously-read metadata', async function() {
-      const clock = sinon.useFakeTimers();
+    it('should retain superseded content-addressed favicons for in-flight and replicated readers', async function() {
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
       (global as any).BrandingConfig.findOne.resolves({
         id: 'brand1',
@@ -191,9 +190,6 @@ describe('BrandingLogoService', function() {
 
       expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
       expect(mockPrimaryDisk.delete.called).to.be.false;
-
-      await clock.tickAsync(24 * 60 * 60 * 1000);
-      expect(mockPrimaryDisk.delete.calledOnceWithExactly(previousStorageKey)).to.be.true;
     });
 
     it('should accept an ICO favicon', async function() {

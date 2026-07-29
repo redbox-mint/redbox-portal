@@ -53,17 +53,6 @@ export namespace Services {
       return entry.buffer;
     }
 
-    private scheduleSupersededFaviconCleanup(storageKey: string): void {
-      const cleanupTimer = setTimeout(() => {
-        StorageManagerService.primaryDisk().delete(storageKey).then(() => {
-          delete this._binaryById[storageKey];
-        }).catch(error => {
-          sails.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`, error);
-        });
-      }, this.getCacheTtlMs());
-      cleanupTimer.unref?.();
-    }
-
     private isStorageNotFoundError(err: unknown): boolean {
       if (!err || typeof err !== 'object') {
         return false;
@@ -238,10 +227,6 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       await BrandingConfig.update({ id: brand.id }, { favicon: meta });
-      const previousStorageKey = _.get(brand, 'favicon.storageKey') as string | undefined;
-      if (previousStorageKey && previousStorageKey !== storageKey) {
-        this.scheduleSupersededFaviconCleanup(previousStorageKey);
-      }
       return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 
