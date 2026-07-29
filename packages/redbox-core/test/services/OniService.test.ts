@@ -192,6 +192,23 @@ describe('OniService', function () {
     expect(resolved.site.publicUrl).to.equal('https://data.example.edu');
   });
 
+  it('rejects missing, unknown, and disabled Oni publishing sites', function () {
+    const config = resolveOniPublishingConfig(publicationRecord())!;
+
+    expect(() => resolveOniSite({ ...config, defaultSite: '' }))
+      .to.throw('options.site and oniPublishing.defaultSite are both empty');
+    expect(() => resolveOniSite(config, { site: 'missing-site' }))
+      .to.throw("Unknown Oni publishing site 'missing-site'");
+    expect(() => resolveOniSite({
+      ...config,
+      sites: {
+        ...config.sites,
+        disabled: { ...config.sites['test-site'], enabled: false },
+      },
+    }, { site: 'disabled' }))
+      .to.throw("Oni publishing site 'disabled' is disabled");
+  });
+
   it('builds RO-Crate JSON-LD and selected attachment plan from oniPublishing', async function () {
     const record = publicationRecord();
     const result = await buildOniRoCrate({
