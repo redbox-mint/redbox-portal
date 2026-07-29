@@ -302,21 +302,11 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       !shouldSkipActionRowGroupTransform &&
       (hasDefaultViewTransform || hasExplicitViewTransform || shouldTransformInlineVocabOption);
     const shouldSkipViewTransform = this.hasExplicitAllowedMode(item, 'view');
-    const shouldTransformRepeatable = className === RepeatableComponentName;
-    const shouldTransformGroup = className === GroupFieldComponentName && item?.layout?.class !== ActionRowLayoutName;
-    const shouldTransformQuestionTree = className === QuestionTreeComponentName;
 
-    if (
-      shouldTransformRepeatable ||
-      shouldTransformGroup ||
-      shouldTransformQuestionTree ||
-      shouldTransformInlineVocabOption
-    ) {
-      if (shouldSkipViewTransform) {
-        this.applyPostPruningTransformsToNestedChildren(item);
-        if ('constraints' in item) {
-          delete item['constraints'];
-        }
+    if (shouldTransform) {
+      if (shouldSkipViewTransform && !hasExplicitViewTransform) {
+        this.removeServerOnlyProperties(item);
+        this.applyPostPruningTransformsToNestedChildrenWithoutElementTemplate(item);
         return item;
       }
 
