@@ -2,6 +2,7 @@ let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
+import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -730,5 +731,136 @@ describe('RecordController TUS URL generation', () => {
     await controller.doAttachment(req, res);
 
     expect(checkDiskSpaceStub.firstCall.args[0]).to.not.equal('/legacy/mongodb-disk');
+  });
+});
+
+describe('AsynchController authorization', () => {
+  let controller: AsynchControllers.Asynch;
+  let originalSails: any;
+  let originalBrandingService: any;
+  let originalAsynchsService: any;
+
+  const makeRequest = (
+    values: Record<string, unknown>,
+    user: Record<string, unknown> | undefined = { username: 'alice', roles: [] }
+  ) => ({
+    isSocket: true,
+    session: { branding: 'default' },
+    user,
+    param: sinon.stub().callsFake((name: string) => values[name]),
+  } as unknown as Sails.Req);
+
+  beforeEach(() => {
+    originalSails = (global as any).sails;
+    originalBrandingService = (global as any).BrandingService;
+    originalAsynchsService = (global as any).AsynchsService;
+    (global as any)._ = require('lodash');
+    (global as any).BrandingService = { getBrand: sinon.stub().returns({ id: 'brand-1' }) };
+    (global as any).AsynchsService = {
+      get: sinon.stub().returns(of([])),
+      finish: sinon.stub().returns(of([{ id: 'job-1', relatedRecordId: 'record-1' }])),
+      update: sinon.stub().returns(of([{ id: 'job-1', relatedRecordId: 'record-1' }])),
+    };
+    (global as any).sails = {
+      log: { verbose: sinon.stub() },
+      services: {
+        recordsservice: {
+          getMeta: sinon.stub(),
+          hasViewAccess: sinon.stub().returns(true),
+        },
+      },
+      sockets: {
+        join: sinon.stub().callsFake((_req: unknown, _roomId: string, callback: (error?: unknown) => void) => callback()),
+        broadcast: sinon.stub(),
+      },
+    };
+    controller = new AsynchControllers.Asynch();
+    sinon.stub(controller as any, 'getNoCacheHeaders').returns({});
+  });
+
+  afterEach(() => {
+    sinon.restore();
+    (global as any).sails = originalSails;
+    (global as any).BrandingService = originalBrandingService;
+    (global as any).AsynchsService = originalAsynchsService;
+  });
+
+  it('resolves and authorizes direct, progress, and composite rooms', async () => {
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getMeta.callsFake(async (oid: string) => {
+      if (oid === 'record-1') {
+        return { redboxOid: oid };
+      }
+      throw new Error('not found');
+    });
+    (global as any).AsynchsService.get.callsFake(({ id }: { id: string }) =>
+      of(id === 'job-1' ? [{ id, relatedRecordId: 'record-1' }] : [])
+    );
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
+    await controller.subscribe(makeRequest({ roomId: 'job-1' }), {} as Sails.Res);
+    await controller.subscribe(makeRequest({ roomId: 'record-1-export' }), {} as Sails.Res);
+
+    expect(recordsService.hasViewAccess.callCount).to.equal(2);
+    expect((global as any).sails.sockets.join.callCount).to.equal(3);
+    expect(sendResp.thirdCall.args[2].data.status).to.be.true;
+  });
+
+  it('rejects invalid subscription attempts and reports join errors', async () => {
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getMeta.rejects(new Error('not found'));
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.subscribe(makeRequest({ roomId: 'unknown-room' }), {} as Sails.Res);
+    expect(sendResp.firstCall.args[2].data.status).to.be.true;
+
+    recordsService.getMeta.resolves({ redboxOid: 'record-1' });
+    recordsService.hasViewAccess.returns(false);
+    await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
+    expect(sendResp.getCalls().some((call) => call.args[2]?.status === 403)).to.be.true;
+
+    await controller.subscribe(makeRequest({ roomId: 'record-1' }, undefined), {} as Sails.Res);
+    expect(sendResp.getCalls().filter((call) => call.args[2]?.status === 403)).to.have.length(2);
+
+    const badRequest = sinon.stub();
+    await controller.subscribe({ isSocket: false, param: sinon.stub() } as unknown as Sails.Req, { badRequest } as unknown as Sails.Res);
+    expect(badRequest.calledOnce).to.be.true;
+
+    recordsService.hasViewAccess.returns(true);
+    (global as any).sails.sockets.join.callsFake((_req: unknown, _roomId: string, callback: (error: unknown) => void) => callback(new Error('join failed')));
+    await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
+    expect(sendResp.callCount).to.equal(4);
+  });
+
+  it('only stops jobs owned by the authenticated user', () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).AsynchsService.get.returns(of([{ id: 'job-1', started_by: 'alice' }]));
+    controller.stop(makeRequest({ id: 'job-1' }), {} as Sails.Res);
+    expect((global as any).AsynchsService.finish.calledOnce).to.be.true;
+
+    (global as any).AsynchsService.get.returns(of([{ id: 'job-2', started_by: 'bob' }]));
+    controller.stop(makeRequest({ id: 'job-2' }), {} as Sails.Res);
+    expect(sendResp.getCalls().some((call) => call.args[2]?.status === 403)).to.be.true;
+
+    (global as any).AsynchsService.get.returns(of([]));
+    controller.stop(makeRequest({ id: 'missing' }, undefined), {} as Sails.Res);
+    expect((global as any).AsynchsService.finish.callCount).to.equal(2);
+  });
+
+  it('only updates jobs owned by the authenticated user', () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).AsynchsService.get.returns(of([{ id: 'job-1', started_by: 'alice' }]));
+    controller.update(makeRequest({
+      id: 'job-1',
+      relatedRecordId: 'record-1',
+      taskType: 'export',
+      status: 'running',
+    }), {} as Sails.Res);
+    expect((global as any).AsynchsService.update.calledOnce).to.be.true;
+
+    (global as any).AsynchsService.get.returns(of([{ id: 'job-2', started_by: 'bob' }]));
+    controller.update(makeRequest({ id: 'job-2' }), {} as Sails.Res);
+    expect(sendResp.getCalls().some((call) => call.args[2]?.status === 403)).to.be.true;
   });
 });
