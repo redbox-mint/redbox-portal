@@ -68,6 +68,17 @@ export const reusableViewFormDefinitions: ReusableFormDefinitions = {
       },
     },
   ],
+  "view-template-leaf-link": [
+    {
+      name: "view_template_leaf_link",
+      component: {
+        class: "ContentComponent",
+        config: {
+          template: "{{#if [[valueExpr]]}}<a href=\"{{default [[valueExpr]] \"\"}}\" target=\"_blank\" rel=\"noopener noreferrer\">{{default [[valueExpr]] \"\"}}</a>{{/if}}"
+        }
+      },
+    },
+  ],
   "view-template-group-container": [
     {
       name: "view_template_group_container",

@@ -70,6 +70,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const template = config?.template ?? '';
+    const hasContent = config?.content !== null && config?.content !== undefined;
     const content = config?.content ?? '';
     this.isRichTextContent = !!config?.outputFormat;
     const contentIsTranslationCode = (config as { contentIsTranslationCode?: boolean } | undefined)?.contentIsTranslationCode === true;
@@ -77,7 +78,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       ? 'html'
       : 'plain';
 
-    if (content && template) {
+    if (hasContent && template) {
       // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];

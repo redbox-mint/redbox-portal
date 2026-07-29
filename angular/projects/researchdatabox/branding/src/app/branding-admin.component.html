@@ -58,6 +58,16 @@
                 <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
               </div>
             </div>
+            <div class="col-md-6 mt-3">
+              <div class="mb-3">
+                <label for="faviconUpload" class="form-label">
+                  <i class="fas fa-star me-2"></i>
+                  {{ 'branding-favicon-upload-label' | i18next }}
+                </label>
+                <input type="file" class="form-control" id="faviconUpload" (change)="uploadFavicon($event)" accept="image/png,image/svg+xml,image/x-icon,.ico" />
+                <div class="form-text">{{ 'branding-favicon-upload-help' | i18next }}</div>
+              </div>
+            </div>
           </div>
 
           <div class="row mt-3 border-top pt-3">

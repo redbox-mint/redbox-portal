@@ -1,8 +1,7 @@
 {
   "@name-test1": {
-    "category": "name",
-    "description": "Name for test 1.",
-    "contentFormat": "plain"
+    "category": "naming",
+    "description": "Name for test 1."
   },
   "@name-test2": {
     "category": "name",
@@ -10,6 +9,7 @@
     "contentFormat": "plain"
   },
   "@name-test3": {
+    "category": "name",
     "description": "Name for test 3."
   }
 }

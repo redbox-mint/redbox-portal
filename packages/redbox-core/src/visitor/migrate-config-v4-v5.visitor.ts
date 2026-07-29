@@ -777,7 +777,14 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.formPath.angularComponentsJsonPointer ?? ''
     );
 
-    // Add the validation summary.
+    // Add the save status and validation summary used by legacy forms.
+    const saveStatusFrame = {
+      name: 'save_status',
+      component: { class: 'SaveStatusComponent' },
+    };
+    const saveStatusComponent = this.sharedProps.sharedConstructFormComponent(saveStatusFrame);
+    item.componentDefinitions.push(saveStatusComponent);
+
     const validationSummaryFrame = {
       name: 'validation_summary',
       component: { class: 'ValidationSummaryComponent' },
@@ -926,31 +933,32 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const contentBoundHtmlTemplateToken = '{{{get formData content ""}}}';
       const contentBoundValueTemplateToken = '{{get formData content.value ""}}';
       const labelOnlyTemplateToken = this.isLegacyTranslationKey(item.config.label) ? '{{t content}}' : '{{content}}';
+      const contentConfig = item.config;
+      const setHeadingContent = (headingLevel: string, templateToken: string) => {
+        contentConfig.content = bindContentFromFormData ? v4Name : v4Value;
+        contentConfig.template = this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)
+          ? `<span></span>`
+          : `<${headingLevel}>${templateToken}</${headingLevel}>`;
+      };
 
       switch (v4Type) {
         case 'h1':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h1>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h1>`;
+          setHeadingContent('h1', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h2':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h2>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h2>`;
+          setHeadingContent('h2', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h3':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h3>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h3>`;
+          setHeadingContent('h3', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h4':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h4>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h4>`;
+          setHeadingContent('h4', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h5':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h5>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h5>`;
+          setHeadingContent('h5', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'h6':
-          item.config.content = bindContentFromFormData ? v4Name : v4Value;
-          item.config.template = `<h6>${bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken}</h6>`;
+          setHeadingContent('h6', bindContentFromFormData ? contentBoundTemplateToken : contentTemplateToken);
           break;
         case 'hr':
           item.config.content = bindContentFromFormData ? v4Name : v4Value;
@@ -2453,7 +2461,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected shouldOmitLegacyField(field: Record<string, unknown>, v4FormPathMore?: string[]): boolean {
+  protected shouldOmitLegacyField(field: Record<string, unknown> | null | undefined, v4FormPathMore?: string[]): boolean {
+    if (!field || typeof field !== 'object') {
+      this.logger.warn(
+        `${this.logName}: Omitting empty legacy field entry at ${JSON.stringify([
+          ...(this.v4FormPath ?? []),
+          ...(v4FormPathMore ?? []),
+        ])}.`
+      );
+      return true;
+    }
+
     const v4ClassName = `${field?.class ?? ''}`.trim();
     const v4CompClassName = `${field?.compClass ?? ''}`.trim();
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
@@ -2791,20 +2809,24 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
           ? (definition.label as string)
           : isLegacyDataLocation
             ? fallbackLabel
-            : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
-              fallbackLabel ||
-              (typeof definition.name === 'string' ? definition.name : undefined) ||
-              (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
-                ? definition.value
-                : undefined);
+            : this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field) && typeof definition.value === 'string'
+              ? definition.value
+              : // RepeatableContributor often only defines 'name'; preserve a section label on migration.
+                (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && typeof definition.value === 'string'
+                  ? definition.value
+                : fallbackLabel || (typeof definition.name === 'string' ? definition.name : undefined));
     const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
-    const cssClassesMap =
-      this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses
-        ? { label: legacyCssClasses }
-        : undefined;
+    let cssClassesMap: { label: string } | undefined;
+    if (this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) && legacyCssClasses) {
+      cssClassesMap = { label: legacyCssClasses };
+    } else if (this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)) {
+      const headingCssClass = this.getLegacyTextBlockHeadingCssClass(field);
+      cssClassesMap = headingCssClass ? { label: headingCssClass } : undefined;
+    }
     const config = {
       label: this.isInsideButtonBarContainer || this.isInsideLegacyInlineContainer() ? undefined : migratedLabel,
-      helpText: typeof definition.help === 'string' ? definition.help : undefined,
+      helpText:
+        !this.isLegacyLinkValueControl(field) && typeof definition.help === 'string' ? definition.help : undefined,
       cssClassesMap,
     };
     this.sharedProps.sharedPopulateFieldLayoutConfig(item, config);
@@ -2864,6 +2886,39 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return hasHelpText || hasLegacyCssClass;
   }
 
+  private isLegacyTextBlockHeadingField(field?: Record<string, unknown>): boolean {
+    if (!field) {
+      return false;
+    }
+    const definition = (field.definition ?? {}) as Record<string, unknown>;
+    return (
+      `${field.class ?? ''}`.trim() === 'Container' &&
+      `${field.compClass ?? ''}`.trim() === 'TextBlockComponent' &&
+      /^h[1-6]$/.test(`${definition.type ?? ''}`.trim())
+    );
+  }
+
+  private shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field?: Record<string, unknown>): boolean {
+    if (!this.isLegacyTextBlockHeadingField(field)) {
+      return false;
+    }
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    return typeof definition.help === 'string' && definition.help.trim().length > 0;
+  }
+
+  private getLegacyTextBlockHeadingCssClass(field?: Record<string, unknown>): string | undefined {
+    if (!this.isLegacyTextBlockHeadingField(field)) {
+      return undefined;
+    }
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const legacyCssClasses = typeof definition.cssClasses === 'string' ? definition.cssClasses.trim() : '';
+    if (legacyCssClasses) {
+      return legacyCssClasses;
+    }
+    const type = `${definition.type ?? ''}`.trim();
+    return /^h[1-6]$/.test(type) ? `${type}-header` : undefined;
+  }
+
   private shouldSuppressLegacyTextBlockLayoutLabel(field?: Record<string, unknown>): boolean {
     if (!field) {
       return false;
@@ -2877,7 +2932,8 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       isLegacyTextBlock &&
       hasLegacyNameBinding &&
       !hasExplicitLabel &&
-      !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field)
+      !this.shouldPromoteLegacyTextBlockSpanToLayoutLabel(field) &&
+      !this.shouldPromoteLegacyTextBlockHeadingToLayoutLabel(field)
     );
   }
 
@@ -2937,7 +2993,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return normalized;
   }
 
-  protected async migrateOptions(field: Record<string, unknown>) {
+  protected migrateOptions(field: Record<string, unknown>) {
     return (((field?.definition as Record<string, unknown>)?.options as Array<Record<string, unknown>>) ?? []).map(
       option => {
         return {
@@ -3571,11 +3627,15 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   private async injectLegacyRecordMetadataRetrieverExpressions(
-    legacyFields: Record<string, unknown>[],
+    legacyFields: (Record<string, unknown> | null | undefined)[],
     migratedComponents: AllFormComponentDefinitionOutlines[],
     containerPointer = ''
   ): Promise<void> {
-    for (const legacyField of legacyFields) {
+    const validLegacyFields = legacyFields.filter(
+      (legacyField): legacyField is Record<string, unknown> => !!legacyField && typeof legacyField === 'object'
+    );
+
+    for (const legacyField of validLegacyFields) {
       if (!this.isLegacyRecordMetadataRetrieverField(legacyField)) {
         continue;
       }
@@ -3589,11 +3649,11 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       const migratedRetriever = migratedComponents.find(component => component.name === retrieverName);
       if (migratedRetriever) {
         migratedRetriever.expressions = (migratedRetriever.expressions ?? []).concat(
-          this.buildRetrieverExpressions(legacyField, legacyFields, containerPointer)
+          this.buildRetrieverExpressions(legacyField, validLegacyFields, containerPointer)
         );
       }
 
-      for (const targetField of legacyFields) {
+      for (const targetField of validLegacyFields) {
         const targetDefinition = (targetField.definition ?? {}) as Record<string, unknown>;
         const targetName = String(targetDefinition.name ?? targetDefinition.id ?? '').trim();
         if (!targetName) {

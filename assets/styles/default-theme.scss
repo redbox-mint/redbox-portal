@@ -104,6 +104,11 @@ z-index: 999;
     font-size: 40px;
     margin: 40px 0;font-weight: 400;
 }
+.logo h1.logo-with-heading {
+    align-items: center;
+    display: flex;
+    gap: 20px;
+}
 .logo h1 a {
     color: var(--rb-logo-link-color-branding, #{$logo-link-color-branding});
 }
@@ -225,6 +230,11 @@ z-index: 999;
 
 .site-branding-area h1 {
   color: var(--rb-site-branding-area-heading-color, #{$site-branding-area-heading-color});
+}
+
+.logo-heading-text {
+  color: var(--rb-logo-heading-text-color, #{$logo-heading-text-color});
+  line-height: 1;
 }
 
 .site-branding-area > .container > .row {
