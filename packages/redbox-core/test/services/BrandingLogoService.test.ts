@@ -281,7 +281,7 @@ describe('BrandingLogoService', function() {
       );
     });
 
-    it('should not overwrite the active favicon before its metadata update succeeds', async function() {
+    it('should remove the unreferenced object when its metadata update fails', async function() {
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
       (global as any).BrandingConfig.findOne.resolves({
         id: 'brand1',
@@ -303,7 +303,30 @@ describe('BrandingLogoService', function() {
 
       expect(mockPrimaryDisk.put.calledOnce).to.be.true;
       expect(mockPrimaryDisk.put.firstCall.args[0]).to.not.equal(previousStorageKey);
-      expect(mockPrimaryDisk.delete.called).to.be.false;
+      expect(mockPrimaryDisk.delete.calledOnceWithExactly(mockPrimaryDisk.put.firstCall.args[0])).to.be.true;
+    });
+
+    it('should preserve the metadata error when unreferenced object cleanup also fails', async function() {
+      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
+      (global as any).BrandingConfig.update.rejects(new Error('database unavailable'));
+      mockPrimaryDisk.delete.rejects(new Error('storage unavailable'));
+
+      try {
+        await service.putFavicon({
+          branding: 'brand',
+          portal: 'portal',
+          fileBuffer: Buffer.from('replacement'),
+          contentType: 'image/png',
+        });
+        expect.fail('Should have thrown');
+      } catch (error: unknown) {
+        expect(error instanceof Error ? error.message : String(error)).to.equal('database unavailable');
+      }
+
+      expect(mockSails.log.warn.calledWith(
+        sinon.match('BrandingLogoService failed to remove unreferenced favicon'),
+        sinon.match.instanceOf(Error)
+      )).to.be.true;
     });
 
     it('should reject an unsupported favicon content type', async function() {

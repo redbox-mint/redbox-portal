@@ -242,7 +242,17 @@ export namespace Services {
         contentType: resolvedContentType,
         updatedAt: new Date().toISOString(),
       };
-      await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+      try {
+        await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+      } catch (error) {
+        try {
+          await StorageManagerService.primaryDisk().delete(storageKey);
+          delete this._binaryById[storageKey];
+        } catch (cleanupError) {
+          sails.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`, cleanupError);
+        }
+        throw error;
+      }
       const previousStorageKey = _.get(brand, 'favicon.storageKey') as string | undefined;
       if (previousStorageKey && previousStorageKey !== storageKey) {
         this.scheduleSupersededFaviconCleanup(brand.id, previousStorageKey);
