@@ -54,6 +54,8 @@ import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
 import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
+import * as SecurityEventServiceModule from './SecurityEventService';
+import * as SiemForwardingServiceModule from './SiemForwardingService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -106,6 +108,8 @@ export { WorkspaceTypesServiceModule as WorkspaceTypesService };
 export { RvaImportServiceModule as RvaImportService };
 export { StorageManagerServiceModule as StorageManagerService };
 export { StandardDatastreamServiceModule as StandardDatastreamService };
+export { SecurityEventServiceModule as SecurityEventService };
+export { SiemForwardingServiceModule as SiemForwardingService };
 
 /**
  * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
@@ -323,6 +327,16 @@ export const ServiceExports = {
   get StandardDatastreamService() {
     return getOrCreateService('StandardDatastreamService', () =>
       new StandardDatastreamServiceModule.Services.StandardDatastream().exports()
+    );
+  },
+  get SecurityEventService() {
+    return getOrCreateService('SecurityEventService', () =>
+      new SecurityEventServiceModule.Services.SecurityEventService().exports()
+    );
+  },
+  get SiemForwardingService() {
+    return getOrCreateService('SiemForwardingService', () =>
+      new SiemForwardingServiceModule.Services.SiemForwardingService().exports()
     );
   },
 };

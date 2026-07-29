@@ -90,6 +90,9 @@ export namespace Services {
         }
 
         await AttachmentAccessAudit.create(normalizedEvent as AttachmentAccessAuditAttributes).fetch();
+        void SecurityEventService.emitFromAttachmentAudit(normalizedEvent as Record<string, unknown>).catch((error) => {
+          this.logger.error(`${this.logHeader} SIEM attachment audit emit failed`, error);
+        });
       } catch (err) {
         this.logger.error(`${this.logHeader} recordAccess() failed`, err);
         throw err;

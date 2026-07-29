@@ -118,6 +118,44 @@ export namespace Services {
       return value != null;
     }
 
+    private expandArrayWildcardPaths(target: unknown, fieldPath: string): string[] {
+      if (!fieldPath.includes('[]')) {
+        return [fieldPath];
+      }
+      const [prefix, suffix = ''] = fieldPath.split('[]');
+      const arrayValue = _.get(target, prefix);
+      if (!Array.isArray(arrayValue)) {
+        return [];
+      }
+      return arrayValue.map((_item, index) => `${prefix}[${index}]${suffix}`);
+    }
+
+    private getIdMatchedPath(incomingConfig: unknown, existingConfig: unknown, resolvedPath: string, fieldPath: string): string | undefined {
+      if (!fieldPath.includes('[]')) {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const [prefix, suffix = ''] = fieldPath.split('[]');
+      const match = resolvedPath.match(/\[(\d+)\]/);
+      if (match == null) {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const incomingItemPath = `${prefix}[${match[1]}]`;
+      const incomingId: unknown = _.get(incomingConfig, `${incomingItemPath}.id`);
+      if (typeof incomingId !== 'string' || incomingId.trim() === '') {
+        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
+      }
+      const existingArray = _.get(existingConfig, prefix);
+      if (!Array.isArray(existingArray)) {
+        return undefined;
+      }
+      const existingIndex = existingArray.findIndex((item) => _.get(item, 'id') === incomingId);
+      if (existingIndex < 0) {
+        return undefined;
+      }
+      const idMatchedPath = `${prefix}[${existingIndex}]${suffix}`;
+      return _.has(existingConfig, idMatchedPath) ? idMatchedPath : undefined;
+    }
+
     private maskSecretFields<T>(configKey: string, configData: T): T {
       const secretFields = this.getSecretFields(configKey);
       if (secretFields.length === 0 || configData == null) {
@@ -125,9 +163,11 @@ export namespace Services {
       }
       const masked = _.cloneDeep(configData);
       secretFields.forEach((fieldPath: string) => {
-        if (_.has(masked, fieldPath) && this.shouldMaskSecretValue(_.get(masked, fieldPath))) {
-          _.set(masked, fieldPath, APP_CONFIG_SECRET_MASK);
-        }
+        this.expandArrayWildcardPaths(masked, fieldPath).forEach((resolvedPath) => {
+          if (_.has(masked, resolvedPath) && this.shouldMaskSecretValue(_.get(masked, resolvedPath))) {
+            _.set(masked, resolvedPath, APP_CONFIG_SECRET_MASK);
+          }
+        });
       });
       return masked;
     }
@@ -142,16 +182,19 @@ export namespace Services {
 
       const merged = _.cloneDeep(incomingConfig);
       secretFields.forEach((fieldPath: string) => {
-        const incomingValue = _.get(merged, fieldPath);
-        if (this.isMaskedSecretPlaceholder(incomingValue)) {
-          if (existingConfig != null && _.has(existingConfig, fieldPath)) {
-            _.set(merged, fieldPath, _.get(existingConfig, fieldPath));
-          } else {
-            _.unset(merged, fieldPath);
+        this.expandArrayWildcardPaths(merged, fieldPath).forEach((resolvedPath) => {
+          const incomingValue = _.get(merged, resolvedPath);
+          if (this.isMaskedSecretPlaceholder(incomingValue)) {
+            const existingPath = existingConfig == null ? undefined : this.getIdMatchedPath(merged, existingConfig, resolvedPath, fieldPath);
+            if (existingPath != null) {
+              _.set(merged, resolvedPath, _.get(existingConfig, existingPath));
+            } else {
+              _.unset(merged, resolvedPath);
+            }
+          } else if (incomingValue === APP_CONFIG_SECRET_CLEAR) {
+            _.unset(merged, resolvedPath);
           }
-        } else if (incomingValue === APP_CONFIG_SECRET_CLEAR) {
-          _.unset(merged, fieldPath);
-        }
+        });
       });
 
       return merged;

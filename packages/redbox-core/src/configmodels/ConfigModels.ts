@@ -11,6 +11,7 @@ import {
   toDoiPublishingFormModel
 } from './DoiPublishing';
 import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
+import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration } from './SiemConfiguration';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import * as path from 'path';
 
@@ -38,6 +39,7 @@ export type ConfigModelKey =
     | 'figsharePublishing'
     | 'doiPublishing'
     | 'dashboardTableConfig'
+    | 'siem'
     | 'integrationNotification';
 
 export class ConfigModels {
@@ -97,12 +99,25 @@ export class ConfigModels {
                 fromForm: fromDoiPublishingFormModel
             }
         }],
-        ['dashboardTableConfig', {
+['dashboardTableConfig', {
             modelName: 'DashboardTableOverrideConfig',
             title: 'Dashboard Table Configuration',
             class: DashboardTableOverrideConfig,
             schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
+        }],
+        ['siem', {
+            modelName: 'SiemConfiguration',
+            title: 'SIEM Configuration',
+            class: SiemConfiguration,
+            schema: SIEM_CONFIGURATION_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
+            secretFields: [
+                'destinations[].token',
+                'destinations[].password',
+                'destinations[].headers.Authorization',
+                'destinations[].headers.X-Splunk-Token'
+            ]
         }],
         ['integrationNotification', {
             modelName: 'IntegrationNotificationConfig',
