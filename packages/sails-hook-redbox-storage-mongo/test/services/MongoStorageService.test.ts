@@ -503,6 +503,28 @@ describe('MongoStorageService', function () {
     expect(DeletedRecord.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
   });
 
+  it('returns the metadata of a deleted record', async function () {
+    DeletedRecord.findOne.resolves({
+      redboxOid: 'oid-1',
+      deletedRecordMetadata: { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } },
+    });
+
+    const metadata = await service.getDeletedRecordMeta('oid-1');
+
+    expect(DeletedRecord.findOne.calledWith({ redboxOid: 'oid-1' })).to.be.true;
+    expect(metadata).to.deep.equal({ redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } });
+  });
+
+  it('returns null when no deleted record exists for the oid', async function () {
+    DeletedRecord.findOne.resolves(null);
+
+    expect(await service.getDeletedRecordMeta('oid-1')).to.equal(null);
+  });
+
+  it('rejects getDeletedRecordMeta for an empty oid', async function () {
+    await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
+  });
+
   it('queries deleted records through the collection helper', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 

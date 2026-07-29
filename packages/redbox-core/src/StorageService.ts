@@ -24,6 +24,7 @@ export interface StorageService {
 
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
   getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
+  getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
 
   createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;

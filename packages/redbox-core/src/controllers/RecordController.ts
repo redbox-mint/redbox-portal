@@ -1539,7 +1539,7 @@ export namespace Controllers {
       try {
         const record = await this.recordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
         if (!hasViewAccess) {
@@ -1567,7 +1567,7 @@ export namespace Controllers {
       try {
         const record = await this.recordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
         if (!hasViewAccess) {

@@ -303,6 +303,19 @@ export namespace Services {
       return (await Record.findOne(criteria)) as RecordModel;
     }
 
+    public async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
+      if (_.isEmpty(oid)) {
+        const msg = `${this.logHeader} getDeletedRecordMeta() -> refusing to search using an empty OID`;
+        sails.log.error(msg);
+        throw new Error(msg);
+      }
+      const criteria = { redboxOid: oid };
+      sails.log.verbose(`${this.logHeader} finding deleted record: `);
+      sails.log.verbose(JSON.stringify(criteria));
+      const deletedRecord = await DeletedRecord.findOne(criteria);
+      return (deletedRecord?.deletedRecordMetadata ?? null) as RecordModel | null;
+    }
+
     public async createBatch(type: string, data: JsonMap[], harvestIdFldName: string): Promise<unknown> {
       const response = new StorageServiceResponse();
       response.message = '';
