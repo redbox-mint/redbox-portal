@@ -70,14 +70,12 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
     const oidProperty = config.oidProperty ?? 'id';
     const oids = [...new Set(values.map(value => typeof value === 'string' ? value : getPath(value, oidProperty)).filter((oid): oid is string => typeof oid === 'string' && oid.length > 0))];
     if (oids.length > 50) this.logger.warn(`${this.logName}: limiting related object resolution from ${oids.length} to 50 records.`);
-    config.failedOids.push(...oids.slice(50));
-    await Promise.all(oids.slice(0, 50).map(async oid => {
+    const results = await Promise.all(oids.slice(0, 50).map(async oid => {
       try {
         const record = await this.recordsService.getMeta(oid);
         const userRoles = context.user.roles;
         if (!this.recordsService.hasViewAccess(context.brand, context.user, userRoles, record)) {
-          config.accessDeniedOids?.push(oid);
-          return;
+          return { status: 'denied' as const, oid };
         }
         const metadata = (record.metadata ?? {}) as Record<string, unknown>;
         const fields: Record<string, unknown> = {};
@@ -86,10 +84,18 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
           if (value !== undefined) setPath(fields, field, value);
         }
         const title = getPath(metadata, 'title');
-        config.relatedObjects?.push({ oid, ...(typeof title === 'string' ? { title } : {}), fields });
+        return {
+          status: 'resolved' as const,
+          value: { oid, ...(typeof title === 'string' ? { title } : {}), fields },
+        };
       } catch {
-        config.failedOids?.push(oid);
+        return { status: 'failed' as const, oid };
       }
     }));
+    for (const result of results) {
+      if (result.status === 'resolved') config.relatedObjects.push(result.value);
+      if (result.status === 'denied') config.accessDeniedOids.push(result.oid);
+      if (result.status === 'failed') config.failedOids.push(result.oid);
+    }
   }
 }

@@ -617,13 +617,13 @@ export namespace Services {
       await vocabVisitor.resolveVocabs(constructed, branding, {
         includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
       });
+      const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       if (recordMetadata && recordAccessContext) {
         const recordsService = sails.services.recordsservice as unknown as RecordsService;
         const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
         await relatedVisitor.resolve(constructed, recordMetadata, recordAccessContext);
       }
-      const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-      await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });

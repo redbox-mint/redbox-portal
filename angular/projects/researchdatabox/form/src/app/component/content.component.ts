@@ -76,7 +76,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       ? 'html'
       : 'plain';
 
-if (this.shouldRenderWithTemplate(config)) {
+    if (this.shouldRenderWithTemplate(config)) {
       // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
@@ -129,7 +129,7 @@ if (this.shouldRenderWithTemplate(config)) {
   }
 
   protected shouldRenderWithTemplate(config: ContentFieldComponentConfig): boolean {
-    return !!config?.content && !!config?.template;
+    return config?.content !== undefined && config?.content !== null && !!config?.template;
   }
 
   protected buildTemplateContext(config: ContentFieldComponentConfig, formData: Record<string, unknown>): Record<string, unknown> {
