@@ -17,6 +17,7 @@ describe('BrandingLogoService', function() {
     mockPrimaryDisk = {
       put: sinon.stub().resolves(),
       getBytes: sinon.stub().resolves(Buffer.from('stored-binary')),
+      delete: sinon.stub().resolves(),
     };
 
     (global as any).StorageManagerService = {
@@ -172,6 +173,25 @@ describe('BrandingLogoService', function() {
       });
     });
 
+    it('should remove a superseded content-addressed favicon after updating metadata', async function() {
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+
+      expect(mockPrimaryDisk.delete.calledOnceWithExactly(previousStorageKey)).to.be.true;
+      expect((global as any).BrandingConfig.update.calledBefore(mockPrimaryDisk.delete)).to.be.true;
+    });
+
     it('should accept an ICO favicon', async function() {
       const brand = { id: 'brand1' };
       (global as any).BrandingConfig.findOne.resolves(brand);
@@ -206,6 +226,7 @@ describe('BrandingLogoService', function() {
 
       expect(mockPrimaryDisk.put.calledOnce).to.be.true;
       expect(mockPrimaryDisk.put.firstCall.args[0]).to.not.equal(previousStorageKey);
+      expect(mockPrimaryDisk.delete.called).to.be.false;
     });
 
     it('should reject an unsupported favicon content type', async function() {
