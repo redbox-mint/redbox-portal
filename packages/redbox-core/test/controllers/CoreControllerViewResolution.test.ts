@@ -55,6 +55,7 @@ describe('CoreController hook view resolution', function () {
 
   beforeEach(function () {
     const { Controllers } = require('../../src/CoreController') as typeof import('../../src/CoreController');
+    const { createSinonStubLogger } = require("../logger.test") as typeof import("../logger.test");
     class TestController extends Controllers.Core.Controller { }
 
     originalSails = (global as { sails?: unknown }).sails;
@@ -73,14 +74,7 @@ describe('CoreController hook view resolution', function () {
           apps: {},
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as { _?: unknown })._ = require('lodash');
     controller = new TestController();

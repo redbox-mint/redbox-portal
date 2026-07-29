@@ -1,6 +1,9 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { i18nLanguages } from '../../src/policies/i18nLanguages';
+import * as sinon from "sinon";
 
 // Mock globals
 
@@ -14,9 +17,7 @@ import { i18nLanguages } from '../../src/policies/i18nLanguages';
             }
         }
     },
-    log: {
-        warn: () => { }
-    }
+    log: createSinonStubLogger(sinon),
 };
 
 (global as any).BrandingService = {
@@ -52,9 +53,7 @@ describe('i18nLanguages policy', function () {
                     }
                 }
             },
-            log: {
-                warn: () => { }
-            }
+            log: createSinonStubLogger(sinon),
         };
 
         (global as any).BrandingService = {

@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { Umzug, type MigrationMeta, type RunnableMigration, type UmzugStorage } from 'umzug';
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
 
 export interface RedboxMigration {
     name: string;
@@ -76,15 +77,6 @@ function createMigrationStorage(
     };
 }
 
-function createLogger(): ConstructorParameters<typeof Umzug>[0]['logger'] {
-    return {
-        debug: message => sails.log.verbose(message),
-        info: message => sails.log.info(message),
-        warn: message => sails.log.warn(message),
-        error: message => sails.log.error(message),
-    };
-}
-
 /**
  * Maps Redbox migrations onto Umzug's RunnableMigration shape. The optional `down`
  * handler is forwarded verbatim so operators can perform manual rollbacks via Umzug;
@@ -130,7 +122,7 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
         migrations: umzugMigrations,
         context: sails,
         storage,
-        logger: createLogger(),
+        logger: consoleLogger,
     });
 
     const pending = await umzug.pending();

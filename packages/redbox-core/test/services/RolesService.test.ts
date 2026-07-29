@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -23,13 +25,7 @@ describe('RolesService', function() {
           ]
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     mockRole = {
@@ -60,7 +56,7 @@ describe('RolesService', function() {
 
     const { Services } = require('../../src/services/RolesService');
     RolesService = new Services.Roles();
-    
+
     // Inject brandingservice into sails.services for bootstrap
     mockSails.services.brandingservice = (global as any).BrandingService;
   });
@@ -150,9 +146,9 @@ describe('RolesService', function() {
     it('should return observable of roles', async function() {
       const brand = { id: 'brand-1' };
       mockRole.find.returns(createQueryObject([{ id: 'role-1' }]));
-      
+
       const result = await RolesService.getRolesWithBrand(brand).toPromise();
-      
+
       expect(mockRole.find.calledWith({ branding: 'brand-1' })).to.be.true;
       expect(result).to.have.length(1);
     });
@@ -162,9 +158,9 @@ describe('RolesService', function() {
     it('should return ids of matching roles', function() {
       const fromRoles = [{ id: '1', name: 'Admin' }, { id: '2', name: 'Guest' }];
       const roleNames = ['Admin'];
-      
+
       const result = RolesService.getRoleIds(fromRoles, roleNames);
-      
+
       expect(result).to.deep.equal(['1']);
     });
   });
@@ -172,26 +168,26 @@ describe('RolesService', function() {
   describe('createRoleWithBrand', function() {
     it('should create role if not exists', async function() {
       const brand = { id: 'brand-1' };
-      
+
       // getRolesWithBrand returns empty
       sinon.stub(RolesService, 'getRolesWithBrand').returns(of([]));
-      
+
       mockRole.create.returns(createQueryObject({ id: 'new-role' }));
       mockBrandingConfig.addToCollection.returns({ members: sinon.stub().returns(createQueryObject({})) });
-      
+
       await RolesService.createRoleWithBrand(brand, 'NewRole');
-      
+
       expect(mockRole.create.called).to.be.true;
       expect(mockBrandingConfig.addToCollection.called).to.be.true;
     });
 
     it('should skip creation if role exists', async function() {
       const brand = { id: 'brand-1' };
-      
+
       sinon.stub(RolesService, 'getRolesWithBrand').returns(of([{ name: 'ExistingRole' }]));
-      
+
       await RolesService.createRoleWithBrand(brand, 'ExistingRole');
-      
+
       expect(mockRole.create.called).to.be.false;
     });
   });
@@ -214,26 +210,26 @@ describe('RolesService', function() {
       sinon.stub(RolesService, 'getAdmin').returns(null);
       sinon.stub(RolesService, 'getConfigRoles').returns([{ name: 'Admin' }]);
       mockRole.create.returns(createQueryObject({ id: 'role-admin' }));
-      
+
       await RolesService.bootstrap(defBrand).toPromise();
-      
+
       expect(mockRole.create.called).to.be.true;
     });
 
     it('should skip bootstrap if admin exists', async function() {
       const defBrand = { id: 'brand-1', roles: [{ name: 'Admin' }] };
       sinon.stub(RolesService, 'getAdmin').returns({ name: 'Admin' });
-      
+
       await RolesService.bootstrap(defBrand).toPromise();
-      
+
       expect(mockRole.create.called).to.be.false;
     });
   });
-  
+
   describe('exports', function() {
     it('should export all public methods', function() {
       const exported = RolesService.exports();
-      
+
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('getRole');
       expect(exported).to.have.property('getAdmin');

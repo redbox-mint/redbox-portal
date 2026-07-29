@@ -7,7 +7,7 @@ import('chai').then(mod => (expect = mod.expect));
 declare const FormsService: FormsModule.Services.Forms;
 declare const BrandingService: BrandingModule.Services.Branding;
 declare const RecordType: any;
-declare const sails: any;
+declare const sails: Sails.Application;
 
 describe('The FormsService', function () {
   before(function (done) {

@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -5,17 +7,12 @@ import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 import type { VocabularyAttributes } from '../../src/waterline-models';
+import { ILogger } from "@researchdatabox/sails-ng-common";
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
-type StubbedLogger = {
-  error: (...args: unknown[]) => void;
-  verbose: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
-};
-
 type StubbedSails = {
-  log: StubbedLogger;
+  log: Partial<ILogger>;
   config: {
     auth: { defaultBrand: string };
     bootstrap?: { bootstrapDataPath?: string };
@@ -71,7 +68,7 @@ describe('VocabularyService', () => {
     previousUnderscore = Reflect.get(globalThis, '_');
     Reflect.set(globalThis, '_', lodash);
     g.sails = {
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
+      log: createSinonStubLogger(sinon),
       config: { auth: { defaultBrand: 'default' } },
       services: {
         brandingservice: { getDefault: sinon.stub().returns('default') },

@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { ok } from '../../src/responses/ok';
@@ -19,11 +21,7 @@ describe('Responses', function () {
   beforeEach(function () {
     originalTranslationService = (global as any).TranslationService;
     sailsStub = {
-      log: {
-        silly: sinon.stub(),
-        verbose: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       config: {
         hooks: {
           views: true

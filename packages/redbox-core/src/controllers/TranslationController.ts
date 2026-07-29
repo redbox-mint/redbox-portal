@@ -47,7 +47,9 @@ export namespace Controllers {
         const ns = toParamString(req.params.ns, 'translation');
 
         const branding = BrandingService.getBrand(brandingName);
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id, translationLng: lng, translationNs: ns});
         if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
@@ -64,8 +66,10 @@ export namespace Controllers {
           const filepath = path.join(sails.config.appPath, 'language-defaults', lng, `${ns}.json`);
           if (fs.existsSync(filepath)) {
             const json = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+            this.updateChronicle(req, {translationBundleFromDisk: true, translationFile: filepath});
             return res.json(json);
           }
+          this.updateChronicle(req, {translationNamespaceNotFound: true}, ['namespace-not-found']);
           return res.notFound({ message: 'Namespace not found' });
         }
 
@@ -74,14 +78,16 @@ export namespace Controllers {
         if (payload && typeof payload === 'object' && payload._meta) {
           try {
             const { _meta, ...rest } = payload;
+            this.updateChronicle(req, {translationRemoveMetaSuccess: true});
             return res.json(rest);
-          } catch (_e) {
-            // fallback
+          } catch (e) {
+            this.updateChronicle(req, {translationRemoveMetaFailed: true}, [e]);
           }
         }
+        this.updateChronicle(req, {translationGetNamespaceSuccess: true});
         return res.json(payload);
       } catch (err) {
-        sails.log.error('Error in TranslationController.getNamespace:', err);
+        this.updateChronicle(req, {translationGetNamespaceFailed: true}, [err]);
         return res.serverError(err);
       }
     }
@@ -95,7 +101,9 @@ export namespace Controllers {
       try {
         const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
@@ -120,9 +128,10 @@ export namespace Controllers {
         }));
 
         list.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        this.updateChronicle(req, {translationGetLanguagesSuccess: true, translationLanguages: list});
         return res.json(list);
       } catch (err) {
-        sails.log.error('Error in TranslationController.getLanguages:', err);
+        this.updateChronicle(req, {translationGetLanguagesFailed: true}, [err]);
         return res.serverError(err);
       }
     }
@@ -134,14 +143,24 @@ export namespace Controllers {
       try {
         const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
+        if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const keyPrefix = req.param('keyPrefix');
+        this.updateChronicle(req, {
+          translationLocale: locale,
+          translationNamespace: namespace,
+          translationKeyPrefix: keyPrefix,
+        });
         const entries = await I18nEntriesService.listEntries(branding, locale, namespace, keyPrefix);
+        this.updateChronicle(req, {translationListEntriesSuccess: true});
         return res.json(entries);
       } catch (err) {
-        sails.log.error('Error in TranslationController.listEntriesApp:', err);
+        this.updateChronicle(req, {translationListEntriesFailed: true}, [err]);
         return res.serverError(err);
       }
     }
@@ -150,7 +169,11 @@ export namespace Controllers {
       try {
         const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
+        if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const key = req.param('key');
@@ -158,11 +181,24 @@ export namespace Controllers {
         const category = req.body?.category;
         const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
-        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        this.updateChronicle(req, {
+          translationLocale: locale,
+          translationNamespace: namespace,
+          translationKey: key,
+          translationValue: value,
+          translationCategory: category,
+          translationDescription: description,
+        });
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat,description });
+        try {
+          await TranslationService.reloadResources();
+        } catch (e) {
+          this.updateChronicle(req, {translationReloadFailed: true}, [e]);
+        }
+        this.updateChronicle(req, {translationSetEntrySuccess: true});
         return res.json(saved);
       } catch (err) {
-        sails.log.error('Error in TranslationController.setEntryApp:', err);
+        this.updateChronicle(req, {translationSetEntryFailed: true}, [err]);
         return res.serverError(err);
       }
     }
@@ -171,14 +207,23 @@ export namespace Controllers {
       try {
         const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
+        if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
+        this.updateChronicle(req, {translationLocale: locale, translationNamespace: namespace});
         const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
-        if (!bundle) return res.notFound({ message: 'Bundle not found' });
+        if (!bundle) {
+          this.updateChronicle(req, {translationBundleNotFound: true}, ['bundle-not-found']);
+          return res.notFound({ message: 'Bundle not found' });
+        }
+        this.updateChronicle(req, {translationGetBundleSuccess: true});
         return res.json(bundle);
       } catch (err) {
-        sails.log.error('Error in TranslationController.getBundleApp:', err);
+        this.updateChronicle(req, {translationGetBundleFailed: true}, [err]);
         return res.serverError(err);
       }
     }
@@ -187,16 +232,26 @@ export namespace Controllers {
       try {
         const brandingName = toParamString(req.params.branding);
         const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
+        if (!branding) {
+          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        }
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const data = req.body?.data || req.body;
         const displayName = req.body?.displayName;
+        this.updateChronicle(req, {translationLocale: locale, translationNamespace: namespace, translationDisplayName: displayName});
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, displayName);
-        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        try {
+          await TranslationService.reloadResources();
+        } catch (e) {
+          this.updateChronicle(req, {translationReloadFailed: true}, [e]);
+        }
+        this.updateChronicle(req, {translationSetBundleSuccess: true});
         return res.json(bundle);
       } catch (err) {
-        sails.log.error('Error in TranslationController.setBundleApp:', err);
+        this.updateChronicle(req, {translationSetBundleFailed: true}, [err]);
         return res.serverError(err);
       }
     }

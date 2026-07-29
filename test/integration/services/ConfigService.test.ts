@@ -1,4 +1,6 @@
 /* eslint-disable no-unused-expressions */
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
+
 const _ = require('lodash');
 const path = require('path');
 const fs = require('fs-extra');
@@ -25,12 +27,7 @@ describe('The ConfigService', function () {
                         controllers: { moduleDefinitions: {} },
                         services: {}
                     },
-                    log: {
-                        verbose: () => { },
-                        info: () => { },
-                        error: console.error,
-                        warn: console.warn
-                    },
+                    log: consoleLogger,
                     services: {}
                 };
             }
@@ -471,7 +468,7 @@ describe('The ConfigService', function () {
         });
 
         // -------------------------------------------------------------------------
-        // Test: Copy views directory  
+        // Test: Copy views directory
         // -------------------------------------------------------------------------
         it('should copy views from hook to application', function (done) {
             const viewsDir = path.join(testHookDir, 'views');

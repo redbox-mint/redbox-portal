@@ -1,12 +1,12 @@
 import {
     FormConfigFrame,
     TemplateCompileInput,
+    consoleLogger,
 } from "@researchdatabox/sails-ng-common";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import { TemplateFormConfigVisitor } from "../../src/visitor/template.visitor";
 
 import { formConfigExample1 } from "./example-data";
-import { logger } from "./helpers";
 import { reusableFormDefinitions } from "../../src";
 
 let expect: Chai.ExpectStatic;
@@ -211,12 +211,12 @@ describe("Template Visitor", async () => {
 
     cases.forEach(({ title, args, expected }) => {
         it(`should ${title}`, async function () {
-            const constructor = new ConstructFormConfigVisitor(logger);
+            const constructor = new ConstructFormConfigVisitor(consoleLogger);
             const constructed = await constructor.start({
                 data: args, formMode: "edit", reusableFormDefs: reusableFormDefinitions,
             });
 
-            const visitor = new TemplateFormConfigVisitor(logger);
+            const visitor = new TemplateFormConfigVisitor(consoleLogger);
             const actual = await visitor.start({ form: constructed });
 
             expect(actual).to.eql(expected);

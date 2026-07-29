@@ -1,6 +1,6 @@
 /**
  * Config Types Index
- * 
+ *
  * Exports all config interfaces and default values for sails.config typing.
  * These are used by the redbox-core loader to generate shim files in config/.
  */
@@ -177,6 +177,7 @@ export interface PassportConfig {
     ) => (req: Request, res: Response, next?: NextFunction) => void;
     [strategyName: string]: unknown;
 }
+// passport: PassportStatic; // The passport instance configured by UsersService
 
 /**
  * Aggregate interface for sails.config
@@ -352,6 +353,3 @@ export const Config = {
     validators,
     harvestRuns,
 } as const;
-
-// Type for the Config object
-export type ConfigType = typeof Config;

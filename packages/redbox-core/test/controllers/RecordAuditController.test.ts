@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordAuditController';
+import {createSinonStubLogger} from "../logger.test";
 
 describe('RecordAuditController', () => {
   let controller: Controllers.RecordAudit;
@@ -32,10 +33,7 @@ describe('RecordAuditController', () => {
           },
         })),
       },
-      log: {
-        verbose: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         recordsservice: {
           getMeta: sinon.stub().resolves({

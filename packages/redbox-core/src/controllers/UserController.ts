@@ -24,7 +24,7 @@ import {
   Controllers as controllers,
   RequestDetails,
 } from '../index';
-import { redactObject } from '../utilities/RedactionUtils';
+import { redactObject } from "../utilities/RedactionUtils";
 
 type AnyRecord = globalThis.Record<string, unknown>;
 
@@ -98,7 +98,9 @@ export namespace Controllers {
         req.session.redirUrl = url;
 
       }
-      return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
+      const redirLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`;
+      this.updateChronicle(req, {userRedirLoginUrl: redirLoginUrl});
+      return res.redirect(redirLoginUrl);
     }
 
     public redirPostLogin(req: Sails.Req, res: Sails.Res) {
@@ -117,7 +119,7 @@ export namespace Controllers {
         const postLoginRedir = _.get(authConfig, 'local.postLoginRedir', 'home');
         postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${postLoginRedir}`;
       }
-      sails.log.debug(`post login url: ${postLoginUrl}`);
+      this.updateChronicle(req, {userPostLoginUrl: postLoginUrl});
       return postLoginUrl;
     }
 
@@ -134,22 +136,36 @@ export namespace Controllers {
       }
 
       const user = req.session.user ? req.session.user : req.user;
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(user)});
+      const that = this;
+
+      if (typeof req.logout !== 'function'){
+        that.updateChronicle(req, {userLogoutSuccess: false});
+        return res.serverError();
+      }
+
       req.logout(function (err: unknown) {
-        if (err) { return res.status(500).send('Logout failed'); }
+        if (err) {
+          that.updateChronicle(req, {userLogoutSuccess: false}, [err]);
+          return res.status(500).send('Logout failed');
+        }
+        that.updateChronicle(req, {userLogoutSuccess: true});
         UsersService.addUserAuditEvent(user, "logout", requestDetails).then(_response => {
-          sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`);
+          that.updateChronicle(req, {userLogoutAuditEventCreateSuccess: true});
         }).catch(err => {
-          sails.log.error(`User logout audit event failed`)
-          sails.log.error(err)
+          that.updateChronicle(req, {userLogoutAuditEventCreateSuccess: false}, [err]);
         });
         // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
         _.unset(req.session, 'user');
+
+        that.updateChronicle(req, {userPostLogoutUrl: redirUrl});
         return res.redirect(redirUrl);
       });
     }
 
     public info(req: Sails.Req, res: Sails.Res) {
       const user = req.user!;
+      this.updateChronicle(req, {userInfoSuccess: true, ...this.extractUserDetailsForChronicle(user)});
       delete user.token;
       return res.json({
         user: user
@@ -157,92 +173,154 @@ export namespace Controllers {
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
       } else {
-        return this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "No current user session. Please login." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingSession: true},
+        });
       }
 
       if (!userid) {
-        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "Error: unable to get user ID." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingUserId: true},
+        });
       }
 
       const body = (req.body ?? {}) as AnyRecord;
       const details = body.details as AnyRecord | undefined;
       if (!details) {
-        return this.sendResp(req, res, { data: { status: false, message: "Error: user details not specified" }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "Error: user details not specified" },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingDetails: true},
+        });
       }
 
       let name;
       if (details.name) {
         name = details.name as string
-      };
+      }
       if (name) {
         UsersService.updateUserDetails(userid, name, details.email as string, details.password as string).subscribe(_user => {
-          this.sendResp(req, res, { data: { status: true, message: "Profile updated successfully." }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: {status: true, message: "Profile updated successfully."},
+            headers: this.getNoCacheHeaders(),
+            chronicle: {userDetailsUpdateSuccess: true}
+          });
         }, error => {
-          sails.log.error("Failed to update user profile:");
-          sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: {status: false, message: (error as Error).message},
+            headers: this.getNoCacheHeaders(),
+            errors: [error],
+            chronicle: {userDetailsUpdateSuccess: false},
+          });
         });
       } else {
-        return this.sendResp(req, res, { data: { status: false, message: "Error: name must not be null" }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "Error: name must not be null" },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userDetailsUpdateSuccess: false, userChangeRequestMissingName: true},
+        });
       }
       return;
     }
 
     public generateUserKey(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        this.sendResp(req, res, {
+          data: { status: false, message: "No current user session. Please login." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userKeyUpdateSuccess: false, userChangeRequestMissingSession: true},
+        });
       }
 
       if (userid) {
         const uuid = uuidv4();
         UsersService.setUserKey(userid, uuid).subscribe(_user => {
-          this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: { status: true, message: uuid },
+            headers: this.getNoCacheHeaders(),
+            chronicle: {userKeyUpdateSuccess: true}
+          });
         }, error => {
-          sails.log.error("Failed to set UUID:");
-          sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: { status: false, message: (error as Error).message },
+            headers: this.getNoCacheHeaders(),
+            errors: [error],
+            chronicle: {userKeyUpdateSuccess: false},
+          });
         });
       } else {
-        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "Error: unable to get user ID." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userKeyUpdateSuccess: false, userChangeRequestMissingUserId: true},
+        });
       }
       return;
     }
 
     public revokeUserKey(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {...this.extractUserDetailsForChronicle(req.user)});
       let userid;
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        this.sendResp(req, res, {
+          data: { status: false, message: "No current user session. Please login." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userKeyRevokeSuccess: false, userChangeRequestMissingSession: true},
+        });
       }
 
       if (userid) {
         const uuid = null;
         UsersService.setUserKey(userid, uuid).subscribe(_user => {
-          this.sendResp(req, res, { data: { status: true, message: "UUID revoked successfully" }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: { status: true, message: "UUID revoked successfully" },
+            headers: this.getNoCacheHeaders(),
+            chronicle: {userKeyRevokeSuccess: true},
+          });
         }, error => {
-          sails.log.error("Failed to revoke UUID:");
-          sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: { status: false, message: (error as Error).message },
+            headers: this.getNoCacheHeaders(),
+            errors: [error],
+            chronicle: {userKeyRevokeSuccess: false},
+          });
         });
       } else {
-        return this.sendResp(req, res, { data: { status: false, message: "Error: unable to get user ID." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: "Error: unable to get user ID." },
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userKeyRevokeSuccess: false, userChangeRequestMissingUserId: true},
+        });
       }
       return;
     }
 
     public localLogin(req: Sails.Req, res: Sails.Res) {
       const that = this;
+      this.updateChronicle(req, {userLoginType: 'local'});
       const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord) => void) => (req: Sails.Req, res: Sails.Res) => void };
       passport.authenticate('local', function (err: Error | null, user: AnyRecord | false, info: AnyRecord) {
+        that.updateChronicle(req, {
+          ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
+          userLoginDetails: info,
+        }, err ? [err] : []);
         if ((err) || (!user)) {
+          that.updateChronicle(req, {userLoginSuccess: false});
           return res.send({
             message: info.message,
             user: user
@@ -252,15 +330,25 @@ export namespace Controllers {
         // We don't want to store the password!
         delete (requestDetails.body as Record<string, unknown>).password;
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
         }).catch(err => {
-          sails.log.error(`User login audit event created for local login failed`)
-          sails.log.error(err)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
+
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         return req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
+          if (err) {
+            that.updateChronicle(req, {userLoginSuccess: false}, [err]);
+            return res.send(err);
+          }
+
           // login success
+          that.updateChronicle(req, {userLoginSuccess: true, userLoginIsAjax: isAjax});
+
           // redir if api header call is not found
           if (isAjax) {
             return that.sendResp(req, res, {
@@ -279,23 +367,22 @@ export namespace Controllers {
 
 
     public openidConnectLogin(req: Sails.Req, res: Sails.Res) {
+      this.updateChronicle(req, {userLoginType: 'oidc'});
       let passportIdentifier = 'oidc'
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
+      this.updateChronicle(req, {userLoginIdentifier: passportIdentifier});
       const that = this;
       const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
       passport.authenticate(passportIdentifier, function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
-        sails.log.verbose("At openIdConnectAuth Controller, verify...");
-        sails.log.verbose("Error:");
-        sails.log.verbose(err);
-        sails.log.verbose("Info:");
-        sails.log.verbose(info);
-        sails.log.verbose("User:");
-        sails.log.verbose(user);
+        that.updateChronicle(req, {
+          ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
+          userLoginDetails: info,
+        }, err ? [err] : []);
 
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
-          sails.log.error(`OpenId Connect Login failed!`);
+          that.updateChronicle(req, {userLoginSuccess: false});
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
           if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info)) {
             info = JSON.stringify(info);
@@ -315,6 +402,7 @@ export namespace Controllers {
               message: "error-auth",
               detailedMessage: "authorized-email-denied",
             }
+            that.updateChronicle(req, {userLoginAuthorizedEmailDenied: true});
             return res.forbidden(req.session['data'], '403');
           }
 
@@ -324,13 +412,14 @@ export namespace Controllers {
               message: "error-auth",
               detailedMessage: "There was an issue with your user credentials, please try again.",
             }
+            that.updateChronicle(req, {userLoginCredentialsProblem: true});
             return res.forbidden(req.session['data']);
           }
 
           const errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
-          sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
           if (!_.isEmpty(errorMessageDecoded)) {
             req.session['data'] = errorMessageDecoded;
+            that.updateChronicle(req, {userLoginErrorMessage: errorMessageDecoded});
             return res.serverError();
           }
 
@@ -344,38 +433,46 @@ export namespace Controllers {
               "message": 'error-auth',
               "detailedMessage": `${errStr}${info}`
             };
+            that.updateChronicle(req, {userLoginAuthError: true});
           }
 
           const url = `${BrandingService.getFullPath(req)}/home`;
+          that.updateChronicle(req, {userPostLoginUrl: url});
           return res.redirect(url);
         }
         const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
         }).catch(err => {
-          sails.log.error(`User login audit event created for OIDC login failed`)
-          sails.log.error(err)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
 
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
-          sails.log.debug("OpenId Connect Login OK, redirecting...");
+          if (err) {
+            that.updateChronicle(req, {userLoginSuccess: false}, [err]);
+            return res.send(err);
+          }
+          that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
     }
 
     public beginOidc(req: Sails.Req, res: Sails.Res, next: NextFunction) {
-      sails.log.verbose(`At OIDC begin flow, redirecting...`);
+      this.updateChronicle(req, {userLoginType: 'oidc'});
       let passportIdentifier = 'oidc'
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
+      this.updateChronicle(req, {userLoginIdentifier: passportIdentifier});
       sails.config.passport.authenticate(passportIdentifier)(req, res, next);
     }
 
     private decodeErrorMappings(options: unknown, errorMessage: string) {
-
       sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(redactObject(options)));
       let errorMessageDecoded: unknown = 'oidc-default-unknown-error';
@@ -463,9 +560,9 @@ export namespace Controllers {
     private validateRegex(errorMessage: string, regexPattern: string | RegExp) {
       if (_.isRegExp(regexPattern)) {
         const re = new RegExp(regexPattern);
-        sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
+        // sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
         const reTestResult = re.test(errorMessage.toString());
-        sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
+        // sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
         return reTestResult;
       } else {
         return false;
@@ -487,17 +584,16 @@ export namespace Controllers {
     }
 
     public aafLogin(req: Sails.Req, res: Sails.Res) {
+      const that = this;
+      this.updateChronicle(req, {userLoginType: 'aaf'});
       const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void) => (req: Sails.Req, res: Sails.Res) => void };
       passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
-        sails.log.verbose("At AAF Controller, verify...");
-        sails.log.verbose("Error:");
-        sails.log.verbose(err);
-        sails.log.verbose("Info:");
-        sails.log.verbose(info);
-        sails.log.verbose("User:");
-        sails.log.verbose(user);
+        that.updateChronicle(req, {
+          ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
+          userLoginDetails: info
+        }, err ? [err] : []);
         if ((err) || (!user)) {
-          sails.log.error(err)
+          that.updateChronicle(req, {userLoginSuccess: false});
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
 
           const errorMessage = _.get(err, 'message', err?.toString() ?? '');
@@ -506,6 +602,7 @@ export namespace Controllers {
               message: "error-auth",
               detailedMessage: "authorized-email-denied",
             }
+            that.updateChronicle(req, {userLoginAuthorizedEmailDenied: true});
             return res.forbidden();
           }
 
@@ -518,20 +615,27 @@ export namespace Controllers {
               "detailedMessage": `${err}${info}`
             };
           }
+          that.updateChronicle(req, {userLoginAuthError: true});
           return res.serverError();
         }
 
         const requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
         }).catch(err => {
-          sails.log.error(`User login audit event created for AAF login failed`)
-          sails.log.error(err)
+          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
         });
 
+        if (typeof req.logIn !== 'function'){
+          return res.serverError();
+        }
+
         req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
-          sails.log.debug("AAF Login OK, redirecting...");
+          if (err) {
+            that.updateChronicle(req, {userLoginSuccess: false}, [err]);
+            return res.send(err);
+          }
+          that.updateChronicle(req, {userLoginSuccess: true});
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
       })(req, res);
@@ -550,10 +654,27 @@ export namespace Controllers {
             username: u.username
           };
         });
-        this.sendResp(req, res, { data: userArr, headers: this.getNoCacheHeaders() });
+        this.sendResp(req, res, {
+          data: userArr,
+          headers: this.getNoCacheHeaders(),
+          chronicle: {userFindSource: searchSource, userFindName: searchName},
+        });
       }, error => {
-        this.sendResp(req, res, { data: error, headers: this.getNoCacheHeaders() });
+        this.sendResp(req, res, {
+          data: error,
+          headers: this.getNoCacheHeaders(),
+          errors: [error],
+          chronicle: {userFindSource: searchSource, userFindName: searchName},
+        });
       });
+    }
+
+    private extractUserDetailsForChronicle(user: AnyRecord | null | undefined): Record<string, unknown> {
+      return {
+        userId: user?.id,
+        userUsername: user?.username,
+        userType: user?.type,
+      };
     }
     /**
      **************************************************************************************************

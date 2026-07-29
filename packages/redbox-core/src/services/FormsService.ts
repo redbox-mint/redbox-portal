@@ -596,6 +596,8 @@ export namespace Services {
      * @param userRoles The current user's roles.
      * @param recordMetadata The record metadata.
      * @param reusableFormDefs The reusable form definitions.
+     * @param branding The branding override.
+     * @param contextVariablesMap A mapping of context variable name to value.
      */
     public async buildClientFormConfig(
       item: FormConfigFrame,

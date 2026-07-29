@@ -1,13 +1,14 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { menuResolver } from '../../src/policies/menuResolver';
+import * as sinon from "sinon";
 
 // Mock globals
 
 (global as any).sails = {
-    log: {
-        warn: () => { }
-    }
+    log: createSinonStubLogger(sinon),
 };
 
 (global as any).NavigationService = {
@@ -25,9 +26,7 @@ describe('menuResolver policy', function () {
         originalNavigationService = (global as any).NavigationService;
 
         (global as any).sails = {
-            log: {
-                warn: () => { }
-            }
+            log: createSinonStubLogger(sinon),
         };
     });
 

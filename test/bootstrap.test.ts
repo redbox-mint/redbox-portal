@@ -3,6 +3,7 @@ import _ from "lodash";
 import { DateTime } from "luxon";
 
 import { brandingConfigurationDefaults as defaultBrandingConfigurationDefaults, datacite as defaultDataciteConfig, generateAllShims } from "@researchdatabox/redbox-core";
+import {consoleLogger} from "@researchdatabox/sails-ng-common";
 
 // Expose Luxon DateTime for tests needing date utilities
 (global as any).DateTime = DateTime;
@@ -84,6 +85,9 @@ before(function (this: Mocha.Context, done) {
 					},
 					(err: Error | undefined, _server: unknown) => {
 						if (err) return done(err);
+            // Set the console logger that has all log methods,
+            // instead of the default sails log that doesn't.
+            (sails as any).log = consoleLogger;
 						done(err, sails as any);
 					}
 				);

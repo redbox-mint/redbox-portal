@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -41,7 +43,7 @@ describe('Webservice SearchController', () => {
                     searchFuzzy: sinon.stub()
                 }
             },
-            log: { verbose: sinon.stub(), debug: sinon.stub(), error: sinon.stub() },
+            log: createSinonStubLogger(sinon),
             after: sinon.stub(),
             on: sinon.stub()
         };

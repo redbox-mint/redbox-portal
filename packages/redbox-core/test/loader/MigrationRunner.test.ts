@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import * as fs from 'fs';
 import * as os from 'os';
@@ -29,12 +31,7 @@ describe('MigrationRunner', function () {
 
         (global as any).sails = {
             models: {},
-            log: {
-                verbose: sinon.stub(),
-                info: sinon.stub(),
-                warn: sinon.stub(),
-                error: sinon.stub()
-            }
+            log: createSinonStubLogger(sinon)
         };
     });
 

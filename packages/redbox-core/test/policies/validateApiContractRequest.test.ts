@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -59,14 +61,7 @@ describe('validateApiContractRequest policy', function () {
         originalSails = (global as Record<string, unknown>).sails;
         originalLodash = (global as Record<string, unknown>)._;
         (global as Record<string, unknown>).sails = {
-            log: {
-                verbose: sinon.stub(),
-                debug: sinon.stub(),
-                error: sinon.stub(),
-                warn: sinon.stub(),
-                info: sinon.stub(),
-                trace: sinon.stub(),
-            },
+            log: createSinonStubLogger(sinon),
             config: {},
         };
         (global as Record<string, unknown>)._ = require('lodash');

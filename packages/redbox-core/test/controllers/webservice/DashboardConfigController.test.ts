@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/DashboardConfigController';
+import {createSinonStubLogger} from "../../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -23,14 +24,7 @@ describe('Webservice DashboardConfigController', () => {
     originalDashboardTypesService = (global as any).DashboardTypesService;
 
     (global as any).sails = {
-      log: {
-        error: sinon.stub(),
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        trace: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon)
     };
     (global as any).BrandingService = {
       getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),

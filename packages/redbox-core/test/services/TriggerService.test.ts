@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -10,13 +12,7 @@ describe('TriggerService', function() {
 
   beforeEach(function() {
     mockSails = createMockSails({
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -46,9 +42,9 @@ describe('TriggerService', function() {
 
   describe('transitionWorkflow', function() {
     it('should transition workflow if condition met', async function() {
-      const record = { 
+      const record = {
         metaMetadata: { form: 'old-form' },
-        workflow: { stage: 'draft', stageLabel: 'Draft' } 
+        workflow: { stage: 'draft', stageLabel: 'Draft' }
       };
       const options = {
         triggerCondition: 'true',
@@ -56,25 +52,25 @@ describe('TriggerService', function() {
         targetWorkflowStageLabel: 'Published',
         targetForm: 'new-form'
       };
-      
+
       const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
-      
+
       expect(result.workflow.stage).to.equal('published');
       expect(result.workflow.stageLabel).to.equal('Published');
       expect(result.metaMetadata.form).to.equal('new-form');
     });
 
     it('should not transition if condition not met', async function() {
-      const record = { 
-        workflow: { stage: 'draft' } 
+      const record = {
+        workflow: { stage: 'draft' }
       };
       const options = {
         triggerCondition: 'false',
         targetWorkflowStageName: 'published'
       };
-      
+
       const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
-      
+
       expect(result.workflow.stage).to.equal('draft');
     });
   });
@@ -87,7 +83,7 @@ describe('TriggerService', function() {
         regexPattern: '^test',
         errorLanguageCode: 'error'
       };
-      
+
       await TriggerService.validateFieldUsingRegex('oid', record, options);
       // Should not throw
     });
@@ -99,7 +95,7 @@ describe('TriggerService', function() {
         regexPattern: '^test',
         errorLanguageCode: 'error'
       };
-      
+
       try {
         await TriggerService.validateFieldUsingRegex('oid', record, options);
         expect.fail('Should have thrown');
@@ -115,7 +111,7 @@ describe('TriggerService', function() {
         allowNulls: true,
         regexPattern: '^test'
       };
-      
+
       await TriggerService.validateFieldUsingRegex('oid', record, options);
     });
 
@@ -127,7 +123,7 @@ describe('TriggerService', function() {
         regexPattern: '^test',
         errorLanguageCode: 'error'
       };
-      
+
       try {
         await TriggerService.validateFieldUsingRegex('oid', record, options);
         expect.fail('Should have thrown');
@@ -144,7 +140,7 @@ describe('TriggerService', function() {
         regexPattern: '^test',
         errorLanguageCode: 'error'
       };
-      
+
       await TriggerService.validateFieldUsingRegex('oid', record, options);
     });
 
@@ -156,7 +152,7 @@ describe('TriggerService', function() {
         regexPattern: '^test',
         errorLanguageCode: 'error'
       };
-      
+
       try {
         await TriggerService.validateFieldUsingRegex('oid', record, options);
         expect.fail('Should have thrown');
@@ -168,8 +164,8 @@ describe('TriggerService', function() {
 
   describe('validateFieldMapUsingRegex', function() {
     it('should validate multiple fields', async function() {
-      const record = { 
-        metadata: { 
+      const record = {
+        metadata: {
           field1: 'test',
           field2: 'valid'
         }
@@ -182,13 +178,13 @@ describe('TriggerService', function() {
         triggerCondition: 'true'
       };
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
-      
+
       await TriggerService.validateFieldMapUsingRegex('oid', record, options);
     });
 
     it('should throw if any field invalid', async function() {
-      const record = { 
-        metadata: { 
+      const record = {
+        metadata: {
           field1: 'invalid',
           field2: 'valid'
         }
@@ -200,7 +196,7 @@ describe('TriggerService', function() {
         triggerCondition: 'true'
       };
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
-      
+
       try {
         await TriggerService.validateFieldMapUsingRegex('oid', record, options);
         expect.fail('Should have thrown');
@@ -218,7 +214,7 @@ describe('TriggerService', function() {
         triggerCondition: 'true'
       };
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
-      
+
       await TriggerService.validateFieldsUsingTemplate('oid', record, options);
     });
 
@@ -229,7 +225,7 @@ describe('TriggerService', function() {
         triggerCondition: 'true'
       };
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
-      
+
       try {
         await TriggerService.validateFieldsUsingTemplate('oid', record, options);
         expect.fail('Should have thrown');
@@ -243,7 +239,7 @@ describe('TriggerService', function() {
     it('should update related record', async function() {
       const relatedRecord = { metadata: { relatedOid: 'related-oid' } };
       const relatedMeta = { metaMetadata: { brandId: 'brand-1' }, metadata: {} };
-      
+
       const options = {
         pathToRelatedOid: 'metadata.relatedOid',
         templates: [
@@ -251,12 +247,12 @@ describe('TriggerService', function() {
         ],
         triggerCondition: 'true'
       };
-      
+
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
       (global as any).RecordsService.getMeta.resolves(relatedMeta);
-      
+
       await TriggerService.runTemplatesOnRelatedRecord('oid', relatedRecord, options, {});
-      
+
       expect((global as any).RecordsService.updateMeta.called).to.be.true;
       const updateArgs = (global as any).RecordsService.updateMeta.firstCall.args;
       expect(updateArgs[1]).to.equal('related-oid');

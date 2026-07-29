@@ -6,6 +6,7 @@ import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/BrandingController';
 import { auth } from '../../src/config/auth.config';
 import { routes } from '../../src/config/routes.config';
+import {createSinonStubLogger} from "../logger.test";
 
 describe('admin API docs', function () {
     let expect: Chai.ExpectStatic;
@@ -27,11 +28,7 @@ describe('admin API docs', function () {
                 auth,
                 apiRoutesHooks: [],
             },
-            log: {
-                error: sinon.stub(),
-                verbose: sinon.stub(),
-                debug: sinon.stub(),
-            },
+            log: createSinonStubLogger(sinon),
         };
         (global as any)._ = require('lodash');
 

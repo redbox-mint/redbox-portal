@@ -98,7 +98,7 @@ import {
   DateInputFieldModelDefinitionOutline,
   DateInputFormComponentDefinitionOutline,
 } from '../component/date-input.outline';
-import { ILogger } from '../../logger.interface';
+import { ILogger } from '../../logger.model';
 import {
   ReusableFieldComponentDefinitionOutline,
   ReusableFormComponentDefinitionOutline,

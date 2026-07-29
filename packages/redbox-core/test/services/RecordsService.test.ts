@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -77,13 +79,7 @@ describe('RecordsService', function () {
           apiKey: 'test-api-key'
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         brandingservice: {
           getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),

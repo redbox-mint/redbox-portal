@@ -210,10 +210,10 @@ describe('The EmailService', function () {
             const options = {triggerCondition: ""};
             const user = "";
             const response = "";
-            
+
             const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.not.be.equal(null);
-            
+
         });
 
         it('should fail when to address is not valid', async function () {

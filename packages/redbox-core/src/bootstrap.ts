@@ -10,7 +10,7 @@
  */
 
 import { lastValueFrom, Observable } from 'rxjs';
-import type { BrandingAwareFunction } from './config';
+import {BrandingAwareFunction, isPinoLogger} from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
 import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
@@ -180,8 +180,10 @@ export function preLiftSetup(): void {
         sails.log.debug("Using NG2 Bundled files.......");
     }
 
-    // Update the pino log level to the sails.log.level
-    sails.config.log.customLogger.level = sails.config.log.level;
+    if (isPinoLogger(sails.config.log.customLogger)) {
+        // Update the pino log level to the sails.config.log.level
+        sails.config.log.customLogger.level = sails.config.log.level;
+    }
 
     sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
     void getMergedApiRoutes();

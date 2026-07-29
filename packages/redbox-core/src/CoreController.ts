@@ -1,7 +1,6 @@
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import path from 'path';
-import { ILogger } from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
@@ -13,9 +12,8 @@ import {
   RBValidationError,
   ErrorResponseItemV2,
 } from "./model";
-
-
-
+import {RequestChronicleHelper} from "./utilities/RequestChronicle";
+import {CoreBase} from "./CoreBase";
 
 
 export namespace Controllers.Core {
@@ -37,19 +35,13 @@ export namespace Controllers.Core {
    * The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
    * They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.
    */
-  export class Controller {
-
+  export class Controller extends CoreBase {
     /**
      * Overrides for the settings in `config/controllers.js`
      * (specific to the controller where it's defined)
      * Specific to sails. Don't rename.
      */
     protected _config: Record<string, unknown> = {};
-
-    /**
-     * Exported methods. Must be overridden by the child to add custom methods.
-     */
-    protected _exportedMethods: string[] = [];
 
     /**
      * Theme used by the controller by default.
@@ -76,97 +68,7 @@ export namespace Controllers.Core {
       '_config',
     ];
 
-    // Namespaced logger for controllers
-    private _logger: ILogger | null = null;
-
-    private getFallbackLogger(): ILogger {
-      const log = (...args: unknown[]): void => console.log(...args);
-      const noop = (): void => undefined;
-      return {
-        silly: log,
-        verbose: log,
-        trace: (...args: unknown[]): void => console.trace(...args),
-        debug: (...args: unknown[]): void => console.debug(...args),
-        log: (...args: unknown[]): void => console.log(...args),
-        info: (...args: unknown[]): void => console.info(...args),
-        warn: (...args: unknown[]): void => console.warn(...args),
-        error: (...args: unknown[]): void => console.error(...args),
-        crit: (...args: unknown[]): void => console.error(...args),
-        fatal: (...args: unknown[]): void => console.error(...args),
-        silent: noop,
-        blank: (): void => console.log(''),
-      };
-    }
-
-    /**
-     * Get a namespaced logger for this controller class.
-     * Uses the class constructor name as the namespace.
-     * Falls back to sails.log if pino namespaced logging is not available.
-     */
-    protected get logger(): ILogger {
-      if (typeof sails === 'undefined') {
-        return this.getFallbackLogger();
-      }
-      if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
-        const controllerName = this.constructor.name + 'Controller';
-        this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
-      }
-      if (this._logger !== null) {
-        return this._logger;
-      }
-      const sailsLogger = sails?.log as Partial<ILogger> | undefined;
-      if (sailsLogger && typeof sailsLogger.verbose === 'function') {
-        return sailsLogger as ILogger;
-      }
-      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this.getFallbackLogger();
-    }
-
-    /**
-     * Registers a Sails hook handler if Sails is available.
-     */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-      if (typeof sails === 'undefined') {
-        return false;
-      }
-      if (action === 'on') {
-        if (typeof sails.on !== 'function') {
-          return false;
-        }
-        sails.on(eventName as string, handler);
-        return true;
-      }
-      if (typeof sails.after !== 'function') {
-        return false;
-      }
-      sails.after(eventName, handler);
-      return true;
-    }
-
-    constructor() {
-      this.processDynamicImports().then(() => {
-        this.logger.verbose("Dynamic imports imported");
-        this.onDynamicImportsCompleted();
-      });
-    }
-
-    /**
-     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
-     * Called in the constructor and intended to be overridden in sub class to allow imports.
-     */
-    protected async processDynamicImports() {
-      // Override in sub class as needed
-    }
-
-    /**
-     * Function that is called during the construction of the Controller after the dynamic imports are completed.
-     * Intended to be overridden in the sub class
-     */
-    protected onDynamicImportsCompleted() {
-      // Override in sub class as needed
-    }
+    protected _loggerNamespaceSuffix: string = "Controller";
 
     /**
      **************************************************************************************************
@@ -379,11 +281,13 @@ export namespace Controllers.Core {
         ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
       ]));
 
-      this.logger.debug("resolvedView");
-      this.logger.debug(sailsViewPath);
+      // this.logger.debug("resolvedView");
+      // this.logger.debug(sailsViewPath);
       // this.logger.debug("mergedLocal");
       // this.logger.debug(mergedLocal);
 
+      // TODO: there is too much data in these view details - are individual properties interesting?
+      // this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
 
       res.view(this.getRenderViewPath(resolvedView), mergedLocal);
     }
@@ -578,17 +482,19 @@ export namespace Controllers.Core {
         meta = {},
         prehydrate = undefined,
         v1 = null,
+        chronicle = {},
       } = buildResponse ?? {};
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
 
       // Collect and process the errors recursively
       const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
-      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
       status = this.resolveResponseStatus(status, collectedDisplayErrors);
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
+
+      this.updateChronicle(req, chronicle, collectedErrors);
 
       // Delegate full version-specific responses (success + errors) to wrapper handlers.
       if (apiVersion === ApiVersion.VERSION_1_0) {
@@ -621,7 +527,13 @@ export namespace Controllers.Core {
       return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
     }
 
-    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
+    protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
+      const rc = RequestChronicleHelper.fromReq(sails.log, req);
+      rc?.addInfo(info ?? {});
+      (errors ?? []).forEach(error => rc?.addError(error));
+    }
+
+    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
       const {
         errors: collectedErrors,
         displayErrors: collectedDisplayErrors
@@ -631,6 +543,9 @@ export namespace Controllers.Core {
         sails.log.error(`Collected error in sendResp:`, error);
       }
 
+      const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
+      const displayErrorsMsg = `display ${collectedDisplayErrors.length} ${collectedDisplayErrors.length === 1 ? 'error' : 'errors'}`;
+      sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
       return { collectedErrors, collectedDisplayErrors };
     }
 
@@ -886,6 +801,43 @@ export namespace Controllers.Core {
 
     private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
       res.set(this.getNoCacheHeaders());
+    }
+
+    /**
+     * Parse a floating point number from a value.
+     * @param value The value to parse.
+     * @param defaultValue The default if the value cannot be parsed.
+     * @param min The optional minimum value.
+     * @param max The optional maximum value.
+     * @return The parsed number, or default if parsing failed, constrained between min and max if supplied.
+     * @protected
+     */
+    protected getNumber(value?: unknown, defaultValue?: number, min?: number, max?: number): number | undefined {
+      let result: number | null = null;
+      if (value !== null && value !== undefined && typeof value === 'number' && Number.isFinite(value)) {
+        result = value;
+      }
+
+      const parsed = Number.parseFloat(value?.toString() ?? "");
+      if (result === null && parsed !== null && parsed !== undefined && typeof parsed === 'number' && Number.isFinite(parsed)) {
+        result = parsed;
+      }
+
+      if (result === null && defaultValue !== null && defaultValue !== undefined && typeof defaultValue === 'number' && Number.isFinite(defaultValue)) {
+        result = defaultValue;
+      }
+
+      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(result)) {
+        return undefined;
+      }
+
+      if (min !== null && min !== undefined && Number.isFinite(min)) {
+        result = Math.max(result, min);
+      }
+      if (max !== null && max !== undefined && Number.isFinite(max)) {
+        result = Math.min(result, max);
+      }
+      return Number.isFinite(result) ? result : undefined;
     }
   }
 }

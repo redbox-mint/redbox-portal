@@ -16,6 +16,7 @@ const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/servi
 const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
 const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
 const { RBValidationError } = testRequire('../../src/model/RBValidationError');
+const {createSinonStubLogger} = testRequire("../logger.test") as typeof import('../logger.test');
 
 let expect!: Chai.ExpectStatic;
 
@@ -325,20 +326,7 @@ describe('FigshareService', function () {
 
   beforeEach(function () {
     const mockSails = createMockSails({
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-        crit: sinon.stub(),
-        fatal: sinon.stub(),
-        silly: sinon.stub(),
-        blank: sinon.stub(),
-        log: sinon.stub(),
-        silent: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
     mockSails.config.queue = { serviceName: 'queueservice' };
     mockSails.config.figshareDev = buildFigshareDevConfig();

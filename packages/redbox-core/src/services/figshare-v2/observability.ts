@@ -1,6 +1,7 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
 import { FigshareRunContext } from './types';
 import { redactObject } from '../../utilities/RedactionUtils';
+import {isAvailableLogLevel} from "@researchdatabox/sails-ng-common";
 
 export { redactObject, redactSecret } from '../../utilities/RedactionUtils';
 
@@ -30,12 +31,26 @@ export function withSpan<T>(name: string, runContext: FigshareRunContext, attrib
 }
 
 export function logEvent(level: string, message: string, runContext: FigshareRunContext, payload: unknown = {}): void {
-  const logger = sails.log[level] || sails.log.info;
-  logger({
-    recordOid: runContext.recordOid,
-    brandName: runContext.brandName,
-    correlationId: runContext.correlationId,
-    triggerSource: runContext.triggerSource,
-    payload: redactObject(payload)
-  }, message);
+  const log = sails.log;
+  if (!isAvailableLogLevel(level)) {
+    log.warn(`Unknown log level '${level}' in logEvent, using 'info' instead.`);
+    level = 'info';
+  }
+
+  const args = [
+    {
+      recordOid: runContext.recordOid,
+      brandName: runContext.brandName,
+      correlationId: runContext.correlationId,
+      triggerSource: runContext.triggerSource,
+      payload: redactObject(payload)
+    },
+    message,
+  ];
+
+  if (isAvailableLogLevel(level)) {
+    if (level in log && typeof log[level] === 'function') {
+      log[level](...args);
+    }
+  }
 }

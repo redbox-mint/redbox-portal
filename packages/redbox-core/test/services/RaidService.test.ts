@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -58,13 +60,7 @@ describe('RaidService', function() {
           }
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -113,7 +109,7 @@ describe('RaidService', function() {
         role: 'Supervision',
         fieldMap: { id: 'orcid' }
       };
-      
+
       expect(() => {
         RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
       }).to.not.throw();
@@ -131,7 +127,7 @@ describe('RaidService', function() {
         fieldMap: { id: 'orcid' },
         requireOrcid: true
       };
-      
+
       expect(() => {
         RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
       }).to.throw();
@@ -147,9 +143,9 @@ describe('RaidService', function() {
         role: 'Supervision',
         fieldMap: { id: 'orcid' }
       };
-      
+
       RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
-      
+
       expect(Object.keys(contributors)).to.have.length(0);
     });
 
@@ -165,9 +161,9 @@ describe('RaidService', function() {
         role: 'Supervision',
         fieldMap: { id: 'orcid' }
       };
-      
+
       RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
-      
+
       const fullOrcidUrl = `https://orcid.org/${orcidId}`;
       expect(contributors).to.have.property(fullOrcidUrl);
       expect(contributors[fullOrcidUrl]).to.have.property('id', fullOrcidUrl);
@@ -184,7 +180,7 @@ describe('RaidService', function() {
           role: [{ id: 'role-1' }]
         }
       };
-      
+
       const contribVal = {
         text_full_name: 'Test User',
         orcid: fullOrcidUrl
@@ -194,9 +190,9 @@ describe('RaidService', function() {
         role: 'Investigation',
         fieldMap: { id: 'orcid' }
       };
-      
+
       RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
-      
+
       expect(contributors[fullOrcidUrl].role).to.have.length(2);
     });
 
@@ -212,7 +208,7 @@ describe('RaidService', function() {
         fieldMap: { id: 'orcid' },
         requireOrcid: false
       };
-      
+
       expect(() => {
         RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
       }).to.not.throw();
@@ -227,9 +223,9 @@ describe('RaidService', function() {
         { notation: '0602', label: 'Ecology' }
       ];
       const fieldConfig = { dest: 'subjects' };
-      
+
       const result = RaidService.getSubject({}, {}, fieldConfig, subjects, 'anzsrc-for', subjectData);
-      
+
       expect(result).to.have.length(2);
       expect(result[0]).to.have.property('id');
       expect(result[0]).to.have.property('schemaUri');
@@ -238,17 +234,17 @@ describe('RaidService', function() {
 
     it('should handle empty subject data', function() {
       const subjects: any[] = [];
-      
+
       const result = RaidService.getSubject({}, {}, { dest: 'subjects' }, subjects, 'anzsrc-for', []);
-      
+
       expect(result).to.have.length(0);
     });
 
     it('should handle null subject data', function() {
       const subjects: any[] = [];
-      
+
       const result = RaidService.getSubject({}, {}, { dest: 'subjects' }, subjects, 'anzsrc-for', null);
-      
+
       expect(result).to.have.length(0);
     });
   });
@@ -267,11 +263,11 @@ describe('RaidService', function() {
     it('should skip minting when trigger condition not met', async function() {
       const record = { metadata: { raidUrl: 'existing-raid' } };
       const options = { triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>' };
-      
+
       sinon.stub(RaidService, 'metTriggerCondition').returns('false');
-      
+
       const result = await RaidService.mintTrigger('oid-1', record, options);
-      
+
       expect(result).to.deep.equal(record);
     });
   });
@@ -287,9 +283,9 @@ describe('RaidService', function() {
           }
         }
       };
-      
+
       await RaidService.mintPostCreateRetryHandler(oid, record, {});
-      
+
       expect((global as any).AgendaQueueService.schedule.called).to.be.true;
     });
 
@@ -299,9 +295,9 @@ describe('RaidService', function() {
           raid: { attemptCount: 1 }
         }
       };
-      
+
       await RaidService.mintPostCreateRetryHandler('', record, {});
-      
+
       expect((global as any).AgendaQueueService.schedule.called).to.be.false;
     });
 
@@ -311,9 +307,9 @@ describe('RaidService', function() {
           raid: { attemptCount: 0 }
         }
       };
-      
+
       await RaidService.mintPostCreateRetryHandler('oid-1', record, {});
-      
+
       expect((global as any).AgendaQueueService.schedule.called).to.be.false;
     });
   });
@@ -329,12 +325,12 @@ describe('RaidService', function() {
           }
         }
       };
-      
+
       (global as any).RecordsService.getMeta.resolves({ metadata: {} });
       const mintRaidStub = sinon.stub(RaidService as any, 'mintRaid').resolves({});
-      
+
       await RaidService.mintRetryJob(job);
-      
+
       expect(mintRaidStub.called).to.be.true;
       expect(mintRaidStub.firstCall.args[0]).to.equal('record-123');
       expect(mintRaidStub.firstCall.args[3]).to.equal(2); // attemptCount
@@ -353,9 +349,9 @@ describe('RaidService', function() {
         role: 'Supervision',
         fieldMap: { id: 'orcid' }
       };
-      
+
       RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
-      
+
       const fullOrcidUrl = 'https://orcid.org/0000-0002-1234-5678';
       expect(contributors[fullOrcidUrl]).to.have.property('leader', true);
       expect(contributors[fullOrcidUrl]).to.have.property('contact', true);
@@ -372,9 +368,9 @@ describe('RaidService', function() {
         role: 'Investigation',
         fieldMap: { id: 'orcid' }
       };
-      
+
       RaidService.buildContribVal(contributors, contribVal, contribConfig, '2024-01-01', '2024-12-31');
-      
+
       const fullOrcidUrl = 'https://orcid.org/0000-0002-1234-5678';
       expect(contributors[fullOrcidUrl]).to.not.have.property('leader');
     });

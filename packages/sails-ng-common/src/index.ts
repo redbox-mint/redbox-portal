@@ -1,4 +1,6 @@
 // top
+export * from './handlebars-helpers';
+export * from './logger.model';
 export * from './record.model';
 export * from './report.model';
 export * from './status.model';
@@ -42,7 +44,7 @@ export * from './config/names/naming-helpers';
 export * from './config/visitor/base.outline';
 export * from './config/visitor/base.model';
 export * from './config/visitor/common.model';
-export * from './logger.interface';
+export * from './logger.model';
 // config/component
 export * from './config/component/checkbox-input.model';
 export * from './config/component/checkbox-input.outline';

@@ -1,6 +1,9 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { checkAuth } from '../../src/policies/checkAuth';
+import * as sinon from "sinon";
 
 // Mock globals
 
@@ -11,9 +14,7 @@ import { checkAuth } from '../../src/policies/checkAuth';
             defaultPortal: 'portal'
         }
     },
-    log: {
-        verbose: () => { }
-    },
+    log: createSinonStubLogger(sinon),
     getActions: () => ({
         'user/redirlogin': (req: any, res: any) => { res._redirectedToLogin = true; }
     })
@@ -51,9 +52,7 @@ describe('checkAuth policy', function () {
                     defaultPortal: 'portal'
                 }
             },
-            log: {
-                verbose: () => { }
-            },
+            log: createSinonStubLogger(sinon),
             getActions: () => ({
                 'user/redirlogin': (req: any, res: any) => { res._redirectedToLogin = true; }
             })

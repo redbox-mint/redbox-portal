@@ -6,29 +6,14 @@ import {
     DropdownInputFormComponentDefinitionOutline,
     FormConfigFrame,
     GroupFieldComponentName,
-    RadioInputFormComponentDefinitionOutline
+    RadioInputFormComponentDefinitionOutline,
+    consoleLogger as testLogger,
 } from '@researchdatabox/sails-ng-common';
-import type { ILogger } from '../../src/Logger';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { VocabInlineFormConfigVisitor } from '../../src/visitor/vocab-inline.visitor';
 import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
 
 describe('VocabInlineFormConfigVisitor', () => {
-    const logger: ILogger = {
-        silly: () => undefined,
-        verbose: () => undefined,
-        trace: () => undefined,
-        debug: () => undefined,
-        log: () => undefined,
-        info: () => undefined,
-        warn: () => undefined,
-        error: () => undefined,
-        crit: () => undefined,
-        fatal: () => undefined,
-        silent: () => undefined,
-        blank: () => undefined,
-    };
-
     beforeEach(() => {
         (globalThis as any).sails = { config: { auth: { defaultBrand: 'default' } } };
         (globalThis as any).VocabularyService = {
@@ -59,10 +44,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed);
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
@@ -102,7 +87,7 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({
             data: input,
             formMode: 'view',
@@ -115,10 +100,10 @@ describe('VocabInlineFormConfigVisitor', () => {
         expect(constructed.componentDefinitions[0]?.component?.class).to.equal('DropdownInputComponent');
         expect(constructed.componentDefinitions[1]?.component?.class).to.equal('CheckboxInputComponent');
 
-        const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
+        const vocabVisitor = new VocabInlineFormConfigVisitor(testLogger);
         await vocabVisitor.resolveVocabs(constructed);
 
-        const clientVisitor = new ClientFormConfigVisitor(logger);
+        const clientVisitor = new ClientFormConfigVisitor(testLogger);
         const clientForm = await clientVisitor.start({ form: constructed, formMode: 'view' });
 
         const dropdown = clientForm.componentDefinitions[0] as any;
@@ -153,10 +138,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed);
 
         const radio = constructed.componentDefinitions?.[0] as RadioInputFormComponentDefinitionOutline;
@@ -193,10 +178,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed);
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
@@ -245,10 +230,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
 
         expect(getEntriesCalls).to.have.length(1);
@@ -289,10 +274,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'legacy' } });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
@@ -330,10 +315,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit', record: { access_type: 'open' } });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
@@ -372,10 +357,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit', record: { status: ['active', 'old-b'] } });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
 
         const checkbox = constructed.componentDefinitions?.[0] as CheckboxInputFormComponentDefinitionOutline;
@@ -414,10 +399,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default');
 
         const dropdown = constructed.componentDefinitions?.[0] as DropdownInputFormComponentDefinitionOutline;
@@ -457,10 +442,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         let thrown: unknown = null;
         try {
             await visitor.resolveVocabs(constructed);
@@ -508,10 +493,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default');
 
         const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;
@@ -551,10 +536,10 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({ data: input, formMode: 'edit' });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default');
 
         const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;
@@ -592,7 +577,7 @@ describe('VocabInlineFormConfigVisitor', () => {
             ],
         };
 
-        const constructor = new ConstructFormConfigVisitor(logger as any);
+        const constructor = new ConstructFormConfigVisitor(testLogger as any);
         const constructed = await constructor.start({
             data: input,
             formMode: 'edit',
@@ -601,7 +586,7 @@ describe('VocabInlineFormConfigVisitor', () => {
             },
         });
 
-        const visitor = new VocabInlineFormConfigVisitor(logger);
+        const visitor = new VocabInlineFormConfigVisitor(testLogger);
         await visitor.resolveVocabs(constructed, 'default', { includeHistoricalValues: true });
 
         const tree = constructed.componentDefinitions?.[0] as CheckboxTreeFormComponentDefinitionOutline;

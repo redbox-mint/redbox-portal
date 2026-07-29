@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -53,13 +55,7 @@ describe('SolrSearchService', function() {
           serviceName: 'agendaqueueservice'
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         agendaqueueservice: mockQueueService
       },
@@ -97,33 +93,33 @@ describe('SolrSearchService', function() {
   describe('luceneEscape', function() {
     it('should escape special characters', function() {
       const result = (SolrSearchService as any).luceneEscape('test+query-with:special');
-      
+
       expect(result).to.include('\\');
     });
 
     it('should escape brackets', function() {
       const result = (SolrSearchService as any).luceneEscape('test[1]');
-      
+
       expect(result).to.include('\\[');
       expect(result).to.include('\\]');
     });
 
     it('should escape parentheses', function() {
       const result = (SolrSearchService as any).luceneEscape('test(value)');
-      
+
       expect(result).to.include('\\(');
       expect(result).to.include('\\)');
     });
 
     it('should escape quotation marks', function() {
       const result = (SolrSearchService as any).luceneEscape('test"value"');
-      
+
       expect(result).to.include('\\"');
     });
 
     it('should handle simple strings without special chars', function() {
       const result = (SolrSearchService as any).luceneEscape('simplestring');
-      
+
       expect(result).to.equal('simplestring');
     });
   });
@@ -134,9 +130,9 @@ describe('SolrSearchService', function() {
       const username = 'testuser';
       const roles = [{ name: 'Admin', branding: 'brand-1' }];
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
-      
+
       expect(result).to.include('authorization_edit:testuser');
       expect(result).to.include('authorization_view:testuser');
     });
@@ -149,9 +145,9 @@ describe('SolrSearchService', function() {
         { name: 'Researcher', branding: 'brand-1' }
       ];
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
-      
+
       expect(result).to.include('authorization_viewRoles');
       expect(result).to.include('authorization_editRoles');
       expect(result).to.include('Admin');
@@ -166,9 +162,9 @@ describe('SolrSearchService', function() {
         { name: 'OtherBrandRole', branding: 'brand-2' }
       ];
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
-      
+
       expect(result).to.include('Admin');
       expect(result).to.not.include('OtherBrandRole');
     });
@@ -178,9 +174,9 @@ describe('SolrSearchService', function() {
       const username = 'testuser';
       const roles = [{ name: 'Admin', branding: 'brand-1' }];
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand, true);
-      
+
       expect(result).to.include('authorization_edit:testuser');
       expect(result).to.not.include('authorization_view:testuser');
     });
@@ -190,9 +186,9 @@ describe('SolrSearchService', function() {
       const username = 'testuser';
       const roles: any[] = [];
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
-      
+
       expect(result).to.include('authorization_edit:testuser');
     });
   });
@@ -204,9 +200,9 @@ describe('SolrSearchService', function() {
         port: 8983,
         https: false
       };
-      
+
       const result = (SolrSearchService as any).getBaseUrl(options);
-      
+
       expect(result).to.equal('http://localhost:8983/solr/');
     });
 
@@ -216,9 +212,9 @@ describe('SolrSearchService', function() {
         port: 443,
         https: true
       };
-      
+
       const result = (SolrSearchService as any).getBaseUrl(options);
-      
+
       expect(result).to.equal('https://solr.example.com:443/solr/');
     });
   });
@@ -229,9 +225,9 @@ describe('SolrSearchService', function() {
         metadata: { title: 'Test Record' },
         metaMetadata: { brandId: 'brand-1' }
       };
-      
+
       SolrSearchService.index('record-123', data);
-      
+
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('SolrAddOrUpdate');
     });
@@ -240,9 +236,9 @@ describe('SolrSearchService', function() {
       const data: any = {
         metadata: { title: 'Test' }
       };
-      
+
       SolrSearchService.index('my-oid', data);
-      
+
       expect(data.id).to.equal('my-oid');
     });
 
@@ -263,14 +259,14 @@ describe('SolrSearchService', function() {
   describe('remove', function() {
     it('should queue delete job', function() {
       SolrSearchService.remove('record-123');
-      
+
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('SolrDelete');
     });
 
     it('should pass id in job data', function() {
       SolrSearchService.remove('record-456');
-      
+
       const jobData = mockQueueService.now.firstCall.args[1];
       expect(jobData.id).to.equal('record-456');
     });
@@ -318,7 +314,7 @@ describe('SolrSearchService', function() {
   describe('initClient', function() {
     it('should initialize clients for all cores', function() {
       (SolrSearchService as any).initClient();
-      
+
       expect(SolrSearchService.clients).to.have.property('default');
     });
   });
@@ -404,21 +400,21 @@ describe('SolrSearchService', function() {
   describe('clientSleep', function() {
     it('should resolve immediately when no sleep time configured', async function() {
       mockSails.config.solr.clientSleepTimeMillis = undefined;
-      
+
       const start = Date.now();
       await (SolrSearchService as any).clientSleep();
       const elapsed = Date.now() - start;
-      
+
       expect(elapsed).to.be.lessThan(50);
     });
 
     it('should sleep for configured time', async function() {
       mockSails.config.solr.clientSleepTimeMillis = 50;
-      
+
       const start = Date.now();
       await (SolrSearchService as any).clientSleep();
       const elapsed = Date.now() - start;
-      
+
       expect(elapsed).to.be.at.least(40);
     });
   });
@@ -480,11 +476,11 @@ describe('SolrClient', function() {
         services: { agendaqueueservice: { now: sinon.stub() } }
       });
       setupServiceTestGlobals(mockSails);
-      
+
       const { Services } = require('../../src/services/SolrSearchService');
       const service = new Services.SolrSearchService();
       (service as any).initClient();
-      
+
       expect(service.clients.default).to.exist;
     });
   });

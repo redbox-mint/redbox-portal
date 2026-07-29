@@ -5,14 +5,14 @@ import {
   FormFieldModel,
   ModifyOptions,
 } from '@researchdatabox/portal-ng-common';
-import { DateInputFieldComponentConfig } from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.model';
+import { DateInputFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
   DateInputComponentName,
   DateInputModelName,
   type DateInputFieldComponentConfigFrame,
   type DateInputModelValueType,
-} from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.outline';
-import { mapMomentToLuxonFormat } from '@researchdatabox/sails-ng-common/dist/src/date-format-helpers';
+} from '@researchdatabox/sails-ng-common';
+import { mapMomentToLuxonFormat } from '@researchdatabox/sails-ng-common';
 import { DateTime } from 'luxon';
 import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';

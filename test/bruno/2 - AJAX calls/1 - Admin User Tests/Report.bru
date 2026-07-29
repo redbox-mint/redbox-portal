@@ -35,6 +35,12 @@ script:pre-request {
 
 tests {
   test("Status code is 200", function () {
+      const status = res.getStatus();
+      if (status !== 200) {
+        console.log('Status:', status);
+        console.log('Response body:', res.getBody());
+        console.log('Response headers:', res.getHeaders());
+      }
       expect(res.getStatus()).to.equal(200);
   });
 
