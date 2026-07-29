@@ -646,6 +646,51 @@ describe('Webservice RecordController getMeta', () => {
     assert.deepEqual(sendResp.firstCall.args[2], { data: record.metadata });
   });
 
+  it('returns record permissions when view access is allowed', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const record = { authorization: { view: ['tester'] } };
+    (global as any).sails.services.recordsservice.getMeta.resolves(record);
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(true);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], { data: record.authorization });
+  });
+
+  it('rejects record permission access when view access is denied', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves({ authorization: {} });
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(false);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 403);
+  });
+
+  it('returns not found when record permission metadata is missing', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves(null);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 404);
+  });
+
   it('returns filtered relationships when requested', async () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');

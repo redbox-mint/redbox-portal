@@ -434,4 +434,61 @@ describe('Webservice UserManagementController', () => {
         });
 
     });
+
+    describe('brand-scoped user mutations', () => {
+        it('allows a linked roleless user to be updated', async () => {
+            const linkedUser = { id: 'linked-user', username: 'linked', roles: [] };
+            (global as any).UsersService.getUserWithId = sinon.stub().returns(of(linkedUser));
+            (global as any).UserLink.findOne.resolves({ id: 'link-1', status: 'active' });
+            (global as any).UsersService.updateUserDetails = sinon.stub().returns(of([[linkedUser]]));
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                body: { id: 'linked-user', name: 'Linked User', email: 'linked@example.org' }
+            });
+            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+
+            await controller.updateUser(req, {} as Sails.Res);
+
+            expect((global as any).UserLink.findOne.calledOnce).to.be.true;
+            expect((global as any).UsersService.updateUserDetails.calledOnce).to.be.true;
+            expect(apiRespondStub.calledOnce).to.be.true;
+        });
+
+        it('rejects updating a user outside the current brand', async () => {
+            (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
+                id: 'other-user',
+                roles: [{ branding: { id: 'brand-2' } }]
+            }));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                body: { id: 'other-user', name: 'Other User' }
+            });
+
+            await controller.updateUser(req, {} as Sails.Res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
+
+        for (const method of ['generateAPIToken', 'revokeAPIToken'] as const) {
+            it(`rejects ${method} for a user outside the current brand`, async () => {
+                (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
+                    id: 'other-user',
+                    roles: [{ branding: 'brand-2' }]
+                }));
+                const sendRespStub = sinon.stub(controller as any, 'sendResp');
+                const req = makeReq({
+                    session: { branding: 'default' },
+                    user: { username: 'admin-user' },
+                    query: { id: 'other-user' }
+                });
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+            });
+        }
+    });
 });
