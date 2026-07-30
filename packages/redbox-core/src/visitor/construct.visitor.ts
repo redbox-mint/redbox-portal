@@ -1840,6 +1840,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('placeholder', item.config, config);
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('multipleValues', item.config, config);
+    this.sharedProps.setPropOverride('booleanMode', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);

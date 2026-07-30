@@ -26,6 +26,7 @@ export class CheckboxInputFieldComponentConfig extends FieldComponentConfig impl
     placeholder?: string;
     options: CheckboxOption[] = [];
     multipleValues?: boolean;
+    booleanMode?: boolean;
     vocabRef?: string;
     inlineVocab?: boolean;
     historicalVocabMode?: HistoricalVocabMode;

@@ -1961,19 +1961,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const options = this.migrateOptions(field);
     this.sharedProps.setPropOverride('options', item.config, { options: options });
+    if (this.isLegacyNoOptionToggle(field)) {
+      item.config.booleanMode = true;
+      item.config.multipleValues = false;
+    }
   }
 
   async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
+  }
 
+  /**
+   * A legacy checkbox toggle with no options carries a boolean rather than an option value,
+   * so it migrates to a single CheckboxInput control in boolean mode.
+   */
+  protected isLegacyNoOptionToggle(field: Record<string, unknown>): boolean {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
-    const rawDefaultValue = definition.value ?? definition.defaultValue;
-    const hasOptions = Array.isArray(definition.options) && definition.options.length > 0;
-    if (definition.controlType === 'checkbox' && typeof rawDefaultValue === 'boolean' && !hasOptions) {
-      delete item.config.defaultValue;
-    }
+    return definition.controlType === 'checkbox' && this.migrateOptions(field).length === 0;
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {

@@ -291,7 +291,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(warnings.some(msg => msg.includes('coerced non-array default value'))).to.equal(true);
   });
 
-  it('omits boolean defaults for legacy toggle fields migrated to CheckboxInput', async function () {
+  it('migrates no-option legacy toggles to boolean checkboxes', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
     const migrated = await visitor.start({
       data: {
@@ -314,7 +314,74 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('CheckboxInputComponent');
     expect(migratedField.model?.class).to.equal('CheckboxInputModel');
-    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+    expect(migratedField.component.config).to.deep.include({
+      options: [],
+      booleanMode: true,
+      multipleValues: false,
+    });
+    // The legacy boolean default is representable now that the model accepts booleans,
+    // so the field starts unticked and saves false rather than null.
+    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(false);
+  });
+
+  it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-subscribe-migration',
+        fields: [
+          {
+            class: 'RecordMetadataRetriever',
+            compClass: 'RecordMetadataRetrieverComponent',
+            definition: { name: 'rdmpGetter' },
+          },
+          {
+            class: 'Toggle',
+            compClass: 'ToggleComponent',
+            definition: {
+              name: 'project-hdr',
+              controlType: 'checkbox',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [
+                    { action: 'utilityService.getPropertyFromObject', field: 'project-hdr' },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            class: 'TextArea',
+            compClass: 'TextAreaComponent',
+            definition: {
+              name: 'description',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [
+                    { action: 'utilityService.getPropertyFromObject', field: 'description' },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const templateFor = (name: string) =>
+      migrated.componentDefinitions.find(item => item.name === name)?.expressions?.[0]?.config
+        ?.template;
+
+    // `event.value["project-hdr"]` is a JSONata filter predicate, so it would return the
+    // whole source object instead of the property.
+    expect(templateFor('project-hdr')).to.equal('event.value.`project-hdr`');
+    expect(templateFor('description')).to.equal('event.value.description');
+
+    const source = { event: { value: { 'project-hdr': true, description: 'a description' } } };
+    expect(await jsonata(templateFor('project-hdr') as string).evaluate(source)).to.equal(true);
+    expect(await jsonata(templateFor('description') as string).evaluate(source)).to.equal(
+      'a description'
+    );
   });
 
   it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {
