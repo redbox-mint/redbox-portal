@@ -165,6 +165,7 @@ import {
   PublishDataLocationRefreshFieldComponentDefinitionOutline,
   PublishDataLocationRefreshFormComponentDefinitionOutline,
 } from '../component/publish-data-location-refresh.outline';
+import { RelatedObjectDataFieldComponentDefinitionOutline, RelatedObjectDataFormComponentDefinitionOutline } from '../component/related-object-data.outline';
 
 /**
  * The form config visitor definition.
@@ -204,6 +205,14 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
   }
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();
   }
 

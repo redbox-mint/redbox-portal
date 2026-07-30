@@ -58,6 +58,12 @@ import {
   ContentFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RelatedObjectDataComponentName,
+  RelatedObjectDataFieldComponentConfig,
+  RelatedObjectDataFieldComponentDefinitionOutline,
+  RelatedObjectDataFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabComponentName,
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
@@ -301,6 +307,11 @@ interface V5ClassNames {
  * Overall mapping from v4 class, v4 compClass to v5 class names.
  */
 const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: string]: V5ClassNames } } = {
+  RelatedObjectDataField: {
+    '': { componentClassName: RelatedObjectDataComponentName },
+    RelatedObjectDataField: { componentClassName: RelatedObjectDataComponentName },
+    RelatedObjectDataComponent: { componentClassName: RelatedObjectDataComponentName },
+  },
   Container: {
     '': {
       componentClassName: GroupFieldComponentName,
@@ -1006,6 +1017,28 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
         item.name = `${valuePath}-link-value`;
       }
     }
+  }
+
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config ??= new RelatedObjectDataFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const legacyName = typeof definition['name'] === 'string' ? definition['name'] : undefined;
+    item.config.dataPath = legacyName;
+    item.config.oidProperty = 'id';
+    const columns = Array.isArray(definition['columns']) ? definition['columns'] as Record<string, unknown>[] : [];
+    item.config.relatedFields = columns.map(column => column['property']).filter((property): property is string => typeof property === 'string');
+    if (columns.length) {
+      const headers = columns.map(column => `<th>${String(column['label'] ?? column['property'] ?? '')}</th>`).join('');
+      const cells = columns.map(column => `<td>{{fields.${String(column['property'] ?? '')}}}</td>`).join('');
+      item.config.template = `<table><thead><tr>${headers}</tr></thead><tbody>{{#each relatedObjects}}<tr>${cells}</tr>{{/each}}</tbody></table>`;
+    }
+    if (!legacyName) this.logger.warn(`${this.logName}: RelatedObjectDataField has no definition.name to migrate to dataPath.`);
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
   }
 
   /* Repeatable  */

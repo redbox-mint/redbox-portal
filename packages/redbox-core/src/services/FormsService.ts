@@ -21,6 +21,7 @@ import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, take, tap, map, catchError } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import { UserModel } from '../model/storage/UserModel';
 import { FormAttributes } from '../waterline-models/Form';
 import { createSchema } from 'genson-js';
 import * as path from 'path';
@@ -32,6 +33,8 @@ import {
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
+import { RelatedObjectDataInlineFormConfigVisitor } from '../visitor/related-object-data-inline.visitor';
+import type { RecordsService } from '../RecordsService';
 
 type WorkflowStepLike = {
   id: string;
@@ -60,6 +63,7 @@ type FormComponentNodeLike = {
     };
   };
 };
+type RecordAccessContext = { user: UserModel; brand: BrandingModel };
 
 export namespace Services {
   /**
@@ -604,7 +608,8 @@ export namespace Services {
       recordMetadata?: Record<string, unknown> | null,
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
-      contextVariablesMap?: Record<string, unknown>
+      contextVariablesMap?: Record<string, unknown>,
+      recordAccessContext?: RecordAccessContext
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
@@ -614,6 +619,11 @@ export namespace Services {
       });
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
+      if (recordMetadata && recordAccessContext) {
+        const recordsService = sails.services.recordsservice as unknown as RecordsService;
+        const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
+        await relatedVisitor.resolve(constructed, recordMetadata, recordAccessContext);
+      }
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });

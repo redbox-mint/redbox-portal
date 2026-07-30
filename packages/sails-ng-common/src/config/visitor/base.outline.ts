@@ -162,6 +162,7 @@ import {
   PublishDataLocationRefreshFieldComponentDefinitionOutline,
   PublishDataLocationRefreshFormComponentDefinitionOutline,
 } from '../component/publish-data-location-refresh.outline';
+import { RelatedObjectDataFieldComponentDefinitionOutline, RelatedObjectDataFormComponentDefinitionOutline } from '../component/related-object-data.outline';
 
 /**
  * Interface for classes that can be visited by a visitor.
@@ -190,6 +191,10 @@ export interface FormConfigVisitorOutline {
   /* Content */
 
   visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void>;
+
+  visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void>;
+
+  visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void>;
 
   visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void>;
 

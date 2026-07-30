@@ -621,7 +621,8 @@ export namespace Controllers {
           recordData?.metadata ?? null,
           reusableFormDefs,
           String(brand?.name ?? ''),
-          contextVariablesMap
+          contextVariablesMap,
+          { user: req.user as UserModel, brand }
         );
         const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
         const prehydrate = await prehydrateService.build({

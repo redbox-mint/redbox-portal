@@ -10,6 +10,7 @@ import {
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
+import { RelatedObjectDataFieldComponentDefinitionOutline, RelatedObjectDataFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
@@ -236,6 +237,17 @@ export class TemplateFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    const template = (item.config?.template ?? '').trim();
+    if (template) {
+      this.templates?.push({ key: [...(this.formPathHelper.formPath.formConfig ?? []), 'config', 'template'], value: template, kind: 'handlebars' });
+    }
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

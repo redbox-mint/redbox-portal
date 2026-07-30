@@ -11,6 +11,7 @@ import { ValidationSummaryFieldComponent } from './component/validation-summary.
 import { SuggestedValidationSummaryFieldComponent } from './component/suggested-validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
 import { ContentComponent } from './component/content.component';
+import { RelatedObjectDataComponent } from './component/related-object-data.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { SaveButtonComponent } from './component/save-button.component';
@@ -72,6 +73,7 @@ import {
   WorkspaceSelectorComponentName,
   TextAreaComponentName,
   ContentComponentName,
+  RelatedObjectDataComponentName,
   SimpleInputComponentName,
   ValidationSummaryComponentName,
   SuggestedValidationSummaryComponentName,
@@ -123,6 +125,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [WorkspaceSelectorComponentName]: WorkspaceSelectorComponent,
   [TextAreaComponentName]: TextAreaComponent,
   [ContentComponentName]: ContentComponent,
+  [RelatedObjectDataComponentName]: RelatedObjectDataComponent,
   [SimpleInputComponentName]: SimpleInputComponent,
   [ValidationSummaryComponentName]: ValidationSummaryFieldComponent,
   [SuggestedValidationSummaryComponentName]: SuggestedValidationSummaryFieldComponent,

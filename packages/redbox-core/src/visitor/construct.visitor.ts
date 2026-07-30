@@ -67,6 +67,13 @@ import {
   ContentFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RelatedObjectDataComponentName,
+  RelatedObjectDataFieldComponentConfig,
+  RelatedObjectDataFieldComponentDefinitionFrame,
+  RelatedObjectDataFieldComponentDefinitionOutline,
+  RelatedObjectDataFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabComponentName,
   TabFieldComponentDefinitionFrame,
   TabFieldComponentDefinitionOutline,
@@ -597,6 +604,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     // TODO: does the content component require the data model?
+    await this.populateFormComponent(item);
+  }
+
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RelatedObjectDataFieldComponentDefinitionFrame>(currentData, RelatedObjectDataComponentName)) {
+      throw new Error(`Invalid ${RelatedObjectDataComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+    }
+    const config = currentData.config;
+    item.config = new RelatedObjectDataFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields'] as const) {
+      this.sharedProps.setPropOverride(prop, item.config, config);
+    }
+    item.config.oidProperty ??= 'id';
+    item.config.relatedFields ??= [];
+    item.config.template ??= '{{#each relatedObjects}}<div>{{#if title}}{{title}}{{else}}{{oid}}{{/if}}</div>{{/each}}';
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
