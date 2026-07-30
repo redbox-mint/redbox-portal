@@ -1,6 +1,7 @@
 export enum IntegrationAuditName {
   figshare = 'figshare',
   doi = 'doi',
+  raid = 'raid',
   oni = 'oni',
 }
 
@@ -20,6 +21,14 @@ export enum IntegrationAuditAction {
   publishDoiTrigger = 'publishDoiTrigger',
   publishDoiTriggerSync = 'publishDoiTriggerSync',
   updateDoiTriggerSync = 'updateDoiTriggerSync',
+  mintRaid = 'mintRaid',
+  resolveRaidConfiguration = 'resolveRaidConfiguration',
+  loadRaidSourceRecord = 'loadRaidSourceRecord',
+  mapRaidRequest = 'mapRaidRequest',
+  acquireRaidToken = 'acquireRaidToken',
+  mintRaidRequest = 'mintRaidRequest',
+  persistRaid = 'persistRaid',
+  scheduleRaidRetry = 'scheduleRaidRetry',
   publishOniDataset = 'publishOniDataset',
   buildOniRoCrate = 'buildOniRoCrate',
   writeOniOcflObject = 'writeOniOcflObject',

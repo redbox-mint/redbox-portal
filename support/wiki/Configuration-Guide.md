@@ -18,6 +18,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 4. [form.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms) manages form configuration
 5. [solr.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr) manages Solr connection, schema, and indexing transformations
 6. [Figshare publishing AppConfig](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing) manages how records are mapped and published to Figshare
+7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 
 ## Configuration Defaults (redbox-core)
 

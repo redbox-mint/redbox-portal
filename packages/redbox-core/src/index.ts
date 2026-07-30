@@ -116,6 +116,11 @@ export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';
 export * from './configmodels/FigsharePublishing';
+export * from './configmodels/RaidPublishing';
+export { mintRaidProgram, runRaidProgram } from './services/raid-v2/runtime';
+export * from './services/raid-v2/errors';
+export * from './services/raid-v2/tags';
+export type * from './services/raid-v2/types';
 export * from './configmodels/OniPublishing';
 export {
   DoiPublishing,
