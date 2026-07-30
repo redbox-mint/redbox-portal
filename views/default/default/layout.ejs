@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="<%= typeof description == 'undefined' ? 'ReDBox research data management portal' : description %>">
   <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
-  <link rel="icon" href="<%= BrandingService.getBrandAndPortalPath(req) %>/images/favicon" type="image/png">
+  <link rel="icon" href="<%= BrandingService.getFaviconUrl(req) %>" type="image/png">
 
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
@@ -28,6 +28,10 @@
   <% } else { %>
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
   <% } %>
+  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->
+  <%- superPartial("/layout/head-extra.ejs",
+       typeof branding !== 'undefined' && branding != null ? branding : BrandingService.getBrandNameFromReq(req),
+       typeof portal !== 'undefined' && portal != null ? portal : BrandingService.getPortalFromReq(req), true) %>
   <!-- Print stylesheet served as a static asset so it can be updated independently of the
        MongoDB-cached theme.css (which only refreshes on admin republish). -->
   <link rel="stylesheet" media="print" href="<%= BrandingService.getRootContext() %>/styles/print.css">
@@ -108,7 +112,7 @@
   <div class="site-branding-area">
     <div class="container">
       <div class="row">
-        <% if(locals.branding != null && locals.portal != null) { %>
+        <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
           <%- include('layout/logo.ejs') %>
@@ -120,7 +124,7 @@
     </div>
   </div>
   <!-- End site branding area -->
-  <% if(locals.branding != null && locals.portal != null) { %>
+  <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
     <% } else { %>
     <%- include('layout/menu.ejs') %>
@@ -174,7 +178,7 @@
 
 
   <div class="footer-bottom-area navbar-bottom">
-    <% if(locals.branding != null && locals.portal != null) { %>
+    <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
         <%- include('layout/footer.ejs') %>

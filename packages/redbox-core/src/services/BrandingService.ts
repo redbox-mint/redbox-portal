@@ -42,6 +42,7 @@ export namespace Services {
       'getBrand',
       'getAvailable',
       'getBrandAndPortalPath',
+      'getFaviconUrl',
       'getBrandNameFromReq',
       'getBrandFromReq',
       'getPortalFromReq',
@@ -121,6 +122,10 @@ export namespace Services {
       } else {
         return `${rootContext}/${branding}/${portal}`;
       }
+    }
+
+    public getFaviconUrl(req: Sails.ReqParamProvider): string {
+      return `${this.getBrandAndPortalPath(req)}/images/favicon`;
     }
 
     public getRootContext(): string {

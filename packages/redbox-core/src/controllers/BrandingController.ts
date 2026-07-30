@@ -302,15 +302,16 @@ export namespace Controllers {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(`${sails.config.appPath}/assets/images/${sails.config.static_assets.logoName}`);
         }
-        const buf = await BrandingLogoService.getBinaryAsync(storageId);
+        const expectedSha256 = typeof logo.sha256 === 'string' ? logo.sha256 : undefined;
+        const buf = await BrandingLogoService.getBinaryAsync(storageId, expectedSha256);
 
         if (!buf) {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
-        const etagSeed = typeof logo.sha256 === 'string'
-          ? logo.sha256
+        const etagSeed = expectedSha256
+          ? expectedSha256
           : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
@@ -333,32 +334,25 @@ export namespace Controllers {
     public async renderFavicon(req: Sails.Req, res: Sails.Res) {
       const sendDefault = () => {
         res.contentType(sails.config.static_assets.faviconType);
+        res.set('Cache-Control', 'public, no-cache');
         return res.sendFile(`${sails.config.appPath}/assets/${sails.config.static_assets.faviconName}`);
       };
       try {
         const branding = req.param('branding');
-        const brand = await BrandingConfig.findOne({ name: branding });
-        const favicon = brand?.favicon as Record<string, unknown> | undefined;
-        const storageId = typeof favicon?.storageKey === 'string'
-          ? favicon.storageKey
-          : typeof favicon?.gridFsId === 'string'
-            ? favicon.gridFsId
-            : null;
-        if (!brand || !favicon || !storageId) {
+        const resolved = await BrandingLogoService.getCurrentFaviconBinary(branding);
+        if (!resolved) {
           return sendDefault();
         }
-        const buf = await BrandingLogoService.getBinaryAsync(storageId);
-        if (!buf) {
-          return sendDefault();
-        }
+        const { buffer: buf, favicon } = resolved;
+        const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
         res.contentType((favicon.contentType as string) || 'image/png');
-        const etagSeed = typeof favicon.sha256 === 'string'
-          ? favicon.sha256
+        const etagSeed = expectedSha256
+          ? expectedSha256
           : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'favicon-');
         res.set('ETag', etag);
+        res.set('Cache-Control', 'public, no-cache');
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
-        res.set('Cache-Control', 'public, max-age=3600');
         return res.send(buf);
       } catch (_e) {
         return sendDefault();
