@@ -105,7 +105,7 @@ describe('Webservice FigshareVocabularyController', () => {
     });
 
     it('stringifies a non-Error rejection', async () => {
-      service.discoverTaxonomies.rejects('plain failure');
+      service.discoverTaxonomies.returns(Promise.reject('plain failure'));
 
       await controller.listCatalogues(makeReq({ query: {} }), res);
 
