@@ -221,7 +221,7 @@
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "oxlint": "1.63.0",
-    "oxlint-tsgolint": "0.24.0",
+    "oxlint-tsgolint": "7.0.2001",
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
     "redoc": "2.5.3",

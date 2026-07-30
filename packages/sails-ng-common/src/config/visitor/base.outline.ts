@@ -57,6 +57,10 @@ import {
   IntegrationStatusFormComponentDefinitionOutline,
 } from '../component/integration-status.outline';
 import {
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '../component/workspace.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
@@ -192,13 +196,13 @@ export interface FormConfigVisitorOutline {
 
   visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void>;
 
-    visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void>;
+  visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void>;
 
-    visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void>;
+  visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void>;
 
   /* Repeatable  */
 
-    visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void>;
+  visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void>;
 
   visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void>;
 
@@ -212,9 +216,13 @@ export interface FormConfigVisitorOutline {
 
   visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void>;
 
-  visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void>;
+  visitSuggestedValidationSummaryFieldComponentDefinition(
+    item: SuggestedValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void>;
 
-  visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void>;
+  visitSuggestedValidationSummaryFormComponentDefinition(
+    item: SuggestedValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void>;
 
   /* Group */
 
@@ -271,6 +279,10 @@ export interface FormConfigVisitorOutline {
   visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void>;
 
   visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void>;
+
+  visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void>;
+
+  visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void>;
 
   /* Cancel Button  */
 
@@ -414,9 +426,13 @@ export interface FormConfigVisitorOutline {
 
   /* Record Metadata Retriever */
 
-  visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void>;
+  visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): Promise<void>;
 
-  visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void>;
+  visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): Promise<void>;
 
   /* Data Location */
 
@@ -428,14 +444,23 @@ export interface FormConfigVisitorOutline {
 
   // Refresh trigger gets dedicated visitor hooks because it is component-only
   // and should never be mistaken for a normal field+model pair.
-  visitPublishDataLocationRefreshFieldComponentDefinition(item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void>;
+  visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): Promise<void>;
 
-  visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void>;
+  visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): Promise<void>;
 
-  visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void>;
+  visitPublishDataLocationSelectorFieldComponentDefinition(
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): Promise<void>;
 
-  visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void>;
+  visitPublishDataLocationSelectorFieldModelDefinition(
+    item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): Promise<void>;
 
-  visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void>;
-
+  visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): Promise<void>;
 }

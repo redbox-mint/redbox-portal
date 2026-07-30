@@ -17,6 +17,7 @@ import { AccordionComponent, AccordionPanelComponent } from './component/accordi
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
+import { WorkspaceSelectorComponent } from './component/workspace.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -69,6 +70,7 @@ import {
   SaveButtonComponentName,
   SaveStatusComponentName,
   IntegrationStatusComponentName,
+  WorkspaceSelectorComponentName,
   TextAreaComponentName,
   ContentComponentName,
   RelatedObjectDataComponentName,
@@ -120,6 +122,7 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [SaveButtonComponentName]: SaveButtonComponent,
   [SaveStatusComponentName]: SaveStatusComponent,
   [IntegrationStatusComponentName]: IntegrationStatusComponent,
+  [WorkspaceSelectorComponentName]: WorkspaceSelectorComponent,
   [TextAreaComponentName]: TextAreaComponent,
   [ContentComponentName]: ContentComponent,
   [RelatedObjectDataComponentName]: RelatedObjectDataComponent,

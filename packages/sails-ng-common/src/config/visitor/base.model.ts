@@ -59,6 +59,10 @@ import {
   IntegrationStatusFormComponentDefinitionOutline,
 } from '../component/integration-status.outline';
 import {
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '../component/workspace.outline';
+import {
   CancelButtonFieldComponentDefinitionOutline,
   CancelButtonFormComponentDefinitionOutline,
 } from '../component/cancel-button.outline';
@@ -222,7 +226,9 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     await this.notImplemented();
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(item: RepeatableElementFieldLayoutDefinitionOutline): Promise<void> {
+  async visitRepeatableElementFieldLayoutDefinition(
+    item: RepeatableElementFieldLayoutDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -232,19 +238,27 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(item: ValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFieldComponentDefinition(
+    item: ValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitValidationSummaryFormComponentDefinition(item: ValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitValidationSummaryFormComponentDefinition(
+    item: ValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(item: SuggestedValidationSummaryFieldComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFieldComponentDefinition(
+    item: SuggestedValidationSummaryFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitSuggestedValidationSummaryFormComponentDefinition(item: SuggestedValidationSummaryFormComponentDefinitionOutline): Promise<void> {
+  async visitSuggestedValidationSummaryFormComponentDefinition(
+    item: SuggestedValidationSummaryFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -290,7 +304,9 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     await this.notImplemented();
   }
 
-  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+  async visitAccordionPanelFieldComponentDefinition(
+    item: AccordionPanelFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -336,11 +352,23 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFieldComponentDefinition(
+    item: IntegrationStatusFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFormComponentDefinition(
+    item: IntegrationStatusFormComponentDefinitionOutline
+  ): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();
   }
 
@@ -500,7 +528,9 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(item: RecordSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordSelectorFieldComponentDefinition(
+    item: RecordSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -514,7 +544,9 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Typeahead Input */
 
-  async visitTypeaheadInputFieldComponentDefinition(item: TypeaheadInputFieldComponentDefinitionOutline): Promise<void> {
+  async visitTypeaheadInputFieldComponentDefinition(
+    item: TypeaheadInputFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -528,7 +560,9 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(item: RichTextEditorFieldComponentDefinitionOutline): Promise<void> {
+  async visitRichTextEditorFieldComponentDefinition(
+    item: RichTextEditorFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -580,11 +614,15 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     await this.notImplemented();
   }
 
-  async visitRecordMetadataRetrieverFieldComponentDefinition(item: RecordMetadataRetrieverFieldComponentDefinitionOutline): Promise<void> {
+  async visitRecordMetadataRetrieverFieldComponentDefinition(
+    item: RecordMetadataRetrieverFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitRecordMetadataRetrieverFormComponentDefinition(item: RecordMetadataRetrieverFormComponentDefinitionOutline): Promise<void> {
+  async visitRecordMetadataRetrieverFormComponentDefinition(
+    item: RecordMetadataRetrieverFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
@@ -604,23 +642,33 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
 
   // Default stubs keep the new component aligned with the rest of the visitor
   // contract until each concrete visitor opts in explicitly.
-  async visitPublishDataLocationRefreshFieldComponentDefinition(item: PublishDataLocationRefreshFieldComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationRefreshFieldComponentDefinition(
+    item: PublishDataLocationRefreshFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitPublishDataLocationRefreshFormComponentDefinition(item: PublishDataLocationRefreshFormComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationRefreshFormComponentDefinition(
+    item: PublishDataLocationRefreshFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitPublishDataLocationSelectorFieldComponentDefinition(item: PublishDataLocationSelectorFieldComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFieldComponentDefinition(
+    item: PublishDataLocationSelectorFieldComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitPublishDataLocationSelectorFieldModelDefinition(item: PublishDataLocationSelectorFieldModelDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFieldModelDefinition(
+    item: PublishDataLocationSelectorFieldModelDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
-  async visitPublishDataLocationSelectorFormComponentDefinition(item: PublishDataLocationSelectorFormComponentDefinitionOutline): Promise<void> {
+  async visitPublishDataLocationSelectorFormComponentDefinition(
+    item: PublishDataLocationSelectorFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.notImplemented();
   }
 
