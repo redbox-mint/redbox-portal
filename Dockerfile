@@ -32,7 +32,7 @@ RUN npm ci \
  && (cd packages/sails-ng-common && npm ci) \
  && (cd packages/raido && npm ci) \
  && (cd packages/rva-registry && npm ci) \
- && (cd packages/redbox-core && npm ci) \
+ && (cd packages/redbox-core && npm install --no-save) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
 
 RUN cd packages/agenda-sqs-backend && npm run build

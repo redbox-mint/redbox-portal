@@ -20,7 +20,12 @@ import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
-import { I18NextPipe, RedboxPortalCoreModule, trimLastSlashFromUrl, RecordAuditModule } from '@researchdatabox/portal-ng-common';
+import {
+  I18NextPipe,
+  RedboxPortalCoreModule,
+  trimLastSlashFromUrl,
+  RecordAuditModule,
+} from '@researchdatabox/portal-ng-common';
 import { CommonModule, APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { FormComponent } from './form.component';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -35,9 +40,11 @@ import { InlineLayoutComponent } from './component/inline-layout.component';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
+import { RelatedObjectDataComponent } from './component/related-object-data.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
+import { WorkspaceSelectorComponent } from './component/workspace.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -89,6 +96,7 @@ import { RecordAuditLauncherComponent } from './record-audit/record-audit-launch
     FormComponent,
     SimpleInputComponent,
     ContentComponent,
+    RelatedObjectDataComponent,
     TextAreaComponent,
     RepeatableComponent,
     RepeatableElementLayoutComponent,
@@ -98,6 +106,7 @@ import { RecordAuditLauncherComponent } from './record-audit/record-audit-launch
     SaveButtonComponent,
     SaveStatusComponent,
     IntegrationStatusComponent,
+    WorkspaceSelectorComponent,
     CancelButtonComponent,
     DeleteButtonComponent,
     TabNavButtonComponent,
@@ -161,4 +170,4 @@ import { RecordAuditLauncherComponent } from './record-audit/record-audit-launch
   ],
   bootstrap: [FormComponent],
 })
-export class FormModule { }
+export class FormModule {}

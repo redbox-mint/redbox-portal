@@ -1,10 +1,10 @@
 import { Context, Effect, Layer } from 'effect';
-import * as Cause from 'effect/Cause';
 import type { DoiPublishing, DoiOperationResult, DoiRunContext } from './types';
 import { DoiClientTag, makeClientLayer } from './http';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { completeDoiAudit, failDoiAudit, startDoiAudit } from './audit';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
+import { runEffectProgram } from '../integration-v2/runtime';
 
 export const DoiConfigTag = Context.GenericTag<DoiPublishing>('redbox/DoiConfig');
 export const DoiRunContextTag = Context.GenericTag<DoiRunContext>('redbox/DoiRunContext');
@@ -20,19 +20,6 @@ export function makeRuntimeLayer(config: DoiPublishing, runContext: DoiRunContex
     Layer.succeed(DoiRunContextTag, runContext),
     makeClientLayer(config, runContext)
   );
-}
-
-async function runProgram<A>(program: Effect.Effect<A, unknown, never>): Promise<A> {
-  const exit = await Effect.runPromiseExit(program);
-  if (exit._tag === 'Success') {
-    return exit.value;
-  }
-
-  const failure = Cause.failureOrCause(exit.cause);
-  if (failure._tag === 'Left') {
-    throw failure.left;
-  }
-  throw Cause.squash(failure.right);
 }
 
 function buildHttpRequestSummary(
@@ -58,7 +45,11 @@ function toResponseSummary(value: unknown): Record<string, unknown> {
   return { rawResponseBody: value };
 }
 
-function extractDoiId(responseSummary: Record<string, unknown>, statusCode: number, operationName: string): string | null {
+function extractDoiId(
+  responseSummary: Record<string, unknown>,
+  statusCode: number,
+  operationName: string
+): string | null {
   const responseData = responseSummary['data'];
   if (isRecord(responseData)) {
     const id = responseData['id'];
@@ -105,8 +96,14 @@ async function runAuditedHttpOperation(
     failDoiAudit(auditCtx, error, {
       message: failureMessage,
       requestSummary,
-      httpStatusCode: error instanceof Error && 'statusCode' in error ? (error as Error & { statusCode?: number }).statusCode : undefined,
-      responseSummary: error instanceof Error && 'responseBody' in error ? (error as Error & { responseBody?: Record<string, unknown> }).responseBody : undefined,
+      httpStatusCode:
+        error instanceof Error && 'statusCode' in error
+          ? (error as Error & { statusCode?: number }).statusCode
+          : undefined,
+      responseSummary:
+        error instanceof Error && 'responseBody' in error
+          ? (error as Error & { responseBody?: Record<string, unknown> }).responseBody
+          : undefined,
     });
     throw error;
   }
@@ -136,7 +133,7 @@ export async function runCreateDoiProgram(
           responseSummary,
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-      return runProgram(program);
+      return runEffectProgram(program);
     }
   );
 }
@@ -166,7 +163,7 @@ export async function runUpdateDoiProgram(
           responseSummary,
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-      return runProgram(program);
+      return runEffectProgram(program);
     }
   );
 }
@@ -191,10 +188,10 @@ export async function runDeleteDoiProgram(
         return {
           doi,
           statusCode: response.statusCode,
-          responseSummary: { deleted: response.statusCode === 204, doi }
+          responseSummary: { deleted: response.statusCode === 204, doi },
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-      return runProgram(program);
+      return runEffectProgram(program);
     }
   );
 }
@@ -220,10 +217,10 @@ export async function runChangeDoiStateProgram(
         return {
           doi,
           statusCode: response.statusCode,
-          responseSummary: { changed: response.statusCode === 200, doi, event }
+          responseSummary: { changed: response.statusCode === 200, doi, event },
         };
       }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
-      return runProgram(program);
+      return runEffectProgram(program);
     }
   );
 }

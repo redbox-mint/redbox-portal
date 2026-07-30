@@ -121,6 +121,7 @@ export { mintRaidProgram, runRaidProgram } from './services/raid-v2/runtime';
 export * from './services/raid-v2/errors';
 export * from './services/raid-v2/tags';
 export type * from './services/raid-v2/types';
+export * from './configmodels/OniPublishing';
 export {
   DoiPublishing,
   DOI_PUBLISHING_SCHEMA,

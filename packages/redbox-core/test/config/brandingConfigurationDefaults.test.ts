@@ -27,4 +27,14 @@ describe('brandingConfigurationDefaults', function () {
     expect(doiPublishing?.connection.baseUrl).to.equal('https://api.test.datacite.org');
     expect(doiPublishing?.profiles).to.deep.equal({});
   });
+
+  it('exposes a canonical oniPublishing default for runtime use', function () {
+    const oniPublishing = brandingConfigurationDefaults.oniPublishing;
+
+    expect(oniPublishing).to.exist;
+    expect(oniPublishing?.enabled).to.equal(true);
+    expect(oniPublishing?.defaultSite).to.equal('public');
+    expect(oniPublishing?.sites.public.storage.driver).to.equal('flydrive');
+    expect(oniPublishing?.writeBack.citationUrlPath).to.equal('metadata.citation_url');
+  });
 });
