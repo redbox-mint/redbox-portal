@@ -11,11 +11,13 @@ import { ValidationSummaryFieldComponent } from './component/validation-summary.
 import { SuggestedValidationSummaryFieldComponent } from './component/suggested-validation-summary.component';
 import { GroupFieldModel, GroupFieldComponent } from './component/group.component';
 import { ContentComponent } from './component/content.component';
+import { RelatedObjectDataComponent } from './component/related-object-data.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
+import { WorkspaceSelectorComponent } from './component/workspace.component';
 import { CancelButtonComponent } from './component/cancel-button.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { TabNavButtonComponent } from './component/tab-nav-button.component';
@@ -68,8 +70,10 @@ import {
   SaveButtonComponentName,
   SaveStatusComponentName,
   IntegrationStatusComponentName,
+  WorkspaceSelectorComponentName,
   TextAreaComponentName,
   ContentComponentName,
+  RelatedObjectDataComponentName,
   SimpleInputComponentName,
   ValidationSummaryComponentName,
   SuggestedValidationSummaryComponentName,
@@ -118,8 +122,10 @@ export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [SaveButtonComponentName]: SaveButtonComponent,
   [SaveStatusComponentName]: SaveStatusComponent,
   [IntegrationStatusComponentName]: IntegrationStatusComponent,
+  [WorkspaceSelectorComponentName]: WorkspaceSelectorComponent,
   [TextAreaComponentName]: TextAreaComponent,
   [ContentComponentName]: ContentComponent,
+  [RelatedObjectDataComponentName]: RelatedObjectDataComponent,
   [SimpleInputComponentName]: SimpleInputComponent,
   [ValidationSummaryComponentName]: ValidationSummaryFieldComponent,
   [SuggestedValidationSummaryComponentName]: SuggestedValidationSummaryFieldComponent,

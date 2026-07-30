@@ -30,7 +30,7 @@ function applyCommonMapping(field) {
     publish: field?.definition?.publish ?? '',
     disabledExpression: field?.definition?.disabledExpression ?? '',
     controlType: field?.definition?.controlType ?? '',
-    skip: field?.definition?.skip ?? ''
+    skip: field?.definition?.skip ?? '',
   };
 }
 
@@ -44,97 +44,96 @@ function createBaseComponent({ field, componentClass, modelClass = null, compone
       config: {
         label: common.label,
         helpText: common.help,
-      }
+      },
     },
     component: {
       class: componentClass,
-      config: componentConfig
-    }
+      config: componentConfig,
+    },
   };
 
   if (modelClass) {
     componentDefinition.model = {
       class: modelClass,
       config: {
-        defaultValue: common.defaultValue
-      }
+        defaultValue: common.defaultValue,
+      },
     };
   }
 
-  if(!_.isEmpty(common.type)) {
+  if (!_.isEmpty(common.type)) {
     _.set(componentDefinition, 'component.config.type', common.type);
   }
 
-  if(!_.isEmpty(common.controlType)) {
+  if (!_.isEmpty(common.controlType)) {
     _.set(componentDefinition, 'component.config.controlType', common.controlType);
   }
 
-  if(!_.isEmpty(common.cssClasses)) {
+  if (!_.isEmpty(common.cssClasses)) {
     _.set(componentDefinition, 'component.config.cssClasses', common.cssClasses);
   }
 
-  if(!_.isEmpty(common.required)) {
-    _.set(componentDefinition, 'model.config.validators', [ { name: 'required' } ]);
+  if (!_.isEmpty(common.required)) {
+    _.set(componentDefinition, 'model.config.validators', [{ name: 'required' }]);
   }
 
   if (!_.isEmpty(common.subscribe)) {
     // console.log(JSON.stringify(common.subscribe));
-    _.set(componentDefinition,'unparsable.subscribe',common.subscribe);
+    _.set(componentDefinition, 'unparsable.subscribe', common.subscribe);
   }
 
   if (!_.isEmpty(common.visivibilityCriteria)) {
     // console.log(JSON.stringify(common.visivibilityCriteria));
-    _.set(componentDefinition,'unparsable.visivibilityCriteria',common.visivibilityCriteria);
+    _.set(componentDefinition, 'unparsable.visivibilityCriteria', common.visivibilityCriteria);
   }
 
   if (!_.isEmpty(common.publish)) {
     // console.log(JSON.stringify(common.publish));
-    _.set(componentDefinition, 'unparsable.publish',common.publish);
+    _.set(componentDefinition, 'unparsable.publish', common.publish);
   }
-  
+
   if (!_.isEmpty(common.disabledExpression)) {
     // console.log(JSON.stringify(common.disabledExpression));
-    _.set(componentDefinition, 'unparsable.disabledExpression',common.disabledExpression);
+    _.set(componentDefinition, 'unparsable.disabledExpression', common.disabledExpression);
   }
 
   return componentDefinition;
 }
 
-
 module.exports = {
-
-  TextField: (field) => {
-
+  TextField: field => {
     //component specific mapping
     let fieldConfig = {
       maxLength: field?.definition?.maxLength ?? 0,
-      extraLabel: field?.definition?.extraLabel ?? ''
-    }
+      extraLabel: field?.definition?.extraLabel ?? '',
+    };
 
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'SimpleInputComponent',
-        modelClass: 'SimpleInputModel'
+      field,
+      componentClass: 'SimpleInputComponent',
+      modelClass: 'SimpleInputModel',
     });
 
-    if(fieldConfig.maxLength > 0) {
-      _.set(componentDefinition, 'model.config.validators', [ {name: 'maxLength', message: '', config: {maxLength: fieldConfig.maxLength}} ]);
+    if (fieldConfig.maxLength > 0) {
+      _.set(componentDefinition, 'model.config.validators', [
+        { name: 'maxLength', message: '', config: { maxLength: fieldConfig.maxLength } },
+      ]);
     }
 
     return componentDefinition;
   },
-  TextBlockComponent: (field) => {
+  TextBlockComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'ContentComponent'
+      field,
+      componentClass: 'ContentComponent',
     });
 
     let fieldConfig = {
       type: field?.definition?.type ?? '',
-      content: field?.definition?.value ?? field?.definition?.name ?? ''
-    }
+      content: field?.definition?.value ?? field?.definition?.name ?? '',
+    };
 
-    if(!_.isEmpty(fieldConfig.type)) {
+    if (!_.isEmpty(fieldConfig.type)) {
       // The below template is a reference that needs to be taken into account for legacy compatibility
       //
       // <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
@@ -147,329 +146,326 @@ module.exports = {
       // <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
       // <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
       //
-      switch(fieldConfig.type) {
+      switch (fieldConfig.type) {
         case 'h1':
-          _.set(componentDefinition,'component.config.template','<h1>{{content}}</h1>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h1>{{content}}</h1>');
+          break;
         case 'h2':
-          _.set(componentDefinition,'component.config.template','<h2>{{content}}</h2>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h2>{{content}}</h2>');
+          break;
         case 'h3':
-          _.set(componentDefinition,'component.config.template','<h3>{{content}}</h3>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h3>{{content}}</h3>');
+          break;
         case 'h4':
-          _.set(componentDefinition,'component.config.template','<h4>{{content}}</h4>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h4>{{content}}</h4>');
+          break;
         case 'h5':
-          _.set(componentDefinition,'component.config.template','<h5>{{content}}</h5>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h5>{{content}}</h5>');
+          break;
         case 'h6':
-          _.set(componentDefinition,'component.config.template','<h6>{{content}}</h6>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h6>{{content}}</h6>');
+          break;
         case 'hr':
-          _.set(componentDefinition,'component.config.template','<hr>{{content}}</hr>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<hr>{{content}}</hr>');
+          break;
         case 'p':
-          _.set(componentDefinition,'component.config.template','<p>{{content}}</p>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<p>{{content}}</p>');
+          break;
         case 'span':
-          _.set(componentDefinition,'component.config.template','<span>{{content}}</span>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<span>{{content}}</span>');
+          break;
         default:
-          _.set(componentDefinition,'component.config.template','<h1>{{content}}</h1>');
-        break;
+          _.set(componentDefinition, 'component.config.template', '<h1>{{content}}</h1>');
+          break;
+      }
+
+      _.set(componentDefinition, 'component.config.content', fieldConfig.content);
     }
 
-    _.set(componentDefinition,'component.config.content',fieldConfig.content);
-    }
-
-    _.unset(componentDefinition,'layout');
-    _.unset(componentDefinition,'component.config.type');
+    _.unset(componentDefinition, 'layout');
+    _.unset(componentDefinition, 'component.config.type');
 
     return componentDefinition;
   },
-  AnchorOrButton: (field) => {
-    
+  AnchorOrButton: field => {
     //component specific mapping
     let fieldConfig = {
       showPencil: field?.definition?.showPencil ?? '',
       needsEditAccess: field?.needsEditAccess ?? '',
-      name: field?.definition?.label ?? ''
-    }
+      name: field?.definition?.label ?? '',
+    };
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'AnchorOrButtonComponent',
-        modelClass: 'AnchorOrButtonModel'
+      field,
+      componentClass: 'AnchorOrButtonComponent',
+      modelClass: 'AnchorOrButtonModel',
     });
 
-    if(!_.isEmpty(fieldConfig.showPencil)) {
+    if (!_.isEmpty(fieldConfig.showPencil)) {
       _.set(componentDefinition, 'component.config.showPencil');
     }
-    
-    if(!_.isEmpty(fieldConfig.needsEditAccess)) {
+
+    if (!_.isEmpty(fieldConfig.needsEditAccess)) {
       _.set(componentDefinition, 'component.config.needsEditAccess');
     }
-    
-    if(!_.isEmpty(fieldConfig.name)) {
-      _.set(componentDefinition,'name',fieldConfig.name);
+
+    if (!_.isEmpty(fieldConfig.name)) {
+      _.set(componentDefinition, 'name', fieldConfig.name);
     }
-    
-    _.unset(componentDefinition,'layout');
+
+    _.unset(componentDefinition, 'layout');
 
     return componentDefinition;
   },
-  TextArea: (field) => {
-
+  TextArea: field => {
     //component specific mapping
     let fieldConfig = {
       cols: field?.definition?.cols ?? field?.definition?.columns ?? 0,
-      rows: field?.definition?.rows ?? 0
+      rows: field?.definition?.rows ?? 0,
+    };
+
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'TextAreaComponent',
+      modelClass: 'TextAreaModel',
+    });
+
+    if (fieldConfig.cols != 0) {
+      _.set(componentDefinition, 'cols', fieldConfig.cols);
     }
 
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'TextAreaComponent',
-        modelClass: 'TextAreaModel'
-    });
-
-    if(fieldConfig.cols != 0) {
-      _.set(componentDefinition,'cols',fieldConfig.cols);
-    }
-
-    if(fieldConfig.rows != 0) {
-      _.set(componentDefinition,'rows',fieldConfig.rows);
+    if (fieldConfig.rows != 0) {
+      _.set(componentDefinition, 'rows', fieldConfig.rows);
     }
 
     return componentDefinition;
   },
-  MarkdownTextArea: (field) => {
+  MarkdownTextArea: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'MarkdownTextAreaComponent',
-        modelClass: 'MarkdownTextAreaModel'
+      field,
+      componentClass: 'MarkdownTextAreaComponent',
+      modelClass: 'MarkdownTextAreaModel',
     });
 
     return componentDefinition;
   },
-  GenericGroupComponent: (field) => {
+  GenericGroupComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'GroupComponent'
+      field,
+      componentClass: 'GroupComponent',
     });
 
-    _.unset(componentDefinition,'name');
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'name');
+    _.unset(componentDefinition, 'layout');
 
     return componentDefinition;
   },
-  ButtonBarContainer: (field) => {
+  ButtonBarContainer: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'GroupComponent'
+      field,
+      componentClass: 'GroupComponent',
     });
 
-    _.unset(componentDefinition,'name');
-    _.unset(componentDefinition,'layout');
-
-    return componentDefinition;
-  },
-  RepeatableVocabComponent: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'RepeatableComponent',
-        modelClass: 'RepeatableComponentModel'
-    });
-
-    _.unset(componentDefinition,'name');
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'name');
+    _.unset(componentDefinition, 'layout');
 
     return componentDefinition;
   },
-  RepeatableContributorComponent: (field) => {
+  RepeatableVocabComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'RepeatableComponent',
-        modelClass: 'RepeatableComponentModel'
+      field,
+      componentClass: 'RepeatableComponent',
+      modelClass: 'RepeatableComponentModel',
     });
 
-    _.unset(componentDefinition,'name');
-    _.unset(componentDefinition,'layout');
-
-    return componentDefinition;
-  },
-  RepeatableTextfieldComponent: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'SimpleInputComponent',
-        modelClass: 'SimpleInputModel'
-    });
+    _.unset(componentDefinition, 'name');
+    _.unset(componentDefinition, 'layout');
 
     return componentDefinition;
   },
-  RepeatableGroupComponent: (field) => {
+  RepeatableContributorComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'RepeatableComponent',
-        modelClass: 'RepeatableComponentModel'
+      field,
+      componentClass: 'RepeatableComponent',
+      modelClass: 'RepeatableComponentModel',
     });
 
-    _.unset(componentDefinition,'name');
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'name');
+    _.unset(componentDefinition, 'layout');
 
     return componentDefinition;
   },
-  VocabField: (field) => {
+  RepeatableTextfieldComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'VocabComponent'
+      field,
+      componentClass: 'SimpleInputComponent',
+      modelClass: 'SimpleInputModel',
     });
-    return componentDefinition;
-  },
-  ContributorField: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'GroupComponent',
-        modelClass: 'GroupModel'
-    });
-    return componentDefinition;
-  },
-  HiddenValue: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'HiddenValueComponent'
-    });
-    _.unset(componentDefinition,'layout');
-    return componentDefinition;
-  },
-  ANDSVocab: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'ANDSVocabComponent'
-    });
-    return componentDefinition;
-  },
-  TreeSelector: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'TreeSelectorComponent',
-        modelClass: 'TreeSelectorModel'
-    });
-    return componentDefinition;
-  },
-  DropdownFieldComponent: (field) => {
 
+    return componentDefinition;
+  },
+  RepeatableGroupComponent: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'RepeatableComponent',
+      modelClass: 'RepeatableComponentModel',
+    });
+
+    _.unset(componentDefinition, 'name');
+    _.unset(componentDefinition, 'layout');
+
+    return componentDefinition;
+  },
+  VocabField: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'VocabComponent',
+    });
+    return componentDefinition;
+  },
+  ContributorField: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'GroupComponent',
+      modelClass: 'GroupModel',
+    });
+    return componentDefinition;
+  },
+  HiddenValue: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'HiddenValueComponent',
+    });
+    _.unset(componentDefinition, 'layout');
+    return componentDefinition;
+  },
+  ANDSVocab: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'ANDSVocabComponent',
+    });
+    return componentDefinition;
+  },
+  TreeSelector: field => {
+    let componentDefinition = createBaseComponent({
+      field,
+      componentClass: 'TreeSelectorComponent',
+      modelClass: 'TreeSelectorModel',
+    });
+    return componentDefinition;
+  },
+  DropdownFieldComponent: field => {
     let fieldConfig = {
-      options: field?.definition?.options ?? {}
-    }
+      options: field?.definition?.options ?? {},
+    };
 
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'DropdownInputComponent',
-        modelClass: 'DropdownInputModel'
+      field,
+      componentClass: 'DropdownInputComponent',
+      modelClass: 'DropdownInputModel',
     });
 
-    if(!_.isEmpty(fieldConfig.options)) {
+    if (!_.isEmpty(fieldConfig.options)) {
       _.set(componentDefinition, 'component.config.options', fieldConfig.options);
     }
 
     return componentDefinition;
   },
-  SelectionFieldComponent: (field) => {
+  SelectionFieldComponent: field => {
     let componentDefinition = null;
-    
-    let fieldConfig = {
-      options: field?.definition?.options ?? {}
-    }
 
-    if(field?.definition?.controlType === 'checkbox') {
+    let fieldConfig = {
+      options: field?.definition?.options ?? {},
+    };
+
+    if (field?.definition?.controlType === 'checkbox') {
       componentDefinition = createBaseComponent({
         field,
-          componentClass: 'CheckboxInputComponent',
-          modelClass: 'CheckboxInputModel'
+        componentClass: 'CheckboxInputComponent',
+        modelClass: 'CheckboxInputModel',
       });
     } else {
       componentDefinition = createBaseComponent({
         field,
         componentClass: 'SelectionInputComponent',
-        modelClass: 'SelectionInputModel'
+        modelClass: 'SelectionInputModel',
       });
     }
-    
-    if(!_.isEmpty(fieldConfig.options)) {
+
+    if (!_.isEmpty(fieldConfig.options)) {
       _.set(componentDefinition, 'component.config.options', fieldConfig.options);
     }
 
     return componentDefinition;
   },
-  DateTime: (field) => {
+  DateTime: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'DateTimeComponent'
+      field,
+      componentClass: 'DateTimeComponent',
     });
     return componentDefinition;
   },
-  TabNavButton: (field) => {
+  TabNavButton: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'TabNavButtonComponent'
+      field,
+      componentClass: 'TabNavButtonComponent',
     });
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'layout');
     return componentDefinition;
   },
-  SaveButton: (field) => {
+  SaveButton: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'SaveButtonComponent'
+      field,
+      componentClass: 'SaveButtonComponent',
     });
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'layout');
     return componentDefinition;
   },
-  CancelButton: (field) => {
+  CancelButton: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'CancelButtonComponent'
+      field,
+      componentClass: 'CancelButtonComponent',
     });
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'layout');
     return componentDefinition;
   },
-  RelatedObjectSelector: (field) => {
+  RelatedObjectSelector: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'RelatedObjectSelectorComponent'
+      field,
+      componentClass: 'RelatedObjectSelectorComponent',
     });
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'layout');
     return componentDefinition;
   },
-  WorkspaceSelectorComponent: (field) => {
+  WorkspaceSelectorComponent: field => {
+    const definition = field?.definition ?? {};
+    const componentConfig = {};
+    for (const key of ['open', 'saveFirst', 'displayType', 'shouldSaveForm', 'allowAddTemplate', 'defaultSelection']) {
+      if (!_.isUndefined(definition[key])) {
+        componentConfig[key] = definition[key];
+      }
+    }
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'WorkspaceComponent'
+      field,
+      componentClass: 'WorkspaceSelectorComponent',
+      componentConfig,
     });
-    _.unset(componentDefinition,'layout');
+    _.unset(componentDefinition, 'layout');
     return componentDefinition;
   },
-  WorkspaceSelectorComponent: (field) => {
+  CopyGroupComponent: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'WorkspaceComponent'
-    });
-    _.unset(componentDefinition,'layout');
-    return componentDefinition;
-  },
-  CopyGroupComponent: (field) => {
-    let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'CopyComponent'
+      field,
+      componentClass: 'CopyComponent',
     });
     return componentDefinition;
   },
-  RelatedFileUpload: (field) => {
+  RelatedFileUpload: field => {
     let componentDefinition = createBaseComponent({
-        field,
-        componentClass: 'RelatedFileComponent'
+      field,
+      componentClass: 'RelatedFileComponent',
     });
     return componentDefinition;
-  }, 
+  },
   //TODO not sure if we need any of these
   // Spacer: (field) => {
   //   let componentDefinition = createBaseComponent({

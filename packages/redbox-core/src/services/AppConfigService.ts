@@ -31,6 +31,7 @@ export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
 
 type AppConfigData = Record<string, unknown>;
 type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
+const APP_CONFIG_PRESENT_KEYS_SYMBOL = Symbol.for('redbox.appConfig.presentKeys');
 
 export namespace Services {
   /**
@@ -255,6 +256,11 @@ export namespace Services {
       for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
+      Object.defineProperty(appConfiguration, APP_CONFIG_PRESENT_KEYS_SYMBOL, {
+        value: new Set(latestAppConfigItems.map(item => item.configKey)),
+        enumerable: false,
+        configurable: true
+      });
       return appConfiguration as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 

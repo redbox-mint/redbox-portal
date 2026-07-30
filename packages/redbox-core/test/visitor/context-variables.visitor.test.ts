@@ -101,6 +101,18 @@ describe('ContextVariablesFormConfigVisitor', () => {
               ]
             }
           }
+        },
+        {
+          name: 'related_data',
+          component: {
+            class: 'RelatedObjectDataComponent',
+            config: {
+              template: 'Owner: @user_name',
+              content: 'Selected by @user',
+              dataPath: 'metadata.@user',
+              relatedFields: ['metadata.@user_name', '@user_email']
+            }
+          }
         }
       ]
     };
@@ -129,6 +141,12 @@ describe('ContextVariablesFormConfigVisitor', () => {
       }
     };
     const nestedComponent = (objectGroupComponent.component?.config?.componentDefinitions ?? [])[0];
+    const relatedComponent = constructed.componentDefinitions?.[4]?.component?.config as {
+      template?: string;
+      content?: string;
+      dataPath?: string;
+      relatedFields?: string[];
+    };
 
     expect(content.content).to.equal('Hello User Name / U');
     expect(inputComponent.model?.config?.value).to.equal('User Name|U');
@@ -137,6 +155,10 @@ describe('ContextVariablesFormConfigVisitor', () => {
     expect(groupComponent.model?.config?.value?.email).to.equal('user@example.com');
     expect(groupComponent.model?.config?.value?.nested?.text_full_name).to.equal('User Name');
     expect(nestedComponent.model?.config?.value).to.equal('Nested User Name');
+    expect(relatedComponent.template).to.equal('Owner: User Name');
+    expect(relatedComponent.content).to.equal('Selected by U');
+    expect(relatedComponent.dataPath).to.equal('metadata.U');
+    expect(relatedComponent.relatedFields).to.deep.equal(['metadata.User Name', 'user@example.com']);
     expect(constructed.expressions?.[0]?.config?.template).to.equal('@user_name should stay here');
   });
 });

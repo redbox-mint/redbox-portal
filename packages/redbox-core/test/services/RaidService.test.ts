@@ -80,6 +80,14 @@ describe('RaidService', function() {
       now: sinon.stub(),
       schedule: sinon.stub()
     };
+    (global as any).BrandingService = {
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'brand-one' }),
+      getBrand: sinon.stub(),
+      getDefault: sinon.stub().returns({ id: 'default', name: 'default' })
+    };
+    (global as any).AppConfigService = {
+      getAppConfigurationForBrand: sinon.stub().returns({})
+    };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RaidService');
@@ -91,12 +99,48 @@ describe('RaidService', function() {
     delete (global as any).RecordsService;
     delete (global as any).TranslationService;
     delete (global as any).AgendaQueueService;
+    delete (global as any).BrandingService;
+    delete (global as any).AppConfigService;
     sinon.restore();
   });
 
   describe('constructor', function() {
     it('should set logHeader', function() {
       expect(RaidService.logHeader).to.equal('RaidService::');
+    });
+  });
+
+  describe('resolveConfig', function() {
+    const record = { metaMetadata: { brandId: 'brand-1' } };
+
+    it('normalizes legacy path mappings into JSONata expressions', function() {
+      mockSails.config.raid.mapping = {
+        dmp: {
+          title: { dest: 'title[0].text', src: 'metadata.title' },
+          identifier: { dest: 'id', src: 'record.metadata["dc:identifier"]' }
+        }
+      };
+
+      const resolved = (RaidService as any).resolveConfig(record);
+
+      expect(resolved.config.mapping.dmp.title).to.include({
+        engine: 'jsonata',
+        expression: 'record.metadata.title'
+      });
+      expect(resolved.config.mapping.dmp.identifier.engine).to.equal('jsonata');
+    });
+
+    it('does not reuse the default brand saved credentials', function() {
+      (global as any).AppConfigService.getAppConfigurationForBrand.callsFake((brandName: string) =>
+        brandName === 'default'
+          ? { raidPublishing: { connection: { baseUrl: 'https://wrong.example', token: 'wrong' } } }
+          : {}
+      );
+
+      const resolved = (RaidService as any).resolveConfig(record);
+
+      expect(resolved.config.connection.baseUrl).to.equal('https://api.raid.org.au');
+      expect(resolved.config.connection.token).to.equal('test-token');
     });
   });
 

@@ -261,7 +261,8 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
         { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
         { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
         { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-        { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' }
+        { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
+        { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
       ]
     },
     {

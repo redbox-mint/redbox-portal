@@ -1365,7 +1365,7 @@ export namespace Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasViewAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
+    public hasViewAccess(brand: unknown, user: AnyRecord, roles: object[], record: AnyRecord): boolean {
       const auth = record.authorization as AnyRecord | undefined;
       const editArr = auth ? auth.edit : record.authorization_edit;
       const editRolesArr = auth ? auth.editRoles : record.authorization_editRoles;
