@@ -13,6 +13,7 @@ import { GroupDefaults, GroupMap } from './component/group.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
 import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
 import { IntegrationStatusDefaults, IntegrationStatusMap } from './component/integration-status.model';
+import { WorkspaceDefaults, WorkspaceMap } from './component/workspace.model';
 import { TextAreaDefaults, TextAreaMap } from './component/text-area.model';
 import { ContentDefaults, ContentMap } from './component/content.model';
 import { SimpleInputDefaults, SimpleInputMap } from './component/simple-input.model';
@@ -68,6 +69,7 @@ export const AllDefs = [
   ...SaveButtonMap,
   ...SaveStatusMap,
   ...IntegrationStatusMap,
+  ...WorkspaceMap,
   ...CancelButtonMap,
   ...DeleteButtonMap,
   ...TabNavButtonMap,
@@ -111,6 +113,7 @@ const RawDefaults = [
   SaveButtonDefaults,
   SaveStatusDefaults,
   IntegrationStatusDefaults,
+  WorkspaceDefaults,
   CancelButtonDefaults,
   DeleteButtonDefaults,
   TabNavButtonDefaults,

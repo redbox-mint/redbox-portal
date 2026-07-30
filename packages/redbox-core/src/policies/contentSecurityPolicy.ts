@@ -12,6 +12,23 @@ function isAdminApiDocsPath(pathname: string): boolean {
     return /\/admin\/api-docs(?:\/|$)/.test(pathname);
 }
 
+function isHttpAppUrl(): boolean {
+    if (process.env.NODE_ENV === 'production') {
+        return false;
+    }
+
+    const appUrl = String((sails.config as { appUrl?: unknown } | undefined)?.appUrl ?? '').trim();
+    if (!appUrl) {
+        return false;
+    }
+
+    try {
+        return new URL(appUrl).protocol === 'http:';
+    } catch (_error) {
+        return false;
+    }
+}
+
 /**
  * ContentSecurityPolicy Policy
  *
@@ -62,7 +79,13 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
     const enabled = cfg.enabled != null ? !!cfg.enabled : defaults.enabled;
     const reportOnly = cfg.reportOnly != null ? !!cfg.reportOnly : defaults.reportOnly;
     let addNonceTo = Array.isArray(cfg.addNonceTo) ? cfg.addNonceTo : defaults.addNonceTo;
-    const extras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
+    // Browsers upgrade every HTTP request when this directive is present.
+    // That makes an HTTP appUrl unusable during LAN development, so retain
+    // the directive for HTTPS deployments but omit it for HTTP app URLs.
+    const configuredExtras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
+    const extras = isHttpAppUrl()
+        ? configuredExtras.filter((directive) => directive.trim().toLowerCase() !== 'upgrade-insecure-requests')
+        : configuredExtras;
     const directives: Record<string, string[]> = Object.assign({}, defaults.directives, cfg.directives || {});
 
     if (isAdminApiDocsPath(req.path)) {

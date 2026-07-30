@@ -8,7 +8,7 @@ const formConfig: FormConfigFrame = {
   defaultComponentConfig: {
     defaultComponentCssClasses: 'row',
   },
-  attachmentFields: ["file_upload_1"],
+  attachmentFields: ['file_upload_1'],
   editCssClasses: 'redbox-form form',
   validationGroups: {
     all: {
@@ -115,81 +115,81 @@ const formConfig: FormConfigFrame = {
                       },
                     },
                     {
-                      "name": "contributor_ci",
-                      "constraints": {
-                        "authorization": {
-                          "allowRoles": []
+                      name: 'contributor_ci',
+                      constraints: {
+                        authorization: {
+                          allowRoles: [],
                         },
-                        "allowModes": []
+                        allowModes: [],
                       },
-                      "overrides": {
-                        "reusableFormName": "standard-contributor-fields-group"
+                      overrides: {
+                        reusableFormName: 'standard-contributor-fields-group',
                       },
-                      "component": {
-                        "class": "ReusableComponent",
-                        "config": {
-                          "readonly": false,
-                          "visible": true,
-                          "editMode": true,
-                          "label": "contributor_ci",
-                          "disabled": false,
-                          "autofocus": false,
-                          "componentDefinitions": [
+                      component: {
+                        class: 'ReusableComponent',
+                        config: {
+                          readonly: false,
+                          visible: true,
+                          editMode: true,
+                          label: 'contributor_ci',
+                          disabled: false,
+                          autofocus: false,
+                          componentDefinitions: [
                             {
-                              "name": "standard_contributor_fields_group",
-                              "constraints": {
-                                "authorization": {
-                                  "allowRoles": []
+                              name: 'standard_contributor_fields_group',
+                              constraints: {
+                                authorization: {
+                                  allowRoles: [],
                                 },
-                                "allowModes": []
+                                allowModes: [],
                               },
-                              "overrides": {
-                                "replaceName": "contributor_ci"
+                              overrides: {
+                                replaceName: 'contributor_ci',
                               },
-                              "component": {
-                                "class": "GroupComponent",
-                                "config": {
-                                  "readonly": false,
-                                  "visible": true,
-                                  "editMode": true,
-                                  "label": "contributor_ci",
-                                  "disabled": false,
-                                  "autofocus": false,
-                                  "componentDefinitions": []
-                                }
+                              component: {
+                                class: 'GroupComponent',
+                                config: {
+                                  readonly: false,
+                                  visible: true,
+                                  editMode: true,
+                                  label: 'contributor_ci',
+                                  disabled: false,
+                                  autofocus: false,
+                                  componentDefinitions: [],
+                                },
                               },
-                              "model": {
-                                "class": "GroupModel",
-                                "config": {
-                                  "defaultValue": {
-                                    "name": "@user_name",
-                                    "email": "@user_email",
-                                    "username": "@user_username",
-                                    "text_full_name": "@user_name"
+                              model: {
+                                class: 'GroupModel',
+                                config: {
+                                  defaultValue: {
+                                    name: '@user_name',
+                                    email: '@user_email',
+                                    username: '@user_username',
+                                    text_full_name: '@user_name',
                                   },
-                                  "validators": []
-                                }
+                                  validators: [],
+                                },
                               },
-                              "layout": {
-                                "class": "DefaultLayout",
-                                "config": {
-                                  "readonly": false,
-                                  "visible": true,
-                                  "editMode": true,
-                                  "label": "contributor_ci",
-                                  "disabled": false,
-                                  "autofocus": false,
-                                  "labelRequiredStr": "*",
-                                  "helpText": "",
-                                  "cssClassesMap": {},
-                                  "helpTextVisibleOnInit": false,
-                                  "helpTextVisible": false
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
+                              layout: {
+                                class: 'DefaultLayout',
+                                config: {
+                                  readonly: false,
+                                  visible: true,
+                                  editMode: true,
+                                  label: 'contributor_ci',
+                                  disabled: false,
+                                  autofocus: false,
+                                  labelRequiredStr: '*',
+                                  helpText: '',
+                                  cssClassesMap: {},
+                                  helpTextVisibleOnInit: false,
+                                  helpTextVisible: false,
+                                },
+                              },
+                            },
+                          ],
+                        },
+                      },
                     },
                     // {
                     //     name: 'debug_checkbox',
@@ -692,7 +692,7 @@ const formConfig: FormConfigFrame = {
                             {
                               class: 'pattern',
                               config: {
-                                pattern: "prefix.*",
+                                pattern: 'prefix.*',
                                 description: 'must start with prefix',
                               },
                               groups: { include: ['minimumCreate'] },
@@ -718,7 +718,7 @@ const formConfig: FormConfigFrame = {
                             target: 'form.enabledValidationGroups',
                           },
                         },
-                      ]
+                      ],
                     },
                     {
                       name: 'text_2_event',
@@ -995,7 +995,7 @@ const formConfig: FormConfigFrame = {
                         class: 'RepeatableComponent',
                         config: {
                           elementTemplate: {
-                            name: "",
+                            name: '',
                             model: {
                               class: 'SimpleInputModel',
                               config: {
@@ -1004,7 +1004,7 @@ const formConfig: FormConfigFrame = {
                                   {
                                     class: 'pattern',
                                     config: {
-                                      pattern: "prefix.*",
+                                      pattern: 'prefix.*',
                                       description: 'must start with prefix',
                                     },
                                   },
@@ -1069,7 +1069,7 @@ const formConfig: FormConfigFrame = {
         class: 'RepeatableComponent',
         config: {
           elementTemplate: {
-            name: "",
+            name: '',
             // first group component
             model: {
               class: 'GroupModel',
@@ -1121,6 +1121,28 @@ const formConfig: FormConfigFrame = {
         config: {
           label: 'Repeatable TextField not inside the tab with default wrapper defined',
           helpText: 'Repeatable component help text',
+        },
+      },
+    },
+    {
+      name: 'workspace_selector',
+      component: {
+        class: 'WorkspaceSelectorComponent',
+        config: {
+          label: 'Create a workspace',
+          open: 'Open workspace',
+          saveFirst: 'Save this record before creating a workspace.',
+          displayType: 'cards',
+          shouldSaveForm: true,
+          defaultSelection: [
+            {
+              name: 'existing-locations',
+              label: '@existing-locations-label',
+              subtitle: '@existing-locations-label',
+              description: '@existing-locations-description',
+              logo: '/images/blank.png',
+            },
+          ],
         },
       },
     },
