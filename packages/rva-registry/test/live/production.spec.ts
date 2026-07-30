@@ -2,7 +2,7 @@
 import { UtilitiesApi, ServicesApi, ResourcesApi } from '../../dist/index.js';
 import assert from 'assert';
 
-describe('Integration Tests - Production API', () => {
+describe('Live Integration Tests - Production API', () => {
     // Increase timeout because production API calls might be slow
     const TIMEOUT = 10000;
 
