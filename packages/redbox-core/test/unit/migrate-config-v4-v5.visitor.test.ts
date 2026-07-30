@@ -1,4 +1,5 @@
 import path from 'path';
+import jsonata from 'jsonata';
 import { logger } from './helpers';
 import {
   MigrationV4ToV5FormConfigVisitor,
@@ -314,6 +315,66 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedField.component.class).to.equal('CheckboxInputComponent');
     expect(migratedField.model?.class).to.equal('CheckboxInputModel');
     expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+  });
+
+  it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-subscribe-migration',
+        fields: [
+          {
+            class: 'RecordMetadataRetriever',
+            compClass: 'RecordMetadataRetrieverComponent',
+            definition: { name: 'rdmpGetter' },
+          },
+          {
+            class: 'Toggle',
+            compClass: 'ToggleComponent',
+            definition: {
+              name: 'project-hdr',
+              controlType: 'checkbox',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [
+                    { action: 'utilityService.getPropertyFromObject', field: 'project-hdr' },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            class: 'TextArea',
+            compClass: 'TextAreaComponent',
+            definition: {
+              name: 'description',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [
+                    { action: 'utilityService.getPropertyFromObject', field: 'description' },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const templateFor = (name: string) =>
+      migrated.componentDefinitions.find(item => item.name === name)?.expressions?.[0]?.config
+        ?.template;
+
+    // `event.value["project-hdr"]` is a JSONata filter predicate, so it would return the
+    // whole source object instead of the property.
+    expect(templateFor('project-hdr')).to.equal('event.value.`project-hdr`');
+    expect(templateFor('description')).to.equal('event.value.description');
+
+    const source = { event: { value: { 'project-hdr': true, description: 'a description' } } };
+    expect(await jsonata(templateFor('project-hdr') as string).evaluate(source)).to.equal(true);
+    expect(await jsonata(templateFor('description') as string).evaluate(source)).to.equal(
+      'a description'
+    );
   });
 
   it('migrates legacy selection options to arrays for dropdown and checkbox inputs', async function () {
@@ -1134,6 +1195,31 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedField.component.class).to.equal('ReusableComponent');
     expect(migratedField.overrides).to.deep.equal({
       reusableFormName: 'standard-contributor-fields-lookup-only-group',
+    });
+    expect(migratedField.layout).to.equal(undefined);
+  });
+
+  it('maps legacy split-name contributors to the citation contributor definition', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'citation-contributor',
+        fields: [
+          {
+            class: 'ContributorField',
+            definition: {
+              name: 'creator',
+              splitNames: true,
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('ReusableComponent');
+    expect(migratedField.overrides).to.deep.equal({
+      reusableFormName: 'citation-contributor-fields-with-title-family-given-group',
     });
     expect(migratedField.layout).to.equal(undefined);
   });
