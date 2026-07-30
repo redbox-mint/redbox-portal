@@ -127,12 +127,12 @@
   <script
   src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"
   integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-  crossorigin="anonymous"></script>
+  crossorigin="anonymous" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
   <!-- Bootstrap JS form CDN -->
   <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js"
     integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
-    crossorigin="anonymous"></script>
+    crossorigin="anonymous" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
 </body>
 

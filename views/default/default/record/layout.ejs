@@ -127,10 +127,10 @@
   </div>
 
   <!-- Latest jQuery form server -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
   <!-- Bootstrap JS form CDN -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
 
 </body>

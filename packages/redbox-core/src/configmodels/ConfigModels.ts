@@ -14,6 +14,7 @@ import {
 import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
+import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -42,7 +43,8 @@ export type ConfigModelKey =
     | 'doiPublishing'
     | 'dashboardTableConfig'
     | 'integrationNotification'
-    | 'raidPublishing';
+    | 'raidPublishing'
+    | 'webAnalytics';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -129,6 +131,13 @@ export class ConfigModels {
             schema: RAID_PUBLISHING_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/RaidPublishing.ts'),
             secretFields: ['connection.token', 'connection.oauth.password']
+        }],
+        ['webAnalytics', {
+            modelName: 'WebAnalytics',
+            title: 'Web Analytics',
+            class: WebAnalytics,
+            schema: WEB_ANALYTICS_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')
         }],
     ]);
 

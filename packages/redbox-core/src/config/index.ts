@@ -151,6 +151,7 @@ import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
 import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
+import { WebAnalytics } from '../configmodels/WebAnalytics';
 
 /**
  * Branding-aware config function type
@@ -158,6 +159,7 @@ import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails
  */
 export type BrandingAwareFunction = (brandName?: string) => BrandingConfigurationDefaultsConfig & {
     authorizedDomainsEmails?: AuthorizedDomainsEmails;
+    webAnalytics?: WebAnalytics;
 };
 
 /**
