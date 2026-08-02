@@ -24,7 +24,7 @@ export NVM_DIR="$HOME/.nvm"
 cd angular
 nvm install
 nvm use
-npm install --include=dev --ignore-scripts --strict-peer-deps
+npm install --include=dev --include=optional --ignore-scripts --strict-peer-deps
 
 # Karma's Chrome launcher honours CHROME_BIN. Development agents commonly have
 # Playwright's Chromium available even when no system Chrome package is installed.

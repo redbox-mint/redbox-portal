@@ -342,7 +342,9 @@ function createMigratedFigsharePublishingConfig(
       // The legacy article URL paths are write targets, so they belong to writeBack.
       articleUrls: Array.isArray(mapping.recordFigArticleURL)
         ? mapping.recordFigArticleURL
-        : [mapping.recordFigArticleURL ?? 'metadata.figshare_article_location'],
+        : [typeof mapping.recordFigArticleURL === 'string' && mapping.recordFigArticleURL.trim() !== ''
+          ? mapping.recordFigArticleURL
+          : 'metadata.figshare_article_location'],
       extraFields: []
     },
     migrationReport: {

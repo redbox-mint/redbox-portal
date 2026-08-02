@@ -129,7 +129,7 @@ export namespace Controllers {
       if (typeof body.source !== 'undefined') {
         const source = String(body.source).trim().toLowerCase();
         if (!VALID_VOCAB_SOURCES.has(source)) {
-          errors.push('source must be one of: local, rva');
+          errors.push('source must be one of: local, rva, external');
         } else {
           payload.source = source as VocabularyServiceModule.VocabularyInput['source'];
         }
@@ -189,7 +189,7 @@ export namespace Controllers {
       if (typeof body.source !== 'undefined') {
         const source = String(body.source).trim().toLowerCase();
         if (!VALID_VOCAB_SOURCES.has(source)) {
-          errors.push('source must be one of: local, rva');
+          errors.push('source must be one of: local, rva, external');
         } else {
           payload.source = source as VocabularyServiceModule.VocabularyInput['source'];
         }

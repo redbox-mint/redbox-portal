@@ -53,7 +53,7 @@ export class FigshareCrosswalkEditorComponent {
   }
 
   get canApprove(): boolean {
-    return !!this.crosswalk && !this.saving && this.mappings.length > 0;
+    return !!this.crosswalk && !this.saving && this.total > 0;
   }
 
   get canGoPrevious(): boolean {

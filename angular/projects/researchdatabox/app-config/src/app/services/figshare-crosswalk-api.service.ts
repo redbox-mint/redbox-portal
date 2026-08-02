@@ -88,13 +88,19 @@ export class FigshareCrosswalkApiService extends HttpClientService {
    * by local vocabulary client-side, so the unfiltered list is fetched once.
    */
   public async listAllApprovedCrosswalks(): Promise<FigshareCrosswalkOption[]> {
-    this.crosswalksPromise = this.crosswalksPromise ?? this.listApprovedCrosswalks();
+    this.crosswalksPromise = this.crosswalksPromise ?? this.listApprovedCrosswalks().catch((error) => {
+      this.crosswalksPromise = undefined;
+      throw error;
+    });
     return this.crosswalksPromise;
   }
 
   /** Local vocabulary options, memoised across binding editors. */
   public async listAllLocalVocabularies(): Promise<FigshareLocalVocabularyOption[]> {
-    this.vocabulariesPromise = this.vocabulariesPromise ?? this.listLocalVocabularies();
+    this.vocabulariesPromise = this.vocabulariesPromise ?? this.listLocalVocabularies().catch((error) => {
+      this.vocabulariesPromise = undefined;
+      throw error;
+    });
     return this.vocabulariesPromise;
   }
 

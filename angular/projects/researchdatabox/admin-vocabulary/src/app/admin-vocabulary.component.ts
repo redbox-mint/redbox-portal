@@ -81,7 +81,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
    * is guaranteed to fail.
    */
   get isSelectedReadOnly(): boolean {
-    return this.draft.source === 'external';
+    return this.selectedVocabulary?.source === 'external';
   }
 
   get canSave(): boolean {

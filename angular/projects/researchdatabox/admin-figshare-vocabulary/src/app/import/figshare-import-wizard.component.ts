@@ -53,7 +53,7 @@ export class FigshareImportWizardComponent {
   }
 
   get canAdvanceToTarget(): boolean {
-    return this.taxonomyId !== '';
+    return this.taxonomyId !== '' && this.selectedTaxonomy !== undefined;
   }
 
   get canGeneratePreview(): boolean {
@@ -67,6 +67,7 @@ export class FigshareImportWizardComponent {
   }
 
   discover(): void {
+    this.taxonomyId = '';
     this.step = 2;
     this.discoverRequested.emit(this.scope);
   }

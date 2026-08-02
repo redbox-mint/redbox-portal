@@ -227,6 +227,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     if (!this.isSimpleConfigured(this.value.source)) return 'Configure the source binding that supplies the codes.';
     if (!this.value.sourceVocabularyId) return 'Select a source vocabulary.';
     if (!this.value.crosswalkId) return 'Select an approved crosswalk.';
+    if (this.crosswalksLoading || this.crosswalksLoadError) return '';
     const selected = this.selectedCrosswalk;
     if (!selected) return 'The selected crosswalk is not available for this brand.';
     if (selected.localVocabularyId !== this.value.sourceVocabularyId) return 'The crosswalk maps a different local vocabulary.';

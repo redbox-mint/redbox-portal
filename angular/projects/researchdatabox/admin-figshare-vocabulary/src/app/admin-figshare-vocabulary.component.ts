@@ -172,7 +172,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   async cloneSource(source: FigshareSourceSummary): Promise<void> {
     this.clearAlerts();
-    const name = `${source.displayName} (local copy)`;
+    const name = this.t('figshare-vocab-clone-name-suffix', '{{name}} (local copy)', { name: source.displayName });
     this.busySourceId = source.id;
     try {
       const clone = await this.api.cloneSource(source.id, { name });
@@ -267,7 +267,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
         limit: 50
       });
       this.preview = preview;
-      if (seedApprovals) {
+      if (seedApprovals || this.approvedProposalIds.length === 0) {
         // Exact-code and identity proposals arrive preselected; label suggestions do not.
         this.approvedProposalIds = (preview.page.records as Array<{ proposalId?: string; preselected?: boolean }>)
           .filter((record) => record.preselected === true && !!record.proposalId)
@@ -513,10 +513,12 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
         'ReDBox could not be reached. Check your connection, refresh the page, and try again.'
       );
     }
+    if (status === 401) {
+      return this.t('figshare-vocab-error-session-expired', 'Your session has expired. Sign in again, then retry this action.');
+    }
 
     const detail = this.asErrorMessage(err).toLowerCase();
     const isFigshareConnectionError =
-      status === 401 ||
       status === 502 ||
       detail.includes('not configured') ||
       detail.includes('api token') ||

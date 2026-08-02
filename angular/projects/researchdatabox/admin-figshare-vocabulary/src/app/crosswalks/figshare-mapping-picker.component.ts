@@ -71,6 +71,7 @@ export class FigshareMappingPickerComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private localRequestId = 0;
   private categoryRequestId = 0;
+  private currentTargetsRequestId = 0;
 
   constructor(
     @Inject(LoggerService) private logger: LoggerService,
@@ -123,6 +124,7 @@ export class FigshareMappingPickerComponent implements OnInit {
 
   async toggleIncludeHistorical(includeHistorical: boolean): Promise<void> {
     this.includeHistorical = includeHistorical;
+    this.selectedCategoryId = '';
     await this.loadCategories();
   }
 
@@ -135,11 +137,12 @@ export class FigshareMappingPickerComponent implements OnInit {
   clearLocalEntry(): void {
     this.selectedLocalEntry = null;
     this.selectedCategoryId = '';
+    this.currentTargetsRequestId++;
     this.currentTargets = [];
   }
 
   selectCategory(category: FigshareSourceCategory): void {
-    this.selectedCategoryId = category.id;
+    this.selectedCategoryId = this.categories.some((row) => row.id === category.id) ? category.id : '';
   }
 
   confirm(): void {
@@ -221,12 +224,14 @@ export class FigshareMappingPickerComponent implements OnInit {
     if (!this.crosswalkId) {
       return;
     }
+    const requestId = ++this.currentTargetsRequestId;
     try {
       const result = await this.api.listMappings(this.crosswalkId, {
         q: localValue || undefined,
         revision: this.revision,
         limit: 200
       });
+      if (requestId !== this.currentTargetsRequestId) return;
       this.currentTargets = result.records
         .filter((mapping) => mapping.localEntryId === localEntryId)
         .map((mapping) => ({
@@ -237,7 +242,7 @@ export class FigshareMappingPickerComponent implements OnInit {
         }));
     } catch (err) {
       this.logger.error('Failed to load the current targets of a local term', err);
-      this.currentTargets = [];
+      if (requestId === this.currentTargetsRequestId) this.currentTargets = [];
     }
   }
 

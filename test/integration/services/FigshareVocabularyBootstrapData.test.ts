@@ -48,6 +48,10 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   const cleanup = async (): Promise<void> => {
     const sources = await FigshareVocabularySource.find({ scope: SCOPE, taxonomyId: TAXONOMY_ID });
     const sourceIds = sources.map((source: { id: string }) => String(source.id));
+    const mirrorVocabularyIds = sources
+      .map((source: { vocabulary?: string }) => source.vocabulary)
+      .filter((id): id is string => Boolean(id))
+      .map(String);
     const crosswalks = sourceIds.length > 0
       ? await FigshareVocabularyCrosswalk.find({ figshareSource: sourceIds })
       : [];
@@ -66,7 +70,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
     const vocabularies = await Vocabulary.find({
       or: [
         { slug: CLONE_SLUG },
-        { sourceId: `${SCOPE}:${TAXONOMY_ID}` }
+        { id: mirrorVocabularyIds }
       ]
     });
     const vocabularyIds = vocabularies.map((vocabulary: { id: string }) => String(vocabulary.id));

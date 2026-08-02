@@ -444,10 +444,13 @@ export namespace Services {
       if (!isAllowedSyncRunTransition(from, to)) {
         throw new StalePreviewError(`Synchronisation run cannot move from '${from}' to '${to}'`);
       }
-      await this.runQuery(
-        FigshareVocabularySyncRun.updateOne({ id: runId }).set({ ...patch, state: to }) as Sails.WaterlinePromise<unknown>,
+      const updated = await this.runQuery(
+        FigshareVocabularySyncRun.updateOne({ id: runId, state: from }).set({ ...patch, state: to }) as Sails.WaterlinePromise<unknown>,
         connection
       );
+      if (!updated) {
+        throw new StalePreviewError(`Synchronisation run is no longer '${from}'`);
+      }
     }
 
     // ── Discovery ─────────────────────────────────────────────────────
@@ -541,7 +544,8 @@ export namespace Services {
      */
     private async resolvePreviewMode(
       input: CreatePreviewInput,
-      brandId: string
+      brandId: string,
+      scope: FigshareCategoryScope
     ): Promise<{
       source: FigshareVocabularySourceAttributes | null;
       crosswalk: FigshareVocabularyCrosswalkAttributes | null;
@@ -572,7 +576,7 @@ export namespace Services {
 
       const source = sourceId
         ? await this.requireSource(sourceId, brandId)
-        : await this.findSourceForCatalogue(brandId, input.scope, String(input.taxonomyId ?? '').trim());
+        : await this.findSourceForCatalogue(brandId, scope, String(input.taxonomyId ?? '').trim());
 
       // Refreshing an existing mirror is a complete request on its own; only a brand new
       // mirror needs to be told what it should be crosswalked to.
@@ -596,7 +600,7 @@ export namespace Services {
         throw new CatalogueInvalidError('taxonomyId is required');
       }
 
-      const mode = await this.resolvePreviewMode(input, ctx.brandId);
+      const mode = await this.resolvePreviewMode(input, ctx.brandId, scope);
       if (mode.source && mode.source.scope !== scope) {
         throw new CatalogueInvalidError('The requested scope does not match the existing Figshare source');
       }
@@ -1906,7 +1910,7 @@ export namespace Services {
               }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkMappingAttributes | null>,
               connection
             );
-            const status = change.status ?? 'approved';
+            const status = change.status ?? 'proposed';
             const approvalPatch = status === 'approved'
               ? { approvedAt: this.nowIso(), approvedBy: ctx.userId }
               : { approvedAt: undefined, approvedBy: undefined };

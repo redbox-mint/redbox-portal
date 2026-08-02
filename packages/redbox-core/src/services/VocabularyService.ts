@@ -1,5 +1,6 @@
 import { Services as services } from '../CoreService';
 import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-models';
+import type { FigshareVocabularySourceAttributes } from '../waterline-models/FigshareVocabularySource';
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 import { promiseWithTimeout } from '../utilities/PromiseUtils';
 import * as fs from 'node:fs/promises';
@@ -177,16 +178,22 @@ export namespace Services {
      * source) are only mutable through FigshareVocabularyService.applyPreview. Local
      * clones created from a mirror are ordinary local vocabularies and stay editable.
      */
-    public async assertMutableVocabulary(vocabularyId: string): Promise<void> {
+    public async assertMutableVocabulary(vocabularyId: string, connection?: Sails.Connection): Promise<void> {
       const id = String(vocabularyId ?? '').trim();
       if (!id) {
         return;
       }
-      const vocabulary = await Vocabulary.findOne({ id }) as VocabularyAttributes | null;
+      const vocabulary = await this.executeQuery(
+        Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
+        connection
+      );
       if (!vocabulary || vocabulary.source !== 'external') {
         return;
       }
-      const managedSource = await FigshareVocabularySource.findOne({ vocabulary: id });
+      const managedSource = await this.executeQuery(
+        FigshareVocabularySource.findOne({ vocabulary: id }) as Sails.WaterlinePromise<FigshareVocabularySourceAttributes | null>,
+        connection
+      );
       if (managedSource) {
         throw new ExternallyManagedVocabularyError(
           `Vocabulary '${vocabulary.name}' mirrors a Figshare catalogue and can only be changed through the Figshare vocabulary administration screen`
