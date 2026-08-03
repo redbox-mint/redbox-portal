@@ -155,6 +155,14 @@ export namespace Services {
       const result: I18nData = {};
       for (const flatKey of Object.keys(flatObj || {})) {
         const parts = flatKey.split('.');
+        let poisoned = false;
+        for (const part of parts) {
+          if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+            poisoned = true;
+            break;
+          }
+        }
+        if (poisoned) continue;
         let cursor: I18nData = result;
         for (let i = 0; i < parts.length; i++) {
           const p = parts[i];
@@ -173,6 +181,11 @@ export namespace Services {
     private setNested(obj: I18nData, dottedKey: string, value: unknown): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
+      for (const part of parts) {
+        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+          return;
+        }
+      }
       let cursor: I18nData = obj;
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i];
@@ -190,10 +203,15 @@ export namespace Services {
     private removeNested(obj: I18nData, dottedKey: string): void {
       if (!obj) return;
       const parts = String(dottedKey).split('.');
+      for (const part of parts) {
+        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+          return;
+        }
+      }
       let cursor: I18nData = obj;
       for (let i = 0; i < parts.length - 1; i++) {
         const p = parts[i];
-        if (cursor[p] == null || typeof cursor[p] !== 'object') return; // nothing to remove
+        if (cursor[p] == null || typeof cursor[p] !== 'object') return;
         cursor = cursor[p] as I18nData;
       }
       delete cursor[parts[parts.length - 1]];

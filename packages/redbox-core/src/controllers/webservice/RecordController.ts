@@ -217,6 +217,18 @@ export namespace Controllers {
       };
     }
 
+    private async requireDeletedRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
+      const deleted = await this.RecordsService.getDeletedRecordMeta(oid);
+      if (_.isEmpty(deleted)) {
+        return null;
+      }
+      const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
+      if (!brand?.id || recordBrandId !== String(brand.id)) {
+        return null;
+      }
+      return deleted as RecordModel;
+    }
+
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
@@ -1059,12 +1071,18 @@ export namespace Controllers {
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
+      }
+
+      const record = await this.requireDeletedRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, { status: 404 });
       }
 
       const response = await this.RecordsService.restoreRecord(oid, user);
@@ -1125,12 +1143,17 @@ export namespace Controllers {
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
+      }
+      const record = await this.requireDeletedRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, { status: 404 });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user);
       if (response.isSuccessful()) {

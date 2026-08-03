@@ -424,12 +424,15 @@ describe('ReportsService', function() {
 
     it('should get results from solr', async function() {
       const brand = { id: 'brand-1' };
-      const req = { param: sinon.stub() };
+      const req = {
+        param: sinon.stub().callsFake((name: string) => name === 'title' ? 'research & data' : undefined),
+      };
       
       const reportModel = {
         reportSource: 'solr',
         solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
-        columns: []
+        columns: [],
+        filter: [{ type: 'text', paramName: 'title', property: 'metadata_title' }],
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
       
@@ -440,6 +443,13 @@ describe('ReportsService', function() {
       const result = await ReportsService.getResults(brand, 'report-1', req);
       
       expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
+      const params = mockSails.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
+      expect(params).to.be.instanceOf(URLSearchParams);
+      expect(params.get('q')).to.equal('*:*');
+      expect(params.getAll('fq')).to.deep.equal([
+        'metaMetadata_brandId:brand-1',
+        'metadata_title:research & data*',
+      ]);
       expect(result.total).to.equal(5);
       expect(result.records).to.have.length(5);
     });
