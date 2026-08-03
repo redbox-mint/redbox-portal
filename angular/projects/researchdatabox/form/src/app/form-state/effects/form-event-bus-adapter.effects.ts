@@ -291,12 +291,8 @@ export class FormEventBusAdapterEffects {
           savedData: event.savedData,
           lastSavedAt: new Date().toISOString(),
         });
-        const metadata = event.response?.metadata;
-        if (metadata !== null && typeof metadata === 'object' && !Array.isArray(metadata)) {
-          return [
-            submitAction,
-            FormActions.syncModelSnapshot({ snapshot: metadata }),
-          ];
+        if (event.modelSnapshot !== undefined) {
+          return [submitAction, FormActions.syncModelSnapshot({ snapshot: event.modelSnapshot })];
         }
         return submitAction;
       }

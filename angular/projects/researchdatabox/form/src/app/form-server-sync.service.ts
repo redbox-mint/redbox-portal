@@ -34,6 +34,10 @@ export class FormServerSyncService {
     const names = new Set([...Object.keys(sentValue), ...Object.keys(serverValue)]);
 
     for (const name of names) {
+      if (!(name in serverValue)) {
+        result.skipped.push({ name, reason: 'not-in-server' });
+        continue;
+      }
       const control = controls[name] as AbstractControl<unknown> | undefined;
       if (!control) {
         result.skipped.push({ name, reason: 'no-control' });

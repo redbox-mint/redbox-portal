@@ -1205,6 +1205,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid);
+            let modelSnapshot: Record<string, unknown> | undefined;
             if (
               response.metadata !== null &&
               typeof response.metadata === 'object' &&
@@ -1214,13 +1215,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.form &&
               this.formDefMap
             ) {
-              await this.serverSyncService.applyServerMetadata(
-                currentFormValue,
-                response.metadata,
-                this.formDefMap,
-                this.form,
-                this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits'
-              );
+              const syncMode = this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
+              if (syncMode !== 'never') {
+                await this.serverSyncService.applyServerMetadata(
+                  currentFormValue,
+                  response.metadata,
+                  this.formDefMap,
+                  this.form,
+                  syncMode
+                );
+                modelSnapshot = this.getPersistedFormValue();
+              }
               this.broadcastFormStatus();
             }
             // Emit success event
@@ -1229,6 +1234,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 savedData: currentFormValue,
                 oid: oid,
                 response,
+                modelSnapshot,
                 closeOnSave: options?.closeOnSave,
                 redirectLocation: redirectLocation || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,

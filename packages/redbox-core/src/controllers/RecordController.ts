@@ -326,10 +326,10 @@ export namespace Controllers {
     private async getPostSaveMetadata(
       req: Sails.Req,
       brand: BrandingModel,
-      savedRecord: ControllerRecord,
+      savedRecord: ControllerRecord | null,
       targetStep: unknown
     ): Promise<AnyRecord | null> {
-      if (targetStep || sails.config.record?.form?.returnMetadataOnSave === false) {
+      if (!savedRecord || targetStep || sails.config.record?.form?.returnMetadataOnSave === false) {
         return null;
       }
 
@@ -356,7 +356,7 @@ export namespace Controllers {
           sails.config.reusableFormDefinitions
         );
       } catch (error) {
-        sails.log.error(`Failed to project post-save metadata for record ${savedRecord.redboxOid}:`, error);
+        sails.log.error(`Failed to project post-save metadata for record ${savedRecord?.redboxOid ?? 'unknown'}:`, error);
         return null;
       }
     }
@@ -764,7 +764,10 @@ export namespace Controllers {
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
           const savedRecord = await this.recordsService.getMeta(createResponse.oid);
-          createResponse.metadata = await this.getPostSaveMetadata(req, brand, savedRecord, targetStep);
+          const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, targetStep);
+          if (postSaveMetadata !== null) {
+            createResponse.metadata = postSaveMetadata;
+          }
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...createResponse },
@@ -946,7 +949,10 @@ export namespace Controllers {
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           const savedRecord = await this.recordsService.getMeta(oid);
-          response.metadata = await this.getPostSaveMetadata(req, brand, savedRecord, nextStepResp);
+          const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, nextStepResp);
+          if (postSaveMetadata !== null) {
+            response.metadata = postSaveMetadata;
+          }
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: response ? { ...response } : undefined,
