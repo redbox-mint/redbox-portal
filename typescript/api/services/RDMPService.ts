@@ -533,6 +533,14 @@ export module Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
+        if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+          record.authorization.edit = [record.metaMetadata.createdBy];
+          record.authorization.editPending = [];
+        }
+        if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+          record.authorization.view = [record.metaMetadata.createdBy];
+          record.authorization.viewPending = [];
+        }
         return Observable.of(record);
       }
       _.each(editContributorEmails, editorEmail => {
