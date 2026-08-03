@@ -545,7 +545,7 @@ export namespace Services {
     private async resolvePreviewMode(
       input: CreatePreviewInput,
       brandId: string,
-      scope: FigshareCategoryScope
+      scope?: FigshareCategoryScope
     ): Promise<{
       source: FigshareVocabularySourceAttributes | null;
       crosswalk: FigshareVocabularyCrosswalkAttributes | null;
@@ -553,6 +553,7 @@ export namespace Services {
       createLocalClone: boolean;
     }> {
       const createLocalClone = input.createLocalClone === true;
+      const normalizedScope = scope ?? this.assertScope(input?.scope);
       const crosswalkId = String(input.crosswalkId ?? '').trim();
       const sourceId = String(input.sourceId ?? '').trim();
       const localVocabularyId = String(input.localVocabularyId ?? '').trim();
@@ -576,7 +577,7 @@ export namespace Services {
 
       const source = sourceId
         ? await this.requireSource(sourceId, brandId)
-        : await this.findSourceForCatalogue(brandId, scope, String(input.taxonomyId ?? '').trim());
+        : await this.findSourceForCatalogue(brandId, normalizedScope, String(input.taxonomyId ?? '').trim());
 
       // Refreshing an existing mirror is a complete request on its own; only a brand new
       // mirror needs to be told what it should be crosswalked to.
