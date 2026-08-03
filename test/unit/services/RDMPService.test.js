@@ -39,7 +39,9 @@ describe('The RDMPService', function () {
         it('assignPermissions with no viewers or editors', function (done) {
             const oid = "assignPermissions-no-viewers-no-editors";
             const record = {
-                metaMetadata: {},
+                metaMetadata: {
+                    createdBy: userAdminDefault.name
+                },
                 workflow: {},
                 authorization: {
                     edit: [],
@@ -72,8 +74,8 @@ describe('The RDMPService', function () {
                 "recordCreatorPermissions": "view&edit"
             };
             RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
-                expect(record.authorization.edit).to.be.empty;
-                expect(record.authorization.view).to.be.empty;
+                expect(record.authorization.edit).eql([userAdminDefault.name]);
+                expect(record.authorization.view).eql([userAdminDefault.name]);
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
