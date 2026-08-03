@@ -15,6 +15,8 @@ export * from './groups/search';
 export * from './groups/forms';
 export * from './groups/harvest-runs';
 export * from './groups/vocabulary';
+export * from './groups/figshare-vocabulary';
+export * from './groups/figshare-crosswalks';
 export * from './groups/recordtypes';
 export * from './groups/admin';
 export * from './groups/appconfig';

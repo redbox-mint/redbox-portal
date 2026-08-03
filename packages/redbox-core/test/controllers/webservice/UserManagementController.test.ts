@@ -44,7 +44,13 @@ describe('Webservice UserManagementController', () => {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
         };
         (global as any).UsersService = {
-            getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
+            getUserWithId: sinon.stub().returns(of({
+                id: 'user-1',
+                username: 'target-user',
+                password: 'secret',
+                token: 'tok',
+                roles: [{ name: 'Researcher', branding: 'brand-1' }]
+            })),
             getUserAudit: sinon.stub().resolves({
                 records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
                 summary: { returnedCount: 1, truncated: false }
@@ -400,5 +406,90 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
+    });
+
+    describe('brand-scoped user mutations', () => {
+        it('rejects reusing a username owned by another brand', async () => {
+            (global as any).UsersService.addLocalUser = sinon.stub().returns(
+                throwError(() => new Error('Username already exists'))
+            );
+            (global as any).UsersService.getUserWithUsername = sinon.stub().returns(of({
+                id: 'other-user',
+                username: 'existing-user',
+                roles: [{ branding: { id: 'brand-2' } }]
+            }));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                body: {
+                    username: 'existing-user',
+                    name: 'Existing User',
+                    email: 'existing@example.org',
+                    password: 'secret'
+                }
+            });
+
+            controller.createUser(req, {} as Sails.Res);
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect((global as any).UsersService.getUserWithUsername.calledOnceWithExactly('existing-user')).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
+        it('rejects updating a user outside the current brand', async () => {
+            (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
+                id: 'other-user',
+                roles: [{ branding: { id: 'brand-2' } }]
+            }));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                body: { id: 'other-user', name: 'Other User' }
+            });
+
+            await controller.updateUser(req, {} as Sails.Res);
+
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
+
+        for (const method of ['generateAPIToken', 'revokeAPIToken'] as const) {
+            it(`rejects ${method} for a user outside the current brand`, async () => {
+                (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
+                    id: 'other-user',
+                    roles: [{ branding: 'brand-2' }]
+                }));
+                const sendRespStub = sinon.stub(controller as any, 'sendResp');
+                const req = makeReq({
+                    session: { branding: 'default' },
+                    user: { username: 'admin-user' },
+                    query: { id: 'other-user' }
+                });
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+            });
+
+            it(`allows ${method} for a user in the current brand`, async () => {
+                (global as any).UsersService.setUserKey = sinon.stub().returns(of({
+                    id: 'user-1',
+                    username: 'target-user'
+                }));
+                const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+                const req = makeReq({
+                    session: { branding: 'default' },
+                    user: { username: 'admin-user' },
+                    query: { id: 'user-1' }
+                });
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect((global as any).UsersService.setUserKey.calledOnce).to.be.true;
+                expect((global as any).UsersService.setUserKey.firstCall.args[0]).to.equal('user-1');
+                expect(apiRespondStub.calledOnce).to.be.true;
+                expect(apiRespondStub.firstCall.args[2]?.username).to.equal('target-user');
+            });
+        }
     });
 });

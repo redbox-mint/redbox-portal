@@ -1,0 +1,170 @@
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true"
+  aria-labelledby="figshareMappingPickerTitle" (keydown.escape)="cancelled.emit()">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document" cdkTrapFocus
+    cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title h5" id="figshareMappingPickerTitle">{{
+          (localTerm ? 'figshare-vocab-add-target-title' : 'figshare-vocab-add-mapping-title') | i18next
+        }}</span>
+      </div>
+      <div class="modal-body">
+        @if (localErrorMessage) {
+        <div class="alert alert-danger" role="alert">{{ localErrorMessage }}</div>
+        }
+        @if (targetErrorMessage) {
+        <div class="alert alert-danger" role="alert">{{ targetErrorMessage }}</div>
+        }
+
+        <!-- Step 1: the local term. Fixed when the picker was opened from a mapping row. -->
+        <fieldset class="mb-4">
+          <legend class="h6">{{ 'figshare-vocab-picker-local-step' | i18next }}</legend>
+
+          @if (localTerm || selectedLocalEntry) {
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="fw-semibold">{{ localTermLabel }}</span>
+            @if (!localTerm) {
+            <button type="button" class="btn btn-sm btn-link p-0" (click)="clearLocalEntry()">
+              {{ 'figshare-vocab-picker-change-term' | i18next }}
+            </button>
+            }
+          </div>
+          @if (currentTargets.length > 0) {
+          <p class="small text-muted mb-0 mt-1">
+            {{ 'figshare-vocab-picker-current-targets' | i18next }}
+            @for (target of currentTargets; track target.id) {
+            <span class="figshare-badge ms-1">{{ target.label }}</span>
+            }
+          </p>
+          } @else {
+          <p class="small text-muted mb-0 mt-1">{{ 'figshare-vocab-picker-no-current-targets' | i18next }}</p>
+          }
+          } @else {
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-8">
+              <label class="form-label" for="figshare-picker-local-search">{{
+                'figshare-vocab-picker-local-search' | i18next
+              }}</label>
+              <input id="figshare-picker-local-search" class="form-control" type="search"
+                [formControl]="localSearchControl" />
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input id="figshare-picker-unmapped" class="form-check-input" type="checkbox" [checked]="unmappedOnly"
+                  (change)="toggleUnmappedOnly($any($event.target).checked)" />
+                <label class="form-check-label" for="figshare-picker-unmapped">
+                  {{ 'figshare-vocab-picker-unmapped-only' | i18next }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          @if (localLoading) {
+          <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+          } @else {
+          <ul class="list-group figshare-picker-list">
+            @for (entry of localEntries; track entry.id) {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>
+                <span class="d-block fw-semibold">{{ entry.value || entry.label }}</span>
+                <small class="text-muted">{{ entry.label }}</small>
+              </span>
+              <span class="text-nowrap">
+                @if (entry.targetCount > 0) {
+                <span class="figshare-badge me-2">{{
+                  'figshare-vocab-picker-target-count' | i18next: { count: entry.targetCount }
+                }}</span>
+                }
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectLocalEntry(entry)">
+                  {{ 'figshare-vocab-picker-select' | i18next }}
+                </button>
+              </span>
+            </li>
+            } @empty {
+            <li class="list-group-item text-muted">{{ 'figshare-vocab-picker-no-local-entries' | i18next }}</li>
+            }
+          </ul>
+          @if (localTotal > localEntries.length) {
+          <p class="small text-muted mb-0 mt-1">
+            {{ 'figshare-vocab-picker-more-results' | i18next: { shown: localEntries.length, total: localTotal } }}
+          </p>
+          }
+          }
+          }
+        </fieldset>
+
+        <!-- Step 2: the Figshare target. -->
+        <fieldset [disabled]="!resolvedLocalEntryId">
+          <legend class="h6">{{ 'figshare-vocab-picker-target-step' | i18next }}</legend>
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-8">
+              <label class="form-label" for="figshare-picker-target-search">{{
+                'figshare-vocab-picker-target-search' | i18next
+              }}</label>
+              <input id="figshare-picker-target-search" class="form-control" type="search"
+                [formControl]="targetSearchControl" />
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input id="figshare-picker-historical" class="form-check-input" type="checkbox"
+                  [checked]="includeHistorical" (change)="toggleIncludeHistorical($any($event.target).checked)" />
+                <label class="form-check-label" for="figshare-picker-historical">
+                  {{ 'figshare-vocab-picker-include-historical' | i18next }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          @if (categoriesLoading) {
+          <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+          } @else {
+          <ul class="list-group figshare-picker-list">
+            @for (category of categories; track category.id) {
+            <li class="list-group-item d-flex justify-content-between align-items-center"
+              [class.active]="category.id === selectedCategoryId">
+              <span>
+                <span class="d-block fw-semibold">{{ category.sourceId }} <small>({{ category.categoryId }})</small></span>
+                <small [class.text-muted]="category.id !== selectedCategoryId">{{ category.title }}</small>
+              </span>
+              <span class="text-nowrap">
+                @if (category.historical) {
+                <span class="figshare-badge figshare-badge--historical me-2">{{
+                  'figshare-vocab-historical' | i18next
+                }}</span>
+                }
+                @if (isAlreadyMapped(category)) {
+                <span class="figshare-badge me-2">{{ 'figshare-vocab-picker-already-mapped' | i18next }}</span>
+                } @else {
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectCategory(category)">
+                  {{
+                    (category.id === selectedCategoryId ? 'figshare-vocab-picker-selected' : 'figshare-vocab-picker-select')
+                      | i18next
+                  }}
+                </button>
+                }
+              </span>
+            </li>
+            } @empty {
+            <li class="list-group-item text-muted">{{ 'figshare-vocab-picker-no-categories' | i18next }}</li>
+            }
+          </ul>
+          @if (categoryTotal > categories.length) {
+          <p class="small text-muted mb-0 mt-1">
+            {{ 'figshare-vocab-picker-more-results' | i18next: { shown: categories.length, total: categoryTotal } }}
+          </p>
+          }
+          }
+        </fieldset>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelled.emit()" cdkFocusInitial>
+          {{ 'figshare-vocab-cancel' | i18next }}
+        </button>
+        <button type="button" class="btn btn-primary" [disabled]="!canConfirm" (click)="confirm()">
+          {{ 'figshare-vocab-picker-add' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" aria-hidden="true"></div>

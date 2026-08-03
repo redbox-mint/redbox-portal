@@ -79,6 +79,21 @@ export interface FigshareInstitutionAccount {
   [key: string]: unknown;
 }
 
+/** Figshare exposes an anonymous catalogue and an authenticated account catalogue. */
+export type FigshareCategoryScope = 'public' | 'account';
+
+export interface FigshareCategory {
+  id: number;
+  title: string;
+  parent_id?: number;
+  path?: string;
+  source_id?: string;
+  taxonomy_id?: number;
+  is_selectable?: boolean;
+  has_children?: boolean;
+  [key: string]: unknown;
+}
+
 export interface FigsharePublishResult {
   id?: number | string;
   status?: string;

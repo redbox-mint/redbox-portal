@@ -325,6 +325,7 @@ export namespace Services {
       'restoreRecord',
       'destroyDeletedRecord',
       'getDeletedRecords',
+      'getDeletedRecordMeta',
       'updateNotificationLog',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
@@ -1638,6 +1639,14 @@ export namespace Services {
       const record = await this.storageService.destroyDeletedRecord(oid);
       await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.destroyed);
       return record;
+    }
+
+    /** Metadata of a soft deleted record, or null when no deleted record exists for the oid. */
+    async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
+      if (_.isEmpty(oid)) {
+        return null;
+      }
+      return await this.storageService.getDeletedRecordMeta(oid);
     }
 
     async getDeletedRecords(

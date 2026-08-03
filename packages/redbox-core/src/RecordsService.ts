@@ -73,6 +73,7 @@ export interface RecordsService {
   triggerPostSaveTransitionWorkflowTriggers(oid: string, record: RecordInput, recordType: unknown, nextStep: AnyRecord, user: Record<string, unknown>, response: unknown): unknown;
   getAttachments(oid: string, labelFilterStr?: string, requestContext?: DatastreamRequestContext): Promise<Record<string, unknown>[]>;
   getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
+  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
   create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown): Promise<StorageServiceResponse>;
   updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord): Promise<StorageServiceResponse>;
@@ -81,6 +82,7 @@ export interface RecordsService {
   getMeta(oid: string): Promise<RecordModel>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
+  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
   getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
   getMetaWithRelationships(oid: string, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordMetaWithRelationships>;

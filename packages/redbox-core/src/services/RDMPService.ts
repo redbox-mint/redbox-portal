@@ -577,6 +577,14 @@ export namespace Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
+        if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+          auth.edit = createdBy ? [createdBy] : [];
+          auth.editPending = [];
+        }
+        if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+          auth.view = createdBy ? [createdBy] : [];
+          auth.viewPending = [];
+        }
         return of(record);
       }
       _.each(editContributorEmails, (editorEmail: string) => {
