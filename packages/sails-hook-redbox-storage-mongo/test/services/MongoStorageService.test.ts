@@ -1099,6 +1099,18 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(false);
   });
 
+  it('loads deleted record metadata by oid', async function () {
+    const metadata = { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } };
+
+    expect(await service.getDeletedRecordMeta('')).to.equal(null);
+    DeletedRecord.findOne.resolves(null);
+    expect(await service.getDeletedRecordMeta('missing')).to.equal(null);
+
+    DeletedRecord.findOne.resolves({ deletedRecordMetadata: metadata });
+    expect(await service.getDeletedRecordMeta('oid-1')).to.equal(metadata);
+    expect(DeletedRecord.findOne.lastCall.args[0]).to.deep.equal({ redboxOid: 'oid-1' });
+  });
+
   it('destroys deleted records and reports validation or persistence failures', async function () {
     await expectRejects(() => service.destroyDeletedRecord(''), 'refusing to search using an empty OID');
 

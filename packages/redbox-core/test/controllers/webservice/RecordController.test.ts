@@ -417,6 +417,49 @@ describe('Webservice RecordController body source', () => {
     });
 
     describe('deleted record handlers', () => {
+        it('does not restore an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.restoreRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.restoreRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
+
+        it('does not permanently delete an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.destroyDeletedRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.destroyDeletedRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
         for (const method of ['restoreRecord', 'destroyDeletedRecord'] as const) {
             it(`rejects ${method} when the deleted record belongs to another brand`, async () => {
                 recordsService.getDeletedRecordMeta.resolves({
@@ -641,6 +684,51 @@ describe('Webservice RecordController getMeta', () => {
     assert.equal((global as any).sails.services.recordsservice.getRelatedRecords.called, false);
     assert.equal(sendResp.calledOnce, true);
     assert.deepEqual(sendResp.firstCall.args[2], { data: record.metadata });
+  });
+
+  it('returns record permissions when view access is allowed', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const record = { authorization: { view: ['tester'] } };
+    (global as any).sails.services.recordsservice.getMeta.resolves(record);
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(true);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], { data: record.authorization });
+  });
+
+  it('rejects record permission access when view access is denied', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves({ authorization: {} });
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(false);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 403);
+  });
+
+  it('returns not found when record permission metadata is missing', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves(null);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 404);
   });
 
   it('returns filtered relationships when requested', async () => {

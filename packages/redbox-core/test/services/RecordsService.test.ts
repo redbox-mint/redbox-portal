@@ -21,6 +21,7 @@ describe('RecordsService', function () {
       create: sinon.stub().resolves({ success: true, oid: 'new-record-123', isSuccessful: () => true }),
       updateMeta: sinon.stub().resolves({ success: true, oid: 'record-123', isSuccessful: () => true }),
       getMeta: sinon.stub().resolves({ redboxOid: 'record-123', metadata: { title: 'Test' } }),
+      getDeletedRecordMeta: sinon.stub().resolves({ redboxOid: 'deleted-record-123' }),
       delete: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
       getRecords: sinon.stub().resolves({ items: [] }),
       getRecordAudit: sinon.stub().resolves([]),
@@ -171,6 +172,35 @@ describe('RecordsService', function () {
   describe('constructor', function () {
     it('should set logHeader', function () {
       expect(RecordsService.logHeader).to.equal('RecordsService::');
+    });
+  });
+
+  describe('getDeletedRecordMeta', function () {
+    it('returns deleted record metadata from storage', async function () {
+      const result = await RecordsService.getDeletedRecordMeta('deleted-record-123');
+
+      expect(mockStorageService.getDeletedRecordMeta.calledOnceWithExactly('deleted-record-123')).to.be.true;
+      expect(result).to.deep.equal({ redboxOid: 'deleted-record-123' });
+    });
+
+    it('does not query storage for an empty oid', async function () {
+      const result = await RecordsService.getDeletedRecordMeta('');
+
+      expect(mockStorageService.getDeletedRecordMeta.called).to.be.false;
+      expect(result).to.equal(null);
+    });
+
+    it('propagates storage lookup failures', async function () {
+      mockStorageService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));
+
+      let caught: unknown;
+      try {
+        await RecordsService.getDeletedRecordMeta('deleted-record-123');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
     });
   });
 
