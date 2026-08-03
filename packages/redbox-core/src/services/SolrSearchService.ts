@@ -330,12 +330,12 @@ export namespace Services {
     }
 
 
-    public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
+    public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
-      const params = new URLSearchParams(query.startsWith('q=') ? query : `q=${query}`);
+      const params = query instanceof URLSearchParams ? query : this.parseQueryFragment(query);
       sails.log.verbose(`Searching advanced using: ${url}`);
       const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
@@ -550,7 +550,7 @@ export namespace Services {
       return luceneEscapeQuery(String(str ?? ''));
     }
 
-    protected addAuthParams(allParams: Array<{ key: string; value: string }>, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
+    protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
 
       let roleString = ""
       let matched = false;
@@ -567,7 +567,24 @@ export namespace Services {
         }
       }
       const fqValue = "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
-      allParams.push({ key: 'fq', value: fqValue });
+      if (allParams instanceof URLSearchParams) {
+        allParams.append('fq', fqValue);
+      } else {
+        allParams.push({ key: 'fq', value: fqValue });
+      }
+    }
+
+    protected parseQueryFragment(query: string): URLSearchParams {
+      const params = new URLSearchParams();
+      for (const [index, part] of query.split('&').entries()) {
+        const separator = part.indexOf('=');
+        if (separator < 0) {
+          if (index === 0 && part) params.set('q', part);
+          continue;
+        }
+        params.append(part.slice(0, separator), part.slice(separator + 1));
+      }
+      return params;
     }
 
     protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {

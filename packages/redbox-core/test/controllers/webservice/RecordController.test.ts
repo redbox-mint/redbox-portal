@@ -155,7 +155,7 @@ describe('Webservice RecordController body source', () => {
         const mutationResponse = {
             isSuccessful: () => true,
         };
-        recordsService.getDeletedRecords.resolves(deletedRecordResponse);
+        recordsService.getDeletedRecordMeta.resolves({ redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } });
         recordsService.restoreRecord.resolves(mutationResponse);
         recordsService.destroyDeletedRecord.resolves(mutationResponse);
         const req = makeThrowingRequest({
@@ -171,18 +171,8 @@ describe('Webservice RecordController body source', () => {
         await controller.restoreRecord(req, {} as Sails.Res);
         await controller.destroyDeletedRecord(req, {} as Sails.Res);
 
-        expect(recordsService.getDeletedRecords.callCount).to.equal(2);
-        expect(recordsService.getDeletedRecords.firstCall.args.slice(0, 4)).to.deep.equal([
-            undefined,
-            undefined,
-            0,
-            1,
-        ]);
-        expect(recordsService.getDeletedRecords.firstCall.args.slice(-3)).to.deep.equal([
-            ['redboxOid'],
-            'record-1',
-            'equal',
-        ]);
+        expect(recordsService.getDeletedRecordMeta.callCount).to.equal(2);
+        expect(recordsService.getDeletedRecordMeta.firstCall.args).to.deep.equal(['record-1']);
         expect(recordsService.restoreRecord.calledWith('record-1')).to.be.true;
         expect(recordsService.destroyDeletedRecord.calledWith('record-1')).to.be.true;
         expect(sendRespStub.callCount).to.equal(2);

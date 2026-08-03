@@ -1124,7 +1124,7 @@ describe('MongoStorageService', function () {
   it('loads deleted record metadata by oid', async function () {
     const metadata = { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } };
 
-    expect(await service.getDeletedRecordMeta('')).to.equal(null);
+    await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
     DeletedRecord.findOne.resolves(null);
     expect(await service.getDeletedRecordMeta('missing')).to.equal(null);
 

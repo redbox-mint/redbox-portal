@@ -140,7 +140,7 @@ export namespace Controllers {
       }
 
       const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
-      if (recordBrandId !== String(brand.id)) {
+      if (recordBrandId && recordBrandId !== String(brand.id)) {
         return this.sendAccessDenied(req, res);
       }
 
@@ -190,6 +190,10 @@ export namespace Controllers {
       while (separatorIndex > 0) {
         const relatedRecordId = roomId.substring(0, separatorIndex);
         const taskType = roomId.substring(separatorIndex + 1);
+        const relatedRecord = await this.tryFindDirectRelatedRecord(relatedRecordId, visitedRoomIds);
+        if (relatedRecord) {
+          return relatedRecord;
+        }
         try {
           const progressRecords = await AsynchsService.get({ relatedRecordId, taskType }).toPromise();
           for (const progressRecord of (progressRecords ?? []) as Array<Record<string, unknown>>) {

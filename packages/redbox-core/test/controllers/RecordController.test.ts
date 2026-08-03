@@ -782,7 +782,7 @@ describe('AsynchController authorization', () => {
     await controller.subscribe(makeRequest({ roomId: 'job-1' }), {} as Sails.Res);
     await controller.subscribe(makeRequest({ roomId: 'record-1-export' }), {} as Sails.Res);
 
-    expect(recordsService.hasViewAccess.callCount).to.equal(2);
+    expect(recordsService.hasViewAccess.callCount).to.equal(3);
     expect((global as any).sails.sockets.join.callCount).to.equal(3);
     expect(sendResp.thirdCall.args[2].data.status).to.be.true;
   });
@@ -793,7 +793,7 @@ describe('AsynchController authorization', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.subscribe(makeRequest({ roomId: 'unknown-room' }), {} as Sails.Res);
-    expect(sendResp.firstCall.args[2].data.status).to.be.true;
+    expect(sendResp.firstCall.args[2].data.status).to.be.false;
 
     recordsService.getMeta.resolves({ redboxOid: 'record-1' });
     recordsService.hasViewAccess.returns(false);
@@ -801,7 +801,7 @@ describe('AsynchController authorization', () => {
     expect(sendResp.getCalls().some((call) => call.args[2]?.status === 403)).to.be.true;
 
     await controller.subscribe(makeRequest({ roomId: 'record-1' }, undefined), {} as Sails.Res);
-    expect(sendResp.getCalls().filter((call) => call.args[2]?.status === 403)).to.have.length(2);
+    expect(sendResp.getCalls().filter((call) => call.args[2]?.status === 403)).to.have.length(3);
 
     const badRequest = sinon.stub();
     await controller.subscribe({ isSocket: false, param: sinon.stub() } as unknown as Sails.Req, { badRequest } as unknown as Sails.Res);
@@ -825,7 +825,7 @@ describe('AsynchController authorization', () => {
 
     (global as any).AsynchsService.get.returns(of([]));
     controller.stop(makeRequest({ id: 'missing' }, undefined), {} as Sails.Res);
-    expect((global as any).AsynchsService.finish.callCount).to.equal(2);
+    expect((global as any).AsynchsService.finish.callCount).to.equal(1);
   });
 
   it('only updates jobs owned by the authenticated user', () => {

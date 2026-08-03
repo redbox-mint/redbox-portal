@@ -241,23 +241,12 @@ export namespace Controllers {
       if (!brand?.id) {
         return false;
       }
-      const roles = (user.roles ?? []) as globalThis.Record<string, unknown>[];
-      const results = await this.RecordsService.getDeletedRecords(
-        undefined,
-        undefined,
-        0,
-        1,
-        user.username,
-        roles,
-        brand,
-        undefined,
-        undefined,
-        undefined,
-        ['redboxOid'],
-        oid,
-        'equal'
-      );
-      return results.isSuccessful() && results.totalItems > 0;
+      const deletedRecord = await this.RecordsService.getDeletedRecordMeta(oid);
+      if (!deletedRecord) {
+        return false;
+      }
+      const deletedBrandId = String(_.get(deletedRecord, 'metaMetadata.brandId', '') ?? '');
+      return !deletedBrandId || deletedBrandId === String(brand.id);
     }
 
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
