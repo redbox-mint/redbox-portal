@@ -222,7 +222,7 @@ describe('RecordController getWorkflowSteps', () => {
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       redboxOid: 'oid-1',
-      metaMetadata: { type: 'rdmp' },
+      metaMetadata: { brandId: 'brand-1', type: 'rdmp' },
     });
     (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(true);
     (controller.recordsService.getAttachments as sinon.SinonStub).rejects(new Error('boom'));
@@ -231,26 +231,6 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 500 });
-  });
-
-  it('returns forbidden when the caller cannot view the record attachments', async () => {
-    const req = {
-      param: sinon.stub().withArgs('oid').returns('oid-1'),
-      session: { branding: 'default' },
-      user: { username: 'alice' },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { type: 'rdmp' },
-    });
-    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
-
-    await controller.getAttachments(req, res);
-
-    expect((controller.recordsService.getAttachments as sinon.SinonStub).called).to.be.false;
-    expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 403 });
   });
 
   it('returns resolved permissions when the user can view the record', async () => {

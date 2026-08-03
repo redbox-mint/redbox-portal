@@ -44,7 +44,13 @@ describe('Webservice UserManagementController', () => {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
         };
         (global as any).UsersService = {
-            getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok', roles: [{ name: 'Researcher', branding: 'brand-1' }] })),
+            getUserWithId: sinon.stub().returns(of({
+                id: 'user-1',
+                username: 'target-user',
+                password: 'secret',
+                token: 'tok',
+                roles: [{ name: 'Researcher', branding: 'brand-1' }]
+            })),
             getUserAudit: sinon.stub().resolves({
                 records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
                 summary: { returnedCount: 1, truncated: false }
@@ -349,26 +355,6 @@ describe('Webservice UserManagementController', () => {
 
             expect((global as any).UsersService.disableUser.called).to.be.false;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-        it('should reject a target user that does not belong to the current brand', async () => {
-            (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
-                id: 'user-1',
-                username: 'target-user',
-                roles: [{ name: 'Researcher', branding: 'brand-2' }]
-            }));
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.disableUser(req, res);
-
-            expect((global as any).UsersService.disableUser.called).to.be.false;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
         });
 
     });

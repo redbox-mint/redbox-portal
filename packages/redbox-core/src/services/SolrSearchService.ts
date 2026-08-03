@@ -330,34 +330,15 @@ export namespace Services {
     }
 
 
-    public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
+    public async searchAdvanced(coreId: string = 'default', type: string, query: string): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
-      const params = query instanceof URLSearchParams ? query : this.parseQueryFragment(query);
-      sails.log.verbose(`Searching advanced using: ${url}?${params.toString()}`);
+      const params = new URLSearchParams(query.startsWith('q=') ? query : `q=${query}`);
+      sails.log.verbose(`Searching advanced using: ${url}`);
       const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
-    }
-
-    /**
-     * Callers pass the query as a raw query string fragment, where the first segment is the `q`
-     * expression (optionally carrying a redundant `q=` prefix) followed by `&key=value` pairs.
-     * Parsing it into URLSearchParams keeps repeated keys such as `fq` intact and hands encoding
-     * of the values over to axios.
-     */
-    protected parseQueryFragment(query: string): URLSearchParams {
-      const params = new URLSearchParams();
-      const [mainQuery, ...otherParams] = String(query ?? '').split('&');
-      params.append('q', mainQuery.startsWith('q=') ? mainQuery.substring(2) : mainQuery);
-      for (const param of otherParams) {
-        const separatorIndex = param.indexOf('=');
-        if (separatorIndex > 0) {
-          params.append(param.substring(0, separatorIndex), param.substring(separatorIndex + 1));
-        }
-      }
-      return params;
     }
 
     public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
@@ -367,35 +348,41 @@ export namespace Services {
       const coreName = core.options.core;
       const baseUrl = `${this.getBaseUrl(core.options)}${coreName}/select`;
 
-      const params = new URLSearchParams();
+      const allParams: Array<{ key: string; value: string }> = [];
       const qParts = [`metaMetadata_brandId:${brand.id}`, `metaMetadata_type:${type}`];
       if (workflowState) {
         qParts.push(`workflow_stage:${workflowState}`);
       }
       qParts.push(`full_text:${searchQuery}`);
-      params.append('q', qParts.join(' AND '));
+      allParams.push({ key: 'q', value: qParts.join(' AND ') });
 
       _.forEach(exactSearches, (exactSearch: SearchField) => {
-        params.append('fq', `${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`);
+        allParams.push({ key: 'fq', value: `${exactSearch.name}:${this.luceneEscape(exactSearch.value)}` });
       });
       if (facetSearches.length > 0) {
-        params.append('facet', 'true');
+        allParams.push({ key: 'facet', value: 'true' });
         _.forEach(facetSearches, (facetSearch: SearchField) => {
-          params.append('facet.field', facetSearch.name);
+          allParams.push({ key: 'facet.field', value: facetSearch.name });
           if (!_.isEmpty(facetSearch.value)) {
-            params.append('fq', `${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`);
+            allParams.push({ key: 'fq', value: `${facetSearch.name}:${this.luceneEscape(facetSearch.value)}` });
           }
         });
       }
-      params.append('start', String(start));
-      params.append('rows', String(rows));
-      params.append('version', '2.2');
-      params.append('wt', 'json');
-      params.append('sort', 'date_object_modified desc');
+      allParams.push({ key: 'start', value: String(start) });
+      allParams.push({ key: 'rows', value: String(rows) });
+      allParams.push({ key: 'version', value: '2.2' });
+      allParams.push({ key: 'wt', value: 'json' });
+      allParams.push({ key: 'sort', value: 'date_object_modified desc' });
 
-      this.addAuthParams(params, username, roles, brand, false);
+      this.addAuthParams(allParams, username, roles, brand, false);
 
-      sails.log.verbose(`Searching fuzzy using: ${baseUrl}?${params.toString()}`);
+      const params = new URLSearchParams();
+      for (const param of allParams) {
+        params.append(param.key, param.value);
+      }
+
+      const url = `${baseUrl}?${params.toString()}`;
+      sails.log.verbose(`Searching fuzzy using: ${url}`);
       const response = await axios.get(baseUrl, { params }).then((response: { data: SolrResponse }) => response.data);
       const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
         records: []
@@ -563,7 +550,7 @@ export namespace Services {
       return luceneEscapeQuery(String(str ?? ''));
     }
 
-    protected addAuthParams(params: URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
+    protected addAuthParams(allParams: Array<{ key: string; value: string }>, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
 
       let roleString = ""
       let matched = false;
@@ -579,17 +566,14 @@ export namespace Services {
           matched = true;
         }
       }
-      params.append('fq', "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")");
+      const fqValue = "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
+      allParams.push({ key: 'fq', value: fqValue });
     }
 
-    /**
-     * Retained for callers that still build Solr URLs as strings. New code should use
-     * {@link addAuthParams} so encoding is handled by URLSearchParams.
-     */
     protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-      const params = new URLSearchParams();
-      this.addAuthParams(params, username, roles, brand, editAccessOnly);
-      return url + '&fq=' + params.get('fq');
+      const allParams: Array<{ key: string; value: string }> = [];
+      this.addAuthParams(allParams, username, roles, brand, editAccessOnly);
+      return url + allParams.map(param => `&${param.key}=${param.value}`).join('');
     }
 
     public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
