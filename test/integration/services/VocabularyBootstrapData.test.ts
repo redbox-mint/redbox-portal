@@ -29,9 +29,14 @@ describe('Vocabulary bootstrap data integration', function () {
     this.timeout(60000);
     await cleanupBootstrapVocabularies();
 
-    originalBootstrapPath = sails.config.vocab.bootstrapDataPath;
+    // The service reads sails.config.bootstrap.bootstrapDataPath and appends 'vocabularies'
+    // itself; the previous sails.config.vocab.bootstrapDataPath override was never consulted.
+    originalBootstrapPath = sails.config.bootstrap?.bootstrapDataPath;
     originalBootstrapRvaImports = sails.config.vocab.bootstrapRvaImports;
-    sails.config.vocab.bootstrapDataPath = path.resolve(process.cwd(), 'bootstrap-data/vocabularies');
+    sails.config.bootstrap = {
+      ...(sails.config.bootstrap ?? {}),
+      bootstrapDataPath: path.resolve(process.cwd(), 'bootstrap-data')
+    };
     sails.config.vocab.bootstrapRvaImports = true;
 
     importStub = sinon.stub(sails.services.rvaimportservice, 'importRvaVocabulary').callsFake(
@@ -55,7 +60,7 @@ describe('Vocabulary bootstrap data integration', function () {
 
   after(async function () {
     importStub.restore();
-    sails.config.vocab.bootstrapDataPath = originalBootstrapPath;
+    sails.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
     sails.config.vocab.bootstrapRvaImports = originalBootstrapRvaImports;
     await cleanupBootstrapVocabularies();
   });

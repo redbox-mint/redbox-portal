@@ -140,6 +140,59 @@ describe('VocabularyService', () => {
     expect(result.data).to.have.length(1);
   });
 
+  describe('assertMutableVocabulary', () => {
+    let figshareSourceFindOne: sinon.SinonStub;
+
+    beforeEach(() => {
+      figshareSourceFindOne = sinon.stub().resolves(null);
+      Reflect.set(globalThis, 'FigshareVocabularySource', { findOne: figshareSourceFindOne });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(globalThis, 'FigshareVocabularySource');
+    });
+
+    it('does nothing for a blank vocabulary id', async () => {
+      await service.assertMutableVocabulary('   ');
+      expect((g.Vocabulary.findOne as sinon.SinonStub).called).to.be.false;
+    });
+
+    it('allows a local vocabulary', async () => {
+      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v1', name: 'V1', source: 'local' }) as unknown as VocabularyModelStub['findOne'];
+      await service.assertMutableVocabulary('v1');
+      expect(figshareSourceFindOne.called).to.be.false;
+    });
+
+    it('allows a vocabulary that no longer exists', async () => {
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      await service.assertMutableVocabulary('missing');
+      expect(figshareSourceFindOne.called).to.be.false;
+    });
+
+    it('rejects an external vocabulary that is still owned by a figshare source', async () => {
+      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-mirror', name: 'ANZSRC mirror', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      figshareSourceFindOne.resolves({ id: 'src-1', vocabulary: 'v-mirror' });
+
+      let raised: Error | undefined;
+      try {
+        await service.assertMutableVocabulary('  v-mirror  ');
+      } catch (error) {
+        raised = error as Error;
+      }
+
+      expect(figshareSourceFindOne.firstCall.args[0]).to.deep.equal({ vocabulary: 'v-mirror' });
+      expect(raised).to.be.instanceOf(VocabularyServiceModule.ExternallyManagedVocabularyError);
+      expect((raised as { code?: string } | undefined)?.code).to.equal('externally-managed-vocabulary');
+      expect(raised?.message).to.match(/ANZSRC mirror/);
+    });
+
+    it('allows an external vocabulary whose figshare source has been removed', async () => {
+      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-orphan', name: 'Orphan', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      await service.assertMutableVocabulary('v-orphan');
+      expect(figshareSourceFindOne.calledOnce).to.be.true;
+    });
+  });
+
   it('normalizes entries', () => {
     const normalized = service.normalizeEntry({
       id: 'e-normalize',
