@@ -46,4 +46,77 @@ describe('FormServerSyncService', () => {
     expect(result.patched).toEqual(['serverControl']);
     expect(result.skipped).toEqual([{ name: 'localControl', reason: 'local-edit' }]);
   });
+
+  it('reports controls that cannot be synchronized', async () => {
+    const unchanged = new FormControl('same');
+    const excluded = new FormControl('old');
+    const failed = {
+      dirty: false,
+      pristine: true,
+      markAsPristine: () => undefined,
+      setCustomValue: () => Promise.reject(new Error('cannot set')),
+    } as any;
+    const form = new FormGroup({ unchanged, excluded });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = {
+      unchanged,
+      excluded,
+      failed,
+      missingFromServer: new FormControl('local'),
+      noComponent: new FormControl('old'),
+    };
+    formDefMap.completeGroupMap = {
+      excluded: {} as any,
+    };
+
+    const formService = TestBed.inject(FormService);
+    spyOn(formService, 'shouldIncludeInFormControlMap').and.callFake(
+      component => component !== formDefMap.completeGroupMap?.['excluded']
+    );
+
+    const result = await service.applyServerMetadata(
+      {
+        unchanged: 'same',
+        missingFromServer: 'sent',
+        noComponent: 'sent',
+        excluded: 'sent',
+        failed: 'old',
+      },
+      {
+        unchanged: 'same',
+        noComponent: 'server',
+        excluded: 'server',
+        failed: 'new',
+      },
+      formDefMap,
+      form,
+      'always'
+    );
+
+    expect(result.patched).toEqual(['noComponent']);
+    expect(result.skipped).toEqual([
+      { name: 'unchanged', reason: 'unchanged' },
+      { name: 'missingFromServer', reason: 'not-in-server' },
+      { name: 'excluded', reason: 'excluded' },
+      { name: 'failed', reason: 'set-failed' },
+    ]);
+  });
+
+  it('does nothing when server synchronization is disabled', async () => {
+    const control = new FormControl('local');
+    const form = new FormGroup({ control });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const result = await service.applyServerMetadata(
+      { control: 'local' },
+      { control: 'server' },
+      formDefMap,
+      form,
+      'never'
+    );
+
+    expect(control.value).toBe('local');
+    expect(result).toEqual({ patched: [], skipped: [] });
+  });
 });

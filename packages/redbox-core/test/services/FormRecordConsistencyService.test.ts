@@ -141,6 +141,31 @@ describe('FormRecordConsistencyService', function () {
     });
   });
 
+  describe('projectMetadataClientFormConfig', function () {
+    it('projects only metadata permitted by the client form', async function () {
+      sinon.stub(FormRecordConsistencyService, 'mergeRecordClientFormConfig').resolves({
+        redboxOid: '',
+        metadata: { title: 'visible' },
+      });
+
+      const result = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+        { title: 'visible', serverOnly: 'hidden' },
+        { componentDefinitions: [] },
+        'edit',
+        { shared: {} }
+      );
+
+      expect(result).to.deep.equal({ title: 'visible' });
+      expect((FormRecordConsistencyService.mergeRecordClientFormConfig as sinon.SinonStub).calledWith(
+        { redboxOid: '', metadata: {} },
+        { redboxOid: '', metadata: { title: 'visible', serverOnly: 'hidden' } },
+        { componentDefinitions: [] },
+        'edit',
+        { shared: {} }
+      )).to.be.true;
+    });
+  });
+
   describe('compareRecords', function () {
     it('should detect changes in simple objects', function () {
       const original = { a: 1 };
