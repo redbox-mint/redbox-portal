@@ -192,8 +192,128 @@ describe('SolrSearchService', function() {
       const brand = { id: 'brand-1', name: 'default' };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
-      
+
       expect(result).to.include('authorization_edit:testuser');
+    });
+  });
+
+  describe('addAuthParams', function() {
+    it('should append the authorization filter as an fq param', function() {
+      const params = new URLSearchParams();
+      const roles = [{ name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'testuser', roles, brand);
+
+      const authFilters = params.getAll('fq');
+      expect(authFilters).to.have.lengthOf(1);
+      expect(authFilters[0]).to.include('authorization_edit:testuser');
+      expect(authFilters[0]).to.include('authorization_viewRoles:(Admin)');
+    });
+
+    it('should not overwrite filters already collected', function() {
+      const params = new URLSearchParams();
+      params.append('fq', 'existing:filter');
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'testuser', [], brand);
+
+      expect(params.getAll('fq')).to.have.lengthOf(2);
+      expect(params.getAll('fq')[0]).to.equal('existing:filter');
+    });
+  });
+
+  describe('parseQueryFragment', function() {
+    it('should treat a bare expression as the q param', function() {
+      const params = (SolrSearchService as any).parseQueryFragment('metaMetadata_type:rdmp&rows=10');
+
+      expect(params.get('q')).to.equal('metaMetadata_type:rdmp');
+      expect(params.get('rows')).to.equal('10');
+    });
+
+    it('should strip a redundant q= prefix', function() {
+      const params = (SolrSearchService as any).parseQueryFragment('q=*:*&wt=json');
+
+      expect(params.get('q')).to.equal('*:*');
+      expect(params.get('wt')).to.equal('json');
+    });
+
+    it('should preserve repeated filter params', function() {
+      const params = (SolrSearchService as any).parseQueryFragment('*:*&fq=title:test*&fq=userEmail:a@b.com');
+
+      expect(params.getAll('fq')).to.deep.equal(['title:test*', 'userEmail:a@b.com']);
+    });
+
+    it('should keep values that contain an equals sign intact', function() {
+      const params = (SolrSearchService as any).parseQueryFragment('*:*&fq=note:a=b');
+
+      expect(params.get('fq')).to.equal('note:a=b');
+    });
+  });
+
+  describe('searchFuzzy', function() {
+    const brand = { id: 'brand-1', name: 'default' };
+    const user = { username: 'testuser' };
+
+    function stubAxiosGet() {
+      return sinon.stub(require('axios'), 'get').resolves({
+        data: { response: { numFound: 0, docs: [] } }
+      });
+    }
+
+    it('should send every filter and facet field to solr', async function() {
+      const axiosGet = stubAxiosGet();
+
+      await SolrSearchService.searchFuzzy(
+        'default', 'rdmp', '', 'search terms',
+        [{ name: 'title', value: 'first' }, { name: 'owner', value: 'second' }],
+        [{ name: 'workflow_stage', value: '' }, { name: 'metaMetadata_type', value: 'rdmp' }],
+        brand, user, [], ['title'], 0, 10
+      );
+
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params).to.be.instanceOf(URLSearchParams);
+      expect(params.getAll('facet.field')).to.deep.equal(['workflow_stage', 'metaMetadata_type']);
+      // Two exact searches, one facet value and the authorization filter.
+      expect(params.getAll('fq')).to.have.lengthOf(4);
+      expect(params.getAll('fq')[0]).to.equal('title:first');
+      expect(params.getAll('fq')[1]).to.equal('owner:second');
+      expect(params.getAll('fq')[3]).to.include('authorization_edit:testuser');
+    });
+
+    it('should build the q param from brand, type and search query', async function() {
+      const axiosGet = stubAxiosGet();
+
+      await SolrSearchService.searchFuzzy(
+        'default', 'rdmp', 'draft', 'search terms', [], [], brand, user, [], ['title'], 0, 10
+      );
+
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params.get('q')).to.equal(
+        'metaMetadata_brandId:brand-1 AND metaMetadata_type:rdmp AND workflow_stage:draft AND full_text:search terms'
+      );
+    });
+  });
+
+  describe('searchAdvanced', function() {
+    it('should pass the parsed query fragment to solr', async function() {
+      const axiosGet = sinon.stub(require('axios'), 'get').resolves({ data: {} });
+
+      await SolrSearchService.searchAdvanced('default', '', 'metaMetadata_type:rdmp&fq=title:a&fq=title:b');
+
+      expect(axiosGet.firstCall.args[0]).to.equal('http://localhost:8983/solr/redbox/select');
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params.get('q')).to.equal('metaMetadata_type:rdmp');
+      expect(params.getAll('fq')).to.deep.equal(['title:a', 'title:b']);
+    });
+
+    it('should accept URLSearchParams directly', async function() {
+      const axiosGet = sinon.stub(require('axios'), 'get').resolves({ data: {} });
+      const query = new URLSearchParams([['q', '*:*'], ['fq', 'title:a']]);
+
+      await SolrSearchService.searchAdvanced('default', '', query);
+
+      expect(axiosGet.firstCall.args[1].params).to.equal(query);
     });
   });
 

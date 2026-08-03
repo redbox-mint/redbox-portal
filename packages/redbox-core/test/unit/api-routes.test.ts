@@ -678,7 +678,7 @@ describe('API routes contract layer', async () => {
     expect(listUsersItemSchema.properties).to.have.property('username');
     expect(listUsersItemSchema.properties).to.have.property('roles');
 
-    const searchIndexRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/search/index']?.get);
+    const searchIndexRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/search/index']?.post);
     const searchIndexSchema = asOpenApiSchema(searchIndexRoute.responses?.['200']?.content?.['application/json']?.schema);
     expect(searchIndexSchema.properties).to.have.property('oid');
 

@@ -262,27 +262,47 @@ export namespace Services {
       return response;
     }
 
-    private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): string {
-      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
-      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+    private buildSolrParams(brand: BrandingModel, searchString: string, queryConfig: VocabQueryConfig, start: number, rows: number, format: string = 'json', user: FormVocabularyUserContext): URLSearchParams {
+      const query = new URLSearchParams();
+      const baseQuery = String(queryConfig.searchQuery.baseQuery ?? '');
+      const baseParts = baseQuery.split('&');
+      const firstPart = baseParts.shift() ?? '';
+      if (firstPart.startsWith('q=')) {
+        query.set('q', firstPart.slice(2));
+      } else if (firstPart) {
+        query.set('q', firstPart);
+      }
+      for (const part of baseParts) {
+        const separator = part.indexOf('=');
+        if (separator > 0) {
+          query.append(part.slice(0, separator), part.slice(separator + 1));
+        }
+      }
+      query.set('sort', 'date_object_modified desc');
+      query.set('version', '2.2');
+      query.set('start', String(start));
+      query.set('rows', String(rows));
+      query.append('fq', `metaMetadata_brandId:${brand.id}`);
+      query.set('wt', format);
 
       if (queryConfig.queryField.type == 'text') {
         const value = searchString;
         if (!_.isEmpty(value)) {
           const searchProperty = queryConfig.queryField.property;
-          query = query + '&fq=' + searchProperty + ':';
+          let valueWithWildcard = value;
           if (value.indexOf('*') != -1) {
-            query = query + value.replaceAll('*', '') + '*';
+            valueWithWildcard = value.replaceAll('*', '') + '*';
           } else {
-            query = query + value + '*';
+            valueWithWildcard = value + '*';
           }
+          query.append('fq', `${searchProperty}:${valueWithWildcard}`);
         }
       }
 
       if (queryConfig.userQueryFields != null) {
         for (const userQueryField of queryConfig.userQueryFields) {
           const searchProperty = userQueryField.property;
-          query = query + '&fq=' + searchProperty + ':' + _.get(user, userQueryField.userValueProperty, null);
+          query.append('fq', `${searchProperty}:${_.get(user, userQueryField.userValueProperty, null)}`);
         }
       }
 

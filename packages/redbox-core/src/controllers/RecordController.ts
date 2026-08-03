@@ -1531,40 +1531,62 @@ export namespace Controllers {
       }
     }
 
-    public getPermissions(req: Sails.Req, res: Sails.Res) {
-      return this.getPermissionsInternal(req, res).then(response => {
-        return this.sendResp(req, res, { data: response });
-      }).catch(error => {
-        const errorMessage = this.getErrorMessage(error);
-        if (errorMessage === 'Record oid is required.') {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: errorMessage }] });
+    public async getPermissions(req: Sails.Req, res: Sails.Res) {
+      const brand: BrandingModel = this.getReqBrand(req);
+      const oid = String(req.param('oid') ?? '').trim();
+      if (_.isEmpty(oid)) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+      }
+      try {
+        const record = await this.recordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
-
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        if (!hasViewAccess) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ code: 'error-403-heading' }],
+          });
+        }
+        const response = await this.recordsService.getResolvedPermissionsSummary(oid);
+        return this.sendResp(req, res, { data: response });
+      } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to load record permissions.' }],
         });
-      });
+      }
     }
 
 
-    public getAttachments(req: Sails.Req, res: Sails.Res) {
+    public async getAttachments(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose('getting attachments....');
+      const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
-      from(this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined })).subscribe({
-        next: (attachments: unknown[]) => {
-          return this.sendResp(req, res, { data: attachments });
-        },
-        error: (error: unknown) => {
-          sails.log.error('Failed to get attachments', error);
+      try {
+        const record = await this.recordsService.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
+        }
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        if (!hasViewAccess) {
           return this.sendResp(req, res, {
-            status: 500,
-            errors: [this.asError(error)],
-            displayErrors: [{ detail: 'Failed to load attachments.' }],
+            status: 403,
+            displayErrors: [{ code: 'error-403-heading' }],
           });
-        },
-      });
+        }
+        const attachments = await this.recordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined });
+        return this.sendResp(req, res, { data: attachments });
+      } catch (error) {
+        sails.log.error('Failed to get attachments', error);
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load attachments.' }],
+        });
+      }
     }
 
     public async getDataStream(req: Sails.Req, res: Sails.Res) {

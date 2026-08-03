@@ -19,6 +19,7 @@ import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
 import * as FigshareServiceModule from './FigshareService';
+import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
 import * as FormVocabularyServiceModule from './FormVocabularyService';
 import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
 import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateService';
@@ -71,6 +72,7 @@ export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
 export { FigshareServiceModule as FigshareService };
+export { FigshareVocabularyServiceModule as FigshareVocabularyService };
 export { FormVocabularyServiceModule as FormVocabularyService };
 export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
 export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
@@ -183,6 +185,11 @@ export const ServiceExports = {
   },
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
+  },
+  get FigshareVocabularyService() {
+    return getOrCreateService('FigshareVocabularyService', () =>
+      new FigshareVocabularyServiceModule.Services.FigshareVocabularyService().exports()
+    );
   },
   get FormVocabularyService() {
     return getOrCreateService('FormVocabularyService', () =>
