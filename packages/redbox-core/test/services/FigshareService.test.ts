@@ -56,7 +56,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     record: {
       ...(config.record as Record<string, unknown>),
       articleIdPath: 'metadata.figshare_article_id',
-      articleUrlPaths: ['metadata.figshare_article_location'],
       dataLocationsPath: 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
@@ -86,13 +85,12 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       description: { kind: 'path', path: 'metadata.description' },
       keywords: { kind: 'path', path: 'metadata.keywords' },
       license: { source: { kind: 'path', path: 'metadata.license' }, matchBy: 'urlContains', required: true },
-      categories: { source: { kind: 'path', path: 'metadata.forCodes' }, mappingStrategy: 'for2020Mapping' },
+      categories: { source: { kind: 'path', path: 'metadata.forCodes' } },
       customFields: [],
       ...(overrides.metadata as Record<string, unknown> | undefined),
     },
     categories: {
       ...(config.categories as Record<string, unknown>),
-      strategy: 'for2020Mapping',
       mappingTable: [{ sourceCode: '0101', figshareCategoryId: 10 }],
       allowUnmapped: true,
       ...(overrides.categories as Record<string, unknown> | undefined),
@@ -101,14 +99,12 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       ...(config.assets as Record<string, unknown>),
       enableHostedFiles: true,
       enableLinkFiles: true,
-      dedupeStrategy: 'sourceId',
       ...(overrides.assets as Record<string, unknown> | undefined),
       // Deep-merge staging last so a partial `assets` override (or a partial
       // `assets.staging` override) cannot erase defaults like disk/keyPrefix.
       staging: {
         ...((config.assets as Record<string, unknown>).staging as Record<string, unknown>),
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...((overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined),
       },
     },
@@ -127,7 +123,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     },
     workflow: {
       ...(config.workflow as Record<string, unknown>),
-      transitionRules: [],
       ...(overrides.workflow as Record<string, unknown> | undefined),
       // Deep-merge transitionJob last so a partial `workflow` override (or a partial
       // `workflow.transitionJob` override) cannot erase the other transitionJob settings.
@@ -231,9 +226,7 @@ function buildLiveAssetConfig(overrides: Record<string, unknown> = {}) {
       staging: {
         disk: 'figshare-staging',
         keyPrefix: 'figshare/',
-        tempDir: '',
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...(overrides as { staging?: Record<string, unknown> }).staging,
       },
     },
@@ -674,7 +667,6 @@ describe('FigshareService', function () {
       metadata: {
         categories: {
           source: { kind: 'path', path: 'metadata.anzsrcFor', defaultValue: [] },
-          mappingStrategy: 'for2020Mapping',
         },
       },
       categories: {
@@ -729,6 +721,252 @@ describe('FigshareService', function () {
     const payload = await buildMetadataPayload(config, record);
 
     expect(payload.categories).to.deep.equal([25508, 25509]);
+  });
+
+  /**
+   * A `crosswalk` binding selects crosswalk resolution. Resolution itself belongs to
+   * FigshareVocabularyService and is stubbed here — what these tests protect is the
+   * threading of brand and codes into it, and the fail-closed handling of its result.
+   */
+  describe('crosswalk category bindings', function () {
+    let resolveCrosswalkValues: sinon.SinonStub;
+
+    const crosswalkBinding = {
+      kind: 'crosswalk',
+      source: { kind: 'path', path: 'metadata.forCodes', defaultValue: [] },
+      sourceVocabularyId: 'vocab-1',
+      crosswalkId: 'crosswalk-1',
+      outputs: 'categoryId',
+    };
+
+    beforeEach(function () {
+      resolveCrosswalkValues = sinon.stub().resolves({
+        values: [25508, 25509],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      (global as any).FigshareVocabularyService = { resolveCrosswalkValues };
+    });
+
+    afterEach(function () {
+      delete (global as any).FigshareVocabularyService;
+    });
+
+    function buildRecord(metadata: Record<string, unknown> = {}): RecordModel {
+      return {
+        redboxOid: 'oid-1',
+        harvestId: '',
+        metaMetadata: {
+          brandId: 'default',
+          createdBy: 'admin',
+          type: 'dataPublication',
+          searchCore: 'default',
+          form: 'dataPublication-1.0-review',
+          attachmentFields: [],
+        },
+        metadata: {
+          title: 'Dataset title',
+          description: 'Dataset description',
+          keywords: ['one'],
+          forCodes: ['0101', '0102'],
+          license: 'CC-BY',
+          ...metadata,
+        },
+        workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+        authorization: {
+          view: [],
+          edit: [],
+          editRoles: [],
+          viewRoles: [],
+          editPending: [],
+          viewPending: [],
+          stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+        },
+        dateCreated: '',
+        lastSaveDate: '',
+        id: '',
+      };
+    }
+
+    it('resolves categories through the crosswalk with the record brand threaded through', async function () {
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.categories).to.deep.equal([25508, 25509]);
+      // 'default' is a brand *name*; BrandingService maps it to its id.
+      sinon.assert.calledOnceWithExactly(resolveCrosswalkValues, {
+        brandId: 'default-id',
+        crosswalkId: 'crosswalk-1',
+        sourceVocabularyId: 'vocab-1',
+        codes: ['0101', '0102'],
+        outputs: 'categoryId',
+      });
+    });
+
+    it('rejects a categories binding that does not output category ids', async function () {
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: { ...crosswalkBinding, outputs: 'label' } } },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(/must use the 'categoryId' output/);
+      }
+      sinon.assert.notCalled(resolveCrosswalkValues);
+    });
+
+    /** Fail closed: an unusable crosswalk must never fall back to the mapping table. */
+    it('fails closed when crosswalk resolution throws', async function () {
+      resolveCrosswalkValues.rejects(new Error('The configured Figshare crosswalk has no approved revision'));
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { mappingTable: [{ sourceCode: '0101', figshareCategoryId: 10 }], allowUnmapped: true },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(
+          /Figshare crosswalk category resolution failed: .*no approved revision/
+        );
+      }
+    });
+
+    it('rejects historical crosswalk targets when unmapped categories are not allowed', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [25508],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [{ code: '0102', categoryId: 99, sourceId: 'src-99' }],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: false },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(
+          /Figshare crosswalk maps to categories removed upstream: 0102 → src-99 \(99\)/
+        );
+      }
+    });
+
+    it('warns but keeps publishing historical targets when unmapped categories are allowed', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [25508],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [{ code: '0102', categoryId: 99, sourceId: 'src-99' }],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: true },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.categories).to.deep.equal([25508]);
+      sinon.assert.calledWithMatch(
+        (global as any).sails.log.warn,
+        /omitted historical category targets: 0102 → src-99/
+      );
+    });
+
+    it('reports the shared unmapped-categories error when the crosswalk resolves nothing', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: ['0101', '0102'],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: false },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.equal('No Figshare categories mapped for selected record categories');
+      }
+    });
+
+    /**
+     * The headline new capability: a crosswalk is no longer confined to the categories
+     * payload, and `label` output makes it useful for free-text fields.
+     */
+    it('feeds keywords from a label-output crosswalk', async function () {
+      resolveCrosswalkValues.resolves({
+        values: ['Agricultural hydrology', 'Agronomy'],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: {
+          keywords: { ...crosswalkBinding, outputs: 'label' },
+          categories: { source: { kind: 'path', path: 'metadata.nothing', defaultValue: [] } },
+        },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.keywords).to.deep.equal(['Agricultural hydrology', 'Agronomy']);
+      expect(resolveCrosswalkValues.firstCall.args[0].outputs).to.equal('label');
+    });
+
+    /**
+     * Author lookup rules evaluate against a contributor object, which carries no
+     * brand — proving the binding context rather than the target supplies it.
+     */
+    it('resolves a crosswalk under an author lookup rule using the record brand', async function () {
+      resolveCrosswalkValues.resolves({
+        values: ['p.hayman@cqu.edu.au'],
+        normalizedCodes: ['staff-1'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        authors: {
+          lookup: [
+            {
+              matchBy: 'email',
+              value: { ...crosswalkBinding, source: { kind: 'path', path: 'staffId' }, outputs: 'sourceId' },
+            },
+          ],
+        },
+        metadata: {
+          categories: { source: { kind: 'path', path: 'metadata.nothing', defaultValue: [] } },
+        },
+      }) as unknown as FigsharePublishingConfigData;
+      const record = buildRecord({
+        contributor_ci: { name: 'Patricia Hayman', email: 'p.hayman@cqu.edu.au', staffId: 'staff-1' },
+      });
+      const client = {
+        listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
+        searchInstitutionAccounts: async () => [],
+      } as unknown as FigshareClient;
+
+      await buildMetadataPayload(config, record, client);
+
+      // The contributor supplied the code; only the context could supply the brand.
+      sinon.assert.calledWithMatch(resolveCrosswalkValues, {
+        brandId: 'default-id',
+        codes: ['staff-1'],
+        outputs: 'sourceId',
+      });
+    });
   });
 
   it('maps multiple related data publications into Figshare related materials', async function () {
@@ -1462,8 +1700,7 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.figshare_article_id',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
@@ -1549,16 +1786,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1592,16 +1827,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1637,16 +1870,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
+                  dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-            transitionRules: [],
-            transitionJob: {
+                  transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',

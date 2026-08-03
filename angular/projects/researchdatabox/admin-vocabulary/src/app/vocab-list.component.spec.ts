@@ -61,4 +61,30 @@ describe('VocabListComponent', () => {
 
     expect(offset).toBe(25);
   });
+
+  it('treats externally mirrored vocabularies as read only', () => {
+    expect(component.isReadOnly({ source: 'external' } as any)).toBe(true);
+    expect(component.isReadOnly({ source: 'local' } as any)).toBe(false);
+    expect(component.isReadOnly({ source: 'rva' } as any)).toBe(false);
+  });
+
+  it('disables delete and offers view instead of edit for a mirrored vocabulary', () => {
+    component.vocabularies = [
+      { id: 'v1', name: 'Local', slug: 'local', type: 'flat', source: 'local' },
+      { id: 'v2', name: 'Mirror', slug: 'mirror', type: 'tree', source: 'external' }
+    ] as any;
+    component.totalCount = 2;
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    const localButtons = rows[0].querySelectorAll('td:last-child button');
+    const mirrorButtons = rows[1].querySelectorAll('td:last-child button');
+
+    expect(localButtons[0].textContent.trim()).toBe('admin-vocabulary-edit');
+    expect(localButtons[1].disabled).toBe(false);
+
+    expect(mirrorButtons[0].textContent.trim()).toBe('admin-vocabulary-view');
+    expect(mirrorButtons[1].disabled).toBe(true);
+    expect(rows[1].textContent).toContain('admin-vocabulary-read-only');
+  });
 });

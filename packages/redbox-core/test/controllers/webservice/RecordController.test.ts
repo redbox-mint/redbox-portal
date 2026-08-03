@@ -71,8 +71,12 @@ describe('Webservice RecordController body source', () => {
     let originalHarvestRunService: any;
     let recordsService: {
         getMeta: sinon.SinonStub;
+        getDeletedRecordMeta: sinon.SinonStub;
         updateMeta: sinon.SinonStub;
         create: sinon.SinonStub;
+        getDeletedRecords: sinon.SinonStub;
+        restoreRecord: sinon.SinonStub;
+        destroyDeletedRecord: sinon.SinonStub;
     };
 
     before(async () => {
@@ -130,13 +134,69 @@ describe('Webservice RecordController body source', () => {
         controller = new Controllers.Record();
         recordsService = {
             getMeta: sinon.stub(),
+            getDeletedRecordMeta: sinon.stub(),
             updateMeta: sinon.stub(),
             create: sinon.stub(),
+            getDeletedRecords: sinon.stub(),
+            restoreRecord: sinon.stub(),
+            destroyDeletedRecord: sinon.stub(),
         };
         controller.RecordsService = recordsService as never;
         controller.DatastreamService = {
             addDatastreams: sinon.stub(),
         } as never;
+    });
+
+    it('restores and permanently destroys deleted records in the active brand', async () => {
+        const deletedRecordResponse = {
+            isSuccessful: () => true,
+            items: [{ redboxOid: 'record-1' }],
+        };
+        const mutationResponse = {
+            isSuccessful: () => true,
+        };
+        recordsService.getDeletedRecordMeta.resolves({ redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } });
+        recordsService.restoreRecord.resolves(mutationResponse);
+        recordsService.destroyDeletedRecord.resolves(mutationResponse);
+        const req = makeThrowingRequest({
+            params: { oid: 'record-1' },
+            query: {},
+            body: {},
+            files: {},
+        }, {
+            user: { username: 'tester', roles: [{ branding: 'brand-1' }] },
+        });
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.restoreRecord(req, {} as Sails.Res);
+        await controller.destroyDeletedRecord(req, {} as Sails.Res);
+
+        expect(recordsService.getDeletedRecordMeta.callCount).to.equal(2);
+        expect(recordsService.getDeletedRecordMeta.firstCall.args).to.deep.equal(['record-1']);
+        expect(recordsService.restoreRecord.calledWith('record-1')).to.be.true;
+        expect(recordsService.destroyDeletedRecord.calledWith('record-1')).to.be.true;
+        expect(sendRespStub.callCount).to.equal(2);
+    });
+
+    it('does not mutate deleted records outside the active brand', async () => {
+        recordsService.getDeletedRecords.resolves({
+            isSuccessful: () => true,
+            items: [],
+        });
+        const req = makeThrowingRequest({
+            params: { oid: 'other-record' },
+            query: {},
+            body: {},
+            files: {},
+        }, {
+            user: { username: 'tester', roles: [] },
+        });
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.restoreRecord(req, {} as Sails.Res);
+
+        expect(recordsService.restoreRecord.called).to.be.false;
+        expect(sendRespStub.firstCall.args[2].status).to.equal(404);
     });
 
     afterEach(() => {
@@ -410,6 +470,92 @@ describe('Webservice RecordController body source', () => {
         });
     });
 
+    describe('deleted record handlers', () => {
+        it('does not restore an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.restoreRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.restoreRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
+
+        it('does not permanently delete an active record when no deleted record exists', async () => {
+            recordsService.getMeta.resolves({
+                metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+            });
+            recordsService.getDeletedRecordMeta.resolves(null);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.destroyDeletedRecord(req, {} as Sails.Res);
+
+            expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+            expect(recordsService.getMeta.called).to.be.false;
+            expect(recordsService.destroyDeletedRecord.called).to.be.false;
+            expect(sendRespStub.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        });
+        for (const method of ['restoreRecord', 'destroyDeletedRecord'] as const) {
+            it(`rejects ${method} when the deleted record belongs to another brand`, async () => {
+                recordsService.getDeletedRecordMeta.resolves({
+                    redboxOid: 'record-1',
+                    metaMetadata: { brandId: 'brand-2' },
+                });
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: {},
+                    body: {},
+                    files: {},
+                });
+                const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+                expect(recordsService[method].called).to.be.false;
+            });
+        }
+
+        it('propagates deleted-record storage failures', async () => {
+            recordsService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: {},
+                files: {},
+            });
+
+            let caught: unknown;
+            try {
+                await controller.restoreRecord(req, {} as Sails.Res);
+            } catch (error) {
+                caught = error;
+            }
+
+            expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
+            expect(recordsService.restoreRecord.called).to.be.false;
+        });
+    });
+
     describe('harvest handlers', () => {
         it('uses req.apiRequest body in harvest', async () => {
             const body = {
@@ -592,6 +738,51 @@ describe('Webservice RecordController getMeta', () => {
     assert.equal((global as any).sails.services.recordsservice.getRelatedRecords.called, false);
     assert.equal(sendResp.calledOnce, true);
     assert.deepEqual(sendResp.firstCall.args[2], { data: record.metadata });
+  });
+
+  it('returns record permissions when view access is allowed', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const record = { authorization: { view: ['tester'] } };
+    (global as any).sails.services.recordsservice.getMeta.resolves(record);
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(true);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], { data: record.authorization });
+  });
+
+  it('rejects record permission access when view access is denied', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves({ authorization: {} });
+    (global as any).sails.services.recordsservice.hasViewAccess.returns(false);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 403);
+  });
+
+  it('returns not found when record permission metadata is missing', async () => {
+    const req = {
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    (global as any).sails.services.recordsservice.getMeta.resolves(null);
+
+    await controller.getPermissions(req, {} as Sails.Res);
+
+    assert.equal(sendResp.firstCall.args[2].status, 404);
   });
 
   it('returns filtered relationships when requested', async () => {

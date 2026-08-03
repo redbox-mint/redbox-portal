@@ -96,6 +96,45 @@ export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedF
   return null;
 }
 
+/**
+ * Resolve the brand's Figshare connection for vocabulary administration.
+ *
+ * Unlike {@link resolveFigsharePublishingConfig} this deliberately ignores the
+ * `enabled` flag: catalogue discovery and crosswalk maintenance are useful before
+ * record publishing is switched on. The token is resolved server-side and may be
+ * empty, because the public catalogue is anonymous; callers requiring the account
+ * catalogue must check for a token themselves.
+ */
+export function resolveFigshareVocabularyConfig(brandName: string): ResolvedFigsharePublishingConfigData | null {
+  const appConfigService = ServiceExports.AppConfigService as { getAppConfigurationForBrand?: (name: string) => unknown } | undefined;
+  const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName)
+    ?? appConfigService?.getAppConfigurationForBrand?.('default');
+  const brandConfigRecord = brandConfig != null && typeof brandConfig === 'object' ? brandConfig as Record<string, unknown> : undefined;
+  const figsharePublishing = brandConfigRecord?.figsharePublishing;
+  const figsharePublishingConfig = figsharePublishing != null && typeof figsharePublishing === 'object'
+    ? figsharePublishing as Partial<FigsharePublishingConfigData>
+    : undefined;
+  if (figsharePublishingConfig == null) {
+    return null;
+  }
+
+  const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as unknown as ResolvedFigsharePublishingConfigData;
+  const figshareDev = resolveFigshareDevConfig();
+  const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
+  resolvedConfig.runtime = {
+    mode: useFixtureRuntime ? 'fixture' : 'live',
+    fixtures: useFixtureRuntime ? _.cloneDeep(figshareDev.fixtures) : undefined
+  };
+  resolvedConfig.connection = resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
+    ? resolvedConfig.connection
+    : { ...new FigsharePublishing().connection };
+  const connectionToken = resolvedConfig.connection.token;
+  resolvedConfig.connection.token = typeof connectionToken === 'string' && connectionToken.trim() !== ''
+    ? resolveFigshareConnectionToken(connectionToken, { allowEmpty: true })
+    : '';
+  return resolvedConfig;
+}
+
 export function getSyncState(config: FigsharePublishingConfigData, record: RecordModel): FigshareSyncState {
   return (getRecordField(record, config.record.syncStatePath) as FigshareSyncState) ?? { status: 'idle' };
 }

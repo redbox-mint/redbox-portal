@@ -1,0 +1,189 @@
+<div class="figshare-panel">
+  @if (!crosswalk) {
+  <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+  } @else {
+  <div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
+    <div>
+      <h2 class="h5 mb-1">{{ crosswalk.name }}</h2>
+      <p class="text-muted mb-0 small">
+        {{ crosswalk.localVocabularyName }} → {{ crosswalk.figshareSourceName }}
+      </p>
+    </div>
+    <div class="text-md-end">
+      <span class="figshare-badge">{{
+        'figshare-vocab-approved-revision' | i18next: { revision: approvedRevisionLabel }
+      }}</span>
+      <span class="figshare-badge ms-1">{{
+        'figshare-vocab-working-revision' | i18next: { revision: crosswalk.workingRevision }
+      }}</span>
+    </div>
+  </div>
+
+  @if (usage.length > 0) {
+  <div class="alert alert-info py-2" role="status">
+    {{ 'figshare-vocab-used-by' | i18next: { count: usage.length } }}
+  </div>
+  }
+
+  @if (errorMessage) {
+  <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+  }
+  @if (statusMessage) {
+  <div class="alert alert-success" role="status">{{ statusMessage }}</div>
+  }
+
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-md-6">
+      <label class="form-label" for="figshare-mapping-search">{{ 'figshare-vocab-search' | i18next }}</label>
+      <input
+        id="figshare-mapping-search"
+        class="form-control"
+        type="search"
+        [value]="search.q"
+        (change)="update({ q: $any($event.target).value })"
+      />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="figshare-mapping-status">{{ 'figshare-vocab-column-status' | i18next }}</label>
+      <select
+        id="figshare-mapping-status"
+        class="form-select"
+        [value]="search.status"
+        (change)="update({ status: $any($event.target).value })"
+      >
+        <option value="">{{ 'figshare-vocab-status-all' | i18next }}</option>
+        <option value="proposed">{{ 'figshare-vocab-mapping-status-proposed' | i18next }}</option>
+        <option value="approved">{{ 'figshare-vocab-mapping-status-approved' | i18next }}</option>
+        <option value="rejected">{{ 'figshare-vocab-mapping-status-rejected' | i18next }}</option>
+      </select>
+    </div>
+    <div class="col-md-2 text-md-end">
+      <button type="button" class="btn btn-primary w-100" [disabled]="saving" (click)="openAddMapping()">
+        {{ 'figshare-vocab-add-mapping' | i18next }}
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+  <p class="text-muted" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+  } @else {
+  <table class="table table-sm align-middle">
+    <caption class="visually-hidden">{{ 'figshare-vocab-mapping-table-caption' | i18next }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ 'figshare-vocab-column-local-term' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-target' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-status' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (mapping of mappings; track mapping.id) {
+      <tr>
+        <td>
+          <span class="d-block fw-semibold">{{ mapping.localValue }}</span>
+          <small class="text-muted">{{ mapping.localLabel }}</small>
+        </td>
+        <td>
+          {{ mapping.figshareSourceId }}
+          @if (mapping.figshareCategoryNumber != null) {
+          <small class="text-muted">({{ mapping.figshareCategoryNumber }})</small>
+          }
+          @if (mapping.historical) {
+          <span class="figshare-badge figshare-badge--historical ms-1">{{
+            'figshare-vocab-historical' | i18next
+          }}</span>
+          }
+        </td>
+        <td>
+          <span class="figshare-badge">{{ 'figshare-vocab-mapping-status-' + mapping.status | i18next }}</span>
+          <span class="figshare-badge ms-1">{{ 'figshare-vocab-match-' + mapping.matchType | i18next }}</span>
+        </td>
+        <td>
+          <div class="d-flex flex-wrap gap-1">
+            <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="saving" (click)="openAddTarget(mapping)">
+              {{ 'figshare-vocab-add-target' | i18next }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving" (click)="removeMapping(mapping)">
+              {{ 'figshare-vocab-remove-target' | i18next }}
+            </button>
+          </div>
+        </td>
+      </tr>
+      } @empty {
+      <tr>
+        <td colspan="4" class="text-muted">{{ 'figshare-vocab-no-mappings' | i18next }}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+  <nav class="d-flex justify-content-between align-items-center" [attr.aria-label]="'figshare-vocab-pagination' | i18next">
+    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoPrevious"
+      (click)="changePage(search.offset - pageSize)">
+      {{ 'figshare-vocab-previous' | i18next }}
+    </button>
+    <span class="small text-muted">
+      {{ 'figshare-vocab-page-range' | i18next: { from: search.offset + 1, to: search.offset + mappings.length, total: total } }}
+    </span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoNext"
+      (click)="changePage(search.offset + pageSize)">
+      {{ 'figshare-vocab-next' | i18next }}
+    </button>
+  </nav>
+  }
+
+  <div class="mt-3 d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-secondary" (click)="closed.emit()">{{ 'figshare-vocab-back' | i18next }}</button>
+    <button type="button" class="btn btn-primary" [disabled]="!canApprove" (click)="requestApproval()">
+      {{ 'figshare-vocab-approve-revision' | i18next: { revision: crosswalk.workingRevision } }}
+    </button>
+  </div>
+
+  @if (picker) {
+  <figshare-mapping-picker
+    [crosswalkId]="crosswalk.id"
+    [sourceId]="crosswalk.figshareSourceId"
+    [revision]="crosswalk.workingRevision"
+    [saving]="saving"
+    [localTerm]="picker.localTerm"
+    (confirmed)="onPickerConfirmed($event)"
+    (cancelled)="closePicker()"
+  ></figshare-mapping-picker>
+  }
+
+  @if (confirmingApproval) {
+  <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
+    aria-labelledby="figshareApproveTitle" (keydown.escape)="cancelApproval()">
+    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title h5" id="figshareApproveTitle">{{
+            'figshare-vocab-confirm-approve-title' | i18next
+          }}</span>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">{{ 'figshare-vocab-confirm-approve-body' | i18next: { revision: crosswalk.workingRevision } }}</p>
+          @if (usage.length > 0) {
+          <ul class="mb-0">
+            @for (item of usage; track item.bindingPath) {
+            <li>{{ item.brandName }} · {{ item.configKey }} · {{ item.bindingPath }}@if (item.outputs) { ({{ item.outputs }})}</li>
+            }
+          </ul>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelApproval()" cdkFocusInitial>
+            {{ 'figshare-vocab-cancel' | i18next }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="confirmApproval()">
+            {{ 'figshare-vocab-approve' | i18next }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" aria-hidden="true"></div>
+  }
+  }
+</div>
