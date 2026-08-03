@@ -14,6 +14,7 @@ import {
   FigshareArticlePayload,
   FigshareCreateFilePayload,
   FigshareEmbargoPayload,
+  FigshareCategory,
 } from './types';
 import { logEvent, withSpan } from './observability';
 import { redactObject } from '../../utilities/RedactionUtils';
@@ -86,6 +87,8 @@ export interface FigshareClient {
   publishArticle(articleId: string, payload?: Record<string, unknown>): Promise<FigsharePublishResult>;
   listLicenses(): Promise<FigshareLicense[]>;
   searchInstitutionAccounts(payload: Record<string, unknown>): Promise<FigshareInstitutionAccount[]>;
+  listPublicCategories(): Promise<FigshareCategory[]>;
+  listAccountCategories(): Promise<FigshareCategory[]>;
 }
 
 export const FigshareClientTag = Context.GenericTag<FigshareClient>('redbox/FigshareClient');
@@ -106,6 +109,8 @@ type RequestOptions = {
   maxContentLength?: number;
   maxBodyLength?: number;
   responseMapper?: <T>(response: AxiosResponse) => T;
+  /** Public Figshare endpoints reject nothing but must not receive the account token. */
+  anonymous?: boolean;
 };
 
 type FigshareResponseHeaders = Record<string, unknown> | AxiosResponse['headers'];
@@ -136,7 +141,7 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
           url,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${config.connection.token}`,
+            ...(options.anonymous === true ? {} : { 'Authorization': `token ${config.connection.token}` }),
             ...(options.headers || {})
           },
           timeout: options.timeoutMs ?? config.connection.timeoutMs,
@@ -286,6 +291,12 @@ export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData):
     },
     async searchInstitutionAccounts(_payload: Record<string, unknown>): Promise<FigshareInstitutionAccount[]> {
       return (fixtures?.authors ?? []) as FigshareInstitutionAccount[];
+    },
+    async listPublicCategories(): Promise<FigshareCategory[]> {
+      return (fixtures?.categories ?? []) as unknown as FigshareCategory[];
+    },
+    async listAccountCategories(): Promise<FigshareCategory[]> {
+      return (fixtures?.categories ?? []) as unknown as FigshareCategory[];
     }
   };
 }
@@ -366,6 +377,21 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
         method: 'post',
         path: '/account/institution/accounts/search',
         payload,
+        timeoutMs: config.connection.operationTimeouts.metadataMs
+      });
+    },
+    listPublicCategories() {
+      return requestWithRetry<FigshareCategory[]>(config, runContext, {
+        method: 'get',
+        path: '/categories',
+        timeoutMs: config.connection.operationTimeouts.metadataMs,
+        anonymous: true
+      });
+    },
+    listAccountCategories() {
+      return requestWithRetry<FigshareCategory[]>(config, runContext, {
+        method: 'get',
+        path: '/account/categories',
         timeoutMs: config.connection.operationTimeouts.metadataMs
       });
     }

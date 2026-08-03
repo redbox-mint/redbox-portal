@@ -135,6 +135,14 @@ export class VocabListComponent implements OnChanges, OnDestroy {
     return vocabulary?.id || `vocabulary-${index}`;
   }
 
+  /**
+   * Externally managed mirrors (currently Figshare catalogues) are only writable through
+   * their own admin screen, so the generic editor offers read-only access to them.
+   */
+  isReadOnly(vocabulary: VocabularySummary): boolean {
+    return vocabulary?.source === 'external';
+  }
+
   private emitQueryChanged(): void {
     this.queryChanged.emit({
       searchTerm: this.searchTerm,

@@ -388,4 +388,37 @@ describe('AdminVocabularyComponent', () => {
     expect(component.error).toContain('has no current concept tree artefact');
     expect(component.error).not.toContain('Http failure response');
   });
+
+  describe('externally managed mirrors', () => {
+    it('opens a Figshare mirror read-only so no doomed save is offered', () => {
+      const fixture = TestBed.createComponent(AdminVocabularyComponent);
+      const component = fixture.componentInstance;
+
+      component.isEditModalOpen = true;
+      component.selectedVocabulary = { id: 'v-mirror', name: 'ANZSRC mirror', type: 'tree', source: 'external' };
+      component.draft = { ...component.selectedVocabulary, entries: [] };
+
+      expect(component.isSelectedReadOnly).toBeTrue();
+      expect(component.canSave).toBeFalse();
+      expect(component.canSyncSelected).toBeFalse();
+    });
+
+    it('keeps local and RVA vocabularies editable', () => {
+      const fixture = TestBed.createComponent(AdminVocabularyComponent);
+      const component = fixture.componentInstance;
+
+      component.isEditModalOpen = true;
+      component.selectedVocabulary = { id: 'v1', name: 'Local', type: 'flat', source: 'local' };
+      component.draft = { ...component.selectedVocabulary, entries: [] };
+
+      expect(component.isSelectedReadOnly).toBeFalse();
+      expect(component.canSave).toBeTrue();
+
+      component.selectedVocabulary = { id: 'v2', name: 'RVA', type: 'tree', source: 'rva' };
+      component.draft = { ...component.selectedVocabulary, entries: [] };
+
+      expect(component.isSelectedReadOnly).toBeFalse();
+      expect(component.canSave).toBeTrue();
+    });
+  });
 });

@@ -127,17 +127,51 @@ describe('FormVocabularyService', function () {
   });
 
   describe('buildSolrParams (private)', function () {
-    it('should build solr query string', function () {
+    it('should build solr query parameters', function () {
       const brand = { id: 'brand-1' };
       const config = mockSails.config.vocab.queries['solr-source'];
       const user = { username: 'testuser' };
 
       const query = (FormVocabularyService as any).buildSolrParams(brand, 'search text', config, 0, 10, 'json', user);
 
-      expect(query).to.include('q=*:*');
-      expect(query).to.include('metaMetadata_brandId:brand-1');
-      expect(query).to.include('text_field:search text*');
-      expect(query).to.include('user_field:testuser');
+      expect(query).to.be.instanceOf(URLSearchParams);
+      expect(query.get('q')).to.equal('*:*');
+      expect(query.getAll('fq')).to.deep.equal([
+        'metaMetadata_brandId:brand-1',
+        'text_field:search text*',
+        'user_field:testuser',
+      ]);
+    });
+
+    it('preserves ampersands in dynamic filter values', function () {
+      const brand = { id: 'brand-1' };
+      const config = mockSails.config.vocab.queries['solr-source'];
+      const user = { username: 'alice&bob' };
+
+      const query = (FormVocabularyService as any).buildSolrParams(brand, 'research & data', config, 0, 10, 'json', user);
+
+      expect(query.getAll('fq')).to.deep.equal([
+        'metaMetadata_brandId:brand-1',
+        'text_field:research & data*',
+        'user_field:alice&bob',
+      ]);
+    });
+
+    it('maps a raw base expression to the required q parameter', function () {
+      const brand = { id: 'brand-1' };
+      const config = _.cloneDeep(mockSails.config.vocab.queries['solr-source']);
+      config.searchQuery.baseQuery = 'type:vocabulary&fq=status:active';
+
+      const query = (FormVocabularyService as any).buildSolrParams(
+        brand, '', config, 0, 10, 'json', { username: 'testuser' }
+      );
+
+      expect(query.get('q')).to.equal('type:vocabulary');
+      expect(query.getAll('fq')).to.deep.equal([
+        'status:active',
+        'metaMetadata_brandId:brand-1',
+        'user_field:testuser',
+      ]);
     });
   });
 
