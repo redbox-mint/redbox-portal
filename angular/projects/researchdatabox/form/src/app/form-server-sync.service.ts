@@ -60,6 +60,11 @@ export class FormServerSyncService {
 
       try {
         await setControlValue(control, server, { emitEvent: false });
+        // Only a control whose value was accepted from the server is clean.
+        // A control skipped above may have been edited while the request was
+        // in flight and must remain dirty for a subsequent save/navigation
+        // guard to detect it.
+        control.markAsPristine();
         result.patched.push(name);
       } catch (error) {
         result.skipped.push({ name, reason: 'set-failed' });
@@ -67,7 +72,6 @@ export class FormServerSyncService {
       }
     }
 
-    form.markAsPristine();
     form.updateValueAndValidity({ emitEvent: false });
     return result;
   }
