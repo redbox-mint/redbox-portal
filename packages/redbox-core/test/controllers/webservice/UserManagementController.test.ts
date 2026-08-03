@@ -433,6 +433,36 @@ describe('Webservice UserManagementController', () => {
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
         });
 
+        it('should accept populated brand roles and reject cross-brand users', async () => {
+            (global as any).UsersService.getUserWithId.returns(of({
+                id: 'user-1',
+                username: 'target-user',
+                roles: [{ branding: { id: 'brand-1' } }]
+            }));
+            const req = makeReq({
+                session: { branding: 'default' },
+                user: { username: 'admin-user' },
+                params: { id: 'user-1' }
+            });
+            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+
+            await controller.enableUser(req, {} as Sails.Res);
+
+            expect(apiRespondStub.calledOnce).to.be.true;
+
+            (global as any).UsersService.getUserWithId.returns(of({
+                id: 'user-1',
+                username: 'target-user',
+                roles: [{ branding: 'brand-2' }]
+            }));
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.enableUser(req, {} as Sails.Res);
+
+            expect((global as any).UsersService.enableUser.calledOnce).to.be.true;
+            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+        });
+
     });
 
     describe('brand-scoped user mutations', () => {
@@ -529,7 +559,6 @@ describe('Webservice UserManagementController', () => {
 
                 expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
             });
-
             it(`allows ${method} for a user in the current brand`, async () => {
                 (global as any).UsersService.setUserKey = sinon.stub().returns(of({
                     id: 'user-1',

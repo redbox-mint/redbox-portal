@@ -74,6 +74,7 @@ describe('Webservice RecordController body source', () => {
         getDeletedRecordMeta: sinon.SinonStub;
         updateMeta: sinon.SinonStub;
         create: sinon.SinonStub;
+        getDeletedRecords: sinon.SinonStub;
         restoreRecord: sinon.SinonStub;
         destroyDeletedRecord: sinon.SinonStub;
     };
@@ -136,6 +137,7 @@ describe('Webservice RecordController body source', () => {
             getDeletedRecordMeta: sinon.stub(),
             updateMeta: sinon.stub(),
             create: sinon.stub(),
+            getDeletedRecords: sinon.stub(),
             restoreRecord: sinon.stub(),
             destroyDeletedRecord: sinon.stub(),
         };
@@ -143,6 +145,68 @@ describe('Webservice RecordController body source', () => {
         controller.DatastreamService = {
             addDatastreams: sinon.stub(),
         } as never;
+    });
+
+    it('restores and permanently destroys deleted records in the active brand', async () => {
+        const deletedRecordResponse = {
+            isSuccessful: () => true,
+            items: [{ redboxOid: 'record-1' }],
+        };
+        const mutationResponse = {
+            isSuccessful: () => true,
+        };
+        recordsService.getDeletedRecords.resolves(deletedRecordResponse);
+        recordsService.restoreRecord.resolves(mutationResponse);
+        recordsService.destroyDeletedRecord.resolves(mutationResponse);
+        const req = makeThrowingRequest({
+            params: { oid: 'record-1' },
+            query: {},
+            body: {},
+            files: {},
+        }, {
+            user: { username: 'tester', roles: [{ branding: 'brand-1' }] },
+        });
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.restoreRecord(req, {} as Sails.Res);
+        await controller.destroyDeletedRecord(req, {} as Sails.Res);
+
+        expect(recordsService.getDeletedRecords.callCount).to.equal(2);
+        expect(recordsService.getDeletedRecords.firstCall.args.slice(0, 4)).to.deep.equal([
+            undefined,
+            undefined,
+            0,
+            1,
+        ]);
+        expect(recordsService.getDeletedRecords.firstCall.args.slice(-3)).to.deep.equal([
+            ['redboxOid'],
+            'record-1',
+            'equal',
+        ]);
+        expect(recordsService.restoreRecord.calledWith('record-1')).to.be.true;
+        expect(recordsService.destroyDeletedRecord.calledWith('record-1')).to.be.true;
+        expect(sendRespStub.callCount).to.equal(2);
+    });
+
+    it('does not mutate deleted records outside the active brand', async () => {
+        recordsService.getDeletedRecords.resolves({
+            isSuccessful: () => true,
+            items: [],
+        });
+        const req = makeThrowingRequest({
+            params: { oid: 'other-record' },
+            query: {},
+            body: {},
+            files: {},
+        }, {
+            user: { username: 'tester', roles: [] },
+        });
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.restoreRecord(req, {} as Sails.Res);
+
+        expect(recordsService.restoreRecord.called).to.be.false;
+        expect(sendRespStub.firstCall.args[2].status).to.equal(404);
     });
 
     afterEach(() => {
