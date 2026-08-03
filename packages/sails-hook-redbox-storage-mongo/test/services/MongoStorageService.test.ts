@@ -503,6 +503,28 @@ describe('MongoStorageService', function () {
     expect(DeletedRecord.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
   });
 
+  it('returns the metadata of a deleted record', async function () {
+    DeletedRecord.findOne.resolves({
+      redboxOid: 'oid-1',
+      deletedRecordMetadata: { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } },
+    });
+
+    const metadata = await service.getDeletedRecordMeta('oid-1');
+
+    expect(DeletedRecord.findOne.calledWith({ redboxOid: 'oid-1' })).to.be.true;
+    expect(metadata).to.deep.equal({ redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } });
+  });
+
+  it('returns null when no deleted record exists for the oid', async function () {
+    DeletedRecord.findOne.resolves(null);
+
+    expect(await service.getDeletedRecordMeta('oid-1')).to.equal(null);
+  });
+
+  it('rejects getDeletedRecordMeta for an empty oid', async function () {
+    await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
+  });
+
   it('queries deleted records through the collection helper', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
@@ -662,6 +684,29 @@ describe('MongoStorageService', function () {
     // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
     // for the empty terminating batch.
     expect(service.recordCol.find.callCount).to.equal(4);
+  });
+
+  it('sanitizes formula-prefixed values after nested records are flattened', async function () {
+    service.recordCol = {
+      find: pagedFind([{
+        redboxOid: '1',
+        metadata: {
+          title: '=HYPERLINK("https://example.invalid")',
+          contributors: [{ name: '+malicious' }],
+        },
+      }]),
+    };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const output = Buffer.concat(chunks).toString('utf8');
+
+    expect(output).to.include(`'=HYPERLINK`);
+    expect(output).to.include(`'+malicious`);
+    expect(output).to.not.include(`,"=HYPERLINK`);
   });
 
   it('includes csv columns from later result pages that the first record lacks', async function () {
@@ -1074,6 +1119,18 @@ describe('MongoStorageService', function () {
     const response = await service.restoreRecord('oid-1');
 
     expect(response.success).to.equal(false);
+  });
+
+  it('loads deleted record metadata by oid', async function () {
+    const metadata = { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } };
+
+    await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
+    DeletedRecord.findOne.resolves(null);
+    expect(await service.getDeletedRecordMeta('missing')).to.equal(null);
+
+    DeletedRecord.findOne.resolves({ deletedRecordMetadata: metadata });
+    expect(await service.getDeletedRecordMeta('oid-1')).to.equal(metadata);
+    expect(DeletedRecord.findOne.lastCall.args[0]).to.deep.equal({ redboxOid: 'oid-1' });
   });
 
   it('destroys deleted records and reports validation or persistence failures', async function () {

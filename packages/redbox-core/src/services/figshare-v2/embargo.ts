@@ -2,6 +2,7 @@ import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublish
 import { FigshareClient } from './http';
 import { RecordModel, FigshareArticle, FigshareEmbargoPayload } from './types';
 import { evaluateBinding } from './bindings';
+import { createBindingContext } from './context';
 
 function isEmptyEmbargo(payload: FigshareEmbargoPayload): boolean {
   return Object.values(payload).every((value) => value == null || value === '');
@@ -21,10 +22,11 @@ export async function syncEmbargoPhase(client: FigshareClient, config: FigshareP
   }
 
   const recordData = record as Record<string, unknown>;
+  const bindingContext = createBindingContext(record);
   const embargoPayload: FigshareEmbargoPayload = {
-    access_type: await evaluateBinding(config.embargo.accessRights.accessRights, recordData),
-    embargo_date: await evaluateBinding(config.embargo.accessRights.fullEmbargoUntil, recordData),
-    embargo_reason: await evaluateBinding(config.embargo.accessRights.reason, recordData)
+    access_type: await evaluateBinding(config.embargo.accessRights.accessRights, recordData, bindingContext),
+    embargo_date: await evaluateBinding(config.embargo.accessRights.fullEmbargoUntil, recordData, bindingContext),
+    embargo_reason: await evaluateBinding(config.embargo.accessRights.reason, recordData, bindingContext)
   };
 
   const article = await client.getArticle(articleId);

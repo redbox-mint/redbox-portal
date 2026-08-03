@@ -792,6 +792,42 @@ describe('RDMPService', function () {
       expect(result).to.deep.equal(record);
     });
 
+    it('should assign both owner permissions when there are no contributors', async function () {
+      const record: any = {
+        metaMetadata: { createdBy: 'creator' },
+        metadata: {},
+        authorization: {}
+      };
+      const options = {
+        recordCreatorPermissions: 'view&edit'
+      };
+
+      const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
+
+      expect(result.authorization.edit).to.deep.equal(['creator']);
+      expect(result.authorization.view).to.deep.equal(['creator']);
+      expect(result.authorization.editPending).to.deep.equal([]);
+      expect(result.authorization.viewPending).to.deep.equal([]);
+      expect(mockUser.findOne.called).to.be.false;
+    });
+
+    it('should assign only the configured owner permission when there are no contributors', async function () {
+      const record: any = {
+        metaMetadata: { createdBy: 'creator' },
+        metadata: {},
+        authorization: {}
+      };
+      const options = {
+        recordCreatorPermissions: 'view'
+      };
+
+      const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
+
+      expect(result.authorization.edit).to.be.undefined;
+      expect(result.authorization.view).to.deep.equal(['creator']);
+      expect(result.authorization.viewPending).to.deep.equal([]);
+    });
+
     it('should assign permissions based on contributor properties', async function () {
       const record = {
         metadata: {

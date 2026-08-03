@@ -1215,27 +1215,40 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private featuresFromGeometry(
     geometry: GeoJSON.Geometry,
     properties: Record<string, unknown>,
-    id: string | number | undefined
+    id: string | number | undefined,
+    depth: number = 0,
+    maxDepth: number = 10
   ): MapModelValueType["features"] {
+    if (depth > maxDepth) {
+      return [];
+    }
+    if (!geometry || typeof geometry !== 'object' || !geometry.type) {
+      return [];
+    }
     switch (geometry.type) {
       case "Point": {
+        if (!Array.isArray(geometry.coordinates)) return [];
         const coordinates = this.normalizePosition(geometry.coordinates);
         return coordinates ? [this.createDrawFeature({ type: "Point", coordinates }, properties, id)] : [];
       }
       case "LineString": {
+        if (!Array.isArray(geometry.coordinates)) return [];
         const coordinates = this.normalizeLineStringCoordinates(geometry.coordinates);
         return coordinates.length > 0 ? [this.createDrawFeature({ type: "LineString", coordinates }, properties, id)] : [];
       }
       case "Polygon": {
+        if (!Array.isArray(geometry.coordinates)) return [];
         const coordinates = this.normalizePolygonCoordinates(geometry.coordinates);
         return coordinates.length > 0 ? [this.createDrawFeature({ type: "Polygon", coordinates }, properties, id)] : [];
       }
       case "MultiPoint":
+        if (!Array.isArray(geometry.coordinates)) return [];
         return geometry.coordinates.flatMap((coordinates) => {
           const position = this.normalizePosition(coordinates);
           return position ? [this.createDrawFeature({ type: "Point", coordinates: position }, properties, undefined)] : [];
         });
       case "MultiLineString":
+        if (!Array.isArray(geometry.coordinates)) return [];
         return geometry.coordinates.flatMap((coordinates) => {
           const lineStringCoordinates = this.normalizeLineStringCoordinates(coordinates);
           return lineStringCoordinates.length > 0
@@ -1243,6 +1256,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
             : [];
         });
       case "MultiPolygon":
+        if (!Array.isArray(geometry.coordinates)) return [];
         return geometry.coordinates.flatMap((coordinates) => {
           const polygonCoordinates = this.normalizePolygonCoordinates(coordinates);
           return polygonCoordinates.length > 0
@@ -1250,8 +1264,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
             : [];
         });
       case "GeometryCollection":
+        if (!geometry.geometries || !Array.isArray(geometry.geometries)) return [];
         return geometry.geometries.flatMap((childGeometry) =>
-          this.featuresFromGeometry(childGeometry, properties, undefined)
+          this.featuresFromGeometry(childGeometry, properties, undefined, depth + 1, maxDepth)
         );
       default:
         return [];

@@ -7,6 +7,11 @@ export * from './BrandingConfigHistory';
 export * from './CacheEntry';
 export * from './Counter';
 export * from './DashboardType';
+export * from './FigshareVocabularyCategory';
+export * from './FigshareVocabularyCrosswalk';
+export * from './FigshareVocabularyCrosswalkMapping';
+export * from './FigshareVocabularySource';
+export * from './FigshareVocabularySyncRun';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -40,6 +45,11 @@ import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
 import { CounterWLDef } from './Counter';
 import { DashboardTypeWLDef } from './DashboardType';
+import { FigshareVocabularyCategoryWLDef } from './FigshareVocabularyCategory';
+import { FigshareVocabularyCrosswalkWLDef } from './FigshareVocabularyCrosswalk';
+import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCrosswalkMapping';
+import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
+import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -76,6 +86,11 @@ export const WaterlineModels = {
   CacheEntry: CacheEntryWLDef,
   Counter: CounterWLDef,
   DashboardType: DashboardTypeWLDef,
+  FigshareVocabularyCategory: FigshareVocabularyCategoryWLDef,
+  FigshareVocabularyCrosswalk: FigshareVocabularyCrosswalkWLDef,
+  FigshareVocabularyCrosswalkMapping: FigshareVocabularyCrosswalkMappingWLDef,
+  FigshareVocabularySource: FigshareVocabularySourceWLDef,
+  FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,

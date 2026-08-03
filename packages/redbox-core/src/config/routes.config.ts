@@ -119,6 +119,11 @@ export const routes: RoutesConfig = {
         controller: 'VocabularyController',
         action: 'manager'
     },
+    'get /:branding/:portal/admin/integrations/figshare/vocabularies': {
+        controller: 'RenderViewController',
+        action: 'render',
+        locals: { 'view': 'admin/integrations/figshare/vocabularies', pageTitleKey: 'figshare-vocab-title' }
+    },
     'get /:branding/:portal/admin/vocabulary': {
         controller: 'VocabularyController',
         action: 'list'
