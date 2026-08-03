@@ -13,8 +13,8 @@
 import { Injectable, inject, InjectionToken } from '@angular/core';
 import { Actions, createEffect } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { Observable, EMPTY } from 'rxjs';
-import { map, throttleTime, tap, filter, catchError, withLatestFrom } from 'rxjs/operators';
+import { Observable, EMPTY, from } from 'rxjs';
+import { map, mergeMap, throttleTime, tap, filter, catchError, withLatestFrom } from 'rxjs/operators';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import {
   FormComponentEventType,
@@ -286,8 +286,20 @@ export class FormEventBusAdapterEffects {
     this.createPromotionStream(
       FormComponentEventType.FORM_SAVE_SUCCESS,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
-      (event: FormSaveSuccessEvent) =>
-        FormActions.submitFormSuccess({ savedData: event.savedData, lastSavedAt: new Date().toISOString() })
+      (event: FormSaveSuccessEvent) => {
+        const submitAction = FormActions.submitFormSuccess({
+          savedData: event.savedData,
+          lastSavedAt: new Date().toISOString(),
+        });
+        const metadata = event.response?.metadata;
+        if (metadata !== null && typeof metadata === 'object' && !Array.isArray(metadata)) {
+          return [
+            submitAction,
+            FormActions.syncModelSnapshot({ snapshot: metadata }),
+          ];
+        }
+        return submitAction;
+      }
     )
   );
   /**
@@ -389,12 +401,13 @@ export class FormEventBusAdapterEffects {
         trailing: false
       }),
       // R15.23 & R15.26: Map to action and (optionally) log promotion in one step
-      map((event) => {
-        const action = actionMapper(event);
+      mergeMap((event) => {
+        const mapped = actionMapper(event);
+        const actions = Array.isArray(mapped) ? mapped : [mapped];
         if (this.config.diagnosticsEnabled) {
-          logPromotion(this.logger, eventType, criterion, action.type);
+          actions.forEach(action => logPromotion(this.logger, eventType, criterion, action.type));
         }
-        return action;
+        return from(actions);
       }),
       // Ensure errors in the stream do not terminate the effect
       catchError((err) => {

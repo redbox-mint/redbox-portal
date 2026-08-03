@@ -47,8 +47,14 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
+import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 
 type AnyRecord = Record<string, unknown>;
+type ControllerRecord = AnyRecord & {
+  metaMetadata?: unknown;
+  metadata: AnyRecord;
+  redboxOid?: string;
+};
 
 interface TusRequestExtension {
   _tusBaseUrl?: string;
@@ -280,6 +286,81 @@ export namespace Controllers {
       };
     }
 
+    /**
+     * Build the client form used by the record metadata read and save-sync paths.
+     * The false edit lookup / edit form mode pairing is inherited from getMeta and
+     * has not been independently reviewed; keep both values explicit at call sites.
+     */
+    private async getEffectiveClientFormConfig(
+      req: Sails.Req,
+      brand: BrandingModel,
+      record: ControllerRecord,
+      formName: string,
+      formLookupEditMode: boolean,
+      formMode: FormModesConfig
+    ): Promise<FormConfigFrame | undefined> {
+      const metaMetadata = record.metaMetadata as AnyRecord | undefined;
+      const brandId = String(metaMetadata?.['brandId'] ?? brand.id);
+      const formRecord = await firstValueFrom(FormsService.getFormByName(formName, formLookupEditMode, brandId));
+      const formConfig = formRecord?.configuration;
+      if (!formConfig) {
+        return undefined;
+      }
+
+      const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
+        .map((role: AnyRecord) => String(role['name'] ?? ''))
+        .filter((name: string) => !!name);
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
+      return FormsService.buildClientFormConfig(
+        formConfig,
+        formMode,
+        userRoles,
+        record.metadata,
+        reusableFormDefs,
+        String(brand?.name ?? ''),
+        contextVariablesMap
+      );
+    }
+
+    private async getPostSaveMetadata(
+      req: Sails.Req,
+      brand: BrandingModel,
+      savedRecord: ControllerRecord,
+      targetStep: unknown
+    ): Promise<AnyRecord | null> {
+      if (targetStep || sails.config.record?.form?.returnMetadataOnSave === false) {
+        return null;
+      }
+
+      try {
+        const formName = (savedRecord.metaMetadata as AnyRecord | undefined)?.['form'];
+        if (typeof formName !== 'string' || formName.length === 0) {
+          return null;
+        }
+        const clientFormConfig = await this.getEffectiveClientFormConfig(
+          req,
+          brand,
+          savedRecord,
+          formName,
+          false,
+          'edit'
+        );
+        if (!clientFormConfig) {
+          return null;
+        }
+        return await FormRecordConsistencyService.projectMetadataClientFormConfig(
+          savedRecord.metadata,
+          clientFormConfig,
+          'edit',
+          sails.config.reusableFormDefinitions
+        );
+      } catch (error) {
+        sails.log.error(`Failed to project post-save metadata for record ${savedRecord.redboxOid}:`, error);
+        return null;
+      }
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ?? '';
@@ -297,37 +378,22 @@ export namespace Controllers {
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
-              const brandId = String(record.metaMetadata?.['brandId'] ?? brand.id);
-              const formRecord = await firstValueFrom(FormsService.getFormByName(formName, false, brandId));
-              const formConfig = formRecord?.configuration;
-
-              if (formConfig) {
-                const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[]).map((role: AnyRecord) => String(role['name'] ?? '')).filter((name: string) => !!name);
+              const clientFormConfig = await this.getEffectiveClientFormConfig(
+                req,
+                brand,
+                record,
+                formName,
+                false,
+                'edit'
+              );
+              if (clientFormConfig) {
                 const reusableFormDefs = sails.config.reusableFormDefinitions;
-                const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
-                const clientFormConfig = await FormsService.buildClientFormConfig(
-                  formConfig,
-                  'edit',
-                  userRoles,
-                  record.metadata,
-                  reusableFormDefs,
-                  String(brand?.name ?? ''),
-                  contextVariablesMap
-                );
-                const emptyOriginal = {
-                  redboxOid: record.redboxOid,
-                  metaMetadata: record.metaMetadata,
-                  metadata: {}
-                } as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[0];
-
-                const filteredRecord = await FormRecordConsistencyService.mergeRecordClientFormConfig(
-                  emptyOriginal,
-                  record as unknown as Parameters<typeof FormRecordConsistencyService.mergeRecordClientFormConfig>[1],
+                record.metadata = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+                  record.metadata as AnyRecord,
                   clientFormConfig,
                   'edit',
                   reusableFormDefs
                 );
-                record.metadata = filteredRecord.metadata;
               }
             } catch (formErr) {
               sails.log.error(`Failed to filter metadata for record ${oid} using form ${formName}:`, formErr);
@@ -697,8 +763,10 @@ export namespace Controllers {
         const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
 
         if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
+          const savedRecord = await this.recordsService.getMeta(createResponse.oid);
+          createResponse.metadata = await this.getPostSaveMetadata(req, brand, savedRecord, targetStep);
           return this.sendResp(req, res, {
-            data: await this.recordsService.getMeta(createResponse.oid),
+            data: savedRecord,
             meta: { ...createResponse },
             v1: createResponse,
           });
@@ -877,8 +945,10 @@ export namespace Controllers {
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
+          const savedRecord = await this.recordsService.getMeta(oid);
+          response.metadata = await this.getPostSaveMetadata(req, brand, savedRecord, nextStepResp);
           return this.sendResp(req, res, {
-            data: await this.recordsService.getMeta(oid),
+            data: savedRecord,
             meta: response ? { ...response } : undefined,
             v1: response,
           });

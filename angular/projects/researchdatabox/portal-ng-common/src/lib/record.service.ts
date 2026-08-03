@@ -690,6 +690,6 @@ export class RecordActionResult {
   success: boolean = false;
   oid: string = '';
   message: string = '';
-  // TODO: placeholder for incremental setting of data unto the form, etc.
   data: any = null;
+  metadata: Record<string, unknown> | null = null;
 }

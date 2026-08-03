@@ -14,6 +14,18 @@ export const recordtype: RecordTypeConfig = {
             onCreate: {
                 pre: [
                     {
+                        function: 'sails.services.rdmpservice.runTemplates',
+                        options: {
+                            parseObject: false,
+                            templates: [
+                                {
+                                    field: 'metadata.server_sync_test_value',
+                                    template: 'test-<%= _.random(100000, 999999) %>'
+                                }
+                            ]
+                        }
+                    },
+                    {
                         function: 'sails.services.rdmpservice.assignPermissions',
                         options: {
                             "emailProperty": "email",
@@ -36,6 +48,18 @@ export const recordtype: RecordTypeConfig = {
             },
             onUpdate: {
                 pre: [
+                    {
+                        function: 'sails.services.rdmpservice.runTemplates',
+                        options: {
+                            parseObject: false,
+                            templates: [
+                                {
+                                    field: 'metadata.server_sync_test_value',
+                                    template: 'test-<%= _.random(100000, 999999) %>'
+                                }
+                            ]
+                        }
+                    },
                     {
                         function: 'sails.services.rdmpservice.assignPermissions',
                         options: {

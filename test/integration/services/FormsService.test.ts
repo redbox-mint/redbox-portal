@@ -173,6 +173,7 @@ describe('The FormsService', function () {
       };
       const expected: FormConfigFrame = {
         name: 'basic-form',
+        serverSyncOnSave: 'preserveLocalEdits',
         type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
@@ -316,6 +317,7 @@ describe('The FormsService', function () {
       };
       const expected: FormConfigFrame = {
         name: 'basic-form',
+        serverSyncOnSave: 'preserveLocalEdits',
         type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
@@ -565,6 +567,7 @@ describe('The FormsService', function () {
       };
       const expected: FormConfigFrame = {
         name: 'basic-form',
+        serverSyncOnSave: 'preserveLocalEdits',
         type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
@@ -842,6 +845,7 @@ describe('The FormsService', function () {
       };
       const expected: FormConfigFrame = {
         name: 'remove-item-constraint-mode',
+        serverSyncOnSave: 'preserveLocalEdits',
         type: 'rdmp',
         debugValue: true,
         domElementType: 'form',

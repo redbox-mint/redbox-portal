@@ -169,6 +169,32 @@ export namespace Services {
         }
 
         /**
+         * Project authoritative metadata to the fields in an already filtered client form.
+         * This intentionally uses an empty original so server-only metadata is not retained.
+         */
+        public async projectMetadataClientFormConfig(
+            metadata: Record<string, unknown>,
+            clientFormConfig: FormConfigFrame,
+            formMode: FormModesConfig,
+            reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<Record<string, unknown>> {
+            const projected = await this.mergeRecordClientFormConfig(
+                {
+                    redboxOid: '',
+                    metadata: {},
+                },
+                {
+                    redboxOid: '',
+                    metadata,
+                },
+                clientFormConfig,
+                formMode,
+                reusableFormDefs
+            );
+            return projected.metadata;
+        }
+
+        /**
          * Merge the original and changed records, using the client form config to know which changes to include.
          * @param original The existing original record.
          * @param changed The new record.

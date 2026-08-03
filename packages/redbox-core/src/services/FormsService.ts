@@ -174,6 +174,7 @@ export namespace Services {
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],
           debugValue: formConfigRaw.debugValue as FormConfigFrame['debugValue'],
           attachmentFields: (formConfigRaw.attachmentFields ?? []) as FormConfigFrame['attachmentFields'],
+          serverSyncOnSave: formConfigRaw.serverSyncOnSave as FormConfigFrame['serverSyncOnSave'],
 
           // Deprecated legacy properties (now removed):
           // fields → replaced by componentDefinitions

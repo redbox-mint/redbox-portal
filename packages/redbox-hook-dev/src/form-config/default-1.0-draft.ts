@@ -115,6 +115,28 @@ const formConfig: FormConfigFrame = {
                       },
                     },
                     {
+                      name: 'server_sync_test_value',
+                      layout: {
+                        class: 'DefaultLayout',
+                        config: {
+                          label: 'Server sync test value',
+                          helpText: 'This readonly value is replaced by the RDMP pre-save hook on create and update.',
+                        },
+                      },
+                      model: {
+                        class: 'SimpleInputModel',
+                        config: {
+                          defaultValue: '',
+                        },
+                      },
+                      component: {
+                        class: 'SimpleInputComponent',
+                        config: {
+                          readonly: true,
+                        },
+                      },
+                    },
+                    {
                       name: 'contributor_ci',
                       constraints: {
                         authorization: {

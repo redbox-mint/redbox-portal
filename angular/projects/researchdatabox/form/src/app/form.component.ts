@@ -112,6 +112,7 @@ import * as FormActions from './form-state/state/form.actions';
 import { FormComponentValueChangeEventConsumer } from './form-state/events/';
 import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
 import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
+import { FormServerSyncService } from './form-server-sync.service';
 
 /**
  * The ReDBox Form
@@ -237,6 +238,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   componentsLoaded = signal<boolean>(false);
   public readonly debugState = inject(FormDebugStateService);
+  private readonly serverSyncService = inject(FormServerSyncService);
 
   readonly viewAuditRoles = signal<string[]>(['Admin', 'Librarians']);
   // Backward-compatible aliases for existing tests and callers.
@@ -1179,12 +1181,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
         );
-        this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
+          this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
 
         try {
           let response: RecordActionResult;
           const currentFormValue = this.getPersistedFormValue();
-          // Mark form as pristine as we cloned the data already
+          // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
+          // edits made after this save payload was sent.
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
@@ -1201,6 +1204,25 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
+            const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid);
+            if (
+              response.metadata !== null &&
+              typeof response.metadata === 'object' &&
+              !Array.isArray(response.metadata) &&
+              !options?.closeOnSave &&
+              !redirectLocation &&
+              this.form &&
+              this.formDefMap
+            ) {
+              await this.serverSyncService.applyServerMetadata(
+                currentFormValue,
+                response.metadata,
+                this.formDefMap,
+                this.form,
+                this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits'
+              );
+              this.broadcastFormStatus();
+            }
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
@@ -1208,7 +1230,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 oid: oid,
                 response,
                 closeOnSave: options?.closeOnSave,
-                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
+                redirectLocation: redirectLocation || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
