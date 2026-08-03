@@ -1486,17 +1486,6 @@ export namespace Services {
       }
     }
 
-    async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
-      if (_.isEmpty(oid)) {
-        return null;
-      }
-      const deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
-      if (!deletedRecord) {
-        return null;
-      }
-      return deletedRecord.deletedRecordMetadata as RecordModel;
-    }
-
     async destroyDeletedRecord(oid: string): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
 
