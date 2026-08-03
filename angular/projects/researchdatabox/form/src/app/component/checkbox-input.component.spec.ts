@@ -323,5 +323,52 @@ describe('CheckboxInputComponent', () => {
     expect(legacyInput?.checked).toBeFalse();
   });
 
+  it('should render options and tooltip changed after initialisation', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_checkbox_dynamic_options',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'checkbox_dynamic_options',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              validators: [],
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              options: [],
+              tooltip: 'original tooltip',
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(CheckboxInputComponent)).componentInstance as CheckboxInputComponent;
+
+    component.setProperty('options', [
+      { label: 'Alpha', value: 'a' },
+      { label: 'Bravo', value: 'b' },
+    ]);
+    component.setProperty('tooltip', 'updated tooltip');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const checkboxInputs = compiled.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    expect(Array.from(checkboxInputs).map(input => input.id)).toEqual([
+      'checkbox_dynamic_options-a',
+      'checkbox_dynamic_options-b',
+    ]);
+    expect(checkboxInputs[0].title).toEqual('updated tooltip');
+  });
 
 });

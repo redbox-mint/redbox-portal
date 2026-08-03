@@ -254,4 +254,53 @@ describe('RadioInputComponent', () => {
     expect(activeInput?.checked).toBeFalse();
     expect(legacyInput?.checked).toBeFalse();
   });
+
+  it('should render options and tooltip changed after initialisation', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_radio_dynamic_options',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'radio_dynamic_options',
+          model: {
+            class: 'RadioInputModel',
+            config: {
+              validators: []
+            }
+          },
+          component: {
+            class: 'RadioInputComponent',
+            config: {
+              options: [],
+              tooltip: 'original tooltip'
+            }
+          }
+        }
+      ]
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(RadioInputComponent)).componentInstance as RadioInputComponent;
+
+    component.setProperty('options', [
+      { label: 'Chief investigator', value: 'Chief investigator' },
+      { label: 'Supervisor', value: 'Supervisor' },
+    ]);
+    component.setProperty('tooltip', 'updated tooltip');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const labels = compiled.querySelectorAll<HTMLLabelElement>('label');
+    expect(Array.from(labels).map(label => label.textContent?.trim())).toEqual([
+      'Chief investigator',
+      'Supervisor',
+    ]);
+    const radioInputs = compiled.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+    expect(radioInputs[0].title).toEqual('updated tooltip');
+  });
 });
