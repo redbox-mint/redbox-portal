@@ -1641,11 +1641,9 @@ export namespace Services {
       return record;
     }
 
+    /** Metadata of a soft deleted record, or null when no deleted record exists for the oid. */
     async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
-      if (_.isEmpty(oid)) {
-        return null;
-      }
-      return this.storageService.getDeletedRecordMeta(oid);
+      return await this.storageService.getDeletedRecordMeta(oid);
     }
 
     async getDeletedRecords(
