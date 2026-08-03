@@ -14,6 +14,9 @@ function testAngular() {
     browser="ChromeHeadlessNoSandbox"
   fi
   node_modules/.bin/ng t --browsers="${browser}" "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
+  # Each application can leave hundreds of MB in Angular's persistent cache.
+  # Clear it between projects so the complete suite also runs on constrained CI disks.
+  node_modules/.bin/ng cache clean
 }
 
 export NVM_DIR="$HOME/.nvm"
@@ -21,7 +24,17 @@ export NVM_DIR="$HOME/.nvm"
 cd angular
 nvm install
 nvm use
-npm install --ignore-scripts --strict-peer-deps
+npm install --include=dev --include=optional --ignore-scripts --strict-peer-deps
+
+# Karma's Chrome launcher honours CHROME_BIN. Development agents commonly have
+# Playwright's Chromium available even when no system Chrome package is installed.
+if [ -z "${CHROME_BIN:-}" ]; then
+  CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+  if [ -z "$CHROME_BIN" ] && [ -d "$HOME/.cache/ms-playwright" ]; then
+    CHROME_BIN="$(find "$HOME/.cache/ms-playwright" -type f \( -path '*/chrome-linux*/chrome' -o -path '*/chrome-headless-shell-linux*/chrome-headless-shell' \) | sort -r | head -n 1)"
+  fi
+  export CHROME_BIN
+fi
 
 if [ $# -ne 0 ]; then
   if [ "${1}" == "portal-ng-common" ]; then

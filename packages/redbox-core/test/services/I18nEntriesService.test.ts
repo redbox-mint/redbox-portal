@@ -144,6 +144,18 @@ describe('I18nEntriesService', function() {
         e: 'value3'
       });
     });
+
+    for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
+      it(`should ignore paths containing ${poisonedPart}`, function() {
+        const result = I18nEntriesService.unflatten({
+          safe: 'kept',
+          [`nested.${poisonedPart}.polluted`]: 'blocked'
+        });
+
+        expect(result).to.deep.equal({ safe: 'kept' });
+        expect(({} as Record<string, unknown>)['polluted']).to.equal(undefined);
+      });
+    }
   });
 
   describe('setNested (private)', function() {
@@ -152,6 +164,17 @@ describe('I18nEntriesService', function() {
       I18nEntriesService.setNested(obj, 'a.b.c', 'value');
       expect(obj).to.deep.equal({ a: { b: { c: 'value' } } });
     });
+
+    for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
+      it(`should ignore paths containing ${poisonedPart}`, function() {
+        const obj = { safe: 'kept' };
+
+        I18nEntriesService.setNested(obj, `nested.${poisonedPart}.polluted`, 'blocked');
+
+        expect(obj).to.deep.equal({ safe: 'kept' });
+        expect(({} as Record<string, unknown>)['polluted']).to.equal(undefined);
+      });
+    }
   });
 
   describe('removeNested (private)', function() {
@@ -160,6 +183,16 @@ describe('I18nEntriesService', function() {
       I18nEntriesService.removeNested(obj, 'a.b.c');
       expect(obj).to.deep.equal({ a: { b: { d: 'keep' } } });
     });
+
+    for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
+      it(`should ignore paths containing ${poisonedPart}`, function() {
+        const obj = { safe: 'kept' };
+
+        I18nEntriesService.removeNested(obj, `nested.${poisonedPart}.safe`);
+
+        expect(obj).to.deep.equal({ safe: 'kept' });
+      });
+    }
   });
 
   describe('getEntry', function() {

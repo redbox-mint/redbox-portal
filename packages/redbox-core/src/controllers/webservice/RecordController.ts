@@ -239,7 +239,7 @@ export namespace Controllers {
         return null;
       }
       const recordBrandId = String(_.get(deleted, 'metaMetadata.brandId', '') ?? '');
-      if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+      if (!brand?.id || recordBrandId !== String(brand.id)) {
         return null;
       }
       return deleted as RecordModel;

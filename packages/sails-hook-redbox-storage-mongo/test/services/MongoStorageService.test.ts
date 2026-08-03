@@ -664,6 +664,29 @@ describe('MongoStorageService', function () {
     expect(service.recordCol.find.callCount).to.equal(4);
   });
 
+  it('sanitizes formula-prefixed values after nested records are flattened', async function () {
+    service.recordCol = {
+      find: pagedFind([{
+        redboxOid: '1',
+        metadata: {
+          title: '=HYPERLINK("https://example.invalid")',
+          contributors: [{ name: '+malicious' }],
+        },
+      }]),
+    };
+
+    const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
+    const chunks: Buffer[] = [];
+    for await (const chunk of exportStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const output = Buffer.concat(chunks).toString('utf8');
+
+    expect(output).to.include(`'=HYPERLINK`);
+    expect(output).to.include(`'+malicious`);
+    expect(output).to.not.include(`,"=HYPERLINK`);
+  });
+
   it('includes csv columns from later result pages that the first record lacks', async function () {
     service.recordCol = {
       find: pagedFindPages({

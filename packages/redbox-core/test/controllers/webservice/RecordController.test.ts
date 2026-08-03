@@ -460,6 +460,26 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.calledOnce).to.be.true;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
         });
+        for (const method of ['restoreRecord', 'destroyDeletedRecord'] as const) {
+            it(`rejects ${method} when the deleted record belongs to another brand`, async () => {
+                recordsService.getDeletedRecordMeta.resolves({
+                    redboxOid: 'record-1',
+                    metaMetadata: { brandId: 'brand-2' },
+                });
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: {},
+                    body: {},
+                    files: {},
+                });
+                const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+                await controller[method](req, {} as Sails.Res);
+
+                expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+                expect(recordsService[method].called).to.be.false;
+            });
+        }
 
         it('propagates deleted-record storage failures', async () => {
             recordsService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));

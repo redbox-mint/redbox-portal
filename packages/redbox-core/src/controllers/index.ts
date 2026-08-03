@@ -31,6 +31,8 @@ import * as WSAdminControllerModule from './webservice/AdminController';
 import * as WSAppConfigControllerModule from './webservice/AppConfigController';
 import * as WSBrandingControllerModule from './webservice/BrandingController';
 import * as WSExportControllerModule from './webservice/ExportController';
+import * as WSFigshareCrosswalkControllerModule from './webservice/FigshareCrosswalkController';
+import * as WSFigshareVocabularyControllerModule from './webservice/FigshareVocabularyController';
 import * as WSFormManagementControllerModule from './webservice/FormManagementController';
 import * as WSIntegrationAuditControllerModule from './webservice/IntegrationAuditController';
 import * as WSHarvestRunControllerModule from './webservice/HarvestRunController';
@@ -83,6 +85,8 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
     get ExportController() { return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports()); },
+    get FigshareCrosswalkController() { return getOrCreate('WS_FigshareCrosswalkController', () => new WSFigshareCrosswalkControllerModule.Controllers.FigshareCrosswalk().exports()); },
+    get FigshareVocabularyController() { return getOrCreate('WS_FigshareVocabularyController', () => new WSFigshareVocabularyControllerModule.Controllers.FigshareVocabulary().exports()); },
     get FormManagementController() { return getOrCreate('WS_FormManagementController', () => new WSFormManagementControllerModule.Controllers.FormManagement().exports()); },
     get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
     get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
@@ -129,6 +133,8 @@ export const WebserviceControllerNames = [
     'BrandingController',
     'DashboardConfigController',
     'ExportController',
+    'FigshareCrosswalkController',
+    'FigshareVocabularyController',
     'FormManagementController',
     'HarvestRunController',
     'IntegrationAuditController',

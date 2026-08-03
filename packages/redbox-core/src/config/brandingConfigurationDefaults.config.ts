@@ -308,6 +308,19 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' },
                 { id: 'vocabulary', labelKey: 'menu-vocabulary-management', href: '/admin/vocabulary/manager' }
             ]
+        },
+        {
+            id: 'integrations',
+            titleKey: 'menu-integrations',
+            defaultExpanded: true,
+            requiredRoles: ['Admin'],
+            items: [
+                {
+                    id: 'figshare-vocabularies',
+                    labelKey: 'menu-figshare-vocabularies',
+                    href: '/admin/integrations/figshare/vocabularies'
+                }
+            ]
         }
     ],
     footerLinks: [

@@ -4,6 +4,11 @@
     <button type="button" class="btn btn-sm btn-primary" (click)="addRow()">Add Row</button>
   </div>
 
+  <div class="alert alert-secondary py-2" role="status">
+    Used only when the Categories binding is not a crosswalk binding. Setting that binding's type to
+    <code>crosswalk</code> resolves categories through the crosswalk instead, leaving these rows unchanged.
+  </div>
+
   @if (rows.length === 0) {
   <p class="text-muted mb-0">No mappings configured.</p>
   } @for (row of rows; track $index; let i = $index) {
