@@ -559,6 +559,193 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("person_lookup")?.disabled).toBeFalse();
     });
 
+    it("honours a field.disabled gate expression applied on form ready", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "dataRecord",
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                },
+                {
+                    name: "person_lookup",
+                    expressions: [
+                        {
+                            name: "gate-on-data-record",
+                            config: {
+                                conditionKind: "jsonpointer",
+                                condition: "/dataRecord::field.value.changed",
+                                target: "field.disabled",
+                                hasTemplate: true,
+                                template: "event.value ? false : true",
+                                runOnFormReady: true
+                            }
+                        }
+                    ],
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                },
+                {
+                    name: "gated_text",
+                    expressions: [
+                        {
+                            name: "gate-on-data-record",
+                            config: {
+                                conditionKind: "jsonpointer",
+                                condition: "/dataRecord::field.value.changed",
+                                target: "field.disabled",
+                                hasTemplate: true,
+                                template: "event.value ? false : true",
+                                runOnFormReady: true
+                            }
+                        }
+                    ],
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                }
+            ]
+        };
+
+        // 'event.value ? false : true' compiled server-side, mocked here.
+        const dynamicAssetOptions: DynamicAssetOptions = {
+            entries: [{
+                urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+                callable: function (keyStr: string, key: (string | number)[], context: any) {
+                    return context?.event?.value ? false : true;
+                }
+            }]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelectorAll("input")[1] as HTMLInputElement;
+        const simpleInputs = fixture.debugElement.queryAll(By.directive(SimpleInputComponent));
+        const gated = simpleInputs[simpleInputs.length - 1].componentInstance as SimpleInputComponent;
+
+        // Selecting a data record lifts the gate, clearing it re-applies it.
+        (formComponent as any).form.controls.dataRecord.setValue("record-1");
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect((gated as any).isDisabled).toBeFalse();
+        expect(component.isDisabled).toBeFalse();
+        expect(component.displayControl.disabled).toBeFalse();
+
+        (formComponent as any).form.controls.dataRecord.setValue("");
+        await fixture.whenStable();
+        fixture.detectChanges();
+        // The typeahead must gate in step with the plain input control field.
+        expect((gated as any).isDisabled).toBeTrue();
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+        expect(input.disabled).toBeTrue();
+    });
+
+    it("honours a field.disabled gate expression when nested inside a repeatable", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "dataRecord",
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                },
+                {
+                    name: "grants",
+                    component: {
+                        class: "RepeatableComponent",
+                        config: {
+                            elementTemplate: {
+                                name: "",
+                                component: {
+                                    class: "GroupComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: "grant_lookup",
+                                                expressions: [
+                                                    {
+                                                        name: "gate-on-data-record",
+                                                        config: {
+                                                            conditionKind: "jsonpointer",
+                                                            condition: "/dataRecord::field.value.changed",
+                                                            target: "field.disabled",
+                                                            hasTemplate: true,
+                                                            template: "event.value ? false : true",
+                                                            runOnFormReady: true
+                                                        }
+                                                    }
+                                                ],
+                                                component: {
+                                                    class: "TypeaheadInputComponent",
+                                                    config: {
+                                                        sourceType: "static",
+                                                        staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                                                    }
+                                                },
+                                                model: { class: "TypeaheadInputModel" },
+                                                layout: { class: "InlineLayout", config: {} }
+                                            }
+                                        ]
+                                    }
+                                },
+                                model: { class: "GroupModel" },
+                                layout: { class: "RepeatableElementLayout" }
+                            }
+                        }
+                    },
+                    layout: { class: "DefaultLayout", config: {} },
+                    model: { class: "RepeatableModel", config: { value: [{ grant_lookup: null }] } }
+                }
+            ]
+        };
+
+        const dynamicAssetOptions: DynamicAssetOptions = {
+            entries: [{
+                urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+                callable: function (keyStr: string, key: (string | number)[], context: any) {
+                    // 'event.value ? false : true'
+                    return context?.event?.value ? false : true;
+                }
+            }]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        (formComponent as any).form.controls.dataRecord.setValue("record-1");
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        (formComponent as any).form.controls.dataRecord.setValue("");
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+
+        // A row added while the gate is applied must also come up disabled.
+        const repeatable = fixture.debugElement.query(By.directive(RepeatableComponent)).componentInstance as RepeatableComponent;
+        await (repeatable as any).appendNewElement();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const allTypeaheads = fixture.debugElement.queryAll(By.directive(TypeaheadInputComponent));
+        const added = allTypeaheads[allTypeaheads.length - 1].componentInstance as TypeaheadInputComponent;
+        expect(added.isDisabled).toBeTrue();
+        expect(added.displayControl.disabled).toBeTrue();
+        const addedInput = fixture.nativeElement.querySelectorAll("input")[allTypeaheads.length] as HTMLInputElement;
+        expect(addedInput?.disabled).toBeTrue();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+    });
+
     it("shows misconfiguration message when named query source lacks queryId", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
