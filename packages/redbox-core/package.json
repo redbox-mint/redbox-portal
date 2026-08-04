@@ -104,7 +104,7 @@
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.0",
     "zod": "4.4.3",
-    "@asteasolutions/zod-to-openapi": "8.5.0"
+    "@asteasolutions/zod-to-openapi": "9.1.0"
   },
   "overrides": {
     "axios": "1.17.0",
