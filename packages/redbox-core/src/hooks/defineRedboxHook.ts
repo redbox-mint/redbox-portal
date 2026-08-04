@@ -5,16 +5,21 @@ type HookFactoryResult = {
   defaults?: Record<string, unknown>;
   routes?: unknown;
   configure?: () => void;
-  initialize?: (done: () => void) => void;
+  initialize?: () => Promise<void>;
 };
 
 export type HookRegistrationMap = Record<string, unknown>;
+
+type HookInitializer = {
+  (sails: Sails.Application): void | Promise<void>;
+  (sails: Sails.Application, done: (error?: Error) => void): void;
+};
 
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
   routes?: ((sails: Sails.Application) => unknown) | unknown;
   configure?: (sails: Sails.Application) => void;
-  initialize?: (sails: Sails.Application, done: () => void) => void;
+  initialize?: HookInitializer;
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
   registerRedboxControllers?: () => HookRegistrationMap;
@@ -53,8 +58,33 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
     }
 
     if (options.initialize) {
-      hook.initialize = (done: () => void): void => {
-        options.initialize?.(sails, done);
+      hook.initialize = async (): Promise<void> => {
+        const initializer = options.initialize as HookInitializer;
+
+        // Sails supports Promise-returning initializers, but its default
+        // implementation sniffing also supports the older callback form.
+        // Keep accepting both forms while always exposing a zero-argument
+        // Promise-returning hook to Sails.
+        if (initializer.length >= 2) {
+          await new Promise<void>((resolve, reject) => {
+            const done = (error?: Error): void => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve();
+              }
+            };
+
+            try {
+              initializer(sails, done);
+            } catch (error) {
+              reject(error);
+            }
+          });
+          return;
+        }
+
+        await initializer(sails);
       };
     }
 
