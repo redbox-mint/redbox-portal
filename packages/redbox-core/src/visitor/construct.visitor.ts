@@ -1,5 +1,5 @@
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
-import { FormConfig, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
+import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { FormConfigFrame, FormConfigOutline } from '@researchdatabox/sails-ng-common';
@@ -391,6 +391,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private recordValues: Record<string, unknown> | null;
   private removeOverrides: boolean;
   private extractedDefaultValues: Record<string, unknown>;
+  private translate?: (key: string) => string;
 
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
@@ -435,6 +436,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
    * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
+   * @param options.translate Resolve a translation code to text, used for form config default values.
    */
   async start(options: {
     data: FormConfigFrame;
@@ -442,10 +444,12 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
     removeOverrides?: boolean;
+    translate?: (key: string) => string;
   }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
     this.reusableFormDefs = options.reusableFormDefs ?? {};
     this.formMode = options.formMode ?? 'view';
+    this.translate = options.translate;
 
     // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
     // This allows for specifying an empty record '{}' and using that instead of the defaults.
@@ -2408,7 +2412,9 @@ this.mostRecentRepeatableElementTemplatePath !== null ||
 
     // Set the model.config.value or new item value
     if (isElementTemplate) {
-      item.config.newEntryValue = config?.newEntryValue;
+      // newEntryValue is the elementTemplate's equivalent of defaultValue, so it is
+      // authored in the form config and needs the same translation code resolution.
+      item.config.newEntryValue = this.translateConfigDefault(config?.newEntryValue);
     } else if (!isElementTemplateDescendant) {
       // NOTE: It is useless to set the model.config.value on an elementTemplate or a descendant component.
       // The top-most repeatable must have either:
@@ -2448,7 +2454,40 @@ this.mostRecentRepeatableElementTemplatePath !== null ||
    */
   protected currentDefaultValue(itemDefaultValue?: unknown) {
     const dataModelPath = this.formPathHelper.formPath.dataModel;
-    return _cloneDeep(_get(this.extractedDefaultValues, dataModelPath, itemDefaultValue));
+    const value = _cloneDeep(_get(this.extractedDefaultValues, dataModelPath, itemDefaultValue));
+    return this.translateConfigDefault(value);
+  }
+
+  /**
+   * Resolve translation codes in a form config default value.
+   *
+   * Default values are authored in the form config, so a value such as
+   * '@dataPublication-citation-publisher-default' is a translation code rather than
+   * literal text. Labels are resolved by the client i18next pipe, but a default value
+   * becomes record metadata, so leaving it unresolved persists the raw code. Strings
+   * that look like natural language are left untouched, and an unknown code resolves
+   * to itself, so this is a no-op unless the value really is a translation code.
+   *
+   * @param value The default value from the form config.
+   * @protected
+   */
+  protected translateConfigDefault(value: unknown): unknown {
+    if (!this.translate) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return isLikelyNaturalLanguage(value) ? value : this.translate(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map(entry => this.translateConfigDefault(entry));
+    }
+    // Only walk plain objects, so class instances and dates are left as they are.
+    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, this.translateConfigDefault(entry)])
+      );
+    }
+    return value;
   }
 
   /**

@@ -594,6 +594,29 @@ export namespace Services {
     }
 
     /**
+     * Build the translation lookup used to resolve form config default values.
+     *
+     * Returns undefined when the translation service is not available, so the form
+     * config values are left as they are rather than failing to build the form.
+     *
+     * @param branding The branding name.
+     */
+    private buildFormConfigTranslator(branding?: string): ((key: string) => string) | undefined {
+      if (typeof TranslationService === 'undefined' || typeof TranslationService?.t !== 'function') {
+        return undefined;
+      }
+      const brandingName = branding || 'default';
+      return (key: string): string => {
+        try {
+          return String(TranslationService.t(key, undefined, 'en', brandingName) ?? key);
+        } catch (error) {
+          this.logger.warn(`Failed to translate form config value '${key}': ${(error as Error)?.message}`);
+          return key;
+        }
+      };
+    }
+
+    /**
      * Convert a server-side form config to a client-side form config.
      *
      * @param item The source item.
@@ -613,7 +636,10 @@ export namespace Services {
       recordAccessContext?: RecordAccessContext
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
-      const constructed = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+      const constructed = await constructor.start({
+        data: item, reusableFormDefs, formMode, record: recordMetadata,
+        translate: this.buildFormConfigTranslator(branding),
+      });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding, {
         includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
