@@ -205,7 +205,7 @@
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.62.0",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.1",
