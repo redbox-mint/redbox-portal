@@ -11,108 +11,7 @@ type HookFactoryResult = {
 export type HookRegistrationMap = Record<string, unknown>;
 
 type HookDone = (error?: Error) => void;
-type PromiseHookInitializer = (sails: Sails.Application) => void | Promise<void>;
-type CallbackHookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
-type HookInitializer = PromiseHookInitializer | CallbackHookInitializer;
-
-const FUNCTION_COMMENT_RX = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)/gm;
-
-function getFunctionParameterList(initializer: HookInitializer): string | undefined {
-  const source = Function.prototype.toString.call(initializer).replace(FUNCTION_COMMENT_RX, '');
-  const openingParenthesis = source.indexOf('(');
-  const arrow = source.indexOf('=>');
-
-  if (openingParenthesis === -1 || (arrow !== -1 && arrow < openingParenthesis)) {
-    return undefined;
-  }
-
-  let depth = 0;
-  let quote: string | undefined;
-  let escaped = false;
-
-  for (let index = openingParenthesis; index < source.length; index++) {
-    const character = source[index];
-
-    if (quote) {
-      if (escaped) {
-        escaped = false;
-      } else if (character === '\\') {
-        escaped = true;
-      } else if (character === quote) {
-        quote = undefined;
-      }
-      continue;
-    }
-
-    if (character === '"' || character === "'" || character === '`') {
-      quote = character;
-    } else if (character === '(') {
-      depth++;
-    } else if (character === ')') {
-      depth--;
-      if (depth === 0) {
-        return source.slice(openingParenthesis + 1, index);
-      }
-    }
-  }
-
-  return undefined;
-}
-
-function hasMultipleParameters(parameterList: string): boolean {
-  let depth = 0;
-  let quote: string | undefined;
-  let escaped = false;
-  let parameterCount = 0;
-  let hasParameterText = false;
-
-  for (const character of parameterList) {
-    if (quote) {
-      hasParameterText = true;
-      if (escaped) {
-        escaped = false;
-      } else if (character === '\\') {
-        escaped = true;
-      } else if (character === quote) {
-        quote = undefined;
-      }
-      continue;
-    }
-
-    if (character === '"' || character === "'" || character === '`') {
-      quote = character;
-      hasParameterText = true;
-    } else if (character === '(' || character === '[' || character === '{') {
-      depth++;
-      hasParameterText = true;
-    } else if (character === ')' || character === ']' || character === '}') {
-      depth--;
-      hasParameterText = true;
-    } else if (character === ',' && depth === 0) {
-      if (hasParameterText) {
-        parameterCount++;
-      }
-      hasParameterText = false;
-    } else if (!/\s/.test(character)) {
-      hasParameterText = true;
-    }
-  }
-
-  if (hasParameterText) {
-    parameterCount++;
-  }
-
-  return parameterCount >= 2;
-}
-
-function isCallbackInitializer(initializer: HookInitializer): initializer is CallbackHookInitializer {
-  if (initializer.length >= 2) {
-    return true;
-  }
-
-  const parameterList = getFunctionParameterList(initializer);
-  return parameterList !== undefined && hasMultipleParameters(parameterList);
-}
+type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
 
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
@@ -157,40 +56,38 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
     const initializer = options.initialize;
     if (initializer) {
       hook.initialize = async (done?: HookDone): Promise<void> => {
-        // Sails supports Promise-returning initializers, but its default
-        // implementation sniffing also supports the older callback form.
-        // Keep accepting both forms while exposing an async hook that also
-        // completes the callback supplied by traditional Sails.
-        try {
-          if (isCallbackInitializer(initializer)) {
-            await new Promise<void>((resolve, reject) => {
-              const initializerDone = (error?: Error): void => {
-                if (error) {
-                  reject(error);
-                } else {
-                  resolve();
-                }
-              };
+        return new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const initializerDone = (error?: unknown): void => {
+            if (settled) {
+              return;
+            }
+            settled = true;
 
-              try {
-                const result = initializer(sails, initializerDone);
-                void Promise.resolve(result).catch(reject);
-              } catch (error) {
-                reject(error);
+            if (error !== undefined) {
+              const normalizedError = error instanceof Error ? error : new Error(String(error));
+              if (done) {
+                done(normalizedError);
+                resolve();
+              } else {
+                reject(normalizedError);
               }
-            });
-          } else {
-            await (initializer as PromiseHookInitializer)(sails);
-          }
-        } catch (error) {
-          if (done) {
-            done(error instanceof Error ? error : new Error(String(error)));
-            return;
-          }
-          throw error;
-        }
+              return;
+            }
 
-        done?.();
+            done?.();
+            resolve();
+          };
+
+          try {
+            const result = initializer(sails, initializerDone);
+            if (result && typeof result.then === 'function') {
+              void Promise.resolve(result).then(() => initializerDone(), initializerDone);
+            }
+          } catch (error) {
+            initializerDone(error);
+          }
+        });
       };
     }
 
