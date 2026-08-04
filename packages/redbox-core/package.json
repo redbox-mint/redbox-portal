@@ -26,7 +26,7 @@
     "@agendajs/mongo-backend": "4.0.3",
     "@apidevtools/swagger-parser": "12.1.0",
 "@aws-sdk/s3-request-presigner": "3.1092.0",
-    "@ocfl/ocfl": "0.2.2",
+    "@ocfl/ocfl": "0.4.0",
     "@opentelemetry/api": "1.9.1",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
@@ -104,7 +104,7 @@
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.0",
     "zod": "4.4.3",
-    "@asteasolutions/zod-to-openapi": "8.5.0"
+    "@asteasolutions/zod-to-openapi": "9.1.0"
   },
   "overrides": {
     "axios": "1.17.0",
