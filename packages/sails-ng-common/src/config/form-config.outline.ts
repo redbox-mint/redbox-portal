@@ -78,6 +78,10 @@ export interface FormConfigFrame {
    * These are the only validation group names that can be used in the validator config.
    */
   validationGroups?: FormValidationGroups;
+  /**
+   * Controls how server-side metadata returned after save is applied to the form.
+   */
+  serverSyncOnSave?: 'always' | 'preserveLocalEdits' | 'never';
 
   // -- Component-related config --
 

@@ -60,6 +60,7 @@ export interface RecordAttachmentsConfig {
 
 export interface RecordFormConfig {
     htmlSanitizationMode: 'sanitize' | 'reject';
+    returnMetadataOnSave: boolean;
 }
 
 export interface RecordConfig {
@@ -95,7 +96,8 @@ export const record: RecordConfig = {
     diskSpaceThreshold: 10737418240,
     datastreamService: 'standarddatastreamservice',
     form: {
-        htmlSanitizationMode: 'sanitize'
+        htmlSanitizationMode: 'sanitize',
+        returnMetadataOnSave: true,
     },
     api: {
         create: { method: 'post', url: "/api/v1/object/$packageType" },

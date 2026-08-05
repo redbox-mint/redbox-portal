@@ -16,6 +16,7 @@ describe('RecordController getWorkflowSteps', () => {
   let originalWorkflowStepsService: any;
   let originalDashboardTypesService: any;
   let originalFormsService: any;
+  let originalFormRecordConsistencyService: any;
   let originalTranslationService: any;
 
   beforeEach(() => {
@@ -25,6 +26,7 @@ describe('RecordController getWorkflowSteps', () => {
     originalWorkflowStepsService = (global as any).WorkflowStepsService;
     originalDashboardTypesService = (global as any).DashboardTypesService;
     originalFormsService = (global as any).FormsService;
+    originalFormRecordConsistencyService = (global as any).FormRecordConsistencyService;
     originalTranslationService = (global as any).TranslationService;
 
     (global as any).sails = {
@@ -54,6 +56,10 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService = {
       getFormByStartingWorkflowStep: sinon.stub(),
       getFormByName: sinon.stub(),
+      buildClientFormConfig: sinon.stub(),
+    };
+    (global as any).FormRecordConsistencyService = {
+      projectMetadataClientFormConfig: sinon.stub(),
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => ({
@@ -81,6 +87,7 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).WorkflowStepsService = originalWorkflowStepsService;
     (global as any).DashboardTypesService = originalDashboardTypesService;
     (global as any).FormsService = originalFormsService;
+    (global as any).FormRecordConsistencyService = originalFormRecordConsistencyService;
     (global as any).TranslationService = originalTranslationService;
   });
 
@@ -492,6 +499,58 @@ describe('RecordController getWorkflowSteps', () => {
     controller.redirectLegacyConsolidatedDashboard(req, res);
 
     expect((res.redirect as any).calledWith('/default/rdmp/dashboard-view/consolidated')).to.be.true;
+  });
+
+  it('builds an effective client form config with the record brand and user roles', async () => {
+    const formConfig = { componentDefinitions: [] };
+    const clientFormConfig = { componentDefinitions: [{ name: 'title' }] };
+    (global as any).sails.config = { reusableFormDefinitions: { shared: {} } };
+    (global as any).FormsService.getFormByName.returns(of({ configuration: formConfig }));
+    (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
+    const req = { user: { roles: [{ name: 'admin' }, { name: '' }, {}] } } as unknown as Sails.Req;
+    const record = { metaMetadata: { brandId: 'record-brand' }, metadata: { title: 'A title' } };
+    const brand = { id: 'fallback-brand', name: 'fallback' };
+
+    const result = await (controller as any).getEffectiveClientFormConfig(
+      req, brand, record, 'form-1', false, 'edit'
+    );
+
+    expect(result).to.equal(clientFormConfig);
+    expect((global as any).FormsService.getFormByName.calledWith('form-1', false, 'record-brand')).to.be.true;
+    expect((global as any).FormsService.buildClientFormConfig.calledWith(
+      formConfig, 'edit', ['admin'], record.metadata, { shared: {} }, 'fallback', sinon.match.any,
+      { user: req.user, brand }
+    )).to.be.true;
+  });
+
+  it('returns no post-save metadata when syncing is not applicable', async () => {
+    (global as any).sails.config = { record: { form: { returnMetadataOnSave: true } } };
+    const req = {} as Sails.Req;
+    const brand = { id: 'brand-1', name: 'default' };
+
+    expect(await (controller as any).getPostSaveMetadata(req, brand, null, null)).to.equal(null);
+    expect(await (controller as any).getPostSaveMetadata(req, brand, { metadata: {} }, { name: 'next' })).to.equal(null);
+    expect(await (controller as any).getPostSaveMetadata(req, brand, { metadata: {}, metaMetadata: {} }, null)).to.equal(null);
+    (global as any).sails.config.record.form.returnMetadataOnSave = false;
+    expect(await (controller as any).getPostSaveMetadata(req, brand, {
+      metadata: {}, metaMetadata: { form: 'form-1' },
+    }, null)).to.equal(null);
+  });
+
+  it('projects post-save metadata and handles projection failures', async () => {
+    (global as any).sails.config = { record: { form: { returnMetadataOnSave: true } }, reusableFormDefinitions: {} };
+    const req = {} as Sails.Req;
+    const brand = { id: 'brand-1', name: 'default' };
+    const savedRecord = { redboxOid: 'oid-1', metaMetadata: { form: 'form-1' }, metadata: { title: 'server title' } };
+    const clientFormConfig = { componentDefinitions: [] };
+    sinon.stub(controller as any, 'getEffectiveClientFormConfig').resolves(clientFormConfig);
+    (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.resolves({ title: 'projected' });
+
+    expect(await (controller as any).getPostSaveMetadata(req, brand, savedRecord, null)).to.deep.equal({ title: 'projected' });
+
+    (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.rejects(new Error('projection failed'));
+    expect(await (controller as any).getPostSaveMetadata(req, brand, savedRecord, null)).to.equal(null);
+    expect((global as any).sails.log.error.calledOnce).to.be.true;
   });
 });
 

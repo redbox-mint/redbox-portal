@@ -1264,6 +1264,7 @@ describe("Client Visitor", async () => {
           defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
+        serverSyncOnSave: 'preserveLocalEdits',
         enabledValidationGroups: ["all"],
         validators: [],
         validationGroups: {
@@ -1407,6 +1408,7 @@ describe("Client Visitor", async () => {
           defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
+        serverSyncOnSave: 'preserveLocalEdits',
         enabledValidationGroups: ["all"],
         validators: [],
         validationGroups: {
@@ -1493,6 +1495,7 @@ describe("Client Visitor", async () => {
           defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
+        serverSyncOnSave: 'preserveLocalEdits',
         enabledValidationGroups: ["all"],
         validators: [],
         validationGroups: {
@@ -1661,6 +1664,7 @@ describe("Client Visitor", async () => {
           defaultComponentCssClasses: 'row',
         },
         editCssClasses: "redbox-form form",
+        serverSyncOnSave: 'preserveLocalEdits',
         enabledValidationGroups: ["all"],
         validators: [],
         validationGroups: {

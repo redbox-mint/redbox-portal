@@ -192,6 +192,8 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
   readonly savedData?: any;
   readonly oid?: string;
   readonly response?: any;
+  /** Snapshot of the actual form state after eligible server synchronization. */
+  readonly modelSnapshot?: Record<string, unknown>;
 }
 
 /**

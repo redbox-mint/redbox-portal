@@ -24,6 +24,7 @@ export class FormConfig implements FormConfigOutline {
     all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
     none: { description: 'Validate none of the fields.', initialMembership: 'none' },
   };
+  public serverSyncOnSave: 'always' | 'preserveLocalEdits' | 'never' = 'preserveLocalEdits';
   public componentDefinitions: AvailableFormComponentDefinitionOutlines[] = [];
   public debugValue: boolean = false;
   public expressions?: FormExpressionsConfigOutline[];

@@ -497,6 +497,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // classes because the runtime consumes the config directly.
     this.sharedProps.setPropOverride('behaviours', item, currentData);
     this.sharedProps.setPropOverride('attachmentFields', item, currentData);
+    this.sharedProps.setPropOverride('serverSyncOnSave', item, currentData);
     // Ensure the default validation groups are present.
     if (!item.validationGroups) {
       item.validationGroups = {};
