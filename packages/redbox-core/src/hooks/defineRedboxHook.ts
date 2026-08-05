@@ -5,16 +5,19 @@ type HookFactoryResult = {
   defaults?: Record<string, unknown>;
   routes?: unknown;
   configure?: () => void;
-  initialize?: (done: () => void) => void;
+  initialize?: (done?: (error?: Error) => void) => Promise<void>;
 };
 
 export type HookRegistrationMap = Record<string, unknown>;
+
+type HookDone = (error?: Error) => void;
+type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
 
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
   routes?: ((sails: Sails.Application) => unknown) | unknown;
   configure?: (sails: Sails.Application) => void;
-  initialize?: (sails: Sails.Application, done: () => void) => void;
+  initialize?: HookInitializer;
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
   registerRedboxControllers?: () => HookRegistrationMap;
@@ -41,9 +44,7 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
     };
 
     if (options.routes) {
-      hook.routes = typeof options.routes === 'function'
-        ? options.routes(sails)
-        : options.routes;
+      hook.routes = typeof options.routes === 'function' ? options.routes(sails) : options.routes;
     }
 
     if (options.configure) {
@@ -52,9 +53,41 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
       };
     }
 
-    if (options.initialize) {
-      hook.initialize = (done: () => void): void => {
-        options.initialize?.(sails, done);
+    const initializer = options.initialize;
+    if (initializer) {
+      hook.initialize = async (done?: HookDone): Promise<void> => {
+        return new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const initializerDone = (error?: unknown): void => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+
+            if (error !== undefined) {
+              const normalizedError = error instanceof Error ? error : new Error(String(error));
+              if (done) {
+                done(normalizedError);
+                resolve();
+              } else {
+                reject(normalizedError);
+              }
+              return;
+            }
+
+            done?.();
+            resolve();
+          };
+
+          try {
+            const result = initializer(sails, initializerDone);
+            if (result && typeof result.then === 'function') {
+              void Promise.resolve(result).then(() => initializerDone(), initializerDone);
+            }
+          } catch (error) {
+            initializerDone(error);
+          }
+        });
       };
     }
 
