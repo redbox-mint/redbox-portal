@@ -874,6 +874,50 @@ describe("MapComponent", () => {
     expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
   });
 
+  it("re-arms fitting after a retry budget exhausted during a nonzero resize", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    const mapSurface = fixture.nativeElement.querySelector(".rb-map-surface") as HTMLElement;
+    (mapComponent as any).pendingFeatureCollectionFit = {
+      type: "FeatureCollection",
+      features: [{type: "Feature", geometry: {type: "Point", coordinates: [144.96, -37.81]}, properties: {}}]
+    };
+    (mapComponent as any).pendingFitRetryCount = (mapComponent as any).maxPendingFitRetries;
+    (mapComponent as any).pendingFitSize = [729, 450];
+    Object.defineProperty(mapSurface, "clientWidth", {configurable: true, value: 800});
+    Object.defineProperty(mapSurface, "clientHeight", {configurable: true, value: 450});
+    fakeView.fit.calls.reset();
+
+    (mapComponent as any).rearmPendingFitRetryForLayoutChange();
+
+    expect((mapComponent as any).pendingFitRetryCount).toBe(0);
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+    expect(fakeView.fit).not.toHaveBeenCalled();
+    (mapComponent as any).pendingFitStableSince = Date.now() - 100;
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
+  });
+
   it("loads pre-existing features into draw state and invalidates map size", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",
