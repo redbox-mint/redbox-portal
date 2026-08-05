@@ -1525,9 +1525,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       return;
     }
     const currentSize: [number, number] = [mapElement.clientWidth, mapElement.clientHeight];
-    const hadRenderableSize = this.pendingFitSize != null && this.pendingFitSize[0] > 0 && this.pendingFitSize[1] > 0;
     const hasRenderableSize = currentSize[0] > 0 && currentSize[1] > 0;
-    if (hasRenderableSize && !hadRenderableSize) {
+    const dimensionsChanged = !this.pendingFitSize || this.pendingFitSize[0] !== currentSize[0] || this.pendingFitSize[1] !== currentSize[1];
+    if (hasRenderableSize && dimensionsChanged) {
       this.pendingFitRetryCount = 0;
     }
   }
