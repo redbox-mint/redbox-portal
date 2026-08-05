@@ -55,25 +55,35 @@ describe('defineRedboxHook', function () {
     // `routes` may be a plain object or a factory function. When it is a function it must be
     // invoked once, with the Sails app, and its return value used verbatim as `hook.routes`.
     const routes = {};
+    let routesCallCount = 0;
+    let receivedSails: Sails.Application | undefined;
     const hook = defineRedboxHook({
       routes: (sails: Sails.Application) => {
-        expect(sails).to.equal(testSails);
+        routesCallCount++;
+        receivedSails = sails;
         return routes;
       },
     })(testSails);
 
+    // Evaluated exactly once, with the Sails app the hook factory was called with.
+    expect(routesCallCount).to.equal(1);
+    expect(receivedSails).to.equal(testSails);
     // Identity check, not a deep equal: the exact object returned by the factory is passed
     // straight through without being copied or merged.
     expect(hook.routes).to.equal(routes);
+    // Hooks always get a `defaults` object, even when the definition omits one.
+    expect(hook.defaults).to.deep.equal({});
   });
 
   it('accepts and waits for callback-style initializers', async function () {
-    // Baseline callback case: the initializer finishes asynchronously (`setImmediate`) and
-    // signals completion via `done()`. The wrapper's promise must not resolve until then, so
-    // awaiting it is enough to guarantee `initialized` has been set.
+    // Baseline callback case: the initializer finishes asynchronously (`setImmediate` defers
+    // to a later event-loop tick) and signals completion via `done()`. The wrapper's promise
+    // must not resolve until then, so awaiting it is enough to guarantee `initialized` is set.
     let initialized = false;
+    let receivedSails: Sails.Application | undefined;
     const initialize = getInitialize({
-      initialize(_sails, done) {
+      initialize(sails, done) {
+        receivedSails = sails;
         setImmediate(() => {
           initialized = true;
           done();
@@ -81,7 +91,14 @@ describe('defineRedboxHook', function () {
       },
     });
 
-    await initialize();
+    const initialization = initialize();
+
+    // The initializer has started - and been handed the Sails app - but its deferred body has
+    // not run yet, so this is the "still in flight" state the wrapper has to wait out.
+    expect(receivedSails).to.equal(testSails);
+    expect(initialized).to.equal(false);
+
+    await initialization;
 
     expect(initialized).to.equal(true);
   });
@@ -102,22 +119,37 @@ describe('defineRedboxHook', function () {
       },
     });
 
-    // Drive it the way Sails would, passing an outer `done` callback.
+    // Nothing has run yet: the initializer is only invoked when `initialize` is called, so a
+    // `complete` that is already set would mean the helper above, not this call, ran it.
+    expect(complete).to.equal(undefined);
+
+    // Drive it the way Sails would, by passing an outer `done` callback.
     let doneCallCount = 0;
     const initialization = initialize(() => {
       doneCallCount++;
     });
-    // Yield one microtask so the wrapper has synchronously called the initializer and any
-    // promise plumbing inside it has had a chance to run.
+
+    // Yield one turn of the microtask queue. The wrapper calls the initializer synchronously,
+    // so `complete` is already assigned by this point; the yield matters because it also lets
+    // the wrapper's promise branch run. Had the wrapper misread this initializer as
+    // promise-style, it would have settled during this turn - so anything still pending after
+    // the yield is pending because the wrapper is genuinely waiting on the callback.
     await Promise.resolve();
 
-    // The wrapper always supplies its own callback, so the default is shadowed.
+    // The wrapper always supplies its own callback, so the declared default is shadowed. This
+    // is the assertion that separates the two branches: on the promise branch the initializer
+    // would have been called with one argument and `done` would be the local `() => {}`, which
+    // is still "a function" - so the argument count, not `complete`, is what proves the fix.
     expect(receivedArgumentCount).to.equal(2);
     expect(complete).to.be.a('function');
 
-    // The returned promise must still be pending: the initializer has not called back yet.
-    // `settled` is sampled after a microtask turn, which is enough to catch a wrapper that
-    // resolved eagerly instead of waiting for the callback.
+    // Nothing has completed yet, so Sails' callback must not have fired.
+    expect(doneCallCount).to.equal(0);
+
+    // The returned promise must still be pending. `.then()` callbacks are themselves queued as
+    // microtasks, so `settled` cannot be read on the same turn it is registered - the second
+    // yield below is what gives an already-resolved promise the chance to set it. Without that
+    // yield the assertion would pass trivially and catch nothing.
     let settled = false;
     void initialization.then(() => {
       settled = true;
@@ -128,8 +160,9 @@ describe('defineRedboxHook', function () {
     // Completing the callback resolves the wrapper's promise and notifies the outer `done`.
     complete?.();
     await initialization;
+    expect(doneCallCount).to.equal(1);
 
-    // Completion is latched: a second call — even one reporting an error — is ignored, so a
+    // Completion is latched: a second call - even one reporting an error - is ignored, so a
     // sloppy initializer cannot re-enter Sails' callback or reject an already-settled hook.
     complete?.(new Error('ignored completion'));
     expect(doneCallCount).to.equal(1);
@@ -138,32 +171,55 @@ describe('defineRedboxHook', function () {
   it('waits for callback initializers with a rest parameter', async function () {
     // Regression case #2 for the removed arity sniffing: rest parameters are also excluded
     // from `Function.length`, so this initializer likewise reports an arity of 1 despite
-    // being callback style. The callback must still arrive, as `rest[0]`.
+    // being callback style.
+    //
+    // Where `rest[0]` comes from: the wrapper always calls the initializer as
+    // `initializer(sails, initializerDone)`. A rest parameter collects every argument after
+    // the declared ones into an array, so `sails` binds to `_sails` and everything after it -
+    // here just the wrapper's own callback - lands in `rest`. `rest[0]` is therefore the same
+    // `done` that the previous test received as a named parameter; the tuple type
+    // `[(error?: Error) => void]` is what tells TypeScript to expect exactly that one entry.
     let complete: (() => void) | undefined;
+    let receivedRestLength = -1;
     const initialize = getInitialize({
       initialize(_sails: Sails.Application, ...rest: [(error?: Error) => void]) {
+        receivedRestLength = rest.length;
         complete = rest[0];
       },
     });
 
-    // Note: no outer `done` here — the wrapper must supply its callback regardless of how it
-    // was itself invoked.
+    // Not yet run, so the assignment below can only come from the call that follows.
+    expect(complete).to.equal(undefined);
+
+    // Note: no outer `done` here - the wrapper must supply its callback to the initializer
+    // regardless of how the wrapper itself was invoked.
     const initialization = initialize();
+
+    // As in the previous test, one microtask turn. The initializer runs synchronously, but
+    // yielding here lets the wrapper's promise branch settle if it took it by mistake, so the
+    // state observed below is the state the wrapper really intends.
     await Promise.resolve();
 
+    // Exactly one trailing argument, and it is the completion callback - a promise-style
+    // invocation would have passed none and left `rest` empty.
+    expect(receivedRestLength).to.equal(1);
     expect(complete).to.be.a('function');
+
+    // Completing through `rest[0]` must settle the wrapper's promise. If the callback had not
+    // been wired through, this await would never resolve and mocha would time out - so
+    // reaching the end of the test is itself the assertion.
     complete?.();
-    // Awaiting would hang if the callback had not been wired through, so reaching the end of
-    // the test is the assertion.
     await initialization;
   });
 
   it('completes Sails callback consumers for Promise initializers', async function () {
     // The other direction: a promise-style initializer that never touches `done`. The
     // wrapper still has to call Sails' callback once the promise settles.
+    let initializerRan = false;
     const initialize = getInitialize({
       initialize: async function initializePromise() {
         await Promise.resolve();
+        initializerRan = true;
       },
     });
 
@@ -172,9 +228,12 @@ describe('defineRedboxHook', function () {
     // change how Sails drives initialization.
     expect(initialize.length).to.equal(1);
 
-    // Consume it purely through the callback contract — the promise result is ignored here.
+    // Consume it purely through the callback contract - the returned promise is ignored, the
+    // way a callback-based Sails consumer would.
+    let doneCallCount = 0;
     await new Promise<void>((resolve, reject) => {
       initialize(error => {
+        doneCallCount++;
         if (error) {
           reject(error);
         } else {
@@ -182,6 +241,10 @@ describe('defineRedboxHook', function () {
         }
       });
     });
+
+    // The callback fired after the initializer finished, exactly once and without an error.
+    expect(initializerRan).to.equal(true);
+    expect(doneCallCount).to.equal(1);
   });
 
   it('passes initializer errors to Sails callback consumers', async function () {
