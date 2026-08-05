@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, InjectionToken, Input, OnDestroy, ViewChild, inject } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, InjectionToken, Input, NgZone, OnDestroy, ViewChild, inject } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions, TranslationService } from "@researchdatabox/portal-ng-common";
 import {
   MapComponentName,
@@ -309,6 +309,10 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
     }
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+
     .rb-map-wrapper {
       width: 100%;
     }
@@ -440,6 +444,8 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private readonly loadMapDependencies = inject(MAP_DEPENDENCIES_LOADER);
   private readonly translationService = inject(TranslationService);
   private readonly confirmationDialogService = inject(ConfirmationDialogService);
+  private readonly ngZone = inject(NgZone);
+  private readonly hostElement = inject(ElementRef<HTMLElement>);
 
   @Input() public override model?: MapModel;
   @ViewChild("mapHost", { static: false }) private mapHost?: ElementRef<HTMLDivElement>;
@@ -456,6 +462,18 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private draw?: any;
   private featureLayer?: OLVectorLayer<OLVectorSource>;
   private vectorSource?: OLVectorSource;
+  private vectorLayerFitPending = false;
+  private pendingFeatureCollectionFit?: MapModelValueType;
+  private pendingFitSize?: [number, number];
+  private pendingFitStableSince = 0;
+  private readonly mapFitStabilityDelayMs = 50;
+  private layoutObserver?: ResizeObserver;
+  private pendingFitRetryTimer?: number;
+  private pendingFitRetryCount = 0;
+  private readonly maxPendingFitRetries = 20;
+  private mapInitialisationRetryTimer?: number;
+  private mapInitialisationRetryCount = 0;
+  private readonly maxMapInitialisationRetries = 20;
   private mapDeps?: MapDependencies;
   private mapInteractionStates = new Map<OLInteraction, boolean>();
   private _destroyed = false;
@@ -464,6 +482,8 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private visibilityObserver?: IntersectionObserver;
   private center: [number, number] = [-24.67, 134.07];
   private zoom = 4;
+  // Prevent very small or zero-size feature extents from using OpenLayers' default zoom of 28.
+  private readonly defaultFeatureFitMaxZoom = 18;
   private tileLayers: MapTileLayerConfig[] = [];
   private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
@@ -559,6 +579,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
   override ngAfterViewInit(): void {
     super.ngAfterViewInit();
+    this.installVisibilityObserver();
     void this.loadMapDependencies()
       .then((deps) => {
         if (this._destroyed) {
@@ -579,6 +600,16 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this._destroyed = true;
     this.visibilityObserver?.disconnect();
     this.visibilityObserver = undefined;
+    this.layoutObserver?.disconnect();
+    this.layoutObserver = undefined;
+    if (this.pendingFitRetryTimer != null) {
+      globalThis.clearTimeout(this.pendingFitRetryTimer);
+      this.pendingFitRetryTimer = undefined;
+    }
+    if (this.mapInitialisationRetryTimer != null) {
+      globalThis.clearTimeout(this.mapInitialisationRetryTimer);
+      this.mapInitialisationRetryTimer = undefined;
+    }
     this.drawReadyObserver?.disconnect();
     this.drawReadyObserver = undefined;
     try {
@@ -594,6 +625,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     this.featureLayer = undefined;
     this.vectorSource = undefined;
+    this.pendingFeatureCollectionFit = undefined;
     this.selectedFeatureIds.clear();
   }
 
@@ -602,6 +634,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!importedValue) {
       return;
     }
+    this.clearPendingFeatureCollectionFit();
     this.importError = "";
     this.importDataString = "";
     const merged = this.mergeCollections(this.currentModelValue(), importedValue);
@@ -614,7 +647,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       this.renderValue(merged, true);
     }
     this.invalidateMap();
-    this.scheduleFitToFeatureCollectionBounds(valueToFit);
+    if (this.isEditMode()) {
+      this.scheduleFitToFeatureCollectionBounds(valueToFit);
+    }
   }
 
   public async onClearAllClicked(): Promise<void> {
@@ -631,6 +666,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!confirmed) {
       return;
     }
+    this.clearPendingFeatureCollectionFit();
     const emptyValue = emptyFeatureCollection();
     try {
       this.draw?.clear?.();
@@ -659,7 +695,15 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
   private initialiseMap(): void {
     if (!this.mapHost?.nativeElement || this.map || !this.mapDeps) {
+      if (!this.map && this.mapDeps) {
+        this.scheduleMapInitialisationRetry();
+      }
       return;
+    }
+    this.mapInitialisationRetryCount = 0;
+    if (this.mapInitialisationRetryTimer != null) {
+      globalThis.clearTimeout(this.mapInitialisationRetryTimer);
+      this.mapInitialisationRetryTimer = undefined;
     }
     const deps = this.mapDeps;
 
@@ -718,7 +762,6 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       this.renderReadonlyLayer(this.currentReadonlyValue());
     }
 
-    this.installVisibilityObserver();
     this.invalidateMap();
   }
 
@@ -738,6 +781,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       const startingValue = this.currentModelValue();
       if (startingValue.features.length > 0) {
         this.pushFeaturesToDraw(startingValue.features);
+        this.scheduleFitToFeatureCollectionBounds(startingValue);
       }
       this.mapError = "";
     } catch (error) {
@@ -998,8 +1042,12 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.featureLayer = new this.mapDeps.VectorLayer({
       source: this.vectorSource
     });
+    this.vectorLayerFitPending = value.features.length > 0 && this.hasLayerExtent();
+    if (this.vectorLayerFitPending) {
+      this.pendingFitRetryCount = 0;
+    }
     this.map.addLayer(this.featureLayer);
-    this.fitToLayerBounds();
+    this.schedulePendingFitRetry();
   }
 
   private removeFeatureLayer(): void {
@@ -1008,9 +1056,12 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     this.featureLayer = undefined;
     this.vectorSource = undefined;
+    this.vectorLayerFitPending = false;
+    this.clearPendingFeatureCollectionFit();
   }
 
   private renderValue(value: MapModelValueType, updateModel: boolean): void {
+    this.clearPendingFeatureCollectionFit();
     if (this.isEditMode()) {
       this.pushFeaturesToDraw(value.features);
       if (updateModel) {
@@ -1419,15 +1470,81 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private installVisibilityObserver(): void {
-    if (!this.mapHost?.nativeElement || typeof IntersectionObserver === "undefined") {
+    const hostElement = this.hostElement.nativeElement;
+    if (typeof IntersectionObserver !== "undefined") {
+      this.visibilityObserver = new IntersectionObserver((entries) => {
+        if (entries[0]?.isIntersecting) {
+          this.ngZone.run(() => this.handleMapLayoutChange());
+        }
+      }, { threshold: 0.1 });
+      this.visibilityObserver.observe(hostElement);
+    }
+    if (typeof ResizeObserver !== "undefined") {
+      this.layoutObserver = new ResizeObserver(() => {
+        this.ngZone.run(() => this.handleMapLayoutChange());
+      });
+      this.layoutObserver.observe(hostElement);
+    }
+  }
+
+  private handleMapLayoutChange(): void {
+    if (!this.map && this.mapDeps && this.mapHost?.nativeElement) {
+      this.initialiseMap();
       return;
     }
-    this.visibilityObserver = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) {
-        this.invalidateMap();
+    if (this.map) {
+      const targetChanged = this.attachMapToCurrentHost();
+      if (targetChanged) {
+        this.pendingFitRetryCount = 0;
+      } else {
+        this.rearmPendingFitRetryForLayoutChange();
       }
-    }, { threshold: 0.1 });
-    this.visibilityObserver.observe(this.mapHost.nativeElement);
+      this.invalidateMap();
+    }
+  }
+
+  private attachMapToCurrentHost(): boolean {
+    const mapHost = this.mapHost?.nativeElement;
+    if (!this.map || !mapHost) {
+      return false;
+    }
+    const currentTarget = (this.map as any).getTargetElement?.() as HTMLElement | undefined;
+    const targetChanged = currentTarget !== mapHost;
+    if (targetChanged) {
+      this.map.setTarget(mapHost);
+    }
+    return targetChanged;
+  }
+
+  private rearmPendingFitRetryForLayoutChange(): void {
+    if (!this.hasPendingMapFit() || this.pendingFitRetryCount < this.maxPendingFitRetries) {
+      return;
+    }
+    const mapElement = this.mapHost?.nativeElement;
+    if (!mapElement) {
+      return;
+    }
+    const currentSize: [number, number] = [mapElement.clientWidth, mapElement.clientHeight];
+    const hadRenderableSize = this.pendingFitSize != null && this.pendingFitSize[0] > 0 && this.pendingFitSize[1] > 0;
+    const hasRenderableSize = currentSize[0] > 0 && currentSize[1] > 0;
+    if (hasRenderableSize && !hadRenderableSize) {
+      this.pendingFitRetryCount = 0;
+    }
+  }
+
+  private scheduleMapInitialisationRetry(): void {
+    if (this.map || !this.mapDeps || this.mapInitialisationRetryTimer != null ||
+      this.mapInitialisationRetryCount >= this.maxMapInitialisationRetries) {
+      return;
+    }
+    this.mapInitialisationRetryTimer = globalThis.setTimeout(() => {
+      this.mapInitialisationRetryTimer = undefined;
+      if (this.map || !this.mapDeps) {
+        return;
+      }
+      this.mapInitialisationRetryCount += 1;
+      this.initialiseMap();
+    }, 100);
   }
 
   private invalidateMap(): void {
@@ -1436,45 +1553,137 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     }
     globalThis.requestAnimationFrame?.(() => {
       this.map?.updateSize();
-      if (this.vectorSource) {
-        this.fitToLayerBounds();
+      if (this.vectorSource && this.vectorLayerFitPending && this.hasStableMapSizeForFit()) {
+        this.vectorLayerFitPending = !this.fitToLayerBounds();
       }
+      this.fitPendingFeatureCollectionBounds();
+      this.schedulePendingFitRetry();
     });
     globalThis.setTimeout(() => {
       this.map?.updateSize();
-      if (this.vectorSource) {
-        this.fitToLayerBounds();
+      if (this.vectorSource && this.vectorLayerFitPending && this.hasStableMapSizeForFit()) {
+        this.vectorLayerFitPending = !this.fitToLayerBounds();
       }
+      this.fitPendingFeatureCollectionBounds();
+      this.schedulePendingFitRetry();
     }, 0);
   }
 
-  private fitToLayerBounds(): void {
-    if (!this.map || !this.vectorSource || !this.mapDeps) {
+  private hasStableMapSizeForFit(): boolean {
+    const mapElement = this.mapHost?.nativeElement;
+    if (!mapElement) {
+      this.pendingFitSize = undefined;
+      this.pendingFitStableSince = 0;
+      return false;
+    }
+    const currentSize: [number, number] = [mapElement.clientWidth, mapElement.clientHeight];
+    if (!this.pendingFitSize || this.pendingFitSize[0] !== currentSize[0] || this.pendingFitSize[1] !== currentSize[1]) {
+      this.pendingFitSize = currentSize;
+      const hasRenderableSize = currentSize[0] > 0 && currentSize[1] > 0;
+      this.pendingFitStableSince = hasRenderableSize ? Date.now() : 0;
+      return false;
+    }
+    if (currentSize[0] <= 0 || currentSize[1] <= 0) {
+      return false;
+    }
+    return Date.now() - this.pendingFitStableSince >= this.mapFitStabilityDelayMs;
+  }
+
+  private hasPendingMapFit(): boolean {
+    return this.vectorLayerFitPending || this.pendingFeatureCollectionFit != null;
+  }
+
+  private clearPendingFeatureCollectionFit(): void {
+    this.pendingFeatureCollectionFit = undefined;
+  }
+
+  private schedulePendingFitRetry(): void {
+    if (!this.hasPendingMapFit() || this.pendingFitRetryTimer != null ||
+      this.pendingFitRetryCount >= this.maxPendingFitRetries) {
       return;
     }
-    const extent = this.vectorSource.getExtent();
-    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
-      this.map.getView().fit(extent, { padding: [12, 12, 12, 12] });
+    this.pendingFitRetryTimer = globalThis.setTimeout(() => {
+      this.pendingFitRetryTimer = undefined;
+      if (!this.hasPendingMapFit()) {
+        return;
+      }
+      this.pendingFitRetryCount += 1;
+      this.invalidateMap();
+    }, 100);
+  }
+
+  private hasLayerExtent(): boolean {
+    if (!this.vectorSource || !this.mapDeps) {
+      return false;
     }
+    const extent = this.vectorSource.getExtent();
+    return extent != null && !this.mapDeps.extentIsEmpty(extent);
+  }
+
+  private fitToLayerBounds(): boolean {
+    const source = this.vectorSource;
+    if (!this.map || !this.mapDeps || !source || !this.hasLayerExtent()) {
+      return false;
+    }
+    const extent = source.getExtent();
+    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+      this.map.getView().fit(extent, {padding: [12, 12, 12, 12], maxZoom: this.getFeatureFitMaxZoom()});
+      return true;
+    }
+    return false;
   }
 
   private scheduleFitToFeatureCollectionBounds(value: MapModelValueType): void {
     if (!this.map || !this.mapDeps || value.features.length === 0) {
       return;
     }
-    globalThis.requestAnimationFrame?.(() => this.fitToFeatureCollectionBounds(value));
-    globalThis.setTimeout(() => this.fitToFeatureCollectionBounds(value), 0);
+    this.pendingFeatureCollectionFit = value;
+    this.pendingFitRetryCount = 0;
+    globalThis.requestAnimationFrame?.(() => this.fitPendingFeatureCollectionBounds());
+    globalThis.setTimeout(() => this.fitPendingFeatureCollectionBounds(), 0);
   }
 
-  private fitToFeatureCollectionBounds(value: MapModelValueType): void {
-    if (!this.map || !this.mapDeps || value.features.length === 0) {
+  private fitPendingFeatureCollectionBounds(): void {
+    if (!this.pendingFeatureCollectionFit || !this.hasStableMapSizeForFit()) {
       return;
     }
-    const { source } = this.createVectorSourceFromFeatureCollection(value);
-    const extent = source.getExtent();
-    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
-      this.map.getView().fit(extent, { padding: [24, 24, 24, 24] });
+    const value = this.pendingFeatureCollectionFit;
+    if (this.fitToFeatureCollectionBounds(value)) {
+      this.pendingFeatureCollectionFit = undefined;
+      this.pendingFitRetryCount = 0;
     }
+    this.schedulePendingFitRetry();
+  }
+
+  private fitToFeatureCollectionBounds(value: MapModelValueType): boolean {
+    if (!this.map || !this.mapDeps || value.features.length === 0) {
+      return false;
+    }
+    try {
+      const { source } = this.createVectorSourceFromFeatureCollection(value);
+      const extent = source.getExtent();
+      if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+        this.map.getView().fit(extent, {padding: [24, 24, 24, 24], maxZoom: this.getFeatureFitMaxZoom()});
+      }
+    } catch (error) {
+      this.mapError ||= this.translateText("@map-feature-fit-error", "Saved map features could not be displayed.");
+      this.loggerService.warn(`${this.logName}: failed to fit map feature collection bounds.`, error);
+    }
+    // Empty or invalid feature collections are handled without retrying indefinitely.
+    return true;
+  }
+
+  private getFeatureFitMaxZoom(): number {
+    const rawConfiguredMaxZoom = this.tileLayers[0]?.options?.["maxZoom"];
+    const configuredMaxZoom = typeof rawConfiguredMaxZoom === "number"
+      ? rawConfiguredMaxZoom
+      : typeof rawConfiguredMaxZoom === "string" && rawConfiguredMaxZoom.trim().length > 0
+        ? Number(rawConfiguredMaxZoom)
+        : NaN;
+    if (Number.isFinite(configuredMaxZoom)) {
+      return Math.min(this.defaultFeatureFitMaxZoom, Math.max(0, configuredMaxZoom));
+    }
+    return this.defaultFeatureFitMaxZoom;
   }
 
   public isEditMode(): boolean {
