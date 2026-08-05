@@ -54,9 +54,25 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
   CheckboxInputFieldComponentDefinitionFrame
 > {
   protected override logName = CheckboxInputComponentName;
-  public placeholder: string | undefined = '';
-  public multipleValues: boolean = true;
-  public booleanMode: boolean = false;
+
+  public get multipleValues(): boolean {
+    return this.getBooleanProperty('multipleValues', true);
+  }
+
+  public get booleanMode(): boolean {
+    return this.getBooleanProperty('booleanMode', false);
+  }
+
+  public override get options(): CheckboxOption[] {
+    const options = super.options;
+    return this.booleanMode && options.length === 0
+      ? [{ label: '', value: 'true' }]
+      : options;
+  }
+
+  public override set options(value: CheckboxOption[]) {
+    super.options = value;
+  }
 
   /**
    * The model associated with this component.
@@ -64,15 +80,8 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
   @Input() public override model?: CheckboxInputModel;
 
   protected override async initData(): Promise<void> {
-    const config = this.getOptionInputConfig(CheckboxInputComponentName);
-    this.setSharedOptionConfig(config);
-    this.placeholder = config?.placeholder ?? "";
-    this.multipleValues = config?.multipleValues ?? true;
-    this.booleanMode = config?.booleanMode ?? false;
-    if (this.booleanMode && this.options.length === 0) {
-      this.options = [{ label: '', value: 'true' }];
-    }
-
+    // Validate the component definition; the remaining properties are read from the config on demand.
+    this.getOptionInputConfig(CheckboxInputComponentName);
   }
 
   /**

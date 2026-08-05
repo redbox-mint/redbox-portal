@@ -61,8 +61,8 @@ export class RadioInputComponent extends OptionInputBaseComponent<
   @Input() public override model?: RadioInputModel;
 
   protected override async initData(): Promise<void> {
-    const config = this.getOptionInputConfig(RadioInputComponentName);
-    this.setSharedOptionConfig(config);
+    // Validate the component definition; options and tooltip are read from the config on demand.
+    this.getOptionInputConfig(RadioInputComponentName);
   }
 
   public isOptionSelected(optionValue: string): boolean {
