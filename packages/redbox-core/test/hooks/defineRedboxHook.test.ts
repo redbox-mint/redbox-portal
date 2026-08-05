@@ -35,9 +35,7 @@ const testSails = {} as Sails.Application;
  * `initialize` — i.e. the wrapper that the tests exercise, not the initializer that was
  * passed in. Throws rather than returning `undefined` so each test can assume it exists.
  */
-function getInitialize(
-  options: Parameters<typeof defineRedboxHook>[0]
-): (done?: (error?: Error) => void) => Promise<void> {
+function getInitialize(options: Parameters<typeof defineRedboxHook>[0]): () => Promise<void> {
   const hook = defineRedboxHook(options)(testSails);
   if (!hook.initialize) {
     throw new Error('Expected hook initializer to be defined.');
@@ -223,31 +221,16 @@ describe('defineRedboxHook', function () {
       },
     });
 
-    // The exposed wrapper must declare exactly one parameter. Sails checks this arity to
-    // decide whether to hand the hook a `done` callback, so an arity of 0 would silently
-    // change how Sails drives initialization.
-    expect(initialize.length).to.equal(1);
+    // The exposed wrapper must have no callback parameter. Sails would otherwise pass a
+    // callback to an async function and reject it as an unexpected callback.
+    expect(initialize.length).to.equal(0);
+    await initialize();
 
-    // Consume it purely through the callback contract - the returned promise is ignored, the
-    // way a callback-based Sails consumer would.
-    let doneCallCount = 0;
-    await new Promise<void>((resolve, reject) => {
-      initialize(error => {
-        doneCallCount++;
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-
-    // The callback fired after the initializer finished, exactly once and without an error.
+    // The initializer completed after its callback fired.
     expect(initializerRan).to.equal(true);
-    expect(doneCallCount).to.equal(1);
   });
 
-  it('passes initializer errors to Sails callback consumers', async function () {
+  it('surfaces asynchronous initializer errors', async function () {
     // A rejected initializer must surface as the callback's error argument, preserving the
     // original Error instance rather than wrapping or stringifying it.
     const error = new Error('initialization failed');
@@ -257,13 +240,12 @@ describe('defineRedboxHook', function () {
       },
     });
 
-    // Using `resolve` directly as the Sails callback captures whatever error it is handed.
-    // The wrapper's own promise is deliberately ignored (`void`): when a callback is present
-    // the failure is reported through it, and the promise resolves instead of rejecting so
-    // there is no unhandled rejection.
-    const receivedError = await new Promise<Error | undefined>(resolve => {
-      void initialize(resolve);
-    });
+    let receivedError: unknown;
+    try {
+      await initialize();
+    } catch (caughtError) {
+      receivedError = caughtError;
+    }
 
     expect(receivedError).to.equal(error);
   });
@@ -288,21 +270,23 @@ describe('defineRedboxHook', function () {
     expect(receivedError).to.equal(error);
   });
 
-  it('normalizes synchronous initializer errors for Sails callback consumers', async function () {
-    // Two things at once: a throw from the *synchronous* body of an initializer is caught
-    // (rather than escaping the wrapper), and a non-Error throwable is normalized into an
-    // Error so downstream Sails code can rely on `.message`.
+  it('surfaces synchronous initializer errors', async function () {
+    // A throw from the synchronous body of an initializer is caught rather than escaping
+    // the wrapper, and non-Error throwables are normalized for Sails.
     const initialize = getInitialize({
       initialize() {
         throw 'initialization failed';
       },
     });
 
-    const receivedError = await new Promise<Error | undefined>(resolve => {
-      void initialize(resolve);
-    });
+    let receivedError: unknown;
+    try {
+      await initialize();
+    } catch (caughtError) {
+      receivedError = caughtError;
+    }
 
     expect(receivedError).to.be.instanceOf(Error);
-    expect(receivedError?.message).to.equal('initialization failed');
+    expect((receivedError as Error).message).to.equal('initialization failed');
   });
 });
