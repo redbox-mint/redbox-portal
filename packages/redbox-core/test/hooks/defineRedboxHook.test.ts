@@ -10,9 +10,9 @@
  *
  * Sails itself also decides how to drive a hook's `initialize` by inspecting the function's
  * arity (`initialize.length`): an arity of at least 1 means "I will call you with a `done`
- * callback". So the wrapper has to satisfy both directions at once — accept either author
- * style underneath, while always presenting a single-argument, promise-returning function
- * outward.
+ * callback", which Sails then rejects when the function is async. So the wrapper has to
+ * satisfy both directions at once — accept either author style underneath, while presenting a
+ * zero-argument, promise-returning function outward.
  *
  * An earlier implementation sniffed the author's function arity to guess which style was in
  * use. That is unreliable, because JavaScript's `Function.length` ignores parameters with
@@ -121,11 +121,7 @@ describe('defineRedboxHook', function () {
     // `complete` that is already set would mean the helper above, not this call, ran it.
     expect(complete).to.equal(undefined);
 
-    // Drive it the way Sails would, by passing an outer `done` callback.
-    let doneCallCount = 0;
-    const initialization = initialize(() => {
-      doneCallCount++;
-    });
+    const initialization = initialize();
 
     // Yield one turn of the microtask queue. The wrapper calls the initializer synchronously,
     // so `complete` is already assigned by this point; the yield matters because it also lets
@@ -134,15 +130,12 @@ describe('defineRedboxHook', function () {
     // the yield is pending because the wrapper is genuinely waiting on the callback.
     await Promise.resolve();
 
-    // The wrapper always supplies its own callback, so the declared default is shadowed. This
-    // is the assertion that separates the two branches: on the promise branch the initializer
-    // would have been called with one argument and `done` would be the local `() => {}`, which
-    // is still "a function" - so the argument count, not `complete`, is what proves the fix.
+    // The wrapper always supplies its own callback, so the declared default is shadowed. The
+    // argument count, not `complete`, is what proves it: a wrapper that misread this as
+    // promise-style would have passed one argument and left `done` as the local `() => {}`,
+    // which is still "a function".
     expect(receivedArgumentCount).to.equal(2);
     expect(complete).to.be.a('function');
-
-    // Nothing has completed yet, so Sails' callback must not have fired.
-    expect(doneCallCount).to.equal(0);
 
     // The returned promise must still be pending. `.then()` callbacks are themselves queued as
     // microtasks, so `settled` cannot be read on the same turn it is registered - the second
@@ -155,15 +148,13 @@ describe('defineRedboxHook', function () {
     await Promise.resolve();
     expect(settled).to.equal(false);
 
-    // Completing the callback resolves the wrapper's promise and notifies the outer `done`.
+    // Completing the callback resolves the wrapper's promise.
     complete?.();
     await initialization;
-    expect(doneCallCount).to.equal(1);
 
     // Completion is latched: a second call - even one reporting an error - is ignored, so a
-    // sloppy initializer cannot re-enter Sails' callback or reject an already-settled hook.
+    // sloppy initializer cannot reject an already-settled hook.
     complete?.(new Error('ignored completion'));
-    expect(doneCallCount).to.equal(1);
   });
 
   it('waits for callback initializers with a rest parameter', async function () {

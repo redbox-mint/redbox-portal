@@ -10,10 +10,12 @@ type HookFactoryResult = {
 
 export type HookRegistrationMap = Record<string, unknown>;
 
-type HookInitializer = {
-  (sails: Sails.Application): void | Promise<void>;
-  (sails: Sails.Application, done: (error?: Error) => void): void;
-};
+type HookDone = (error?: Error) => void;
+
+// A single signature, not an overload pair: TypeScript lets an author supply a function that
+// declares fewer parameters, so `(sails) => Promise<void>` and `(sails, done) => void` are
+// both assignable. An overload pair would reject the callback style outright.
+type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
 
 function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
@@ -59,37 +61,36 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
       };
     }
 
-    if (options.initialize) {
+    const initializer = options.initialize;
+    if (initializer) {
       hook.initialize = async (): Promise<void> => {
-        const initializer = options.initialize as HookInitializer;
-
-        // Sails treats an initializer with a callback parameter as callback-style. Expose a
-        // zero-argument Promise initializer so Sails never supplies a callback to an async
-        // wrapper, while still adapting legacy callback-style hook initializers internally.
-        if (initializer.length >= 2) {
-          await new Promise<void>((resolve, reject) => {
-            const done = (error?: Error): void => {
-              if (error) {
-                reject(normalizeError(error));
-              } else {
-                resolve();
-              }
-            };
-
-            try {
-              initializer(sails, done);
-            } catch (error) {
-              reject(normalizeError(error));
+        // Sails sees a zero-argument Promise initializer, so it never hands the wrapper a
+        // callback of its own. Internally the bridge always supplies `done` and also honours a
+        // returned promise, so both author styles work without sniffing Function.length -
+        // which is inaccurate for default and rest parameters.
+        await new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const done: HookDone = error => {
+            if (settled) {
+              return;
             }
-          });
-          return;
-        }
+            settled = true;
+            if (error) {
+              reject(normalizeError(error));
+            } else {
+              resolve();
+            }
+          };
 
-        try {
-          await initializer(sails);
-        } catch (error) {
-          throw normalizeError(error);
-        }
+          try {
+            const result = initializer(sails, done);
+            if (result && typeof result.then === 'function') {
+              void Promise.resolve(result).then(() => done(), done);
+            }
+          } catch (error) {
+            done(normalizeError(error));
+          }
+        });
       };
     }
 
