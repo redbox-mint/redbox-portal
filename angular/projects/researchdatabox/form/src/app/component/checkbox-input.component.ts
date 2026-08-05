@@ -63,6 +63,17 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
     return this.getBooleanProperty('booleanMode', false);
   }
 
+  public override get options(): CheckboxOption[] {
+    const options = super.options;
+    return this.booleanMode && options.length === 0
+      ? [{ label: '', value: 'true' }]
+      : options;
+  }
+
+  public override set options(value: CheckboxOption[]) {
+    super.options = value;
+  }
+
   /**
    * The model associated with this component.
    */
@@ -71,9 +82,6 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
   protected override async initData(): Promise<void> {
     // Validate the component definition; the remaining properties are read from the config on demand.
     this.getOptionInputConfig(CheckboxInputComponentName);
-    if (this.booleanMode && this.options.length === 0) {
-      this.options = [{ label: '', value: 'true' }];
-    }
   }
 
   /**

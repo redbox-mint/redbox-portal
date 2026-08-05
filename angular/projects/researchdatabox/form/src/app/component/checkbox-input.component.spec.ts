@@ -151,6 +151,49 @@ describe('CheckboxInputComponent', () => {
     expect(checkbox?.checked).toBeTrue();
   });
 
+  it('should render the legacy toggle when booleanMode changes after initialisation', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_checkbox_dynamic_boolean_mode',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'checkbox_dynamic_boolean_mode',
+          model: {
+            class: 'CheckboxInputModel',
+            config: {
+              value: false,
+            },
+          },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              booleanMode: false,
+              options: [],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(CheckboxInputComponent))
+      .componentInstance as CheckboxInputComponent;
+
+    expect(fixture.nativeElement.querySelector('input[type="checkbox"]')).toBeNull();
+
+    component.setProperty('booleanMode', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="checkbox"]');
+    expect(checkbox).not.toBeNull();
+    expect(checkbox?.id).toEqual('checkbox_dynamic_boolean_mode-true');
+  });
+
   it('should resolve language-map labels for options', async () => {
     translationService.translationMap = translationService.translationMap || {};
     translationService.translationMap['@checkbox-language-label'] = 'English Label';
