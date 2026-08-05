@@ -197,21 +197,48 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     this.valueSyncSub?.unsubscribe();
     this.valueSyncSub = this.formControl.valueChanges.subscribe((value) => {
       const nextValue = value ?? "";
-      this.sourceValue = nextValue;
-      this.renderedViewHtml = this.toViewHtml(nextValue);
-      if (!this.editor) {
-        return;
-      }
+      this.applyViewValue(nextValue);
       if (this.skipNextSync) {
+        // This change originated from the editor itself, so pushing it back would loop.
         this.skipNextSync = false;
         return;
       }
-      if (nextValue === this.getEditorValue(this.editor)) {
-        return;
-      }
-      this.skipNextSync = true;
-      this.setEditorValue(nextValue);
+      this.applyEditorValue(nextValue);
     });
+  }
+
+  /**
+   * Invoked by the framework after expression-driven `model.value` updates,
+   * which use emitEvent:false and therefore bypass the valueChanges subscription.
+   *
+   * Without this, a "populate from related record" expression updates the model
+   * but leaves the editor rendering its stale (usually empty) document.
+   */
+  public async syncDisplayFromModel(): Promise<void> {
+    const control = this.model?.formControl;
+    if (!control) {
+      return;
+    }
+    const nextValue = control.value ?? "";
+    this.applyViewValue(nextValue);
+    this.applyEditorValue(nextValue);
+  }
+
+  private applyViewValue(value: string): void {
+    this.sourceValue = value;
+    this.renderedViewHtml = this.toViewHtml(value);
+  }
+
+  private applyEditorValue(value: string): void {
+    if (!this.editor) {
+      return;
+    }
+    if (value === this.getEditorValue(this.editor)) {
+      return;
+    }
+    // Guard the onUpdate handler that setContent triggers from writing back to the control.
+    this.skipNextSync = true;
+    this.setEditorValue(value);
   }
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
