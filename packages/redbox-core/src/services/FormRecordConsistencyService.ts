@@ -247,7 +247,6 @@ export namespace Services {
                 // pre-calculate aspects of the original item
                 const isKeyInOriginal = key in originalRecord;
                 const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
-                const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
                 const isKeyInChanged = key in changedRecord;
@@ -261,6 +260,14 @@ export namespace Services {
                 const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
                 const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
                 const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
+                const originalValueForMerge = isKeyInOriginal
+                  ? originalValue
+                  : isPermittedChangeArray
+                    ? []
+                    : isPermittedChangeObject
+                      ? {}
+                      : undefined;
+                const originalValueForMergeType = guessType(originalValueForMerge);
 
                 // ensure the permitted changes item is valid
                 const isPermittedChangeMatches = {
@@ -276,9 +283,8 @@ export namespace Services {
                 // evaluate the combinations of original and changed values
                 if (
                     isPermittedChangeArray
-                    && isKeyInOriginal
                     && isKeyInChanged
-                    && originalValueType === "array"
+                    && originalValueForMergeType === "array"
                     && changedValueType === "array"
                 ) {
                     // The change is permitted and an array, original and changed have the key and both are arrays.
@@ -313,9 +319,8 @@ export namespace Services {
 
                 } else if (
                     isPermittedChangeObject
-                    && isKeyInOriginal
                     && isKeyInChanged
-                    && originalValueType === "object"
+                    && originalValueForMergeType === "object"
                     && changedValueType === "object"
                 ) {
                     // The change is permitted and an object, original and changed have the key and both are objects.
@@ -323,7 +328,7 @@ export namespace Services {
                     const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
                     const newPath = [...currentPath, key];
                     const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
-                    result[key] = this.mergeRecordMetadataPermitted(originalValue as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
+                    result[key] = this.mergeRecordMetadataPermitted(originalValueForMerge as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
 
                 } else if (isKeyInPermittedChange && isKeyInChanged) {
                     // The change is permitted and the key is in the changed.

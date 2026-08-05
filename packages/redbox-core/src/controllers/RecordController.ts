@@ -319,7 +319,8 @@ export namespace Controllers {
         record.metadata,
         reusableFormDefs,
         String(brand?.name ?? ''),
-        contextVariablesMap
+        contextVariablesMap,
+        { user: req.user as UserModel, brand }
       );
     }
 

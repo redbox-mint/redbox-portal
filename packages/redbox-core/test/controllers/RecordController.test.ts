@@ -509,15 +509,17 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
     const req = { user: { roles: [{ name: 'admin' }, { name: '' }, {}] } } as unknown as Sails.Req;
     const record = { metaMetadata: { brandId: 'record-brand' }, metadata: { title: 'A title' } };
+    const brand = { id: 'fallback-brand', name: 'fallback' };
 
     const result = await (controller as any).getEffectiveClientFormConfig(
-      req, { id: 'fallback-brand', name: 'fallback' }, record, 'form-1', false, 'edit'
+      req, brand, record, 'form-1', false, 'edit'
     );
 
     expect(result).to.equal(clientFormConfig);
     expect((global as any).FormsService.getFormByName.calledWith('form-1', false, 'record-brand')).to.be.true;
     expect((global as any).FormsService.buildClientFormConfig.calledWith(
-      formConfig, 'edit', ['admin'], record.metadata, { shared: {} }, 'fallback', sinon.match.any
+      formConfig, 'edit', ['admin'], record.metadata, { shared: {} }, 'fallback', sinon.match.any,
+      { user: req.user, brand }
     )).to.be.true;
   });
 

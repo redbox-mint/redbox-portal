@@ -874,9 +874,62 @@ describe('FormComponent', () => {
       expect(events[0].savedData).toEqual({text_create: 'create value'});
       expect(events[0].oid).toEqual('oid-123');
       expect(events[0].response).toEqual({success: true, oid: 'oid-123'});
+      expect(events[0].modelSnapshot).toEqual({text_create: 'create value'});
       expect(events[0].closeOnSave).toEqual(undefined);
       expect(events[0].redirectLocation).toEqual(undefined);
       expect(events[0].redirectDelaySeconds).toEqual(undefined);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('preserves edits made during a never-sync save and emits the current model snapshot', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'save-never-sync',
+      debugValue: false,
+      serverSyncOnSave: 'never',
+      componentDefinitions: [
+        {
+          name: 'text_never_sync',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: 'initial value' },
+          },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'save-never-sync',
+      downloadAndCreateOnInit: false,
+    });
+    const bus = TestBed.inject(FormComponentEventBus);
+    const events: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => events.push(event));
+    let resolveUpdate!: (response: any) => void;
+    const updatePromise = new Promise<any>(resolve => { resolveUpdate = resolve; });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValue(updatePromise);
+
+    try {
+      const control = formComponent.form!.get('text_never_sync')!;
+      control.setValue('sent value');
+      control.markAsDirty();
+      formComponent.form!.markAsDirty();
+      const savePromise = formComponent.saveForm();
+
+      expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '');
+      control.setValue('edited during save');
+      control.markAsDirty();
+      resolveUpdate({ success: true, oid: 'oid-123', metadata: { text_never_sync: 'server value' } });
+      await savePromise;
+
+      expect(control.value).toBe('edited during save');
+      expect(control.dirty).toBeTrue();
+      expect(events.length).toBe(1);
+      expect(events[0].modelSnapshot).toEqual({text_never_sync: 'edited during save'});
     } finally {
       sub.unsubscribe();
     }

@@ -1207,26 +1207,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid);
             let modelSnapshot: Record<string, unknown> | undefined;
             if (
-              response.metadata !== null &&
-              typeof response.metadata === 'object' &&
-              !Array.isArray(response.metadata) &&
               !options?.closeOnSave &&
               !redirectLocation &&
-              this.form &&
-              this.formDefMap
+              this.form
             ) {
-              const syncMode = this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
-              if (syncMode !== 'never') {
-                await this.serverSyncService.applyServerMetadata(
-                  currentFormValue,
-                  response.metadata,
-                  this.formDefMap,
-                  this.form,
-                  syncMode
-                );
-                modelSnapshot = this.getPersistedFormValue();
+              modelSnapshot = this.getPersistedFormValue();
+              if (
+                response.metadata !== null &&
+                typeof response.metadata === 'object' &&
+                !Array.isArray(response.metadata) &&
+                this.formDefMap
+              ) {
+                const syncMode = this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
+                if (syncMode !== 'never') {
+                  await this.serverSyncService.applyServerMetadata(
+                    currentFormValue,
+                    response.metadata,
+                    this.formDefMap,
+                    this.form,
+                    syncMode
+                  );
+                  modelSnapshot = this.getPersistedFormValue();
+                }
+                this.broadcastFormStatus();
               }
-              this.broadcastFormStatus();
             }
             // Emit success event
             this.eventBus.publish(

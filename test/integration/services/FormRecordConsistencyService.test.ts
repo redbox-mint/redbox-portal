@@ -350,6 +350,82 @@ describe('The FormRecordConsistencyService', function () {
       };
       expect(func).to.throw(Error, 'elements');
     });
+
+    it('filters newly added nested objects and arrays when projecting metadata', async function () {
+      const clientFormConfig: FormConfigFrame = {
+        name: 'project-nested-metadata',
+        type: 'rdmp',
+        debugValue: false,
+        domElementType: 'form',
+        defaultComponentConfig: {},
+        editCssClasses: 'redbox-form form',
+        enabledValidationGroups: ['all'],
+        componentDefinitions: [
+          {
+            name: 'parent',
+            model: { class: 'GroupModel', config: {} },
+            component: {
+              class: 'GroupComponent',
+              config: {
+                componentDefinitions: [
+                  {
+                    name: 'visible',
+                    model: { class: 'SimpleInputModel', config: {} },
+                    component: { class: 'SimpleInputComponent' },
+                  },
+                  {
+                    name: 'children',
+                    model: { class: 'RepeatableModel', config: {} },
+                    component: {
+                      class: 'RepeatableComponent',
+                      config: {
+                        elementTemplate: {
+                          name: null,
+                          model: { class: 'GroupModel', config: {} },
+                          component: {
+                            class: 'GroupComponent',
+                            config: {
+                              componentDefinitions: [
+                                {
+                                  name: 'visibleChild',
+                                  model: { class: 'SimpleInputModel', config: {} },
+                                  component: { class: 'SimpleInputComponent' },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      const projected = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+        {
+          parent: {
+            visible: 'included',
+            omitted: 'excluded',
+            children: [
+              { visibleChild: 'included child', omittedChild: 'excluded child' },
+            ],
+          },
+        },
+        clientFormConfig,
+        'edit'
+      );
+
+      expect(projected).to.eql({
+        parent: {
+          visible: 'included',
+          children: [{ visibleChild: 'included child' }],
+        },
+      });
+    });
   });
 
   describe('buildDataModelDefault methods', function () {
