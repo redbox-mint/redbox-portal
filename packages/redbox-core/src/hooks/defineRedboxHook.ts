@@ -5,13 +5,19 @@ type HookFactoryResult = {
   defaults?: Record<string, unknown>;
   routes?: unknown;
   configure?: () => void;
-  initialize?: (done?: (error?: Error) => void) => Promise<void>;
+  initialize?: () => Promise<void>;
 };
 
 export type HookRegistrationMap = Record<string, unknown>;
 
-type HookDone = (error?: Error) => void;
-type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
+type HookInitializer = {
+  (sails: Sails.Application): void | Promise<void>;
+  (sails: Sails.Application, done: (error?: Error) => void): void;
+};
+
+function normalizeError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
 
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
@@ -53,41 +59,37 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
       };
     }
 
-    const initializer = options.initialize;
-    if (initializer) {
-      hook.initialize = async (done?: HookDone): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-          let settled = false;
-          const initializerDone = (error?: unknown): void => {
-            if (settled) {
-              return;
-            }
-            settled = true;
+    if (options.initialize) {
+      hook.initialize = async (): Promise<void> => {
+        const initializer = options.initialize as HookInitializer;
 
-            if (error !== undefined) {
-              const normalizedError = error instanceof Error ? error : new Error(String(error));
-              if (done) {
-                done(normalizedError);
-                resolve();
+        // Sails treats an initializer with a callback parameter as callback-style. Expose a
+        // zero-argument Promise initializer so Sails never supplies a callback to an async
+        // wrapper, while still adapting legacy callback-style hook initializers internally.
+        if (initializer.length >= 2) {
+          await new Promise<void>((resolve, reject) => {
+            const done = (error?: Error): void => {
+              if (error) {
+                reject(normalizeError(error));
               } else {
-                reject(normalizedError);
+                resolve();
               }
-              return;
-            }
+            };
 
-            done?.();
-            resolve();
-          };
-
-          try {
-            const result = initializer(sails, initializerDone);
-            if (result && typeof result.then === 'function') {
-              void Promise.resolve(result).then(() => initializerDone(), initializerDone);
+            try {
+              initializer(sails, done);
+            } catch (error) {
+              reject(normalizeError(error));
             }
-          } catch (error) {
-            initializerDone(error);
-          }
-        });
+          });
+          return;
+        }
+
+        try {
+          await initializer(sails);
+        } catch (error) {
+          throw normalizeError(error);
+        }
       };
     }
 
