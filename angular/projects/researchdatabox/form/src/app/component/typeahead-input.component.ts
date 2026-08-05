@@ -127,6 +127,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private programmaticDisplayUpdate = false;
   private lastConfirmedDisplayValue = '';
   private modelSubscriptionInitialised = false;
+  private modelDisabledSubscriptionInitialised = false;
   private autoDisplaySyncInFlight: boolean = false;
   private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
@@ -189,6 +190,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
     this.applyInitialDisplayFromModel();
     this.bindModelValueSync();
+    this.bindModelDisabledSync();
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
       if (this.programmaticDisplayUpdate) {
         return;
@@ -441,6 +443,38 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.syncDisplayFromModel();
     });
+  }
+
+  /**
+   * Keep the display control's disabled state in step with the model control.
+   *
+   * setDisabled() only runs when something explicitly toggles this component, but the
+   * model control can also be disabled by its parent: a repeatable row added while a
+   * `field.disabled` gate is applied inherits the disabled state from the parent form
+   * array after this component has initialised. Without this sync the model control is
+   * disabled while the search input stays editable, letting a user type into a gated field.
+   */
+  private bindModelDisabledSync(): void {
+    if (this.modelDisabledSubscriptionInitialised || !this.formControl) {
+      return;
+    }
+    this.modelDisabledSubscriptionInitialised = true;
+    this.syncDisplayControlDisabled();
+    this.formControl.statusChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.syncDisplayControlDisabled();
+    });
+  }
+
+  private syncDisplayControlDisabled(): void {
+    const shouldDisable = this.isDisabled;
+    if (shouldDisable === this.displayControl.disabled) {
+      return;
+    }
+    if (shouldDisable) {
+      this.displayControl.disable({ emitEvent: false, onlySelf: true });
+    } else {
+      this.displayControl.enable({ emitEvent: false, onlySelf: true });
+    }
   }
 
   private async syncDisplayFromModel(): Promise<void> {
