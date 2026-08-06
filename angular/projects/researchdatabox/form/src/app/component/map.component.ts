@@ -484,7 +484,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private zoom = 4;
   // Prevent very small or zero-size feature extents from using OpenLayers' default zoom of 28.
   private readonly defaultFeatureFitMaxZoom = 18;
-  private drawCoordinatePrecision = 15;
+  private readonly defaultDrawCoordinatePrecision = 15;
+  private readonly maxDrawCoordinatePrecision = 15;
+  private drawCoordinatePrecision = this.defaultDrawCoordinatePrecision;
   private tileLayers: MapTileLayerConfig[] = [];
   private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
@@ -542,9 +544,10 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.center = Array.isArray(cfg.center) && cfg.center.length === 2 ? cfg.center : [-24.67, 134.07];
     this.zoom = Number.isFinite(cfg.zoom) ? Number(cfg.zoom) : 4;
     this.mapHeight = String(cfg.mapHeight ?? "450px");
-    this.drawCoordinatePrecision = Number.isInteger(cfg.coordinatePrecision) && Number(cfg.coordinatePrecision) >= 0
+    this.drawCoordinatePrecision = Number.isInteger(cfg.coordinatePrecision) && Number(cfg.coordinatePrecision) >= 0 &&
+      Number(cfg.coordinatePrecision) <= this.maxDrawCoordinatePrecision
       ? Number(cfg.coordinatePrecision)
-      : 15;
+      : this.defaultDrawCoordinatePrecision;
     this.tileLayers = Array.isArray(cfg.tileLayers) ? cfg.tileLayers : [];
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
@@ -1350,16 +1353,22 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
 
   private normalizePositionNumber(value: unknown): number | null {
     try {
+      let coordinate: number;
       if (typeof value === "number") {
-        return value;
-      }
-      if (typeof value === "string") {
+        coordinate = value;
+      } else if (typeof value === "string") {
         const trimmed = value?.trim();
         if (trimmed.length > 0) {
-          return Number(trimmed);
+          coordinate = Number(trimmed);
+        } else {
+          return null;
         }
+      } else {
         return null;
       }
+      return Number.isFinite(coordinate)
+        ? Number(coordinate.toFixed(this.drawCoordinatePrecision))
+        : coordinate;
     } catch (err) {
       this.loggerService.error(`${this.logName}: failed to parse position value ${value}`, err);
     }
