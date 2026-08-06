@@ -18,6 +18,7 @@ import {
   getStubRecordService,
   getStubUserService,
 } from '@researchdatabox/portal-ng-common';
+import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 
 const username = 'testUser';
 const password = 'some-password';
@@ -329,6 +330,90 @@ describe('DashboardComponent standard', () => {
       'workspace'
     );
     expect(dashboardComponent.initStep).toHaveBeenCalledWith('draft', 'draft', 'rdmp', '', 1, jasmine.any(Object));
+  });
+
+  it('restores dashboard view rule configuration for the step being rendered', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const firstRowRules = [{ ruleSetName: 'first-row-rules' }];
+    const firstGroupRowConfig = [{ variable: 'first-group-column' }];
+    const firstGroupRowRules = [{ ruleSetName: 'first-group-rules' }];
+    const secondRowRules = [{ ruleSetName: 'second-row-rules' }];
+    const secondGroupRowConfig = [{ variable: 'second-group-column' }];
+    const secondGroupRowRules = [{ ruleSetName: 'second-group-rules' }];
+    const dashboardFormatRules = recordDataStandard.dashboardType.formatRules;
+    const firstFormatRules = {
+      ...dashboardFormatRules,
+      groupBy: 'groupedByRelationships',
+    };
+    const renderedRuleConfigs: any[] = [];
+
+    dashboardComponent.dashboardView = 'multi-step-dashboard';
+    spyOn(recordService, 'getDashboardView').and.returnValue(Promise.resolve({
+      sourceRecordType: 'rdmp',
+      dashboardType: 'consolidated',
+      steps: [
+        {
+          name: 'first-step',
+          sourceRecordType: 'rdmp',
+          fetchMode: 'allForRecordType',
+          dashboardTable: {
+            rowRulesConfig: firstRowRules,
+            groupRowConfig: firstGroupRowConfig,
+            groupRowRulesConfig: firstGroupRowRules,
+            formatRules: firstFormatRules,
+          },
+        },
+        {
+          name: 'second-step',
+          sourceRecordType: 'rdmp',
+          fetchMode: 'allForRecordType',
+          dashboardTable: {
+            rowRulesConfig: secondRowRules,
+            groupRowConfig: secondGroupRowConfig,
+            groupRowRulesConfig: secondGroupRowRules,
+          },
+        },
+      ],
+    } as any));
+    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
+    spyOn(dashboardComponent, 'initStep').and.callFake(async (_stepName, evaluateStepName) => {
+      renderedRuleConfigs.push({
+        evaluateStepName,
+        rowLevelRules: dashboardComponent.rowLevelRules,
+        groupRowConfig: dashboardComponent.groupRowConfig,
+        groupRowRules: dashboardComponent.groupRowRules,
+        formatRules: dashboardComponent.formatRules,
+      });
+    });
+
+    await dashboardComponent.initDashboardView('multi-step-dashboard');
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'first-step');
+
+    expect(renderedRuleConfigs).toEqual([
+      {
+        evaluateStepName: 'first-step',
+        rowLevelRules: firstRowRules,
+        groupRowConfig: firstGroupRowConfig,
+        groupRowRules: firstGroupRowRules,
+        formatRules: firstFormatRules,
+      },
+      {
+        evaluateStepName: 'second-step',
+        rowLevelRules: secondRowRules,
+        groupRowConfig: secondGroupRowConfig,
+        groupRowRules: secondGroupRowRules,
+        formatRules: dashboardFormatRules,
+      },
+      {
+        evaluateStepName: 'first-step',
+        rowLevelRules: firstRowRules,
+        groupRowConfig: firstGroupRowConfig,
+        groupRowRules: firstGroupRowRules,
+        formatRules: firstFormatRules,
+      },
+    ]);
   });
 
   it('initializes through initComponent when a dashboard view is configured', async () => {
@@ -1137,6 +1222,64 @@ describe('DashboardComponent consolidated group by record type', () => {
     );
     expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
     expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
+  });
+
+  it('renders row and group rules through the Handlebars template context', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const handlebarsTemplateService = TestBed.inject(HandlebarsTemplateService) as jasmine.SpyObj<HandlebarsTemplateService>;
+
+    handlebarsTemplateService.compileAndRunTemplate.and.callFake((template: string, context: any) => handlebarsCompile(template)(context));
+
+    dashboardComponent.tableConfig = {
+      consolidated: [
+        {
+          variable: 'actions',
+          template: '{{evaluateRowLevelRules rulesConfig metadata metaMetadata workflow oid "dashboardActionsPerRow"}}',
+        },
+      ],
+    };
+
+    const rowRules = [
+      {
+        ruleSetName: 'dashboardActionsPerRow',
+        rules: [
+          {
+            evaluateRulesTemplate: 'true',
+            renderItemTemplate: '<a href="/record/edit/{{oid}}">Edit</a>',
+          },
+        ],
+      },
+    ];
+    const groupRowConfig = [
+      {
+        variable: 'actions',
+        template: '{{evaluateGroupRowRules groupRulesConfig groupedItems "dashboardActionsPerGroupRow"}}',
+      },
+    ];
+    const groupRules = [
+      {
+        ruleSetName: 'dashboardActionsPerGroupRow',
+        rules: [
+          {
+            evaluateRulesTemplate: 'true',
+            renderItemTemplate: '<button type="button">Send for Conferral</button>',
+          },
+        ],
+      },
+    ];
+
+    const planTable = dashboardComponent.evaluatePlanTableColumns(
+      groupRowConfig,
+      groupRules,
+      rowRules,
+      'consolidated',
+      recordDataConsolidated.groupedRecords,
+      'rdmp'
+    );
+
+    expect(planTable.items[0].actions).toBe('<a href="/record/edit/1234567890">Edit</a>');
+    expect(planTable.items[1].actions).toBe('<button type="button">Send for Conferral</button>');
   });
 });
 
