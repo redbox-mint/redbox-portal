@@ -57,6 +57,7 @@ export interface MapFieldComponentConfigFrame extends FieldComponentConfigFrame 
     enabledModes?: MapDrawingMode[];
     enableImport?: boolean;
     coordinatesHelp?: string;
+    coordinatePrecision?: number;
 }
 
 export interface MapFieldComponentConfigOutline extends MapFieldComponentConfigFrame, FieldComponentConfigOutline {

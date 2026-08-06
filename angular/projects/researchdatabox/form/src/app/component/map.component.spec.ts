@@ -1495,6 +1495,9 @@ describe("MapComponent", () => {
     fixture.detectChanges();
 
     expect(fakeAdapterCtor).toHaveBeenCalled();
+    expect(fakeAdapterCtor).toHaveBeenCalledWith(jasmine.objectContaining({
+      coordinatePrecision: 15
+    }));
     expect(fakeDraw.start).toHaveBeenCalled();
   });
 
@@ -1530,6 +1533,35 @@ describe("MapComponent", () => {
     expect(fakeMapTarget?.querySelector("canvas")).not.toBeNull();
     expect(fakeAdapterCtor).toHaveBeenCalled();
     expect(fakeDraw.start).toHaveBeenCalled();
+  });
+
+  it("uses configured coordinate precision for draw tooling", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              coordinatePrecision: 12
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+
+    expect(fakeAdapterCtor).toHaveBeenCalledWith(jasmine.objectContaining({
+      coordinatePrecision: 12
+    }));
   });
 
   it("creates map with fromLonLat for configured center", async () => {
