@@ -1397,6 +1397,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('enabledModes', item.config, config);
     this.sharedProps.setPropOverride('enableImport', item.config, config);
     this.sharedProps.setPropOverride('coordinatesHelp', item.config, config);
+    this.sharedProps.setPropOverride('coordinatePrecision', item.config, config);
 
     item.config.enabledModes = this.sanitizeMapEnabledModes(item.config.enabledModes, 'construct');
   }

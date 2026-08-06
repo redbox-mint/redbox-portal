@@ -484,6 +484,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   private zoom = 4;
   // Prevent very small or zero-size feature extents from using OpenLayers' default zoom of 28.
   private readonly defaultFeatureFitMaxZoom = 18;
+  private drawCoordinatePrecision = 15;
   private tileLayers: MapTileLayerConfig[] = [];
   private enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
   public toolbarModes: MapDrawingMode[] = [];
@@ -541,6 +542,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     this.center = Array.isArray(cfg.center) && cfg.center.length === 2 ? cfg.center : [-24.67, 134.07];
     this.zoom = Number.isFinite(cfg.zoom) ? Number(cfg.zoom) : 4;
     this.mapHeight = String(cfg.mapHeight ?? "450px");
+    this.drawCoordinatePrecision = Number.isInteger(cfg.coordinatePrecision) && Number(cfg.coordinatePrecision) >= 0
+      ? Number(cfg.coordinatePrecision)
+      : 15;
     this.tileLayers = Array.isArray(cfg.tileLayers) ? cfg.tileLayers : [];
     this.enabledModes = Array.isArray(cfg.enabledModes) && cfg.enabledModes.length > 0
       ? cfg.enabledModes
@@ -873,7 +877,11 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         toLonLat: this.mapDeps.toLonLat,
       };
 
-      const adapter = new AdapterCtor({ map: this.map, lib: openLayersLib });
+      const adapter = new AdapterCtor({
+        map: this.map,
+        lib: openLayersLib,
+        coordinatePrecision: this.drawCoordinatePrecision
+      });
       const modes: unknown[] = [];
       if (this.enabledModes.includes("point") && PointMode) {
         modes.push(new PointMode());
