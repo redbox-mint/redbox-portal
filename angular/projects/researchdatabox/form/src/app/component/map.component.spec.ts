@@ -918,7 +918,7 @@ describe("MapComponent", () => {
     expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
   });
 
-  it("loads pre-existing features into draw state and invalidates map size", async () => {
+  it("rounds pre-existing coordinates to the configured draw precision", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -927,7 +927,8 @@ describe("MapComponent", () => {
           component: {
             class: "MapComponent",
             config: {
-              enableImport: true
+              enableImport: true,
+              coordinatePrecision: 9
             }
           },
           model: {
@@ -938,13 +939,13 @@ describe("MapComponent", () => {
                 features: [
                   {
                     type: "Feature",
-                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    geometry: {type: "Point", coordinates: [144.9600000004, -37.8100000004]},
                     properties: {name: "Melbourne"}
                   },
                   // Should allow string coordinates.
                   {
                     type: "Feature",
-                    geometry: {type: "Point", coordinates: ["145.935234375", "-22.625184301"]},
+                    geometry: {type: "Point", coordinates: ["145.9352343759", "-22.6251843014"]},
                     properties: {}
                   },
                   // Should only include coordinates that are numbers or non-empty strings.
@@ -997,7 +998,7 @@ describe("MapComponent", () => {
       jasmine.objectContaining({
         id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
-        geometry: {type: "Point", coordinates: [145.935234375, -22.625184301]},
+        geometry: {type: "Point", coordinates: [145.935234376, -22.625184301]},
         properties: jasmine.objectContaining({mode: "point"})
       })
     ]);

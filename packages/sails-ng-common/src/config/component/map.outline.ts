@@ -57,6 +57,7 @@ export interface MapFieldComponentConfigFrame extends FieldComponentConfigFrame 
     enabledModes?: MapDrawingMode[];
     enableImport?: boolean;
     coordinatesHelp?: string;
+    /** Maximum coordinate decimal places retained for TerraDraw. Integer from 0 to 15; defaults to 15. */
     coordinatePrecision?: number;
 }
 
