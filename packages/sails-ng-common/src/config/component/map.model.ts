@@ -37,6 +37,7 @@ export class MapFieldComponentConfig extends FieldComponentConfig implements Map
     enabledModes: MapDrawingMode[] = ["point", "polygon", "linestring", "rectangle", "circle", "select"];
     enableImport = true;
     coordinatesHelp?: string;
+    coordinatePrecision = 15;
 
     constructor() {
         super();
