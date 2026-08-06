@@ -18,6 +18,7 @@ import {
   getStubRecordService,
   getStubUserService,
 } from '@researchdatabox/portal-ng-common';
+import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 
 const username = 'testUser';
 const password = 'some-password';
@@ -1137,6 +1138,64 @@ describe('DashboardComponent consolidated group by record type', () => {
     );
     expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
     expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
+  });
+
+  it('renders row and group rules through the Handlebars template context', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const handlebarsTemplateService = TestBed.inject(HandlebarsTemplateService) as jasmine.SpyObj<HandlebarsTemplateService>;
+
+    handlebarsTemplateService.compileAndRunTemplate.and.callFake((template: string, context: any) => handlebarsCompile(template)(context));
+
+    dashboardComponent.tableConfig = {
+      consolidated: [
+        {
+          variable: 'actions',
+          template: '{{evaluateRowLevelRules rulesConfig metadata metaMetadata workflow oid "dashboardActionsPerRow"}}',
+        },
+      ],
+    };
+
+    const rowRules = [
+      {
+        ruleSetName: 'dashboardActionsPerRow',
+        rules: [
+          {
+            evaluateRulesTemplate: 'true',
+            renderItemTemplate: '<a href="/record/edit/{{oid}}">Edit</a>',
+          },
+        ],
+      },
+    ];
+    const groupRowConfig = [
+      {
+        variable: 'actions',
+        template: '{{evaluateGroupRowRules groupRulesConfig groupedItems "dashboardActionsPerGroupRow"}}',
+      },
+    ];
+    const groupRules = [
+      {
+        ruleSetName: 'dashboardActionsPerGroupRow',
+        rules: [
+          {
+            evaluateRulesTemplate: 'true',
+            renderItemTemplate: '<button type="button">Send for Conferral</button>',
+          },
+        ],
+      },
+    ];
+
+    const planTable = dashboardComponent.evaluatePlanTableColumns(
+      groupRowConfig,
+      groupRules,
+      rowRules,
+      'consolidated',
+      recordDataConsolidated.groupedRecords,
+      'rdmp'
+    );
+
+    expect(planTable.items[0].actions).toBe('<a href="/record/edit/1234567890">Edit</a>');
+    expect(planTable.items[1].actions).toBe('<button type="button">Send for Conferral</button>');
   });
 });
 

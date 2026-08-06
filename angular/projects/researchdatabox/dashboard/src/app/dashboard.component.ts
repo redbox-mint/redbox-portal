@@ -1,6 +1,7 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService, DashboardViewDefinitionResponse, DashboardViewStepDefinitionResponse } from '@researchdatabox/portal-ng-common';
+import { handlebarsInstance } from '@researchdatabox/sails-ng-common';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has, unset as _unset } from 'lodash-es';
 
 @Component({
@@ -538,6 +539,7 @@ export class DashboardComponent extends BaseComponent {
     if (isGrouped && !_isUndefined(allGroupedItems) && !_isEmpty(allGroupedItems)) {
 
       const imports: any = {};
+      this.setRuleEvaluationContext(imports, recordType, stepName);
       for (let groupedRecords of allGroupedItems) {
 
         let groupedItems = _get(groupedRecords, 'items');
@@ -603,6 +605,7 @@ export class DashboardComponent extends BaseComponent {
         for (let stagedRecord of stagedOrGroupedRecordItems) {
 
           const imports: any = {};
+          this.setRuleEvaluationContext(imports, recordType, stepName);
 
           _forEach(columnMappings, (value, key) => {
             _set(imports, key, _get(stagedRecord, value));
@@ -612,6 +615,7 @@ export class DashboardComponent extends BaseComponent {
           _set(imports, 'rootContext', this.rootContext);
           _set(imports, 'portal', this.portal);
           _set(imports, 'translationService', this.translationService);
+          _set(imports, 'rulesConfig', rowLevelRulesConfig);
 
           let record: any = {};
           let stepRowConfig = this.tableConfig[stepName];
@@ -634,6 +638,19 @@ export class DashboardComponent extends BaseComponent {
     planTable.items = recordRows;
 
     return planTable;
+  }
+
+  private setRuleEvaluationContext(imports: any, recordType: string, stepName: string): void {
+    const handlebars = handlebarsInstance();
+
+    _set(imports, 'evaluateRowLevelRules', (rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string) => {
+      const result = this.evaluateRowLevelRules(rulesConfig, metadata, metaMetadata, workflow, oid, ruleSetName, recordType, stepName);
+      return new handlebars.SafeString(result ?? '');
+    });
+    _set(imports, 'evaluateGroupRowRules', (groupRulesConfig: any, groupedItems: any, ruleSetName: string) => {
+      const result = this.evaluateGroupRowRules(groupRulesConfig, groupedItems, ruleSetName, recordType, stepName);
+      return new handlebars.SafeString(result ?? '');
+    });
   }
 
   private getRuleSetConfig(rulesConfig: any, ruleSetName: string) {
