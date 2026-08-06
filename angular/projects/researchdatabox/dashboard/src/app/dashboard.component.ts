@@ -137,10 +137,11 @@ export class DashboardComponent extends BaseComponent {
   //Per each row rules show/hide fields or buttons/activities(links) that apply to one row
   defaultRowLevelRules: any = {};
   rowLevelRules: any = {};
-  private dashboardViewRuleConfigByStep: Record<string, {
+  private dashboardViewStepConfigByStep: Record<string, {
     rowLevelRules: any;
     groupRowConfig: any;
     groupRowRules: any;
+    formatRules: FormatRules;
   }> = {};
 
   constructor(
@@ -286,7 +287,7 @@ export class DashboardComponent extends BaseComponent {
     this.records = {};
     this.tableConfig = {};
     this.sortMap = {};
-    this.dashboardViewRuleConfigByStep = {};
+    this.dashboardViewStepConfigByStep = {};
     this.hideWorkflowStepTitle = false;
 
     const dashboardViewConfig = await this.recordService.getDashboardView(dashboardView);
@@ -302,17 +303,19 @@ export class DashboardComponent extends BaseComponent {
     this.groupRowConfig = this.defaultGroupRowConfig;
     this.groupRowRules = this.defaultGroupRowRules;
 
+    const dashboardFormatRules = this.formatRules;
     const steps = (dashboardViewConfig.steps || []).map((step) => this.normalizeDashboardViewStep(step));
     for (const step of steps) {
       const stepKey = this.getStepKey(step);
-      const dashboardTable = _get(step, 'config.dashboard.table', {});
-      this.dashboardViewRuleConfigByStep[stepKey] = {
+      const dashboardTable: any = _get(step, 'config.dashboard.table', {});
+      this.dashboardViewStepConfigByStep[stepKey] = {
         rowLevelRules: _get(dashboardTable, 'rowRulesConfig', this.defaultRowLevelRules),
         groupRowConfig: _get(dashboardTable, 'groupRowConfig', this.defaultGroupRowConfig),
-        groupRowRules: _get(dashboardTable, 'groupRowRulesConfig', this.defaultGroupRowRules)
+        groupRowRules: _get(dashboardTable, 'groupRowRulesConfig', this.defaultGroupRowRules),
+        formatRules: _get(dashboardTable, 'formatRules', dashboardFormatRules)
       };
       this.initStepTableConfig(this.dashboardView || this.recordType, step);
-      this.restoreDashboardViewRuleConfig(stepKey);
+      this.restoreDashboardViewStepConfig(stepKey);
       const defaultSortObject = this.initSortMap(step);
       this.workflowSteps.push(step);
       await this.handlebarsTemplateService.loadDashboardViewTemplates(this.branding, this.portal, dashboardView, stepKey, this.dashboardTypeSelected);
@@ -324,15 +327,16 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
-  private restoreDashboardViewRuleConfig(stepName: string) {
-    const ruleConfig = this.dashboardViewRuleConfigByStep[stepName];
-    if (_isUndefined(ruleConfig)) {
+  private restoreDashboardViewStepConfig(stepName: string) {
+    const stepConfig = this.dashboardViewStepConfigByStep[stepName];
+    if (_isUndefined(stepConfig)) {
       return;
     }
 
-    this.rowLevelRules = ruleConfig.rowLevelRules;
-    this.groupRowConfig = ruleConfig.groupRowConfig;
-    this.groupRowRules = ruleConfig.groupRowRules;
+    this.rowLevelRules = stepConfig.rowLevelRules;
+    this.groupRowConfig = stepConfig.groupRowConfig;
+    this.groupRowRules = stepConfig.groupRowRules;
+    this.formatRules = stepConfig.formatRules;
   }
 
   private async initWorkflowSteps(recordType: string) {
@@ -924,7 +928,7 @@ export class DashboardComponent extends BaseComponent {
       const stepName = dashboardViewStep.fetchMode == 'workflowStage'
         ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
         : '';
-      this.restoreDashboardViewRuleConfig(evaluateStepName);
+      this.restoreDashboardViewStepConfig(evaluateStepName);
       await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       this.isProcessingPageChange = false;
     }

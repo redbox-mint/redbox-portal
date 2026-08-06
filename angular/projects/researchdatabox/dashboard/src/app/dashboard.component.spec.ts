@@ -342,6 +342,11 @@ describe('DashboardComponent standard', () => {
     const secondRowRules = [{ ruleSetName: 'second-row-rules' }];
     const secondGroupRowConfig = [{ variable: 'second-group-column' }];
     const secondGroupRowRules = [{ ruleSetName: 'second-group-rules' }];
+    const dashboardFormatRules = recordDataStandard.dashboardType.formatRules;
+    const firstFormatRules = {
+      ...dashboardFormatRules,
+      groupBy: 'groupedByRelationships',
+    };
     const renderedRuleConfigs: any[] = [];
 
     dashboardComponent.dashboardView = 'multi-step-dashboard';
@@ -357,6 +362,7 @@ describe('DashboardComponent standard', () => {
             rowRulesConfig: firstRowRules,
             groupRowConfig: firstGroupRowConfig,
             groupRowRulesConfig: firstGroupRowRules,
+            formatRules: firstFormatRules,
           },
         },
         {
@@ -378,6 +384,7 @@ describe('DashboardComponent standard', () => {
         rowLevelRules: dashboardComponent.rowLevelRules,
         groupRowConfig: dashboardComponent.groupRowConfig,
         groupRowRules: dashboardComponent.groupRowRules,
+        formatRules: dashboardComponent.formatRules,
       });
     });
 
@@ -390,18 +397,21 @@ describe('DashboardComponent standard', () => {
         rowLevelRules: firstRowRules,
         groupRowConfig: firstGroupRowConfig,
         groupRowRules: firstGroupRowRules,
+        formatRules: firstFormatRules,
       },
       {
         evaluateStepName: 'second-step',
         rowLevelRules: secondRowRules,
         groupRowConfig: secondGroupRowConfig,
         groupRowRules: secondGroupRowRules,
+        formatRules: dashboardFormatRules,
       },
       {
         evaluateStepName: 'first-step',
         rowLevelRules: firstRowRules,
         groupRowConfig: firstGroupRowConfig,
         groupRowRules: firstGroupRowRules,
+        formatRules: firstFormatRules,
       },
     ]);
   });
