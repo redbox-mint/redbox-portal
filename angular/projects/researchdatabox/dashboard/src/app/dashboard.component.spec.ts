@@ -332,6 +332,80 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.initStep).toHaveBeenCalledWith('draft', 'draft', 'rdmp', '', 1, jasmine.any(Object));
   });
 
+  it('restores dashboard view rule configuration for the step being rendered', async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    const recordService = TestBed.inject(RecordService);
+    const firstRowRules = [{ ruleSetName: 'first-row-rules' }];
+    const firstGroupRowConfig = [{ variable: 'first-group-column' }];
+    const firstGroupRowRules = [{ ruleSetName: 'first-group-rules' }];
+    const secondRowRules = [{ ruleSetName: 'second-row-rules' }];
+    const secondGroupRowConfig = [{ variable: 'second-group-column' }];
+    const secondGroupRowRules = [{ ruleSetName: 'second-group-rules' }];
+    const renderedRuleConfigs: any[] = [];
+
+    dashboardComponent.dashboardView = 'multi-step-dashboard';
+    spyOn(recordService, 'getDashboardView').and.returnValue(Promise.resolve({
+      sourceRecordType: 'rdmp',
+      dashboardType: 'consolidated',
+      steps: [
+        {
+          name: 'first-step',
+          sourceRecordType: 'rdmp',
+          fetchMode: 'allForRecordType',
+          dashboardTable: {
+            rowRulesConfig: firstRowRules,
+            groupRowConfig: firstGroupRowConfig,
+            groupRowRulesConfig: firstGroupRowRules,
+          },
+        },
+        {
+          name: 'second-step',
+          sourceRecordType: 'rdmp',
+          fetchMode: 'allForRecordType',
+          dashboardTable: {
+            rowRulesConfig: secondRowRules,
+            groupRowConfig: secondGroupRowConfig,
+            groupRowRulesConfig: secondGroupRowRules,
+          },
+        },
+      ],
+    } as any));
+    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
+    spyOn(dashboardComponent, 'initStep').and.callFake(async (_stepName, evaluateStepName) => {
+      renderedRuleConfigs.push({
+        evaluateStepName,
+        rowLevelRules: dashboardComponent.rowLevelRules,
+        groupRowConfig: dashboardComponent.groupRowConfig,
+        groupRowRules: dashboardComponent.groupRowRules,
+      });
+    });
+
+    await dashboardComponent.initDashboardView('multi-step-dashboard');
+    await dashboardComponent.pageChanged({ page: 2 } as any, 'first-step');
+
+    expect(renderedRuleConfigs).toEqual([
+      {
+        evaluateStepName: 'first-step',
+        rowLevelRules: firstRowRules,
+        groupRowConfig: firstGroupRowConfig,
+        groupRowRules: firstGroupRowRules,
+      },
+      {
+        evaluateStepName: 'second-step',
+        rowLevelRules: secondRowRules,
+        groupRowConfig: secondGroupRowConfig,
+        groupRowRules: secondGroupRowRules,
+      },
+      {
+        evaluateStepName: 'first-step',
+        rowLevelRules: firstRowRules,
+        groupRowConfig: firstGroupRowConfig,
+        groupRowRules: firstGroupRowRules,
+      },
+    ]);
+  });
+
   it('initializes through initComponent when a dashboard view is configured', async () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;

@@ -137,6 +137,11 @@ export class DashboardComponent extends BaseComponent {
   //Per each row rules show/hide fields or buttons/activities(links) that apply to one row
   defaultRowLevelRules: any = {};
   rowLevelRules: any = {};
+  private dashboardViewRuleConfigByStep: Record<string, {
+    rowLevelRules: any;
+    groupRowConfig: any;
+    groupRowRules: any;
+  }> = {};
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -281,6 +286,7 @@ export class DashboardComponent extends BaseComponent {
     this.records = {};
     this.tableConfig = {};
     this.sortMap = {};
+    this.dashboardViewRuleConfigByStep = {};
     this.hideWorkflowStepTitle = false;
 
     const dashboardViewConfig = await this.recordService.getDashboardView(dashboardView);
@@ -299,7 +305,14 @@ export class DashboardComponent extends BaseComponent {
     const steps = (dashboardViewConfig.steps || []).map((step) => this.normalizeDashboardViewStep(step));
     for (const step of steps) {
       const stepKey = this.getStepKey(step);
+      const dashboardTable = _get(step, 'config.dashboard.table', {});
+      this.dashboardViewRuleConfigByStep[stepKey] = {
+        rowLevelRules: _get(dashboardTable, 'rowRulesConfig', this.defaultRowLevelRules),
+        groupRowConfig: _get(dashboardTable, 'groupRowConfig', this.defaultGroupRowConfig),
+        groupRowRules: _get(dashboardTable, 'groupRowRulesConfig', this.defaultGroupRowRules)
+      };
       this.initStepTableConfig(this.dashboardView || this.recordType, step);
+      this.restoreDashboardViewRuleConfig(stepKey);
       const defaultSortObject = this.initSortMap(step);
       this.workflowSteps.push(step);
       await this.handlebarsTemplateService.loadDashboardViewTemplates(this.branding, this.portal, dashboardView, stepKey, this.dashboardTypeSelected);
@@ -309,6 +322,17 @@ export class DashboardComponent extends BaseComponent {
       const stepRecordType = dashboardStep.sourceRecordType || this.recordType;
       await this.initStep(stepName, stepKey, stepRecordType, '', 1, defaultSortObject);
     }
+  }
+
+  private restoreDashboardViewRuleConfig(stepName: string) {
+    const ruleConfig = this.dashboardViewRuleConfigByStep[stepName];
+    if (_isUndefined(ruleConfig)) {
+      return;
+    }
+
+    this.rowLevelRules = ruleConfig.rowLevelRules;
+    this.groupRowConfig = ruleConfig.groupRowConfig;
+    this.groupRowRules = ruleConfig.groupRowRules;
   }
 
   private async initWorkflowSteps(recordType: string) {
@@ -900,6 +924,7 @@ export class DashboardComponent extends BaseComponent {
       const stepName = dashboardViewStep.fetchMode == 'workflowStage'
         ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
         : '';
+      this.restoreDashboardViewRuleConfig(evaluateStepName);
       await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       this.isProcessingPageChange = false;
     }
