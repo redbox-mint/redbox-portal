@@ -201,6 +201,61 @@ describe('FormOverride reusable expansion', () => {
     );
   });
 
+  it('normalizes empty dropdown values before selecting the view template', () => {
+    const formOverride = new FormOverride(createLogger());
+    const options = [
+      { value: 'heritage', label: 'Heritage' },
+      { value: 'research', label: 'Research' },
+    ];
+
+    const transform = (value: unknown) =>
+      formOverride.applyOverrideTransform(
+        {
+          name: 'retentionReason',
+          component: {
+            class: DropdownInputComponentName,
+            config: { options },
+          },
+          model: {
+            class: 'DropdownInputModel',
+            config: { value },
+          },
+        } as never,
+        'view',
+        { phase: 'client' }
+      );
+
+    const getViewConfig = (value: unknown) =>
+      transform(value).component.config as { content?: unknown; template?: string };
+
+    const emptyArray = getViewConfig([]);
+    expect(emptyArray.content).to.equal(undefined);
+    expect(emptyArray.template).to.equal('<span></span>');
+
+    const emptyValueArray = getViewConfig(['']);
+    expect(emptyValueArray.content).to.equal(undefined);
+    expect(emptyValueArray.template).to.equal('<span></span>');
+
+    const emptyScalar = getViewConfig('');
+    expect(emptyScalar.content).to.equal(undefined);
+    expect(emptyScalar.template).to.equal('<span></span>');
+
+    const mixedValues = getViewConfig(['', 'heritage']);
+    expect(mixedValues.content).to.deep.equal({ value: 'heritage', label: 'Heritage' });
+    expect(mixedValues.template).to.contain('content.label');
+
+    const populatedValue = getViewConfig(['heritage']);
+    expect(populatedValue.content).to.deep.equal({ value: 'heritage', label: 'Heritage' });
+    expect(populatedValue.template).to.contain('content.label');
+
+    const populatedValues = getViewConfig(['heritage', 'research']);
+    expect(populatedValues.content).to.deep.equal([
+      { value: 'heritage', label: 'Heritage' },
+      { value: 'research', label: 'Research' },
+    ]);
+    expect(populatedValues.template).to.contain('<li data-value="{{this.value}}">');
+  });
+
   it('renders checkbox leaf option labels in generated view templates', () => {
     const formOverride = new FormOverride(createLogger());
 
