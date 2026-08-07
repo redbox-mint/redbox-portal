@@ -2007,14 +2007,15 @@ export class FormOverride {
       return;
     }
     const targetCompConf = target.component.config;
+    const normalizedValues = values.filter(value => value !== '');
 
-    if (values.length === 0) {
+    if (normalizedValues.length === 0) {
       // Empty
       targetCompConf.content = undefined;
       targetCompConf.template = this.resolveReusableViewTemplate(this.reusableViewTemplateKeys.leafOptionEmpty, `<span></span>`);
-    } else if (values.length === 1) {
+    } else if (normalizedValues.length === 1) {
       // One value
-      const value = values[0];
+      const value = normalizedValues[0];
       const label = options?.find(option => option.value === value)?.label ?? value;
       targetCompConf.content = { value, label };
       targetCompConf.template = this.resolveReusableViewTemplate(
@@ -2023,7 +2024,7 @@ export class FormOverride {
       );
     } else {
       // More than one value
-      targetCompConf.content = values.map(
+      targetCompConf.content = normalizedValues.map(
         value =>
           options?.find(option => option.value === value) ?? {
             label: value,
