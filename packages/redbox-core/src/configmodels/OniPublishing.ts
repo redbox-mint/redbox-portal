@@ -105,12 +105,22 @@ export interface OniFlydriveStorageConfig {
 
 export type OniSiteStorageConfig = OniFlydriveStorageConfig;
 
+export interface OniIngestionConfig {
+  enabled: boolean;
+  apiUrl: string;
+  adminToken: string;
+  forceReindex: boolean;
+  pollIntervalMs: number;
+  timeoutMs: number;
+}
+
 export interface OniPublishingSiteConfig {
   enabled: boolean;
   label: string;
   publicUrl: string;
   useCleanUrl: boolean;
   storage: OniSiteStorageConfig;
+  ingestion?: OniIngestionConfig;
 }
 
 export interface OniPublishingConfigData {
@@ -194,6 +204,14 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
         tempDir: '/tmp/oni/staged',
         keyEncoding: 'flydrive',
       },
+      ingestion: {
+        enabled: false,
+        apiUrl: 'http://localhost:8080',
+        adminToken: '',
+        forceReindex: true,
+        pollIntervalMs: 500,
+        timeoutMs: 120_000,
+      },
     },
     public: {
       enabled: true,
@@ -209,10 +227,26 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
         tempDir: '/tmp/oni/public',
         keyEncoding: 'flydrive',
       },
+      ingestion: {
+        enabled: false,
+        apiUrl: 'http://localhost:8080',
+        adminToken: '',
+        forceReindex: true,
+        pollIntervalMs: 500,
+        timeoutMs: 120_000,
+      },
     },
   };
   mapping: OniDatasetMappingConfig = {
     rootDataset: [
+      {
+        property: 'conformsTo',
+        value: {
+          kind: 'path',
+          path: 'context.repositoryObjectProfile',
+          defaultValue: { '@id': 'https://w3id.org/ldac/profile#Object' },
+        },
+      },
       { property: 'name', value: { kind: 'path', path: 'metadata.title' } },
       { property: 'description', value: { kind: 'path', path: 'metadata.description' } },
       { property: 'dateCreated', value: { kind: 'path', path: 'metaMetadata.createdOn' } },

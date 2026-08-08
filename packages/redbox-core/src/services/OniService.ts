@@ -26,6 +26,7 @@ import type {
   ResolvedOniPublishingConfigData,
 } from './oni-v2/types';
 import { makeOniAuditService } from './oni-v2/audit';
+import { ingestOniRepository, type OniIngestionResult } from './oni-v2/ingestion';
 
 export namespace Services {
   /**
@@ -158,6 +159,48 @@ export namespace Services {
       });
     }
 
+    protected async ingestDataset(
+      oid: string,
+      site: OniPublishingSiteConfig,
+      runContext: OniRunContext,
+      parentAuditContext: IntegrationAuditContext | null
+    ): Promise<OniIngestionResult | undefined> {
+      const ingestion = site.ingestion;
+      if (ingestion?.enabled !== true) {
+        return undefined;
+      }
+      const auditContext = startOniAudit(
+        oid,
+        IntegrationAuditAction.ingestOniDataset,
+        runContext,
+        {
+          site: runContext.siteName,
+          phase: 'ingest-oni',
+          apiUrl: ingestion.apiUrl,
+          forceReindex: ingestion.forceReindex,
+        },
+        parentAuditContext
+      );
+      try {
+        const result = await ingestOniRepository(ingestion);
+        completeOniAudit(auditContext, {
+          message: 'Oni repository ingestion completed.',
+          responseSummary: {
+            site: runContext.siteName,
+            structuralObjects: result.structuralObjects,
+            searchItems: result.searchItems,
+          },
+        });
+        return result;
+      } catch (error) {
+        failOniAudit(auditContext, error, {
+          message: 'Oni repository ingestion failed.',
+          ...this.summarizeError(error),
+        });
+        throw error;
+      }
+    }
+
     public async exportDataset(oid: string, record: unknown, options: unknown, user: unknown): Promise<OniRecordModel> {
       const recordObj = this.ensureRecord(record);
       const optionsObj = options != null && typeof options === 'object' ? (options as AnyRecord) : {};
@@ -190,6 +233,7 @@ export namespace Services {
       });
 
       let result: OniPublishResult;
+      let ingestionResult: OniIngestionResult | undefined;
       let userObj: OniUserModel | null = null;
       try {
         userObj = this.ensureUser(user, oid, siteName);
@@ -205,6 +249,7 @@ export namespace Services {
           repository,
           auditCtx
         );
+        ingestionResult = await this.ingestDataset(oid, resolvedSite.site, runContext, auditCtx);
       } catch (error) {
         const err = this.asError(error);
         if (userObj != null) {
@@ -236,6 +281,8 @@ export namespace Services {
             rootId: result.rootId,
             datasetUrl: result.datasetUrl,
             attachmentCount: result.attachments.length,
+            structuralObjects: ingestionResult?.structuralObjects,
+            searchItems: ingestionResult?.searchItems,
           },
         });
         return recordObj;
