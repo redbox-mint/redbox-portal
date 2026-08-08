@@ -58,8 +58,11 @@ async function importOcflModule(): Promise<OcflModuleAdapter> {
   const imported = await import(moduleName);
   const moduleRecord = imported as Record<string, unknown>;
   const candidate = (moduleRecord.default ?? imported) as Record<string, unknown>;
-  if (typeof candidate.Ocfl !== 'function' || typeof candidate.OcflStore !== 'function') {
-    throw new Error('@ocfl/ocfl did not expose Ocfl and OcflStore constructors');
+  if (
+    typeof candidate.OcflStore !== 'function' ||
+    (typeof candidate.implementOcfl !== 'function' && typeof candidate.Ocfl !== 'function')
+  ) {
+    throw new Error('@ocfl/ocfl did not expose a supported implementation factory and OcflStore constructor');
   }
   return candidate as unknown as OcflModuleAdapter;
 }
@@ -70,10 +73,15 @@ function isInvalidStorageRootError(error: unknown): boolean {
 
 function isMissingObjectError(error: unknown): boolean {
   const err = error as NodeJS.ErrnoException;
-  const code = String(err.code ?? '').toUpperCase();
+  const code = String(err.code ?? err.name ?? '').toUpperCase();
   const message = asError(error).message.toLowerCase();
   return (
-    code === 'ENOENT' || code.includes('NOT_FOUND') || message.includes('not found') || message.includes('no such file')
+    code === 'ENOENT' ||
+    code.includes('NOT_FOUND') ||
+    code.includes('NOSUCHKEY') ||
+    message.includes('not found') ||
+    message.includes('no such file') ||
+    message.includes('does not exist')
   );
 }
 
@@ -121,7 +129,10 @@ class FlydriveOniRepository implements OniOcflRepository {
         prefix: storageConfig.prefix,
         keyEncoding: storageConfig.keyEncoding,
       };
-      const flydriveOcfl = new ocfl.Ocfl(storeClass, storeOptions);
+      const flydriveOcfl =
+        typeof ocfl.implementOcfl === 'function'
+          ? ocfl.implementOcfl(storeClass, storeOptions)
+          : new ocfl.Ocfl!(storeClass, storeOptions);
       return flydriveOcfl.storage(
         {
           root: storageConfig.rootPath,

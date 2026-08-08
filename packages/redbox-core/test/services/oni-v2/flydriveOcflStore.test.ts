@@ -33,6 +33,25 @@ function harness(keyEncoding: 'flydrive' | 'raw' = 'flydrive') {
   return { disk, store };
 }
 
+function rawDriverHarness() {
+  const result = harness('raw');
+  const driver = {
+    ...result.disk,
+    get: sinon.stub().resolves('ocfl_1.1\n'),
+    put: sinon.stub().resolves(),
+  };
+  result.disk.driver = driver;
+  const Store = createStorageManagerOcflStoreClass(BaseStore);
+  const store: any = new Store({
+    disk: result.disk,
+    root: '/repo',
+    workspace: '/work',
+    prefix: '/oni/',
+    keyEncoding: 'raw',
+  });
+  return { disk: result.disk, driver, store };
+}
+
 describe('Oni Flydrive OCFL store', () => {
   it('maps root, workspace, encoded, and raw keys', () => {
     const { store } = harness();
@@ -83,6 +102,26 @@ describe('Oni Flydrive OCFL store', () => {
     disk.get.rejects(Object.assign(new Error('cannot read file'), { code: 'CANNOT_READ_FILE' }));
     try {
       await store.readFile('/repo/missing', 'utf8');
+      expect.fail('Expected ENOENT');
+    } catch (error: any) {
+      expect(error.code).to.equal('ENOENT');
+    }
+  });
+
+  it('bypasses the Flydrive key normalizer for explicitly configured raw OCFL keys', async () => {
+    const { disk, driver, store } = rawDriverHarness();
+
+    expect(await store.readFile('/repo/0=ocfl_1.1', 'utf8')).to.equal('ocfl_1.1\n');
+    await store.writeFile('/repo/0=ocfl_1.1', 'ocfl_1.1\n');
+
+    expect(driver.get.calledOnceWithExactly('oni/0=ocfl_1.1')).to.equal(true);
+    expect(driver.put.calledOnceWith('oni/0=ocfl_1.1', 'ocfl_1.1\n')).to.equal(true);
+    expect(disk.get.called).to.equal(false);
+    expect(disk.put.called).to.equal(false);
+
+    driver.get.rejects(Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' }));
+    try {
+      await store.readFile('/repo/missing=key', 'utf8');
       expect.fail('Expected ENOENT');
     } catch (error: any) {
       expect(error.code).to.equal('ENOENT');

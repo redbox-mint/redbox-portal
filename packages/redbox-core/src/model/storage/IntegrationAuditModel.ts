@@ -32,6 +32,7 @@ export enum IntegrationAuditAction {
   publishOniDataset = 'publishOniDataset',
   buildOniRoCrate = 'buildOniRoCrate',
   writeOniOcflObject = 'writeOniOcflObject',
+  ingestOniDataset = 'ingestOniDataset',
 }
 
 export enum IntegrationAuditStatus {

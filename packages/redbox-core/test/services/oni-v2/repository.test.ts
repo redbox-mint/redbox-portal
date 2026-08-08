@@ -29,7 +29,7 @@ describe('Oni v2 OCFL repository', () => {
     },
   } as unknown as OniPublishingSiteConfig;
 
-  function makeHarness() {
+  function makeHarness(useImplementationFactory = false) {
     const transaction = { write: sinon.stub().resolves() };
     const rootObject = {
       load: sinon.stub().rejects(Object.assign(new Error('not found'), { code: 'ENOENT' })),
@@ -48,10 +48,15 @@ describe('Oni v2 OCFL repository', () => {
       storage = sinon.stub().returns(storage);
     }
     class FakeOcflStore {}
-    const ocflModule = {
-      Ocfl: FakeOcfl,
-      OcflStore: FakeOcflStore,
-    } as unknown as OcflModuleAdapter;
+    const ocflModule = (useImplementationFactory
+      ? {
+          implementOcfl: sinon.stub().returns(new FakeOcfl()),
+          OcflStore: FakeOcflStore,
+        }
+      : {
+          Ocfl: FakeOcfl,
+          OcflStore: FakeOcflStore,
+        }) as unknown as OcflModuleAdapter;
     const disk = {};
     const storageManager = {
       isBootstrapped: sinon.stub().returns(false),
@@ -72,6 +77,7 @@ describe('Oni v2 OCFL repository', () => {
       storageManager,
       datastreamService,
       loadOcflModule,
+      ocflModule,
     };
   }
 
@@ -115,6 +121,15 @@ describe('Oni v2 OCFL repository', () => {
     expect(harness.loadOcflModule.calledOnce).to.be.true;
   });
 
+  it('supports the implementOcfl factory exported by current @ocfl/ocfl releases', async () => {
+    const harness = makeHarness(true);
+
+    await harness.repository.ensureStorageRoot();
+
+    expect((harness.ocflModule.implementOcfl as sinon.SinonStub).calledOnce).to.be.true;
+    expect(harness.storage.load.calledOnce).to.be.true;
+  });
+
   it('propagates unexpected storage-root load failures', async () => {
     const harness = makeHarness();
     harness.storage.load.rejects(new Error('permission denied'));
@@ -144,6 +159,15 @@ describe('Oni v2 OCFL repository', () => {
     harness.rootObject.update.resetHistory();
     await harness.repository.ensureRootCollection(config);
     expect(harness.rootObject.update.called).to.be.false;
+  });
+
+  it('treats the S3 NoSuchKey response as a missing root collection', async () => {
+    const harness = makeHarness();
+    harness.rootObject.load.rejects(Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' }));
+
+    await harness.repository.ensureRootCollection(config, site);
+
+    expect(harness.rootObject.update.calledOnce).to.be.true;
   });
 
   it('writes crate metadata and both streamed and buffered attachments in source order', async () => {

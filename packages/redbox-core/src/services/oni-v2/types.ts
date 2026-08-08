@@ -94,7 +94,13 @@ export interface OcflStorageConfig {
 }
 
 export interface OcflModuleAdapter {
-  Ocfl: new (
+  Ocfl?: new (
+    storeClass: unknown,
+    storeOptions: Record<string, unknown>
+  ) => {
+    storage(config: OcflStorageConfig, storeOptions: Record<string, unknown>): OcflStorageAdapter;
+  };
+  implementOcfl?: (
     storeClass: unknown,
     storeOptions: Record<string, unknown>
   ) => {

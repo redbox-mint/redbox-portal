@@ -12,6 +12,10 @@ type StoreOptions = {
   keyEncoding?: 'flydrive' | 'raw';
 };
 
+type DiskWithDriver = StorageManagerServices.IDisk & {
+  driver?: StorageManagerServices.IDisk;
+};
+
 type DiskEntry = {
   key?: string;
   prefix?: string;
@@ -100,15 +104,19 @@ function getEntryKey(value: unknown): string {
 
 function isMissingDiskError(error: unknown): boolean {
   const code =
-    error != null && typeof error === 'object' ? String((error as NodeJS.ErrnoException).code ?? '').toUpperCase() : '';
+    error != null && typeof error === 'object'
+      ? String((error as NodeJS.ErrnoException).code ?? (error as Error).name ?? '').toUpperCase()
+      : '';
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
     code === 'ENOENT' ||
+    code.includes('NOSUCHKEY') ||
     code.includes('CANNOT_READ_FILE') ||
     code.includes('NOT_FOUND') ||
     message.includes('no such file') ||
     message.includes('not found') ||
-    message.includes('cannot read file')
+    message.includes('cannot read file') ||
+    message.includes('does not exist')
   );
 }
 
@@ -116,6 +124,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
   return class StorageManagerOcflStore extends OcflStore {
     readonly prefix: string;
     readonly disk: StorageManagerServices.IDisk;
+    readonly ioDisk: StorageManagerServices.IDisk;
     readonly root: string;
     readonly workspace: string;
     readonly keyEncoding: 'flydrive' | 'raw';
@@ -124,6 +133,8 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       super(options as unknown as Record<string, unknown>);
       this.prefix = normalizePrefix(options.prefix);
       this.disk = options.disk;
+      const underlyingDriver = (options.disk as DiskWithDriver).driver;
+      this.ioDisk = options.keyEncoding === 'raw' && underlyingDriver != null ? underlyingDriver : options.disk;
       this.root = options.root;
       this.workspace = options.workspace;
       this.keyEncoding = options.keyEncoding ?? 'flydrive';
@@ -161,7 +172,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     }> {
       const key = this.keyFor(filePath);
       try {
-        const meta = await this.disk.getMetaData(key);
+        const meta = await this.ioDisk.getMetaData(key);
         const lastModified = meta.lastModified ?? new Date();
         return {
           size: meta.contentLength || 0,
@@ -194,13 +205,13 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     }
 
     async createReadStream(filePath: string): Promise<NodeJS.ReadableStream> {
-      return this.disk.getStream(this.keyFor(filePath));
+      return this.ioDisk.getStream(this.keyFor(filePath));
     }
 
     async createWriteStream(filePath: string): Promise<NodeJS.WritableStream> {
       const key = this.keyFor(filePath);
       const uploadStream = new PassThrough();
-      const upload = this.disk.putStream(key, uploadStream);
+      const upload = this.ioDisk.putStream(key, uploadStream);
       const writable = new Writable({
         write(chunk: unknown, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
           uploadStream.write(chunk, encoding, callback);
@@ -236,9 +247,9 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       const key = this.keyFor(filePath);
       try {
         if (options === 'utf8' || (typeof options === 'object' && options?.encoding)) {
-          return await this.disk.get(key);
+          return await this.ioDisk.get(key);
         }
-        return await this.disk.getBytes(key);
+        return await this.ioDisk.getBytes(key);
       } catch (error) {
         if (isMissingDiskError(error)) {
           throw toError('ENOENT', filePath);
@@ -254,14 +265,14 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     ): Promise<void> {
       const key = this.keyFor(filePath);
       if (data instanceof Readable) {
-        await this.disk.putStream(key, data, options);
+        await this.ioDisk.putStream(key, data, options);
         return;
       }
-      await this.disk.put(key, data, options);
+      await this.ioDisk.put(key, data, options);
     }
 
     async copyFile(source: string, target: string): Promise<void> {
-      await this.disk.copy(this.keyFor(source), this.keyFor(target));
+      await this.ioDisk.copy(this.keyFor(source), this.keyFor(target));
     }
 
     async opendir(filePath: string): Promise<{
@@ -291,7 +302,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     async hasDirectoryEntries(filePath: string): Promise<boolean> {
       const prefix = this.keyFor(filePath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
-      const listing = await this.disk.listAll(directoryPrefix, { recursive: false });
+      const listing = await this.ioDisk.listAll(directoryPrefix, { recursive: false });
       for (const item of listing.objects) {
         if (getEntryKey(item)) {
           return true;
@@ -304,7 +315,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       const keyOptions = { preserveEquals: this.keyEncoding === 'raw' };
       const prefix = this.keyFor(filePath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
-      const entries = await listDiskEntries(this.disk, directoryPrefix, { recursive: false });
+      const entries = await listDiskEntries(this.ioDisk, directoryPrefix, { recursive: false });
       const names = new Map<string, DirectoryEntryInfo>();
       for (const item of entries) {
         const key = getEntryKey(item);
@@ -349,7 +360,7 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       const keyOptions = { preserveEquals: this.keyEncoding === 'raw' };
       const prefix = this.keyFor(dirPath);
       const directoryPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : '';
-      const entries = await listDiskEntries(this.disk, directoryPrefix, { recursive });
+      const entries = await listDiskEntries(this.ioDisk, directoryPrefix, { recursive });
       async function* iterator() {
         for (const item of entries) {
           const key = getEntryKey(item);
@@ -377,13 +388,13 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     async move(source: string, target: string): Promise<void> {
       const sourceKey = this.keyFor(source);
       const targetKey = this.keyFor(target);
-      if (await this.disk.exists(sourceKey)) {
-        await this.disk.move(sourceKey, targetKey);
+      if (await this.ioDisk.exists(sourceKey)) {
+        await this.ioDisk.move(sourceKey, targetKey);
         return;
       }
 
       const directoryPrefix = sourceKey ? `${sourceKey.replace(/\/+$/, '')}/` : '';
-      const items = await listDiskEntries(this.disk, directoryPrefix, { recursive: true });
+      const items = await listDiskEntries(this.ioDisk, directoryPrefix, { recursive: true });
       if (items.length === 0) {
         throw toError('ENOENT', source);
       }
@@ -396,17 +407,17 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
         if (directoryPrefix && !key.startsWith(directoryPrefix)) {
           continue;
         }
-        await this.disk.move(key, rel ? `${targetKey}/${rel}` : targetKey);
+        await this.ioDisk.move(key, rel ? `${targetKey}/${rel}` : targetKey);
       }
     }
 
     async remove(filePath: string): Promise<void> {
       const key = this.keyFor(filePath);
-      if (await this.disk.exists(key)) {
-        await this.disk.delete(key);
+      if (await this.ioDisk.exists(key)) {
+        await this.ioDisk.delete(key);
         return;
       }
-      await this.disk.deleteAll(key ? `${key}/` : '');
+      await this.ioDisk.deleteAll(key ? `${key}/` : '');
     }
   };
 }

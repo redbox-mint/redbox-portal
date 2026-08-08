@@ -250,9 +250,25 @@ async function getSpatialCoverage(metadata: AnyRecord, extraContext: AnyRecord):
   if (_.isEmpty(metadata.geospatial)) {
     return undefined;
   }
+  const geospatial = (Array.isArray(metadata.geospatial) ? metadata.geospatial : [metadata.geospatial]).filter(
+    geoJson => {
+      if (!isRecordValue(geoJson)) {
+        return false;
+      }
+      if (geoJson.type === 'FeatureCollection') {
+        return Array.isArray(geoJson.features) && geoJson.features.length > 0;
+      }
+      if (geoJson.type === 'GeometryCollection') {
+        return Array.isArray(geoJson.geometries) && geoJson.geometries.length > 0;
+      }
+      return true;
+    }
+  );
+  if (geospatial.length === 0) {
+    return undefined;
+  }
   extraContext.Geometry = 'http://www.opengis.net/ont/geosparql#Geometry';
   extraContext.asWKT = 'http://www.opengis.net/ont/geosparql#asWKT';
-  const geospatial = Array.isArray(metadata.geospatial) ? metadata.geospatial : [metadata.geospatial];
   return Promise.all(
     geospatial.map(async (geoJson: unknown, idx: number) => ({
       '@id': `_:place-${idx}`,
@@ -470,6 +486,16 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
   const rootCollection = createRootCollectionEntity(input.config);
   graph.push(rootCollection);
 
+  const licenses = getLicense(metadata, input.config);
+  const spatialCoverage = await getSpatialCoverage(metadata, extraContext);
+  const spatialEntities = (spatialCoverage ?? []).flatMap(place => {
+    const geometry = isRecordValue(place.geo) ? place.geo : undefined;
+    return geometry ? [{ ...place, geo: toReference(geometry) }, geometry] : [place];
+  });
+  for (const supportingEntity of [input.config.metadata.organization, ...licenses, ...spatialEntities]) {
+    upsertGraphEntity(graph, supportingEntity as unknown as AnyRecord);
+  }
+
   const systemRootDatasetFields: AnyRecord = {
     '@id': rootId,
     '@type': ['Dataset', 'RepositoryObject'],
@@ -485,8 +511,8 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     rootId,
     now,
     organization: input.config.metadata.organization,
-    license: getLicense(metadata, input.config),
-    spatialCoverage: await getSpatialCoverage(metadata, extraContext),
+    license: licenses,
+    spatialCoverage,
     temporalCoverage: getTemporalCoverage(metadata),
   });
   const mappedRootDataset = await mapDatasetFields(input.config.mapping?.rootDataset ?? [], mappingContext);

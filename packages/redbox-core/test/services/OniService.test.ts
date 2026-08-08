@@ -11,6 +11,7 @@ import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../..
 import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
 import { runPublishDatasetProgram } from '../../src/services/oni-v2/runtime';
+import { ingestOniRepository } from '../../src/services/oni-v2/ingestion';
 import type { Services as StorageManagerServices } from '../../src/services/StorageManagerService';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
@@ -233,6 +234,7 @@ describe('OniService', function () {
     const graph = result.crateJson['@graph'] as Array<Record<string, unknown>>;
     const graphIds = graph.map(entry => entry['@id']);
     const root = graph.find(entry => entry['@id'] === result.rootId)!;
+    const license = (root.license as Array<Record<string, unknown>>)[0];
     const descriptor = graph.find(entry => entry['@id'] === 'ro-crate-metadata.json')!;
     const historyCreate = graph.find(entry => entry['@id'] === 'history1')!;
     const creatorPeople = graph.filter(entry => entry.email === 'creator@example.edu');
@@ -240,6 +242,8 @@ describe('OniService', function () {
     expect(historyCreate.agent).to.deep.equal({ '@id': 'https://orcid.org/0000-0001-2345-6789' });
     expect(creatorPeople).to.have.lengthOf(1);
     expect(root.funder).to.deep.equal([{ '@id': '_:funder/03yrm5c26' }, { '@id': '_:funder/grant-1' }]);
+    expect(root.conformsTo).to.deep.equal({ '@id': 'https://w3id.org/ldac/profile#Object' });
+    expect(graph.find(entry => entry['@id'] === license['@id'])).to.deep.include(license);
     expect(root.about).to.deep.equal([{ '@id': '_:FOR/0601' }, { '@id': '_:SEO/9608' }]);
     expect(root.publications).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-publication' }]);
     expect(root.data).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-dataset' }]);
@@ -496,6 +500,44 @@ describe('OniService', function () {
     expect(getSelectedAttachments(record, oniPublishing)).to.deep.equal([]);
   });
 
+  it('omits empty GeoJSON coverage and emits linked entities for real geometry', async function () {
+    const emptyRecord = publicationRecord();
+    emptyRecord.metadata.geospatial = { type: 'FeatureCollection', features: [] };
+    const emptyResult = await buildOniRoCrate({
+      config: oniPublishing,
+      site: oniPublishing.sites['test-site'],
+      siteName: 'test-site',
+      oid: 'pub-empty-geo',
+      record: emptyRecord,
+      creator: { email: 'creator@example.edu' },
+      approver: { email: 'approver@example.edu' },
+    });
+    const emptyGraph = emptyResult.crateJson['@graph'] as Array<Record<string, unknown>>;
+    const emptyRoot = emptyGraph.find(entry => entry['@id'] === emptyResult.rootId)!;
+    expect(emptyRoot).not.to.have.property('spatialCoverage');
+
+    const pointRecord = publicationRecord();
+    pointRecord.metadata.geospatial = { type: 'Point', coordinates: [138.6, -34.9] };
+    const pointResult = await buildOniRoCrate({
+      config: oniPublishing,
+      site: oniPublishing.sites['test-site'],
+      siteName: 'test-site',
+      oid: 'pub-point-geo',
+      record: pointRecord,
+      creator: { email: 'creator@example.edu' },
+      approver: { email: 'approver@example.edu' },
+    });
+    const pointGraph = pointResult.crateJson['@graph'] as Array<Record<string, unknown>>;
+    expect(pointGraph.find(entry => entry['@id'] === '_:place-0')).to.deep.include({
+      '@type': 'Place',
+      geo: { '@id': '_:geo-0' },
+    });
+    const geometry = pointGraph.find(entry => entry['@id'] === '_:geo-0')!;
+    expect(geometry['@type']).to.equal('Geometry');
+    expect(String(geometry.asWKT)).to.include('POINT');
+    expect(String(geometry.asWKT)).to.include('138.6 -34.9');
+  });
+
   it('accepts legacy truthy selected attachment flags', function () {
     const record = publicationRecord();
     record.metadata.dataLocations = [
@@ -552,6 +594,10 @@ describe('OniService', function () {
       siteName: 'test-site',
       storageDriver: 'flydrive',
     });
+    const ingestStub = sinon.stub(serviceInternals, 'ingestDataset').resolves({
+      structuralObjects: 2,
+      searchItems: 1,
+    });
 
     await service.exportDataset(
       'pub-1',
@@ -577,6 +623,42 @@ describe('OniService', function () {
     expect(updateMeta.firstCall.args[2].metadata.publication_error).to.equal(undefined);
     expect(updateMeta.firstCall.args[4]).to.equal(true);
     expect(updateMeta.firstCall.args[5]).to.equal(false);
+    expect(ingestStub.calledOnce).to.equal(true);
+  });
+
+  it('rebuilds Oni structural and search indexes and waits for completion', async function () {
+    let now = 0;
+    const client = {
+      post: sinon.stub().resolves({ data: {}, status: 202 }),
+      get: sinon.stub(),
+    };
+    client.get.onCall(0).resolves({ data: { isDeleting: true, count: 0 }, status: 200 });
+    client.get.onCall(1).resolves({ data: { isIndexed: true, count: 2 }, status: 200 });
+    client.get.onCall(2).resolves({ data: { isIndexing: true, count: 0 }, status: 200 });
+    client.get.onCall(3).resolves({ data: { isIndexed: true, count: 1 }, status: 200 });
+
+    const result = await ingestOniRepository(
+      {
+        enabled: true,
+        apiUrl: 'http://oni-api:8080/',
+        adminToken: 'secret-token',
+        forceReindex: true,
+        pollIntervalMs: 10,
+        timeoutMs: 1_000,
+      },
+      {
+        httpClient: client,
+        delay: async milliseconds => {
+          now += milliseconds;
+        },
+        now: () => now,
+      }
+    );
+
+    expect(result).to.deep.equal({ structuralObjects: 2, searchItems: 1 });
+    expect(client.post.firstCall.args[0]).to.equal('http://oni-api:8080/admin/index/structural?force=true');
+    expect(client.post.secondCall.args[0]).to.equal('http://oni-api:8080/admin/index/search?force=true');
+    expect(client.post.firstCall.args[2].headers.Authorization).to.equal('Bearer secret-token');
   });
 
   it('audits and writes publication errors when the requested Oni site is unknown', async function () {
