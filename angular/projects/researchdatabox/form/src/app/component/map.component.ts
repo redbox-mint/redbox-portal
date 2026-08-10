@@ -701,6 +701,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private initialiseMap(): void {
+    if (this._destroyed) {
+      return;
+    }
     if (!this.mapHost?.nativeElement || this.map || !this.mapDeps) {
       if (!this.map && this.mapDeps) {
         this.scheduleMapInitialisationRetry();
@@ -1505,6 +1508,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   }
 
   private handleMapLayoutChange(): void {
+    if (this._destroyed) {
+      return;
+    }
     if (!this.map && this.mapDeps && this.mapHost?.nativeElement) {
       this.initialiseMap();
       return;
@@ -1513,6 +1519,8 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
       const targetChanged = this.attachMapToCurrentHost();
       if (targetChanged) {
         this.pendingFitRetryCount = 0;
+        this.pendingFitSize = undefined;
+        this.pendingFitStableSince = 0;
       } else {
         this.rearmPendingFitRetryForLayoutChange();
       }
@@ -1568,22 +1576,17 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.map) {
       return;
     }
-    globalThis.requestAnimationFrame?.(() => {
-      this.map?.updateSize();
-      if (this.vectorSource && this.vectorLayerFitPending && this.hasStableMapSizeForFit()) {
-        this.vectorLayerFitPending = !this.fitToLayerBounds();
-      }
-      this.fitPendingFeatureCollectionBounds();
-      this.schedulePendingFitRetry();
-    });
-    globalThis.setTimeout(() => {
-      this.map?.updateSize();
-      if (this.vectorSource && this.vectorLayerFitPending && this.hasStableMapSizeForFit()) {
-        this.vectorLayerFitPending = !this.fitToLayerBounds();
-      }
-      this.fitPendingFeatureCollectionBounds();
-      this.schedulePendingFitRetry();
-    }, 0);
+    globalThis.requestAnimationFrame?.(() => this.runPendingFitPass());
+    globalThis.setTimeout(() => this.runPendingFitPass(), 0);
+  }
+
+  private runPendingFitPass(): void {
+    this.map?.updateSize();
+    if (this.vectorSource && this.vectorLayerFitPending && this.hasStableMapSizeForFit()) {
+      this.vectorLayerFitPending = !this.fitToLayerBounds();
+    }
+    this.fitPendingFeatureCollectionBounds();
+    this.schedulePendingFitRetry();
   }
 
   private hasStableMapSizeForFit(): boolean {
@@ -1642,12 +1645,17 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
     if (!this.map || !this.mapDeps || !source || !this.hasLayerExtent()) {
       return false;
     }
-    const extent = source.getExtent();
-    if (extent != null && !this.mapDeps.extentIsEmpty(extent)) {
+    try {
+      const extent = source.getExtent();
+      if (extent == null) {
+        return false;
+      }
       this.map.getView().fit(extent, {padding: [12, 12, 12, 12], maxZoom: this.getFeatureFitMaxZoom()});
-      return true;
+    } catch (error) {
+      this.mapError ||= this.translateText("@map-feature-fit-error", "Saved map features could not be displayed.");
+      this.loggerService.warn(`${this.logName}: failed to fit map layer bounds.`, error);
     }
-    return false;
+    return true;
   }
 
   private scheduleFitToFeatureCollectionBounds(value: MapModelValueType): void {

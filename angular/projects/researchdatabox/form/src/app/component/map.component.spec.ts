@@ -825,9 +825,125 @@ describe("MapComponent", () => {
       ]
     };
 
-    await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    fakeView.fit.calls.reset();
+    (mapComponent as any).pendingFitSize = undefined;
+    (mapComponent as any).pendingFitStableSince = 0;
+    (mapComponent as any).vectorLayerFitPending = true;
+    (mapComponent as any).pendingFitRetryCount = (mapComponent as any).maxPendingFitRetries;
+    jasmine.clock().install();
+    try {
+      jasmine.clock().mockDate(new Date());
+      (mapComponent as any).runPendingFitPass();
+      jasmine.clock().tick(100);
+      (mapComponent as any).runPendingFitPass();
 
-    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [12, 12, 12, 12], maxZoom: 18});
+      expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [12, 12, 12, 12], maxZoom: 18});
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it("does not initialise or respond to layout changes after destruction", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    fixture.destroy();
+    (mapComponent as any).initialiseMap();
+    (mapComponent as any).handleMapLayoutChange();
+
+    expect((mapComponent as any).map).toBeUndefined();
+  });
+
+  it("resets fit stability when the map target changes", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    (mapComponent as any).pendingFitSize = [729, 450];
+    (mapComponent as any).pendingFitStableSince = 123;
+    spyOn(mapComponent as any, "invalidateMap");
+
+    (mapComponent as any).handleMapLayoutChange();
+
+    expect((mapComponent as any).pendingFitSize).toBeUndefined();
+    expect((mapComponent as any).pendingFitStableSince).toBe(0);
+    fixture.destroy();
+  });
+
+  it("handles errors when fitting saved layer bounds", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    fakeView.fit.and.throwError("fit failed");
+
+    expect(() => (mapComponent as any).fitToLayerBounds()).not.toThrow();
+    expect((mapComponent as any).fitToLayerBounds()).toBeTrue();
+    expect(mapComponent.mapError).toContain("Saved map features could not be displayed.");
   });
 
   it("defers collection fitting until the map surface has a size", async () => {
