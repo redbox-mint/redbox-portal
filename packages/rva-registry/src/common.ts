@@ -14,7 +14,7 @@
 
 import type { Configuration } from "./configuration";
 import type { RequestArgs } from "./base";
-import type { AxiosInstance, AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosPromise } from 'axios';
 import { RequiredError } from "./base";
 
 export const DUMMY_BASE_URL = 'https://example.com'
@@ -118,9 +118,9 @@ export const toPathString = function (url: URL) {
     return url.pathname + url.search + url.hash
 }
 
-export const createRequestFunction = function (axiosArgs: RequestArgs, globalAxios: AxiosInstance, BASE_PATH: string, configuration?: Configuration) {
-    return <T = unknown, R = AxiosResponse<T>>(axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+export const createRequestFunction = function (axiosArgs: RequestArgs, globalAxios: AxiosInstance, BASE_PATH: string, configuration?: Configuration): <T = unknown>(axios?: AxiosInstance, basePath?: string) => AxiosPromise<T> {
+    return <T = unknown>(axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH): AxiosPromise<T> => {
         const axiosRequestArgs = {...axiosArgs.options, url: (axios.defaults.baseURL ? '' : configuration?.basePath ?? basePath) + axiosArgs.url};
-        return axios.request<T, R>(axiosRequestArgs);
+        return axios.request<T>(axiosRequestArgs);
     };
 }
