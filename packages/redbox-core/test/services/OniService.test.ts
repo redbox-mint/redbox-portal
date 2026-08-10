@@ -11,6 +11,7 @@ import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../..
 import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
 import { runPublishDatasetProgram } from '../../src/services/oni-v2/runtime';
+import * as ingestionModule from '../../src/services/oni-v2/ingestion';
 import { ingestOniRepository } from '../../src/services/oni-v2/ingestion';
 import type { Services as StorageManagerServices } from '../../src/services/StorageManagerService';
 import { RBValidationError } from '../../src/model/RBValidationError';
@@ -536,6 +537,25 @@ describe('OniService', function () {
     expect(geometry['@type']).to.equal('Geometry');
     expect(String(geometry.asWKT)).to.include('POINT');
     expect(String(geometry.asWKT)).to.include('138.6 -34.9');
+
+    const mixedRecord = publicationRecord();
+    mixedRecord.metadata.geospatial = [
+      null,
+      { type: 'FeatureCollection', features: [] },
+      { type: 'GeometryCollection', geometries: [] },
+      { type: 'Point', coordinates: [138.6, -34.9] },
+    ];
+    const mixedResult = await buildOniRoCrate({
+      config: oniPublishing,
+      site: oniPublishing.sites['test-site'],
+      siteName: 'test-site',
+      oid: 'pub-mixed-geo',
+      record: mixedRecord,
+      creator: { email: 'creator@example.edu' },
+      approver: { email: 'approver@example.edu' },
+    });
+    const mixedGraph = mixedResult.crateJson['@graph'] as Array<Record<string, unknown>>;
+    expect(mixedGraph.filter(entry => entry['@type'] === 'Place')).to.have.lengthOf(1);
   });
 
   it('accepts legacy truthy selected attachment flags', function () {
@@ -624,6 +644,85 @@ describe('OniService', function () {
     expect(updateMeta.firstCall.args[4]).to.equal(true);
     expect(updateMeta.firstCall.args[5]).to.equal(false);
     expect(ingestStub.calledOnce).to.equal(true);
+    const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
+      .IntegrationAuditService.completeAudit;
+    expect(completeAudit.firstCall.args[1].responseSummary).to.include({
+      structuralObjects: 2,
+      searchItems: 1,
+    });
+  });
+
+  it('skips disabled Oni ingestion without creating an audit', async function () {
+    const result = await (
+      service as unknown as {
+        ingestDataset: (...args: unknown[]) => Promise<unknown>;
+      }
+    ).ingestDataset('pub-1', oniPublishing.sites['test-site'], { siteName: 'test-site' }, null);
+
+    expect(result).to.equal(undefined);
+    expect(
+      (global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub } }).IntegrationAuditService
+        .startAudit.called
+    ).to.equal(false);
+  });
+
+  it('audits successful and failed Oni ingestion runs', async function () {
+    const site = oniPublishing.sites['test-site'];
+    site.ingestion = {
+      enabled: true,
+      apiUrl: 'https://oni.example.test',
+      adminToken: 'secret-token',
+      forceReindex: true,
+      pollIntervalMs: 10,
+      timeoutMs: 100,
+    };
+    const runContext = {
+      recordOid: 'pub-1',
+      brandId: 'brand-1',
+      brandName: 'default',
+      siteName: 'test-site',
+      correlationId: 'job-1',
+      triggerSource: 'test',
+    };
+    const ingestStub = sinon.stub(ingestionModule, 'ingestOniRepository').resolves({
+      structuralObjects: 3,
+      searchItems: 4,
+    });
+    const internals = service as unknown as {
+      ingestDataset: (...args: unknown[]) => Promise<unknown>;
+    };
+
+    const result = await internals.ingestDataset('pub-1', site, runContext, null);
+    expect(result).to.deep.equal({ structuralObjects: 3, searchItems: 4 });
+    expect(ingestStub.calledOnceWithExactly(site.ingestion)).to.equal(true);
+
+    const auditService = (
+      global as unknown as {
+        IntegrationAuditService: {
+          startAudit: sinon.SinonStub;
+          completeAudit: sinon.SinonStub;
+          failAudit: sinon.SinonStub;
+        };
+      }
+    ).IntegrationAuditService;
+    expect(auditService.startAudit.firstCall.args[1]).to.equal(IntegrationAuditAction.ingestOniDataset);
+    expect(auditService.completeAudit.firstCall.args[1].responseSummary).to.include({
+      structuralObjects: 3,
+      searchItems: 4,
+    });
+
+    ingestStub.rejects(new Error('Oni indexing failed'));
+    try {
+      await internals.ingestDataset('pub-1', site, runContext, null);
+      expect.fail('Expected ingestion to throw');
+    } catch (error) {
+      expect(error).to.be.an('error').with.property('message', 'Oni indexing failed');
+    }
+    expect(auditService.failAudit.calledOnce).to.equal(true);
+    expect(auditService.failAudit.firstCall.args[2].responseSummary).to.deep.include({
+      errorType: 'Error',
+      message: 'Oni indexing failed',
+    });
   });
 
   it('rebuilds Oni structural and search indexes and waits for completion', async function () {
