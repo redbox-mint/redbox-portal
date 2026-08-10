@@ -1,5 +1,6 @@
 import assert from 'assert';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { createRequestFunction } from '../../dist/common.js';
 import { ResourcesApi, ServicesApi, UtilitiesApi } from '../../dist/index.js';
 
 type RecordedRequest = {
@@ -30,6 +31,24 @@ function createMockClient(data: unknown, requests: RecordedRequest[]) {
 
 describe('RVA registry generated client', () => {
     const basePath = 'https://registry.test';
+
+    it('uses the default Axios client and base path for request functions', async () => {
+        const requests: RecordedRequest[] = [];
+        const client = createMockClient({ result: 'ok' }, requests);
+        const request = createRequestFunction(
+            { options: { method: 'get' }, url: '/api/test' } as Parameters<typeof createRequestFunction>[0],
+            client,
+            basePath
+        );
+        const response = await request();
+
+        assert.strictEqual(response.status, 200);
+        assert.deepStrictEqual(requests, [{
+            url: 'https://registry.test/api/test',
+            method: 'get',
+            data: undefined
+        }]);
+    });
 
     it('constructs utility requests and returns the response', async () => {
         const requests: RecordedRequest[] = [];
