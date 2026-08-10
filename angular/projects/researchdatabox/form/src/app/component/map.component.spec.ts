@@ -825,7 +825,7 @@ describe("MapComponent", () => {
       ]
     };
 
-    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
     fakeView.fit.calls.reset();
     (mapComponent as any).pendingFitSize = undefined;
@@ -842,6 +842,7 @@ describe("MapComponent", () => {
       expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [12, 12, 12, 12], maxZoom: 18});
     } finally {
       jasmine.clock().uninstall();
+      fixture.destroy();
     }
   });
 
@@ -937,13 +938,17 @@ describe("MapComponent", () => {
       ]
     };
 
-    const {formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
     fakeView.fit.and.throwError("fit failed");
 
-    expect(() => (mapComponent as any).fitToLayerBounds()).not.toThrow();
-    expect((mapComponent as any).fitToLayerBounds()).toBeTrue();
-    expect(mapComponent.mapError).toContain("Saved map features could not be displayed.");
+    try {
+      expect(() => (mapComponent as any).fitToLayerBounds()).not.toThrow();
+      expect((mapComponent as any).fitToLayerBounds()).toBeTrue();
+      expect(mapComponent.mapError).toContain("Saved map features could not be displayed.");
+    } finally {
+      fixture.destroy();
+    }
   });
 
   it("defers collection fitting until the map surface has a size", async () => {
