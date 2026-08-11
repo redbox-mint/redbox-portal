@@ -29,6 +29,7 @@ import type { HistoricalVocabMode } from "./dropdown-input.outline";
 /* Typeahead Input Component */
 export const TypeaheadInputComponentName = "TypeaheadInputComponent" as const;
 export type TypeaheadInputComponentNameType = typeof TypeaheadInputComponentName;
+export const TypeaheadInputDefaultNoResultsMessageKey = "@typeahead-no-matches-found" as const;
 
 export const TypeaheadSourceTypes = ["static", "vocabulary", "namedQuery", "external", "service"] as const;
 export type TypeaheadSourceType = typeof TypeaheadSourceTypes[number];
@@ -84,6 +85,11 @@ export interface TypeaheadInputFieldComponentConfigCommonFrame extends FieldComp
     cacheResults?: boolean;
     multiSelect?: boolean;
     placeholder?: string;
+    /**
+     * Translation key rendered when a completed lookup returns no options.
+     * Omit it to use TypeaheadInputDefaultNoResultsMessageKey.
+     */
+    noResultsMessageKey?: string;
     readOnlyAfterSelect?: boolean;
     historicalVocabMode?: HistoricalVocabMode;
 }

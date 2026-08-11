@@ -2,7 +2,11 @@ import { TestBed } from "@angular/core/testing";
 import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {
+  FormConfigFrame,
+  TypeaheadInputDefaultNoResultsMessageKey,
+  TypeaheadOption
+} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
@@ -15,6 +19,20 @@ import {GroupFieldComponent} from "./group.component";
 
 describe("TypeaheadInputComponent", () => {
   let translationService: any;
+
+  async function registerTranslations(items: Record<string, string>): Promise<void> {
+    if (!i18next.isInitialized) {
+      await i18next.init({
+        lng: 'en',
+        fallbackLng: 'en',
+        returnEmptyString: false,
+        resources: { en: { translation: {} } },
+      });
+    }
+    i18next.addResourceBundle('en', 'translation', items, true, true);
+    await i18next.changeLanguage('en');
+    Object.assign(translationService.translationMap, items);
+  }
 
     beforeEach(async () => {
       ({ translationService } = await createTestbedModule({
@@ -510,6 +528,172 @@ describe("TypeaheadInputComponent", () => {
 
         expect((formComponent as any).form.get("person_lookup")?.value).toBe("jane");
         expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
+    });
+
+    it("dismisses the no matches status when the input loses focus", async () => {
+        await registerTranslations({
+            [TypeaheadInputDefaultNoResultsMessageKey]: "No matches found"
+        });
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        component.displayControl.setValue("unknown");
+        await firstValueFrom(component.suggestions$);
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("no-results");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).toContain("No matches found");
+
+        input.dispatchEvent(new Event("blur"));
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("idle");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).not.toContain("No matches found");
+    });
+
+    it("renders the configured no results translation key", async () => {
+        await registerTranslations({
+            "@custom-typeahead-no-results": "No people matched this search"
+        });
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1,
+                            noResultsMessageKey: "@custom-typeahead-no-results"
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("unknown");
+        await firstValueFrom(component.suggestions$);
+        fixture.detectChanges();
+
+        expect(component.noResultsMessageKey).toBe("@custom-typeahead-no-results");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? ""))
+            .toContain("No people matched this search");
+    });
+
+    it("does not restore the no matches status when a lookup completes after blur", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        let resolveSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        spyOn(typeaheadDataService, "searchStatic").and.returnValue(new Promise<TypeaheadOption[]>(resolve => {
+            resolveSearch = resolve;
+        }));
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        component.displayControl.setValue("unknown");
+        const lookup = firstValueFrom(component.suggestions$);
+        expect(component.searchState).toBe("loading");
+
+        input.dispatchEvent(new Event("blur"));
+        resolveSearch([]);
+        await lookup;
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("idle");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).not.toContain("No matches found");
+    });
+
+    it("does not apply an earlier valid lookup after another valid query is entered", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        let resolveFirstSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        let resolveReplacementSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        const searchStatic = spyOn(typeaheadDataService, "searchStatic").and.callFake((search: string) =>
+            new Promise<TypeaheadOption[]>(resolve => {
+                if (search === "first") {
+                    resolveFirstSearch = resolve;
+                    return;
+                }
+                resolveReplacementSearch = resolve;
+            })
+        );
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("first");
+        const firstLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+
+        component.displayControl.setValue("second");
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+        resolveFirstSearch([]);
+        await firstLookup;
+
+        expect(component.searchState).not.toBe("no-results");
+
+        const replacementLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(2);
+        expect(searchStatic.calls.mostRecent().args[0]).toBe("second");
+        resolveReplacementSearch([{ label: "Second result", value: "second" }]);
+        await replacementLookup;
+
+        expect(component.searchState).toBe("idle");
     });
 
     it("keeps the display control in sync with disabled state changes", async () => {
@@ -1056,22 +1240,7 @@ describe("TypeaheadInputComponent", () => {
       const translationMapItems = {
         '@lookup-placeholder-party': "Start typing a party name...",
       }
-      if (!i18next.isInitialized) {
-        await i18next.init({
-          lng: 'en',
-          fallbackLng: 'en',
-          returnEmptyString: false,
-          resources: {
-            en: {
-              translation: {},
-            },
-          },
-        });
-      }
-      i18next.addResourceBundle('en', 'translation', translationMapItems, true, true);
-      await i18next.changeLanguage('en');
-
-      Object.assign(translationService.translationMap, translationMapItems);
+      await registerTranslations(translationMapItems);
 
       const formConfig: FormConfigFrame = {
         name: "testing",

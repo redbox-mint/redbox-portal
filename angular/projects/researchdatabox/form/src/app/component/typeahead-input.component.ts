@@ -13,6 +13,7 @@ import {
   handlebarsTemplate,
   HistoricalVocabMode,
   TypeaheadInputComponentName,
+  TypeaheadInputDefaultNoResultsMessageKey,
   TypeaheadInputFieldComponentConfig,
   TypeaheadInputModelOptionValue,
   TypeaheadInputModelName,
@@ -72,7 +73,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
           Searching...
         }
         @if (searchState === 'no-results') {
-          No matches found
+          {{ noResultsMessageKey | i18next }}
         }
         @if (searchState === 'error') {
           {{ statusMessage || 'Lookup failed' }}
@@ -106,6 +107,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public searchState: TypeaheadStatus = 'idle';
   public statusMessage = '';
   public statusElementId = 'typeahead-status';
+  public noResultsMessageKey: string = TypeaheadInputDefaultNoResultsMessageKey;
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
@@ -124,6 +126,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private hasHistoricalOrUnknownModelValue = false;
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
+  // Promise-backed lookups continue after input changes, blur, or selection.
+  // Incrementing this identifier prevents late results from restoring stale feedback.
+  private lookupRequestId = 0;
   private programmaticDisplayUpdate = false;
   private lastConfirmedDisplayValue = '';
   private modelSubscriptionInitialised = false;
@@ -157,6 +162,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       new TypeaheadInputFieldComponentConfig();
     this.tooltip = this.getStringProperty('tooltip');
     this.placeholder = String(cfg.placeholder ?? '');
+    this.noResultsMessageKey = String(
+      cfg.noResultsMessageKey ?? TypeaheadInputDefaultNoResultsMessageKey
+    ).trim() || TypeaheadInputDefaultNoResultsMessageKey;
     this.sourceType = cfg.sourceType ?? 'static';
     this.queryId = String(cfg.queryId ?? '').trim();
     this.serviceId = String(cfg.serviceId ?? '').trim();
@@ -230,6 +238,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (!selected || selected.disabled === true) {
       return;
     }
+    this.lookupRequestId += 1;
     this.isOpen = false;
     this.searchState = 'idle';
     this.statusMessage = '';
@@ -245,7 +254,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   public onBlur(): void {
+    // Lookup feedback belongs to the active interaction. Clear it as focus leaves,
+    // while retaining configuration errors that the form author needs to see.
+    this.lookupRequestId += 1;
     this.isOpen = false;
+    if (this.searchState !== 'misconfigured') {
+      this.searchState = 'idle';
+      this.statusMessage = '';
+    }
     const text = String(this.displayControl.value ?? '').trim();
     if (!text) {
       this.setModelValue(null);
@@ -291,6 +307,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (this.isDisabled || this.isReadonly || this.readOnlyAfterSelectLocked) {
       return;
     }
+    this.lookupRequestId += 1;
     this.isOpen = text.length >= this.minChars;
     if (!text) {
       this.searchState = 'idle';
@@ -348,6 +365,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   private async lookup(term: string, includeHistoricalValues = this.shouldIncludeHistoricalValues()): Promise<TypeaheadOption[]> {
+    const requestId = ++this.lookupRequestId;
     if (!this.validateConfiguration()) {
       return [];
     }
@@ -358,7 +376,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     const cacheKey = `${this.sourceType}:${includeHistoricalValues ? 'historical' : 'current'}:${trimmedTerm}`;
     if (this.cacheResults && this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey) ?? [];
-      this.searchState = cached.length > 0 ? 'idle' : 'no-results';
+      if (requestId === this.lookupRequestId) {
+        this.searchState = cached.length > 0 ? 'idle' : 'no-results';
+      }
       return cached;
     }
 
@@ -404,15 +424,21 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       options = this.filterHistoricalOptions(options);
       options = this.applyTemplateLabels(options);
 
-      this.searchState = options.length > 0 ? 'idle' : 'no-results';
+      // A newer input value, blur, selection, or request invalidates this UI status,
+      // although its options may still be safely cached below for a future lookup.
+      if (requestId === this.lookupRequestId) {
+        this.searchState = options.length > 0 ? 'idle' : 'no-results';
+      }
       if (this.cacheResults) {
         this.cache.set(cacheKey, options);
       }
       return options;
     } catch (error) {
       this.loggerService.warn(`${this.logName}: typeahead lookup failed`, error);
-      this.searchState = 'error';
-      this.statusMessage = 'Unable to fetch matches';
+      if (requestId === this.lookupRequestId) {
+        this.searchState = 'error';
+        this.statusMessage = 'Unable to fetch matches';
+      }
       return [];
     }
   }

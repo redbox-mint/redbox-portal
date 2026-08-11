@@ -1975,6 +1975,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cacheResults', itemConfig, config);
     this.sharedProps.setPropOverride('multiSelect', itemConfig, config);
     this.sharedProps.setPropOverride('placeholder', itemConfig, config);
+    this.sharedProps.setPropOverride('noResultsMessageKey', itemConfig, config);
     this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, config);
     this.sharedProps.setPropOverride('historicalVocabMode', itemConfig, config);
 
