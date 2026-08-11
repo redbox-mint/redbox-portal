@@ -43,11 +43,32 @@ oniPublishing: {
         workspacePath: '/ocfl-work/public',
         tempDir: '/tmp/oni-public',
         keyEncoding: 'flydrive'
+      },
+      ingestion: {
+        enabled: true,
+        apiUrl: 'https://oni-api.example.edu/api',
+        adminToken: process.env.ONI_ADMIN_TOKEN,
+        forceReindex: false,
+        pollIntervalMs: 500,
+        timeoutMs: 120000
       }
     }
   }
 }
 ```
+
+When `ingestion.enabled` is true, ReDBox asks Oni to rebuild its structural and
+search indexes after the OCFL write completes. The publication only succeeds
+after both indexes report at least one indexed item. The admin token is used as
+a bearer token and is never included in IntegrationAudit request summaries.
+Leave `forceReindex` disabled for normal publications. Enable it only when Oni
+requires a complete rebuild of both its structural and search indexes.
+
+If ingestion fails after the OCFL write, ReDBox retains the citation URL and
+records the partial failure for operators. Retry the publication through the
+normal operator action with `forceRun: true`; the OCFL object is written using
+`REPLACE`, so retrying safely replaces the incomplete version before ingestion
+runs again.
 
 ## Migration
 

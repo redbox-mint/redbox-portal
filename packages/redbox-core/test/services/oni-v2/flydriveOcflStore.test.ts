@@ -33,6 +33,34 @@ function harness(keyEncoding: 'flydrive' | 'raw' = 'flydrive') {
   return { disk, store };
 }
 
+function rawDriverHarness() {
+  const result = harness('raw');
+  const driver = {
+    getMetaData: sinon.stub(),
+    listAll: sinon.stub().resolves({ objects: [], paginationToken: undefined }),
+    getStream: sinon.stub().returns(Readable.from('raw-streamed')),
+    get: sinon.stub().resolves('ocfl_1.1\n'),
+    getBytes: sinon.stub().resolves(Buffer.from('raw-bytes')),
+    put: sinon.stub().resolves(),
+    putStream: sinon.stub().resolves(),
+    copy: sinon.stub().resolves(),
+    exists: sinon.stub().resolves(false),
+    move: sinon.stub().resolves(),
+    delete: sinon.stub().resolves(),
+    deleteAll: sinon.stub().resolves(),
+  };
+  result.disk.driver = driver;
+  const Store = createStorageManagerOcflStoreClass(BaseStore);
+  const store: any = new Store({
+    disk: result.disk,
+    root: '/repo',
+    workspace: '/work',
+    prefix: '/oni/',
+    keyEncoding: 'raw',
+  });
+  return { disk: result.disk, driver, store };
+}
+
 describe('Oni Flydrive OCFL store', () => {
   it('maps root, workspace, encoded, and raw keys', () => {
     const { store } = harness();
@@ -83,6 +111,61 @@ describe('Oni Flydrive OCFL store', () => {
     disk.get.rejects(Object.assign(new Error('cannot read file'), { code: 'CANNOT_READ_FILE' }));
     try {
       await store.readFile('/repo/missing', 'utf8');
+      expect.fail('Expected ENOENT');
+    } catch (error: any) {
+      expect(error.code).to.equal('ENOENT');
+    }
+  });
+
+  it('bypasses the Flydrive key normalizer for explicitly configured raw OCFL keys', async () => {
+    const { disk, driver, store } = rawDriverHarness();
+    const modified = new Date('2025-01-01T00:00:00Z');
+    driver.getMetaData.resolves({ contentLength: 12, lastModified: modified });
+    driver.listAll.resolves({
+      objects: [{ key: 'oni/folder/a=b.txt', isFile: true }],
+      paginationToken: undefined,
+    });
+    driver.exists.onCall(0).resolves(true);
+    driver.exists.onCall(1).resolves(true);
+    driver.exists.onCall(2).resolves(false);
+
+    expect(await store.readFile('/repo/0=ocfl_1.1', 'utf8')).to.equal('ocfl_1.1\n');
+    await store.writeFile('/repo/0=ocfl_1.1', 'ocfl_1.1\n');
+    await store.writeFile('/repo/stream=a', Readable.from('streamed'));
+    const stat = await store.stat('/repo/meta=data');
+    expect(stat.size).to.equal(12);
+    expect(await store.createReadable('/repo/read=stream')).to.equal(driver.getStream.returnValues[0]);
+    expect(await store.readdir('/repo/folder')).to.deep.equal(['a=b.txt']);
+    await store.copyFile('/repo/source=a', '/repo/target=b');
+    await store.move('/repo/source=a', '/repo/target=b');
+    await store.remove('/repo/target=b');
+    await store.remove('/repo/folder=a');
+
+    expect(driver.get.calledOnceWithExactly('oni/0=ocfl_1.1')).to.equal(true);
+    expect(driver.put.calledOnceWith('oni/0=ocfl_1.1', 'ocfl_1.1\n')).to.equal(true);
+    expect(driver.putStream.calledOnceWith('oni/stream=a')).to.equal(true);
+    expect(driver.getMetaData.calledOnceWithExactly('oni/meta=data')).to.equal(true);
+    expect(driver.getStream.calledOnceWithExactly('oni/read=stream')).to.equal(true);
+    expect(driver.listAll.calledOnceWith('oni/folder/', { recursive: false })).to.equal(true);
+    expect(driver.copy.calledOnceWithExactly('oni/source=a', 'oni/target=b')).to.equal(true);
+    expect(driver.move.calledOnceWithExactly('oni/source=a', 'oni/target=b')).to.equal(true);
+    expect(driver.delete.calledOnceWithExactly('oni/target=b')).to.equal(true);
+    expect(driver.deleteAll.calledOnceWithExactly('oni/folder=a/')).to.equal(true);
+    expect(disk.get.called).to.equal(false);
+    expect(disk.put.called).to.equal(false);
+    expect(disk.putStream.called).to.equal(false);
+    expect(disk.getMetaData.called).to.equal(false);
+    expect(disk.getStream.called).to.equal(false);
+    expect(disk.listAll.called).to.equal(false);
+    expect(disk.copy.called).to.equal(false);
+    expect(disk.exists.called).to.equal(false);
+    expect(disk.move.called).to.equal(false);
+    expect(disk.delete.called).to.equal(false);
+    expect(disk.deleteAll.called).to.equal(false);
+
+    driver.get.rejects(Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' }));
+    try {
+      await store.readFile('/repo/missing=key', 'utf8');
       expect.fail('Expected ENOENT');
     } catch (error: any) {
       expect(error.code).to.equal('ENOENT');
