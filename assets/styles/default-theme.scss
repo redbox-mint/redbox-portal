@@ -315,6 +315,16 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--r
     gap: 0.25rem;
 }
 
+.rb-view-group > .rb-view-row {
+    border-bottom: 1px solid var(--rb-view-row-divider-color, #e5e5e5);
+    padding-bottom: var(--rb-view-row-divider-padding, 0.5rem);
+}
+
+.rb-view-group > .rb-view-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
 .rb-view-label {
     font-weight: 600;
 }
