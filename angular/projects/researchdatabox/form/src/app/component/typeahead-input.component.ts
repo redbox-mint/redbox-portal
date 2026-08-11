@@ -126,8 +126,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private hasHistoricalOrUnknownModelValue = false;
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
-  // Promise-backed lookups continue after blur or selection. Incrementing this
-  // identifier prevents their late completions from restoring stale UI feedback.
+  // Promise-backed lookups continue after input changes, blur, or selection.
+  // Incrementing this identifier prevents late results from restoring stale feedback.
   private lookupRequestId = 0;
   private programmaticDisplayUpdate = false;
   private lastConfirmedDisplayValue = '';
@@ -307,9 +307,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (this.isDisabled || this.isReadonly || this.readOnlyAfterSelectLocked) {
       return;
     }
+    this.lookupRequestId += 1;
     this.isOpen = text.length >= this.minChars;
     if (!text) {
-      this.lookupRequestId += 1;
       this.searchState = 'idle';
       this.statusMessage = '';
       this.isOpen = false;
@@ -319,7 +319,6 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     if (text.length < this.minChars) {
-      this.lookupRequestId += 1;
       this.searchState = 'idle';
       this.statusMessage = '';
       this.isOpen = false;
@@ -425,7 +424,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       options = this.filterHistoricalOptions(options);
       options = this.applyTemplateLabels(options);
 
-      // A blur, selection, or newer request invalidates this result for UI status,
+      // A newer input value, blur, selection, or request invalidates this UI status,
       // although its options may still be safely cached below for a future lookup.
       if (requestId === this.lookupRequestId) {
         this.searchState = options.length > 0 ? 'idle' : 'no-results';

@@ -643,6 +643,59 @@ describe("TypeaheadInputComponent", () => {
         expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).not.toContain("No matches found");
     });
 
+    it("does not apply an earlier valid lookup after another valid query is entered", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        let resolveFirstSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        let resolveReplacementSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        const searchStatic = spyOn(typeaheadDataService, "searchStatic").and.callFake((search: string) =>
+            new Promise<TypeaheadOption[]>(resolve => {
+                if (search === "first") {
+                    resolveFirstSearch = resolve;
+                    return;
+                }
+                resolveReplacementSearch = resolve;
+            })
+        );
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("first");
+        const firstLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+
+        component.displayControl.setValue("second");
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+        resolveFirstSearch([]);
+        await firstLookup;
+
+        expect(component.searchState).not.toBe("no-results");
+
+        const replacementLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(2);
+        expect(searchStatic.calls.mostRecent().args[0]).toBe("second");
+        resolveReplacementSearch([{ label: "Second result", value: "second" }]);
+        await replacementLookup;
+
+        expect(component.searchState).toBe("idle");
+    });
+
     it("keeps the display control in sync with disabled state changes", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
