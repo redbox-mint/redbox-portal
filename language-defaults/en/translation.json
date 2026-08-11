@@ -1449,6 +1449,7 @@
   "manage-users-audit-event-link-secondary": "This account was linked as a secondary alias to another account",
   "manage-users-audit-event-link-generic": "Account linking event",
   "@lookup-placeholder-party": "Start typing a party name...",
+  "@typeahead-no-matches-found": "No matches found",
   "@integration-status-heading": "Integrations",
   "@integration-status-started": "In progress",
   "@integration-status-success": "Success",
