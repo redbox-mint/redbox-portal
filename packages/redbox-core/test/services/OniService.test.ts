@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
+import axios from 'axios';
 import { of } from 'rxjs';
 import { finished } from 'node:stream/promises';
 import { Services } from '../../src/services/OniService';
@@ -151,6 +152,12 @@ describe('OniService', function () {
     expect(config?.sites['test-site'].storage.driver).to.equal('flydrive');
   });
 
+  it('defaults Oni ingestion to non-forced index rebuilds', function () {
+    const defaults = new OniPublishing();
+    expect(defaults.sites.staging.ingestion?.forceReindex).to.equal(false);
+    expect(defaults.sites.public.ingestion?.forceReindex).to.equal(false);
+  });
+
   it('ignores synthesized non-default oniPublishing config when merging default-brand overrides', function () {
     const defaultOniPublishing = { ...oniPublishing, enabled: false };
     const generatedBrandConfig = { oniPublishing: new OniPublishing() };
@@ -235,7 +242,12 @@ describe('OniService', function () {
     const graph = result.crateJson['@graph'] as Array<Record<string, unknown>>;
     const graphIds = graph.map(entry => entry['@id']);
     const root = graph.find(entry => entry['@id'] === result.rootId)!;
-    const license = (root.license as Array<Record<string, unknown>>)[0];
+    const expectedLicense = {
+      '@id': 'https://creativecommons.org/licenses/by/4.0/',
+      '@type': 'CreativeWork',
+      name: 'https://creativecommons.org/licenses/by/4.0/',
+      url: 'https://creativecommons.org/licenses/by/4.0/',
+    };
     const descriptor = graph.find(entry => entry['@id'] === 'ro-crate-metadata.json')!;
     const historyCreate = graph.find(entry => entry['@id'] === 'history1')!;
     const creatorPeople = graph.filter(entry => entry.email === 'creator@example.edu');
@@ -244,7 +256,8 @@ describe('OniService', function () {
     expect(creatorPeople).to.have.lengthOf(1);
     expect(root.funder).to.deep.equal([{ '@id': '_:funder/03yrm5c26' }, { '@id': '_:funder/grant-1' }]);
     expect(root.conformsTo).to.deep.equal({ '@id': 'https://w3id.org/ldac/profile#Object' });
-    expect(graph.find(entry => entry['@id'] === license['@id'])).to.deep.include(license);
+    expect(root.license).to.deep.equal([expectedLicense]);
+    expect(graph.find(entry => entry['@id'] === expectedLicense['@id'])).to.deep.include(expectedLicense);
     expect(root.about).to.deep.equal([{ '@id': '_:FOR/0601' }, { '@id': '_:SEO/9608' }]);
     expect(root.publications).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-publication' }]);
     expect(root.data).to.deep.equal([{ '@id': 'https://doi.org/10.1234/related-dataset' }]);
@@ -529,6 +542,8 @@ describe('OniService', function () {
       approver: { email: 'approver@example.edu' },
     });
     const pointGraph = pointResult.crateJson['@graph'] as Array<Record<string, unknown>>;
+    const pointRoot = pointGraph.find(entry => entry['@id'] === pointResult.rootId)!;
+    expect(pointRoot.spatialCoverage).to.deep.equal([{ '@id': '_:place-0' }]);
     expect(pointGraph.find(entry => entry['@id'] === '_:place-0')).to.deep.include({
       '@type': 'Place',
       geo: { '@id': '_:geo-0' },
@@ -652,6 +667,88 @@ describe('OniService', function () {
     });
   });
 
+  it('omits ingestion counts from the publish audit when ingestion is disabled', async function () {
+    const serviceInternals = service as unknown as Record<string, (...args: unknown[]) => unknown>;
+    sinon.stub(serviceInternals, 'createRepository').returns({});
+    sinon.stub(serviceInternals, 'runPublishDataset').resolves({
+      datasetUrl: 'https://data.example.edu/pub-1',
+      rootId: 'arcp://name,test/pub-1',
+      rootCollectionId: oniPublishing.rootCollection.rootCollectionId,
+      dataRecordOid: 'data-1',
+      attachments: [],
+      crateJson: {},
+      siteName: 'test-site',
+      storageDriver: 'flydrive',
+    });
+    sinon.stub(serviceInternals, 'ingestDataset').resolves(undefined);
+
+    await service.exportDataset(
+      'pub-1',
+      publicationRecord(),
+      { site: 'test-site', forceRun: true },
+      { email: 'approver@example.edu' }
+    );
+
+    const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
+      .IntegrationAuditService.completeAudit;
+    expect(completeAudit.firstCall.args[1].responseSummary).not.to.have.property('structuralObjects');
+    expect(completeAudit.firstCall.args[1].responseSummary).not.to.have.property('searchItems');
+  });
+
+  it('retains citation write-back and records the completed OCFL write when ingestion fails', async function () {
+    const record = publicationRecord();
+    const serviceInternals = service as unknown as Record<string, (...args: unknown[]) => unknown>;
+    sinon.stub(serviceInternals, 'createRepository').returns({});
+    sinon.stub(serviceInternals, 'runPublishDataset').resolves({
+      datasetUrl: 'https://data.example.edu/pub-1',
+      rootId: 'arcp://name,test/pub-1',
+      rootCollectionId: oniPublishing.rootCollection.rootCollectionId,
+      dataRecordOid: 'data-1',
+      attachments: [],
+      crateJson: {},
+      siteName: 'test-site',
+      storageDriver: 'flydrive',
+    });
+    sinon.stub(serviceInternals, 'ingestDataset').rejects(new Error('Oni indexing failed'));
+
+    try {
+      await service.exportDataset(
+        'pub-1',
+        record,
+        { site: 'test-site', forceRun: true },
+        { email: 'approver@example.edu' }
+      );
+      expect.fail('Expected ingestion failure to be rethrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect((error as RBValidationError).displayErrors[0].detail).to.equal(
+        'Oni OCFL publication completed but repository ingestion failed'
+      );
+    }
+
+    const updateMeta = (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService
+      .updateMeta;
+    expect(updateMeta.firstCall.args[2].metadata.citation_url).to.equal('https://data.example.edu/pub-1');
+    expect(updateMeta.firstCall.args[2].metadata.citation_doi).to.equal(
+      'https://doi.org/10.1234/https://data.example.edu/pub-1'
+    );
+    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.include('Oni indexing failed');
+
+    const failAudit = (global as unknown as { IntegrationAuditService: { failAudit: sinon.SinonStub } })
+      .IntegrationAuditService.failAudit;
+    expect(failAudit.firstCall.args[2]).to.deep.include({
+      message: 'Oni OCFL write completed, but repository ingestion failed.',
+      responseSummary: {
+        errorType: 'Error',
+        message: 'Oni indexing failed',
+        ocflWriteCompleted: true,
+        storageDriver: 'flydrive',
+        rootId: 'arcp://name,test/pub-1',
+        datasetUrl: 'https://data.example.edu/pub-1',
+      },
+    });
+  });
+
   it('skips disabled Oni ingestion without creating an audit', async function () {
     const result = await (
       service as unknown as {
@@ -758,6 +855,109 @@ describe('OniService', function () {
     expect(client.post.firstCall.args[0]).to.equal('http://oni-api:8080/admin/index/structural?force=true');
     expect(client.post.secondCall.args[0]).to.equal('http://oni-api:8080/admin/index/search?force=true');
     expect(client.post.firstCall.args[2].headers.Authorization).to.equal('Bearer secret-token');
+  });
+
+  it('omits force query parameters when Oni forceReindex is false', async function () {
+    let now = 0;
+    const client = {
+      post: sinon.stub().resolves({ data: {}, status: 202 }),
+      get: sinon.stub(),
+    };
+    client.get.onCall(0).resolves({ data: { isIndexed: true, count: 2 }, status: 200 });
+    client.get.onCall(1).resolves({ data: { isIndexed: true, count: 1 }, status: 200 });
+
+    const result = await ingestOniRepository(
+      {
+        enabled: true,
+        apiUrl: 'http://oni-api:8080/',
+        adminToken: 'secret-token',
+        forceReindex: false,
+        pollIntervalMs: 10,
+        timeoutMs: 1_000,
+      },
+      {
+        httpClient: client,
+        delay: async milliseconds => {
+          now += milliseconds;
+        },
+        now: () => now,
+      }
+    );
+
+    expect(result).to.deep.equal({ structuralObjects: 2, searchItems: 1 });
+    expect(client.post.firstCall.args[0]).to.equal('http://oni-api:8080/admin/index/structural');
+    expect(client.post.secondCall.args[0]).to.equal('http://oni-api:8080/admin/index/search');
+  });
+
+  it('continues polling when an Oni index status is initially unavailable', async function () {
+    let now = 0;
+    const notFoundError = Object.assign(new Error('Index status not found'), {
+      isAxiosError: true,
+      response: { status: 404 },
+    });
+    expect(axios.isAxiosError(notFoundError)).to.equal(true);
+    const client = {
+      post: sinon.stub().resolves({ data: {}, status: 202 }),
+      get: sinon.stub(),
+    };
+    client.get.onCall(0).rejects(notFoundError);
+    client.get.onCall(1).resolves({ data: { isIndexed: true, count: 2 }, status: 200 });
+    client.get.onCall(2).resolves({ data: { isIndexed: true, count: 1 }, status: 200 });
+
+    const result = await ingestOniRepository(
+      {
+        enabled: true,
+        apiUrl: 'http://oni-api:8080/',
+        adminToken: 'secret-token',
+        forceReindex: false,
+        pollIntervalMs: 10,
+        timeoutMs: 1_000,
+      },
+      {
+        httpClient: client,
+        delay: async milliseconds => {
+          now += milliseconds;
+        },
+        now: () => now,
+      }
+    );
+
+    expect(result).to.deep.equal({ structuralObjects: 2, searchItems: 1 });
+    expect(client.get.callCount).to.equal(3);
+  });
+
+  it('shares one timeout deadline across Oni structural and search indexing', async function () {
+    let now = 0;
+    const client = {
+      post: sinon.stub().resolves({ data: {}, status: 202 }),
+      get: sinon.stub().resolves({ data: { isIndexed: true, count: 2 }, status: 200 }),
+    };
+
+    try {
+      await ingestOniRepository(
+        {
+          enabled: true,
+          apiUrl: 'http://oni-api:8080/',
+          adminToken: 'secret-token',
+          forceReindex: false,
+          pollIntervalMs: 10,
+          timeoutMs: 20,
+        },
+        {
+          httpClient: client,
+          delay: async milliseconds => {
+            now += milliseconds;
+          },
+          now: () => now,
+        }
+      );
+      expect.fail('Expected the shared ingestion deadline to expire');
+    } catch (error) {
+      expect(error).to.have.property('message', 'Timed out waiting for Oni search index to complete after 20ms');
+    }
+
+    expect(client.get.calledOnce).to.equal(true);
+    expect(client.post.secondCall.args[2].timeout).to.equal(10);
   });
 
   it('audits and writes publication errors when the requested Oni site is unknown', async function () {

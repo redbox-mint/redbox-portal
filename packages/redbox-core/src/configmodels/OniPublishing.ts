@@ -208,7 +208,8 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
         enabled: false,
         apiUrl: 'http://localhost:8080',
         adminToken: '',
-        forceReindex: true,
+        // Enable only when Oni requires a complete structural and search index rebuild.
+        forceReindex: false,
         pollIntervalMs: 500,
         timeoutMs: 120_000,
       },
@@ -231,7 +232,8 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
         enabled: false,
         apiUrl: 'http://localhost:8080',
         adminToken: '',
-        forceReindex: true,
+        // Enable only when Oni requires a complete structural and search index rebuild.
+        forceReindex: false,
         pollIntervalMs: 500,
         timeoutMs: 120_000,
       },

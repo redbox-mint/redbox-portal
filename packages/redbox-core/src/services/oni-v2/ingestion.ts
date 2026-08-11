@@ -53,6 +53,10 @@ function validateConfig(config: OniIngestionConfig): void {
   }
 }
 
+function timeoutError(type: OniIndexType, timeoutMs: number): Error {
+  return new Error(`Timed out waiting for Oni ${type} index to complete after ${timeoutMs}ms`);
+}
+
 async function defaultDelay(milliseconds: number): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
@@ -63,17 +67,20 @@ async function waitForIndex(
   client: OniIngestionHttpClient,
   headers: Record<string, string>,
   delay: (milliseconds: number) => Promise<void>,
-  now: () => number
+  now: () => number,
+  deadline: number
 ): Promise<OniIndexState> {
-  const deadline = now() + config.timeoutMs;
   const statusUrl = `${normalizeApiUrl(config.apiUrl)}/admin/index/${type}`;
 
   while (now() < deadline) {
-    await delay(config.pollIntervalMs);
+    await delay(Math.min(config.pollIntervalMs, deadline - now()));
+    if (now() >= deadline) {
+      break;
+    }
     try {
       const response = await client.get<OniIndexState>(statusUrl, {
         headers,
-        timeout: Math.min(config.timeoutMs, 15_000),
+        timeout: Math.min(deadline - now(), 15_000),
       });
       const state = response.data ?? {};
       if (state.isDeleting || state.isIndexing) {
@@ -89,7 +96,7 @@ async function waitForIndex(
     }
   }
 
-  throw new Error(`Timed out waiting for Oni ${type} index to complete after ${config.timeoutMs}ms`);
+  throw timeoutError(type, config.timeoutMs);
 }
 
 async function rebuildIndex(
@@ -97,15 +104,20 @@ async function rebuildIndex(
   config: OniIngestionConfig,
   client: OniIngestionHttpClient,
   headers: Record<string, string>,
-  dependencies: Required<Pick<OniIngestionDependencies, 'delay' | 'now'>>
+  dependencies: Required<Pick<OniIngestionDependencies, 'delay' | 'now'>>,
+  deadline: number
 ): Promise<OniIndexState> {
+  const remainingMs = deadline - dependencies.now();
+  if (remainingMs <= 0) {
+    throw timeoutError(type, config.timeoutMs);
+  }
   const forceQuery = config.forceReindex ? '?force=true' : '';
   const url = `${normalizeApiUrl(config.apiUrl)}/admin/index/${type}${forceQuery}`;
   await client.post(url, undefined, {
     headers,
-    timeout: Math.min(config.timeoutMs, 15_000),
+    timeout: Math.min(remainingMs, 15_000),
   });
-  return waitForIndex(type, config, client, headers, dependencies.delay, dependencies.now);
+  return waitForIndex(type, config, client, headers, dependencies.delay, dependencies.now, deadline);
 }
 
 export async function ingestOniRepository(
@@ -122,9 +134,10 @@ export async function ingestOniRepository(
     delay: dependencies.delay ?? defaultDelay,
     now: dependencies.now ?? Date.now,
   };
+  const deadline = runtimeDependencies.now() + config.timeoutMs;
 
-  const structural = await rebuildIndex('structural', config, client, headers, runtimeDependencies);
-  const search = await rebuildIndex('search', config, client, headers, runtimeDependencies);
+  const structural = await rebuildIndex('structural', config, client, headers, runtimeDependencies, deadline);
+  const search = await rebuildIndex('search', config, client, headers, runtimeDependencies, deadline);
 
   return {
     structuralObjects: Number(structural.count ?? 0),

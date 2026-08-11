@@ -492,6 +492,7 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     const geometry = isRecordValue(place.geo) ? place.geo : undefined;
     return geometry ? [{ ...place, geo: toReference(geometry) }, geometry] : [place];
   });
+  const spatialCoverageReferences = spatialCoverage?.map(toReference);
   for (const supportingEntity of [input.config.metadata.organization, ...licenses, ...spatialEntities]) {
     upsertGraphEntity(graph, supportingEntity as unknown as AnyRecord);
   }
@@ -512,7 +513,7 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     now,
     organization: input.config.metadata.organization,
     license: licenses,
-    spatialCoverage,
+    spatialCoverage: spatialCoverageReferences,
     temporalCoverage: getTemporalCoverage(metadata),
   });
   const mappedRootDataset = await mapDatasetFields(input.config.mapping?.rootDataset ?? [], mappingContext);
