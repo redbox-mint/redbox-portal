@@ -496,7 +496,7 @@ describe('The FormsService', function () {
             model: {
               class: 'DropdownInputModel',
               config: {
-                defaultValue: '',
+                defaultValue: 'onedrive',
               },
             },
             component: {
@@ -518,8 +518,8 @@ describe('The FormsService', function () {
 
       expect(field?.component?.class).to.equal('ContentComponent');
       expect(config?.content).to.deep.equal({
-        value: '',
-        label: '@dmpt-select:Empty',
+        value: 'onedrive',
+        label: '@dmpt-storage-onedrive',
       });
       expect(config?.template).to.equal(
         '<span data-value="{{content.value}}">{{#with @root}}{{t content.label}}{{/with}}</span>'

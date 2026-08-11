@@ -20,6 +20,9 @@ module.exports = function (config) {
         // the possible options are listed at https://jasmine.github.io/api/edge/Configuration.html
         // for example, you can disable the random execution with `random: false`
         // or set a specific seed with `seed: 4321`
+        // Keep CI ordering deterministic so leaked browser activity cannot make the suite
+        // intermittently stall after all specs have reported success.
+        random: !isCI,
       },
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },

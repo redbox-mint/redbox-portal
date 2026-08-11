@@ -1406,6 +1406,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const componentConfig = migratedField.component.config as Record<string, unknown>;
     expect(componentConfig.center).to.deep.equal([-24.67, 134.07]);
     expect(componentConfig.zoom).to.equal(5);
+    expect(componentConfig.coordinatePrecision).to.equal(15);
     expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'circle', 'select']);
     const modelConfig = migratedField.model?.config as Record<string, unknown>;
     expect(modelConfig.defaultValue).to.deep.equal({
