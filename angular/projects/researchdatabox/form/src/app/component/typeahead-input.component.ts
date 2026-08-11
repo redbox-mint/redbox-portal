@@ -13,6 +13,7 @@ import {
   handlebarsTemplate,
   HistoricalVocabMode,
   TypeaheadInputComponentName,
+  TypeaheadInputDefaultNoResultsMessageKey,
   TypeaheadInputFieldComponentConfig,
   TypeaheadInputModelOptionValue,
   TypeaheadInputModelName,
@@ -72,7 +73,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
           Searching...
         }
         @if (searchState === 'no-results') {
-          No matches found
+          {{ noResultsMessageKey | i18next }}
         }
         @if (searchState === 'error') {
           {{ statusMessage || 'Lookup failed' }}
@@ -106,6 +107,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   public searchState: TypeaheadStatus = 'idle';
   public statusMessage = '';
   public statusElementId = 'typeahead-status';
+  public noResultsMessageKey: string = TypeaheadInputDefaultNoResultsMessageKey;
   public isOpen = false;
   public readOnlyAfterSelectLocked = false;
 
@@ -124,6 +126,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private hasHistoricalOrUnknownModelValue = false;
   private staticOptions: TypeaheadOption[] = [];
   private cache = new Map<string, TypeaheadOption[]>();
+  // Promise-backed lookups continue after blur or selection. Incrementing this
+  // identifier prevents their late completions from restoring stale UI feedback.
   private lookupRequestId = 0;
   private programmaticDisplayUpdate = false;
   private lastConfirmedDisplayValue = '';
@@ -158,6 +162,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       new TypeaheadInputFieldComponentConfig();
     this.tooltip = this.getStringProperty('tooltip');
     this.placeholder = String(cfg.placeholder ?? '');
+    this.noResultsMessageKey = String(
+      cfg.noResultsMessageKey ?? TypeaheadInputDefaultNoResultsMessageKey
+    ).trim() || TypeaheadInputDefaultNoResultsMessageKey;
     this.sourceType = cfg.sourceType ?? 'static';
     this.queryId = String(cfg.queryId ?? '').trim();
     this.serviceId = String(cfg.serviceId ?? '').trim();
@@ -247,6 +254,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   public onBlur(): void {
+    // Lookup feedback belongs to the active interaction. Clear it as focus leaves,
+    // while retaining configuration errors that the form author needs to see.
     this.lookupRequestId += 1;
     this.isOpen = false;
     if (this.searchState !== 'misconfigured') {
@@ -416,6 +425,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       options = this.filterHistoricalOptions(options);
       options = this.applyTemplateLabels(options);
 
+      // A blur, selection, or newer request invalidates this result for UI status,
+      // although its options may still be safely cached below for a future lookup.
       if (requestId === this.lookupRequestId) {
         this.searchState = options.length > 0 ? 'idle' : 'no-results';
       }

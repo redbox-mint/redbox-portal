@@ -284,7 +284,8 @@ describe("Construct Visitor", async () => {
                                 class: "TypeaheadInputComponent",
                                 config: {
                                     sourceType: "namedQuery",
-                                    queryId: "contributors"
+                                    queryId: "contributors",
+                                    noResultsMessageKey: "@custom-typeahead-no-results"
                                 }
                             },
                             model: { class: "TypeaheadInputModel", config: {} }
@@ -297,6 +298,7 @@ describe("Construct Visitor", async () => {
             expect(cfg?.labelField).to.equal("label");
             expect(cfg?.valueField).to.equal("value");
             expect(cfg?.cacheResults).to.equal(false);
+            expect(cfg?.noResultsMessageKey).to.equal("@custom-typeahead-no-results");
         });
 
         it("should preserve typeahead optionObjectFields config", async function () {
