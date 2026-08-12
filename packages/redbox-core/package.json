@@ -51,7 +51,7 @@
     "copy-webpack-plugin": "14.0.0",
     "css-loader": "7.1.4",
     "css-minimizer-webpack-plugin": "8.0.0",
-    "csv-stringify": "6.8.2",
+    "csv-stringify": "6.8.3",
     "dompurify": "3.4.13",
     "effect": "3.22.1",
     "ejs": "6.0.1",
