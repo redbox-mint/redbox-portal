@@ -62,6 +62,9 @@ describe('I18nEntriesService', function() {
     (global as any).TranslationService = {
       reloadResources: sinon.stub()
     };
+    (global as any).DomSanitizerService = {
+      sanitizeWithProfile: sinon.stub().callsFake((value: string) => value)
+    };
 
     const { Services } = require('../../src/services/I18nEntriesService');
     I18nEntriesService = new Services.I18nEntries();
@@ -76,6 +79,7 @@ describe('I18nEntriesService', function() {
     delete (global as any).I18nBundle;
     delete (global as any).BrandingService;
     delete (global as any).TranslationService;
+    delete (global as any).DomSanitizerService;
     sinon.restore();
   });
 
@@ -242,6 +246,25 @@ describe('I18nEntriesService', function() {
 
       expect(mockI18nTranslation.create.firstCall.args[0]).not.to.have.property('contentFormat');
     });
+
+    it('should sanitize HTML before persisting an entry and its bundle value', async function() {
+      const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
+      sanitizer.returns('<p>Safe</p>');
+      mockI18nTranslation.findOne.resolves(null);
+      mockI18nBundle.findOne.resolves(null);
+
+      await I18nEntriesService.setEntry(
+        'brand-1',
+        'en',
+        'ns',
+        'key',
+        '<p>Safe</p><script>alert("xss")</script>'
+      );
+
+      expect(sanitizer.calledWith('<p>Safe</p><script>alert("xss")</script>', 'html')).to.be.true;
+      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('<p>Safe</p>');
+      expect(mockI18nBundle.create.firstCall.args[0].data).to.deep.equal({ key: '<p>Safe</p>' });
+    });
   });
 
   describe('deleteEntry', function() {
@@ -315,6 +338,27 @@ describe('I18nEntriesService', function() {
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' }, undefined, { overwriteEntries: false });
 
       expect(I18nEntriesService.syncEntriesFromBundle.calledWith(sinon.match.any, false)).to.be.true;
+    });
+
+    it('should sanitize nested bundle values before persisting them', async function() {
+      const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
+      sanitizer.callsFake((value: string) => value.replace(/<script>.*<\/script>/, ''));
+      mockI18nBundle.findOne.resolves(null);
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', {
+        heading: '<strong>Welcome</strong><script>unsafe()</script>',
+        nested: { body: '<p>Safe body</p>' },
+        count: 2
+      });
+
+      expect(mockI18nBundle.create.firstCall.args[0].data).to.deep.equal({
+        heading: '<strong>Welcome</strong>',
+        nested: { body: '<p>Safe body</p>' },
+        count: 2
+      });
+      expect(sanitizer.alwaysCalledWithMatch(sinon.match.string, 'html')).to.be.true;
     });
   });
 

@@ -217,6 +217,24 @@ export namespace Services {
       delete cursor[parts[parts.length - 1]];
     }
 
+    private sanitizeTranslationValue(value: unknown): unknown {
+      if (typeof value === 'string') {
+        return DomSanitizerService.sanitizeWithProfile(value, 'html');
+      }
+      if (Array.isArray(value)) {
+        return value.map(item => this.sanitizeTranslationValue(item));
+      }
+      if (value && typeof value === 'object') {
+        const sanitized: I18nData = {};
+        for (const [key, nestedValue] of Object.entries(value)) {
+          if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+          sanitized[key] = this.sanitizeTranslationValue(nestedValue);
+        }
+        return sanitized;
+      }
+      return value;
+    }
+
     private resolveBrandingId(branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined): string {
       if (!branding) return 'global';
       if (typeof branding === 'string') return branding;
@@ -248,8 +266,9 @@ export namespace Services {
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
+      const sanitizedValue = this.sanitizeTranslationValue(value);
       const updates: Partial<I18nTranslationAttributes> = {
-        value,
+        value: sanitizedValue,
         branding: brandingId,
         locale,
         namespace,
@@ -270,7 +289,7 @@ export namespace Services {
         let bundle = await this.getBundle(branding, locale, namespace);
         if (!bundle) {
           // Create a minimal bundle containing this key
-          const data = this.unflatten({ [key]: value });
+          const data = this.unflatten({ [key]: sanitizedValue });
           bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace }) as unknown as I18nBundleAttributes;
           // Backfill the entry's bundle relation if not set via options
           if (!options?.bundleId && saved?.id) {
@@ -278,7 +297,7 @@ export namespace Services {
           }
         } else {
           const data = bundle.data || {};
-          this.setNested(data, key, value);
+          this.setNested(data, key, sanitizedValue);
           await I18nBundle.updateOne({ id: bundle.id }).set({ data });
         }
       } catch (e) {
@@ -405,6 +424,7 @@ export namespace Services {
       options?: BundleSetOptions
     ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
+      const sanitizedData = this.sanitizeTranslationValue(data) as I18nData;
 
       // Use provided display name or get default for the language
       const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
@@ -413,7 +433,7 @@ export namespace Services {
       let bundle: I18nBundleAttributes | null;
       if (existing) {
         bundle = await I18nBundle.updateOne({ id: existing.id }).set({
-          data,
+          data: sanitizedData,
           branding: brandingId,
           locale,
           namespace,
@@ -421,7 +441,7 @@ export namespace Services {
         }) as I18nBundleAttributes | null;
       } else {
         bundle = await I18nBundle.create({
-          data,
+          data: sanitizedData,
           branding: brandingId,
           locale,
           namespace,

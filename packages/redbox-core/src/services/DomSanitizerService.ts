@@ -237,6 +237,7 @@ export namespace Services {
    * - Consider additional application-specific validation
    * - Keep DOMPurify updated for latest security patches
    */
+  @PopulateExportedMethods
   export class DomSanitizer extends coreServices.Core.Service {
 
     constructor() {
@@ -604,7 +605,6 @@ export namespace Services {
 
 
 export default Services;
-PopulateExportedMethods(Services.DomSanitizer);
 
 declare global {
   let DomSanitizerService: Services.DomSanitizer;
