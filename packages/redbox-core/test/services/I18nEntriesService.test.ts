@@ -342,13 +342,14 @@ describe('I18nEntriesService', function() {
 
     it('should sanitize nested bundle values before persisting them', async function() {
       const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
-      sanitizer.callsFake((value: string) => value.replace(/<script>.*<\/script>/, ''));
+      const unsafeHeading = '<strong>Welcome</strong><script>unsafe()</script>';
+      sanitizer.callsFake((value: string) => value === unsafeHeading ? '<strong>Welcome</strong>' : value);
       mockI18nBundle.findOne.resolves(null);
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
 
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', {
-        heading: '<strong>Welcome</strong><script>unsafe()</script>',
+        heading: unsafeHeading,
         nested: { body: '<p>Safe body</p>' },
         count: 2
       });
