@@ -284,7 +284,8 @@ describe("Construct Visitor", async () => {
                                 class: "TypeaheadInputComponent",
                                 config: {
                                     sourceType: "namedQuery",
-                                    queryId: "contributors"
+                                    queryId: "contributors",
+                                    noResultsMessageKey: "@custom-typeahead-no-results"
                                 }
                             },
                             model: { class: "TypeaheadInputModel", config: {} }
@@ -297,6 +298,7 @@ describe("Construct Visitor", async () => {
             expect(cfg?.labelField).to.equal("label");
             expect(cfg?.valueField).to.equal("value");
             expect(cfg?.cacheResults).to.equal(false);
+            expect(cfg?.noResultsMessageKey).to.equal("@custom-typeahead-no-results");
         });
 
         it("should preserve typeahead optionObjectFields config", async function () {
@@ -446,7 +448,8 @@ describe("Construct Visitor", async () => {
                             component: {
                                 class: "MapComponent",
                                 config: {
-                                    enabledModes: ["point", "polygon", "bad-mode" as any, "rectangle"]
+                                    enabledModes: ["point", "polygon", "bad-mode" as any, "rectangle"],
+                                    coordinatePrecision: 12
                                 }
                             },
                             model: {
@@ -461,6 +464,7 @@ describe("Construct Visitor", async () => {
             const mapConfig = actual.componentDefinitions?.[0]?.component?.config as Record<string, unknown>;
             const enabledModes = mapConfig?.enabledModes as string[];
             expect(enabledModes).to.deep.equal(["point", "polygon", "rectangle"]);
+            expect(mapConfig.coordinatePrecision).to.equal(12);
             expect(warnings.some((msg) => msg.includes("Map construct dropped unsupported enabledModes"))).to.equal(true);
         });
 

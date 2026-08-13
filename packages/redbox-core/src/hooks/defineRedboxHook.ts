@@ -5,13 +5,21 @@ type HookFactoryResult = {
   defaults?: Record<string, unknown>;
   routes?: unknown;
   configure?: () => void;
-  initialize?: (done?: (error?: Error) => void) => Promise<void>;
+  initialize?: () => Promise<void>;
 };
 
 export type HookRegistrationMap = Record<string, unknown>;
 
 type HookDone = (error?: Error) => void;
+
+// A single signature, not an overload pair: TypeScript lets an author supply a function that
+// declares fewer parameters, so `(sails) => Promise<void>` and `(sails, done) => void` are
+// both assignable. An overload pair would reject the callback style outright.
 type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
+
+function normalizeError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
 
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
@@ -55,37 +63,32 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
 
     const initializer = options.initialize;
     if (initializer) {
-      hook.initialize = async (done?: HookDone): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
+      hook.initialize = async (): Promise<void> => {
+        // Sails sees a zero-argument Promise initializer, so it never hands the wrapper a
+        // callback of its own. Internally the bridge always supplies `done` and also honours a
+        // returned promise, so both author styles work without sniffing Function.length -
+        // which is inaccurate for default and rest parameters.
+        await new Promise<void>((resolve, reject) => {
           let settled = false;
-          const initializerDone = (error?: unknown): void => {
+          const done: HookDone = error => {
             if (settled) {
               return;
             }
             settled = true;
-
-            if (error !== undefined) {
-              const normalizedError = error instanceof Error ? error : new Error(String(error));
-              if (done) {
-                done(normalizedError);
-                resolve();
-              } else {
-                reject(normalizedError);
-              }
-              return;
+            if (error) {
+              reject(normalizeError(error));
+            } else {
+              resolve();
             }
-
-            done?.();
-            resolve();
           };
 
           try {
-            const result = initializer(sails, initializerDone);
+            const result = initializer(sails, done);
             if (result && typeof result.then === 'function') {
-              void Promise.resolve(result).then(() => initializerDone(), initializerDone);
+              void Promise.resolve(result).then(() => done(), done);
             }
           } catch (error) {
-            initializerDone(error);
+            done(normalizeError(error));
           }
         });
       };
