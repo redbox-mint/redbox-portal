@@ -259,26 +259,6 @@ describe('sync-translation command', () => {
     expect(setupFiles.outputMetaData).to.deep.eql(resultFiles.tempMetaResultData);
   });
 
-  it('writes translation keys and meta from API in migration-data format', async () => {
-    const {program, cmds} = setupTestExample();
-    const migrationFile = path.join(tempRoot, 'migration-data.json');
-    await program.parseAsync(
-      [
-        ...cmds,
-        '--output', migrationFile,
-        '--format', 'migration-data',
-      ],
-      {from: 'node'}
-    );
-
-    const migrationData = readJsonFile(migrationFile);
-
-    expect(migrationData).to.deep.eql({
-      test: 1,
-    });
-
-  });
-
   it('does not write files in dry run', async () => {
     const {program, setupFiles, cmds} = setupTestExample();
     await program.parseAsync(

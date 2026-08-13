@@ -233,14 +233,14 @@ function mergeMetaItems(opts: {
 export function registerSyncTranslationCommand(program: Command): void {
   program
     .command('sync-translation')
-    .description('Read translations from API and/or json files, and write to language translation files or data migration.')
+    .description('Read translations from API and/or json files, and write to language translation files.')
     .option('-l, --language-defaults [paths...]', 'Path to read the language-defaults directory containing locales and meta json files.')
     .option('-a, --api-base [urls...]', 'Base url for the API to read translation data.')
     .requiredOption('-o, --output <path>', 'Path to the output directory or file.')
     .addOption(
       new Option('-f, --format <format>', 'The output format.')
-        .choices(['migration-data', 'language-defaults'])
-        .makeOptionMandatory(true)
+        .choices(['language-defaults'])
+        .default('language-defaults')
     )
     .action(async (options) => {
       try {
@@ -330,8 +330,6 @@ export function registerSyncTranslationCommand(program: Command): void {
             writePath: outputPath,
             dryRun: globalOptions.dryRun,
           });
-        } else if (outputFormat === "migration-data") {
-          // TODO
         } else {
           throw new Error(`Unknown output format '${outputFormat}'`);
         }
