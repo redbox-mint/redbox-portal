@@ -316,7 +316,7 @@ export function registerSyncTranslationCommand(program: Command): void {
             meta[key] = mergeMetaItems({
               key,
               value,
-              items: sourceMeta.map(i => i.data?.[key]),
+              items: [...sourceMeta.map(i => i.data?.[key]), meta[key]],
               guessContentFormat: true,
             }) ?? {};
           }
