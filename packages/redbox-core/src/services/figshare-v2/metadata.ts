@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { FORM_VALIDATOR_DOI_REGEXP } from '@researchdatabox/sails-ng-common';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { FigshareClient } from './http';
@@ -227,6 +228,10 @@ function extractRelatedMaterialValue(value: unknown, candidateKeys: string[]): s
   return normalizeRelatedMaterialValue(value);
 }
 
+function inferRelatedMaterialIdentifierType(identifier: string): 'DOI' | 'URL' {
+  return FORM_VALIDATOR_DOI_REGEXP.test(identifier) ? 'DOI' : 'URL';
+}
+
 function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): NonNullable<FigshareArticlePayload['related_materials']> {
   const titleItems = toRelatedMaterialItems(titleValue);
   const identifierItems = toRelatedMaterialItems(identifierValue);
@@ -241,7 +246,11 @@ function buildRelatedMaterials(titleValue: unknown, identifierValue: unknown): N
     const identifier = extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys)
       || (isRelatedMaterialObject(titleSource) ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys) : '');
     if (title !== '' && identifier !== '') {
-      relatedMaterials.push({ title, identifier });
+      relatedMaterials.push({
+        title,
+        identifier,
+        identifier_type: inferRelatedMaterialIdentifierType(identifier),
+      });
     }
   }
 

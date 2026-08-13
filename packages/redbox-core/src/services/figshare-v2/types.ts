@@ -112,7 +112,7 @@ export interface FigshareArticlePayload {
   categories?: number[];
   license?: unknown;
   authors?: Array<{ id?: number | string; name?: string }>;
-  related_materials?: Array<{ title: unknown; identifier: unknown }>;
+  related_materials?: Array<{ title: unknown; identifier: unknown; identifier_type: 'DOI' | 'URL' }>;
   custom_fields?: Record<string, unknown>;
   [key: string]: unknown;
 }
