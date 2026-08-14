@@ -60,6 +60,7 @@ describe('sync-translation command', () => {
   }
 
   function setFetchStub(opts?: {
+    url: string,
     body: Record<string, unknown> | unknown[],
     status?: number,
     statusText?: string,
@@ -67,14 +68,23 @@ describe('sync-translation command', () => {
   }[]) {
     opts = opts ?? [];
     const callback = sinon.stub();
-    for (let i = 0; i < opts.length; i++) {
-      const opt = opts[i];
-      callback.onCall(i).returns(Promise.resolve(
-        new Response(JSON.stringify(opt.body),
-          {status: opt.status, statusText: opt.statusText, headers: opt.headers}
-        )))
+    callback
+      .callsFake(function () {
+        console.error({error: 'unknown arguments', arguments});
+        throw new Error();
+      });
+    for (const opt of opts) {
+      callback
+        .withArgs(new URL(opt.url), sinon.match.any)
+        .callsFake(function (url: URL, args: any) {
+          return new Response(JSON.stringify(opt.body), {
+            status: opt.status,
+            statusText: opt.statusText,
+            headers: opt.headers
+          })
+        });
     }
-    callback.onCall(opts.length).throws("No fetch stub for this call");
+
     (global as any).fetch = callback;
   }
 
@@ -223,14 +233,15 @@ describe('sync-translation command', () => {
     // stub the fetch api
     setFetchStub([
       {
-        // i18n/entries
+        url: 'http://localhost/default/rdmp/app/i18n/entries',
         body: setupFiles.inputHttpEntriesData as unknown[],
       },
       {
-        // locales/en/translation.json
+        url: 'http://localhost/default/rdmp/locales/en/translation.json',
         body: setupFiles.inputHttpTranslationData as Record<string, unknown>,
       },
-    ]);
+    ])
+    ;
 
     const cmds = [
       'node',
@@ -238,7 +249,7 @@ describe('sync-translation command', () => {
       'sync-translation',
       '--language-defaults', setupFiles.temp01LangDefaultsDir,
       '--language-defaults', setupFiles.temp02LangDefaultsDir,
-      '--api-base', 'https://localhost',
+      '--api-base', 'http://localhost',
     ];
 
     return {
@@ -300,7 +311,7 @@ describe('sync-translation command', () => {
     setFetchStub([
       // Set "@name-test3" value and meta, to be overwritten by input-01 en
       {
-        // http://localhost/1/i18n/entries
+        url: 'http://localhost/1/default/rdmp/app/i18n/entries',
         body: [
           {
             "locale": "en",
@@ -322,7 +333,7 @@ describe('sync-translation command', () => {
         ],
       },
       {
-        // http://localhost/1/locales/en/translation.json
+        url: 'http://localhost/1/default/rdmp/locales/en/translation.json',
         body: {
           "@name-test1": "api-base-1 <a href='https://localhost'>localhost</a>",
           "@name-test2": "Name 2",
@@ -331,7 +342,7 @@ describe('sync-translation command', () => {
       },
       // overwrite @name-test6 value and meta from input-02 en
       {
-        // http://localhost/2/i18n/entries
+        url: 'http://localhost/2/default/rdmp/app/i18n/entries',
         body: [
           {
             "locale": "en",
@@ -341,7 +352,7 @@ describe('sync-translation command', () => {
         ],
       },
       {
-        // http://localhost/2/locales/en/translation.json
+        url: 'http://localhost/2/default/rdmp/locales/en/translation.json',
         body: {
           "@name-test6": "api-base-6",
         },
@@ -352,10 +363,10 @@ describe('sync-translation command', () => {
       ['node',
         'redbox-dev-tools',
         'sync-translation',
-        '--api-base', 'https://localhost/1',
+        '--api-base', 'http://localhost/1',
         '--language-defaults', setupFiles.temp01LangDefaultsDir,
         '--language-defaults', setupFiles.temp02LangDefaultsDir,
-        '--api-base', 'https://localhost/2',
+        '--api-base', 'http://localhost/2',
         '--output', setupFiles.tempLangDefaultsResultDir,
       ],
       {from: 'node'}

@@ -47,10 +47,11 @@ function buildPath(basePath: string, ...parts: string[]): string {
     throw new Error(`Invalid base path ${basePath}`);
   }
 
-  const resolved = path.resolve(...[basePath, ...parts]);
+  const basePathResolved = path.resolve(basePath);
+  const resolved = path.resolve(...[basePathResolved, ...parts]);
 
   // Ensure resolved path is inside basePath
-  if (!resolved.startsWith(basePath + path.sep) && resolved !== basePath) {
+  if (!resolved.startsWith(basePathResolved + path.sep) && resolved !== basePathResolved) {
     throw new Error(`Invalid path ${resolved}`);
   }
 
@@ -149,8 +150,14 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
   meta: MetaData,
   locales: TranslationLocaleRaw[]
 }> {
-  const translationUrl = new URL('/default/rdmp/locales/__locale__/translation.json', apiBaseUrl);
-  const entriesUrl = new URL('/default/rdmp/app/i18n/entries', apiBaseUrl);
+  if (!apiBaseUrl.includes('://')) {
+    throw new Error(`Api base url is not a valid url '${apiBaseUrl}'`);
+  }
+  if (!apiBaseUrl.endsWith('/')) {
+    apiBaseUrl += '/';
+  }
+  const translationUrl = new URL('default/rdmp/locales/__locale__/translation.json', apiBaseUrl);
+  const entriesUrl = new URL('default/rdmp/app/i18n/entries', apiBaseUrl);
 
   console.log(`Load translation entries url ${entriesUrl}`);
   const entriesResponse = await fetch(entriesUrl, {signal: AbortSignal.timeout(5000)});
@@ -167,7 +174,7 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
       console.warn(`Ignoring invalid locale name '${localeName}'.`);
       continue;
     }
-    const translationLocaleUrl = translationUrl.toString().replace('/__locale__/', `/${encodeURIComponent(localeName)}/`);
+    const translationLocaleUrl = new URL(translationUrl.toString().replace('/__locale__/', `/${encodeURIComponent(localeName)}/`));
     console.log(`Load translation locale url ${translationLocaleUrl}`);
     const translationResponse = await fetch(translationLocaleUrl, {signal: AbortSignal.timeout(5000)});
     if (!translationResponse.ok) {
@@ -175,7 +182,7 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
     }
     localeTranslationData.push({
       locale: localeName,
-      source: translationLocaleUrl,
+      source: translationLocaleUrl.toString(),
       data: await translationResponse.json()
     });
   }
