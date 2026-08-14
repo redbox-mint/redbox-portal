@@ -222,7 +222,11 @@ describe('FormComponentItemSelectEventConsumer', () => {
     }));
     expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
       fieldId: '/record/contributors/0',
-      sourceId: '*'
+      sourceId: '*',
+      value: {
+        funderName: 'https://example.org/funder/parent',
+        funderSearch: ''
+      }
     }));
   });
 

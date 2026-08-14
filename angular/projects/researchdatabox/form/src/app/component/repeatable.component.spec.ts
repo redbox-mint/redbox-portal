@@ -39,6 +39,7 @@ describe('RepeatableComponent', () => {
     const result = component.upsertSyncedSource(
       [{ name: 'Existing user', email: 'existing@example.com', role: 'View' }],
       [
+        { name: 'Updated existing user', email: 'existing@example.com', username: 'existing-user' },
         { name: 'Alice Smith', email: 'alice@example.com' },
         { name: 'Bob Jones', email: 'bob@example.com' },
       ],
@@ -46,7 +47,12 @@ describe('RepeatableComponent', () => {
     );
 
     expect(result).toEqual([
-      { name: 'Existing user', email: 'existing@example.com', role: 'View' },
+      {
+        name: 'Updated existing user',
+        email: 'existing@example.com',
+        username: 'existing-user',
+        role: 'View'
+      },
       { name: 'Alice Smith', email: 'alice@example.com', username: null, role: 'View&Edit' },
       { name: 'Bob Jones', email: 'bob@example.com', username: null, role: 'View&Edit' },
     ]);
