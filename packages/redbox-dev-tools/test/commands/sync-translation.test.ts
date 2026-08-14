@@ -28,12 +28,26 @@ describe('sync-translation command', () => {
     sinon.restore();
   });
 
-  function readJsonFile(path: string): unknown {
+  /**
+   * Read the file at filepath as JSON.
+   * Returns undefined if the file does not exist.
+   * Throws any file reading or JSON parsing error.
+   * @param filepath The path to the file.
+   */
+  function readJsonFile(filepath: string): unknown | undefined {
+    let content: string;
     try {
-      return JSON.parse(fs.readFileSync(path, 'utf8'));
-    } catch {
-      return undefined;
+      content = fs.readFileSync(filepath, {encoding: 'utf8'}) ?? '';
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+        // If the error indicates the path does not exist, return undefined.
+        return undefined;
+      }
+      // Re-throw any other error
+      throw err;
     }
+
+    return JSON.parse(content);
   }
 
   function buildProgram() {
@@ -96,19 +110,19 @@ describe('sync-translation command', () => {
     const outputMetaData = readJsonFile(outputMetaFile);
 
     // temp / result paths
-    const tempLangDefaults01Dir = path.join(tempRoot, 'language-defaults-01');
-    const tempEn01Dir = path.join(tempLangDefaults01Dir, 'en');
-    const tempEnTranslation01File = path.join(tempEn01Dir, 'translation.json');
-    const tempTest01Dir = path.join(tempLangDefaults01Dir, 'test');
-    const tempTestTranslation01File = path.join(tempTest01Dir, 'translation.json');
-    const tempMeta01File = path.join(tempLangDefaults01Dir, 'meta.json');
+    const temp01LangDefaultsDir = path.join(tempRoot, '01-language-defaults');
+    const temp01EnDir = path.join(temp01LangDefaultsDir, 'en');
+    const temp01EnTranslationFile = path.join(temp01EnDir, 'translation.json');
+    const temp01TestDir = path.join(temp01LangDefaultsDir, 'test');
+    const temp01TestTranslationFile = path.join(temp01TestDir, 'translation.json');
+    const temp01MetaFile = path.join(temp01LangDefaultsDir, 'meta.json');
 
-    const tempLangDefaults02Dir = path.join(tempRoot, 'language-defaults-02');
-    const tempEn02Dir = path.join(tempLangDefaults02Dir, 'en');
-    const tempEnTranslation02File = path.join(tempEn02Dir, 'translation.json');
-    const tempTest02Dir = path.join(tempLangDefaults02Dir, 'test');
-    const tempTestTranslation02File = path.join(tempTest02Dir, 'translation.json');
-    const tempMeta02File = path.join(tempLangDefaults02Dir, 'meta.json');
+    const temp02LangDefaultsDir = path.join(tempRoot, '02-language-defaults');
+    const temp02EnDir = path.join(temp02LangDefaultsDir, 'en');
+    const temp02EnTranslationFile = path.join(temp02EnDir, 'translation.json');
+    const temp02TestDir = path.join(temp02LangDefaultsDir, 'test');
+    const temp02TestTranslationFile = path.join(temp02TestDir, 'translation.json');
+    const temp02MetaFile = path.join(temp02LangDefaultsDir, 'meta.json');
 
     const tempLangDefaultsResultDir = path.join(tempRoot, 'language-defaults');
     const tempEnResultDir = path.join(tempLangDefaultsResultDir, 'en');
@@ -120,25 +134,18 @@ describe('sync-translation command', () => {
     // create temp dirs and files
 
     // input 1
-    fs.mkdirSync(tempEn01Dir, {recursive: true});
-    fs.writeFileSync(tempEnTranslation01File, JSON.stringify(input01EnTranslationData), 'utf8');
-    fs.mkdirSync(tempTest01Dir, {recursive: true});
-    fs.writeFileSync(tempTestTranslation01File, JSON.stringify(input01TestTranslationData), 'utf8');
-    fs.writeFileSync(tempMeta01File, JSON.stringify(input01MetaData), 'utf8');
+    fs.mkdirSync(temp01EnDir, {recursive: true});
+    fs.writeFileSync(temp01EnTranslationFile, JSON.stringify(input01EnTranslationData), 'utf8');
+    fs.mkdirSync(temp01TestDir, {recursive: true});
+    fs.writeFileSync(temp01TestTranslationFile, JSON.stringify(input01TestTranslationData), 'utf8');
+    fs.writeFileSync(temp01MetaFile, JSON.stringify(input01MetaData), 'utf8');
 
     // input 2
-    fs.mkdirSync(tempEn02Dir, {recursive: true});
-    fs.writeFileSync(tempEnTranslation02File, JSON.stringify(input02EnTranslationData), 'utf8');
-    fs.mkdirSync(tempTest02Dir, {recursive: true});
-    fs.writeFileSync(tempTestTranslation02File, JSON.stringify(input02TestTranslationData), 'utf8');
-    fs.writeFileSync(tempMeta02File, JSON.stringify(input02MetaData), 'utf8');
-
-    // result
-    fs.mkdirSync(tempEnResultDir, {recursive: true});
-    fs.writeFileSync(tempEnTranslationResultFile, JSON.stringify({}), 'utf8');
-    fs.mkdirSync(tempTestResultDir, {recursive: true});
-    fs.writeFileSync(tempTestTranslationResultFile, JSON.stringify({}), 'utf8');
-    fs.writeFileSync(tempMetaResultFile, JSON.stringify({}), 'utf8');
+    fs.mkdirSync(temp02EnDir, {recursive: true});
+    fs.writeFileSync(temp02EnTranslationFile, JSON.stringify(input02EnTranslationData), 'utf8');
+    fs.mkdirSync(temp02TestDir, {recursive: true});
+    fs.writeFileSync(temp02TestTranslationFile, JSON.stringify(input02TestTranslationData), 'utf8');
+    fs.writeFileSync(temp02MetaFile, JSON.stringify(input02MetaData), 'utf8');
 
     return {
       input01EnTranslationFile,
@@ -163,18 +170,18 @@ describe('sync-translation command', () => {
       outputEnTranslationData,
       outputTestTranslationData,
       outputMetaData,
-      tempLangDefaults01Dir,
-      tempEn01Dir,
-      tempEnTranslation01File,
-      tempTest01Dir,
-      tempTestTranslation01File,
-      tempMeta01File,
-      tempLangDefaults02Dir,
-      tempEn02Dir,
-      tempEnTranslation02File,
-      tempTest02Dir,
-      tempTestTranslation02File,
-      tempMeta02File,
+      temp01LangDefaultsDir,
+      temp01EnDir,
+      temp01EnTranslationFile,
+      temp01TestDir,
+      temp01TestTranslationFile,
+      temp01MetaFile,
+      temp02LangDefaultsDir,
+      temp02EnDir,
+      temp02EnTranslationFile,
+      temp02TestDir,
+      temp02TestTranslationFile,
+      temp02MetaFile,
       tempLangDefaultsResultDir,
       tempEnResultDir,
       tempEnTranslationResultFile,
@@ -185,23 +192,23 @@ describe('sync-translation command', () => {
   }
 
   function readResultFiles(opts: {
-    tempEnTranslation01File: string,
-    tempTestTranslation01File: string,
-    tempMeta01File: string,
-    tempEnTranslation02File: string,
-    tempTestTranslation02File: string,
-    tempMeta02File: string,
+    temp01EnTranslationFile: string,
+    temp01TestTranslationFile: string,
+    temp01MetaFile: string,
+    temp02EnTranslationFile: string,
+    temp02TestTranslationFile: string,
+    temp02MetaFile: string,
     tempEnTranslationResultFile: string,
     tempTestTranslationResultFile: string,
     tempMetaResultFile: string,
   }) {
     return {
-      tempEnTranslation01Data: readJsonFile(opts.tempEnTranslation01File),
-      tempTestTranslation01Data: readJsonFile(opts.tempTestTranslation01File),
-      tempMeta01Data: readJsonFile(opts.tempMeta01File),
-      tempEnTranslation02Data: readJsonFile(opts.tempEnTranslation02File),
-      tempTestTranslation02Data: readJsonFile(opts.tempTestTranslation02File),
-      tempMeta02Data: readJsonFile(opts.tempMeta02File),
+      temp01EnTranslationData: readJsonFile(opts.temp01EnTranslationFile),
+      temp01TestTranslationData: readJsonFile(opts.temp01TestTranslationFile),
+      temp01MetaData: readJsonFile(opts.temp01MetaFile),
+      temp02EnTranslationData: readJsonFile(opts.temp02EnTranslationFile),
+      temp02TestTranslationData: readJsonFile(opts.temp02TestTranslationFile),
+      temp02MetaData: readJsonFile(opts.temp02MetaFile),
       tempEnTranslationResultData: readJsonFile(opts.tempEnTranslationResultFile),
       tempTestTranslationResultData: readJsonFile(opts.tempTestTranslationResultFile),
       tempMetaResultData: readJsonFile(opts.tempMetaResultFile),
@@ -230,8 +237,8 @@ describe('sync-translation command', () => {
       'redbox-dev-tools',
       'sync-translation',
       '--api-base', 'https://localhost',
-      '--language-defaults', setupFiles.tempLangDefaults01Dir,
-      '--language-defaults', setupFiles.tempLangDefaults02Dir,
+      '--language-defaults', setupFiles.temp01LangDefaultsDir,
+      '--language-defaults', setupFiles.temp02LangDefaultsDir,
     ];
 
     return {
@@ -274,16 +281,16 @@ describe('sync-translation command', () => {
     const resultFiles = readResultFiles(setupFiles);
 
     // no changes to temp result files
-    expect({}).to.deep.eql(resultFiles.tempEnTranslationResultData);
-    expect({}).to.deep.eql(resultFiles.tempTestTranslationResultData);
-    expect({}).to.deep.eql(resultFiles.tempMetaResultData);
+    expect(undefined).to.deep.eql(resultFiles.tempEnTranslationResultData);
+    expect(undefined).to.deep.eql(resultFiles.tempTestTranslationResultData);
+    expect(undefined).to.deep.eql(resultFiles.tempMetaResultData);
 
     // no changes to temp input files
-    expect(readJsonFile(setupFiles.tempEnTranslation01File)).to.deep.eql(resultFiles.tempEnTranslation01Data);
-    expect(readJsonFile(setupFiles.tempTestTranslation01File)).to.deep.eql(resultFiles.tempTestTranslation01Data);
-    expect(readJsonFile(setupFiles.tempMeta01File)).to.deep.eql(resultFiles.tempMeta01Data);
-    expect(readJsonFile(setupFiles.tempEnTranslation02File)).to.deep.eql(resultFiles.tempEnTranslation02Data);
-    expect(readJsonFile(setupFiles.tempTestTranslation02File)).to.deep.eql(resultFiles.tempTestTranslation02Data);
-    expect(readJsonFile(setupFiles.tempMeta02File)).to.deep.eql(resultFiles.tempMeta02Data);
+    expect(setupFiles.input01EnTranslationData).to.deep.eql(resultFiles.temp01EnTranslationData);
+    expect(setupFiles.input01TestTranslationData).to.deep.eql(resultFiles.temp01TestTranslationData);
+    expect(setupFiles.input01MetaData).to.deep.eql(resultFiles.temp01MetaData);
+    expect(setupFiles.input02EnTranslationData).to.deep.eql(resultFiles.temp02EnTranslationData);
+    expect(setupFiles.input02TestTranslationData).to.deep.eql(resultFiles.temp02TestTranslationData);
+    expect(setupFiles.input02MetaData).to.deep.eql(resultFiles.temp02MetaData);
   });
 });

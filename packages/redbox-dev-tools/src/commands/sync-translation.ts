@@ -104,17 +104,19 @@ async function writeTranslationFiles(opts: {
   } else {
     // Write merged meta back to file
     console.log(`Writing updated meta to ${metaPath}`);
+    await fs.mkdir(path.dirname(metaPath), {recursive: true});
     await fs.writeFile(metaPath, JSON.stringify(opts.meta, null, 2));
   }
 
   // Write translation files
   for (const [locale, data] of Object.entries(opts.locales)) {
-    const p = path.resolve(opts?.writePath ?? "", locale, 'translation.json');
+    const translationPath = path.resolve(opts?.writePath ?? "", locale, 'translation.json');
     if (opts.dryRun) {
-      console.log(`[dry-run] Not writing updated translation data to ${p}`);
+      console.log(`[dry-run] Not writing updated translation data to ${translationPath}`);
     } else {
-      console.log(`Writing updated translation data to ${p}`);
-      await fs.writeFile(p, JSON.stringify(data, null, 2));
+      console.log(`Writing updated translation data to ${translationPath}`);
+      await fs.mkdir(path.dirname(translationPath), {recursive: true});
+      await fs.writeFile(translationPath, JSON.stringify(data, null, 2));
     }
   }
 }
@@ -158,7 +160,10 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
     if (!entryData.key) {
       continue;
     }
-    metaData[entryData.key] = {};
+    if (!(entryData.key in metaData)) {
+      metaData[entryData.key] = {};
+    }
+
     if (entryData.category) {
       metaData[entryData.key].category = entryData.category;
     }
@@ -230,12 +235,16 @@ function mergeMetaItems(opts: {
   return {category, description, contentFormat};
 }
 
+function optionCollect (value: string, previous: string[]) {
+  return previous.concat([value]);
+}
+
 export function registerSyncTranslationCommand(program: Command): void {
   program
     .command('sync-translation')
     .description('Read translations from API and/or json files, and write to language translation files.')
-    .option('-l, --language-defaults [paths...]', 'Path to read the language-defaults directory containing locales and meta json files.')
-    .option('-a, --api-base [urls...]', 'Base url for the API to read translation data.')
+    .option('-l, --language-defaults <path>', 'Path to read the language-defaults directory containing locales and meta json files. Can be provided multiple times.', optionCollect, [])
+    .option('-a, --api-base <url>', 'Base url for the API to read translation data. Can be provided multiple times.', optionCollect, [])
     .requiredOption('-o, --output <path>', 'Path to the output directory or file.')
     .addOption(
       new Option('-f, --format <format>', 'The output format.')
