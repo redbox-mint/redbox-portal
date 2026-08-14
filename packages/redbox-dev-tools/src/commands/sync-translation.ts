@@ -38,6 +38,26 @@ function isContentFormat(value: string | undefined): value is (ContentFormats | 
 }
 
 /**
+ * Build a path from a base path and additional parts.
+ * @param basePath The base path.
+ * @param parts The additional path parts.
+ */
+function buildPath(basePath: string, ...parts: string[]): string {
+  if (!basePath.trim()) {
+    throw new Error(`Invalid base path ${basePath}`);
+  }
+
+  const resolved = path.resolve(...[basePath, ...parts]);
+
+  // Ensure resolved path is inside basePath
+  if (!resolved.startsWith(basePath + path.sep) && resolved !== basePath) {
+    throw new Error(`Invalid path ${resolved}`);
+  }
+
+  return resolved
+}
+
+/**
  * Get the last non-empty string.
  * @param value The strings.
  */
@@ -60,7 +80,7 @@ async function readTranslationFiles(filesPath: string): Promise<{
   locales: TranslationLocaleRaw[]
 }> {
   // Read files
-  const metaPath = path.resolve(filesPath, 'meta.json');
+  const metaPath = buildPath(filesPath, 'meta.json');
   console.log(`Load translation meta file ${metaPath}`);
   const metaData: MetaEntries = JSON.parse(await fs.readFile(metaPath, {encoding: 'utf8'}));
 
@@ -69,7 +89,7 @@ async function readTranslationFiles(filesPath: string): Promise<{
     .map(dirent => dirent.name);
   const localeTranslationData: TranslationLocaleRaw[] = [];
   for (const locale of localeNames) {
-    const p = path.resolve(filesPath, locale, 'translation.json');
+    const p = buildPath(filesPath, locale, 'translation.json');
     const data = JSON.parse(await fs.readFile(p, {encoding: 'utf8'})) as Record<string, unknown>;
     console.log(`Load translation locale file ${p}`);
     localeTranslationData.push({locale, source: p, data});
@@ -98,7 +118,7 @@ async function writeTranslationFiles(opts: {
   dryRun?: boolean,
   writePath: string,
 }) {
-  const metaPath = path.resolve(opts?.writePath ?? "", 'meta.json');
+  const metaPath = buildPath(opts?.writePath, 'meta.json');
   if (opts.dryRun) {
     console.log(`[dry-run] Not writing updated meta to ${metaPath}`);
   } else {
@@ -110,7 +130,7 @@ async function writeTranslationFiles(opts: {
 
   // Write translation files
   for (const [locale, data] of Object.entries(opts.locales)) {
-    const translationPath = path.resolve(opts?.writePath ?? "", locale, 'translation.json');
+    const translationPath = buildPath(opts?.writePath, locale, 'translation.json');
     if (opts.dryRun) {
       console.log(`[dry-run] Not writing updated translation data to ${translationPath}`);
     } else {
@@ -139,11 +159,15 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
   }
   const entriesData: ApiEntry[] = await entriesResponse.json();
 
-  const metaData: MetaEntries = {};
+  const metaData: MetaEntries = Object.create(null);
   const localeTranslationData: TranslationLocaleRaw[] = [];
   const localeNames: string[] = Array.from(new Set<string>(entriesData.map(e => e.locale).filter(l => typeof l === 'string'))).sort();
   for (const localeName of localeNames) {
-    const translationLocaleUrl = translationUrl.toString().replace('/__locale__/', `/${localeName}/`);
+    if (!localeName || !localeName.trim() || localeName.includes('.') || localeName.includes('/')) {
+      console.warn(`Ignoring invalid locale name '${localeName}'.`);
+      continue;
+    }
+    const translationLocaleUrl = translationUrl.toString().replace('/__locale__/', `/${encodeURIComponent(localeName)}/`);
     console.log(`Load translation locale url ${translationLocaleUrl}`);
     const translationResponse = await fetch(translationLocaleUrl, {signal: AbortSignal.timeout(5000)});
     if (!translationResponse.ok) {
@@ -161,7 +185,7 @@ async function readTranslationApi(apiBaseUrl: string): Promise<{
       continue;
     }
     if (!(entryData.key in metaData)) {
-      metaData[entryData.key] = {};
+      metaData[entryData.key] = Object.create(null);
     }
 
     if (entryData.category) {
@@ -232,19 +256,39 @@ function mergeMetaItems(opts: {
       ...opts.items?.map(i => i?.category),
     ]
   );
-  return {category, description, contentFormat};
+
+  const result = Object.create(null);
+  result.category = category;
+  result.description = description;
+  result.contentFormat = contentFormat;
+  return result;
 }
 
-function optionCollect (value: string, previous: string[]) {
-  return previous.concat([value]);
-}
+type OptionCollected = { type: string, value: string };
 
 export function registerSyncTranslationCommand(program: Command): void {
+  const sourcesCollected: OptionCollected[] = [];
   program
     .command('sync-translation')
     .description('Read translations from API and/or json files, and write to language translation files.')
-    .option('-l, --language-defaults <path>', 'Path to read the language-defaults directory containing locales and meta json files. Can be provided multiple times.', optionCollect, [])
-    .option('-a, --api-base <url>', 'Base url for the API to read translation data. Can be provided multiple times.', optionCollect, [])
+    .option(
+      '-l, --language-defaults <path>',
+      'Path to read the language-defaults directory containing locales and meta json files. Can be provided multiple times.',
+      (value: string, previous: OptionCollected[]) => {
+        previous.push({type: 'language-defaults', value});
+        return previous;
+      },
+      sourcesCollected
+    )
+    .option(
+      '-a, --api-base <url>',
+      'Base url for the API to read translation data. Can be provided multiple times.',
+      (value: string, previous: OptionCollected[]) => {
+        previous.push({type: 'api-base', value});
+        return previous;
+      },
+      sourcesCollected
+    )
     .requiredOption('-o, --output <path>', 'Path to the output directory or file.')
     .addOption(
       new Option('-f, --format <format>', 'The output format.')
@@ -254,12 +298,10 @@ export function registerSyncTranslationCommand(program: Command): void {
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
-        const langDefaultsPaths: string[] = (options.languageDefaults ?? []).map((i: string) => path.resolve(i));
-        const apiBaseUrls: string[] = options.apiBase ?? [];
         const outputPath: string = options.output;
         const outputFormat: string = options.format;
 
-        if (langDefaultsPaths.length === 0 && apiBaseUrls.length === 0) {
+        if (sourcesCollected.length === 0) {
           throw new Error(`Must provide at least one of language-defaults path or api-base url.`);
         }
 
@@ -268,24 +310,24 @@ export function registerSyncTranslationCommand(program: Command): void {
         const sourceTranslations: TranslationLocaleRaw[] = [];
 
         // Precedence order: later items overwrite earlier items.
-        // Start with data from files, in order specified.
-        for (const langDefaultsPath of langDefaultsPaths) {
-          const {meta, locales} = await readTranslationFiles(langDefaultsPath);
-          sourceMeta.push(meta);
-          sourceTranslations.push(...locales);
-        }
-
-        // Data from APIs, in order specified.
-        for (const apiBaseUrl of apiBaseUrls) {
-          const {meta, locales} = await readTranslationApi(apiBaseUrl);
-          sourceMeta.push(meta);
-          sourceTranslations.push(...locales);
+        // Populate source meta and translations in order provided in command line.
+        for (const {type, value} of sourcesCollected) {
+          if (type === 'language-defaults') {
+            const {meta, locales} = await readTranslationFiles(value);
+            sourceMeta.push(meta);
+            sourceTranslations.push(...locales);
+          } else if (type === 'api-base') {
+            const {meta, locales} = await readTranslationApi(value);
+            sourceMeta.push(meta);
+            sourceTranslations.push(...locales);
+          } else {
+            throw new Error(`Unknown source type '${type}'.`);
+          }
         }
 
         // The keys for locales are the source of truth,
         // so any keys in meta that are not in any locale data will be dropped.
         const keys = new Set<string>(sourceTranslations.flatMap(i => Object.keys(i.data)));
-        keys.delete('_meta');
 
         // The unique locale names.
         const localeNames = Array.from(
@@ -295,8 +337,8 @@ export function registerSyncTranslationCommand(program: Command): void {
         ).sort();
 
         // Gather translation and meta entries.
-        const meta: MetaEntries = {};
-        const locales: TranslationLocaleEntries = {};
+        const meta: MetaEntries = Object.create(null);
+        const locales: TranslationLocaleEntries = Object.create(null);
 
         for (const key of keys) {
           if (!key) {
@@ -307,17 +349,26 @@ export function registerSyncTranslationCommand(program: Command): void {
               continue;
             }
             if (!(localeName in locales)) {
-              locales[localeName] = {};
+              locales[localeName] = Object.create(null);
             }
             const localeTranslationData = sourceTranslations.filter(i => i.locale === localeName);
 
             // Translation value for a locale key.
             const values = localeTranslationData
               .map(i => i.data?.[key])
-              .filter(i => typeof i === 'string');
+              .filter(i => typeof i === 'string')
+              .filter(i => i?.trim().length > 0);
             if (new Set<string>(values).size > 1) {
               console.warn(`Translation '${localeName}' key '${key}' has more than one value: ${JSON.stringify(values)}`);
             }
+
+            const valuesNonString = localeTranslationData
+              .map(i => i.data?.[key])
+              .filter(i => typeof i !== 'string' && i !== undefined);
+            if (valuesNonString.length > 0) {
+              console.warn(`Translation '${localeName}' key '${key}' has non-string values that were ignored:`, valuesNonString);
+            }
+
             const value = lastNonEmptyString(...values);
             locales[localeName][key] = value ?? "";
 
@@ -327,7 +378,7 @@ export function registerSyncTranslationCommand(program: Command): void {
               value,
               items: [...sourceMeta.map(i => i.data?.[key]), meta[key]],
               guessContentFormat: true,
-            }) ?? {};
+            }) ?? Object.create(null);
           }
         }
 

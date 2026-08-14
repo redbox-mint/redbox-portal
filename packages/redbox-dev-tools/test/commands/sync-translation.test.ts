@@ -236,9 +236,9 @@ describe('sync-translation command', () => {
       'node',
       'redbox-dev-tools',
       'sync-translation',
-      '--api-base', 'https://localhost',
       '--language-defaults', setupFiles.temp01LangDefaultsDir,
       '--language-defaults', setupFiles.temp02LangDefaultsDir,
+      '--api-base', 'https://localhost',
     ];
 
     return {
@@ -292,5 +292,121 @@ describe('sync-translation command', () => {
     expect(setupFiles.input02EnTranslationData).to.deep.eql(resultFiles.temp02EnTranslationData);
     expect(setupFiles.input02TestTranslationData).to.deep.eql(resultFiles.temp02TestTranslationData);
     expect(setupFiles.input02MetaData).to.deep.eql(resultFiles.temp02MetaData);
+  });
+
+  it('should follow precedence order with later items overwriting earlier items', async () => {
+    const program = buildProgram();
+    const setupFiles = setupTestData();
+    setFetchStub([
+      // Set "@name-test3" value and meta, to be overwritten by input-01 en
+      {
+        // http://localhost/1/i18n/entries
+        body: [
+          {
+            "locale": "en",
+            "key": "@name-test1",
+            "category": "api-base-1",
+          },
+          {
+            "locale": "en",
+            "key": "@name-test2",
+            "category": "name",
+            "description": "Name for test 2.",
+            "contentFormat": "plain"
+          },
+          {
+            "locale": "en",
+            "key": "@name-test3",
+            "category": "api-base-3",
+          },
+        ],
+      },
+      {
+        // http://localhost/1/locales/en/translation.json
+        body: {
+          "@name-test1": "api-base-1 <a href='https://localhost'>localhost</a>",
+          "@name-test2": "Name 2",
+          "@name-test3": "api-base-3",
+        },
+      },
+      // overwrite @name-test6 value and meta from input-02 en
+      {
+        // http://localhost/2/i18n/entries
+        body: [
+          {
+            "locale": "en",
+            "key": "@name-test6",
+            "category": "api-base-6",
+          },
+        ],
+      },
+      {
+        // http://localhost/2/locales/en/translation.json
+        body: {
+          "@name-test6": "api-base-6",
+        },
+      },
+    ]);
+
+    await program.parseAsync(
+      ['node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--api-base', 'https://localhost/1',
+        '--language-defaults', setupFiles.temp01LangDefaultsDir,
+        '--language-defaults', setupFiles.temp02LangDefaultsDir,
+        '--api-base', 'https://localhost/2',
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    const resultFiles = readResultFiles(setupFiles);
+
+    expect(resultFiles.tempEnTranslationResultData).to.deep.eql({
+      "@name-test1": "api-base-1 <a href='https://localhost'>localhost</a>",
+      "@name-test2": "Name 2",
+      "@name-test3": "Name 3",
+      "@name-test4": "",
+      "@name-test5": "Name 5",
+      "@name-test6": "api-base-6"
+    });
+    expect(resultFiles.tempTestTranslationResultData).to.deep.eql({
+      "@name-test1": "",
+      "@name-test2": "abc 123",
+      "@name-test3": "",
+      "@name-test4": "qwe 456",
+      "@name-test5": "",
+      "@name-test6": "Name 6",
+    });
+    expect(resultFiles.tempMetaResultData).to.deep.eql({
+        "@name-test1": {
+          "category": "naming",
+          "contentFormat": "html",
+          "description": "Name for test 1."
+        },
+        "@name-test2": {
+          "category": "name",
+          "description": "Name for test 2.",
+          "contentFormat": "plain"
+        },
+        "@name-test3": {
+          "category": "api-base-3",
+          "description": "Name for test 3."
+        },
+        "@name-test4": {
+          "category": "name",
+          "description": "Translation for @name-test4"
+        },
+        "@name-test5": {
+          "category": "name",
+          "description": "Translation for @name-test5"
+        },
+        "@name-test6": {
+          "category": "api-base-6",
+          "description": "Name for test 6."
+        }
+      }
+    );
   });
 });
