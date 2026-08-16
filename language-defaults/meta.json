@@ -574,9 +574,14 @@
     "description": "Status label for a linked alias account on the admin user management page",
     "contentFormat": "plain"
   },
-  "manage-users-account-status-linked-accounts": {
+  "manage-users-account-status-linked-accounts_one": {
     "category": "users",
-    "description": "Label for linked accounts on the admin user management page",
+    "description": "Singular linked-account count on the admin user management page",
+    "contentFormat": "plain"
+  },
+  "manage-users-account-status-linked-accounts_other": {
+    "category": "users",
+    "description": "Plural linked-account count on the admin user management page",
     "contentFormat": "plain"
   },
   "manage-users-account-status-primary-user": {
@@ -694,14 +699,24 @@
     "description": "Success message shown after linking accounts",
     "contentFormat": "plain"
   },
-  "manage-users-link-success-roles-merged": {
+  "manage-users-link-success-roles-merged_one": {
     "category": "users",
-    "description": "Success detail explaining that roles were merged after linking accounts",
+    "description": "Singular success detail explaining that a role was merged after linking accounts",
     "contentFormat": "plain"
   },
-  "manage-users-link-success-records-rewritten": {
+  "manage-users-link-success-roles-merged_other": {
     "category": "users",
-    "description": "Success detail explaining that record ownership was rewritten after linking accounts",
+    "description": "Plural success detail explaining that roles were merged after linking accounts",
+    "contentFormat": "plain"
+  },
+  "manage-users-link-success-records-rewritten_one": {
+    "category": "users",
+    "description": "Singular success detail explaining that a record was rewritten after linking accounts",
+    "contentFormat": "plain"
+  },
+  "manage-users-link-success-records-rewritten_other": {
+    "category": "users",
+    "description": "Plural success detail explaining that records were rewritten after linking accounts",
     "contentFormat": "plain"
   },
   "manage-users-link-failed": {
@@ -4779,9 +4794,14 @@
     "description": "Entry count label on the record audit trail page",
     "contentFormat": "plain"
   },
-  "@record-audit-changed-fields-count": {
+  "@record-audit-changed-fields-count_one": {
     "category": "view",
-    "description": "Changed field count label in audit details",
+    "description": "Singular changed-field count label in audit details",
+    "contentFormat": "plain"
+  },
+  "@record-audit-changed-fields-count_other": {
+    "category": "view",
+    "description": "Plural changed-field count label in audit details",
     "contentFormat": "plain"
   },
   "@record-audit-link-json": {
@@ -6062,6 +6082,266 @@
   "@lookup-placeholder-party": {
     "category": "lookup",
     "description": "Placeholder text in lookup field for party records",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-source-count_one": {
+    "category": "figshare",
+    "description": "Singular count of configured Figshare category sources",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-source-count_other": {
+    "category": "figshare",
+    "description": "Plural count of configured Figshare category sources",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-crosswalk-count_one": {
+    "category": "figshare",
+    "description": "Singular count of Figshare crosswalks",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-crosswalk-count_other": {
+    "category": "figshare",
+    "description": "Plural count of Figshare crosswalks",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-used-by_one": {
+    "category": "figshare",
+    "description": "Singular count of publishing configurations using a Figshare vocabulary",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-used-by_other": {
+    "category": "figshare",
+    "description": "Plural count of publishing configurations using a Figshare vocabulary",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-picker-target-count_one": {
+    "category": "figshare",
+    "description": "Singular count of Figshare targets in the mapping picker",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-picker-target-count_other": {
+    "category": "figshare",
+    "description": "Plural count of Figshare targets in the mapping picker",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-max-size": {
+    "category": "form",
+    "description": "Upload limit note shown by file and data-location form fields",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-add-attachment": {
+    "category": "form",
+    "description": "Button label for adding an attachment to a form field",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-save-before-attach": {
+    "category": "form",
+    "description": "Message shown when an attachment requires the record to be saved first",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-location": {
+    "category": "form",
+    "description": "Location column and field label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-notes": {
+    "category": "form",
+    "description": "Notes column and field label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-action": {
+    "category": "form",
+    "description": "Accessible action-column label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-remove": {
+    "category": "form",
+    "description": "Accessible label for removing an uploaded file",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-notes-placeholder": {
+    "category": "form",
+    "description": "Placeholder for notes captured with an uploaded file",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-isc": {
+    "category": "form",
+    "description": "Information security classification label for a data location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type": {
+    "category": "form",
+    "description": "Type column and field label for a data location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-url": {
+    "category": "form",
+    "description": "Data-location type option for a URL",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-physical": {
+    "category": "form",
+    "description": "Data-location type option for a physical location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-file": {
+    "category": "form",
+    "description": "Data-location type option for a file path",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-attachment": {
+    "category": "form",
+    "description": "Data-location type option for an attachment",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-edit": {
+    "category": "form",
+    "description": "Button label for editing data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-edit-title": {
+    "category": "form",
+    "description": "Accessible title for editing data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-apply": {
+    "category": "form",
+    "description": "Button label for applying edited data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-add": {
+    "category": "form",
+    "description": "Button label for adding a data location",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-no-selection-title": {
+    "category": "dataPublication",
+    "description": "Title of the publication notice when no data locations are selected",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-no-selection-body": {
+    "category": "dataPublication",
+    "description": "Body of the publication notice when only metadata will be published",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-none-title": {
+    "category": "dataPublication",
+    "description": "Title shown when a record has no data locations available",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-selection-summary": {
+    "category": "dataPublication",
+    "description": "Selection count summary for data locations being published",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-searching": {
+    "category": "form",
+    "description": "Status text shown while a typeahead lookup is running",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-lookup-failed": {
+    "category": "form",
+    "description": "Fallback error text for a failed typeahead lookup",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-misconfigured": {
+    "category": "form",
+    "description": "Fallback error text for an invalid typeahead configuration",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-vocab-ref": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing vocabulary reference",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-query-id": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing named-query identifier",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-service-id": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing service identifier",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-provider": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing external provider",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-static-options": {
+    "category": "form",
+    "description": "Typeahead configuration error for missing static options",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-unable-to-fetch": {
+    "category": "form",
+    "description": "Error text shown when typeahead matches cannot be fetched",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-title": {
+    "category": "form",
+    "description": "Default title for a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-yes": {
+    "category": "form",
+    "description": "Default affirmative action label in a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-no": {
+    "category": "form",
+    "description": "Default negative action label in a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-delete-button": {
+    "category": "form",
+    "description": "Default label for the form delete button",
+    "contentFormat": "plain"
+  },
+  "doi-api-error": {
+    "category": "doi",
+    "description": "Prefix for errors returned while communicating with the DOI provider",
+    "contentFormat": "plain"
+  },
+  "doi-error-updating": {
+    "category": "doi",
+    "description": "Error detail shown when updating a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-creating": {
+    "category": "doi",
+    "description": "Error detail shown when creating a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-deleting": {
+    "category": "doi",
+    "description": "Error detail shown when deleting a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-changing-state": {
+    "category": "doi",
+    "description": "Error detail shown when changing DOI state fails",
+    "contentFormat": "plain"
+  },
+  "figshare-api-error": {
+    "category": "figshare",
+    "description": "Prefix for errors returned while communicating with Figshare",
+    "contentFormat": "plain"
+  },
+  "figshare-error-syncing-record": {
+    "category": "figshare",
+    "description": "Error detail shown when syncing a record with Figshare fails",
+    "contentFormat": "plain"
+  },
+  "figshare-error-verifying-upload": {
+    "category": "figshare",
+    "description": "Error detail shown when verifying Figshare upload status fails",
+    "contentFormat": "plain"
+  },
+  "figshare-error-publishing-article": {
+    "category": "figshare",
+    "description": "Error detail shown when publishing a Figshare article fails",
     "contentFormat": "plain"
   }
 }

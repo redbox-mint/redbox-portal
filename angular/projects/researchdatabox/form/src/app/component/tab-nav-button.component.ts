@@ -46,11 +46,11 @@ export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> imp
   currentTabIndex = signal<number>(0);
 
   get prevLabel(): string {
-    return this.translateLabel(this.componentDefinition?.config?.prevLabel, 'Previous');
+    return this.translateLabel(this.componentDefinition?.config?.prevLabel, '@tab-nav-previous');
   }
 
   get nextLabel(): string {
-    return this.translateLabel(this.componentDefinition?.config?.nextLabel, 'Next');
+    return this.translateLabel(this.componentDefinition?.config?.nextLabel, '@tab-nav-next');
   }
 
   get endDisplayMode(): string {
