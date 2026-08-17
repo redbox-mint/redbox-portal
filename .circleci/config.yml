@@ -1003,15 +1003,20 @@ jobs:
             npm run compile:sails-ng-common
             npm run compile:core
       - run:
-          name: Generate angular docs
-          command: npm run doc-ng2
+          name: Generate REST API docs
+          command: |
+            npm run doc:api -- --branding=default --portal=rdmp
+            api_site=.tmp/api-docs-site/additional-documentation
+            mkdir -p "$api_site"
+            cp -a support/docs/generated/api/. "$api_site"/
+            mv "$api_site/index.html" "$api_site/rest-api.html"
       - run:
-          name: Deploy docs by adding commit to gh-pages branch
+          name: Deploy REST API docs by adding commit to gh-pages branch
           command: |
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+            gh-pages --dotfiles --message "[ci skip] Updating REST API documents" --dist .tmp/api-docs-site
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
