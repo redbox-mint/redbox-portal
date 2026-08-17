@@ -82,7 +82,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
     @Input() public override model?: DataLocationModel;
 
-    public uppyDashboardNote = "Maximum upload size: 1 Gb per file";
+    public uppyDashboardNote = "@form-file-upload-max-size";
     public allowUploadWithoutSave = false;
     public restrictions?: Record<string, unknown>;
     public enabledSources: FileUploadSourceType[] = [];
@@ -90,34 +90,34 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     public tusHeaders: Record<string, string> = {};
     public notesEnabled = true;
     public iscEnabled = false;
-    public iscHeader = "Information Security Classification";
+    public iscHeader = "@form-data-location-isc";
     public defaultSelect = "confidential";
     public securityClassificationOptions: DataLocationOption[] = [];
     public locationAddText = "";
-    public typeHeader = "Type";
-    public locationHeader = "Location";
-    public notesHeader = "Notes";
-    public editNotesButtonText = "Edit";
-    public editNotesTitle = "Edit Notes";
-    public cancelEditNotesButtonText = "Cancel";
-    public applyEditNotesButtonText = "Apply";
+    public typeHeader = "@form-data-location-type";
+    public locationHeader = "@form-file-upload-location";
+    public notesHeader = "@form-file-upload-notes";
+    public editNotesButtonText = "@form-data-location-edit";
+    public editNotesTitle = "@form-data-location-edit-title";
+    public cancelEditNotesButtonText = "@cancel-button";
+    public applyEditNotesButtonText = "@form-data-location-apply";
     public editNotesCssClasses = "form-control";
     public dataTypes: DataLocationOption[] = [
-        { label: "URL", value: "url" },
-        { label: "Physical location", value: "physical" },
-        { label: "File path", value: "file" },
-        { label: "Attachment", value: "attachment" }
+        { label: "@form-data-location-type-url", value: "url" },
+        { label: "@form-data-location-type-physical", value: "physical" },
+        { label: "@form-data-location-type-file", value: "file" },
+        { label: "@form-data-location-type-attachment", value: "attachment" }
     ];
     public dataTypePlaceholder = "";
     public dataTypeLookup: Record<string, string> = {
-        url: "URL",
-        physical: "Physical location",
-        file: "File path",
-        attachment: "Attachment"
+        url: "@form-data-location-type-url",
+        physical: "@form-data-location-type-physical",
+        file: "@form-data-location-type-file",
+        attachment: "@form-data-location-type-attachment"
     };
     public hideNotesForLocationTypes: string[] = [];
-    public attachmentText = "Add attachment(s)";
-    public attachmentTextDisabled = "Save your record to attach files";
+    public attachmentText = "@form-file-upload-add-attachment";
+    public attachmentTextDisabled = "@form-file-upload-save-before-attach";
     public draftLocation: DraftLocation = this.createDraftLocation();
     public editingNotesIndex = -1;
     public editingNotesValue = "";
@@ -137,7 +137,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
         const cfg = (this.componentDefinition?.config as DataLocationFieldComponentConfigOutline) ?? new DataLocationFieldComponentConfig();
         const cfgRecord = cfg as DataLocationFieldComponentConfigOutline & Record<string, unknown>;
-        this.uppyDashboardNote = String(cfg.uppyDashboardNote ?? "Maximum upload size: 1 Gb per file");
+        this.uppyDashboardNote = String(cfg.uppyDashboardNote ?? "@form-file-upload-max-size");
         this.allowUploadWithoutSave = cfg.allowUploadWithoutSave ?? false;
         this.restrictions = cfg.restrictions;
         this.enabledSources = this.normalizedEnabledSources(cfg.enabledSources);
@@ -145,17 +145,17 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         this.tusHeaders = (cfg.tusHeaders ?? {}) as Record<string, string>;
         this.notesEnabled = cfg.notesEnabled !== false;
         this.iscEnabled = cfg.iscEnabled === true;
-        this.iscHeader = String(cfg.iscHeader ?? "Information Security Classification");
+        this.iscHeader = String(cfg.iscHeader ?? "@form-data-location-isc");
         this.defaultSelect = String(cfg.defaultSelect ?? "confidential");
         this.securityClassificationOptions = Array.isArray(cfg.securityClassificationOptions) ? cfg.securityClassificationOptions : [];
         this.locationAddText = String(cfg.locationAddText ?? "");
-        this.typeHeader = String(cfg.typeHeader ?? "Type");
-        this.locationHeader = String(cfg.locationHeader ?? "Location");
-        this.notesHeader = String(cfg.notesHeader ?? "Notes");
-        this.editNotesButtonText = String(cfg.editNotesButtonText ?? "Edit");
-        this.editNotesTitle = String(cfg.editNotesTitle ?? "Edit Notes");
-        this.cancelEditNotesButtonText = String(cfg.cancelEditNotesButtonText ?? "Cancel");
-        this.applyEditNotesButtonText = String(cfg.applyEditNotesButtonText ?? "Apply");
+        this.typeHeader = String(cfg.typeHeader ?? "@form-data-location-type");
+        this.locationHeader = String(cfg.locationHeader ?? "@form-file-upload-location");
+        this.notesHeader = String(cfg.notesHeader ?? "@form-file-upload-notes");
+        this.editNotesButtonText = String(cfg.editNotesButtonText ?? "@form-data-location-edit");
+        this.editNotesTitle = String(cfg.editNotesTitle ?? "@form-data-location-edit-title");
+        this.cancelEditNotesButtonText = String(cfg.cancelEditNotesButtonText ?? "@cancel-button");
+        this.applyEditNotesButtonText = String(cfg.applyEditNotesButtonText ?? "@form-data-location-apply");
         this.editNotesCssClasses = String(cfg.editNotesCssClasses ?? "form-control");
         this.dataTypes = Array.isArray(cfg.dataTypes) && cfg.dataTypes.length > 0 ? cfg.dataTypes : this.dataTypes;
         this.dataTypePlaceholder = String(cfg.dataTypePlaceholder ?? "");
@@ -163,8 +163,8 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             ? { ...this.dataTypeLookup, ...(cfgRecord["dataTypeLookup"] as Record<string, string>) }
             : this.dataTypeLookup;
         this.hideNotesForLocationTypes = Array.isArray(cfg.hideNotesForLocationTypes) ? cfg.hideNotesForLocationTypes.map(String) : [];
-        this.attachmentText = String(cfgRecord["attachmentText"] ?? "Add attachment(s)");
-        this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "Save your record to attach files");
+        this.attachmentText = String(cfgRecord["attachmentText"] ?? "@form-file-upload-add-attachment");
+        this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "@form-file-upload-save-before-attach");
         this.draftLocation = this.createDraftLocation();
     }
 
@@ -319,7 +319,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     }
 
     public getLocationTypeLabel(item: DataLocationValueType): string {
-        return this.dataTypeLookup[String(item?.type ?? "")] ?? String(item?.type ?? "");
+        return this.translateText(this.dataTypeLookup[String(item?.type ?? "")] ?? String(item?.type ?? ""));
     }
 
     public getLocationDisplayText(item: DataLocationValueType): string {
@@ -380,7 +380,11 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             proudlyDisplayPoweredByUppy: false,
             note: this.translateText(this.uppyDashboardNote),
             metaFields: this.notesEnabled
-                ? [{ id: "notes", name: "Notes", placeholder: "Notes about this file." }]
+                ? [{
+                    id: "notes",
+                    name: this.translateText("@form-file-upload-notes"),
+                    placeholder: this.translateText("@form-file-upload-notes-placeholder")
+                }]
                 : []
         });
 

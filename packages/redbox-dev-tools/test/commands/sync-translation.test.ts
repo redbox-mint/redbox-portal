@@ -82,11 +82,14 @@ describe('sync-translation command', () => {
     const tempEnDir = path.join(tempLangDefaultsDir, 'en');
     const tempEnTranslationFile = path.join(tempLangDefaultsDir, 'en', 'translation.json');
     const tempMetaFile = path.join(tempLangDefaultsDir, 'meta.json');
+    const tempDemoTranslationFile = path.join(tempLangDefaultsDir, 'demo', 'es', 'translation.json');
 
     // create temp dir and files
     fs.mkdirSync(tempEnDir, {recursive: true});
     fs.writeFileSync(tempEnTranslationFile, JSON.stringify(readJsonFile(originalEnTranslationFile)), 'utf8');
     fs.writeFileSync(tempMetaFile, JSON.stringify(readJsonFile(originalMetaFile)), 'utf8');
+    fs.mkdirSync(path.dirname(tempDemoTranslationFile), {recursive: true});
+    fs.writeFileSync(tempDemoTranslationFile, JSON.stringify({greeting: 'Hola'}), 'utf8');
 
     // stub the fetch api
     setFetchStub([
