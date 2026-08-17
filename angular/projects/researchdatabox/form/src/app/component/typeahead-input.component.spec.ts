@@ -762,7 +762,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing queryId for namedQuery typeahead source");
+        expect(text).toContain("@form-typeahead-missing-query-id");
     });
 
     it("shows misconfiguration message when external source lacks provider", async () => {
@@ -784,7 +784,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing provider for external typeahead source");
+        expect(text).toContain("@form-typeahead-missing-provider");
     });
 
     it("shows misconfiguration message when service source lacks serviceId", async () => {
@@ -806,7 +806,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing serviceId for service typeahead source");
+        expect(text).toContain("@form-typeahead-missing-service-id");
     });
 
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
