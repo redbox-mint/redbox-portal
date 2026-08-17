@@ -43,7 +43,7 @@
     "@uppy/google-drive": "5.1.0",
     "@uppy/onedrive": "5.1.0",
     "@uppy/tus": "5.1.1",
-    "esbuild": "0.28.1",
+    "esbuild": "0.28.2",
     "handlebars": "4.7.9",
     "i18next": "26.3.6",
     "i18next-browser-languagedetector": "8.2.1",
