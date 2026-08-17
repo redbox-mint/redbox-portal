@@ -570,5 +570,16 @@ describe('I18nEntriesService', function() {
       expect(setBundleStub.calledOnce).to.be.true;
       expect(setBundleStub.firstCall.args[5]).to.deep.equal({ splitToEntries: true, overwriteEntries: false });
     });
+
+    it('should ignore nested demo locale folders when discovering defaults', async function() {
+      writeDefaults('en', 'translation', { greeting: 'Hello' });
+      writeDefaults('demo/es', 'translation', { greeting: 'Hola' });
+      const setBundleStub = sinon.stub(I18nEntriesService, 'setBundle').resolves({ id: 'bundle-1' } as any);
+
+      await I18nEntriesService.bootstrap();
+
+      expect(setBundleStub.calledOnce).to.be.true;
+      expect(setBundleStub.firstCall.args[1]).to.equal('en');
+    });
   });
 });
