@@ -1088,11 +1088,12 @@ workflows:
             branches:
               ignore: /^dependabot.*/
       - publish-wiki:
+          requires:
+            - deploy
+            - deploy-arm64
           filters:
             branches:
-              only:
-                - master
-                - chore/wiki-publication
+              only: master
             tags:
               ignore: /.*/
       - build-runtime-pdfgen:
