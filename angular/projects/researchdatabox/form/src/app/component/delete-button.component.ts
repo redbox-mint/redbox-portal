@@ -35,7 +35,7 @@ export class DeleteButtonComponent extends ButtonBaseComponent {
 
   get displayLabel(): string {
     const label = this.translate(this.componentDefinition?.config?.label) ?? '';
-    return label.trim() || 'Delete';
+    return label.trim() || this.formService.translate('@form-delete-button');
   }
 
   async delete(): Promise<void> {

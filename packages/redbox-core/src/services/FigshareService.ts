@@ -64,7 +64,7 @@ export namespace Services {
 
     private msgPrefix() {
       if (!this._msgPrefix) {
-        this._msgPrefix = TranslationService.t('Figshare API error');
+        this._msgPrefix = TranslationService.t('figshare-api-error');
       }
       return this._msgPrefix;
     }
@@ -465,7 +465,7 @@ export namespace Services {
             ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
           },
         });
-        this.wrapHttpError(error, TranslationService.t('Error syncing record with Figshare'));
+        this.wrapHttpError(error, TranslationService.t('figshare-error-syncing-record'));
       }
     }
 
@@ -644,7 +644,7 @@ export namespace Services {
               ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
             },
           });
-          this.wrapHttpError(error, TranslationService.t('Error verifying Figshare upload status'));
+          this.wrapHttpError(error, TranslationService.t('figshare-error-verifying-upload'));
         }
 
         sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
@@ -697,7 +697,7 @@ export namespace Services {
             ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
           },
         });
-        this.wrapHttpError(error, TranslationService.t('Error publishing Figshare article'));
+        this.wrapHttpError(error, TranslationService.t('figshare-error-publishing-article'));
       }
     }
 

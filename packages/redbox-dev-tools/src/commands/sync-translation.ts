@@ -49,9 +49,22 @@ export function registerSyncTranslationCommand(program: Command): void {
         console.log(`Load translation meta file ${langDefaultsMetaPath}`);
         const langDefaultsMetaData: MetaEntries = JSON.parse(await fs.readFile(langDefaultsMetaPath, {encoding: 'utf8'}));
 
-        const langDefaultsLocales: string[] = (await fs.readdir(langDefaultsPath, {withFileTypes: true}))
-          .filter(dirent => dirent.isDirectory())
-          .map(dirent => dirent.name);
+        const langDefaultsLocales: string[] = [];
+        for (const dirent of await fs.readdir(langDefaultsPath, {withFileTypes: true})) {
+          if (!dirent.isDirectory()) {
+            continue;
+          }
+          const translationPath = path.resolve(langDefaultsPath, dirent.name, 'translation.json');
+          try {
+            const translationStat = await fs.stat(translationPath);
+            if (translationStat.isFile()) {
+              langDefaultsLocales.push(dirent.name);
+            }
+          } catch {
+            // Nested folders such as language-defaults/demo are documentation
+            // or sample data, not locale roots.
+          }
+        }
         const langDefaultsLocaleTranslationData = [];
         for (const locale of langDefaultsLocales) {
           const p = path.resolve(langDefaultsPath, locale, 'translation.json');
