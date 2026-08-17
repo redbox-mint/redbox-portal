@@ -70,16 +70,16 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
       />
       <div class="small mt-1 text-muted" [id]="statusElementId" aria-live="polite">
         @if (searchState === 'loading') {
-          Searching...
+          {{ '@form-typeahead-searching' | i18next }}
         }
         @if (searchState === 'no-results') {
           {{ noResultsMessageKey | i18next }}
         }
         @if (searchState === 'error') {
-          {{ statusMessage || 'Lookup failed' }}
+          {{ (statusMessage || '@form-typeahead-lookup-failed') | i18next }}
         }
         @if (searchState === 'misconfigured') {
-          {{ statusMessage || 'Typeahead field is misconfigured' }}
+          {{ (statusMessage || '@form-typeahead-misconfigured') | i18next }}
         }
       </div>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -338,27 +338,27 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private validateConfiguration(): boolean {
     if (this.sourceType === 'vocabulary' && !this.vocabRef) {
       this.searchState = 'misconfigured';
-      this.statusMessage = 'Missing vocabRef for vocabulary typeahead source';
+      this.statusMessage = '@form-typeahead-missing-vocab-ref';
       return false;
     }
     if (this.sourceType === 'namedQuery' && !this.queryId) {
       this.searchState = 'misconfigured';
-      this.statusMessage = 'Missing queryId for namedQuery typeahead source';
+      this.statusMessage = '@form-typeahead-missing-query-id';
       return false;
     }
     if (this.sourceType === 'service' && !this.serviceId) {
       this.searchState = 'misconfigured';
-      this.statusMessage = 'Missing serviceId for service typeahead source';
+      this.statusMessage = '@form-typeahead-missing-service-id';
       return false;
     }
     if (this.sourceType === 'external' && !this.provider) {
       this.searchState = 'misconfigured';
-      this.statusMessage = 'Missing provider for external typeahead source';
+      this.statusMessage = '@form-typeahead-missing-provider';
       return false;
     }
     if (this.sourceType === 'static' && this.staticOptions.length === 0) {
       this.searchState = 'misconfigured';
-      this.statusMessage = 'Missing staticOptions for static typeahead source';
+      this.statusMessage = '@form-typeahead-missing-static-options';
       return false;
     }
     this.searchState = 'idle';
@@ -439,7 +439,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.loggerService.warn(`${this.logName}: typeahead lookup failed`, error);
       if (requestId === this.lookupRequestId) {
         this.searchState = 'error';
-        this.statusMessage = 'Unable to fetch matches';
+        this.statusMessage = '@form-typeahead-unable-to-fetch';
       }
       return [];
     }

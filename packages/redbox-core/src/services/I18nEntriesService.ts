@@ -59,13 +59,17 @@ export namespace Services {
         // Discover supported languages by scanning language-defaults directory
         const localesDir = path.join(sails.config.appPath, 'language-defaults');
         const supported: string[] = [];
+        const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         if (languages && languages.length > 0) {
           supported.push(...languages);
         } else {
           if (fs.existsSync(localesDir)) {
             const entries = fs.readdirSync(localesDir, { withFileTypes: true });
-            supported.push(...entries.filter(d => d.isDirectory()).map(d => d.name));
+            supported.push(...entries
+              .filter(d => d.isDirectory())
+              .filter(d => namespaces.some(ns => fs.existsSync(path.join(localesDir, d.name, `${ns}.json`))))
+              .map(d => d.name));
           }
 
           // Fallback to config if no directories found
@@ -73,8 +77,6 @@ export namespace Services {
             supported.push(...((sails?.config?.i18n?.next?.init?.supportedLngs as string[]) || ['en']));
           }
         }
-
-        const namespaces: string[] = (sails?.config?.i18n?.next?.init?.ns as string[]) || ['translation'];
 
         // Default brand
         const defaultBrand: BrandingModel | null = BrandingService.getBrand('default');

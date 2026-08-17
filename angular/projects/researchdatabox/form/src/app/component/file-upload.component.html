@@ -6,12 +6,12 @@
       <table class="table table-bordered table-striped table-hover mb-0">
         <thead>
           <tr>
-            <th width="40%">{{ locationHeader }}</th>
+            <th width="40%">{{ locationHeader | i18next }}</th>
             @if (notesEnabled) {
-              <th width="20%">{{ notesHeader }}</th>
+              <th width="20%">{{ notesHeader | i18next }}</th>
             }
             @if (isEditMode()) {
-              <th width="5%"><span [hidden]="true">Action</span></th>
+              <th width="5%"><span [hidden]="true">{{ '@form-file-upload-action' | i18next }}</span></th>
             }
           </tr>
         </thead>
@@ -32,7 +32,7 @@
                       type="text"
                       class="form-control"
                       [value]="attachment.notes ?? ''"
-                      [attr.aria-label]="notesHeader"
+                      [attr.aria-label]="notesHeader | i18next"
                       [readonly]="isDisabled || isReadonly"
                       (input)="updateAttachmentNotes($index, $any($event.target).value)"
                     />
@@ -46,7 +46,7 @@
                   <button
                     type="button"
                     class="fa fa-minus-circle btn text-20 btn-danger"
-                    [attr.aria-label]="'Remove attachment'"
+                    [attr.aria-label]="'@form-file-upload-remove' | i18next"
                     (click)="removeAttachment($index)"
                     [disabled]="isDisabled || isReadonly"
                   ></button>
@@ -69,7 +69,7 @@
           [disabled]="isAttachmentButtonDisabled()"
           (click)="openModal()"
         >
-          {{ attachmentButtonText }}
+          {{ attachmentButtonText | i18next }}
         </button>
       </div>
     </div>

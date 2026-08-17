@@ -70,6 +70,7 @@
     "test:playwright:mount": "bash -c 'docker compose --profile mount -f ./support/integration-testing/docker-compose.playwright.yml up --menu=false --abort-on-container-exit --exit-code-from playwright-mount; status=$?; docker compose --profile mount -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180; exit $status'",
     "test:playwright:clean": "docker compose --profile ci --profile mount -f ./support/integration-testing/docker-compose.playwright.yml down -v --remove-orphans --timeout 180",
     "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
+    "test:translations": "node scripts/verify-translations.js",
     "test:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm run test && cd ../../",
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test:full && cd ../../",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",

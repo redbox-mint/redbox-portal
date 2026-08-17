@@ -580,10 +580,10 @@ export class ManageUsersComponent extends BaseComponent {
 
     const impactDetails: string[] = [];
     if (rolesMerged > 0) {
-      impactDetails.push(this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) || `${rolesMerged} role(s) merged`);
+      impactDetails.push(this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) || `${rolesMerged} ${rolesMerged === 1 ? 'role' : 'roles'} merged`);
     }
     if (recordsRewritten > 0) {
-      impactDetails.push(this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) || `${recordsRewritten} record(s) rewritten`);
+      impactDetails.push(this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) || `${recordsRewritten} ${recordsRewritten === 1 ? 'record' : 'records'} rewritten`);
     }
 
     return `${baseMessage} — ${impactDetails.join(', ')}`;
@@ -740,7 +740,8 @@ export class ManageUsersComponent extends BaseComponent {
         : null;
     }
     if ((user.linkedAccountCount || 0) > 0) {
-      return this.translationService.t('manage-users-account-status-linked-accounts', '', { count: user.linkedAccountCount }) || `${user.linkedAccountCount} linked account(s)`;
+      const linkedAccountCount = user.linkedAccountCount;
+      return this.translationService.t('manage-users-account-status-linked-accounts', '', { count: linkedAccountCount }) || `${linkedAccountCount} linked account${linkedAccountCount === 1 ? '' : 's'}`;
     }
     return null;
   }
