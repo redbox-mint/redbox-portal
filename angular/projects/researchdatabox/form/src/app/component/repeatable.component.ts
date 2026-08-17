@@ -252,9 +252,19 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const fieldId = event.fieldId || '';
     return syncSources.some(
       source =>
-        fieldId.endsWith(`/${source.fieldName}`) ||
-        (!!source.visibilityConditionField && fieldId.endsWith(`/${source.visibilityConditionField}`))
+        this.matchesSyncSourcePath(fieldId, source.fieldName) ||
+        (!!source.visibilityConditionField &&
+          this.matchesSyncSourcePath(fieldId, source.visibilityConditionField))
     );
+  }
+
+  private matchesSyncSourcePath(fieldId: string, fieldName: string): boolean {
+    const normalizedFieldName = fieldName.replace(/^\/+/, '');
+    if (!normalizedFieldName) {
+      return false;
+    }
+    const sourcePath = `/${normalizedFieldName}`;
+    return fieldId.endsWith(sourcePath) || fieldId.includes(`${sourcePath}/`);
   }
 
   private async syncFromCurrentSources(emitEvent: boolean): Promise<void> {
@@ -309,6 +319,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   private upsertSyncedSource(existing: unknown[], sourceValue: unknown, syncSource: SyncSourceEntry): unknown[] {
+    const sourceValues = Array.isArray(sourceValue) ? sourceValue : [sourceValue];
+    return sourceValues.reduce(
+      (items, value) => this.upsertSyncedSourceItem(items, value, syncSource),
+      existing
+    );
+  }
+
+  private upsertSyncedSourceItem(existing: unknown[], sourceValue: unknown, syncSource: SyncSourceEntry): unknown[] {
     const source =
       typeof sourceValue === 'object' && sourceValue !== null
         ? _cloneDeep(sourceValue as Record<string, unknown>)
@@ -330,16 +348,16 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     if (hasSyncKey) {
       const existingIndex = items.findIndex(item => item?.[syncKey] === syncValue);
       if (existingIndex >= 0) {
-        items[existingIndex] = { ...items[existingIndex], ...source, ...template };
+        items[existingIndex] = { ...template, ...items[existingIndex], ...source };
         return items;
       }
     }
 
     if (items.length === 1 && this.isBlankPlaceholder(items[0], syncSource, source)) {
-      return [{ ...items[0], ...source, ...template }];
+      return [{ ...template, ...items[0], ...source }];
     }
 
-    return [...items, { ...source, ...template }];
+    return [...items, { ...template, ...source }];
   }
 
   private isBlankPlaceholder(
