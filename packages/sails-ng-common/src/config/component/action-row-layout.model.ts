@@ -9,7 +9,7 @@ import {
 import { FieldLayoutConfigKind, FieldLayoutDefinitionKind } from '../shared.outline';
 
 export class ActionRowFieldLayoutConfig extends FieldLayoutConfig implements ActionRowFieldLayoutConfigOutline {
-  hostCssClasses = 'rb-form-action-row-layout';
+  override hostCssClasses = 'rb-form-action-row-layout';
   containerCssClass = 'rb-form-action-row';
   alignment: ActionRowAlignmentOptionsType = 'end';
   wrap = true;

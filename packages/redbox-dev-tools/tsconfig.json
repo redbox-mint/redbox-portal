@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,

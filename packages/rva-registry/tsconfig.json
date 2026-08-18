@@ -3,6 +3,10 @@
   "display": "Node LTS",
   "_version": "18.12.1",
   "compilerOptions": {
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "lib": [
       "es2022"
     ],

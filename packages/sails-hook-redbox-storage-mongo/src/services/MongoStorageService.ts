@@ -101,7 +101,7 @@ export namespace Services {
     deletedRecordCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
 
-    protected _exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'init',
       'create',
       'updateMeta',
@@ -156,7 +156,7 @@ export namespace Services {
       return String(err);
     }
 
-    public init(): void {
+    public override init(): void {
       this.registerReadyHook();
       void this.performInit();
     }
@@ -331,7 +331,7 @@ export namespace Services {
           sails.log.error(JSON.stringify(dataItem));
           sails.log.error(`${this.logHeader} Failed createBatch error: `);
           sails.log.error(JSON.stringify(err));
-          response.message = `${response.message}, ${err.message}`;
+          response.message = `${response.message}, ${err instanceof Error ? err.message : String(err)}`;
         }
       });
       response.success = failFlag === false;
@@ -629,7 +629,7 @@ export namespace Services {
         sails.log.error(`${this.logHeader} Failed to delete record: ${oid}`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
-        response.message = err.message;
+        response.message = err instanceof Error ? err.message : String(err);
       }
 
       return response;

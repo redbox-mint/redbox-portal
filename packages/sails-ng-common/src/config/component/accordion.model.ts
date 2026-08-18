@@ -32,7 +32,7 @@ import {
 export class AccordionFieldComponentConfig extends FieldComponentConfig implements AccordionFieldComponentConfigOutline {
   panels: AccordionPanelFormComponentDefinitionOutline[];
   startingOpenMode: AccordionStartingOpenModeOptionsType = 'all-open';
-  hostCssClasses = 'view-accordion';
+  override hostCssClasses = 'view-accordion';
 
   constructor() {
     super();

@@ -1,6 +1,10 @@
 {
   "extends": "@tsconfig/node26/tsconfig.json",
   "compilerOptions": {
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true,

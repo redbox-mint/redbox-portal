@@ -54,7 +54,7 @@ export class FileUploadFieldComponentDefinition extends FieldComponentDefinition
 /* File Upload Model */
 
 export class FileUploadFieldModelConfig extends FieldModelConfig<FileUploadModelValueType> implements FileUploadFieldModelConfigOutline {
-    defaultValue: FileUploadAttachmentValue[];
+    override defaultValue: FileUploadAttachmentValue[];
 
     constructor() {
         super();

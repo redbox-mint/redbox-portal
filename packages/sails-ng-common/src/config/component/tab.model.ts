@@ -19,7 +19,7 @@ import {TabContentFormComponentDefinitionOutline} from "./tab-content.outline";
 
 export class TabFieldComponentConfig extends FieldComponentConfig implements TabFieldComponentConfigOutline {
     tabs: TabContentFormComponentDefinitionOutline[];
-    hostCssClasses = 'tab-content';
+    override hostCssClasses = 'tab-content';
 
     constructor() {
         super();
@@ -45,7 +45,7 @@ export class TabFieldComponentDefinition extends FieldComponentDefinition implem
 
 
 export class TabFieldLayoutConfig extends FieldLayoutConfig implements TabFieldLayoutConfigOutline {
-    hostCssClasses?: KeyValueStringProperty = 'rb-form-tab-layout';
+    override hostCssClasses?: KeyValueStringProperty = 'rb-form-tab-layout';
     tabShellCssClass?: string = 'rb-form-tab-shell';
     tabNavWrapperCssClass?: string = 'rb-form-tab-nav-wrapper';
     tabPanelWrapperCssClass?: string = 'rb-form-tab-panel-wrapper';

@@ -18,7 +18,7 @@
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "typecheck:strict": "tsc --noEmit -p tsconfig.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",
     "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"

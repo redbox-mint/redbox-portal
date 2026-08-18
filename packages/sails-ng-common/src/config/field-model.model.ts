@@ -20,6 +20,6 @@ export abstract class FieldModelConfig<ValueType> implements FieldModelConfigOut
  * The common form field model definition properties.
  */
 export abstract class FieldModelDefinition<ValueType> extends FieldDefinition implements FieldModelDefinitionOutline<ValueType> {
-    abstract config?: FieldModelConfig<ValueType>;
+    abstract override config?: FieldModelConfig<ValueType>;
 }
 

@@ -1,6 +1,10 @@
 {
   "extends": "../redbox-dev-tools/config/tsconfig.base.json",
   "compilerOptions": {
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,

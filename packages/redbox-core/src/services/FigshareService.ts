@@ -545,6 +545,7 @@ export namespace Services {
           await this.persistSyncRecord(oid, record, user);
           sails.log.error(`FigService - uploadFilesToFigshareArticle sync failed for ${oid}`, error);
         });
+      return;
     }
 
     public async deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {

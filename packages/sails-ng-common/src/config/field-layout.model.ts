@@ -26,6 +26,6 @@ export class FieldLayoutConfig extends BaseFieldComponentConfig implements Field
  * The common form field layout definition properties.
  */
 export abstract class FieldLayoutDefinition extends BaseFieldComponentDefinition implements FieldLayoutDefinitionOutline {
-    abstract config?: FieldLayoutConfig;
+    abstract override config?: FieldLayoutConfig;
     name?: string;
 }

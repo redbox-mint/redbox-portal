@@ -73,7 +73,7 @@ export class PublishDataLocationSelectorFieldComponentDefinition
 export class PublishDataLocationSelectorFieldModelConfig
   extends FieldModelConfig<PublishDataLocationModelValueType>
   implements PublishDataLocationSelectorFieldModelConfigOutline {
-  defaultValue: PublishDataLocationModelValueType;
+  override defaultValue: PublishDataLocationModelValueType;
 
   constructor() {
     super();

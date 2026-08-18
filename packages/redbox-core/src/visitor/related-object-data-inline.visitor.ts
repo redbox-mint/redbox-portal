@@ -40,21 +40,21 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
   private metadata: Record<string, unknown> = {};
   private context?: AccessContext;
   protected override async notImplemented(): Promise<void> {}
-  async visitFormConfig(item: FormConfigOutline): Promise<void> { for (const def of item.componentDefinitions) await def.accept(this); }
-  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> { this.pending.push(this.resolveComponent(item)); }
-  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
-  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.tabs ?? []) await def.accept(this); }
-  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.panels ?? []) await def.accept(this); }
-  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
-  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
-  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
-  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> { await item.config?.elementTemplate?.accept(this); }
+  override async visitFormConfig(item: FormConfigOutline): Promise<void> { for (const def of item.componentDefinitions) await def.accept(this); }
+  override async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> { this.pending.push(this.resolveComponent(item)); }
+  override async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
+  override async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.tabs ?? []) await def.accept(this); }
+  override async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.panels ?? []) await def.accept(this); }
+  override async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
+  override async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> { for (const def of item.config?.componentDefinitions ?? []) await def.accept(this); }
+  override async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }
+  override async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> { await item.config?.elementTemplate?.accept(this); }
 
   private async resolveComponent(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
     const config = item.config;

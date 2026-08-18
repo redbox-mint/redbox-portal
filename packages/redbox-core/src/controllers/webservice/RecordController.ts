@@ -863,8 +863,10 @@ export namespace Controllers {
                 headers: self.getNoCacheHeaders(),
               });
             }
+            return;
           }
         );
+      return;
     }
 
     /**

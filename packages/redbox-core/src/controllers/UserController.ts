@@ -534,6 +534,7 @@ export namespace Controllers {
           sails.log.debug("AAF Login OK, redirecting...");
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
+        return;
       })(req, res);
     }
 

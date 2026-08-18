@@ -46,7 +46,7 @@ export class PDFListFieldComponentDefinition extends FieldComponentDefinition im
 }
 
 export class PDFListFieldModelConfig extends FieldModelConfig<PDFListModelValueType> implements PDFListFieldModelConfigOutline {
-    defaultValue: RecordAttachment[];
+    override defaultValue: RecordAttachment[];
 
     constructor() {
         super();

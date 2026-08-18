@@ -72,7 +72,7 @@ export class DataLocationFieldComponentDefinition extends FieldComponentDefiniti
 }
 
 export class DataLocationFieldModelConfig extends FieldModelConfig<DataLocationModelValueType> implements DataLocationFieldModelConfigOutline {
-    defaultValue: DataLocationValueType[];
+    override defaultValue: DataLocationValueType[];
 
     constructor() {
         super();

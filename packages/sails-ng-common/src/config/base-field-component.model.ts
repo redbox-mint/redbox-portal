@@ -30,5 +30,5 @@ export class BaseFieldComponentConfig implements BaseFieldComponentConfigOutline
  * The common form field component definition properties.
  */
 export abstract class BaseFieldComponentDefinition extends FieldDefinition implements BaseFieldComponentDefinitionOutline {
-    abstract config?: BaseFieldComponentConfig;
+    abstract override config?: BaseFieldComponentConfig;
 }

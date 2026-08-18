@@ -8,6 +8,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "allowUmdGlobalAccess": true,
     "types": ["node", "lodash"]
   },

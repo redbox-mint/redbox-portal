@@ -10,5 +10,5 @@ export abstract class FieldComponentConfig extends BaseFieldComponentConfig impl
 
 
 export abstract class FieldComponentDefinition extends BaseFieldComponentDefinition implements FieldComponentDefinitionOutline {
-    abstract config?: FieldComponentConfig;
+    abstract override config?: FieldComponentConfig;
 }

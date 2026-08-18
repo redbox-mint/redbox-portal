@@ -60,7 +60,7 @@ export class MapFieldComponentDefinition extends FieldComponentDefinition implem
 /* Map Model */
 
 export class MapFieldModelConfig extends FieldModelConfig<MapModelValueType> implements MapFieldModelConfigOutline {
-    defaultValue = DefaultFeatureCollection;
+    override defaultValue = DefaultFeatureCollection;
 
     constructor() {
         super();

@@ -52,6 +52,7 @@ export namespace Controllers {
           this.broadcast(req, 'stop', progress[0]);
           this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
         });
+        return;
       });
     }
 
@@ -69,6 +70,7 @@ export namespace Controllers {
           this.broadcast(req, 'update', progress[0]);
           this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
         });
+        return;
       });
     }
 
@@ -166,6 +168,7 @@ export namespace Controllers {
           message: `Successfully joined: ${roomId}`
         }, headers: this.getNoCacheHeaders() });
       });
+      return;
     }
 
     private async tryFindRelatedRecord(
@@ -269,6 +272,7 @@ export namespace Controllers {
           message: `Successfully left: ${roomId}`
         }, headers: this.getNoCacheHeaders() });
       });
+      return;
     }
 
     protected broadcast(req: Sails.Req, eventName: string, progressObj: globalThis.Record<string, unknown>) {

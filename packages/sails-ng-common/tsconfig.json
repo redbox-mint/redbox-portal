@@ -8,6 +8,10 @@
     "outDir": "./dist",
     "rootDir": "./",
     "composite": true,
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "types": [
       "node",
       "mocha",

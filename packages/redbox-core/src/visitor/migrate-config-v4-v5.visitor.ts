@@ -710,7 +710,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Form Config */
 
-  async visitFormConfig(item: FormConfigOutline): Promise<void> {
+  override async visitFormConfig(item: FormConfigOutline): Promise<void> {
     const currentData = this.getV4Data();
 
     // Set properties that are the same in v4 and v5.
@@ -806,7 +806,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* SimpleInput */
 
-  async visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
+  override async visitSimpleInputFieldComponentDefinition(item: SimpleInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SimpleInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -817,13 +817,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitSimpleInputFieldModelDefinition(item: SimpleInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SimpleInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitSimpleInputFormComponentDefinition(item: SimpleInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
 
     const field = this.getV4Data();
@@ -839,7 +839,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Content */
 
-  async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
+  override async visitContentFieldComponentDefinition(item: ContentFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     if (!item.config) {
       item.config = new ContentFieldComponentConfig();
@@ -1008,7 +1008,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+  override async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
     if (this.isLegacyLinkValueControl(this.getV4Data())) {
       const definition = (this.getV4Data()?.definition ?? {}) as Record<string, unknown>;
@@ -1019,7 +1019,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+  override async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config ??= new RelatedObjectDataFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1037,13 +1037,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     if (!legacyName) this.logger.warn(`${this.logName}: RelatedObjectDataField has no definition.name to migrate to dataPath.`);
   }
 
-  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
+  override async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Repeatable  */
 
-  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+  override async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1121,13 +1121,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
+  override async visitRepeatableFieldModelDefinition(item: RepeatableFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RepeatableFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitRepeatableElementFieldLayoutDefinition(
+  override async visitRepeatableElementFieldLayoutDefinition(
     item: RepeatableElementFieldLayoutDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1135,7 +1135,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+  override async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     await this.populateFormComponent(item);
 
@@ -1156,7 +1156,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Validation Summary */
 
-  async visitValidationSummaryFieldComponentDefinition(
+  override async visitValidationSummaryFieldComponentDefinition(
     item: ValidationSummaryFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1164,13 +1164,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitValidationSummaryFormComponentDefinition(
+  override async visitValidationSummaryFormComponentDefinition(
     item: ValidationSummaryFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
   }
 
-  async visitSuggestedValidationSummaryFieldComponentDefinition(
+  override async visitSuggestedValidationSummaryFieldComponentDefinition(
     item: SuggestedValidationSummaryFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1182,7 +1182,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('header', item.config, field?.definition);
   }
 
-  async visitSuggestedValidationSummaryFormComponentDefinition(
+  override async visitSuggestedValidationSummaryFormComponentDefinition(
     item: SuggestedValidationSummaryFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
@@ -1190,7 +1190,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Record Metadata Retriever */
 
-  async visitRecordMetadataRetrieverFieldComponentDefinition(
+  override async visitRecordMetadataRetrieverFieldComponentDefinition(
     item: RecordMetadataRetrieverFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1200,7 +1200,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     item.config.visible = false;
   }
 
-  async visitRecordMetadataRetrieverFormComponentDefinition(
+  override async visitRecordMetadataRetrieverFormComponentDefinition(
     item: RecordMetadataRetrieverFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
@@ -1212,7 +1212,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   // Preserve shared label/visibility/readonly config, while intentionally not
   // inventing any model state during migration.
-  async visitPublishDataLocationRefreshFieldComponentDefinition(
+  override async visitPublishDataLocationRefreshFieldComponentDefinition(
     item: PublishDataLocationRefreshFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1220,7 +1220,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitPublishDataLocationRefreshFormComponentDefinition(
+  override async visitPublishDataLocationRefreshFormComponentDefinition(
     item: PublishDataLocationRefreshFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
@@ -1228,19 +1228,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Save Status */
 
-  async visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
+  override async visitSaveStatusFieldComponentDefinition(item: SaveStatusFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SaveStatusFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
+  override async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(
+  override async visitIntegrationStatusFieldComponentDefinition(
     item: IntegrationStatusFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1248,7 +1248,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitIntegrationStatusFormComponentDefinition(
+  override async visitIntegrationStatusFormComponentDefinition(
     item: IntegrationStatusFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
@@ -1256,7 +1256,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Workspace Selector */
 
-  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+  override async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const definition = field?.definition;
     item.config = new WorkspaceFieldComponentConfig();
@@ -1269,7 +1269,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('defaultSelection', item.config, definition);
   }
 
-  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
+  override async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
     item.layout = undefined;
     item.model = undefined;
@@ -1277,7 +1277,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Group */
 
-  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+  override async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new GroupFieldComponentConfig();
     item.config = config;
@@ -1364,7 +1364,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
+  override async visitGroupFieldModelDefinition(item: GroupFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new GroupFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -1374,13 +1374,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+  override async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Tab  */
 
-  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new TabFieldComponentConfig();
     item.config = config;
@@ -1420,19 +1420,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
+  override async visitTabFieldLayoutDefinition(item: TabFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+  override async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /*  Tab Content */
 
-  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const config = new TabContentFieldComponentConfig();
     item.config = config;
@@ -1485,7 +1485,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     );
   }
 
-  async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
+  override async visitTabContentFieldLayoutDefinition(item: TabContentFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabContentFieldLayoutConfig();
     if (field?.definition?.label) {
@@ -1494,13 +1494,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldLayoutConfig(item.config, field);
   }
 
-  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+  override async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Save Button  */
 
-  async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
+  override async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new SaveButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1524,13 +1524,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
+  override async visitSaveButtonFormComponentDefinition(item: SaveButtonFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Cancel Button  */
 
-  async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
+  override async visitCancelButtonFieldComponentDefinition(item: CancelButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CancelButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1546,13 +1546,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
+  override async visitCancelButtonFormComponentDefinition(item: CancelButtonFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Delete Button  */
 
-  async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
+  override async visitDeleteButtonFieldComponentDefinition(item: DeleteButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DeleteButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1576,13 +1576,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
+  override async visitDeleteButtonFormComponentDefinition(item: DeleteButtonFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Tab Nav Button  */
 
-  async visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTabNavButtonFieldComponentDefinition(item: TabNavButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TabNavButtonFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1593,13 +1593,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('endDisplayMode', item.config, field?.definition);
   }
 
-  async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
+  override async visitTabNavButtonFormComponentDefinition(item: TabNavButtonFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Text Area */
 
-  async visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTextAreaFieldComponentDefinition(item: TextAreaFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TextAreaFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1615,19 +1615,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('rows', item.config, { rows });
   }
 
-  async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
+  override async visitTextAreaFieldModelDefinition(item: TextAreaFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TextAreaFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
+  override async visitTextAreaFormComponentDefinition(item: TextAreaFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Rich Text Editor */
 
-  async visitRichTextEditorFieldComponentDefinition(
+  override async visitRichTextEditorFieldComponentDefinition(
     item: RichTextEditorFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1640,19 +1640,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
+  override async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RichTextEditorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+  override async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Map */
 
-  async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
+  override async visitMapFieldComponentDefinition(item: MapFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new MapFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1681,20 +1681,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
+  override async visitMapFieldModelDefinition(item: MapFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new MapFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
     await this.coerceMapFeatureCollection(item.config);
   }
 
-  async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
+  override async visitMapFormComponentDefinition(item: MapFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* File Upload */
 
-  async visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
+  override async visitFileUploadFieldComponentDefinition(item: FileUploadFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new FileUploadFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1729,19 +1729,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
+  override async visitFileUploadFieldModelDefinition(item: FileUploadFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new FileUploadFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+  override async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* PDF List */
 
-  async visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void> {
+  override async visitPDFListFieldComponentDefinition(item: PDFListFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PDFListFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1778,19 +1778,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return value.replace(/<%=\s*([\s\S]+?)\s*%>/g, '{{$1}}');
   }
 
-  async visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void> {
+  override async visitPDFListFieldModelDefinition(item: PDFListFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new PDFListFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
+  override async visitPDFListFormComponentDefinition(item: PDFListFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Data Location */
 
-  async visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
+  override async visitDataLocationFieldComponentDefinition(item: DataLocationFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DataLocationFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1827,17 +1827,17 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
+  override async visitDataLocationFieldModelDefinition(item: DataLocationFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DataLocationFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+  override async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
-  async visitPublishDataLocationSelectorFieldComponentDefinition(
+  override async visitPublishDataLocationSelectorFieldComponentDefinition(
     item: PublishDataLocationSelectorFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1870,7 +1870,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitPublishDataLocationSelectorFieldModelDefinition(
+  override async visitPublishDataLocationSelectorFieldModelDefinition(
     item: PublishDataLocationSelectorFieldModelDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -1878,7 +1878,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitPublishDataLocationSelectorFormComponentDefinition(
+  override async visitPublishDataLocationSelectorFormComponentDefinition(
     item: PublishDataLocationSelectorFormComponentDefinitionOutline
   ): Promise<void> {
     await this.populateFormComponent(item);
@@ -1926,7 +1926,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Default Layout  */
 
-  async visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
+  override async visitDefaultFieldLayoutDefinition(item: DefaultFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DefaultFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
@@ -1937,7 +1937,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void> {
+  override async visitActionRowFieldLayoutDefinition(item: ActionRowFieldLayoutDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new ActionRowFieldLayoutConfig();
     this.sharedPopulateFieldLayoutConfig(item.config, field);
@@ -1954,7 +1954,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Checkbox Input */
 
-  async visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxInputFieldComponentDefinition(item: CheckboxInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -1967,7 +1967,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -1982,13 +1982,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return definition.controlType === 'checkbox' && this.migrateOptions(field).length === 0;
   }
 
-  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Checkbox Tree */
 
-  async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxTreeFieldComponentDefinition(item: CheckboxTreeFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxTreeFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2024,20 +2024,20 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     await this.warnOnMalformedLegacyRegex(rawDefinition);
   }
 
-  async visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
+  override async visitCheckboxTreeFieldModelDefinition(item: CheckboxTreeFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxTreeFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
     await this.coerceCheckboxTreeDefaultValue(item.config);
   }
 
-  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Record Selector */
 
-  async visitRecordSelectorFieldComponentDefinition(
+  override async visitRecordSelectorFieldComponentDefinition(
     item: RecordSelectorFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -2082,7 +2082,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     });
   }
 
-  async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
+  override async visitRecordSelectorFieldModelDefinition(item: RecordSelectorFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RecordSelectorFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -2113,13 +2113,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
+  override async visitRecordSelectorFormComponentDefinition(item: RecordSelectorFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Dropdown Input */
 
-  async visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
+  override async visitDropdownInputFieldComponentDefinition(item: DropdownInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DropdownInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2128,19 +2128,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, { options: options });
   }
 
-  async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitDropdownInputFieldModelDefinition(item: DropdownInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DropdownInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Typeahead Input */
 
-  async visitTypeaheadInputFieldComponentDefinition(
+  override async visitTypeaheadInputFieldComponentDefinition(
     item: TypeaheadInputFieldComponentDefinitionOutline
   ): Promise<void> {
     const field = this.getV4Data();
@@ -2227,7 +2227,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     await this.warnOnDroppedLegacyTypeaheadProperties(definition);
   }
 
-  async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitTypeaheadInputFieldModelDefinition(item: TypeaheadInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new TypeaheadInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
@@ -2245,13 +2245,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Radio Input */
 
-  async visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
+  override async visitRadioInputFieldComponentDefinition(item: RadioInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RadioInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2260,37 +2260,37 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, { options: options });
   }
 
-  async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitRadioInputFieldModelDefinition(item: RadioInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new RadioInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Date Input */
 
-  async visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void> {
+  override async visitDateInputFieldComponentDefinition(item: DateInputFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DateInputFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
+  override async visitDateInputFieldModelDefinition(item: DateInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new DateInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitDateInputFormComponentDefinition(item: DateInputFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
   /* Reusable */
 
-  async visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): Promise<void> {
+  override async visitReusableFieldComponentDefinition(item: ReusableFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new ReusableFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
@@ -2340,7 +2340,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  async visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): Promise<void> {
+  override async visitReusableFormComponentDefinition(item: ReusableFormComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     const fieldDefinition = (field?.definition ?? {}) as Record<string, unknown>;
 
@@ -2360,19 +2360,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Question Tree */
 
-  async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
+  override async visitQuestionTreeFieldComponentDefinition(item: QuestionTreeFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new QuestionTreeFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
+  override async visitQuestionTreeFieldModelDefinition(item: QuestionTreeFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new QuestionTreeFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
   }
 
-  async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
+  override async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
