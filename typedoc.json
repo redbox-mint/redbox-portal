@@ -1,0 +1,17 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["packages/redbox-core/src/index.ts", "packages/sails-ng-common/src/index.ts"],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "support/documentation/tsconfig.typedoc.json",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "skipErrorChecking": true,
+  "readme": "none",
+  "name": "ReDBox Extension and Form Contract Reference",
+  "validation": {
+    "notExported": false,
+    "invalidLink": false,
+    "notDocumented": false
+  }
+}

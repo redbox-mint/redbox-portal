@@ -71,10 +71,13 @@ export namespace Services {
   };
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   /**
-   * Records related functions...
+   * Provides the core record lifecycle, persistence, authorization, and relationship operations.
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
+   * @extensionPoint Register a subclass as `RecordsService` from a hook to replace or extend record behaviour while preserving the exported-method contract.
+   * @remarks This service depends on Waterline models and storage services after Sails bootstrap; avoid performing Sails-dependent work in the constructor.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
    */
   export class Records extends services.Core.Service implements RecordsService {
     storageService!: StorageService;
