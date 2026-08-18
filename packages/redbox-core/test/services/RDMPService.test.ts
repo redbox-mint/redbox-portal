@@ -934,6 +934,61 @@ describe('RDMPService', function () {
       expect(result.authorization.editPending).to.deep.equal(['duplicate@test.com']);
     });
 
+    it('should assign one permission when unlinked duplicate email matches have the same username', async function () {
+      const record: any = {
+        metadata: {
+          editors: [{ email: 'duplicate@test.com' }]
+        },
+        metaMetadata: { createdBy: 'creator' },
+        authorization: {}
+      };
+      const options = {
+        editContributorProperties: ['metadata.editors'],
+        emailProperty: 'email',
+        recordCreatorPermissions: 'edit'
+      };
+      const duplicateUser = { username: 'duplicate@test.com', email: 'duplicate@test.com' };
+
+      configureModelMethod(mockUser.find, [duplicateUser, { ...duplicateUser }]);
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(duplicateUser))
+        .onSecondCall().returns(of({ ...duplicateUser }));
+
+      const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
+
+      expect(result.authorization.edit).to.deep.equal(['duplicate@test.com', 'creator']);
+      expect(result.authorization.editPending).to.deep.equal([]);
+    });
+
+    it('should assign one permission when linked duplicate email matches have the same username', async function () {
+      const record: any = {
+        metadata: {
+          editors: [{ email: 'duplicate@test.com' }]
+        },
+        metaMetadata: { createdBy: 'creator' },
+        authorization: {}
+      };
+      const options = {
+        editContributorProperties: ['metadata.editors'],
+        emailProperty: 'email',
+        recordCreatorPermissions: 'edit'
+      };
+      const duplicateUser = { username: 'duplicate@test.com', email: 'duplicate@test.com' };
+
+      configureModelMethod(mockUser.find, [
+        { ...duplicateUser, linkedPrimaryUserId: 'primary-1' },
+        duplicateUser
+      ]);
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(duplicateUser))
+        .onSecondCall().returns(of(duplicateUser));
+
+      const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
+
+      expect(result.authorization.edit).to.deep.equal(['duplicate@test.com', 'creator']);
+      expect(result.authorization.editPending).to.deep.equal([]);
+    });
+
     it('should short-circuit view resolution when there are no view contributors', async function () {
       const record: any = {
         metadata: {

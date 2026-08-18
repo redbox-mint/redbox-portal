@@ -423,8 +423,11 @@ export namespace Services {
         }
       }));
 
-      // Multiple users with the same email are ambiguous unless linked accounts
-      // resolve to the same effective user. Leave ambiguous matches pending.
+      // Permissions are stored by username. Multiple users with the same email
+      // are therefore safe to resolve only when every candidate resolves to the
+      // same username. In that case the first candidate is sufficient because
+      // all candidates produce the same permission value; otherwise leave the
+      // email pending rather than selecting an arbitrary username.
       if (candidates.length > 1) {
         const effectiveUsernames = effectiveUsers.map((user: unknown) => {
           const username = (user as AnyRecord)?.username;
