@@ -1306,7 +1306,7 @@ describe('FigshareService', function () {
       expect.fail('Expected syncRecordWithFigshare to throw');
     } catch (error) {
       // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error syncing record with Figshare');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-syncing-record');
       expect(((error as Error).cause as Error)?.message).to.equal('sync exploded');
       expect((error as { displayErrors?: Array<{ code?: string }> }).displayErrors?.[0]?.code).to.equal('server-error');
     }
@@ -1406,7 +1406,7 @@ describe('FigshareService', function () {
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
       // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-publishing-article');
       expect(((error as Error).cause as Error)?.message).to.equal('publish failed');
     }
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
@@ -1436,7 +1436,7 @@ describe('FigshareService', function () {
       } as any);
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-publishing-article');
     }
 
     expect(queueDeleteStub.called).to.equal(false);

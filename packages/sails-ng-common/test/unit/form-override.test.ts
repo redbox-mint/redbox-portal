@@ -497,6 +497,41 @@ describe('FormOverride reusable expansion', () => {
     expect(result).to.contain('rel="noopener noreferrer"');
   });
 
+  it('renders data location leaf values with portal-aware attachment links', () => {
+    const formOverride = new FormOverride(createLogger());
+
+    const result = (formOverride as any).renderLeafValue(
+      {
+        component: {
+          class: 'DataLocationComponent',
+        },
+      } as never,
+      'content',
+      ['dataLocations']
+    );
+
+    expect(result).to.contain('attachmentDownloadUrl this @root.oid @root.branding @root.portal');
+    expect(result).to.contain('<a href="{{attachmentDownloadUrl this @root.oid @root.branding @root.portal}}"');
+    expect(result).to.contain('target="_blank"');
+    expect(result).to.contain('rel="noopener noreferrer"');
+
+    const rendered = handlebarsCompile(result)({
+      content: {
+        dataLocations: [
+          {
+            type: 'attachment',
+            location: '/record/oid-1/attach/file-1',
+            name: 'file-1',
+          },
+        ],
+      },
+      oid: 'oid-1',
+      branding: 'default',
+      portal: 'rdmp',
+    });
+    expect(rendered).to.contain('<a href="/default/rdmp/record/oid-1/attach/file-1"');
+  });
+
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {
     const formOverride = new FormOverride(createLogger());
     const wrapperExpressions = [

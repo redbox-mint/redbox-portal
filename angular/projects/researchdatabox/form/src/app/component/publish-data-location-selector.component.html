@@ -36,7 +36,7 @@
                   (change)="toggleLocationSelection($index, $any($event.target).checked)"
                 />
               </td>
-              <td>{{ getLocationTypeLabel(dataLocation) }}</td>
+              <td>{{ getLocationTypeLabel(dataLocation) | i18next }}</td>
               <td>
                 @if (isLinkLocation(dataLocation)) {
                   <a [href]="getLocationHref(dataLocation)" target="_blank" rel="noopener noreferrer">
