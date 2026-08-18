@@ -1620,6 +1620,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-agenda-sqs-backend
+            - test-rva-registry
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
