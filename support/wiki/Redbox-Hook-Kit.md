@@ -107,7 +107,7 @@ For webservice controllers, export `registerRedboxWebserviceControllers()` inste
 The dev tools package includes these development dependencies:
 - `typescript` - TypeScript compiler
 - `ts-node` - TypeScript execution environment
-- `@tsconfig/node24` - Base TypeScript configuration for Node.js 24
+- `@tsconfig/node26` - Base TypeScript configuration for Node.js 26
 - `@types/node` - Node.js type definitions
 - `@types/lodash` - Lodash type definitions
 - `lodash` - Utility library

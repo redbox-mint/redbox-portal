@@ -2,6 +2,9 @@
   "name": "redbox-portal",
   "version": "2.1.0",
   "description": "ReDBox 2 Portal",
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
   "keywords": [],
   "dependencies": {
     "@fortawesome/fontawesome-free": "6.7.2",
@@ -9,7 +12,9 @@
     "@researchdatabox/redbox-core": "./packages/redbox-core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
-    "@tsconfig/node24": "24.0.4",
+    "@tsconfig/node26": "26.0.1",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "@typescript/old": "npm:typescript@6.0.2",
     "@uppy/companion": "6.2.2",
     "bootstrap": "5.3.8",
     "compression": "1.8.1",
@@ -35,7 +40,7 @@
     "sails-hook-sockets": "3.0.2",
     "sails-mongo": "2.1.2",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-require": "0.3.0",
     "zone.js": "0.16.2"
   },
@@ -212,7 +217,7 @@
     "@types/jquery": "4.0.1",
     "@types/lodash-es": "4.17.12",
     "@types/mocha": "10.0.10",
-    "@types/node": "24.12.4",
+    "@types/node": "26.2.0",
     "chai": "6.2.2",
     "css-loader": "7.1.4",
     "mini-css-extract-plugin": "2.10.2",

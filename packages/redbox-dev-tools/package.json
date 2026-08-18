@@ -2,6 +2,9 @@
   "name": "@researchdatabox/redbox-dev-tools",
   "version": "4.5.1",
   "description": "ReDBox customisation dev tools - shared configuration, generators, and migration tooling",
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
   "type": "commonjs",
   "main": "index.js",
   "bin": {
@@ -46,11 +49,13 @@
   "dependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",
     "@researchdatabox/sails-ng-common": "file:../sails-ng-common",
-    "@tsconfig/node24": "24.0.4",
+    "@tsconfig/node26": "26.0.1",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "@typescript/old": "npm:typescript@6.0.2",
     "@types/chai": "5.2.3",
     "@types/lodash": "4.17.24",
     "@types/mocha": "10.0.10",
-    "@types/node": "24.12.4",
+    "@types/node": "26.2.0",
     "axios": "1.17.0",
     "chai": "6.2.2",
     "commander": "15.0.0",
@@ -60,7 +65,7 @@
     "rxjs": "7.8.2",
     "ts-node": "10.9.2",
     "ts-morph": "28.0.0",
-    "typescript": "5.9.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "zod": "3.25.76"
   },
   "devDependencies": {

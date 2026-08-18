@@ -2,6 +2,9 @@
   "name": {{json packageName}},
   "version": "1.0.0",
   "description": {{json description}},
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
   "main": "dist/index.js",
   "sails": {
     "isHook": true,
@@ -39,6 +42,6 @@
   "devDependencies": {
     "@researchdatabox/redbox-core": {{json redboxCoreVersion}},
     "@researchdatabox/redbox-dev-tools": {{json redboxDevToolsVersion}},
-    "@types/node": "24.12.2"
+    "@types/node": "26.2.0"
   }
 }

@@ -2,6 +2,9 @@
   "name": "redbox-hook-dev",
   "version": "1.0.0",
   "description": "ReDBox development hook. Supplies the demo record types, workflows, dashboards and forms that ship with the core repo for development and testing only. Not installed into client or published production images.",
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -32,7 +35,7 @@
   },
   "devDependencies": {
     "@researchdatabox/redbox-dev-tools": "file:../redbox-dev-tools",
-    "@types/node": "24.12.4",
-    "typescript": "5.9.3"
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2"
   }
 }

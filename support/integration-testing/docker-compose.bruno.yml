@@ -26,7 +26,7 @@ services:
       --output /opt/junit/backend-bruno/backend-bruno.xml
       --bail"
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node24
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     pull_policy: 'missing'
     user: root
       # Debugging port (publish only when debugging locally)

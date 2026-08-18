@@ -21,7 +21,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 
 ### Prerequisites
 
-- Node.js (v24.x recommended)
+- Node.js 26.7.0
 - Docker & Docker Compose
 
 ### Development using Docker

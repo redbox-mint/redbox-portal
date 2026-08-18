@@ -3,9 +3,12 @@
 ## Language
 
 - **TypeScript**: The primary language for both backend and frontend.
-  - **Config**: Root `tsconfig.json` extends `@tsconfig/node24/tsconfig.json`.
+  - **Config**: Root `tsconfig.json` extends `@tsconfig/node26/tsconfig.json` and uses TypeScript 7 for backend builds.
+  - **Compiler compatibility**: Backend and package `tsc` builds use TypeScript 7. Tools that require the compiler API use the pinned TypeScript 6 compatibility package. Angular 20 remains on TypeScript 5.9 until Angular supports the TypeScript 7 API.
   - **Strictness**: `strict: false` is currently set, suggesting a gradual migration or legacy support.
   - **Decorators**: `experimentalDecorators: true` is enabled.
+
+- **Node.js**: Development, CI, generated hooks, and runtime containers require Node.js 26.7 or a later Node 26 release.
 
 ## Code Style
 

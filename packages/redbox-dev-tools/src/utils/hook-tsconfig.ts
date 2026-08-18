@@ -14,6 +14,11 @@ function toPosixPath(value: string): string {
   return value.split(path.sep).join('/');
 }
 
+function toConfigRelativePath(configDir: string, targetPath: string): string {
+  const relativePath = toPosixPath(path.relative(configDir, targetPath)) || '.';
+  return relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
+}
+
 function getPackageRequire(packageName: string): PackageRequire {
   const packageJsonPath = packageName === '@researchdatabox/redbox-dev-tools'
     ? path.resolve(__dirname, '..', '..', 'package.json')
@@ -100,11 +105,17 @@ export function createHookTsConfig(projectPath: string): string {
   const tempDir = fs.mkdtempSync(path.join(tempRootDir, 'tsconfig-'));
   const tempTsconfigPath = path.join(tempDir, 'tsconfig.json');
   const tempConfig = {
-    extends: toPosixPath(path.relative(tempDir, projectTsconfig)),
+    extends: toConfigRelativePath(tempDir, projectTsconfig),
     compilerOptions: {
-      baseUrl: toPosixPath(path.relative(tempDir, projectDir)) || '.',
-      paths: compilerOptions.paths,
-      typeRoots: compilerOptions.typeRoots.map(entry => toPosixPath(path.relative(tempDir, path.resolve(projectDir, entry)))),
+      paths: Object.fromEntries(
+        Object.entries(compilerOptions.paths).map(([packageName, entries]) => [
+          packageName,
+          entries.map((entry) => toConfigRelativePath(tempDir, path.resolve(projectDir, entry))),
+        ]),
+      ),
+      typeRoots: compilerOptions.typeRoots.map((entry) =>
+        toConfigRelativePath(tempDir, path.resolve(projectDir, entry)),
+      ),
     },
   };
 

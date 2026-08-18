@@ -61,10 +61,10 @@ describe('form-config commands', () => {
 
       const migratedConfig = loadTs(module, outputPath).default;
       const heading = migratedConfig.componentDefinitions.find(
-        component => component?.name === 'temporal_heading'
+        (component: { name?: string } | null | undefined) => component?.name === 'temporal_heading',
       );
       const linkValue = migratedConfig.componentDefinitions.find(
-        component => component?.name === 'citation_url-link-value'
+        (component: { name?: string } | null | undefined) => component?.name === 'citation_url-link-value',
       );
       expect(heading?.component?.config?.template).to.equal('<span></span>');
       expect(heading?.layout?.config?.label).to.equal('@dataPublication-temporalcoverage-heading');
