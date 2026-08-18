@@ -26,6 +26,50 @@ describe('RepeatableComponent', () => {
     expect(component).toBeDefined();
   });
 
+  it('should upsert array sync source values item by item', () => {
+    const fixture = TestBed.createComponent(RepeatableComponent);
+    const component = fixture.componentInstance as any;
+    const syncSource = {
+      fieldName: 'contributors',
+      syncKey: 'email',
+      blankCheckFields: ['name', 'email', 'username'],
+      defaultTemplate: { username: null, role: 'View&Edit' },
+    };
+
+    const result = component.upsertSyncedSource(
+      [{ name: 'Existing user', email: 'existing@example.com', role: 'View' }],
+      [
+        { name: 'Updated existing user', email: 'existing@example.com', username: 'existing-user' },
+        { name: 'Alice Smith', email: 'alice@example.com' },
+        { name: 'Bob Jones', email: 'bob@example.com' },
+      ],
+      syncSource,
+    );
+
+    expect(result).toEqual([
+      {
+        name: 'Updated existing user',
+        email: 'existing@example.com',
+        username: 'existing-user',
+        role: 'View'
+      },
+      { name: 'Alice Smith', email: 'alice@example.com', username: null, role: 'View&Edit' },
+      { name: 'Bob Jones', email: 'bob@example.com', username: null, role: 'View&Edit' },
+    ]);
+  });
+
+  it('should recognize nested repeatable source event paths', () => {
+    const fixture = TestBed.createComponent(RepeatableComponent);
+    const component = fixture.componentInstance as any;
+
+    expect(
+      component.isSyncSourceTriggerEvent(
+        { fieldId: '/mainTab/project/contributors/0', type: 'field.value.changed' },
+        [{ fieldName: 'contributors' }],
+      ),
+    ).toBeTrue();
+  });
+
   for (const [description, value] of [
     ['object', {title: 'First'}],
     ['array', [{title: 'First'}]],

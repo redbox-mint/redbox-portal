@@ -998,12 +998,12 @@ describe('FigshareService', function () {
         related_data: [
           {
             related_title: 'Related dataset one',
-            related_url: 'https://doi.org/10.1234/related-one',
+            related_url: '10.1234/related-one',
             related_notes: 'First related data publication',
           },
           {
             related_title: 'Related dataset two',
-            related_url: 'https://doi.org/10.1234/related-two',
+            related_url: 'https://example.org/related-two',
             related_notes: 'Second related data publication',
           },
           {
@@ -1032,11 +1032,13 @@ describe('FigshareService', function () {
     expect(payload.related_materials).to.deep.equal([
       {
         title: 'Related dataset one',
-        identifier: 'https://doi.org/10.1234/related-one',
+        identifier: '10.1234/related-one',
+        identifier_type: 'DOI',
       },
       {
         title: 'Related dataset two',
-        identifier: 'https://doi.org/10.1234/related-two',
+        identifier: 'https://example.org/related-two',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -1099,10 +1101,12 @@ describe('FigshareService', function () {
       {
         title: 'Related dataset one',
         identifier: 'https://doi.org/10.1234/related-one',
+        identifier_type: 'URL',
       },
       {
         title: 'Related dataset two',
         identifier: 'https://doi.org/10.1234/related-two',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -1157,6 +1161,7 @@ describe('FigshareService', function () {
       {
         title: 'Related dataset',
         identifier: 'https://doi.org/10.1234/related',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -1301,7 +1306,7 @@ describe('FigshareService', function () {
       expect.fail('Expected syncRecordWithFigshare to throw');
     } catch (error) {
       // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error syncing record with Figshare');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-syncing-record');
       expect(((error as Error).cause as Error)?.message).to.equal('sync exploded');
       expect((error as { displayErrors?: Array<{ code?: string }> }).displayErrors?.[0]?.code).to.equal('server-error');
     }
@@ -1360,6 +1365,12 @@ describe('FigshareService', function () {
         'Invalid identifier format'
       );
     }
+    const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
+    expect(auditDetails.httpStatusCode).to.equal(400);
+    expect(auditDetails.responseSummary.error).to.deep.equal({
+      message: 'Invalid identifier format',
+      code: 'BadRequest',
+    });
   });
 
   it('audits publishAfterUploadFilesJob success and failure paths', async function () {
@@ -1395,7 +1406,7 @@ describe('FigshareService', function () {
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
       // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-publishing-article');
       expect(((error as Error).cause as Error)?.message).to.equal('publish failed');
     }
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
@@ -1425,7 +1436,7 @@ describe('FigshareService', function () {
       } as any);
       expect.fail('Expected publishAfterUploadFilesJob to throw');
     } catch (error) {
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
+      expect((error as Error).message).to.equal('figshare-api-error figshare-error-publishing-article');
     }
 
     expect(queueDeleteStub.called).to.equal(false);

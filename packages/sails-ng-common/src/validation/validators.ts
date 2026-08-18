@@ -1,4 +1,9 @@
-import { FormValidatorDefinition } from "./form.model";
+import {
+  FormSyncValidatorDefinition,
+  FormValidatorConfig,
+  FormValidatorDefinition,
+  FormValidatorFn,
+} from "./form.model";
 import {
   formValidatorBuildError,
   formValidatorGetDefinitionArray,
@@ -57,6 +62,30 @@ function hasRequiredFieldValue(value: unknown, fieldNames: string[]): boolean {
  * Based on the angular email validation regex. MIT-style license https://angular.dev/license
  */
 export const FORM_VALIDATOR_EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/**
+ * A regular expression for a bare DOI (without a doi.org resolver URL).
+ *
+ * This follows the Crossref-recommended broad DOI syntax and is intentionally
+ * case-insensitive for DOI suffixes.
+ */
+export const FORM_VALIDATOR_DOI_REGEXP = /^10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+$/i;
+
+function createNestedSyncValidator(validatorConfig: FormValidatorConfig): FormValidatorFn {
+  const definition = formValidatorsSharedDefinitions.find(item => item.class === validatorConfig.class);
+  if (definition == null) {
+    throw new Error(`No validator definition with class '${validatorConfig.class}' in 'any-of' validator.`);
+  }
+  if (!("create" in definition)) {
+    throw new Error(`Validator '${validatorConfig.class}' in 'any-of' must be synchronous.`);
+  }
+  const syncDefinition = definition as FormSyncValidatorDefinition;
+  return syncDefinition.create({
+    ...(validatorConfig.config ?? {}),
+    class: validatorConfig.class,
+    message: validatorConfig.message ?? syncDefinition.message,
+  });
+}
 
 /**
  * Definitions of form validators.
@@ -482,6 +511,62 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           return buildError();
         }
         return null;
+      };
+    },
+  },
+  // Validates a bare DOI. DOI resolver URLs are URLs, not bare DOI identifiers,
+  // and can be accepted separately by composing this validator with `url`.
+  {
+    class: "doi",
+    message: "@validator-error-doi",
+    create: (config) => {
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, "description", "");
+      return (control) => {
+        if (control.value == null || formValidatorLengthOrSize(control.value) === 0) {
+          return null; // don't validate empty values to allow optional controls
+        }
+        const candidate = control.value.toString().trim();
+        if (candidate.length === 0) {
+          return null; // treat whitespace-only values as empty/optional
+        }
+        return FORM_VALIDATOR_DOI_REGEXP.test(candidate)
+          ? null
+          : formValidatorBuildError(config, {
+            description: optionDescriptionValue,
+            requiredPattern: FORM_VALIDATOR_DOI_REGEXP.source,
+            actual: control.value,
+          });
+      };
+    },
+  },
+  // Applies nested synchronous validators with OR semantics. The value is valid
+  // when at least one nested validator accepts it. This allows reusable validators
+  // such as `url` and `doi` to be combined on a single input without duplicating
+  // their validation rules in form configuration.
+  {
+    class: "any-of",
+    message: "@validator-error-any-of",
+    create: (config) => {
+      const optionDescriptionValue = formValidatorGetDefinitionString(config, "description", "");
+      const validatorConfigs = formValidatorGetDefinitionArray(config, "validators") as FormValidatorConfig[];
+      if (validatorConfigs.length === 0) {
+        throw new Error("Validator 'any-of' requires at least one nested validator.");
+      }
+      const validators = validatorConfigs.map((validatorConfig) => {
+        if (validatorConfig == null || typeof validatorConfig !== "object" || typeof validatorConfig.class !== "string" || validatorConfig.class === "") {
+          throw new Error(`Invalid nested validator in 'any-of': ${JSON.stringify(validatorConfig)}.`);
+        }
+        return createNestedSyncValidator(validatorConfig);
+      });
+      return (control) => {
+        const accepted = validators.some(validator => validator(control) == null);
+        return accepted
+          ? null
+          : formValidatorBuildError(config, {
+            description: optionDescriptionValue,
+            validatorClasses: validatorConfigs.map(item => item.class),
+            actual: control.value,
+          });
       };
     },
   },

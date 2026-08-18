@@ -103,7 +103,7 @@ export namespace Services {
 
     private msgPrefix() {
       if (!this._msgPrefix) {
-        this._msgPrefix = TranslationService.t('Datacite API error');
+        this._msgPrefix = TranslationService.t('doi-api-error');
       }
       return this._msgPrefix;
     }
@@ -319,7 +319,7 @@ export namespace Services {
           requestSummary: requestSummary ?? errorSummary.requestSummary,
           responseSummary: errorSummary.responseSummary
         });
-        this.wrapHttpError(error, action === 'update' ? TranslationService.t('Error updating DOI') : TranslationService.t('Error creating DOI'));
+        this.wrapHttpError(error, action === 'update' ? TranslationService.t('doi-error-updating') : TranslationService.t('doi-error-creating'));
       }
     }
 
@@ -364,7 +364,7 @@ export namespace Services {
           httpStatusCode: errorSummary.statusCode,
           responseSummary: errorSummary.responseSummary
         });
-        this.wrapHttpError(error, TranslationService.t('Error deleting DOI'));
+        this.wrapHttpError(error, TranslationService.t('doi-error-deleting'));
       }
     }
 
@@ -394,7 +394,7 @@ export namespace Services {
           httpStatusCode: errorSummary.statusCode,
           responseSummary: errorSummary.responseSummary
         });
-        this.wrapHttpError(error, TranslationService.t('Error changing DOI state'));
+        this.wrapHttpError(error, TranslationService.t('doi-error-changing-state'));
       }
     }
 

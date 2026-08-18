@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from 'effect';
+import * as Cause from 'effect/Cause';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { ResolvedFigsharePublishingConfigData, getBrandName } from './config';
@@ -60,6 +61,24 @@ export function makeRuntimeLayer(config: ResolvedFigsharePublishingConfigData, r
   );
 }
 
+/**
+ * Run an Effect program without replacing domain/HTTP failures with Effect's
+ * FiberFailure wrapper. The original error carries Figshare statusCode,
+ * responseBody and cause fields used by the integration audit and UI.
+ */
+async function runProgram<A>(program: Effect.Effect<A, unknown, never>): Promise<A> {
+  const exit = await Effect.runPromiseExit(program);
+  if (exit._tag === 'Success') {
+    return exit.value;
+  }
+
+  const failure = Cause.failureOrCause(exit.cause);
+  if (failure._tag === 'Left') {
+    throw failure.left;
+  }
+  throw Cause.squash(failure.right);
+}
+
 export async function runBuildMetadataPayload(config: ResolvedFigsharePublishingConfigData, record: RecordModel): Promise<Record<string, unknown>> {
   const runContext: FigshareRunContext = {
     recordOid: record.redboxOid ?? record.id ?? '',
@@ -73,7 +92,7 @@ export async function runBuildMetadataPayload(config: ResolvedFigsharePublishing
     return yield* Effect.promise(() => buildMetadataPayload(config, record, client));
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
 
-  return Effect.runPromise(program);
+  return runProgram(program);
 }
 
 export async function runSyncMetadataProgram(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext, record: RecordModel, plan: FigsharePublicationPlan): Promise<FigshareArticle> {
@@ -89,5 +108,5 @@ export async function runSyncMetadataProgram(config: ResolvedFigsharePublishingC
     return yield* Effect.promise(() => syncMetadataPhase(client, config, record, plan));
   }).pipe(Effect.provide(makeRuntimeLayer(config, runContext)));
 
-  return Effect.runPromise(program);
+  return runProgram(program);
 }
