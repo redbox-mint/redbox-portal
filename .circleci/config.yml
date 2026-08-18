@@ -66,9 +66,17 @@ jobs:
       - run:
           name: Generate API docs artifacts
           command: npm run doc:api
+      - run:
+          name: Test and audit generated contract documentation
+          command: |
+            npm run docs:test
+            npm run docs:audit
       - store_artifacts:
           path: support/docs/generated/api
           destination: api-docs
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -1003,20 +1011,20 @@ jobs:
             npm run compile:sails-ng-common
             npm run compile:core
       - run:
-          name: Generate REST API docs
+          name: Generate extension, form, and REST references
           command: |
             npm run doc:api -- --branding=default --portal=rdmp
-            api_site=.tmp/api-docs-site/additional-documentation
-            mkdir -p "$api_site"
-            cp -a support/docs/generated/api/. "$api_site"/
-            mv "$api_site/index.html" "$api_site/rest-api.html"
+            npm run docs:test
+            npm run docs:generate
       - run:
-          name: Deploy REST API docs by adding commit to gh-pages branch
+          name: Deploy generated references to gh-pages
           command: |
-            npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            gh-pages --dotfiles --message "[ci skip] Updating REST API documents" --dist .tmp/api-docs-site
+            ./node_modules/.bin/gh-pages --dotfiles --message "[ci skip] Updating generated documentation" --dist .tmp/generated-docs-site
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:

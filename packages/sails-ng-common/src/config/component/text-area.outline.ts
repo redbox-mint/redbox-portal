@@ -80,6 +80,12 @@ export interface TextAreaFormComponentDefinitionFrame extends FormComponentDefin
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures multiline plain-text entry and its model value.
+ *
+ * @extensionPoint Use `TextAreaComponent` with `TextAreaModel` for long-form unformatted text fields.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface TextAreaFormComponentDefinitionOutline extends TextAreaFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TextAreaFieldComponentDefinitionOutline;
     model?: TextAreaFieldModelDefinitionOutline;
@@ -98,4 +104,3 @@ export type TextAreaTypes =
     | { kind: FieldModelDefinitionKindType, class: TextAreaFieldModelDefinitionOutline }
     | { kind: FormComponentDefinitionKindType, class: TextAreaFormComponentDefinitionOutline }
     ;
-

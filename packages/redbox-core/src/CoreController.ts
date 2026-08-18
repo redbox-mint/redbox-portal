@@ -36,6 +36,10 @@ export namespace Controllers.Core {
    *
    * The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
    * They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.
+   *
+   * @extensionPoint Hook controllers extend this class, retain inherited `_exportedMethods`, and export replacements under the same controller registry name.
+   * @remarks Use `sendResp` for responses so API versioning and the standard response envelope remain consistent.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
    */
   export class Controller {
 

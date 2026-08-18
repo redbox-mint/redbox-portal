@@ -82,6 +82,12 @@ export interface RichTextEditorFormComponentDefinitionFrame extends FormComponen
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures rich-text editing and its serialised text value.
+ *
+ * @extensionPoint Use `RichTextEditorComponent` with `RichTextEditorModel` for formatted long-form content.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface RichTextEditorFormComponentDefinitionOutline extends RichTextEditorFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: RichTextEditorFieldComponentDefinitionOutline;
     model?: RichTextEditorFieldModelDefinitionOutline;

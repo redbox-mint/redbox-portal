@@ -78,6 +78,12 @@ export interface DateInputFormComponentDefinitionFrame extends FormComponentDefi
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures date entry and its serialised model value.
+ *
+ * @extensionPoint Use `DateInputComponent` with `DateInputModel` and the documented date configuration properties.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface DateInputFormComponentDefinitionOutline extends DateInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: DateInputFieldComponentDefinitionOutline;
     model?: DateInputFieldModelDefinitionOutline;

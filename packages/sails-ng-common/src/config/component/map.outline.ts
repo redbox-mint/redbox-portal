@@ -101,6 +101,12 @@ export interface MapFormComponentDefinitionFrame extends FormComponentDefinition
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures interactive geographic feature capture and display.
+ *
+ * @extensionPoint Use `MapComponent` with `MapModel` to collect geometry using the supported drawing configuration.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface MapFormComponentDefinitionOutline extends MapFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: MapFieldComponentDefinitionOutline;
     model?: MapFieldModelDefinitionOutline;

@@ -77,6 +77,12 @@ export interface SimpleInputFormComponentDefinitionFrame extends FormComponentDe
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a single-line textual, numeric, password, URL, telephone, or hidden input.
+ *
+ * @extensionPoint Use `SimpleInputComponent` with `SimpleInputModel` in a FormConfig component definition; hooks may extend its configuration through the normal form component registration path.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SimpleInputFormComponentDefinitionOutline extends SimpleInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SimpleInputFieldComponentDefinitionOutline;
     model?: SimpleInputFieldModelDefinitionOutline;
