@@ -76,6 +76,11 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
       : '';
   }
 
+  @HostBinding('attr.data-metadata-pointer')
+  public get hostMetadataPointer(): string | null {
+    return this.metadataPointer || null;
+  }
+
   @HostBinding('style.display')
   public get hostDisplay(): string | null {
     const layoutVisible = this.formFieldCompMapEntry?.compConfigJson?.layout?.config?.visible;

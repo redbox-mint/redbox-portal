@@ -1,5 +1,10 @@
 import { FormRuntimeAction } from './runtime-action';
 
+export interface GenerationLaunchDefinition {
+  bindingKey: string;
+  sourcePointer: string;
+}
+
 export interface GenerationRuntimeInitialValue {
   metadataPointer: string;
   value: unknown;
@@ -14,6 +19,7 @@ export interface GenerationRuntimeSession {
 
 export interface FormRuntimeMeta extends Record<string, unknown> {
   runtimeActions?: FormRuntimeAction[];
+  generationLaunches?: GenerationLaunchDefinition[];
   generationSession?: GenerationRuntimeSession;
 }
 

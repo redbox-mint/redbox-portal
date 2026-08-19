@@ -82,6 +82,7 @@ import {
   FormRequestParamValue,
   FormRuntimeRequestContext,
   FormRuntimeAction,
+  GenerationLaunchDefinition,
   GenerationRuntimeSession,
   FormStatus,
   FormValidatorComponentErrors,
@@ -2804,6 +2805,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public get generationSession(): GenerationRuntimeSession | null {
     return this.formDefMap?.formConfigMeta?.generationSession ?? null;
+  }
+
+  public get generationLaunches(): GenerationLaunchDefinition[] {
+    return this.formDefMap?.formConfigMeta?.generationLaunches ?? [];
   }
 
   private parseRequestParamsFromUrl(rawHref?: string): FormRequestParamsMap {

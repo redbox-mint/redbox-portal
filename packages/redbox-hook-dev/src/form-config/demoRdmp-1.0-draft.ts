@@ -26,14 +26,15 @@ const formConfig: FormConfigFrame = {
     {
       name: 'researchActivity',
       layout: { class: 'DefaultLayout', config: { label: 'generation-demo-source-activity', helpText: 'generation-demo-source-activity-help' } },
-      model: { class: 'GroupModel', config: { defaultValue: {} } },
-      component: { class: 'GroupComponent', config: { componentDefinitions: [
-        {
-          name: 'oid',
-          model: { class: 'SimpleInputModel', config: { defaultValue: '' } },
-          component: { class: 'SimpleInputComponent', config: { readonly: true } },
+      model: { class: 'RecordSelectorModel', config: { defaultValue: null } },
+      component: {
+        class: 'RecordSelectorComponent',
+        config: {
+          relationshipId: 'demoRdmp__researchActivity__redboxOid',
+          columnTitle: 'Research Activity',
+          filterMode: 'default',
         },
-      ] } },
+      },
     },
     field('title', 'generation-demo-rdmp-title', 'generation-demo-rdmp-title-help', false),
     field('projectSummary', 'generation-demo-rdmp-summary', 'generation-demo-rdmp-summary-help'),

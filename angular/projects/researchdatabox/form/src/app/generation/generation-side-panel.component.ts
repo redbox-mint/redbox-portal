@@ -14,6 +14,7 @@ import {
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import {
   GenerationCandidatePatch,
+  GenerationLaunchDefinition,
   GenerationQuestion,
   GenerationQuestionValue,
   GenerationRunView,
@@ -39,6 +40,8 @@ import { selectGenerationPanelOpen } from './state/generation.selectors';
 })
 export class GenerationSidePanelComponent implements OnDestroy {
   readonly session = input<GenerationRuntimeSession | null>(null);
+  readonly launches = input<GenerationLaunchDefinition[]>([]);
+  readonly inline = input(false);
   readonly form = input<FormGroup | undefined>();
   readonly recordType = input<string>('');
   readonly formName = input<string>('');
@@ -49,6 +52,13 @@ export class GenerationSidePanelComponent implements OnDestroy {
   readonly error = signal<string | null>(null);
   readonly conflicts = signal<string[]>([]);
   readonly candidate = signal<GenerationCandidatePatch | null>(null);
+  readonly activeSession = signal<GenerationRuntimeSession | null>(null);
+  readonly inlineOpen = signal(false);
+  readonly effectiveSession = computed(() => this.activeSession() ?? this.session());
+  readonly visible = computed(() => {
+    const hasContent = !!this.effectiveSession() || !!this.error();
+    return hasContent && (this.inline() ? this.inlineOpen() : this.isOpen());
+  });
   readonly completed = computed(() => this.candidate() !== null);
   readonly progressLabel = computed(() => {
     const current = this.run();
@@ -57,7 +67,9 @@ export class GenerationSidePanelComponent implements OnDestroy {
   readonly questionForm = new FormGroup({});
   @ViewChild('panelTitle') private panelTitle?: ElementRef<HTMLElement>;
   private readonly document = inject(DOCUMENT);
+  private readonly hostElement = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly subscriptions = new Subscription();
+  private formRoot: HTMLElement | null = null;
   private initialisedRunId = '';
   private executionSnapshot: Record<string, unknown> = {};
   private restoreFocusTo: HTMLElement | null = null;
@@ -74,14 +86,25 @@ export class GenerationSidePanelComponent implements OnDestroy {
       const form = this.form();
       if (session && form && session.runId !== this.initialisedRunId) {
         this.initialisedRunId = session.runId;
+        if (this.inline()) this.inlineOpen.set(true);
         untracked(() => void this.initialise(session, form));
       }
     });
+    effect(() => {
+      const shouldPositionInline = this.inline() && this.launches().length > 0;
+      if (shouldPositionInline) {
+        untracked(() => queueMicrotask(() => this.positionInlineHost()));
+      }
+    });
+    this.subscriptions.add(this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY).subscribe(() => {
+      queueMicrotask(() => this.positionInlineHost());
+    }));
     this.subscriptions.add(this.eventBus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe((event) => {
       if (event.oid && this.candidate()) void this.commitAfterSave(event.oid);
     }));
     this.subscriptions.add(this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe((event) => {
       if (event.origin === 'generation') return;
+      void this.maybeLaunchFromSelection(event.fieldId);
       const item = this.candidate()?.items.find((candidateItem) => this.pointerFieldId(candidateItem.metadataPointer) === event.fieldId);
       if (item) {
         this.provenance.markEdited(item.metadataPointer, event.value);
@@ -95,7 +118,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
   }
 
   public async generate(): Promise<void> {
-    const session = this.session();
+    const session = this.effectiveSession();
     const form = this.form();
     if (!session || !form || this.busy() || this.completed() || this.questionForm.invalid) return;
     this.busy.set(true);
@@ -121,7 +144,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
   }
 
   public async cancel(): Promise<void> {
-    const session = this.session();
+    const session = this.effectiveSession();
     const status = this.run()?.status;
     if (session && status && ['queued', 'running', 'validating', 'cancelRequested'].includes(status)) {
       try { this.updateRun(await this.api.cancel(session.runId)); } catch (error) { this.fail(error); return; }
@@ -131,6 +154,8 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   public close(): void {
     this.store.dispatch(GenerationActions.closePanel());
+    this.inlineOpen.set(false);
+    this.activeSession.set(null);
     queueMicrotask(() => this.restoreFocusTo?.focus());
   }
 
@@ -221,7 +246,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   private async commitAfterSave(targetOid: string): Promise<void> {
     const candidate = this.candidate();
-    const session = this.session();
+    const session = this.effectiveSession();
     if (!candidate || !session) return;
     this.store.dispatch(GenerationActions.commitStarted());
     const reviewedFieldIds = candidate.items
@@ -246,17 +271,84 @@ export class GenerationSidePanelComponent implements OnDestroy {
   private fail(error: unknown): void {
     const message = error instanceof Error ? error.message : 'generation-request-failed';
     this.error.set(message);
+    if (this.inline()) this.inlineOpen.set(true);
     this.eventBus.publish(createGenerationLifecycleChangedEvent({
-      runId: this.session()?.runId,
+      runId: this.effectiveSession()?.runId,
       error: message,
       sourceId: 'generation',
       origin: 'generation',
-      correlationId: this.session()?.runId,
+      correlationId: this.effectiveSession()?.runId,
     }));
   }
 
   private pointerFieldId(pointer: string): string {
     return pointer.split('/').filter(Boolean).at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~') ?? pointer;
+  }
+
+  private positionInlineHost(): void {
+    if (!this.inline()) return;
+
+    const host = this.hostElement.nativeElement;
+    this.formRoot ??= host.closest<HTMLElement>('redbox-form');
+    if (!this.formRoot) return;
+
+    const sourcePointers = new Set(
+      this.launches()
+        .map((launch) => this.rootPointer(launch.sourcePointer))
+        .filter((pointer): pointer is string => pointer !== null),
+    );
+    const sourceField = Array.from(
+      this.formRoot.querySelectorAll<HTMLElement>('.rb-form-components > redbox-form-base-wrapper'),
+    ).find((wrapper) => sourcePointers.has(wrapper.getAttribute('data-metadata-pointer') ?? ''));
+    if (!sourceField || sourceField.nextElementSibling === host) return;
+
+    sourceField.insertAdjacentElement('afterend', host);
+  }
+
+  private rootPointer(pointer: string): string | null {
+    const rootSegment = pointer.split('/').filter(Boolean)[0];
+    return rootSegment ? `/${rootSegment}` : null;
+  }
+
+  private async maybeLaunchFromSelection(fieldId?: string): Promise<void> {
+    const form = this.form();
+    const normalizedFieldId = String(fieldId ?? '').split('/').filter(Boolean).at(-1) ?? '';
+    const launch = this.launches().find((candidate) => {
+      const segments = candidate.sourcePointer.split('/').filter(Boolean);
+      return segments[0] === normalizedFieldId || this.pointerFieldId(candidate.sourcePointer) === normalizedFieldId;
+    });
+    if (!form || !launch || this.effectiveSession() || this.busy()) return;
+    const sourceOid = this.readPointer(form.getRawValue(), launch.sourcePointer);
+    if (typeof sourceOid !== 'string' || !sourceOid.trim()) return;
+
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const result = await this.api.launch({ bindingKey: launch.bindingKey, sourceOid: sourceOid.trim() });
+      const session: GenerationRuntimeSession = {
+        runId: result.runId,
+        bindingKey: launch.bindingKey,
+        autoOpen: true,
+        initialValues: [{ metadataPointer: launch.sourcePointer, value: sourceOid.trim() }],
+      };
+      this.activeSession.set(session);
+      if (this.inline()) this.inlineOpen.set(true);
+      this.initialisedRunId = session.runId;
+      await this.initialise(session, form);
+    } catch (error) {
+      this.fail(error);
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private readPointer(value: unknown, pointer: string): unknown {
+    let current: unknown = value;
+    for (const segment of pointer.split('/').slice(1).map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'))) {
+      if (!current || typeof current !== 'object') return undefined;
+      current = (current as Record<string, unknown>)[segment];
+    }
+    return current;
   }
 
   private questionValidators(question: GenerationQuestion): ValidatorFn[] {

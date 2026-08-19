@@ -50,6 +50,7 @@ import {
   FormConfigFrame,
   FormModesConfig,
   FormRuntimeMeta,
+  GenerationLaunchDefinition,
   GenerationRuntimeSession,
   FormRuntimeAction,
 } from '@researchdatabox/sails-ng-common';
@@ -98,6 +99,11 @@ interface GenerationBindingServiceLike {
     formName?: string;
     mode: 'view' | 'edit';
   }): Promise<FormRuntimeAction[]>;
+  resolveCreateLaunches(
+    actor: GenerationActorContext,
+    targetRecordType: string,
+    targetFormName?: string,
+  ): Promise<GenerationLaunchDefinition[]>;
   resolveTargetSession(
     actor: GenerationActorContext,
     runId: string,
@@ -1185,6 +1191,12 @@ export namespace Controllers {
           runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
             generationActor,
             req.query.generationRunId.trim(),
+            recordType,
+            form?.name ?? formParam,
+          );
+        } else if (editMode) {
+          runtimeMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
+            generationActor,
             recordType,
             form?.name ?? formParam,
           );

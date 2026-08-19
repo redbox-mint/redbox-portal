@@ -15,6 +15,11 @@ x-rbportal-env: &rbportal-env
   # AI-assisted form generation remains disabled unless explicitly enabled for a local demo.
   sails__generation_enabled: '${REDBOX_GENERATION_ENABLED:-false}'
   sails__generation_adapters: '${REDBOX_GENERATION_ADAPTERS:-openrouter,fake}'
+  # Keep local demo runs from exhausting production-oriented generation quotas.
+  sails__generation_limits_perUserConcurrentRuns: '${REDBOX_GENERATION_PER_USER_CONCURRENT_RUNS:-1000}'
+  sails__generation_limits_perBrandConcurrentRuns: '${REDBOX_GENERATION_PER_BRAND_CONCURRENT_RUNS:-10000}'
+  sails__generation_limits_perUserDailyRuns: '${REDBOX_GENERATION_PER_USER_DAILY_RUNS:-1000}'
+  sails__generation_limits_perBrandDailyRuns: '${REDBOX_GENERATION_PER_BRAND_DAILY_RUNS:-10000}'
   sails__generation_artifacts_encryptionKeyRef: 'env:REDBOX_GENERATION_DEVELOPMENT_KEY'
   # Development-only AES-256 key; deployments must supply their own secret reference and key.
   REDBOX_GENERATION_DEVELOPMENT_KEY: '${REDBOX_GENERATION_DEVELOPMENT_KEY:-ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=}'

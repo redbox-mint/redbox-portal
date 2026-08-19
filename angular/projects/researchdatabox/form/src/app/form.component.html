@@ -41,12 +41,12 @@
     [allowedRoles]="viewAuditRoles()"
   />
 
-  @if (generationSession; as activeGenerationSession) {
-    <redbox-generation-side-panel
-      [session]="activeGenerationSession"
-      [form]="form"
-      [recordType]="trimmedParams.recordType()"
-      [formName]="trimmedParams.formName()"
-    />
-  }
+  <redbox-generation-side-panel
+    [session]="generationSession"
+    [launches]="generationLaunches"
+    [inline]="true"
+    [form]="form"
+    [recordType]="trimmedParams.recordType()"
+    [formName]="trimmedParams.formName()"
+  />
 </div>

@@ -1,4 +1,4 @@
-import type { FormRuntimeAction, GenerationRuntimeSession } from '@researchdatabox/sails-ng-common';
+import type { FormRuntimeAction, GenerationLaunchDefinition, GenerationRuntimeSession } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { BrandingModel, UserModel } from '../model';
 import { GenerationActorContext, GenerationError } from '../model/generation';
@@ -33,7 +33,7 @@ export interface AuthorizedGenerationLaunch {
 
 export namespace Services {
   export class GenerationBindingService extends services.Core.Service {
-    protected override _exportedMethods = ['createOrUpdate', 'resolveActions', 'authorizeLaunch', 'buildInitialValues', 'resolveTargetSession', 'buildTargetUrl'];
+    protected override _exportedMethods = ['createOrUpdate', 'resolveActions', 'resolveCreateLaunches', 'authorizeLaunch', 'buildInitialValues', 'resolveTargetSession', 'buildTargetUrl'];
 
     public async createOrUpdate(
       brandId: string,
@@ -106,6 +106,33 @@ export namespace Services {
         }
       }
       return actions.sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
+    }
+
+    public async resolveCreateLaunches(
+      actor: GenerationActorContext,
+      targetRecordType: string,
+      targetFormName?: string,
+    ): Promise<GenerationLaunchDefinition[]> {
+      if (!sails.config.generation.enabled) return [];
+      const bindings = requireWaterlineRows<GenerationBindingAttributes>(
+        await GenerationBinding.find({ brandId: actor.brandId, targetRecordType, enabled: true }),
+        'GenerationBinding',
+      );
+      const launches: GenerationLaunchDefinition[] = [];
+      for (const binding of bindings) {
+        try {
+          if (binding.targetFormName && targetFormName && binding.targetFormName !== targetFormName) continue;
+          if (!this.canCreateTarget(binding, actor.roles)) continue;
+          const profileService = requireService<ProfileLike>('generationprofileservice', ['resolvePublished']);
+          await profileService.resolvePublished(actor.brandId, binding.profileId);
+          const sourcePointer = String(binding.sourceRelationship?.metadataPointer ?? '').trim();
+          if (!sourcePointer.startsWith('/')) continue;
+          launches.push({ bindingKey: binding.key, sourcePointer });
+        } catch (error) {
+          if (!(error instanceof GenerationError)) throw error;
+        }
+      }
+      return launches;
     }
 
     public async authorizeLaunch(input: {

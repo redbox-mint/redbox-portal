@@ -1,12 +1,13 @@
-@if (isOpen() && session()) {
-  <div class="rb-generation-panel__backdrop" aria-hidden="true"></div>
+@if (visible()) {
+  @if (!inline()) { <div class="rb-generation-panel__backdrop" aria-hidden="true"></div> }
   <aside
     class="rb-generation-panel"
-    role="dialog"
-    aria-modal="true"
+    [class.rb-generation-panel--inline]="inline()"
+    [attr.role]="inline() ? 'region' : 'dialog'"
+    [attr.aria-modal]="inline() ? null : 'true'"
     aria-labelledby="generation-panel-title"
-    cdkTrapFocus
-    [cdkTrapFocusAutoCapture]="true"
+    [cdkTrapFocus]="!inline()"
+    [cdkTrapFocusAutoCapture]="!inline()"
   >
     <header class="rb-generation-panel__header">
       <div>
@@ -69,7 +70,7 @@
             <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
           }
           <div class="rb-generation-panel__actions">
-            <button type="submit" class="btn btn-primary" [disabled]="busy() || questionForm.invalid">
+            <button type="submit" class="btn btn-primary" [disabled]="!effectiveSession() || busy() || questionForm.invalid">
               {{ (busy() ? 'generation-generating' : 'generation-generate') | i18next }}
             </button>
             @if (error() && run()?.retryable) {

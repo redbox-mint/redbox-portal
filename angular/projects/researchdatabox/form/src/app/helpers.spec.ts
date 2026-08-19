@@ -49,7 +49,6 @@ import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
-import { ApplicationRef, ComponentRef } from "@angular/core";
 import { GenerationProvenanceStoreService } from "./generation/generation-provenance-store.service";
 import { ApplicationRef, ComponentRef, CUSTOM_ELEMENTS_SCHEMA } from "@angular/core";
 import isSpy = jasmine.isSpy;
