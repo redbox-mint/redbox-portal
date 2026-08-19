@@ -50,6 +50,8 @@ import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
 import { ApplicationRef, ComponentRef } from "@angular/core";
+import { GenerationProvenanceStoreService } from "./generation/generation-provenance-store.service";
+import { ApplicationRef, ComponentRef, CUSTOM_ELEMENTS_SCHEMA } from "@angular/core";
 import isSpy = jasmine.isSpy;
 
 // provide to test the same way as provided to browser
@@ -255,7 +257,21 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
       "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
       "ConfirmationDialogService": ConfirmationDialogService,
+      "GenerationProvenanceStoreService": {
+        provide: GenerationProvenanceStoreService,
+        useValue: {
+          byPointer: () => ({}),
+          clear: () => undefined,
+          load: async () => undefined,
+          markEdited: () => undefined,
+          markReviewed: async () => undefined,
+          setPending: () => undefined,
+        },
+      },
     }, testConfig.providers ?? {}),
+    // Feature children are declared by FormModule in production. Most focused
+    // form-field tests intentionally declare only the root/wrapper under test.
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
   }).compileComponents();
   return {
     configService: configService,

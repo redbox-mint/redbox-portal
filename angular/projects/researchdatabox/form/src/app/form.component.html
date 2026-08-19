@@ -12,6 +12,7 @@
     (resolutionRequested)="submitManualConflictResolution($event)"
   ></redbox-form-conflict-presenter>
 
+  <redbox-form-runtime-actions [actions]="runtimeActions" />
   <div class="rb-form-shell__main" [class.rb-form-shell__main--loading]="!componentsLoaded()">
     @if (!componentsLoaded()) {
       <div class="rb-form-loading">
@@ -39,4 +40,13 @@
     [portal]="trimmedParams.portal()"
     [allowedRoles]="viewAuditRoles()"
   />
+
+  @if (generationSession; as activeGenerationSession) {
+    <redbox-generation-side-panel
+      [session]="activeGenerationSession"
+      [form]="form"
+      [recordType]="trimmedParams.recordType()"
+      [formName]="trimmedParams.formName()"
+    />
+  }
 </div>

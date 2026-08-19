@@ -7,6 +7,8 @@ import dataPublicationEmbargoed from './dataPublication-1.0-embargoed';
 import dataPublicationPublished from './dataPublication-1.0-published';
 import dataPublicationRetired from './dataPublication-1.0-retired';
 import existingLocationsDraft from './existing-locations-workspace-1.0-draft';
+import researchActivityDraft from './researchActivity-1.0-draft';
+import demoRdmpDraft from './demoRdmp-1.0-draft';
 
 /**
  * Demo form configurations.
@@ -24,4 +26,6 @@ export const FormConfigExports: Record<string, FormConfigFrame> = {
   'dataPublication-1.0-published': dataPublicationPublished,
   'dataPublication-1.0-retired': dataPublicationRetired,
   'existing-locations-1.0-draft': existingLocationsDraft,
+  'researchActivity-1.0-draft': researchActivityDraft,
+  'demoRdmp-1.0-draft': demoRdmpDraft,
 };

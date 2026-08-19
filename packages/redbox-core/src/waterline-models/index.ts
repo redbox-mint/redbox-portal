@@ -34,6 +34,18 @@ export * from './WorkflowStep';
 export * from './WorkspaceApp';
 export * from './WorkspaceAsync';
 export * from './WorkspaceType';
+export * from './GenerationProfile';
+export * from './GenerationProfileVersion';
+export * from './GenerationBinding';
+export * from './GenerationModelConnection';
+export * from './GenerationModelDeployment';
+export * from './KnowledgeCollection';
+export * from './KnowledgeCollectionVersion';
+export * from './KnowledgeDocument';
+export * from './KnowledgeChunk';
+export * from './GenerationRun';
+export * from './GenerationRunArtifact';
+export * from './GenerationFieldProvenance';
 
 // Re-export Waterline model definitions for convenience
 import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
@@ -72,6 +84,18 @@ import { WorkflowStepWLDef } from './WorkflowStep';
 import { WorkspaceAppWLDef } from './WorkspaceApp';
 import { WorkspaceAsyncWLDef } from './WorkspaceAsync';
 import { WorkspaceTypeWLDef } from './WorkspaceType';
+import { GenerationProfileWLDef } from './GenerationProfile';
+import { GenerationProfileVersionWLDef } from './GenerationProfileVersion';
+import { GenerationBindingWLDef } from './GenerationBinding';
+import { GenerationModelConnectionWLDef } from './GenerationModelConnection';
+import { GenerationModelDeploymentWLDef } from './GenerationModelDeployment';
+import { KnowledgeCollectionWLDef } from './KnowledgeCollection';
+import { KnowledgeCollectionVersionWLDef } from './KnowledgeCollectionVersion';
+import { KnowledgeDocumentWLDef } from './KnowledgeDocument';
+import { KnowledgeChunkWLDef } from './KnowledgeChunk';
+import { GenerationRunWLDef } from './GenerationRun';
+import { GenerationRunArtifactWLDef } from './GenerationRunArtifact';
+import { GenerationFieldProvenanceWLDef } from './GenerationFieldProvenance';
 
 // Consolidated Models map for hook-based loader
 // Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
@@ -113,4 +137,16 @@ export const WaterlineModels = {
   WorkspaceApp: WorkspaceAppWLDef,
   WorkspaceAsync: WorkspaceAsyncWLDef,
   WorkspaceType: WorkspaceTypeWLDef,
+  GenerationProfile: GenerationProfileWLDef,
+  GenerationProfileVersion: GenerationProfileVersionWLDef,
+  GenerationBinding: GenerationBindingWLDef,
+  GenerationModelConnection: GenerationModelConnectionWLDef,
+  GenerationModelDeployment: GenerationModelDeploymentWLDef,
+  KnowledgeCollection: KnowledgeCollectionWLDef,
+  KnowledgeCollectionVersion: KnowledgeCollectionVersionWLDef,
+  KnowledgeDocument: KnowledgeDocumentWLDef,
+  KnowledgeChunk: KnowledgeChunkWLDef,
+  GenerationRun: GenerationRunWLDef,
+  GenerationRunArtifact: GenerationRunArtifactWLDef,
+  GenerationFieldProvenance: GenerationFieldProvenanceWLDef,
 };

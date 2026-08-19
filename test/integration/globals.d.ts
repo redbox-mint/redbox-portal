@@ -4,6 +4,26 @@ declare const _: any;
 declare const AgendaQueueService: any;
 declare const AppConfigService: any;
 
+declare const GenerationBindingService: any;
+declare const GenerationBootstrapService: any;
+declare const GenerationCryptoService: any;
+declare const GenerationPersistenceService: any;
+declare const GenerationProvenanceService: any;
+declare const GenerationRunService: any;
+
+declare const GenerationBinding: any;
+declare const GenerationFieldProvenance: any;
+declare const GenerationModelConnection: any;
+declare const GenerationModelDeployment: any;
+declare const GenerationProfile: any;
+declare const GenerationProfileVersion: any;
+declare const GenerationRun: any;
+declare const GenerationRunArtifact: any;
+declare const KnowledgeChunk: any;
+declare const KnowledgeCollection: any;
+declare const KnowledgeCollectionVersion: any;
+declare const KnowledgeDocument: any;
+
 declare const BrandingService: any;
 declare const BrandingLogoService: any;
 declare const BrandingThemeCssService: any;
@@ -49,6 +69,7 @@ declare const FormVocabularyService: any;
 declare const WorkflowStepsService: any;
 
 declare const RecordType: any;
+declare const RecordTypesService: any;
 declare const Record: any;
 declare const DeletedRecord: any;
 declare const RecordAudit: any;

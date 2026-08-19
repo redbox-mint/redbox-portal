@@ -109,6 +109,10 @@ export async function coreBootstrap(): Promise<void> {
   await sails.services.recordsservice.bootstrapData();
   sails.log.verbose('Records bootstrap data, loaded.');
 
+  await sails.services.generationpersistenceservice.bootstrap();
+  await sails.services.generationbootstrapservice.bootstrap(defaultBranding);
+  sails.log.verbose('Generation services, bootstrapped.');
+
   // Schedule cronjobs
   if (sails.config.crontab.enabled) {
     sails.config.crontab.crons().forEach((item: { interval: string; service: string; method: string }) => {

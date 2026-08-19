@@ -2954,7 +2954,6 @@ describe('FormComponent', () => {
     formComponent.oid.set('oid-download-path');
     formComponent.recordType.set('rdmp');
     formComponent.editMode.set(true);
-    formComponent.formName.set('default-1.0-draft');
     fixture.autoDetectChanges();
     await fixture.whenStable();
 
@@ -2972,6 +2971,7 @@ describe('FormComponent', () => {
     await fixture.whenStable();
 
     expect(downloadSpy).toHaveBeenCalled();
+    expect(formComponent.trimmedParams.formName()).toBe('initial-snapshot-download');
     expect(formComponent.debugTranslatedFormConfigInitial()['name']).toBe('initial-snapshot-download');
   });
 

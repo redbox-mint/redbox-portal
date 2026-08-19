@@ -99,6 +99,28 @@ describe('The FormService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('forwards only a valid generation run identifier to the form request', async () => {
+    const promise = (service as any).getFormConfig('', 'rdmp', true, null, {
+      generationRunId: 'run_12345678'
+    });
+    const request = httpTesting.expectOne((req) => req.url.includes('/record/form/rdmp'));
+    expect(request.request.url).toContain('generationRunId=run_12345678');
+    expect(request.request.url).not.toContain('unrelated');
+    request.flush({ data: { type: 'rdmp', componentDefinitions: [] }, meta: {} });
+    await expectAsync(promise).toBeResolved();
+  });
+
+  it('omits invalid generation context without changing the ordinary form URL shape', async () => {
+    const promise = (service as any).getFormConfig('', 'rdmp', false, null, {
+      generationRunId: '../unsafe?secret=true'
+    });
+    const request = httpTesting.expectOne((req) => req.url.includes('/record/form/rdmp'));
+    expect(request.request.url).not.toContain('generationRunId');
+    expect(request.request.url).toContain('edit=false');
+    request.flush({ data: { type: 'rdmp', componentDefinitions: [] }, meta: {} });
+    await expectAsync(promise).toBeResolved();
+  });
+
   it('should resolve accordion component classes from static map', async () => {
     const componentDefinitions = [
       {

@@ -8,6 +8,18 @@ import type { RecordTypeConfig } from '@researchdatabox/redbox-core';
  * via redbox-hook-dev's registerRedboxConfig().
  */
 export const recordtype: RecordTypeConfig = {
+  researchActivity: {
+    packageType: 'researchActivity',
+    labels: { name: 'Research Activity', namePlural: 'Research Activities' },
+    relatedTo: [{ recordType: 'demoRdmp', foreignField: 'metadata.researchActivity.oid' }],
+    searchFilters: [],
+  },
+  demoRdmp: {
+    packageType: 'demoRdmp',
+    labels: { name: 'AI-assisted RDMP', namePlural: 'AI-assisted RDMPs' },
+    relatedTo: [{ recordType: 'researchActivity', localField: 'metadata.researchActivity.oid', foreignField: 'redboxOid' }],
+    searchFilters: [],
+  },
   rdmp: {
     packageType: 'rdmp',
     hooks: {

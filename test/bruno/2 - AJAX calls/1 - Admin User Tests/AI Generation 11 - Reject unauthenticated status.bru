@@ -1,0 +1,26 @@
+meta {
+  name: AI Generation 11 - Reject unauthenticated status
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{host}}/default/rdmp/generation/runs/not-a-real-run
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+  Content-Type: application/json
+  Cookie: notarealcookie
+}
+
+tests {
+  test("Requires an authenticated session", function () {
+    expect([401, 403]).to.include(res.getStatus());
+  });
+}

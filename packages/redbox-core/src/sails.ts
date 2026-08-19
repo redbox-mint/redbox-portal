@@ -94,7 +94,7 @@ declare global {
     export interface Datastore {
       manager: {
         collection: (name: string) => {
-          createIndex: (spec: object) => Promise<unknown>;
+          createIndex: (spec: object, options?: object) => Promise<unknown>;
           find: (filter: object) => {
             forEach: (cb: (doc: globalThis.Record<string, unknown>) => void | Promise<void>) => Promise<void> | void;
           };

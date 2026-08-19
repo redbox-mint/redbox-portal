@@ -1,0 +1,40 @@
+meta {
+  name: AI Generation 3 - Launch
+  type: http
+  seq: 62
+}
+
+post {
+  url: {{host}}/default/rdmp/generation/launch
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "bindingKey": "create-demo-rdmp-from-activity",
+    "sourceOid": "{{generationSourceOid}}"
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Launches a new creation intent", function () {
+    expect(res.getStatus()).to.equal(201);
+    const data = res.getBody().data;
+    expect(data.runId).to.be.a("string").and.not.equal("");
+    expect(data.targetUrl).to.contain(`/record/demoRdmp/edit?generationRunId=${data.runId}`);
+    bru.setEnvVar("generationRunId", data.runId);
+  });
+}

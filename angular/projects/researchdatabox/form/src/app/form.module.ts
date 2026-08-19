@@ -93,6 +93,10 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
  * Angular Router configuration; native exits are protected by FormComponent's
  * `beforeunload` listener.
  */
+import { FormRuntimeActionsComponent } from './generation/form-runtime-actions.component';
+import { GenerationSidePanelComponent } from './generation/generation-side-panel.component';
+import { GenerationProvenanceBadgeComponent } from './generation/generation-provenance-badge.component';
+import { provideGenerationFeature } from './generation/state/providers';
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,
@@ -147,6 +151,9 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     ConfirmationDialogComponent,
     FormConflictPresenterComponent,
     RecordAuditLauncherComponent,
+    FormRuntimeActionsComponent,
+    GenerationSidePanelComponent,
+    GenerationProvenanceBadgeComponent,
   ],
   imports: [
     CommonModule,
@@ -175,6 +182,7 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     provideStore(),
     provideEffects(),
     provideFormFeature(),
+    provideGenerationFeature(),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
   bootstrap: [FormComponent],

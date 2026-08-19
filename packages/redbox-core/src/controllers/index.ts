@@ -23,6 +23,7 @@ import * as VocabularyControllerModule from './VocabularyController';
 import * as WorkspaceAsyncControllerModule from './WorkspaceAsyncController';
 import * as WorkspaceTypesControllerModule from './WorkspaceTypesController';
 import * as FormVocabularyControllerModule from './FormVocabularyController';
+import * as GenerationControllerModule from './GenerationController';
 import * as DashboardConfigControllerModule from './DashboardConfigController';
 import * as NamedQueryControllerModule from './NamedQueryController';
 
@@ -76,6 +77,7 @@ export const ControllerExports: Record<string, unknown> = {
     get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
     get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
     get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
+    get GenerationController() { return getOrCreate('GenerationController', () => new GenerationControllerModule.Controllers.Generation().exports()); },
     get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
     get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
 };
@@ -116,6 +118,7 @@ export const ControllerNames = [
     'EmailController',
     'ExportController',
     'FormVocabularyController',
+    'GenerationController',
     'RecordAuditController',
     'RecordController',
     'RenderViewController',

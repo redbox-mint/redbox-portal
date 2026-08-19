@@ -11,6 +11,7 @@ export * from './handlebars-helpers';
 export * from './jsonata-helpers';
 export * from './html-helpers';
 export * from './translation-helpers';
+export * from './generation';
 // config
 export * from './config/helpers';
 export * from './config/dictionary.outline';

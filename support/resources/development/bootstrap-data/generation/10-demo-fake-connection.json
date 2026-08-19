@@ -1,0 +1,14 @@
+{
+  "kind": "connection",
+  "key": "demo-fake-generation",
+  "name": "Deterministic demo provider",
+  "adapterId": "fake",
+  "enabled": true,
+  "endpoint": "https://fake.invalid/v1",
+  "authStrategy": "none",
+  "dataPolicy": {
+    "classification": "synthetic-only",
+    "retention": "none"
+  },
+  "timeoutMs": 10000
+}

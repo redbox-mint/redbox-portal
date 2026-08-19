@@ -46,7 +46,13 @@ import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
+import {
+  FormConfigFrame,
+  FormModesConfig,
+  FormRuntimeMeta,
+  GenerationRuntimeSession,
+  FormRuntimeAction,
+} from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
   normalizeRecordValidationRequestFacts,
@@ -66,6 +72,8 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../RecordHttpConcurrency';
+import { GenerationActorContext, GenerationError } from '../model/generation';
+import { requireService } from '../services/generation/require-service';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -81,6 +89,22 @@ interface TusRequestExtension {
 
 type HeaderValue = string | number | ReadonlyArray<string>;
 
+interface GenerationBindingServiceLike {
+  resolveActions(context: {
+    actor: GenerationActorContext;
+    brand: BrandingModel;
+    user: UserModel;
+    record: RecordModel;
+    formName?: string;
+    mode: 'view' | 'edit';
+  }): Promise<FormRuntimeAction[]>;
+  resolveTargetSession(
+    actor: GenerationActorContext,
+    runId: string,
+    targetRecordType: string,
+    targetFormName?: string,
+  ): Promise<GenerationRuntimeSession>;
+}
 /**
  * Package that contains all Controllers.
  */
@@ -503,6 +527,21 @@ export namespace Controllers {
 
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand((req.session.branding as string) ?? '');
+    }
+
+    private getGenerationActor(req: Sails.Req, brand: BrandingModel): GenerationActorContext {
+      const user = req.user as UserModel | undefined;
+      if (!user?.id || !brand?.id) {
+        throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'An authenticated brand session is required');
+      }
+      return {
+        brandId: String(brand.id),
+        branding: String(req.param('branding') ?? brand.name),
+        portal: String(req.param('portal') ?? req.session.portal ?? ''),
+        userId: String(user.id),
+        username: String(user.username),
+        roles: (user.roles ?? []).map((role) => String(role.name ?? '')).filter(Boolean),
+      };
     }
 
     private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
@@ -1127,6 +1166,29 @@ export namespace Controllers {
           branding: brand,
           formConfig: mergedForm,
         });
+        const generationBindingService = requireService<GenerationBindingServiceLike>(
+          'generationbindingservice',
+          ['resolveActions', 'resolveTargetSession'],
+        );
+        const generationActor = this.getGenerationActor(req, brand);
+        const runtimeMeta: FormRuntimeMeta = {};
+        if (currentRec) {
+          runtimeMeta.runtimeActions = await generationBindingService.resolveActions({
+            actor: generationActor,
+            brand,
+            user: req.user as UserModel,
+            record: currentRec,
+            formName: form?.name ?? formParam,
+            mode: editMode ? 'edit' : 'view',
+          });
+        } else if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
+          runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
+            generationActor,
+            req.query.generationRunId.trim(),
+            recordType,
+            form?.name ?? formParam,
+          );
+        }
 
         const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, form);
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
@@ -1144,6 +1206,7 @@ export namespace Controllers {
               validationOperations,
               formFingerprint,
               ...(representation?.metadata ?? {}),
+              ...runtimeMeta,
             },
             prehydrate,
             headers: representation?.headers,
@@ -1157,6 +1220,14 @@ export namespace Controllers {
           });
         }
       } catch (error) {
+        if (error instanceof GenerationError) {
+          return this.sendResp(req, res, {
+            status: error.status,
+            data: { error: error.toSafeJSON() },
+            displayErrors: [{ code: error.code, detail: `generation-error-${error.code.toLowerCase().replaceAll('_', '-')}` }],
+            v1: { error: error.toSafeJSON() },
+          });
+        }
         const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition' };
         let msg;
         const typedError = error as { error?: { code?: number }; message?: string };

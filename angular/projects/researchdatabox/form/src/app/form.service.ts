@@ -66,6 +66,8 @@ import {
   FormValidatorFns,
   FormValidatorSummaryErrors,
   FormPrehydratePayload,
+  FormRuntimeMeta,
+  FormRuntimeRequestContext,
   getObjectWithJsonPointer,
   jsonataEvaluateFunc,
   JSONataQueryRuntimeContext,
@@ -219,10 +221,17 @@ export class FormService extends HttpClientService {
     throw new Error('redboxClientScript validator definitions are not available — index.bundle.js must be loaded before the form app.');
   }
 
-  public async downloadFormComponents(oid: string, recordType: string, editMode: boolean, formName: string, modulePaths: string[]): Promise<FormComponentsMap> {
+  public async downloadFormComponents(
+    oid: string,
+    recordType: string,
+    editMode: boolean,
+    formName: string,
+    modulePaths: string[],
+    runtimeContext?: FormRuntimeRequestContext,
+  ): Promise<FormComponentsMap> {
     // Get the form config from the server.
     // Includes the integrated model data (in componentDefinition.model.config.value) for rendering the form.
-    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName);
+    const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName, runtimeContext);
     const formConfig = formConfigResp?.data;
     const formConfigMeta = formConfigResp?.meta ?? {};
     const concurrency = parseFormLoadConcurrency(formConfigMeta, formConfigResp?.responseEntityTag);
@@ -257,7 +266,7 @@ export class FormService extends HttpClientService {
   public async createFormComponentsMap(
     formConfig: FormConfigFrame,
     parentLineagePaths: LineagePaths,
-    meta?: Record<string, unknown>,
+    meta?: FormRuntimeMeta,
     formMode?: FormModesConfig,
     concurrency: FormLoadConcurrencyState = {}
   ): Promise<FormComponentsMap> {
@@ -852,7 +861,13 @@ export class FormService extends HttpClientService {
    * @param formName The optional name of the form.
    * @private
    */
-  private async getFormConfig(oid: string | null, recordType: string, editable: boolean, formName: string | null = null) {
+  private async getFormConfig(
+    oid: string | null,
+    recordType: string,
+    editable: boolean,
+    formName: string | null = null,
+    runtimeContext?: FormRuntimeRequestContext,
+  ) {
     const ts = new Date().getTime().toString();
 
     const remainingPaths = oid ? `auto/${oid}` : `${recordType}`;
@@ -862,8 +877,12 @@ export class FormService extends HttpClientService {
     if (formName) {
       url.searchParams.set('formName', formName?.toString());
     }
+    const generationRunId = runtimeContext?.generationRunId;
+    if (typeof generationRunId === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(generationRunId)) {
+      url.searchParams.set('generationRunId', generationRunId);
+    }
 
-    type rawRespType = { data: FormConfigFrame; meta: Record<string, unknown>; prehydrate?: FormPrehydratePayload };
+    type rawRespType = { data: FormConfigFrame; meta: FormRuntimeMeta; prehydrate?: FormPrehydratePayload };
     const baseHeaders = this.requestOptions['headers'];
     const headers = (
       baseHeaders instanceof HttpHeaders
@@ -1321,7 +1340,7 @@ export class FormComponentsMap {
   /**
    * Metadata returned with the form config API call.
    */
-  formConfigMeta?: Record<string, unknown>;
+  formConfigMeta?: FormRuntimeMeta;
   recordEntityTag?: string;
   recordRevision?: number;
   formFingerprint?: string;
@@ -1329,7 +1348,7 @@ export class FormComponentsMap {
   constructor(
     components: FormFieldCompMapEntry[],
     formConfig: FormConfigFrame,
-    meta?: Record<string, unknown>,
+    meta?: FormRuntimeMeta,
     concurrency: FormLoadConcurrencyState = {}
   ) {
     this.components = components;

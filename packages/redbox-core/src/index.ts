@@ -157,6 +157,7 @@ export type {
 } from './services/IntegrationAuditService';
 export * from './model/storage/HarvestRunModel';
 export { ILogger } from './Logger';
+export * from './model/generation';
 
 export * from './model';
 export * from './record-contract';

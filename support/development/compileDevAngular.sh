@@ -126,7 +126,11 @@ else
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
-      buildAngularApp "${ng2app}"
+      if node -e "const config = require('./angular.json'); process.exit(config.projects['@researchdatabox/${ng2app}'] ? 0 : 1)"; then
+        buildAngularApp "${ng2app}"
+      else
+        echo "Skipping unregistered Angular directory ${ng2app}"
+      fi
     fi
   done
 fi

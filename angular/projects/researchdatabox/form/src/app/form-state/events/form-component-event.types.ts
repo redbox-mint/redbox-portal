@@ -11,6 +11,10 @@ import {
   formValidationGroupsChangeInitial as sharedFormValidationGroupsChangeInitial,
   FormValidationGroupsChangeInitial as SharedFormValidationGroupsChangeInitial,
   RecordSaveResult,
+  formValidationGroupMembership,
+  FormRuntimeAction,
+  GenerationRunPhase,
+  GenerationRunStatus,
 } from "@researchdatabox/sails-ng-common";
 
 /**
@@ -23,6 +27,8 @@ export interface FormComponentEventBase {
   /** Identifies the form instance that owns the event. */
   readonly formScopeId?: string;
   readonly fieldId?: string;
+  readonly origin?: 'user' | 'generation' | 'system';
+  readonly correlationId?: string;
 }
 
 export interface FieldScopedEventBase extends FormComponentEventBase {
@@ -268,6 +274,26 @@ export interface FormRedirectRequestedEvent extends FormComponentEventBase, Redi
   readonly historyDelta?: number;
 }
 
+export interface FormRuntimeActionInvokedEvent extends FormComponentEventBase {
+  readonly type: 'form.runtime-action.invoked';
+  readonly action: FormRuntimeAction;
+}
+
+export interface GenerationLifecycleChangedEvent extends FormComponentEventBase {
+  readonly type: 'generation.lifecycle.changed';
+  readonly runId?: string;
+  readonly status?: GenerationRunStatus;
+  readonly phase?: GenerationRunPhase;
+  readonly error?: string;
+}
+
+export interface GenerationPatchAppliedEvent extends FormComponentEventBase {
+  readonly type: 'generation.patch.applied';
+  readonly runId: string;
+  readonly changedFieldIds: string[];
+  readonly conflictFieldIds: string[];
+}
+
 /**
  * Discriminated union of all form component events
  */
@@ -292,6 +318,9 @@ export type FormComponentEvent =
   | FormDefinitionReadyEvent
   | FieldItemSelectedEvent
   | FormRedirectRequestedEvent
+  | FormRuntimeActionInvokedEvent
+  | GenerationLifecycleChangedEvent
+  | GenerationPatchAppliedEvent
   ;
 
 /**
@@ -318,6 +347,9 @@ export const FormComponentEventType = {
   FORM_DELETE_FAILURE: 'form.delete.failure' as const,
   FIELD_ITEM_SELECTED: 'field.item.selected' as const,
   FORM_REDIRECT_REQUESTED: 'form.redirect.requested' as const,
+  FORM_RUNTIME_ACTION_INVOKED: 'form.runtime-action.invoked' as const,
+  GENERATION_LIFECYCLE_CHANGED: 'generation.lifecycle.changed' as const,
+  GENERATION_PATCH_APPLIED: 'generation.patch.applied' as const,
 } as const;
 
 export type FormComponentEventTypeValue = (typeof FormComponentEventType)[keyof typeof FormComponentEventType];
@@ -349,6 +381,9 @@ export interface FormComponentEventMap {
   'form.delete.failure': FormDeleteFailureEvent;
   'field.item.selected': FieldItemSelectedEvent;
   'form.redirect.requested': FormRedirectRequestedEvent;
+  'form.runtime-action.invoked': FormRuntimeActionInvokedEvent;
+  'generation.lifecycle.changed': GenerationLifecycleChangedEvent;
+  'generation.patch.applied': GenerationPatchAppliedEvent;
 }
 
 /** Shared options bag for event helper factories */
@@ -484,6 +519,24 @@ export function createFormSaveFailureEvent(
   options: FormComponentEventOptions<FormSaveFailureEvent> = {}
 ): FormComponentEventResult<FormSaveFailureEvent> {
   return createEventResult<FormSaveFailureEvent>(FormComponentEventType.FORM_SAVE_FAILURE, options);
+}
+
+export function createFormRuntimeActionInvokedEvent(
+  options: FormComponentEventOptions<FormRuntimeActionInvokedEvent>
+): FormComponentEventResult<FormRuntimeActionInvokedEvent> {
+  return createEventResult<FormRuntimeActionInvokedEvent>(FormComponentEventType.FORM_RUNTIME_ACTION_INVOKED, options);
+}
+
+export function createGenerationLifecycleChangedEvent(
+  options: FormComponentEventOptions<GenerationLifecycleChangedEvent>
+): FormComponentEventResult<GenerationLifecycleChangedEvent> {
+  return createEventResult<GenerationLifecycleChangedEvent>(FormComponentEventType.GENERATION_LIFECYCLE_CHANGED, options);
+}
+
+export function createGenerationPatchAppliedEvent(
+  options: FormComponentEventOptions<GenerationPatchAppliedEvent>
+): FormComponentEventResult<GenerationPatchAppliedEvent> {
+  return createEventResult<GenerationPatchAppliedEvent>(FormComponentEventType.GENERATION_PATCH_APPLIED, options);
 }
 
 export function createFormDeleteRequestedEvent(

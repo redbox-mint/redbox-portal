@@ -78,6 +78,232 @@
   height: 120px !important;
 }
 
+.rb-runtime-actions {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem 1.15rem;
+  border: 1px solid color-mix(in srgb, var(--bs-primary, #0d6efd) 22%, var(--rb-form-border-color));
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--bs-primary, #0d6efd) 7%, white), transparent 60%),
+    var(--bs-body-bg, #fff);
+}
+
+.rb-runtime-actions::after {
+  content: '';
+  position: absolute;
+  inset: auto -2.5rem -3.5rem auto;
+  width: 8rem;
+  height: 8rem;
+  border: 1.5rem solid color-mix(in srgb, var(--bs-primary, #0d6efd) 8%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.rb-runtime-actions__eyebrow,
+.rb-generation-panel__eyebrow {
+  margin-bottom: 0.45rem;
+  color: color-mix(in srgb, var(--bs-primary, #0d6efd) 82%, #132238);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rb-runtime-actions__list {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.rb-runtime-actions__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.rb-runtime-actions__help {
+  max-width: 42rem;
+  color: var(--bs-secondary-color, #5d6670);
+  font-size: 0.9rem;
+}
+
+.rb-generation-panel__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(9, 20, 34, 0.36);
+  backdrop-filter: blur(2px);
+}
+
+.rb-generation-panel {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  width: min(34rem, 100vw);
+  background: var(--bs-body-bg, #fff);
+  box-shadow: -1rem 0 3rem rgba(8, 20, 35, 0.2);
+  animation: rb-generation-panel-enter 180ms ease-out both;
+}
+
+@keyframes rb-generation-panel-enter {
+  from { transform: translateX(2rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.rb-generation-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem 1.1rem;
+  border-bottom: 1px solid var(--rb-form-border-color);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bs-primary, #0d6efd) 9%, white), white 70%);
+}
+
+.rb-generation-panel__header h2 {
+  margin: 0;
+  color: var(--bs-emphasis-color, #142334);
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.rb-generation-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.4rem 1.5rem 2rem;
+}
+
+.rb-generation-panel__intro {
+  margin-bottom: 1.35rem;
+  color: var(--bs-secondary-color, #5d6670);
+}
+
+.rb-generation-question {
+  position: relative;
+  padding-left: 2.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.rb-generation-question label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 650;
+}
+
+.rb-generation-question__number {
+  position: absolute;
+  left: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  color: var(--bs-primary, #0d6efd);
+  background: color-mix(in srgb, var(--bs-primary, #0d6efd) 11%, white);
+  font-size: 0.78rem;
+}
+
+.rb-generation-progress,
+.rb-generation-panel__actions,
+.rb-generation-complete {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rb-generation-progress {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.55rem;
+  background: var(--rb-form-bg-muted);
+}
+
+.rb-generation-panel__actions {
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.rb-generation-complete {
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.rb-generation-complete__mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--bs-success, #198754);
+  font-size: 1.25rem;
+}
+
+.rb-generation-complete h3,
+.rb-generation-review h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+}
+
+.rb-generation-review {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--bs-warning, #ffc107) 45%, var(--rb-form-border-color));
+  border-left-width: 0.3rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bs-warning, #ffc107) 8%, white);
+}
+
+.rb-generation-badge {
+  margin: -0.25rem 0 0.85rem;
+  color: var(--bs-secondary-color, #5d6670);
+  font-size: 0.86rem;
+}
+
+.rb-generation-badge details {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.rb-generation-badge summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.rb-generation-badge__mark {
+  color: var(--bs-primary, #0d6efd);
+}
+
+.rb-generation-badge__detail {
+  margin-top: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border-left: 2px solid color-mix(in srgb, var(--bs-primary, #0d6efd) 28%, transparent);
+  background: var(--rb-form-bg-muted);
+}
+
+.rb-generation-badge__detail p,
+.rb-generation-badge__detail ul {
+  margin-bottom: 0.5rem;
+}
+
+.rb-generation-badge__sources {
+  font-weight: 650;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-generation-panel { animation: none; }
+}
+
 .rb-form-host.rb-form-debug-popout .rb-form-shell {
   width: 100%;
   max-width: none;

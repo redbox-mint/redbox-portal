@@ -1,0 +1,64 @@
+{
+  "kind": "deployment",
+  "key": "demo-fake-rdmp-v1",
+  "version": 1,
+  "name": "Deterministic RDMP demo",
+  "connectionKey": "demo-fake-generation",
+  "modelId": "redbox-fixture-rdmp-1",
+  "requiredCapabilities": {
+    "structuredOutput": true,
+    "nonStreaming": true,
+    "textInput": true
+  },
+  "parameters": {
+    "fixtureResponse": {
+      "answers": {
+        "rdmpTitle": {
+          "value": "Coastal Communities Wellbeing Study — Data Management Plan",
+          "evidenceIds": ["source:activity:/title:22b4d711a1d7529b138844ce57876aa71e7ea7f32338ded29f88c5b56168f3db"],
+          "rationale": "Uses the authorised activity title to make the plan easy to identify."
+        },
+        "projectSummary": {
+          "value": "This fictional project explores how coastal change may affect community wellbeing and access to local services. It uses synthetic interviews and an anonymous survey demonstration to illustrate responsible planning for human-participant research.",
+          "evidenceIds": ["source:activity:/plainLanguageSummary:f8bd5fe81a9f7515d6554ec139c0d9d2dfe867700c2c937f0f2344aae8776ff8"],
+          "rationale": "Summarises the approved plain-language activity description."
+        },
+        "dataDescription": {
+          "value": "The project will produce de-identified survey responses, synthetic interview transcripts, and aggregate statistics. The demonstration contains no real participant information.",
+          "evidenceIds": ["source:activity:/methods:32ef9ff2771fc41a2177739865f35113e47bdbf5f9b81542460472166470a91a"],
+          "rationale": "Describes the stated collection methods without adding participant facts."
+        },
+        "dataTypes": {
+          "value": ["De-identified survey responses", "Synthetic interview transcripts", "Aggregate statistics"],
+          "evidenceIds": ["source:activity:/expectedDataTypes:0beecb48b3a28271d6a063f5a8715fb332898faf1af3976ef53f2d2a31262092"],
+          "rationale": "Copies the allowlisted data types from the activity."
+        },
+        "storageApproach": {
+          "value": "Store working data in an institution-managed research drive with role-based access, encrypted backups, and separate locations for identifiers and research content.",
+          "evidenceIds": [],
+          "rationale": "Applies the fictional approved storage guidance supplied to the demo."
+        },
+        "sharingAccess": {
+          "value": "Share aggregate outputs and reusable documentation openly where possible. Review any de-identified participant-level release against consent, ethics, and disclosure-risk requirements before access is granted.",
+          "evidenceIds": [],
+          "rationale": "Uses a cautious access approach suitable for the reviewed context."
+        },
+        "retentionDisposal": {
+          "value": "Retain the final research record for the period confirmed by the researcher and applicable policy. At the end of that period, review continuing value and securely dispose of material that no longer requires retention.",
+          "evidenceIds": [],
+          "rationale": "Leaves the final retention decision under researcher and policy control."
+        },
+        "sensitivityClassification": {
+          "value": "restricted",
+          "evidenceIds": [],
+          "rationale": "A conservative classification is appropriate for a human-participant scenario."
+        },
+        "ethicsStatement": {
+          "value": "Confirm ethics approval, participant consent, and permitted data-use conditions before the plan is finalised or data is shared.",
+          "evidenceIds": [],
+          "rationale": "Keeps the ethics status explicit without claiming an approval that was not supplied."
+        }
+      }
+    }
+  }
+}

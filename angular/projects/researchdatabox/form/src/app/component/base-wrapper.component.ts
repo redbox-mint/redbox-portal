@@ -40,7 +40,12 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
  */
 @Component({
   selector: 'redbox-form-base-wrapper',
-  template: ` <ng-template redboxFormBaseWrapper></ng-template> `,
+  template: `
+    <ng-template redboxFormBaseWrapper></ng-template>
+    @if (metadataPointer) {
+      <redbox-generation-provenance-badge [metadataPointer]="metadataPointer" />
+    }
+  `,
   standalone: false,
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {
@@ -62,6 +67,13 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   public get componentRef() {
     return this.formFieldCompMapEntry?.layoutRef || this.formFieldCompMapEntry?.componentRef || null;
+  }
+
+  public get metadataPointer(): string {
+    const path = this.formFieldCompMapEntry?.lineagePaths?.dataModel ?? [];
+    return path.length > 0
+      ? `/${path.map((part) => String(part).replaceAll('~', '~0').replaceAll('/', '~1')).join('/')}`
+      : '';
   }
 
   @HostBinding('style.display')

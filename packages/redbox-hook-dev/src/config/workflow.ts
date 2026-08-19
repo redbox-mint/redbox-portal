@@ -5,6 +5,32 @@ import type { WorkflowConfig } from '@researchdatabox/redbox-core';
  * Moved out of @researchdatabox/redbox-core; supplied via redbox-hook-dev.
  */
 export const workflow: WorkflowConfig = {
+    "researchActivity": {
+        "draft": {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: {
+                    viewRoles: ['Admin', 'Librarians', 'Researcher'],
+                    editRoles: ['Admin', 'Librarians', 'Researcher']
+                },
+                form: 'researchActivity-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    "demoRdmp": {
+        "draft": {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: {
+                    viewRoles: ['Admin', 'Librarians', 'Researcher'],
+                    editRoles: ['Admin', 'Librarians', 'Researcher']
+                },
+                form: 'demoRdmp-1.0-draft'
+            },
+            starting: true
+        }
+    },
     "rdmp": {
         "draft": {
             config: {

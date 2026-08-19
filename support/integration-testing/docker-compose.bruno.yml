@@ -22,6 +22,8 @@ services:
       npm ci --ignore-scripts &&
       node_modules/.bin/bru run
       --env int-test
+      --disable-cookies
+      --sandbox developer
       --format junit
       --output /opt/junit/backend-bruno/backend-bruno.xml
       --bail"
@@ -36,6 +38,7 @@ services:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
        - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
+       - "../../support/resources/development/bootstrap-data/generation:/opt/redbox-portal/bootstrap-data/generation:ro"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
@@ -68,6 +71,22 @@ services:
       - sails_recordValidation__mode=shadow
       - sails_recordtype__dataPublication__recordValidation__mode=enforce
       - sails_security__csrf=false
+      - UPPY_COMPANION_ENABLED=true
+      - UPPY_COMPANION_SECRET=integrationtest-companion-secret
+      - UPPY_COMPANION_FILE_PATH=/tmp/companion
+      - UPPY_COMPANION_HOST=redboxportal:1500
+      - UPPY_COMPANION_PROTOCOL=http
+      - UPPY_COMPANION_PATH=/companion
+      - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:1500/default/rdmp/companion/record/pending-oid/attach
+      - UPPY_GOOGLE_KEY=integrationtest-google-key
+      - UPPY_GOOGLE_SECRET=integrationtest-google-secret
+      - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
+      - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
+      - sails__generation_enabled=true
+      - sails__generation_adapters=fake
+      - sails__generation_artifacts_encryptionKeyRef=env:REDBOX_GENERATION_BRUNO_KEY
+      - sails__generation_artifacts_diagnosticRetentionDays=0
+      - REDBOX_GENERATION_BRUNO_KEY=ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=
     networks:
      main:
        aliases:

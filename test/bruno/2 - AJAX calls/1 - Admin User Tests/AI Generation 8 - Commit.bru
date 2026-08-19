@@ -1,0 +1,41 @@
+meta {
+  name: AI Generation 8 - Commit
+  type: http
+  seq: 67
+}
+
+post {
+  url: {{host}}/default/rdmp/generation/runs/{{generationRunId}}/commit
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{host}}
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "targetOid": "{{generationTargetOid}}",
+    "candidateDigest": "{{generationCandidateDigest}}",
+    "reviewedFieldIds": []
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Commits durable field provenance", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.committed).to.equal(true);
+    expect(data.provenanceCount).to.equal(9);
+    expect(data.targetOid).to.equal(bru.getEnvVar("generationTargetOid"));
+  });
+}
