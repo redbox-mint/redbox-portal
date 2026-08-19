@@ -15,7 +15,9 @@ flowchart LR
     F -->|reviewed context + draft snapshot| R[GenerationRun]
     R --> Q[Agenda queue]
     Q --> C[Context + knowledge retrieval]
-    C --> P[Provider adapter: OpenRouter POC]
+    C --> P[ReDBox provider adapter]
+    P --> SDK[Vercel AI SDK]
+    SDK --> OR[OpenRouter POC]
     P --> V[Schema, evidence and form validation]
     V --> CP[Candidate patch]
     CP -->|typed form events| F
@@ -392,7 +394,7 @@ The service layer is deliberately decomposed so provider, form, storage, and orc
 | `GenerationBindingService` | Binding CRUD, matching, action resolution, source/target permission checks, and deterministic relationship initial values. |
 | `GenerationModelService` | Connection/deployment CRUD, capability tests, publication, data-policy validation, and safe connection summaries. |
 | `GenerationProviderRegistryService` | Registry of installed adapter factories and capability negotiation. No executable adapter code is stored in the database. |
-| `OpenRouterGenerationProvider` | POC HTTP adapter, authentication, strict structured-output request, routing policy, timeouts, response/usage normalisation, and safe errors. |
+| `OpenRouterGenerationProvider` | POC ReDBox adapter that configures the Vercel AI SDK OpenAI-compatible provider, OpenRouter authentication/routing policy, guarded fetch, strict structured output, and safe result/usage normalisation. |
 | `GenerationSecretResolverService` | Resolves `env:`, config, workload identity, or installed secret-provider references just in time. POC needs `env:`. |
 | `GenerationKnowledgeService` | Knowledge/version CRUD, bootstrap ingestion, canonical chunking, hashing, publication, and deterministic tagged retrieval. |
 | `GenerationContextService` | Builds the minimal authorised source/question/target snapshot and evidence catalogue. |
@@ -584,7 +586,7 @@ The provider output schema is generated for the exact selected target fields. Co
 
 The exact schema contains every selected field and nothing else. ReDBox derives review/grounding state after verifying evidence. A model-provided confidence score is neither requested nor used for automatic application.
 
-For OpenRouter, the POC adapter uses non-streaming `POST /api/v1/chat/completions`, Bearer authentication, `response_format.type = json_schema`, `strict = true`, and `provider.require_parameters = true`. Deployment policy explicitly sets data-collection, ZDR, provider allow/order, and fallback behaviour. ReDBox requests router metadata when configured and records the actual returned model/provider summary. Local validation remains mandatory regardless of provider enforcement. See the official [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs), [provider routing](https://openrouter.ai/docs/guides/routing/provider-selection), and [router metadata](https://openrouter.ai/docs/guides/features/router-metadata) documentation.
+For OpenRouter, the POC adapter configures `@ai-sdk/openai-compatible` with the fixed OpenRouter base URL and invokes non-streaming `generateText` plus `Output.object` from `ai`. It supplies the exact generated schema and OpenRouter provider options for required parameters, data collection, ZDR, provider allow/order, and fallback behaviour. A custom guarded `fetch` preserves the response-size, redirect, timeout, and redaction controls. AI SDK retries, tools, cross-provider fallback, and telemetry are disabled; ReDBox owns those policies. ReDBox records only normalised output, usage, warnings, and requested/actual model/provider metadata, and then performs its complete local validation pipeline independently of SDK validation. See the official [AI SDK structured-output](https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data), [OpenRouter structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs), [provider routing](https://openrouter.ai/docs/guides/routing/provider-selection), and [router metadata](https://openrouter.ai/docs/guides/features/router-metadata) documentation.
 
 ### Output validation pipeline
 
@@ -708,9 +710,9 @@ Suggested metrics:
 
 Add `generation.config.ts` with typed defaults for enabled state, provider adapters, encryption key reference, artifact/diagnostic retention, timeouts, request/response/context limits, polling interval bounds, queue job names, concurrency/rate limits, and outbound policy.
 
-The POC uses existing Node `fetch`, `AbortController`, `crypto`, Zod, Agenda, Waterline/Mongo, FormsService, FormRecordConsistencyService, RecordsService, RecordTypesService, BrandingService, UsersService, and the existing form event bus. No OpenRouter SDK, AI framework, vector database, or DMPChef dependency is required.
+The POC adds exactly pinned `ai` and `@ai-sdk/openai-compatible` dependencies to `packages/redbox-core`. It otherwise uses Node `fetch`, `AbortController`, `crypto`, Zod, Agenda, Waterline/Mongo, FormsService, FormRecordConsistencyService, RecordsService, RecordTypesService, BrandingService, UsersService, and the existing form event bus. No OpenRouter-specific SDK, vector database, or DMPChef dependency is required.
 
-Future Bedrock delivery may add an exactly pinned AWS Bedrock Runtime SDK dependency. Future generic OpenAI-compatible delivery should continue using the provider-neutral adapter contract and outbound policy.
+Future Google Vertex and Bedrock delivery adds exactly pinned `@ai-sdk/google-vertex` and `@ai-sdk/amazon-bedrock` packages only when each provider is implemented. Credential-chain packages are added only where the provider requires them. All SDK package versions are selected and compatibility-tested together because their provider-spec versions must align. ReDBox retains its adapter contract, capability probes, outbound policy, secret references, and conformance tests; the AI SDK is an invocation implementation detail rather than the persisted configuration or public service contract.
 
 ## 3. Webservice Controllers (REST API)
 
@@ -1157,7 +1159,7 @@ Brand configuration may hide/reorder it using the existing admin-sidebar mechani
 | Admin REST CRUD | absent; services/bootstrap are tested directly | complete contracts above |
 | Tagged knowledge retrieval | complete | optional keyword/vector adapters |
 | Existing-record regeneration | absent | three-way replacement review |
-| Bedrock/OpenAI-compatible adapters | interfaces and fixtures only | implementations |
+| Vertex/Gemini, Bedrock, and generic OpenAI-compatible providers | interfaces and fixtures only | AI SDK-backed implementations |
 | Conditional questionnaire | absent | optional versioned capability |
 
 ## Assumptions
@@ -1173,7 +1175,7 @@ Brand configuration may hide/reorder it using the existing admin-sidebar mechani
 
 - Whether a future production deployment should default diagnostic retention to seven days or zero. The model supports both; POC configuration can use seven days for debugging.
 - Whether future administration should be one embedded app with internal sections or several EJS-mounted apps. One app is proposed for shared state and simpler navigation.
-- Which non-OpenRouter adapter is delivered first after POC. Capability contracts cover both generic OpenAI-compatible endpoints and Bedrock.
+- Which non-OpenRouter provider is delivered first after POC. Google Vertex AI/Gemini is the leading customer model-invocation integration and Bedrock is the leading AWS-hosted demo option; both use the same conformance contract. Confirm whether the client means Gemini models on Vertex AI or the separate Gemini Enterprise search/agent API: the Vercel AI SDK covers the former, while the latter requires a distinct integration contract.
 - Whether future rich-text targets should accept a restricted structured document model or sanitised HTML. The POC can use textarea controls and avoid deciding this prematurely.
 - Whether a future saved-record regeneration feature permits `replace`, `append`, or `merge` per target. The POC implements only `fill`.
 
@@ -1209,7 +1211,7 @@ Brand configuration may hide/reorder it using the existing admin-sidebar mechani
 - Data model and versioning: FR-CFG-001–009, FR-AUD-001–005.
 - Runtime actions and state machine: FR-ACT-001–009, NFR-REL-001–006.
 - Context/knowledge/prompt: FR-CTX-001–007, FR-KNW-001–007.
-- Provider adapters: FR-PRV-001–009, NFR-SEC-004–005.
+- Provider adapters: FR-PRV-001–010, NFR-SEC-004–005.
 - Candidate/form application: FR-PAT-001–010.
 - Provenance: FR-PRVNC-001–006.
 - UI/accessibility: NFR-UX-001–005.

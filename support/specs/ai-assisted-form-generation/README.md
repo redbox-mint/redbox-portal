@@ -6,7 +6,7 @@ Primary delivery target: customer-facing proof of concept
 
 Initial use case: Research Activity to institutional RDMP
 
-Initial model gateway: OpenRouter
+Initial model gateway: OpenRouter through the Vercel AI SDK
 
 This directory defines a generic ReDBox capability for generating validated form values from existing records, researcher-reviewed context, and approved institutional guidance. The first vertical slice helps a researcher create a data management plan, but the platform concepts deliberately do not contain DMP-specific assumptions.
 
@@ -19,7 +19,7 @@ This directory defines a generic ReDBox capability for generating validated form
 
 ## Delivery boundary
 
-The POC implements the end-to-end researcher experience and persists bootstrap-seeded configuration. Full admin management screens and non-OpenRouter provider adapters are designed now but delivered after the POC. The generation capability itself is a core feature; only representative demo record types, forms, records, and policy content belong in `redbox-hook-dev` or development bootstrap resources.
+The POC implements the end-to-end researcher experience and persists bootstrap-seeded configuration. Model calls use the provider-neutral [Vercel AI SDK](https://ai-sdk.dev/docs) behind ReDBox's domain adapter contract. Full admin management screens and non-OpenRouter providers are designed now but delivered after the POC. The generation capability itself is a core feature; only representative demo record types, forms, records, and policy content belong in `redbox-hook-dev` or development bootstrap resources.
 
 ## Relationship to DMPChef
 

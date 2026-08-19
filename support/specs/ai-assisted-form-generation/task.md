@@ -100,8 +100,8 @@ Legend:
 - [ ] **SV-13 [POC] Implement `GenerationPromptService`.** Build canonical provider-neutral messages separating platform/profile instructions from untrusted source/questions/knowledge and include exact evidence catalogue/schema. Skills: Redbox Services.
 - [ ] **SV-13T [POC] Add prompt fixture/safety tests.** Snapshot canonical ordering; inject instructions through titles, abstracts, question answers, and policy text; verify no tools, excluded fields, secrets, database paths, or raw brand internals enter the request. Skills: Redbox Testing.
 
-- [ ] **SV-14 [POC] Implement `OpenRouterGenerationProvider`.** Use built-in fetch, resolved Bearer secret, strict JSON Schema, required-parameter routing, configured data/ZDR/fallback policy, timeout/size bounds, no tools/streaming, and response/usage/router metadata normalisation. Skills: Redbox Services.
-- [ ] **SV-14T [POC] Test OpenRouter adapter with mocked fetch.** Cover exact outbound shape/headers, success, actual model/provider, 401, 404 model, 408/429, 5xx, abort timeout, oversized body, refusal/filter, malformed content, and secret/body-free logs. Skills: Redbox Testing.
+- [ ] **SV-14 [POC] Implement the AI SDK-backed `OpenRouterGenerationProvider`.** Add exactly pinned compatible `ai` and `@ai-sdk/openai-compatible` packages; keep SDK types inside the provider layer; use guarded fetch, resolved Bearer secret, `generateText` with `Output.object`, required-parameter routing, configured data/ZDR/fallback policy, timeout/size bounds, zero SDK retries, no tools/streaming/telemetry, and response/usage/router metadata normalisation. Skills: Redbox Services.
+- [ ] **SV-14T [POC] Test the AI SDK-backed OpenRouter adapter with mocked fetch.** Cover exact outbound shape/headers, strict schema translation, success, actual model/provider, SDK warnings, 401, 404 model, 408/429, 5xx, abort timeout, oversized body, refusal/filter, malformed content, zero automatic retries, and secret/body-free logs. Run the shared adapter conformance suite. Skills: Redbox Testing.
 
 - [ ] **SV-15 [POC] Implement `GenerationRunService` launch/get/execute/retry/cancel/expiry.** Pin published IDs, enforce actor/brand/limits, freeze encrypted input, queue by ID, and expose client-safe state/result. Skills: Redbox Services.
 - [ ] **SV-15T [POC] Test run lifecycle.** Cover one success per run, failed retry, double-click, multiple runs per source, actor/brand isolation, disabled feature, retired-after-launch semantics, rate/concurrency limits, cancellation, and artifact expiry. Skills: Redbox Testing.
@@ -272,11 +272,14 @@ Legend:
 
 ## 9. Post-POC provider and lifecycle tasks
 
-- [ ] **FULL-PRV-01 [FULL] Implement generic OpenAI-compatible adapter.** Apply endpoint outbound policy, schema/capability probing, custom auth references, strict output where supported, and provider-neutral normalisation. Skills: Redbox Services.
+- [ ] **FULL-PRV-01 [FULL] Implement generic OpenAI-compatible provider support.** Use `@ai-sdk/openai-compatible`; apply endpoint outbound policy, schema/capability probing, custom auth references, strict output where supported, and provider-neutral normalisation. Skills: Redbox Services.
 - [ ] **FULL-PRV-01T [FULL] Run common provider contract/security suite.** Include SSRF/private/redirect/DNS cases and servers that silently ignore parameters. Skills: Redbox Testing.
 
-- [ ] **FULL-PRV-02 [FULL] Implement AWS Bedrock adapter.** Add an exactly pinned SDK, credential-chain/assume-role/workload-identity support, Converse structured output, timeouts, no tools, and usage/error mapping. Skills: Redbox Services.
-- [ ] **FULL-PRV-02T [FULL] Run mocked SDK/common adapter suite and opt-in live test.** No AWS credentials are required in CI. Skills: Redbox Testing.
+- [ ] **FULL-PRV-02 [FULL] Implement Google Vertex AI/Gemini provider support.** Confirm whether the client needs Vertex model invocation or the separate Gemini Enterprise API. For Vertex, add exactly pinned `@ai-sdk/google-vertex`; support ADC/workload identity, project/location and publisher/custom models, compatible structured output, safety settings, timeouts, no tools/model-side retrieval, and usage/error mapping. Treat Gemini Enterprise search/agent APIs as a separate integration. Skills: Redbox Services.
+- [ ] **FULL-PRV-02T [FULL] Run Google provider contract tests and an opt-in Vertex live test.** Use mocked transport in CI and require no Google Cloud credentials in standard suites. Skills: Redbox Testing.
+
+- [ ] **FULL-PRV-03 [FULL] Implement AWS Bedrock provider support.** Add exactly pinned `@ai-sdk/amazon-bedrock` and required credential packages; support the default credential chain, assume role/workload identity, region/model configuration, compatible structured output, timeouts, no tools, and usage/error mapping. Skills: Redbox Services.
+- [ ] **FULL-PRV-03T [FULL] Run Bedrock provider contract tests and an opt-in live test.** Use mocked transport/LocalStack where applicable and require no AWS credentials in standard suites. Skills: Redbox Testing.
 
 - [ ] **FULL-KNW-01 [FULL] Add installed retrieval-adapter registry/vector option.** Enforce brand-specific namespaces, immutable collection versions, stable evidence IDs, reindex jobs, and evaluation fixtures. Skills: Redbox Services.
 - [ ] **FULL-KNW-01T [FULL] Test cross-brand index isolation and retrieval reproducibility.** Include reindex failure/rollback and expired effective-date content. Skills: Redbox Testing.
@@ -288,7 +291,7 @@ Legend:
 
 The current skills cover ReDBox models/services/controllers/form configuration/embedded Angular/testing and browser verification. Two specialist gaps remain:
 
-1. **Suggested skill: `redbox-generation-provider-development`.** Define the provider adapter contract, capability probing, structured-output normalisation, timeout/retry/error rules, secret redaction, outbound endpoint security, and shared conformance tests for OpenRouter/OpenAI-compatible/Bedrock.
+1. **Suggested skill: `redbox-generation-provider-development`.** Define the ReDBox provider adapter contract, AI SDK boundary, capability probing, structured-output normalisation, timeout/retry/error rules, secret redaction, outbound endpoint security, and shared conformance tests for OpenRouter/OpenAI-compatible/Google Vertex/Bedrock.
 2. **Suggested skill: `redbox-secure-transient-artifacts`.** Define application-level envelope encryption, key references/rotation, TTL/native Mongo index verification, diagnostic retention/purge, content-safe logs, and threat-model tests.
 
 These gaps do not block implementation, but the corresponding work should receive explicit security review rather than relying only on general service guidance.

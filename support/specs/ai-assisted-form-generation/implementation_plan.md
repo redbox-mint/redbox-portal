@@ -8,7 +8,7 @@ Requirements: [requirements.md](requirements.md)
 
 ## 1. Delivery strategy
 
-Deliver a narrow but real researcher experience first, behind disabled-by-default core configuration. The POC must use persisted/versioned configuration, a real queue, the real ReDBox form lifecycle, and a real OpenRouter adapter. It may defer the full admin application, additional provider adapters, conditional questionnaires, saved-record regeneration, and vector retrieval.
+Deliver a narrow but real researcher experience first, behind disabled-by-default core configuration. The POC must use persisted/versioned configuration, a real queue, the real ReDBox form lifecycle, and a real OpenRouter adapter implemented through the Vercel AI SDK. It may defer the full admin application, additional providers, conditional questionnaires, saved-record regeneration, and vector retrieval.
 
 The implementation is divided into two release milestones:
 
@@ -293,27 +293,29 @@ Skill guidance: Redbox Services, Redbox Form Config, Redbox Testing.
 
 ## 8. Phase 5 — OpenRouter adapter
 
-### 8.1 Implement `OpenRouterGenerationProvider`
+### 8.1 Add the AI SDK invocation layer and implement `OpenRouterGenerationProvider`
 
 File: `packages/redbox-core/src/services/generation/providers/OpenRouterGenerationProvider.ts`.
 
-Use built-in `fetch` with:
+Add exactly pinned, mutually compatible `ai` and `@ai-sdk/openai-compatible` dependencies to `packages/redbox-core`. Keep all AI SDK types and provider options inside `services/generation/providers/` so ReDBox services, persisted models, and client contracts remain stable if the SDK changes.
+
+Configure the OpenAI-compatible provider for the fixed OpenRouter endpoint and call non-streaming `generateText` with `Output.object`. Use:
 
 - configured/fixed POC base URL;
 - Bearer token from `GenerationSecretResolverService`;
 - JSON content type and optional approved attribution headers;
-- non-streaming chat completions;
+- non-streaming chat completions through the AI SDK;
 - configured model ID;
 - strict `json_schema` response format;
 - `provider.require_parameters = true`;
 - explicit data-collection/ZDR/provider/fallback routing policy from deployment;
 - no `tools`, plugins, browsing, or conversation history;
-- `AbortController` timeout;
-- response byte limit before parse;
+- ReDBox-owned abort timeout and zero SDK retries;
+- a guarded fetch that applies the response byte limit before the SDK parses it;
 - safe HTTP/rate-limit/error mapping;
 - response model, usage, finish reason, and optional router metadata normalisation.
 
-Do not add the OpenRouter SDK. Do not log request/response bodies. Do not repair malformed model JSON automatically in the POC.
+Do not provide tools or enable SDK telemetry. Do not add an OpenRouter-specific SDK. Do not log or return SDK request/response bodies. Do not repair malformed model JSON automatically in the POC.
 
 ### 8.2 Capability and health checks
 
@@ -674,17 +676,21 @@ Add component/service tests, REST/Bruno tests, cross-brand permission tests, and
 
 Skill guidance: Redbox Angular Apps, Redbox Angular Services, Redbox Controllers, Redbox Services, Redbox Testing, Web Interface Verification.
 
-## 16. Phase 13 — additional providers (post-POC)
+## 16. Phase 13 — additional AI SDK providers (post-POC)
 
 ### 16.1 Generic OpenAI-compatible adapter
 
-Implement behind the existing adapter interface with operator endpoint allowlisting, capability probes, strict structured-output mode where supported, custom header secret references, response normalisation, and local validation. Do not assume all OpenAI-compatible servers support identical parameters.
+Use `@ai-sdk/openai-compatible` behind the existing ReDBox adapter interface with operator endpoint allowlisting, capability probes, strict structured-output mode where supported, custom header secret references, response normalisation, and local validation. Do not assume all OpenAI-compatible servers support identical parameters.
 
-### 16.2 AWS Bedrock adapter
+### 16.2 Google Vertex AI/Gemini provider
 
-Add an exactly pinned AWS Bedrock Runtime dependency only when implementation begins. Support credential chain/assume role/workload identity, region/model configuration, Converse structured output for compatible models, timeouts, usage normalisation, and no tools. Add LocalStack/mocked SDK tests; live AWS tests remain opt-in.
+First confirm whether the client requires Gemini model invocation on Vertex AI or the distinct Gemini Enterprise search/agent API. For Vertex model invocation, add exactly pinned `@ai-sdk/google-vertex` only when implementation begins. Support application default credentials/workload identity, project, region, publisher/custom model configuration, structured output for compatible Gemini models, safety settings, timeouts, usage normalisation, and no tools or model-side retrieval. Add mocked provider tests; live Google Cloud tests remain opt-in. If Gemini Enterprise APIs are required, design a separate knowledge/agent integration; do not imply that the AI SDK Vertex provider supplies those APIs.
 
-### 16.3 Capability matrix and deployment migration
+### 16.3 AWS Bedrock provider
+
+Add exactly pinned `@ai-sdk/amazon-bedrock` and only the credential packages required by the implementation. Support the AWS default credential chain, assume role/workload identity, region/model configuration, structured output for compatible models, timeouts, usage normalisation, and no tools. Add mocked SDK/LocalStack tests where protocol support permits; live AWS tests remain opt-in.
+
+### 16.4 Capability matrix and deployment migration
 
 Expose installed adapter capabilities in admin UI. Require a new tested deployment and profile version for model/provider changes. Never transparently fall back across deployments.
 

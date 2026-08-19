@@ -29,7 +29,7 @@ The feature is not an RDMP generator baked into the form definition. RDMP genera
 5. **The form lifecycle remains authoritative.** Existing validation, workflow, permissions, server-side hooks, identifiers, derived fields, and audit behaviour continue to operate normally.
 6. **Researcher work is protected.** Empty fields may be populated. Existing values are preserved by default. The POC permits only one successful run for each new target-form creation intent.
 7. **Grounding is inspectable.** Generated fields carry compact provenance and can expose the project facts or approved guidance used. Unsupported conclusions are flagged rather than disguised as facts.
-8. **Providers are replaceable.** A provider adapter and capability contract separates a Generation Profile from OpenRouter, AWS Bedrock, or an OpenAI-compatible endpoint.
+8. **Providers are replaceable.** ReDBox keeps a domain adapter and capability contract while using the Vercel AI SDK for model invocation. A Generation Profile is separated from OpenRouter, Google Vertex AI/Gemini, AWS Bedrock, or another supported endpoint.
 9. **Brand isolation is mandatory.** Profiles, connections, deployments, knowledge, runs, diagnostics, caches, and provenance are scoped by the authenticated brand.
 10. **Data minimisation is the default.** The prompt contains only data explicitly authorised by the published profile. The model has no tools, browsing, database access, conversation history, or credentials.
 
@@ -57,7 +57,7 @@ The feature is not an RDMP generator baked into the form definition. RDMP genera
 | Administration | The full feature provides admin screens similar to vocabulary management. For the POC, profiles, bindings, deployments, connections, and knowledge are bootstrap-seeded persisted entities. |
 | Publishing authority | An Admin may draft, test, publish, and retire configuration. No additional approval role or workflow is required. Published versions are immutable. |
 | Provider | The POC calls OpenRouter. The exact model is deliberately selected near completion and stored as deployment configuration, not hard-coded. |
-| Provider extensibility | The architecture supports installed adapters for OpenRouter, AWS Bedrock, and generic OpenAI-compatible protocols. Provider support is capability-driven. |
+| Provider extensibility | The architecture uses the Vercel AI SDK behind installed ReDBox adapters and supports OpenRouter initially, followed by Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible protocols. Provider support is capability-tested rather than assumed from an SDK/provider name. |
 | Credentials | Credentials and billing arrangements are provider-dependent. Database records contain a secret reference, never a secret value. The POC resolves an OpenRouter API key from environment/secret configuration. |
 | Model tools | None. ReDBox constructs the prompt and the model returns a structured response. Retrieval and all data access are deterministic server responsibilities. |
 | Knowledge | A fictional, approved policy pack for data classification, storage, retention, and sharing. No arbitrary web retrieval. |
@@ -178,8 +178,8 @@ The operator installs supported provider adapters, supplies secret-resolution me
 
 ### 6.5 Provider execution
 
-- **FR-PRV-001** Provider adapters expose configuration schema, secret schema, capabilities, health check, invocation, timeout/cancellation, and usage metadata.
-- **FR-PRV-002** The POC implements the OpenRouter adapter using its OpenAI-compatible chat-completions endpoint and strict JSON Schema response format.
+- **FR-PRV-001** ReDBox provider adapters expose configuration schema, secret schema, capabilities, health check, invocation, timeout/cancellation, and usage metadata. They use Vercel AI SDK language models internally but do not expose SDK types outside the provider layer.
+- **FR-PRV-002** The POC implements the OpenRouter adapter with the Vercel AI SDK core and OpenAI-compatible provider, using OpenRouter's chat-completions endpoint and strict JSON Schema response format.
 - **FR-PRV-003** The selected OpenRouter model slug is deployment configuration and may be changed before the demo without code changes.
 - **FR-PRV-004** Execution must require structured-output support and reject a deployment that cannot meet required profile capabilities.
 - **FR-PRV-005** OpenRouter requests must set provider routing controls that require requested parameters. Data-collection/ZDR/fallback controls are explicit deployment policy, not implicit defaults hidden in code.
@@ -187,6 +187,7 @@ The operator installs supported provider adapters, supplies secret-resolution me
 - **FR-PRV-007** The durable run audit records requested and actual model/provider identifiers when available.
 - **FR-PRV-008** The POC must not transparently switch models after a request starts. Transient retries use the same deployment.
 - **FR-PRV-009** No provider adapter may expose tools to the model for this feature.
+- **FR-PRV-010** AI SDK automatic retries, provider fallback, tools, and telemetry are disabled for generation runs. ReDBox owns retry, timeout, audit, and deployment-selection policy.
 
 ### 6.6 Candidate validation and application
 
@@ -359,7 +360,7 @@ Each document declares a fictional institution name prominently, carries a stabl
 - Automatic generation on create, save, workflow transition, or field change.
 - Streaming provider output.
 - Cross-model/provider fallback.
-- AWS Bedrock and generic OpenAI-compatible runtime adapters.
+- Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible runtime adapters implemented through their Vercel AI SDK providers.
 - Vector embeddings or an external vector database.
 - Arbitrary web retrieval or model tools.
 - Files, maps, record selectors, workspaces, integration controls, and system fields as targets.
@@ -373,7 +374,7 @@ Each document declares a fictional institution name prominently, carries a stabl
 After the researcher experience is accepted:
 
 1. Deliver admin management screens and draft/test/publish/version-history workflows.
-2. Add generic OpenAI-compatible and AWS Bedrock adapters behind the same capability contract.
+2. Add Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible providers behind the same ReDBox capability contract.
 3. Add profile test suites, comparison reports, and controlled model-deployment upgrades.
 4. Add knowledge upload/preview/publish/reindex management and optional vector retrieval adapters.
 5. Add saved-record regeneration with three-way merge and explicit replacement review.
@@ -387,3 +388,7 @@ After the researcher experience is accepted:
 - OpenRouter provider routing and required-parameter/data controls: <https://openrouter.ai/docs/guides/routing/provider-selection>
 - OpenRouter zero-data-retention controls: <https://openrouter.ai/docs/guides/features/zdr>
 - Amazon Bedrock structured output (future adapter): <https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html>
+- Vercel AI SDK provider architecture: <https://ai-sdk.dev/docs/foundations/providers-and-models>
+- Vercel AI SDK structured output: <https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data>
+- Vercel AI SDK Google Vertex provider: <https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex>
+- Vercel AI SDK Amazon Bedrock provider: <https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock>

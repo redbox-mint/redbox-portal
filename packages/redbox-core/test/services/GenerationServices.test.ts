@@ -267,7 +267,7 @@ describe('Generation core primitives and services', () => {
   it('builds a strict OpenRouter request without allowing endpoint/header/body overrides', async () => {
     const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
       model: 'provider/model', provider: 'provider-a', choices: [{ finish_reason: 'stop', message: { content: '{"answers":{}}' } }],
-      usage: { total_tokens: 3 },
+      usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3, cost: 0.001 },
     }), { status: 200 }));
     const provider = new OpenRouterGenerationProvider();
     const response = await provider.invoke({
@@ -276,24 +276,88 @@ describe('Generation core primitives and services', () => {
         nonSecretHeaders: { Authorization: 'attacker', 'X-Title': 'ReDBox' },
       },
       deployment: {
-        modelId: 'provider/model', parameters: { stream: true, model: 'attacker/model' },
+        modelId: 'provider/model',
+        parameters: {
+          stream: true, model: 'attacker/model', tools: [{ type: 'attacker' }], plugins: [{ id: 'attacker' }],
+          web_search_options: { enabled: true }, temperature: 0.2,
+        },
         routingPolicy: { allow_fallbacks: false, data_collection: 'deny' },
       },
       messages: [{ role: 'user', content: 'Synthetic input' }], responseSchema: { type: 'object' }, correlationId: 'run-1',
     }, new AbortController().signal);
     const request = fetchStub.firstCall.args[1] as RequestInit;
     const body = JSON.parse(String(request.body));
+    const headers = new Headers(request.headers);
     expect(fetchStub.firstCall.args[0]).to.equal('https://openrouter.ai/api/v1/chat/completions');
     expect(request.redirect).to.equal('error');
-    expect(request.headers).to.deep.include({ Authorization: 'Bearer secret-value', 'X-Title': 'ReDBox' });
-    expect(body).to.include({ model: 'provider/model', stream: false });
+    expect(headers.get('authorization')).to.equal('Bearer secret-value');
+    expect(headers.get('x-title')).to.equal('ReDBox');
+    expect(body).to.include({ model: 'provider/model', stream: false, temperature: 0.2 });
     expect(body.provider).to.include({ require_parameters: true, allow_fallbacks: false, data_collection: 'deny' });
     expect(body).not.to.have.property('tools');
+    expect(body).not.to.have.property('plugins');
+    expect(body).not.to.have.property('web_search_options');
+    expect(body.response_format).to.deep.include({ type: 'json_schema' });
+    expect(body.response_format.json_schema).to.deep.include({ name: 'redbox_generation_candidate', strict: true });
+    expect(response.content).to.equal('{"answers":{}}');
+    expect(response.actualModel).to.equal('provider/model');
     expect(response.actualProvider).to.equal('provider-a');
+    expect(response.usage).to.deep.equal({ inputTokens: 1, outputTokens: 2, totalTokens: 3, cost: 0.001 });
     await expectRejection(provider.invoke({
       connection: { endpoint: 'https://openrouter.ai.evil.example/api/v1', secret: 'secret', timeoutMs: 1000 },
       deployment: { modelId: 'model' }, messages: [], responseSchema: {}, correlationId: 'run-2',
     }, new AbortController().signal), 'endpoint is not allowed');
+  });
+
+  it('maps AI SDK provider errors without automatic retries or response leakage', async () => {
+    const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+      error: { message: 'provider detail that must not escape' },
+    }), { status: 429 }));
+    const provider = new OpenRouterGenerationProvider();
+    const error = await expectRejection(provider.invoke({
+      connection: { endpoint: 'https://openrouter.ai/api/v1', secret: 'secret-value', timeoutMs: 1000 },
+      deployment: { modelId: 'provider/model' }, messages: [{ role: 'user', content: 'Synthetic input' }],
+      responseSchema: { type: 'object' }, correlationId: 'run-rate-limit',
+    }, new AbortController().signal));
+    expect(error.code).to.equal('GENERATION_PROVIDER_RATE_LIMITED');
+    expect(error.message).not.to.contain('provider detail');
+    expect(fetchStub.callCount).to.equal(1);
+  });
+
+  it('maps an AI SDK transport abort to the ReDBox timeout contract', async () => {
+    const fetchStub = sinon.stub(globalThis, 'fetch').callsFake((_request: string | URL | Request, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted', 'AbortError')), { once: true });
+      }));
+    const provider = new OpenRouterGenerationProvider();
+    const error = await expectRejection(provider.invoke({
+      connection: { endpoint: 'https://openrouter.ai/api/v1', secret: 'secret-value', timeoutMs: 5 },
+      deployment: { modelId: 'provider/model' }, messages: [{ role: 'user', content: 'Synthetic input' }],
+      responseSchema: { type: 'object' }, correlationId: 'run-timeout',
+    }, new AbortController().signal));
+    expect(error.code).to.equal('GENERATION_PROVIDER_TIMEOUT');
+    expect(fetchStub.callCount).to.equal(1);
+  });
+
+  it('rejects oversized or schema-invalid AI SDK responses', async () => {
+    sails.config.generation.provider.maxResponseBytes = 64;
+    const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response('x'.repeat(65), { status: 200 }));
+    const provider = new OpenRouterGenerationProvider();
+    const request = {
+      connection: { endpoint: 'https://openrouter.ai/api/v1', secret: 'secret-value', timeoutMs: 1000 },
+      deployment: { modelId: 'provider/model' }, messages: [{ role: 'user' as const, content: 'Synthetic input' }],
+      responseSchema: { type: 'object' }, correlationId: 'run-invalid-output',
+    };
+    const oversized = await expectRejection(provider.invoke(request, new AbortController().signal));
+    expect(oversized.code).to.equal('GENERATION_OUTPUT_PARSE_FAILED');
+
+    sails.config.generation.provider.maxResponseBytes = 10_000;
+    fetchStub.resolves(new Response(JSON.stringify({
+      model: 'provider/model', choices: [{ finish_reason: 'stop', message: { content: 'not-json' } }],
+      usage: { total_tokens: 3 },
+    }), { status: 200 }));
+    const invalid = await expectRejection(provider.invoke(request, new AbortController().signal));
+    expect(invalid.code).to.equal('GENERATION_OUTPUT_PARSE_FAILED');
   });
 
   it('registers all twelve generation model definitions exactly once', () => {
