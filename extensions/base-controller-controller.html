@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controller · ReDBox developer reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css?family=Titillium+Web:200,300,400,600,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,400,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Raleway:100,200,400&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/redbox-logo.png">
+<link rel="stylesheet" href="../assets/reference.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Go to the content</a>
+<header class="masthead">
+  <div class="masthead-utility"><div class="shell">
+    <a class="masthead-brand" href="../index.html"><img src="../assets/redbox-logo.png" alt="ReDBox" width="171" height="100"><span>Research Data Box</span></a>
+    <ul class="masthead-utility-links">
+      <li><a href="https://github.com/redbox-mint/redbox-portal/wiki">ReDBox Wiki</a></li>
+      <li><a href="https://github.com/redbox-mint/redbox-portal">Source code</a></li>
+    </ul>
+  </div></div>
+  <div class="masthead-band"><div class="shell">
+    <p class="masthead-title">Developer reference</p>
+  </div></div>
+  <nav class="masthead-nav" aria-label="Sections"><div class="shell"><a href="../index.html">Start</a><a href="../extensions/index.html" class="is-current" aria-current="page">Extensions</a><a href="../forms/index.html">Form configuration</a><a href="../api/index.html">REST API</a></div></nav>
+</header>
+<main id="content"><div class="shell"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Start</a><span aria-hidden="true">/</span><a href="index.html">Extensions</a><span aria-hidden="true">/</span><span>Controller</span></nav>
+<div class="page-head">
+  <p class="eyebrow">base controller</p>
+  <h1>Controller</h1>
+  <p class="badge-row"><span class="badge badge-supported">supported</span></p>
+  <p class="lede">Core controller which defines common logic between controllers.
+
+Workflow details:
+- First, the &quot;_handleRequest&quot; method must be called. It ensures common stuff happens, and bind some data into the option object.
+- It calls a magic method such as &quot;__beforeIndex&quot; if the request was coming from an &quot;index&quot; method.
+- If it doesn't find any specific magic method to call, it calls directly the &quot;__beforeEach&quot; method.
+- If it does find a custom magic method, then the &quot;__beforeIndex&quot; will automatically call the &quot;__beforeEach&quot; once it is done.
+- Once all the &quot;__before&quot; magic methods have been called, the caller's callback function is called.
+
+The options object contains specific stuff that belongs to the controllers logic, I could have use the req but I prefer not.
+
+The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
+They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.</p>
+  <p class="action-row"><a class="button" href="https://github.com/redbox-mint/redbox-portal/blob/fbb1881865bfa26056774e42c23fdad570b1ccde/packages/redbox-core/src/CoreController.ts#L44">Open the source file</a><span class="source-path"><code>packages/redbox-core/src/CoreController.ts:44</code></span></p>
+</div>
+<aside class="callout"><p class="callout-title">How to change this contract</p><p>Hook controllers extend this class, retain inherited <code>_exportedMethods</code>, and export replacements under the same controller registry name.</p></aside>
+<section><h2>Members</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Member</th><th scope="col">Contract</th><th scope="col">Default</th><th scope="col">Purpose</th></tr></thead><tbody><tr><td data-label="Member"><code>exports</code></td><td data-label="Contract"><code>(): Record&lt;string, unknown&gt;</code></td><td data-label="Default"><code></code></td><td data-label="Purpose">Returns an object that contains all exported methods of the controller.
+These methods must be defined in either the &quot;_defaultExportedMethods&quot; or &quot;_exportedMethods&quot; arrays.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/fbb1881865bfa26056774e42c23fdad570b1ccde/packages/redbox-core/src/CoreController.ts#L187">Open the source</a></p></td></tr><tr><td data-label="Member"><code>sendResp</code></td><td data-label="Contract"><code>(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response</code></td><td data-label="Default"><code></code></td><td data-label="Purpose">Send a response built from the properties.
+
+Defaults / Conventions:
+- The default response format is 'json'.
+- If only 'data' is provided, the 'status' will be 200.
+- If there are any 'errors', the 'status' will default to 500.
+- If there are no displayErrors, a generic one will be added.
+- Errors are never used as display errors, to avoid revealing implementation details.
+- If there are any displayErrors:
+  - the top-level status will be 500 if any status starts with 5, or
+  - the top-level status will be 400 if any status starts with 4 and no statuses start with a 5, or
+  - the top-level status will be 500 if none of the display errors has a status, and the top-level status is not already 4xx or 5xx.
+- The response will be in the format matching the request kind (e.g. API, ajax).
+- If there is no displayError.title and no displayError.detail, and displayError.code is set,
+  the displayError.code will be used as a translation message identifier for displayError.title.
+- Both displayError.title and displayError.detail will be treated as translation message identifiers.
+- API v1 will return 'v1' if it is set.
+- API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/fbb1881865bfa26056774e42c23fdad570b1ccde/packages/redbox-core/src/CoreController.ts#L573">Open the source</a></p></td></tr></tbody></table></div></section><section><h2>Example</h2><p class="section-note">The build tools test this example each time they make this page.</p><pre><code>import { defineRedboxHook } from '../../../packages/redbox-core/src/hooks';
+import { Services as RecordsServiceNamespace } from '../../../packages/redbox-core/src/services/RecordsService';
+import { Controllers as RecordControllerNamespace } from '../../../packages/redbox-core/src/controllers/RecordController';
+
+class ExampleRecordsService extends RecordsServiceNamespace.Records {
+  public constructor() {
+    super();
+    this._exportedMethods = [...this._exportedMethods, 'extensionHealth'];
+  }
+
+  public extensionHealth(): { ready: true } {
+    return { ready: true };
+  }
+}
+
+class ExampleRecordController extends RecordControllerNamespace.Record {
+  public constructor() {
+    super();
+    this._exportedMethods = [...this._exportedMethods, 'extensionHealth'];
+  }
+
+  public extensionHealth(req: Sails.Req, res: Sails.Res) {
+    return this.sendResp(req, res, { data: { ready: true } });
+  }
+}
+
+export default defineRedboxHook({
+  registerRedboxServices: () =&gt; ({ RecordsService: new ExampleRecordsService().exports() }),
+  registerRedboxControllers: () =&gt; ({ RecordController: new ExampleRecordController().exports() }),
+});</code></pre></section></div></main>
+<footer class="site-footer"><div class="shell">
+  <p>The build tools make this reference from the ReDBox source code.</p>
+  <p>For the architecture, the workflows and the longer examples, read the <a href="https://github.com/redbox-mint/redbox-portal/wiki">ReDBox Wiki</a>.</p>
+</div></footer>
+</body>
+</html>

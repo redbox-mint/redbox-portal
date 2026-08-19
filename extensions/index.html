@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extensions · ReDBox developer reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css?family=Titillium+Web:200,300,400,600,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,400,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Raleway:100,200,400&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/redbox-logo.png">
+<link rel="stylesheet" href="../assets/reference.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Go to the content</a>
+<header class="masthead">
+  <div class="masthead-utility"><div class="shell">
+    <a class="masthead-brand" href="../index.html"><img src="../assets/redbox-logo.png" alt="ReDBox" width="171" height="100"><span>Research Data Box</span></a>
+    <ul class="masthead-utility-links">
+      <li><a href="https://github.com/redbox-mint/redbox-portal/wiki">ReDBox Wiki</a></li>
+      <li><a href="https://github.com/redbox-mint/redbox-portal">Source code</a></li>
+    </ul>
+  </div></div>
+  <div class="masthead-band"><div class="shell">
+    <p class="masthead-title">Developer reference</p>
+  </div></div>
+  <nav class="masthead-nav" aria-label="Sections"><div class="shell"><a href="../index.html">Start</a><a href="../extensions/index.html" class="is-current" aria-current="page">Extensions</a><a href="../forms/index.html">Form configuration</a><a href="../api/index.html">REST API</a></div></nav>
+</header>
+<main id="content"><div class="shell"><div class="page-head">
+  <p class="eyebrow">Contract list</p>
+  <h1>Extensions</h1>
+  <p class="lede">A hook uses these contracts to add functions to ReDBox, or to replace them. The list shows the hook protocol, the base contracts, the services, the controllers and their routes.</p>
+</div>
+<div class="catalogue-tools"><label class="visually-hidden" for="search">Filter the contracts</label><input id="search" type="search" placeholder="Type a name, a kind or a purpose"><p id="search-status" class="catalogue-count" aria-live="polite">6 contracts</p></div>
+<div class="table-wrap catalogue-table-wrap"><table class="data-table catalogue-table"><colgroup><col class="name-column"><col class="kind-column"><col class="summary-column"></colgroup><thead><tr><th scope="col">Contract</th><th scope="col">Kind</th><th scope="col">Purpose</th></tr></thead><tbody id="results"><tr data-search="recordcontroller ajax-controller responsible for all things related to a record, includings forms, etc."><td class="contract-name" data-label="Contract"><a href="ajax-controller-recordcontroller.html">RecordController</a></td><td class="contract-kind" data-label="Kind">ajax controller</td><td class="contract-summary" data-label="Purpose">Responsible for all things related to a Record, includings Forms, etc.</td></tr><tr data-search="controller base-controller core controller which defines common logic between controllers.
+
+workflow details:
+- first, the &quot;_handlerequest&quot; method must be called. it ensures common stuff happens, and bind some data into the option object.
+- it calls a magic method such as &quot;__beforeindex&quot; if the request was coming from an &quot;index&quot; method.
+- if it doesn't find any specific magic method to call, it calls directly the &quot;__beforeeach&quot; method.
+- if it does find a custom magic method, then the &quot;__beforeindex&quot; will automatically call the &quot;__beforeeach&quot; once it is done.
+- once all the &quot;__before&quot; magic methods have been called, the caller's callback function is called.
+
+the options object contains specific stuff that belongs to the controllers logic, i could have use the req but i prefer not.
+
+the public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
+they exists just to bind by default all these methods without take care if they exists or not in order to speed up development."><td class="contract-name" data-label="Contract"><a href="base-controller-controller.html">Controller</a></td><td class="contract-kind" data-label="Kind">base controller</td><td class="contract-summary" data-label="Purpose">Core controller which defines common logic between controllers.
+
+Workflow details:
+- First, the &quot;_handleRequest&quot; method must be called. It ensures common stuff happens, and bind some data into the option object.
+- It calls a magic method such as &quot;__beforeIndex&quot; if the request was coming from an &quot;index&quot; method.
+- If it doesn't find any specific magic method to call, it calls directly the &quot;__beforeEach&quot; method.
+- If it does find a custom magic method, then the &quot;__beforeIndex&quot; will automatically call the &quot;__beforeEach&quot; once it is done.
+- Once all the &quot;__before&quot; magic methods have been called, the caller's callback function is called.
+
+The options object contains specific stuff that belongs to the controllers logic, I could have use the req but I prefer not.
+
+The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
+They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.</td></tr><tr data-search="service base-service base contract for services exposed through redbox loader-generated sails shims."><td class="contract-name" data-label="Contract"><a href="base-service-service.html">Service</a></td><td class="contract-kind" data-label="Kind">base service</td><td class="contract-summary" data-label="Purpose">Base contract for services exposed through ReDBox loader-generated Sails shims.</td></tr><tr data-search="defineredboxhook hook-protocol declares the capabilities contributed by an installable redbox hook."><td class="contract-name" data-label="Contract"><a href="hook-protocol-defineredboxhook.html">defineRedboxHook</a></td><td class="contract-kind" data-label="Kind">hook protocol</td><td class="contract-summary" data-label="Purpose">Declares the capabilities contributed by an installable ReDBox hook.</td></tr><tr data-search="recordsservice service provides the core record lifecycle, persistence, authorization, and relationship operations."><td class="contract-name" data-label="Contract"><a href="service-recordsservice.html">RecordsService</a></td><td class="contract-kind" data-label="Kind">service</td><td class="contract-summary" data-label="Purpose">Provides the core record lifecycle, persistence, authorization, and relationship operations.</td></tr><tr data-search="recordcontroller webservice-controller implements the legacy webservice record operations exposed by the core route registry."><td class="contract-name" data-label="Contract"><a href="webservice-controller-recordcontroller.html">RecordController</a></td><td class="contract-kind" data-label="Kind">webservice controller</td><td class="contract-summary" data-label="Purpose">Implements the legacy webservice record operations exposed by the core route registry.</td></tr></tbody></table></div>
+<p class="empty-state" id="no-results" hidden>No contract agrees with the filter. Change the text, or clear the field.</p>
+<script src="../assets/search.js"></script></div></main>
+<footer class="site-footer"><div class="shell">
+  <p>The build tools make this reference from the ReDBox source code.</p>
+  <p>For the architecture, the workflows and the longer examples, read the <a href="https://github.com/redbox-mint/redbox-portal/wiki">ReDBox Wiki</a>.</p>
+</div></footer>
+</body>
+</html>

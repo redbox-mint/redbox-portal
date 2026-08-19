@@ -1,0 +1,377 @@
+FORMAT: 1A
+HOST: http://localhost
+
+POST /default/rdmp/api/records/metadata/{recordType}
++ Summary: Create record metadata
+
+PUT /default/rdmp/api/records/metadata/{oid}
++ Summary: Update record metadata
+
+POST /default/rdmp/api/records/harvest/{recordType}
++ Summary: Harvest record metadata
+
+POST /default/rdmp/api/mint/harvest/{recordType}
++ Summary: Legacy harvest record metadata
+
+PUT /default/rdmp/api/records/objectmetadata/{oid}
++ Summary: Update object metadata
+
+GET /default/rdmp/api/records/metadata/{oid}
++ Summary: Get record metadata
+
+GET /default/rdmp/api/records/audit/{oid}
++ Summary: Get record audit
+
+GET /default/rdmp/api/records/list
++ Summary: List records
+
+GET /default/rdmp/api/deletedrecords/list
++ Summary: List deleted records
+
+PUT /default/rdmp/api/deletedrecords/{oid}
++ Summary: Restore deleted record
+
+DELETE /default/rdmp/api/deletedrecords/{oid}
++ Summary: Destroy deleted record
+
+GET /default/rdmp/api/records/objectmetadata/{oid}
++ Summary: Get object metadata
+
+DELETE /default/rdmp/api/records/metadata/{oid}
++ Summary: Delete record metadata
+
+POST /default/rdmp/api/records/permissions/edit/{oid}
++ Summary: Add edit permissions
+
+DELETE /default/rdmp/api/records/permissions/edit/{oid}
++ Summary: Remove edit permissions
+
+POST /default/rdmp/api/records/permissions/view/{oid}
++ Summary: Add view permissions
+
+DELETE /default/rdmp/api/records/permissions/view/{oid}
++ Summary: Remove view permissions
+
+POST /default/rdmp/api/records/permissions/editRole/{oid}
++ Summary: Add edit role permissions
+
+DELETE /default/rdmp/api/records/permissions/editRole/{oid}
++ Summary: Remove edit role permissions
+
+POST /default/rdmp/api/records/permissions/viewRole/{oid}
++ Summary: Add view role permissions
+
+DELETE /default/rdmp/api/records/permissions/viewRole/{oid}
++ Summary: Remove view role permissions
+
+GET /default/rdmp/api/records/permissions/{oid}
++ Summary: Get record permissions
+
+POST /default/rdmp/api/records/datastreams/{oid}
++ Summary: Upload record datastreams
++ File attachmentFields: Datastream files | maxBytes=104857600
+
+GET /default/rdmp/api/records/datastreams/{oid}/{datastreamId}
++ Summary: Download datastream
+
+GET /default/rdmp/api/records/datastreams/{oid}
++ Summary: List datastreams
+
+POST /default/rdmp/api/records/workflow/step/{targetStep}/{oid}
++ Summary: Transition workflow step
+
+GET /default/rdmp/api/users
++ Summary: List users
+
+GET /default/rdmp/api/users/find
++ Summary: Find user
+
+GET /default/rdmp/api/users/get
++ Summary: Get user
+
+GET /default/rdmp/api/users/link/candidates
++ Summary: Search user link candidates
+
+GET /default/rdmp/api/users/{id}/links
++ Summary: Get linked accounts
+
+GET /default/rdmp/api/users/{id}/audit
++ Summary: Get user audit
+
+POST /default/rdmp/api/users/link
++ Summary: Link accounts
+
+PUT /default/rdmp/api/users
++ Summary: Create user
+
+POST /default/rdmp/api/users
++ Summary: Update user
+
+POST /default/rdmp/api/users/{id}/disable
++ Summary: Disable user
+
+POST /default/rdmp/api/users/{id}/enable
++ Summary: Enable user
+
+POST /default/rdmp/api/users/token/generate
++ Summary: Generate API token
+
+POST /default/rdmp/api/users/token/revoke
++ Summary: Revoke API token
+
+GET /default/rdmp/api/roles
++ Summary: List roles
+
+POST /default/rdmp/api/roles/{roleName}
++ Summary: Create system role
+
+GET /default/rdmp/api/search
++ Summary: Search records
+
+POST /default/rdmp/api/search/index
++ Summary: Queue record indexing
+
+POST /default/rdmp/api/search/indexAll
++ Summary: Queue all records for indexing
+
+POST /default/rdmp/api/search/removeAll
++ Summary: Remove all indexed records
+
+GET /default/rdmp/api/forms/get
++ Summary: Get form definition
+
+GET /default/rdmp/api/forms
++ Summary: List forms
+
+GET /default/rdmp/api/harvest-runs
++ Summary: List harvest runs
+
+GET /default/rdmp/api/harvest-runs/{id}
++ Summary: Get harvest run detail
+
+GET /default/rdmp/api/harvest-runs/{id}/events
++ Summary: List harvest run events
+
+GET /default/rdmp/api/vocabulary
++ Summary: List vocabulary
+
+POST /default/rdmp/api/vocabulary/import
++ Summary: Import vocabulary
+
+GET /default/rdmp/api/vocabulary/{id}
++ Summary: Get vocabulary
+
+POST /default/rdmp/api/vocabulary
++ Summary: Create vocabulary
+
+PUT /default/rdmp/api/vocabulary/{id}
++ Summary: Update vocabulary
+
+PUT /default/rdmp/api/vocabulary/{id}/reorder
++ Summary: Reorder vocabulary entries
+
+DELETE /default/rdmp/api/vocabulary/{id}
++ Summary: Delete vocabulary
+
+POST /default/rdmp/api/vocabulary/{id}/sync
++ Summary: Sync vocabulary
+
+GET /default/rdmp/api/figshare-vocabularies/catalogues
++ Summary: Discover Figshare category taxonomies
+
+GET /default/rdmp/api/figshare-vocabularies/sources
++ Summary: List configured Figshare category sources
+
+GET /default/rdmp/api/figshare-vocabularies/sources/{sourceId}
++ Summary: Get a Figshare category source
+
+GET /default/rdmp/api/figshare-vocabularies/sources/{sourceId}/categories
++ Summary: Search the mirrored categories of a Figshare source
+
+POST /default/rdmp/api/figshare-vocabularies/sources/{sourceId}/preview
++ Summary: Create a resynchronisation preview for an existing Figshare source
+
+POST /default/rdmp/api/figshare-vocabularies/sources/{sourceId}/clone
++ Summary: Create an editable local clone of a Figshare mirror
+
+GET /default/rdmp/api/figshare-vocabularies/sync-runs
++ Summary: List Figshare synchronisation history
+
+POST /default/rdmp/api/figshare-vocabularies/previews
++ Summary: Fetch, normalise, hash, diff and propose without mutating stored vocabularies
+
+GET /default/rdmp/api/figshare-vocabularies/previews/{runId}
++ Summary: Read a paged, filterable synchronisation preview
+
+POST /default/rdmp/api/figshare-vocabularies/previews/{runId}/apply
++ Summary: Apply the approved proposals from a reviewed preview
+
+GET /default/rdmp/api/figshare-crosswalks
++ Summary: List Figshare crosswalks
+
+POST /default/rdmp/api/figshare-crosswalks
++ Summary: Create a draft Figshare crosswalk
+
+GET /default/rdmp/api/figshare-crosswalks/{id}/usage
++ Summary: List the Figshare publishing configurations that select this crosswalk
+
+GET /default/rdmp/api/figshare-crosswalks/{id}/local-entries
++ Summary: Search the local vocabulary terms of a crosswalk with their target counts
+
+GET /default/rdmp/api/figshare-crosswalks/{id}/mappings
++ Summary: Search and page the mapping edges of a crosswalk revision
+
+PUT /default/rdmp/api/figshare-crosswalks/{id}/mappings
++ Summary: Batch upsert or delete mapping edges with optimistic revision control
+
+POST /default/rdmp/api/figshare-crosswalks/{id}/approve
++ Summary: Promote the working revision to the approved revision
+
+GET /default/rdmp/api/figshare-crosswalks/{id}
++ Summary: Get a Figshare crosswalk
+
+DELETE /default/rdmp/api/figshare-crosswalks/{id}
++ Summary: Delete a draft crosswalk; approved crosswalks archive instead
+
+GET /default/rdmp/api/recordtypes/get
++ Summary: Get record type
+
+GET /default/rdmp/api/recordtypes
++ Summary: List record types
+
+GET /default/rdmp/api/admin/refreshCachedResources
++ Summary: Refresh cached resources
+
+POST /default/rdmp/api/admin/config/{configKey}
++ Summary: Set app config
+
+GET /default/rdmp/api/admin/config/{configKey}
++ Summary: Get app config by key
+
+GET /default/rdmp/api/admin/config
++ Summary: List app configs
+
+GET /default/rdmp/api/appconfig/{appConfigId}
++ Summary: Get app config
+
+POST /default/rdmp/api/appconfig/{appConfigId}
++ Summary: Save app config
+
+POST /default/rdmp/api/branding/draft
++ Summary: Save draft branding
+
+POST /default/rdmp/api/branding/preview
++ Summary: Create branding preview
+
+POST /default/rdmp/api/branding/publish
++ Summary: Publish branding
+
+POST /default/rdmp/api/branding/rollback/{versionId}
++ Summary: Rollback branding
+
+POST /default/rdmp/api/branding/logo
++ Summary: Upload branding logo
++ File logo: Branding logo upload | maxBytes=524288 | mimeTypes=image/png,image/jpeg,image/svg+xml
+
+POST /default/rdmp/api/branding/favicon
++ Summary: Upload branding favicon
++ File favicon: Branding favicon upload | maxBytes=262144 | mimeTypes=image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon
+
+GET /default/rdmp/api/branding/history
++ Summary: Get branding history
+
+GET /default/rdmp/api/dashboard-config/info
++ Summary: Get dashboard configuration info
+
+GET /default/rdmp/api/dashboard-config/defaults
++ Summary: Get dashboard configuration defaults
+
+GET /default/rdmp/api/dashboard-config/overrides
++ Summary: Get dashboard configuration overrides
+
+PUT /default/rdmp/api/dashboard-config/overrides
++ Summary: Save dashboard configuration overrides
+
+GET /default/rdmp/api/dashboard-config/merged/{recordType}/{workflowStage}
++ Summary: Get merged dashboard configuration
+
+PUT /default/rdmp/api/dashboard-config/merged/{recordType}/{workflowStage}
++ Summary: Save workflow state dashboard configuration
+
+GET /default/rdmp/api/dashboard-config/merged-view/{viewName}/{stepName}
++ Summary: Get merged dashboard view configuration
+
+PUT /default/rdmp/api/dashboard-config/merged-view/{viewName}/{stepName}
++ Summary: Save dashboard view step configuration
+
+GET /default/rdmp/api/dashboard-config/merged-type/{dashboardType}
++ Summary: Get merged dashboard type format rules
+
+GET /default/rdmp/api/i18n/entries
++ Summary: List translation entries
+
+GET /default/rdmp/api/i18n/entries/{locale}/{namespace}/{key}
++ Summary: Get translation entry
++ Description: Translation key path tail; may include slash-delimited segments.
+
+POST /default/rdmp/api/i18n/entries/{locale}/{namespace}/{key}
++ Summary: Set translation entry
++ Description: Translation key path tail; may include slash-delimited segments.
+
+DELETE /default/rdmp/api/i18n/entries/{locale}/{namespace}/{key}
++ Summary: Delete translation entry
++ Description: Translation key path tail; may include slash-delimited segments.
+
+GET /default/rdmp/api/i18n/bundles/{locale}/{namespace}
++ Summary: Get translation bundle
+
+POST /default/rdmp/api/i18n/bundles/{locale}/{namespace}
++ Summary: Set translation bundle
+
+GET /default/rdmp/api/report/namedQuery
++ Summary: Execute named query report
+
+GET /default/rdmp/api/report-config
++ Summary: List report configurations
+
+POST /default/rdmp/api/report-config/preview
++ Summary: Preview report configuration
+
+GET /default/rdmp/api/report-config/{name}
++ Summary: Get report configuration
+
+POST /default/rdmp/api/report-config
++ Summary: Create report configuration
+
+PUT /default/rdmp/api/report-config/{name}
++ Summary: Update report configuration
+
+DELETE /default/rdmp/api/report-config/{name}
++ Summary: Delete report configuration
+
+GET /default/rdmp/api/integration-audit/{oid}
++ Summary: Get integration audit log
+
+GET /default/rdmp/api/export/record/download/{format}
++ Summary: Download records export
+
+POST /default/rdmp/api/sendNotification
++ Summary: Send notification email
+
+GET /default/rdmp/api/named-query
++ Summary: List all named queries for the brand
+
+GET /default/rdmp/api/named-query/collections
++ Summary: List the collections that may be used when defining a named query
+
+GET /default/rdmp/api/named-query/{name}
++ Summary: Get a named query by name
+
+POST /default/rdmp/api/named-query
++ Summary: Create a new named query
+
+PUT /default/rdmp/api/named-query/{name}
++ Summary: Update an existing named query
+
+DELETE /default/rdmp/api/named-query/{name}
++ Summary: Delete a named query
