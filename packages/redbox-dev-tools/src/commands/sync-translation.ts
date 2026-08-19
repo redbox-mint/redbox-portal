@@ -85,25 +85,25 @@ async function readTranslationFiles(filesPath: string): Promise<{
   console.log(`Load translation meta file ${metaPath}`);
   const metaData: MetaEntries = JSON.parse(await fs.readFile(metaPath, {encoding: 'utf8'}));
 
-  const localeNames: string[] = [];
-        for (const dirent of await fs.readdir(filesPath, {withFileTypes: true})) {
-    if (!dirent.isDirectory()) {
-    continue;
-          }
-          const translationPath = path.resolve(langDefaultsPath, dirent.name, 'translation.json');
-          try {
-            const translationStat = await fs.stat(translationPath);
-            if (translationStat.isFile()) {
-              langDefaultsLocales.push(dirent.name);
-            }
-          } catch {
-            // Nested folders such as language-defaults/demo are documentation
-            // or sample data, not locale roots.
-          }
-        }
+  const localeNames: string[] = (await fs.readdir(filesPath, {withFileTypes: true}))
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
   const localeTranslationData: TranslationLocaleRaw[] = [];
   for (const locale of localeNames) {
-    const p = buildPath(filesPath, locale, 'translation.json');
+    let p;
+    try {
+      p = buildPath(filesPath, locale, 'translation.json');
+      const translationStat = await fs.stat(p);
+      if (!translationStat.isFile()) {
+        continue;
+      }
+    } catch {
+      // Nested folders such as language-defaults/demo are documentation
+      // or sample data, not locale roots.
+    }
+    if (!p) {
+      continue;
+    }
     const data = JSON.parse(await fs.readFile(p, {encoding: 'utf8'})) as Record<string, unknown>;
     console.log(`Load translation locale file ${p}`);
     localeTranslationData.push({locale, source: p, data});

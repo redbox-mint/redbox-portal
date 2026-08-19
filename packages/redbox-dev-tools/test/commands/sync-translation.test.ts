@@ -140,6 +140,8 @@ describe('sync-translation command', () => {
     const tempTestResultDir = path.join(tempLangDefaultsResultDir, 'test');
     const tempTestTranslationResultFile = path.join(tempTestResultDir, 'translation.json');
     const tempMetaResultFile = path.join(tempLangDefaultsResultDir, 'meta.json');
+    const tempDemoEsResultDir = path.join(tempLangDefaultsResultDir, 'demo', 'es');
+    const tempDemoEsTranslationFile = path.join(tempDemoEsResultDir, 'translation.json');
 
     // create temp dirs and files
 
@@ -156,6 +158,9 @@ describe('sync-translation command', () => {
     fs.mkdirSync(temp02TestDir, {recursive: true});
     fs.writeFileSync(temp02TestTranslationFile, JSON.stringify(input02TestTranslationData), 'utf8');
     fs.writeFileSync(temp02MetaFile, JSON.stringify(input02MetaData), 'utf8');
+
+    fs.mkdirSync(tempDemoEsResultDir, {recursive: true});
+    fs.writeFileSync(tempDemoEsTranslationFile, JSON.stringify({greeting: 'Hola'}), 'utf8');
 
     return {
       input01EnTranslationFile,
