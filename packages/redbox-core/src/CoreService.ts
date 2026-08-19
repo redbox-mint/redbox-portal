@@ -10,6 +10,13 @@ import { ILogger } from './Logger';
 type QueryObject = object;
 
 export namespace Services.Core {
+  /**
+   * Base contract for services exposed through ReDBox loader-generated Sails shims.
+   *
+   * @extensionPoint Hook services extend this class and list every public shim method in `_exportedMethods`; overrides should retain inherited exported methods when adding new ones.
+   * @remarks Constructors run before Sails is guaranteed to exist. Sails-dependent setup belongs in `init()`.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
+   */
   export class Service {
     /**
      * Exported methods. Must be overridden by the child to add custom methods.

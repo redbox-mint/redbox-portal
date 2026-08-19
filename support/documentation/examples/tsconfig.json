@@ -1,0 +1,9 @@
+{
+  "extends": "../../../packages/redbox-core/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../../..",
+    "types": ["node"]
+  },
+  "include": ["hook-override.ts"]
+}

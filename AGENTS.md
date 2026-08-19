@@ -36,6 +36,9 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - **API Guide**: [support/wiki/ReDBox-Portal-API.md](support/wiki/ReDBox-Portal-API.md)
   - Consult for: API access setup and REST API reference pointers.
 
+- **Generated Reference Documentation**: [support/wiki/Generated-Reference-Documentation.md](support/wiki/Generated-Reference-Documentation.md)
+  - Consult for: Generating, auditing, previewing, and publishing extension contracts, form contracts, schemas, and the REST reference.
+
 - **Installation**: [support/wiki/Installation-Guide.md](support/wiki/Installation-Guide.md)
   - Consult for: Docker and manual installation steps.
 
@@ -56,6 +59,7 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - `package.json`: Scripts and dependencies.
 - `tsconfig.json`: TypeScript compiler options.
 - `.circleci/config.yml`: CI/CD pipeline definitions.
+- `typedoc.json` and `tsdoc.json`: Generated contract reference extraction and documentation-tag configuration.
 - `support/integration-testing/docker-compose*.yml`: Test environment setups.
 
 ## Dependency pinning (security)
@@ -64,4 +68,3 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - **Rationale**: Pinning exact versions prevents unexpected automatic upgrades that could introduce malicious or compromised packages.
 - **Exceptions**: Local/internal packages referenced via `file:` or workspace/local monorepo references are allowed to use non-exact paths.
 - **Process**: When updating a dependency, change the exact version in `package.json`, explain the reason in the PR description, and run tests before merging.
-

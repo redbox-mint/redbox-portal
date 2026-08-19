@@ -78,6 +78,12 @@ export interface GroupFormComponentDefinitionFrame extends FormComponentDefiniti
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Groups child form definitions and their values into a structured object.
+ *
+ * @extensionPoint Use `GroupComponent` with `GroupModel` to create a nested form section and model scope.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface GroupFormComponentDefinitionOutline extends GroupFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: GroupFieldComponentDefinitionOutline;
     model?: GroupFieldModelDefinitionOutline;

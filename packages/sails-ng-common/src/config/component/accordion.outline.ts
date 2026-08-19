@@ -142,6 +142,12 @@ export interface AccordionFormComponentDefinitionFrame extends FormComponentDefi
   layout?: AccordionFieldLayoutDefinitionFrame;
 }
 
+/**
+ * Groups child components into an accordion container.
+ *
+ * @extensionPoint Use `AccordionComponent` in FormConfig to organise related accordion panels.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface AccordionFormComponentDefinitionOutline
   extends AccordionFormComponentDefinitionFrame,
     FormComponentDefinitionOutline {
@@ -156,6 +162,12 @@ export interface AccordionPanelFormComponentDefinitionFrame extends FormComponen
   layout?: AccordionPanelFieldLayoutDefinitionFrame;
 }
 
+/**
+ * Defines one collapsible panel within an accordion.
+ *
+ * @extensionPoint Use `AccordionPanelComponent` beneath an accordion to configure a labelled panel and its children.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface AccordionPanelFormComponentDefinitionOutline
   extends AccordionPanelFormComponentDefinitionFrame,
     FormComponentDefinitionOutline {

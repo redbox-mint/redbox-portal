@@ -21,6 +21,13 @@ function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+/**
+ * Declares the capabilities contributed by an installable ReDBox hook.
+ *
+ * @extensionPoint Pass registration functions to `defineRedboxHook`; the loader calls them during static shim discovery. Registration functions must be deterministic and must not require a lifted Sails application.
+ * @remarks Service and controller maps use the core registry names when replacing a core implementation. Hook initializers may use either Promise or callback completion.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
+ */
 export type DefineRedboxHookOptions = {
   defaults?: Record<string, unknown>;
   routes?: ((sails: Sails.Application) => unknown) | unknown;

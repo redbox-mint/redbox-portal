@@ -51,6 +51,12 @@ export interface IntegrationStatusFormComponentDefinitionFrame extends FormCompo
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Displays status information for configured external integrations.
+ *
+ * @extensionPoint Use `IntegrationStatusComponent` to surface integration state without adding a submitted model value.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface IntegrationStatusFormComponentDefinitionOutline extends IntegrationStatusFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: IntegrationStatusFieldComponentDefinitionOutline;
     model?: never;

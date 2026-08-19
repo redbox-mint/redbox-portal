@@ -62,6 +62,12 @@ export interface TabNavButtonFormComponentDefinitionFrame extends FormComponentD
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a button that moves between tabs in a form.
+ *
+ * @extensionPoint Use `TabNavButtonComponent` within tabbed forms and configure its supported navigation target.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface TabNavButtonFormComponentDefinitionOutline
   extends TabNavButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
   component: TabNavButtonFieldComponentDefinitionOutline;
