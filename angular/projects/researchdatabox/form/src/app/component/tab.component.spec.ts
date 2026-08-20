@@ -389,7 +389,7 @@ describe('TabComponent', () => {
     url.search = '?focusTabId=tab1';
     window.history.replaceState({}, '', url.toString());
 
-    const {formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    const {fixture, formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
     if (!componentDefinitions?.component) {
       throw new Error('Component definition is not defined');
     }
@@ -403,6 +403,35 @@ describe('TabComponent', () => {
     const mainTab = mainTabDef.component as TabComponent;
     expect(mainTab.selectedTabId).toBe('tab1');
     expect(mainTab.activeTabId).toBe('tab1');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tab1Button = compiled.querySelector('#tab1-tab-button');
+    const tab2Button = compiled.querySelector('#tab2-tab-button');
+    expect(tab1Button?.classList).toContain('active');
+    expect(tab1Button?.getAttribute('aria-selected')).toBe('true');
+    expect(tab2Button?.classList).not.toContain('active');
+    expect(tab2Button?.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('should fall back to configured selected tab when focusTabId is invalid', async () => {
+    const url = new URL(window.location.href);
+    url.search = '?focusTabId=unknown-tab';
+    window.history.replaceState({}, '', url.toString());
+
+    const {formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error('Component definition is not defined');
+    }
+
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    expect(mainTabDef).toBeDefined();
+    if (mainTabDef === undefined) {
+      throw new Error('Main tab component is not defined');
+    }
+
+    const mainTab = mainTabDef.component as TabComponent;
+    expect(mainTab.selectedTabId).toBe('tab2');
+    expect(mainTab.activeTabId).toBe('tab2');
   });
 
   it('should mark non-selected tabs as inactive on initial load', async () => {
