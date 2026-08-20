@@ -282,6 +282,13 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--r
     margin-bottom: 1rem;
 }
 
+.rb-view-repeatable-table th,
+.rb-view-repeatable-table td,
+.rb-view-repeatable-table td a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 .rb-view-repeatable-list {
     display: grid;
     gap: 0.75rem;
