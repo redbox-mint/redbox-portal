@@ -143,7 +143,7 @@ describe('RecordAuditComponent', () => {
             '@record-audit-note-update-only': 'Field changes are shown for update events only.',
             '@record-audit-section-field-changes': 'Field Changes',
             '@record-audit-entries-count': '{{count}} entries',
-            '@record-audit-changed-fields-count': '{{count}} field(s) changed',
+            '@record-audit-changed-fields-count': '{{count}} field changed',
             '@record-audit-link-json': 'JSON',
             '@record-audit-filter-date-from': 'Date From',
             '@record-audit-filter-date-to': 'Date To',
@@ -257,7 +257,7 @@ describe('RecordAuditComponent', () => {
   it('renders updated entries with change counts and supports expanding diff rows', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'false' });
 
-    expect(fixture.nativeElement.textContent).toContain('1 field(s) changed');
+    expect(fixture.nativeElement.textContent).toContain('1 field changed');
     expect(fixture.nativeElement.textContent).toContain('2 entries');
     component.toggleDiff('audit-1');
     fixture.detectChanges();

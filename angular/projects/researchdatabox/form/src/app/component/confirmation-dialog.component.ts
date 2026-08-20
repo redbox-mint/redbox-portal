@@ -18,7 +18,7 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
           <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
             <div class="modal-header">
               <h5 id="confirmationDialogTitle" class="modal-title">{{ title() | i18next }}</h5>
-              <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
+              <button type="button" class="btn-close" (click)="cancel()" [attr.aria-label]="'@close-button' | i18next"></button>
             </div>
             <div class="modal-body">
               <p id="confirmationDialogMessage">{{ dialog()?.message | i18next }}</p>
@@ -41,9 +41,9 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
 export class ConfirmationDialogComponent {
   private readonly confirmationDialogService = inject(ConfirmationDialogService);
   protected readonly dialog = this.confirmationDialogService.dialog;
-  protected readonly title = computed(() => this.dialog()?.title ?? 'Confirm');
-  protected readonly confirmLabel = computed(() => this.dialog()?.confirmLabel ?? 'Yes');
-  protected readonly cancelLabel = computed(() => this.dialog()?.cancelLabel ?? 'No');
+  protected readonly title = computed(() => this.dialog()?.title ?? '@form-confirm-dialog-title');
+  protected readonly confirmLabel = computed(() => this.dialog()?.confirmLabel ?? '@form-confirm-dialog-yes');
+  protected readonly cancelLabel = computed(() => this.dialog()?.cancelLabel ?? '@form-confirm-dialog-no');
   protected readonly confirmButtonClass = computed(() => this.dialog()?.confirmButtonClass ?? 'btn btn-danger');
 
   confirm(): void {

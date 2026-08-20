@@ -1,23 +1,70 @@
-import {Command} from "commander";
+import {Command, Option} from "commander";
 import fs from 'node:fs/promises';
 import path from "node:path";
 
-type MetaEntryKey = string;
+
 const contentFormats = ["plain", "html"] as const;
 type ContentFormats = typeof contentFormats[number];
+type MetaEntryKey = string;
 type MetaEntryValue = {
   category?: string,
   description?: string
   contentFormat?: ContentFormats,
 };
 export type MetaEntries = Record<MetaEntryKey, MetaEntryValue>;
+export type MetaData = { source: string, data: MetaEntries };
 
+export type TranslationLocaleRaw = { locale: string, source: string, data: Record<string, unknown> };
+export type TranslationEntries = Record<string, string>;
+export type TranslationLocaleEntries = Record<string, TranslationEntries>;
+
+type ApiEntry = {
+  key?: string,
+  locale?: string,
+  value?: string,
+  uid?: string,
+  branding?: string,
+  bundle?: string,
+  id?: string,
+} & MetaEntryValue;
+
+
+/**
+ * Use a type predicate to narrow a string to a content format.
+ * @param value The value to check.
+ */
 function isContentFormat(value: string | undefined): value is (ContentFormats | undefined) {
   return contentFormats.some(contentFormat => contentFormat === value);
 }
 
-function firstNonEmptyString(...value: unknown[]): string | undefined {
-  for (const item of value) {
+/**
+ * Build a path from a base path and additional parts.
+ * @param basePath The base path.
+ * @param parts The additional path parts.
+ */
+function buildPath(basePath: string, ...parts: string[]): string {
+  if (!basePath.trim()) {
+    throw new Error(`Invalid base path ${basePath}`);
+  }
+
+  const basePathResolved = path.resolve(basePath);
+  const resolved = path.resolve(...[basePathResolved, ...parts]);
+
+  // Ensure resolved path is inside basePath
+  if (!resolved.startsWith(basePathResolved + path.sep) && resolved !== basePathResolved) {
+    throw new Error(`Invalid path ${resolved}`);
+  }
+
+  return resolved
+}
+
+/**
+ * Get the last non-empty string.
+ * @param value The strings.
+ */
+function lastNonEmptyString(...value: unknown[]): string | undefined {
+  for (let index = (value.length - 1); index >= 0; index--) {
+    const item = value[index];
     if (typeof item === 'string' && item.length > 0) {
       return item;
     }
@@ -25,164 +72,361 @@ function firstNonEmptyString(...value: unknown[]): string | undefined {
   return undefined;
 }
 
+/**
+ * Read the translation json files.
+ * @param filesPath The path to the top directory containing the meta.json file.
+ */
+async function readTranslationFiles(filesPath: string): Promise<{
+  meta: MetaData,
+  locales: TranslationLocaleRaw[]
+}> {
+  // Read files
+  const metaPath = buildPath(filesPath, 'meta.json');
+  console.log(`Load translation meta file ${metaPath}`);
+  const metaData: MetaEntries = JSON.parse(await fs.readFile(metaPath, {encoding: 'utf8'}));
+
+  const localeNames: string[] = (await fs.readdir(filesPath, {withFileTypes: true}))
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+  const localeTranslationData: TranslationLocaleRaw[] = [];
+  for (const locale of localeNames) {
+    let p;
+    try {
+      p = buildPath(filesPath, locale, 'translation.json');
+      const translationStat = await fs.stat(p);
+      if (!translationStat.isFile()) {
+        continue;
+      }
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+        // Nested folders such as language-defaults/demo are documentation
+        // or sample data, not locale roots.
+        continue;
+      }
+      throw err;
+    }
+    if (!p) {
+      continue;
+    }
+    const data = JSON.parse(await fs.readFile(p, {encoding: 'utf8'})) as Record<string, unknown>;
+    console.log(`Load translation locale file ${p}`);
+    localeTranslationData.push({locale, source: p, data});
+  }
+
+  return {
+    meta: {
+      source: metaPath,
+      data: metaData,
+    },
+    locales: localeTranslationData,
+  };
+}
+
+/**
+ * Write updated translation json files.
+ * @param opts The options.
+ * @param opts.meta The meta details.
+ * @param opts.locales The translation locale data.
+ * @param opts.dryRun Whether this is a dry run.
+ * @param opts.writePath The top-level path to write the output.
+ */
+async function writeTranslationFiles(opts: {
+  meta: MetaEntries,
+  locales: TranslationLocaleEntries,
+  dryRun?: boolean,
+  writePath: string,
+}) {
+  const metaPath = buildPath(opts?.writePath, 'meta.json');
+  if (opts.dryRun) {
+    console.log(`[dry-run] Not writing updated meta to ${metaPath}`);
+  } else {
+    // Write merged meta back to file
+    console.log(`Writing updated meta to ${metaPath}`);
+    await fs.mkdir(path.dirname(metaPath), {recursive: true});
+    await fs.writeFile(metaPath, JSON.stringify(opts.meta, null, 2));
+  }
+
+  // Write translation files
+  for (const [locale, data] of Object.entries(opts.locales)) {
+    const translationPath = buildPath(opts?.writePath, locale, 'translation.json');
+    if (opts.dryRun) {
+      console.log(`[dry-run] Not writing updated translation data to ${translationPath}`);
+    } else {
+      console.log(`Writing updated translation data to ${translationPath}`);
+      await fs.mkdir(path.dirname(translationPath), {recursive: true});
+      await fs.writeFile(translationPath, JSON.stringify(data, null, 2));
+    }
+  }
+}
+
+/**
+ * Read translation data from ReDBox API.
+ * @param apiBaseUrl The base url for the API calls.
+ */
+async function readTranslationApi(apiBaseUrl: string): Promise<{
+  meta: MetaData,
+  locales: TranslationLocaleRaw[]
+}> {
+  if (!apiBaseUrl.includes('://')) {
+    throw new Error(`Api base url is not a valid url '${apiBaseUrl}'`);
+  }
+  if (!apiBaseUrl.endsWith('/')) {
+    apiBaseUrl += '/';
+  }
+  const translationUrl = new URL('default/rdmp/locales/__locale__/translation.json', apiBaseUrl);
+  const entriesUrl = new URL('default/rdmp/app/i18n/entries', apiBaseUrl);
+
+  console.log(`Load translation entries url ${entriesUrl}`);
+  const entriesResponse = await fetch(entriesUrl, {signal: AbortSignal.timeout(5000)});
+  if (!entriesResponse.ok) {
+    throw new Error(`Could not fetch translation entries: status ${entriesResponse.status} body ${await entriesResponse.text()}`);
+  }
+  const entriesData: ApiEntry[] = await entriesResponse.json();
+
+  const metaData: MetaEntries = Object.create(null);
+  const localeTranslationData: TranslationLocaleRaw[] = [];
+  const localeNames: string[] = Array.from(new Set<string>(entriesData.map(e => e.locale).filter(l => typeof l === 'string'))).sort();
+  for (const localeName of localeNames) {
+    if (!localeName || !localeName.trim() || localeName.includes('.') || localeName.includes('/')) {
+      console.warn(`Ignoring invalid locale name '${localeName}'.`);
+      continue;
+    }
+    const translationLocaleUrl = new URL(translationUrl.toString().replace('/__locale__/', `/${encodeURIComponent(localeName)}/`));
+    console.log(`Load translation locale url ${translationLocaleUrl}`);
+    const translationResponse = await fetch(translationLocaleUrl, {signal: AbortSignal.timeout(5000)});
+    if (!translationResponse.ok) {
+      throw new Error(`Could not fetch translation locale: status ${translationResponse.status} body ${await translationResponse.text()}`);
+    }
+    localeTranslationData.push({
+      locale: localeName,
+      source: translationLocaleUrl.toString(),
+      data: await translationResponse.json()
+    });
+  }
+
+  for (const entryData of entriesData) {
+    if (!entryData.key) {
+      continue;
+    }
+    if (!(entryData.key in metaData)) {
+      metaData[entryData.key] = Object.create(null);
+    }
+
+    if (entryData.category) {
+      metaData[entryData.key].category = entryData.category;
+    }
+    if (entryData.contentFormat) {
+      metaData[entryData.key].contentFormat = entryData.contentFormat;
+    }
+    if (entryData.description) {
+      metaData[entryData.key].description = entryData.description;
+    }
+  }
+
+  return {
+    meta: {
+      source: entriesUrl.toString(),
+      data: metaData,
+    },
+    locales: localeTranslationData,
+  };
+}
+
+/**
+ * Merge two or more meta entries.
+ * @param opts The merge options.
+ * @param opts.key The translation key.
+ * @param opts.value The translation value.
+ * @param opts.items The meta entries.
+ * @param opts.guessContentFormat Whether to guess the content format from the translation value.
+ */
+function mergeMetaItems(opts: {
+  key?: string,
+  value?: string,
+  items: (MetaEntryValue | undefined)[],
+  guessContentFormat?: boolean
+}): MetaEntryValue {
+  // content format
+  const contentFormatRaw = lastNonEmptyString(
+    ...opts.items?.map(i => i?.contentFormat)
+  );
+  let contentFormat: ContentFormats | undefined = isContentFormat(contentFormatRaw) ? contentFormatRaw : undefined;
+
+  const isHtml = opts.guessContentFormat === true &&
+    opts.value !== undefined &&
+    contentFormat === undefined &&
+    (typeof opts.value === 'string' && (
+      opts.value?.includes('<') &&
+      opts.value?.includes('</') &&
+      opts.value?.includes('>')
+    ));
+  if (isHtml) {
+    contentFormat = "html";
+  }
+
+  // description
+  const description = lastNonEmptyString(
+    ...[
+      opts?.key === undefined ? "" : `Translation for ${opts.key}`,
+      ...opts.items?.map(i => i?.description),
+    ]
+  );
+
+  // category
+  const keySplit = typeof opts.key === 'string' ? opts.key.split(/[_\-:.@]+/).filter(i => !!i) : [];
+  const category = lastNonEmptyString(
+    ...[
+      keySplit.length > 0 ? keySplit[0] : undefined,
+      ...opts.items?.map(i => i?.category),
+    ]
+  );
+
+  const result = Object.create(null);
+  result.category = category;
+  result.description = description;
+  result.contentFormat = contentFormat;
+  return result;
+}
+
+type OptionCollected = { type: string, value: string };
+
 export function registerSyncTranslationCommand(program: Command): void {
+  const sourcesCollected: OptionCollected[] = [];
   program
     .command('sync-translation')
-    .description('Read translations from API and write to language defaults files.')
-    .requiredOption('-l, --language-defaults <path>', 'Path to the language-defaults directory containing locales and meta json files.')
-    .requiredOption('-a, --api-base <url>', 'Base url for the API to obtain translations.')
+    .description('Read translations from API and/or json files, and write to language translation files.')
+    .option(
+      '-l, --language-defaults <path>',
+      'Path to read the language-defaults directory containing locales and meta json files. Can be provided multiple times.',
+      (value: string, previous: OptionCollected[]) => {
+        previous.push({type: 'language-defaults', value});
+        return previous;
+      },
+      sourcesCollected
+    )
+    .option(
+      '-a, --api-base <url>',
+      'Base url for the API to read translation data. Can be provided multiple times.',
+      (value: string, previous: OptionCollected[]) => {
+        previous.push({type: 'api-base', value});
+        return previous;
+      },
+      sourcesCollected
+    )
+    .requiredOption('-o, --output <path>', 'Path to the output directory or file.')
+    .addOption(
+      new Option('-f, --format <format>', 'The output format.')
+        .choices(['language-defaults'])
+        .default('language-defaults')
+    )
     .action(async (options) => {
       try {
         const globalOptions = program.opts();
-        const langDefaultsPath = path.resolve(options.languageDefaults);
-        const apiBaseUrl = options.apiBase;
+        const outputPath: string = options.output;
+        const outputFormat: string = options.format;
+        const sources = sourcesCollected.splice(0);
 
-        if (!langDefaultsPath) {
-          throw new Error(`Must provide language-defaults path.`);
-        }
-        if (!apiBaseUrl) {
-          throw new Error(`Must provide api-base url.`);
+        if (sources.length === 0) {
+          throw new Error(`Must provide at least one of language-defaults path or api-base url.`);
         }
 
-        // Read files
-        const langDefaultsMetaPath = path.resolve(langDefaultsPath, 'meta.json');
-        console.log(`Load translation meta file ${langDefaultsMetaPath}`);
-        const langDefaultsMetaData: MetaEntries = JSON.parse(await fs.readFile(langDefaultsMetaPath, {encoding: 'utf8'}));
+        // Get existing translation data
+        const sourceMeta: MetaData[] = [];
+        const sourceTranslations: TranslationLocaleRaw[] = [];
 
-        const langDefaultsLocales: string[] = (await fs.readdir(langDefaultsPath, {withFileTypes: true}))
-          .filter(dirent => dirent.isDirectory())
-          .map(dirent => dirent.name);
-        const langDefaultsLocaleTranslationData = [];
-        for (const locale of langDefaultsLocales) {
-          const p = path.resolve(langDefaultsPath, locale, 'translation.json');
-          const data = JSON.parse(await fs.readFile(p, {encoding: 'utf8'}));
-          console.log(`Load translation locale file ${p}`);
-          langDefaultsLocaleTranslationData.push({locale, data});
-        }
-
-        // Read urls
-        const translationUrl = new URL('/default/rdmp/locales/__locale__/translation.json', apiBaseUrl);
-        const entriesUrl = new URL('/default/rdmp/app/i18n/entries', apiBaseUrl);
-
-        console.log(`Load translation entries url ${entriesUrl}`);
-        const entriesResponse = await fetch(entriesUrl, {signal: AbortSignal.timeout(5000)});
-        if (!entriesResponse.ok) {
-          throw new Error(`Could not fetch translation entries: status ${entriesResponse.status} body ${await entriesResponse.text()}`);
-        }
-        const entriesData: ({
-          key?: string,
-          locale?: string
-        } & MetaEntryValue)[] = await entriesResponse.json();
-        const translationData = [];
-        for (const langDefaultsLocale of langDefaultsLocales) {
-          const translationLocaleUrl = translationUrl.toString().replace('/__locale__/', `/${langDefaultsLocale}/`);
-          console.log(`Load translation locale url ${translationLocaleUrl}`);
-          const translationResponse = await fetch(translationLocaleUrl, {signal: AbortSignal.timeout(5000)});
-          if (!translationResponse.ok) {
-            throw new Error(`Could not fetch translation locale: status ${translationResponse.status} body ${await translationResponse.text()}`);
-          }
-          translationData.push({
-            locale: langDefaultsLocale,
-            data: await translationResponse.json()
-          });
-        }
-
-        // Merge locale data
-        // Maintain _meta in translation.json file, but don't update it from remote meta.
-        const translationMerged: Record<string, Record<string, string>> = {};
-        for (const {locale, data} of langDefaultsLocaleTranslationData) {
-          if (locale in translationMerged) {
-            throw new Error(`Duplicate locale ${locale}`);
-          }
-          const translationDataFromUrl = translationData.find(i => i.locale === locale) ?? {locale, data: {}};
-          const dataOnlyStrings: Record<string, string> = {};
-          for (const [key, value] of Object.entries(translationDataFromUrl.data)) {
-            if (typeof value === 'string') {
-              dataOnlyStrings[key] = value;
-            } else {
-              console.log(`Dropped key '${key}' with non-string value ${JSON.stringify(value)}`);
-            }
-          }
-
-          const newData = {...data, ...dataOnlyStrings};
-          if (globalOptions.dryRun) {
-            const changes = Object.entries(newData)
-              .filter(([key, value]) => data[key] !== value)
-              .map(([key, value]) => [key, {'original': data[key], 'new': value}]);
-            if (changes.length > 0) {
-              console.log({locale, changes: Object.fromEntries(changes)});
-            }
-          }
-          translationMerged[locale] = newData;
-        }
-
-
-        if (globalOptions.dryRun) {
-          console.log('[dry-run] Translation data merged; no file written.');
-        } else {
-          // Write merged data back to locale file
-          for (const [locale, data] of Object.entries(translationMerged)) {
-            const p = path.resolve(langDefaultsPath, locale, 'translation.json');
-            console.log(`Writing updated translation data to ${p}`);
-            await fs.writeFile(p, JSON.stringify(data, null, 2));
+        // Precedence order: later items overwrite earlier items.
+        // Populate source meta and translations in order provided in command line.
+        for (const {type, value} of sources) {
+          if (type === 'language-defaults') {
+            const {meta, locales} = await readTranslationFiles(value);
+            sourceMeta.push(meta);
+            sourceTranslations.push(...locales);
+          } else if (type === 'api-base') {
+            const {meta, locales} = await readTranslationApi(value);
+            sourceMeta.push(meta);
+            sourceTranslations.push(...locales);
+          } else {
+            throw new Error(`Unknown source type '${type}'.`);
           }
         }
 
-        // Merge meta, in highest to lowest priority order:
-        // remote meta, _meta key from the translation, existing meta entry.
-        // Use a calculated value for description and category if they are not provided.
-        const metaMerged: MetaEntries = {};
-        for (const [locale, localeTranslation] of Object.entries(translationMerged)) {
-          const entriesLocale = entriesData.filter(e => e.locale === locale);
-          for (const key of Object.keys(localeTranslation)) {
-            if (key === '_meta' || key.startsWith('_meta.')) {
+        // The keys for locales are the source of truth,
+        // so any keys in meta that are not in any locale data will be dropped.
+        const keys = new Set<string>(sourceTranslations.flatMap(i => Object.keys(i.data)));
+
+        // Cache translations by locale so each source is grouped only once.
+        const sourceTranslationsByLocale = new Map<string, TranslationLocaleRaw[]>();
+        for (const sourceTranslation of sourceTranslations) {
+          const localeTranslations = sourceTranslationsByLocale.get(sourceTranslation.locale) ?? [];
+          localeTranslations.push(sourceTranslation);
+          sourceTranslationsByLocale.set(sourceTranslation.locale, localeTranslations);
+        }
+
+        // The unique locale names.
+        const localeNames = Array.from(sourceTranslationsByLocale.keys()).sort();
+
+        // Gather translation and meta entries.
+        const meta: MetaEntries = Object.create(null);
+        const locales: TranslationLocaleEntries = Object.create(null);
+
+        for (const key of keys) {
+          if (!key) {
+            continue;
+          }
+          for (const localeName of localeNames) {
+            if (!localeName) {
               continue;
             }
-            const entriesItems = entriesLocale.filter(e => e.key === key);
-            const entriesItem = entriesItems.length > 0 ? entriesItems[0] : undefined;
-            const translationItem = localeTranslation[key] ?? "";
-            const translationMetaItem = ('_meta' in localeTranslation && localeTranslation['_meta'] !== null && typeof localeTranslation['_meta'] === 'object') ? (localeTranslation['_meta'] as Record<string, Record<string, unknown>>)[key] : undefined;
-            const metaItem = langDefaultsMetaData[key];
-
-            // Populate the meta data.
-            const contentFormatRaw = firstNonEmptyString(
-              entriesItem?.contentFormat, translationMetaItem?.contentFormat, metaItem?.contentFormat
-            );
-            let contentFormat: ContentFormats | undefined = isContentFormat(contentFormatRaw) ? contentFormatRaw : undefined;
-
-            // Don't guess whether the translation value is html or plain, leave it as-is.
-
-            const description = firstNonEmptyString(
-              entriesItem?.description, translationMetaItem?.description, metaItem?.description,
-              `Translation for ${key}`
-            );
-
-            const keySplit = key.split(/[_\-:.@]+/).filter(i => !!i);
-            const category = firstNonEmptyString(
-              entriesItem?.category, translationMetaItem?.category, metaItem?.category,
-              keySplit.length > 0 ? keySplit[0] : undefined
-            );
-
-            const newItem: MetaEntryValue = {category, description, contentFormat};
-
-            if (globalOptions.dryRun && JSON.stringify(metaItem) !== JSON.stringify(newItem)) {
-              console.log({key, metaItem, translationItem, entriesItem, newItem});
+            if (!(localeName in locales)) {
+              locales[localeName] = Object.create(null);
             }
-            if (Object.keys(newItem).length > 0 && Object.values(newItem).some(v => !!v)) {
-              metaMerged[key] = newItem;
+            const localeTranslationData = sourceTranslationsByLocale.get(localeName) ?? [];
+
+            // Translation value for a locale key.
+            const values = localeTranslationData
+              .map(i => i.data?.[key])
+              .filter(i => typeof i === 'string')
+              .filter(i => i?.trim().length > 0);
+            if (new Set<string>(values).size > 1) {
+              console.warn(`Translation '${localeName}' key '${key}' has more than one value: ${JSON.stringify(values)}`);
             }
+
+            const valuesNonString = localeTranslationData
+              .map(i => i.data?.[key])
+              .filter(i => typeof i !== 'string' && i !== undefined);
+            if (valuesNonString.length > 0) {
+              console.warn(`Translation '${localeName}' key '${key}' has non-string values that were ignored:`, valuesNonString);
+            }
+
+            const value = lastNonEmptyString(...values);
+            locales[localeName][key] = value ?? "";
           }
+
+          // Use the first populated locale in sorted order when inferring meta.
+          const valueForMeta = localeNames
+            .map(localeName => locales[localeName]?.[key])
+            .find(value => typeof value === 'string' && value.trim().length > 0);
+          meta[key] = mergeMetaItems({
+            key,
+            value: valueForMeta,
+            items: sourceMeta.map(i => i.data?.[key]),
+            guessContentFormat: true,
+          }) ?? Object.create(null);
         }
 
-        if (globalOptions.dryRun) {
-          console.log('[dry-run] Meta merged; no file written. Changed entries printed above.');
+        // Write output
+        if (outputFormat === "language-defaults") {
+          await writeTranslationFiles({
+            meta,
+            locales,
+            writePath: outputPath,
+            dryRun: globalOptions.dryRun,
+          });
         } else {
-          // Write merged meta back to file
-          console.log(`Writing updated meta to ${langDefaultsMetaPath}`);
-          await fs.writeFile(langDefaultsMetaPath, JSON.stringify(metaMerged, null, 2));
+          throw new Error(`Unknown output format '${outputFormat}'`);
         }
-        console.log(`\n🛠️  Ran sync-translation`);
 
+        console.log(`\n🛠️  Ran sync-translation`);
         console.log('\n✅ Done!\n');
       } catch (error: any) {
         console.error(`\n❌ Error: `, error);

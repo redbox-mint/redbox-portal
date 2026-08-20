@@ -152,7 +152,7 @@
             [disabled]="!hasSelectedDraftType() || isDisabled || isReadonly || draftLocation.location.trim() === ''"
             (click)="addLocation()"
           >
-            {{ (locationAddText || 'Add Location') | i18next }}
+            {{ (locationAddText || '@form-data-location-add') | i18next }}
           </button>
         }
       </div>

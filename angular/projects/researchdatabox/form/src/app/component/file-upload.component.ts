@@ -76,16 +76,16 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
     @Input() public override model?: FileUploadModel;
 
-    public uppyDashboardNote = "Maximum upload size: 1 Gb per file";
+    public uppyDashboardNote = "@form-file-upload-max-size";
     public allowUploadWithoutSave = false;
     public restrictions?: Record<string, unknown>;
     public enabledSources: FileUploadSourceType[] = [];
     public companionUrl?: string;
     public tusHeaders: Record<string, string> = {};
-    public attachmentText = "Add attachment(s)";
-    public attachmentTextDisabled = "Save your record to attach files";
-    public locationHeader = "Location";
-    public notesHeader = "Notes";
+    public attachmentText = "@form-file-upload-add-attachment";
+    public attachmentTextDisabled = "@form-file-upload-save-before-attach";
+    public locationHeader = "@form-file-upload-location";
+    public notesHeader = "@form-file-upload-notes";
     public notesEnabled = true;
 
     private uppy?: Uppy<UppyMeta, UppyBody>;
@@ -103,16 +103,16 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
         const cfg = (this.componentDefinition?.config as FileUploadFieldComponentConfigOutline) ?? new FileUploadFieldComponentConfig();
         const cfgRecord = cfg as FileUploadFieldComponentConfigOutline & Record<string, unknown>;
-        this.uppyDashboardNote = String(cfg.uppyDashboardNote ?? "Maximum upload size: 1 Gb per file");
+        this.uppyDashboardNote = String(cfg.uppyDashboardNote ?? "@form-file-upload-max-size");
         this.allowUploadWithoutSave = cfg.allowUploadWithoutSave ?? false;
         this.restrictions = cfg.restrictions;
         this.enabledSources = this.normalizedEnabledSources(cfg.enabledSources);
         this.companionUrl = this.resolveCompanionUrl(cfg.companionUrl);
         this.tusHeaders = (cfg.tusHeaders ?? {}) as Record<string, string>;
-        this.attachmentText = String(cfgRecord["attachmentText"] ?? "Add attachment(s)");
-        this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "Save your record to attach files");
-        this.locationHeader = String(cfgRecord["locationHeader"] ?? "Location");
-        this.notesHeader = String(cfgRecord["notesHeader"] ?? "Notes");
+        this.attachmentText = String(cfgRecord["attachmentText"] ?? "@form-file-upload-add-attachment");
+        this.attachmentTextDisabled = String(cfgRecord["attachmentTextDisabled"] ?? "@form-file-upload-save-before-attach");
+        this.locationHeader = String(cfgRecord["locationHeader"] ?? "@form-file-upload-location");
+        this.notesHeader = String(cfgRecord["notesHeader"] ?? "@form-file-upload-notes");
         this.notesEnabled = cfgRecord["notesEnabled"] !== false;
     }
 
@@ -268,7 +268,11 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             proudlyDisplayPoweredByUppy: false,
             note: this.translateText(this.uppyDashboardNote),
             metaFields: [
-                { id: "notes", name: "Notes", placeholder: "Notes about this file." }
+                {
+                    id: "notes",
+                    name: this.translateText("@form-file-upload-notes"),
+                    placeholder: this.translateText("@form-file-upload-notes-placeholder")
+                }
             ]
         });
 

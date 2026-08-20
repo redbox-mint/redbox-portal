@@ -94,6 +94,12 @@ export interface FileUploadFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures attachment upload and the associated persisted file metadata.
+ *
+ * @extensionPoint Use `FileUploadComponent` with `FileUploadModel` for local or provider-backed attachments.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface FileUploadFormComponentDefinitionOutline extends FileUploadFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: FileUploadFieldComponentDefinitionOutline;
     model?: FileUploadFieldModelDefinitionOutline;

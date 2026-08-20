@@ -13,17 +13,14 @@ const testRoot = path.join(packageRoot, 'test');
 
 describe('sync-translation command', () => {
   let tempRoot: string;
-  let inputOriginalPath: string;
-  let inputTargetPath: string;
+  let syncTranslationResources: string;
 
   beforeEach(() => {
     tempRoot = path.join(testRoot, '.tmp', 'sync-translation');
     fs.rmSync(tempRoot, {recursive: true, force: true});
     fs.mkdirSync(tempRoot, {recursive: true});
 
-    const syncTranslationResources = path.join(testRoot, 'resources', 'sync-translation');
-    inputOriginalPath = path.join(syncTranslationResources, 'original');
-    inputTargetPath = path.join(syncTranslationResources, 'target');
+    syncTranslationResources = path.join(testRoot, 'resources', 'sync-translation');
   });
 
   afterEach(() => {
@@ -31,19 +28,39 @@ describe('sync-translation command', () => {
     sinon.restore();
   });
 
+  /**
+   * Read the file at filepath as JSON.
+   * Returns undefined if the file does not exist.
+   * Throws any file reading or JSON parsing error.
+   * @param filepath The path to the file.
+   */
+  function readJsonFile(filepath: string): unknown | undefined {
+    let content: string;
+    try {
+      content = fs.readFileSync(filepath, {encoding: 'utf8'}) ?? '';
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+        // If the error indicates the path does not exist, return undefined.
+        return undefined;
+      }
+      // Re-throw any other error
+      throw err;
+    }
+
+    return JSON.parse(content);
+  }
+
   function buildProgram() {
     const program = new commander.Command();
     program
       .name('redbox-dev-tools')
-      .option('--root <path>')
-      .option('--core-types-root <path>')
-      .option('--angular-root <path>')
       .option('--dry-run', 'Print intended changes without writing files', false);
     syncTranslationCommand.registerSyncTranslationCommand(program);
     return program;
   }
 
   function setFetchStub(opts?: {
+    url: string,
     body: Record<string, unknown> | unknown[],
     status?: number,
     statusText?: string,
@@ -51,174 +68,402 @@ describe('sync-translation command', () => {
   }[]) {
     opts = opts ?? [];
     const callback = sinon.stub();
-    for (let i = 0; i < opts.length; i++) {
-      const opt = opts[i];
-      callback.onCall(i).returns(Promise.resolve(
-        new Response(JSON.stringify(opt.body),
-          {status: opt.status, statusText: opt.statusText, headers: opt.headers}
-        )))
+    callback
+      .callsFake(function () {
+        console.error({error: 'unknown arguments', arguments});
+        throw new Error();
+      });
+    for (const opt of opts) {
+      callback
+        .withArgs(new URL(opt.url), sinon.match.any)
+        .callsFake(function (url: URL, args: any) {
+          return new Response(JSON.stringify(opt.body), {
+            status: opt.status,
+            statusText: opt.statusText,
+            headers: opt.headers
+          })
+        });
     }
-    callback.onCall(opts.length).throws("No fetch stub for this call");
+
     (global as any).fetch = callback;
   }
 
-  function readJsonFile(path: string): unknown {
-    return JSON.parse(fs.readFileSync(path, 'utf8'));
+  function setupTestData() {
+    // input files
+    const input01EnTranslationFile = path.resolve(syncTranslationResources, 'input-01-en-translation.json');
+    const input01TestTranslationFile = path.resolve(syncTranslationResources, 'input-01-test-translation.json');
+    const input01MetaFile = path.resolve(syncTranslationResources, 'input-01-meta.json');
+    const input02EnTranslationFile = path.resolve(syncTranslationResources, 'input-02-en-translation.json');
+    const input02TestTranslationFile = path.resolve(syncTranslationResources, 'input-02-test-translation.json');
+    const input02MetaFile = path.resolve(syncTranslationResources, 'input-02-meta.json');
+    const inputHttpEntriesFile = path.resolve(syncTranslationResources, 'input-http-entries.json');
+    const inputHttpTranslationFile = path.resolve(syncTranslationResources, 'input-http-translation.json');
+
+    // input data
+    const input01EnTranslationData = readJsonFile(input01EnTranslationFile);
+    const input01TestTranslationData = readJsonFile(input01TestTranslationFile);
+    const input01MetaData = readJsonFile(input01MetaFile);
+    const input02EnTranslationData = readJsonFile(input02EnTranslationFile);
+    const input02TestTranslationData = readJsonFile(input02TestTranslationFile);
+    const input02MetaData = readJsonFile(input02MetaFile);
+    const inputHttpEntriesData = readJsonFile(inputHttpEntriesFile);
+    const inputHttpTranslationData = readJsonFile(inputHttpTranslationFile);
+
+    // output paths
+    const outputEnTranslationFile = path.resolve(syncTranslationResources, 'output-en-translation.json');
+    const outputTestTranslationFile = path.resolve(syncTranslationResources, 'output-test-translation.json');
+    const outputMetaFile = path.resolve(syncTranslationResources, 'output-meta.json');
+
+    // output data
+    const outputEnTranslationData = readJsonFile(outputEnTranslationFile);
+    const outputTestTranslationData = readJsonFile(outputTestTranslationFile);
+    const outputMetaData = readJsonFile(outputMetaFile);
+
+    // temp / result paths
+    const temp01LangDefaultsDir = path.join(tempRoot, '01-language-defaults');
+    const temp01EnDir = path.join(temp01LangDefaultsDir, 'en');
+    const temp01EnTranslationFile = path.join(temp01EnDir, 'translation.json');
+    const temp01TestDir = path.join(temp01LangDefaultsDir, 'test');
+    const temp01TestTranslationFile = path.join(temp01TestDir, 'translation.json');
+    const temp01MetaFile = path.join(temp01LangDefaultsDir, 'meta.json');
+
+    const temp02LangDefaultsDir = path.join(tempRoot, '02-language-defaults');
+    const temp02EnDir = path.join(temp02LangDefaultsDir, 'en');
+    const temp02EnTranslationFile = path.join(temp02EnDir, 'translation.json');
+    const temp02TestDir = path.join(temp02LangDefaultsDir, 'test');
+    const temp02TestTranslationFile = path.join(temp02TestDir, 'translation.json');
+    const temp02MetaFile = path.join(temp02LangDefaultsDir, 'meta.json');
+
+    const tempLangDefaultsResultDir = path.join(tempRoot, 'language-defaults');
+    const tempEnResultDir = path.join(tempLangDefaultsResultDir, 'en');
+    const tempEnTranslationResultFile = path.join(tempEnResultDir, 'translation.json');
+    const tempTestResultDir = path.join(tempLangDefaultsResultDir, 'test');
+    const tempTestTranslationResultFile = path.join(tempTestResultDir, 'translation.json');
+    const tempMetaResultFile = path.join(tempLangDefaultsResultDir, 'meta.json');
+    const tempDemoEsInputDir = path.join(temp01LangDefaultsDir, 'demo', 'es');
+    const tempDemoEsTranslationFile = path.join(tempDemoEsInputDir, 'translation.json');
+    const tempEsTranslationResultFile = path.join(tempLangDefaultsResultDir, 'es', 'translation.json');
+
+    // create temp dirs and files
+
+    // input 1
+    fs.mkdirSync(temp01EnDir, {recursive: true});
+    fs.writeFileSync(temp01EnTranslationFile, JSON.stringify(input01EnTranslationData), 'utf8');
+    fs.mkdirSync(temp01TestDir, {recursive: true});
+    fs.writeFileSync(temp01TestTranslationFile, JSON.stringify(input01TestTranslationData), 'utf8');
+    fs.writeFileSync(temp01MetaFile, JSON.stringify(input01MetaData), 'utf8');
+
+    // input 2
+    fs.mkdirSync(temp02EnDir, {recursive: true});
+    fs.writeFileSync(temp02EnTranslationFile, JSON.stringify(input02EnTranslationData), 'utf8');
+    fs.mkdirSync(temp02TestDir, {recursive: true});
+    fs.writeFileSync(temp02TestTranslationFile, JSON.stringify(input02TestTranslationData), 'utf8');
+    fs.writeFileSync(temp02MetaFile, JSON.stringify(input02MetaData), 'utf8');
+
+    fs.mkdirSync(tempDemoEsInputDir, {recursive: true});
+    fs.writeFileSync(tempDemoEsTranslationFile, JSON.stringify({greeting: 'Hola'}), 'utf8');
+
+    return {
+      input01EnTranslationFile,
+      input01TestTranslationFile,
+      input01MetaFile,
+      input02EnTranslationFile,
+      input02TestTranslationFile,
+      input02MetaFile,
+      inputHttpEntriesFile,
+      inputHttpTranslationFile,
+      input01EnTranslationData,
+      input01TestTranslationData,
+      input01MetaData,
+      input02EnTranslationData,
+      input02TestTranslationData,
+      input02MetaData,
+      inputHttpEntriesData,
+      inputHttpTranslationData,
+      outputEnTranslationFile,
+      outputMetaFile,
+      outputTestTranslationFile,
+      outputEnTranslationData,
+      outputTestTranslationData,
+      outputMetaData,
+      temp01LangDefaultsDir,
+      temp01EnDir,
+      temp01EnTranslationFile,
+      temp01TestDir,
+      temp01TestTranslationFile,
+      temp01MetaFile,
+      temp02LangDefaultsDir,
+      temp02EnDir,
+      temp02EnTranslationFile,
+      temp02TestDir,
+      temp02TestTranslationFile,
+      temp02MetaFile,
+      tempLangDefaultsResultDir,
+      tempEnResultDir,
+      tempEnTranslationResultFile,
+      tempTestResultDir,
+      tempTestTranslationResultFile,
+      tempMetaResultFile,
+      tempEsTranslationResultFile,
+    }
   }
 
-  it('adds translation keys and meta from API', async () => {
+  function readResultFiles(opts: {
+    temp01EnTranslationFile: string,
+    temp01TestTranslationFile: string,
+    temp01MetaFile: string,
+    temp02EnTranslationFile: string,
+    temp02TestTranslationFile: string,
+    temp02MetaFile: string,
+    tempEnTranslationResultFile: string,
+    tempTestTranslationResultFile: string,
+    tempMetaResultFile: string,
+  }) {
+    return {
+      temp01EnTranslationData: readJsonFile(opts.temp01EnTranslationFile),
+      temp01TestTranslationData: readJsonFile(opts.temp01TestTranslationFile),
+      temp01MetaData: readJsonFile(opts.temp01MetaFile),
+      temp02EnTranslationData: readJsonFile(opts.temp02EnTranslationFile),
+      temp02TestTranslationData: readJsonFile(opts.temp02TestTranslationFile),
+      temp02MetaData: readJsonFile(opts.temp02MetaFile),
+      tempEnTranslationResultData: readJsonFile(opts.tempEnTranslationResultFile),
+      tempTestTranslationResultData: readJsonFile(opts.tempTestTranslationResultFile),
+      tempMetaResultData: readJsonFile(opts.tempMetaResultFile),
+    };
+  }
+
+  function setupTestExample() {
     const program = buildProgram();
 
-    // known paths
-    const originalEnTranslationFile = path.resolve(inputOriginalPath, 'en', 'translation.json');
-    const originalMetaFile = path.resolve(inputOriginalPath, 'meta.json');
-    const originalHttpEntriesFile = path.resolve(inputOriginalPath, 'http-entries.json');
-    const originalHttpTranslationFile = path.resolve(inputOriginalPath, 'http-translation.json');
-
-    const targetEnTranslationFile = path.resolve(inputTargetPath, 'en', 'translation.json');
-    const targetMetaFile = path.resolve(inputTargetPath, 'meta.json');
-
-    const tempLangDefaultsDir = path.join(tempRoot, 'language-defaults');
-    const tempEnDir = path.join(tempLangDefaultsDir, 'en');
-    const tempEnTranslationFile = path.join(tempLangDefaultsDir, 'en', 'translation.json');
-    const tempMetaFile = path.join(tempLangDefaultsDir, 'meta.json');
-
-    // create temp dir and files
-    fs.mkdirSync(tempEnDir, {recursive: true});
-    fs.writeFileSync(tempEnTranslationFile, JSON.stringify(readJsonFile(originalEnTranslationFile)), 'utf8');
-    fs.writeFileSync(tempMetaFile, JSON.stringify(readJsonFile(originalMetaFile)), 'utf8');
+    const setupFiles = setupTestData();
 
     // stub the fetch api
     setFetchStub([
       {
-        // i18n/entries
-        body: readJsonFile(originalHttpEntriesFile) as unknown[],
+        url: 'http://localhost/default/rdmp/app/i18n/entries',
+        body: setupFiles.inputHttpEntriesData as unknown[],
       },
       {
-        // locales/en/translation.json
-        body: readJsonFile(originalHttpTranslationFile) as Record<string, unknown>,
+        url: 'http://localhost/default/rdmp/locales/en/translation.json',
+        body: setupFiles.inputHttpTranslationData as Record<string, unknown>,
       },
-    ]);
+    ])
+    ;
 
+    const cmds = [
+      'node',
+      'redbox-dev-tools',
+      'sync-translation',
+      '--language-defaults', setupFiles.temp01LangDefaultsDir,
+      '--language-defaults', setupFiles.temp02LangDefaultsDir,
+      '--api-base', 'http://localhost',
+    ];
+
+    return {
+      program,
+      setupFiles,
+      cmds
+    }
+  }
+
+  it('writes translation keys and meta from API in language-defaults format', async () => {
+    const {program, setupFiles, cmds} = setupTestExample();
     await program.parseAsync(
       [
-        'node', 'redbox-dev-tools',
-        'sync-translation',
-        '--api-base', 'https://localhost',
-        '--language-defaults', tempLangDefaultsDir
+        ...cmds,
+        '--output', setupFiles.tempLangDefaultsResultDir,
+        '--format', 'language-defaults',
       ],
       {from: 'node'}
     );
 
-    const targetTranslation = readJsonFile(targetEnTranslationFile);
-    const targetMeta = readJsonFile(targetMetaFile);
+    const resultFiles = readResultFiles(setupFiles);
 
-    const tempEnTranslationData = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
-    const tempMetaData = readJsonFile(tempMetaFile) as Record<string, unknown>;
-
-    expect(tempEnTranslationData).to.eql(targetTranslation);
-    expect(tempMetaData).to.eql(targetMeta);
-
-    expect(Object.keys(tempEnTranslationData)).to.have.length(4);
-    expect(tempEnTranslationData["_meta"]).to.eql({
-      "@name-test1": {
-        "category": "naming"
-      },
-      "@name-test2": {
-        "category": "naming"
-      }
-    });
-    expect(tempEnTranslationData["@name-test1"]).to.eql("Name 1 <a href=\"https://qcif.edu.au\">link</a>");
-    expect(tempEnTranslationData["@name-test2"]).to.eql("Name 2");
-    expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
-
-    expect(Object.keys(tempMetaData)).to.have.length(3);
-    expect(tempMetaData["@name-test1"]).to.eql({
-      "category": "naming",
-      "description": "Name for test 1."
-    });
-    expect(tempMetaData["@name-test2"]).to.eql({
-      "category": "name",
-      "description": "Name for test 2.",
-      "contentFormat": "plain"
-    });
-    expect(tempMetaData["@name-test3"]).to.eql({
-      "category": "name",
-      "description": "Name for test 3."
-    });
-
+    expect(setupFiles.outputEnTranslationData).to.deep.eql(resultFiles.tempEnTranslationResultData);
+    expect(setupFiles.outputTestTranslationData).to.deep.eql(resultFiles.tempTestTranslationResultData);
+    expect(setupFiles.outputMetaData).to.deep.eql(resultFiles.tempMetaResultData);
+    expect(readJsonFile(setupFiles.tempEsTranslationResultFile)).to.equal(undefined);
   });
 
   it('does not write files in dry run', async () => {
-    const program = buildProgram();
-
-    // known paths
-    const originalEnTranslationFile = path.resolve(inputOriginalPath, 'en', 'translation.json');
-    const originalMetaFile = path.resolve(inputOriginalPath, 'meta.json');
-    const originalHttpEntriesFile = path.resolve(inputOriginalPath, 'http-entries.json');
-    const originalHttpTranslationFile = path.resolve(inputOriginalPath, 'http-translation.json');
-
-    const tempLangDefaultsDir = path.join(tempRoot, 'language-defaults');
-    const tempEnDir = path.join(tempLangDefaultsDir, 'en');
-    const tempEnTranslationFile = path.join(tempLangDefaultsDir, 'en', 'translation.json');
-    const tempMetaFile = path.join(tempLangDefaultsDir, 'meta.json');
-
-    const originalEnTranslationData = readJsonFile(originalEnTranslationFile);
-    const originalMetaData = readJsonFile(originalMetaFile);
-
-    // create temp dir and files
-    fs.mkdirSync(tempEnDir, {recursive: true});
-    fs.writeFileSync(tempEnTranslationFile, JSON.stringify(originalEnTranslationData), 'utf8');
-    fs.writeFileSync(tempMetaFile, JSON.stringify(originalMetaData), 'utf8');
-
-    // stub the fetch api
-    setFetchStub([
-      {
-        // i18n/entries
-        body: readJsonFile(originalHttpEntriesFile) as unknown[],
-      },
-      {
-        // locales/en/translation.json
-        body: readJsonFile(originalHttpTranslationFile) as Record<string, unknown>,
-      },
-    ]);
-
+    const {program, setupFiles, cmds} = setupTestExample();
     await program.parseAsync(
       [
-        'node', 'redbox-dev-tools',
-        'sync-translation',
+        ...cmds,
         '--dry-run',
-        '--api-base', 'https://localhost',
-        '--language-defaults', tempLangDefaultsDir
+        '--output', setupFiles.tempLangDefaultsResultDir,
+        '--format', 'language-defaults'
       ],
       {from: 'node'}
     );
 
-    const tempEnTranslationData = readJsonFile(tempEnTranslationFile) as Record<string, unknown>;
-    const tempMetaData = readJsonFile(tempMetaFile) as Record<string, unknown>;
+    const resultFiles = readResultFiles(setupFiles);
 
-    expect(originalEnTranslationData).to.eql(tempEnTranslationData);
-    expect(originalMetaData).to.eql(tempMetaData);
+    // no changes to temp result files
+    expect(undefined).to.deep.eql(resultFiles.tempEnTranslationResultData);
+    expect(undefined).to.deep.eql(resultFiles.tempTestTranslationResultData);
+    expect(undefined).to.deep.eql(resultFiles.tempMetaResultData);
 
-    expect(Object.keys(tempEnTranslationData)).to.have.length(3);
-    expect(tempEnTranslationData["_meta"]).to.eql({
-      "@name-test1": {
-        "category": "naming"
+    // no changes to temp input files
+    expect(setupFiles.input01EnTranslationData).to.deep.eql(resultFiles.temp01EnTranslationData);
+    expect(setupFiles.input01TestTranslationData).to.deep.eql(resultFiles.temp01TestTranslationData);
+    expect(setupFiles.input01MetaData).to.deep.eql(resultFiles.temp01MetaData);
+    expect(setupFiles.input02EnTranslationData).to.deep.eql(resultFiles.temp02EnTranslationData);
+    expect(setupFiles.input02TestTranslationData).to.deep.eql(resultFiles.temp02TestTranslationData);
+    expect(setupFiles.input02MetaData).to.deep.eql(resultFiles.temp02MetaData);
+  });
+
+  it('should follow precedence order with later items overwriting earlier items', async () => {
+    const program = buildProgram();
+    const setupFiles = setupTestData();
+    setFetchStub([
+      // Set "@name-test3" value and meta, to be overwritten by input-01 en
+      {
+        url: 'http://localhost/1/default/rdmp/app/i18n/entries',
+        body: [
+          {
+            "locale": "en",
+            "key": "@name-test1",
+            "category": "api-base-1",
+          },
+          {
+            "locale": "en",
+            "key": "@name-test2",
+            "category": "name",
+            "description": "Name for test 2.",
+            "contentFormat": "plain"
+          },
+          {
+            "locale": "en",
+            "key": "@name-test3",
+            "category": "api-base-3",
+          },
+        ],
       },
-      "@name-test2": {
-        "category": "naming"
+      {
+        url: 'http://localhost/1/default/rdmp/locales/en/translation.json',
+        body: {
+          "@name-test1": "api-base-1 <a href='https://localhost'>localhost</a>",
+          "@name-test2": "Name 2",
+          "@name-test3": "api-base-3",
+        },
+      },
+      // overwrite @name-test6 value and meta from input-02 en
+      {
+        url: 'http://localhost/2/default/rdmp/app/i18n/entries',
+        body: [
+          {
+            "locale": "en",
+            "key": "@name-test6",
+            "category": "api-base-6",
+          },
+        ],
+      },
+      {
+        url: 'http://localhost/2/default/rdmp/locales/en/translation.json',
+        body: {
+          "@name-test6": "api-base-6",
+        },
+      },
+    ]);
+
+    await program.parseAsync(
+      ['node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--api-base', 'http://localhost/1',
+        '--language-defaults', setupFiles.temp01LangDefaultsDir,
+        '--language-defaults', setupFiles.temp02LangDefaultsDir,
+        '--api-base', 'http://localhost/2',
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    const resultFiles = readResultFiles(setupFiles);
+
+    expect(resultFiles.tempEnTranslationResultData).to.deep.eql({
+      "@name-test1": "api-base-1 <a href='https://localhost'>localhost</a>",
+      "@name-test2": "Name 2",
+      "@name-test3": "Name 3",
+      "@name-test4": "",
+      "@name-test5": "Name 5",
+      "@name-test6": "api-base-6"
+    });
+    expect(resultFiles.tempTestTranslationResultData).to.deep.eql({
+      "@name-test1": "",
+      "@name-test2": "abc 123",
+      "@name-test3": "",
+      "@name-test4": "qwe 456",
+      "@name-test5": "",
+      "@name-test6": "Name 6",
+    });
+    expect(resultFiles.tempMetaResultData).to.deep.eql({
+        "@name-test1": {
+          "category": "naming",
+          "contentFormat": "html",
+          "description": "Name for test 1."
+        },
+        "@name-test2": {
+          "category": "name",
+          "description": "Name for test 2.",
+          "contentFormat": "plain"
+        },
+        "@name-test3": {
+          "category": "api-base-3",
+          "description": "Name for test 3."
+        },
+        "@name-test4": {
+          "category": "name",
+          "description": "Translation for @name-test4"
+        },
+        "@name-test5": {
+          "category": "name",
+          "description": "Translation for @name-test5"
+        },
+        "@name-test6": {
+          "category": "api-base-6",
+          "description": "Name for test 6."
+        }
       }
-    });
-    expect(tempEnTranslationData["@name-test1"]).to.eql("");
-    expect(tempEnTranslationData["@name-test3"]).to.eql("Name 3");
+    );
+  });
 
-    expect(Object.keys(tempMetaData)).to.have.length(2);
-    expect(tempMetaData["@name-test1"]).to.eql({
-      "description": "Name for test 1."
-    });
-    expect(tempMetaData["@name-test3"]).to.eql({
-      "description": "Name for test 3."
-    });
+  it('does not reuse sources when the same program is parsed again', async () => {
+    const program = buildProgram();
+    const setupFiles = setupTestData();
 
+    await program.parseAsync(
+      [
+        'node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--language-defaults', setupFiles.temp01LangDefaultsDir,
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    fs.rmSync(setupFiles.tempLangDefaultsResultDir, {recursive: true, force: true});
+
+    await program.parseAsync(
+      [
+        'node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--language-defaults', setupFiles.temp02LangDefaultsDir,
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    expect(readJsonFile(setupFiles.tempEnTranslationResultFile)).to.deep.equal({
+      "@name-test5": "Name 5",
+      "@name-test6": "",
+    });
+    expect(readJsonFile(setupFiles.tempTestTranslationResultFile)).to.deep.equal({
+      "@name-test5": "",
+      "@name-test6": "Name 6",
+    });
   });
 });

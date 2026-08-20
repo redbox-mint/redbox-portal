@@ -66,9 +66,17 @@ jobs:
       - run:
           name: Generate API docs artifacts
           command: npm run doc:api
+      - run:
+          name: Test and audit generated contract documentation
+          command: |
+            npm run docs:test
+            npm run docs:audit
       - store_artifacts:
           path: support/docs/generated/api
           destination: api-docs
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -1001,41 +1009,54 @@ jobs:
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
             npm run compile:core
       - run:
-          name: Generate angular docs
-          command: npm run doc-ng2
-      - run:
-          name: Deploy docs by adding commit to gh-pages branch
+          name: Generate extension, form, and REST references
           command: |
-            npm install -g --silent gh-pages@2.0.1
-            git config user.email "ci-build@redboxresearchdata.com.au"
-            git config user.name "ci-build"
-            gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+            npm run doc:api -- --branding=default --portal=rdmp
+            npm run docs:test
+            npm run docs:generate
       - run:
-          name: Publish wiki docs
+          name: Deploy generated references to gh-pages
           command: |
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-            tmp_dir=$(mktemp -d)
-            git clone git@github.com:redbox-mint/redbox-portal.wiki.git "$tmp_dir"
-            git -C "$tmp_dir" rm -r --ignore-unmatch .
-            cp -a support/wiki/. "$tmp_dir"/
-            cd "$tmp_dir"
-            git add -A
-            if git diff --cached --quiet; then
-              echo "Wiki up to date; no changes to push."
-            else
-              git commit -m "[ci skip] Update wiki docs"
-              branch=$(git symbolic-ref --short HEAD)
-              git push origin "$branch"
-            fi
+            ./node_modules/.bin/gh-pages --dotfiles --message "[ci skip] Updating generated documentation" --dist .tmp/generated-docs-site
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  publish-wiki:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
+      - checkout
+      - run:
+          name: Publish wiki docs
+          command: |
+            git config --global user.email "ci-build@redboxresearchdata.com.au"
+            git config --global user.name "ci-build"
+
+            wiki_dir=$(mktemp -d)
+            git clone git@github.com:redbox-mint/redbox-portal.wiki.git "$wiki_dir"
+            git -C "$wiki_dir" rm -r --ignore-unmatch .
+            cp -a support/wiki/. "$wiki_dir"/
+            git -C "$wiki_dir" add -A
+
+            if git -C "$wiki_dir" diff --cached --quiet; then
+              echo "Wiki is already up to date."
+              exit 0
+            fi
+
+            git -C "$wiki_dir" commit -m "[ci skip] Update wiki docs from ${CIRCLE_SHA1}"
+            git -C "$wiki_dir" push origin HEAD
 orbs:
   node: circleci/node@7.2.1
   docker: circleci/docker@3.0.1
@@ -1080,6 +1101,24 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
+      - publish-wiki:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+      - generate-docs:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
       - build-runtime-pdfgen:
           requires:
             - build
@@ -1582,6 +1621,7 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-agenda-sqs-backend
+            - test-rva-registry
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:

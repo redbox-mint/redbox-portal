@@ -120,8 +120,8 @@ describe('ManageUsersComponent', () => {
       'manage-users-link-search-failed': 'Failed to search accounts.',
       'manage-users-link-select-candidate': 'Select an account to link.',
       'manage-users-link-success': 'Accounts linked successfully.',
-      'manage-users-link-success-roles-merged': '{{count}} role(s) merged',
-      'manage-users-link-success-records-rewritten': '{{count}} record(s) rewritten',
+      'manage-users-link-success-roles-merged': '{{count}} roles merged',
+      'manage-users-link-success-records-rewritten': '{{count}} records rewritten',
       'manage-users-disable-success': 'User disabled successfully.',
       'manage-users-enable-success': 'User enabled successfully.'
     });
@@ -524,8 +524,8 @@ describe('ManageUsersComponent', () => {
     expect(app.linkSearchQuery).toBe('');
     expect(app.linkMsgType).toBe('success');
     expect(app.linkMsg).toContain('Accounts linked successfully.');
-    expect(app.linkMsg).toContain('2 role(s) merged');
-    expect(app.linkMsg).toContain('3 record(s) rewritten');
+    expect(app.linkMsg).toContain('2 roles merged');
+    expect(app.linkMsg).toContain('3 records rewritten');
   });
 
   it('should handle empty and failed account linking flows', async () => {

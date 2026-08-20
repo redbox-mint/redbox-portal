@@ -30,7 +30,7 @@ export class CancelButtonComponent extends ButtonBaseComponent {
 
   get displayLabel(): string {
     const label = this.translate(this.componentDefinition?.config?.label) ?? '';
-    return label.trim() || 'Cancel';
+    return label.trim() || this.formService.translate('@cancel-button');
   }
 
   get isSaving(): boolean {
@@ -76,10 +76,10 @@ export class CancelButtonComponent extends ButtonBaseComponent {
     }
 
     return this.confirmationDialogService.confirm({
-      title: this.componentDefinition?.config?.confirmationTitle ?? 'Confirm',
+      title: this.componentDefinition?.config?.confirmationTitle ?? '@form-confirm-dialog-title',
       message: confirmationMessage,
-      confirmLabel: this.componentDefinition?.config?.confirmButtonMessage ?? 'Yes',
-      cancelLabel: this.componentDefinition?.config?.cancelButtonMessage ?? 'No',
+      confirmLabel: this.componentDefinition?.config?.confirmButtonMessage ?? '@form-confirm-dialog-yes',
+      cancelLabel: this.componentDefinition?.config?.cancelButtonMessage ?? '@form-confirm-dialog-no',
       confirmButtonClass: this.resolveButtonCssClasses(this.buttonCssClasses, this.fallbackVariantClass),
     });
   }

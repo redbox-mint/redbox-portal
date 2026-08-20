@@ -14,7 +14,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 - **[Architecture](support/wiki/Architecture-Overview.md)**: High-level structure and design.
 - **[Coding Standards](support/wiki/Coding-Standards-and-Conventions.md)**: Conventions and style guides.
 - **[Testing](support/wiki/ReDBox-Automated-Tests.md)**: Strategies and commands for running tests.
-- **API Docs**: Run `npm run doc:api` to generate the shared API artifacts under `support/docs/generated/api`, then use `npm --prefix packages/redbox-core run docs:serve` to preview them.
+- **Generated Reference**: Run `npm run docs:generate` for the hook extension and form-contract reference, machine-readable catalogue, FormConfig JSON Schema, and advisory health report. Run `npm run doc:api` first to include the independent REST reference, then preview the composed site with `npm run docs:serve`.
 - **[Contributing](CONTRIBUTING.md)**: Guidelines for submitting changes.
 
 ## Quick Start

@@ -220,6 +220,14 @@ describe('FormComponentItemSelectEventConsumer', () => {
     expect(scopedBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
       fieldId: '/record/contributors/0'
     }));
+    expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      fieldId: '/record/contributors/0',
+      sourceId: '*',
+      value: {
+        funderName: 'https://example.org/funder/parent',
+        funderSearch: ''
+      }
+    }));
   });
 
   it('should ignore events from same field (self)', () => {
