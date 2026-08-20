@@ -1,5 +1,3 @@
-version: '3.9'
-
 x-rbportal-env: &rbportal-env
   NODE_ENV: docker
   PORT: 1500
@@ -83,7 +81,7 @@ services:
     volumes: *rbportal-volumes
   mongodb:
     #image: mvertes/alpine-mongo:latest
-    image: mongo:latest
+    image: mongo:latest@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     volumes:
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
@@ -95,7 +93,7 @@ services:
     ports:
       - '27017:27017'
   solr:
-    image: solr:latest
+    image: solr:latest@sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69
     expose:
       - '8983'
     ports:

@@ -72,7 +72,7 @@ services:
     init: true
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
-    image: mongo:latest
+    image: mongo:latest@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     pull_policy: 'missing'
     networks:
       main:
@@ -86,7 +86,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest
+    image: solr:latest@sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69
     pull_policy: 'missing'
     expose:
       - "8983"
@@ -127,7 +127,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a
     pull_policy: 'missing'
     expose:
       - '1025'

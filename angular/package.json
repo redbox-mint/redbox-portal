@@ -114,11 +114,11 @@
       }
     },
     "follow-redirects": "1.16.0",
-    "hono": "4.12.23",
+    "hono": "4.12.34",
     "mocha": {
       "minimatch": "10.2.5"
     },
-    "postcss": "8.5.15",
+    "postcss": "8.5.23",
     "uuid": "14.0.0"
   }
 }

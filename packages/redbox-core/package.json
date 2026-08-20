@@ -25,7 +25,7 @@
   "dependencies": {
     "@agendajs/mongo-backend": "4.0.3",
     "@apidevtools/swagger-parser": "12.1.0",
-"@aws-sdk/s3-request-presigner": "3.1107.0",
+    "@aws-sdk/s3-request-presigner": "3.1107.0",
     "@ocfl/ocfl": "0.4.0",
     "@opentelemetry/api": "1.9.1",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
@@ -35,11 +35,9 @@
     "@tus/file-store": "2.1.1",
     "@tus/s3-store": "2.0.5",
     "@tus/server": "2.4.3",
-    "@types/dompurify": "3.2.0",
     "@types/express": "5.0.6",
     "@types/lodash": "4.17.24",
     "@types/node": "24.12.4",
-    "@types/uuid": "11.0.0",
     "agenda": "6.2.6",
     "async": "3.2.6",
     "axios": "1.19.0",
@@ -108,8 +106,8 @@
   },
   "overrides": {
     "axios": "1.19.0",
-    "fast-xml-parser": "5.8.0",
-    "immutable": "5.1.5",
+    "fast-xml-parser": "5.10.1",
+    "immutable": "5.1.8",
     "sails-mongo": {
       "qs": "6.15.2"
     },
@@ -131,7 +129,6 @@
   "devDependencies": {
     "@jsonjoy.com/json-pointer": "18.24.0",
     "@tsconfig/node24": "24.0.4",
-    "@types/bcryptjs": "3.0.0",
     "@types/chai": "5.2.3",
     "@types/ejs": "3.1.5",
     "@types/express-session": "1.19.0",
