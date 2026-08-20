@@ -76,7 +76,7 @@ export namespace Services {
   }
 
   export class StorageManager extends services.Core.Service {
-    protected override_exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'init',
       'bootstrap',
       'disk',
@@ -88,7 +88,7 @@ export namespace Services {
       'getStagingDiskConfig',
     ];
 
-    protected overridelogHeader: string = 'StorageManagerService::';
+    protected override logHeader: string = 'StorageManagerService::';
 
     // Flydrive module references (loaded dynamically since ESM-only)
     private _DiskConstructor: DiskConstructor | null = null;

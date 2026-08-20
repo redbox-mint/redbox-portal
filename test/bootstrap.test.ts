@@ -2,7 +2,7 @@ import sails from "sails";
 import _ from "lodash";
 import { DateTime } from "luxon";
 
-import { brandingConfigurationDefaults as defaultBrandingConfigurationDefaults, datacite as defaultDataciteConfig, generateAllShims } from "@researchdatabox/redbox-core";
+import { brandingConfigurationDefaults as defaultBrandingConfigurationDefaults, generateAllShims } from "@researchdatabox/redbox-core";
 
 // Expose Luxon DateTime for tests needing date utilities
 (global as any).DateTime = DateTime;
@@ -64,13 +64,6 @@ before(function (this: Mocha.Context, done) {
 									}
 								}
 							}
-						},
-						datacite: {
-							...defaultDataciteConfig,
-							...(process.env.datacite_baseUrl?.trim() ? { baseUrl: process.env.datacite_baseUrl.trim() } : {}),
-							username: process.env.datacite_username,
-							password: process.env.datacite_password,
-							doiPrefix: process.env.datacite_doiPrefix
 						},
 						auth: {
 							default: {

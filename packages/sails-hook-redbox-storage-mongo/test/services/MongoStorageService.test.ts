@@ -9,7 +9,7 @@ async function expectRejects(fn: () => Promise<unknown>, message: string) {
     await fn();
     throw new Error(`Expected rejection containing: ${message}`);
   } catch (error) {
-    expect(String(error.message || error)).to.include(message);
+    expect(error instanceof Error ? error.message : String(error)).to.include(message);
   }
 }
 
