@@ -5,13 +5,29 @@
     "browser": true,
     "node": true
   },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "plugins": [
+    "eslint",
+    "import",
+    "jsdoc",
+    "node",
+    "oxc",
+    "promise",
+    "typescript",
+    "unicorn",
+    "vitest"
+  ],
   "categories": {
-    "correctness": "off",
-    "suspicious": "off",
-    "pedantic": "off",
-    "perf": "off",
-    "style": "off",
-    "restriction": "off",
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error",
+    "style": "error",
+    "restriction": "error",
     "nursery": "off"
   },
   "ignorePatterns": [
@@ -28,106 +44,20 @@
     "packages/*/test/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "support/wiki/**",
-    "support/docs/**",
+    "support/**",
     "**/*.d.ts"
   ],
   "rules": {
-    "no-unused-expressions": "error"
+    "oxc/no-optional-chaining": "off",
+    "eslint/no-ternary": "off",
+    "oxc/no-async-await": "off",
+    "oxc/no-rest-spread-properties": "off",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "camelCase"
+      }
+    ]
   },
-  "overrides": [
-    {
-      "files": [
-        "{api,config,typescript}/**/*.{ts,tsx}",
-        "packages/*/src/**/*.{ts,tsx}"
-      ],
-      "rules": {
-        "no-array-constructor": "error",
-        "typescript/no-explicit-any": "error",
-        "typescript/no-extra-non-null-assertion": "error",
-        "typescript/no-misused-new": "error",
-        "typescript/no-non-null-asserted-optional-chain": "error",
-        "typescript/no-unsafe-declaration-merging": "error",
-        "typescript/no-unused-vars": [
-          "error",
-          {
-            "argsIgnorePattern": "^_",
-            "varsIgnorePattern": "^_",
-            "caughtErrorsIgnorePattern": "^_"
-          }
-        ],
-        "typescript/no-unsafe-function-type": "error",
-        "typescript/no-var-requires": "error",
-        "typescript/no-wrapper-object-types": "error",
-        "prefer-const": "warn",
-        "no-var": "error"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/**/*.{ts,tsx}"
-      ],
-      "rules": {
-        "no-control-regex": "warn",
-        "no-empty": "warn",
-        "no-useless-catch": "warn",
-        "no-useless-escape": "warn",
-        "typescript/no-var-requires": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/CoreController.ts",
-        "packages/redbox-core/src/CoreService.ts",
-        "packages/redbox-core/src/controllers/webservice/*.ts",
-        "packages/redbox-core/src/services/RecordsService.ts",
-        "packages/redbox-core/src/services/VocabService.ts"
-      ],
-      "rules": {
-        "typescript/no-unused-vars": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/waterline-models/*.ts"
-      ],
-      "rules": {
-        "typescript/no-var-requires": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/sails.ts"
-      ],
-      "rules": {
-        "typescript/no-explicit-any": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/visitor/*.ts"
-      ],
-      "rules": {
-        "typescript/no-unused-vars": "off",
-        "typescript/no-explicit-any": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-dev-tools/**/*.{ts,tsx}",
-        "packages/rva-registry/**/*.{ts,tsx}",
-        "packages/sails-ng-common/**/*.{ts,tsx}",
-        "test/**/*.{ts,tsx}",
-        "typescript/assets/**/*.{ts,tsx}"
-      ],
-      "rules": {
-        "typescript/no-explicit-any": "off",
-        "typescript/no-var-requires": "off",
-        "typescript/no-unused-vars": "off",
-        "typescript/no-unsafe-function-type": "off",
-        "prefer-const": "off",
-        "no-var": "off"
-      }
-    }
-  ]
+  "overrides": []
 }
