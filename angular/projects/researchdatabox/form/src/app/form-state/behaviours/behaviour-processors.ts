@@ -19,6 +19,21 @@ export interface BehaviourPipelineContext {
   querySource?: unknown;
 }
 
+/**
+ * Context keys owned by the pipeline itself. A `runTemplate` `resultKey` may
+ * not shadow these: omitting `resultKey` is the explicit way to replace
+ * `value`, and silently overwriting `formData`/`event` would corrupt every
+ * later template in hard-to-debug ways.
+ */
+export const BehaviourReservedContextKeys = [
+  'value',
+  'event',
+  'formData',
+  'requestParams',
+  'runtimeContext',
+  'querySource',
+] as const;
+
 export interface BehaviourProcessorExecutionContext {
   behaviourIndex: number;
   processorIndex: number;

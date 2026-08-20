@@ -33,6 +33,9 @@ The existing ReDBox form **expressions** system is component-scoped and limited 
 > Out of scope: hook-registered custom processors/actions, `showNotification`, `highlightField`, `setFieldAttribute`, processor-level debounce.
 
 > [!NOTE]
+> Since v1: `setFieldAttribute`-style functionality is now delivered by the `setUIProperty` / `setUIProperties` actions — see [v1.1 — Additional Action Types](#v11--additional-action-types). `showNotification`, `highlightField`, hook extensibility, and processor-level debounce remain out of scope.
+
+> [!NOTE]
 > `RecordMetadataRetrieverComponent` remains unchanged and coexists with the `fetchMetadata` processor. The component is for expression-driven lookups within a component scope; the processor is for behaviour pipelines where metadata feeds downstream actions without event emission.
 
 ---
@@ -691,3 +694,135 @@ behaviours: [
 - Verify `fetchMetadata` → `jsonataTransform` → `setValue` pipeline end-to-end
 - Verify `onError` flow with a processor that throws
 - Verify form destroy cleans up subscriptions
+
+---
+
+## v1.1 — Additional Action Types
+
+v1.1 extends the built-in action set from `setValue` / `emitEvent` to also include `runTemplate`, `setValues`, `setUIProperty`, and `setUIProperties`. All new actions reuse the existing visitor pipeline (template extraction → client stripping → compiled-key evaluation) and the existing `fieldPathKind` resolution modes.
+
+### Scope
+
+| Area | Detail |
+|------|--------|
+| `runTemplate` | Evaluate a JSONata template against the full pipeline context; store the result under a named context key (`resultKey`) and/or apply it as a field-assignment instruction list (`applyResults`) |
+| `setValues` | Plural `setValue`: a configured entry list, each entry mirroring `FormBehaviourSetValueActionConfig` exactly |
+| `setUIProperty` | Apply one expressions-style target (`model.value`, `model.disabled`, `layout.*`, `component.*`, `field.visible`, `field.disabled`, `form.enabledValidationGroups`) to a resolved field |
+| `setUIProperties` | Plural `setUIProperty` with an action-level default `fieldPath` that entries may override |
+| Shared target application | `applyExpressionTarget()` (`form-state/apply-expression-target.ts`) extracted from `FormComponentBaseEventConsumer.setTarget` so component expressions and behaviours apply targets identically |
+
+### Configuration Schema
+
+```typescript
+// runTemplate
+interface FormBehaviourRunTemplateActionConfig {
+  template?: string;      // raw JSONata; stripped by the client visitor
+  hasTemplate?: boolean;  // client marker after stripping
+  resultKey?: string;     // store result in pipeline context extras
+  applyResults?: boolean; // treat result as instruction list
+}
+
+// Instruction produced by an applyResults evaluation. fieldPath is a literal
+// componentJsonPointer; target defaults to 'model.value'. fieldPath may be
+// omitted only for the form-scoped 'form.enabledValidationGroups' target.
+interface FormBehaviourFieldAssignmentInstruction {
+  fieldPath?: string;
+  target?: FormExpressionsTargetType;
+  value: unknown;
+}
+
+// setValues
+interface FormBehaviourSetValuesActionConfig {
+  values: FormBehaviourSetValueActionConfig[];
+}
+
+// setUIProperty config and setUIProperties entries
+interface FormBehaviourSetUIPropertyEntry {
+  fieldPath?: string;            // required except for form.enabledValidationGroups
+  fieldPathKind?: FieldPathKindType;
+  hasFieldPathTemplate?: boolean;
+  target: FormExpressionsTargetType;
+  value?: unknown;               // literal; used when no valueTemplate
+  valueTemplate?: string;
+  hasValueTemplate?: boolean;
+}
+
+// setUIProperties: action-level fieldPath/fieldPathKind are defaults for
+// entries that do not provide their own (all-or-nothing per entry).
+interface FormBehaviourSetUIPropertiesActionConfig {
+  fieldPath?: string;
+  fieldPathKind?: FieldPathKindType;
+  hasFieldPathTemplate?: boolean;
+  properties: FormBehaviourSetUIPropertyEntry[];
+}
+```
+
+### Runtime Semantics
+
+- **Pipeline context extras**: `BehaviourHandler.executeActions()` holds per-list-execution state (`value` + `extras`). Each action still gets a freshly built pipeline context (so `formData` re-snapshots after mutations) with the extras merged on top. `runTemplate` writes via `updatePipelineValue` / `setPipelineContextKey` callbacks.
+- **`runTemplate` result handling**: `resultKey` → store in extras; no `resultKey` and no `applyResults` → replace pipeline `value`; `applyResults: true` without `resultKey` → result is consumed by instruction application and `value` is untouched.
+- **Value precedence** (UI-property entries): compiled `valueTemplate` > literal `value` key > pipeline `value`. `setValue`/`setValues` entries keep v1 semantics (template > pipeline value).
+- **Warn-and-skip**: invalid instructions, unresolvable fields, and unresolvable plural entries log a warning and continue with the remaining work.
+- **`form.enabledValidationGroups` from behaviours** publishes the change-request event unconditionally (component expressions keep their scoped-event gate). A behaviour whose condition matches the published event can re-trigger itself; scope conditions accordingly.
+
+### Bind-Time Validation (`BehaviourHandler.validateActions`)
+
+- `logical` fieldPathKind rules now also cover `setValues` entries, `setUIProperty`, and `setUIProperties` (action-level defaults and entries that own their field path). Nested entries use `actions:<i>:entries:<j>` skip/lock keys so one bad entry does not disable siblings.
+- `runTemplate.resultKey` must match `[A-Za-z_][A-Za-z0-9_]*` and must not shadow a reserved pipeline context key (`value`, `event`, `formData`, `requestParams`, `runtimeContext`, `querySource`); violations permanently skip the action.
+- Plural actions with a missing or empty `values`/`properties` list are permanently skipped with a warning.
+
+### Visitor Key Paths
+
+| Property | Compiled key |
+|----------|--------------|
+| `runTemplate` `config.template` | `['behaviours', b, list, a, 'config', 'template']` |
+| `setValues` entry `valueTemplate` / jsonata `fieldPath` | `['behaviours', b, list, a, 'config', 'values', v, 'valueTemplate' \| 'fieldPath']` |
+| `setUIProperty` `valueTemplate` / jsonata `fieldPath` | `['behaviours', b, list, a, 'config', 'valueTemplate' \| 'fieldPath']` |
+| `setUIProperties` action-level jsonata `fieldPath` | `['behaviours', b, list, a, 'config', 'fieldPath']` |
+| `setUIProperties` entry `valueTemplate` / jsonata `fieldPath` | `['behaviours', b, list, a, 'config', 'properties', p, 'valueTemplate' \| 'fieldPath']` |
+
+The client visitor strips the same properties and sets `hasTemplate` / `hasValueTemplate` / `hasFieldPathTemplate` markers per action config and per nested entry. Literal `value` and `target` keys pass through untouched.
+
+### Example: compute once, fan out
+
+```json
+{
+  "name": "ci-details",
+  "condition": "/main/ci::field.value.changed",
+  "actions": [
+    {
+      "type": "runTemplate",
+      "config": { "template": "value.email", "resultKey": "ciEmail" }
+    },
+    {
+      "type": "setValues",
+      "config": {
+        "values": [
+          { "fieldPath": "/main/notification_email", "valueTemplate": "ciEmail" },
+          { "fieldPath": "/main/contact_name", "valueTemplate": "value.name" }
+        ]
+      }
+    },
+    {
+      "type": "setUIProperties",
+      "config": {
+        "fieldPath": "/main/notification_email",
+        "properties": [
+          { "target": "field.visible", "valueTemplate": "$exists(ciEmail)" },
+          { "target": "component.disabled", "value": false }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Verification (v1.1)
+
+- `packages/redbox-core/test/unit/form-behaviour.visitor.test.ts` — "extended action types": construct passthrough, nested template extraction keys, client stripping markers and literal passthrough
+- `angular/.../form-state/behaviours/form-behaviour-manager.service.spec.ts` — "extended action types": setValues fan-out, resultKey persistence across actions, pipeline-value replacement, applyResults instruction application (including warn-and-skip), reserved resultKey bind-time skip, setUIProperty/setUIProperties target application, logical entry skip in onError
+- `angular/.../form-state/apply-expression-target.spec.ts` — every target branch of the shared helper
+
+### Future Action Types (still out of scope)
+
+`showNotification`, `validateFields`/`revalidate`, `setRequestParam`/`mutateRuntimeContext`, `focusField`/`scrollToField`, `log`, broader `emitEvent` event types, `resetValue`/`clearValue`, `triggerSave`, `runBehaviour`.

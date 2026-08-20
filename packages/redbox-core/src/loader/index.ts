@@ -564,7 +564,7 @@ export async function generateMigrationConfigShim(
         `      continue;`,
         `    }`,
         `    seenMigrationNames.set(migration.name, source);`,
-        `    migrations.push(migration);`,
+        `    migrations.push({ ...migration, source: migration.source || source });`,
         `  }`,
         `}`,
         ``,
