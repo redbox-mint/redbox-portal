@@ -97,9 +97,13 @@ async function readTranslationFiles(filesPath: string): Promise<{
       if (!translationStat.isFile()) {
         continue;
       }
-    } catch {
-      // Nested folders such as language-defaults/demo are documentation
-      // or sample data, not locale roots.
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+        // Nested folders such as language-defaults/demo are documentation
+        // or sample data, not locale roots.
+        continue;
+      }
+      throw err;
     }
     if (!p) {
       continue;
@@ -320,8 +324,9 @@ export function registerSyncTranslationCommand(program: Command): void {
         const globalOptions = program.opts();
         const outputPath: string = options.output;
         const outputFormat: string = options.format;
+        const sources = sourcesCollected.splice(0);
 
-        if (sourcesCollected.length === 0) {
+        if (sources.length === 0) {
           throw new Error(`Must provide at least one of language-defaults path or api-base url.`);
         }
 
@@ -331,7 +336,7 @@ export function registerSyncTranslationCommand(program: Command): void {
 
         // Precedence order: later items overwrite earlier items.
         // Populate source meta and translations in order provided in command line.
-        for (const {type, value} of sourcesCollected) {
+        for (const {type, value} of sources) {
           if (type === 'language-defaults') {
             const {meta, locales} = await readTranslationFiles(value);
             sourceMeta.push(meta);
@@ -349,12 +354,16 @@ export function registerSyncTranslationCommand(program: Command): void {
         // so any keys in meta that are not in any locale data will be dropped.
         const keys = new Set<string>(sourceTranslations.flatMap(i => Object.keys(i.data)));
 
+        // Cache translations by locale so each source is grouped only once.
+        const sourceTranslationsByLocale = new Map<string, TranslationLocaleRaw[]>();
+        for (const sourceTranslation of sourceTranslations) {
+          const localeTranslations = sourceTranslationsByLocale.get(sourceTranslation.locale) ?? [];
+          localeTranslations.push(sourceTranslation);
+          sourceTranslationsByLocale.set(sourceTranslation.locale, localeTranslations);
+        }
+
         // The unique locale names.
-        const localeNames = Array.from(
-          new Set<string>(
-            sourceTranslations.map(i => i.locale)
-          )
-        ).sort();
+        const localeNames = Array.from(sourceTranslationsByLocale.keys()).sort();
 
         // Gather translation and meta entries.
         const meta: MetaEntries = Object.create(null);
@@ -371,7 +380,7 @@ export function registerSyncTranslationCommand(program: Command): void {
             if (!(localeName in locales)) {
               locales[localeName] = Object.create(null);
             }
-            const localeTranslationData = sourceTranslations.filter(i => i.locale === localeName);
+            const localeTranslationData = sourceTranslationsByLocale.get(localeName) ?? [];
 
             // Translation value for a locale key.
             const values = localeTranslationData
@@ -391,15 +400,18 @@ export function registerSyncTranslationCommand(program: Command): void {
 
             const value = lastNonEmptyString(...values);
             locales[localeName][key] = value ?? "";
-
-            // Meta details for a key.
-            meta[key] = mergeMetaItems({
-              key,
-              value,
-              items: [...sourceMeta.map(i => i.data?.[key]), meta[key]],
-              guessContentFormat: true,
-            }) ?? Object.create(null);
           }
+
+          // Use the first populated locale in sorted order when inferring meta.
+          const valueForMeta = localeNames
+            .map(localeName => locales[localeName]?.[key])
+            .find(value => typeof value === 'string' && value.trim().length > 0);
+          meta[key] = mergeMetaItems({
+            key,
+            value: valueForMeta,
+            items: sourceMeta.map(i => i.data?.[key]),
+            guessContentFormat: true,
+          }) ?? Object.create(null);
         }
 
         // Write output

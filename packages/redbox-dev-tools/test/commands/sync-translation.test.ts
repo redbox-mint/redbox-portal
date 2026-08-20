@@ -140,8 +140,9 @@ describe('sync-translation command', () => {
     const tempTestResultDir = path.join(tempLangDefaultsResultDir, 'test');
     const tempTestTranslationResultFile = path.join(tempTestResultDir, 'translation.json');
     const tempMetaResultFile = path.join(tempLangDefaultsResultDir, 'meta.json');
-    const tempDemoEsResultDir = path.join(tempLangDefaultsResultDir, 'demo', 'es');
-    const tempDemoEsTranslationFile = path.join(tempDemoEsResultDir, 'translation.json');
+    const tempDemoEsInputDir = path.join(temp01LangDefaultsDir, 'demo', 'es');
+    const tempDemoEsTranslationFile = path.join(tempDemoEsInputDir, 'translation.json');
+    const tempEsTranslationResultFile = path.join(tempLangDefaultsResultDir, 'es', 'translation.json');
 
     // create temp dirs and files
 
@@ -159,7 +160,7 @@ describe('sync-translation command', () => {
     fs.writeFileSync(temp02TestTranslationFile, JSON.stringify(input02TestTranslationData), 'utf8');
     fs.writeFileSync(temp02MetaFile, JSON.stringify(input02MetaData), 'utf8');
 
-    fs.mkdirSync(tempDemoEsResultDir, {recursive: true});
+    fs.mkdirSync(tempDemoEsInputDir, {recursive: true});
     fs.writeFileSync(tempDemoEsTranslationFile, JSON.stringify({greeting: 'Hola'}), 'utf8');
 
     return {
@@ -203,6 +204,7 @@ describe('sync-translation command', () => {
       tempTestResultDir,
       tempTestTranslationResultFile,
       tempMetaResultFile,
+      tempEsTranslationResultFile,
     }
   }
 
@@ -280,6 +282,7 @@ describe('sync-translation command', () => {
     expect(setupFiles.outputEnTranslationData).to.deep.eql(resultFiles.tempEnTranslationResultData);
     expect(setupFiles.outputTestTranslationData).to.deep.eql(resultFiles.tempTestTranslationResultData);
     expect(setupFiles.outputMetaData).to.deep.eql(resultFiles.tempMetaResultData);
+    expect(readJsonFile(setupFiles.tempEsTranslationResultFile)).to.equal(undefined);
   });
 
   it('does not write files in dry run', async () => {
@@ -424,5 +427,43 @@ describe('sync-translation command', () => {
         }
       }
     );
+  });
+
+  it('does not reuse sources when the same program is parsed again', async () => {
+    const program = buildProgram();
+    const setupFiles = setupTestData();
+
+    await program.parseAsync(
+      [
+        'node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--language-defaults', setupFiles.temp01LangDefaultsDir,
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    fs.rmSync(setupFiles.tempLangDefaultsResultDir, {recursive: true, force: true});
+
+    await program.parseAsync(
+      [
+        'node',
+        'redbox-dev-tools',
+        'sync-translation',
+        '--language-defaults', setupFiles.temp02LangDefaultsDir,
+        '--output', setupFiles.tempLangDefaultsResultDir,
+      ],
+      {from: 'node'}
+    );
+
+    expect(readJsonFile(setupFiles.tempEnTranslationResultFile)).to.deep.equal({
+      "@name-test5": "Name 5",
+      "@name-test6": "",
+    });
+    expect(readJsonFile(setupFiles.tempTestTranslationResultFile)).to.deep.equal({
+      "@name-test5": "",
+      "@name-test6": "Name 6",
+    });
   });
 });
