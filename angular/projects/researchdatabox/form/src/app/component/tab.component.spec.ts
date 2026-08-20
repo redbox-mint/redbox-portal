@@ -237,6 +237,12 @@ describe('TabComponent', () => {
 
   });
 
+  afterEach(() => {
+    const url = new URL(window.location.href);
+    url.search = '';
+    window.history.replaceState({}, '', url.toString());
+  });
+
   it('should create component', () => {
     let fixture = TestBed.createComponent(TabComponent);
     let component = fixture.componentInstance;
@@ -376,6 +382,27 @@ describe('TabComponent', () => {
     // Verify that selectedTabId is set correctly after initialization
     expect(mainTab.selectedTabId).toBe('tab2');
     expect(mainTab.activeTabId).toBe('tab2');
+  });
+
+  it('should select the tab named by the focusTabId request parameter', async () => {
+    const url = new URL(window.location.href);
+    url.search = '?focusTabId=tab1';
+    window.history.replaceState({}, '', url.toString());
+
+    const {formComponent, componentDefinitions} = await createFormAndWaitForReady(formConfig);
+    if (!componentDefinitions?.component) {
+      throw new Error('Component definition is not defined');
+    }
+
+    const mainTabDef = formComponent.getComponentDefByName('main_tab');
+    expect(mainTabDef).toBeDefined();
+    if (mainTabDef === undefined) {
+      throw new Error('Main tab component is not defined');
+    }
+
+    const mainTab = mainTabDef.component as TabComponent;
+    expect(mainTab.selectedTabId).toBe('tab1');
+    expect(mainTab.activeTabId).toBe('tab1');
   });
 
   it('should mark non-selected tabs as inactive on initial load', async () => {

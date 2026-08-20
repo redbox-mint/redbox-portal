@@ -168,6 +168,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   protected formService = inject(FormService);
   public override componentDefinition?: TabFieldComponentDefinitionFrame;
 
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
+  }
+
   protected get tabConfig(): TabFieldComponentConfigFrame {
     return this.componentDefinition?.config || { tabs: [] };
   }
@@ -230,9 +234,19 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         selectedTabName = tab.name;
       }
     }
+    // A record link may request a particular tab (the legacy portal contract is
+    // `?focusTabId=<tab name>`). Only honour it when it names a tab in this
+    // container; malformed or unrelated values must not leave the form with no
+    // selected tab.
+    const requestedTabId = this.getFormComponent.getRequestParam('focusTabId');
+    const requestedTabName = typeof requestedTabId === 'string' &&
+      this.tabs.some(tab => tab.name === requestedTabId)
+      ? requestedTabId
+      : null;
+
     // Note: selection is deferred to the layout component to avoid flashes and incorrect display of content. For now, we just set the selectedTabId here for the layout to pick up.
     // This will select the first tab if none are marked as selected.
-    this.selectedTabId = selectedTabName ?? this.tabs[0]?.name ?? '0';
+    this.selectedTabId = requestedTabName ?? selectedTabName ?? this.tabs[0]?.name ?? '0';
     await super.setComponentReady();
   }
 
