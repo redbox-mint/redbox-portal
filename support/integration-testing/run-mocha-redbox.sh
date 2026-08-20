@@ -14,7 +14,7 @@ node_cmd=(node)
 
 export TS_NODE_PROJECT=/opt/redbox-portal/tsconfig.json
 export TS_NODE_TRANSPILE_ONLY=true
-export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
+export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true,"ignoreDeprecations":"6.0"}'
 
 # Ensure coverage output is writable in CI containers
 export RBPORTAL_COVERAGE_DIR=${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/mocha}
