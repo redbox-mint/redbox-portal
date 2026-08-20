@@ -113,19 +113,19 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "axios": "1.17.0",
+    "axios": "1.18.0",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
         "@aws-sdk/xml-builder": {
-          "fast-xml-parser": "5.8.0"
+          "fast-xml-parser": "5.10.1"
         }
       },
       "@aws-sdk/signature-v4-multi-region": {
         "@aws-sdk/middleware-sdk-s3": {
           "@aws-sdk/core": {
             "@aws-sdk/xml-builder": {
-              "fast-xml-parser": "5.8.0"
+              "fast-xml-parser": "5.10.1"
             }
           }
         }
@@ -158,8 +158,8 @@
     "@uppy/companion": {
       "express": "4.22.2",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.8.0",
-      "morgan": "1.10.1",
+      "fast-xml-parser": "5.10.1",
+      "morgan": "1.11.0",
       "serialize-javascript": "7.0.5"
     },
     "@tus/server": {
@@ -180,7 +180,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.8.0",
+    "fast-xml-parser": "5.10.1",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
@@ -199,9 +199,9 @@
     "sails-mongo": {
       "qs": "6.15.2"
     },
-    "postcss": "8.5.15",
+    "postcss": "8.5.23",
     "srvx": "0.11.13",
-    "socket.io-parser": "4.2.6",
+    "socket.io-parser": "4.2.7",
     "svgo": "4.0.2",
     "uuid": "14.0.0",
     "webdav": {
