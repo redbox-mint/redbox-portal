@@ -83,6 +83,12 @@ export interface DropdownInputFormComponentDefinitionFrame extends FormComponent
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a dropdown backed by inline options or a ReDBox vocabulary.
+ *
+ * @extensionPoint Use `DropdownInputComponent` with `DropdownInputModel`; hooks may supply vocabulary configuration while retaining the documented value contract.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface DropdownInputFormComponentDefinitionOutline extends DropdownInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: DropdownInputFieldComponentDefinitionOutline;
     model?: DropdownInputFieldModelDefinitionOutline;

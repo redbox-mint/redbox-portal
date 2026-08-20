@@ -84,6 +84,12 @@ export interface CheckboxInputFormComponentDefinitionFrame extends FormComponent
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures one or more checkbox choices from inline options or a vocabulary.
+ *
+ * @extensionPoint Use `CheckboxInputComponent` with `CheckboxInputModel`; vocabulary-aware hooks may populate `vocabRef` or `inlineVocab` through the standard visitor pipeline.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface CheckboxInputFormComponentDefinitionOutline extends CheckboxInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: CheckboxInputFieldComponentDefinitionOutline;
     model?: CheckboxInputFieldModelDefinitionOutline;

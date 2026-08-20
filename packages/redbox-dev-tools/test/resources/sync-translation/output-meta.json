@@ -1,0 +1,29 @@
+{
+  "@name-test1": {
+    "category": "naming",
+    "contentFormat": "html",
+    "description": "Name for test 1."
+  },
+  "@name-test2": {
+    "category": "name",
+    "description": "Name for test 2.",
+    "contentFormat": "plain"
+  },
+  "@name-test3": {
+    "category": "name",
+    "description": "Name for test 3."
+  },
+  "@name-test4": {
+    "category": "name",
+    "description": "Translation for @name-test4"
+  },
+  "@name-test5": {
+    "category": "name",
+    "description": "Translation for @name-test5"
+  },
+  "@name-test6": {
+    "category": "naming",
+    "description": "Name for test 6."
+  }
+}
+

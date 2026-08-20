@@ -78,6 +78,12 @@ export interface SaveButtonFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures the primary form save action.
+ *
+ * @extensionPoint Use `SaveButtonComponent` in form action areas and configure its supported label and save behaviour.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SaveButtonFormComponentDefinitionOutline extends SaveButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SaveButtonFieldComponentDefinitionOutline;
     model?: never;

@@ -28,6 +28,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[Translation Updates Runbook](https://github.com/redbox-mint/redbox-portal/wiki/Translation-Updates-Runbook)**: Translation key, metadata, plural, locale, and verification guidance.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.
+- **[Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation)**: Current hook extension contracts, form contracts, schemas, machine artifacts, and local generation commands.
 - **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)**: Feature-specific notes for the Manage Users UI, related models, and admin user-management endpoints.
 
 ## Core Packages

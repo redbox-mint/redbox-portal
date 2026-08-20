@@ -73,6 +73,10 @@ export namespace Controllers {
    * Responsible for all things related to a Record, includings Forms, etc.
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   *
+   * @extensionPoint Register a subclass as `RecordController` through `registerRedboxControllers` to override browser-facing record actions.
+   * @remarks Retain inherited exported actions and use the core response helpers when overriding an action.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
    */
   export class Record extends controllers.Core.Controller {
 

@@ -332,6 +332,12 @@ export interface QuestionTreeFormComponentDefinitionFrame extends FormComponentD
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a branching question tree and its selected answers.
+ *
+ * @extensionPoint Use `QuestionTreeComponent` with `QuestionTreeModel` for conditional hierarchical questionnaires.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface QuestionTreeFormComponentDefinitionOutline extends QuestionTreeFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: QuestionTreeFieldComponentDefinitionOutline;
     model?: QuestionTreeFieldModelDefinitionOutline;

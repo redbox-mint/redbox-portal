@@ -1,0 +1,15 @@
+{
+  "name": "simple-input-example",
+  "debugValue": false,
+  "validators": [],
+  "componentDefinitions": [
+    {
+      "name": "title",
+      "component": {
+        "class": "SimpleInputComponent",
+        "config": { "type": "text", "placeholder": "Dataset title" }
+      },
+      "model": { "class": "SimpleInputModel" }
+    }
+  ]
+}
