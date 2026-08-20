@@ -1,8 +1,7 @@
 [
   {
     "locale": "en",
-    "key": "@name-test1",
-    "description": "Name for test 1."
+    "key": "@name-test1"
   },
   {
     "locale": "en",
@@ -12,3 +11,4 @@
     "contentFormat": "plain"
   }
 ]
+
