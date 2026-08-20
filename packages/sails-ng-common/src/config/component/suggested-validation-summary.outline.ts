@@ -46,6 +46,12 @@ export interface SuggestedValidationSummaryFormComponentDefinitionFrame extends 
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Displays advisory validation suggestions separately from blocking errors.
+ *
+ * @extensionPoint Use `SuggestedValidationSummaryComponent` to present configured non-blocking validation feedback.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SuggestedValidationSummaryFormComponentDefinitionOutline
   extends SuggestedValidationSummaryFormComponentDefinitionFrame, FormComponentDefinitionOutline {
   component: SuggestedValidationSummaryFieldComponentDefinitionOutline;

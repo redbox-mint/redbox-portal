@@ -127,6 +127,12 @@ export interface DataLocationFormComponentDefinitionFrame extends FormComponentD
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Captures and displays a configured research-data location.
+ *
+ * @extensionPoint Use `DataLocationComponent` with `DataLocationModel` where a form records storage or access locations.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface DataLocationFormComponentDefinitionOutline extends DataLocationFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: DataLocationFieldComponentDefinitionOutline;
     model?: DataLocationFieldModelDefinitionOutline;

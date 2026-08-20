@@ -209,6 +209,12 @@ export interface TypeaheadInputFormComponentDefinitionFrame extends FormComponen
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures searchable typeahead selection from local or remote choices.
+ *
+ * @extensionPoint Use `TypeaheadInputComponent` with `TypeaheadInputModel` and the supported lookup configuration.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface TypeaheadInputFormComponentDefinitionOutline extends TypeaheadInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TypeaheadInputFieldComponentDefinitionOutline;
     model?: TypeaheadInputFieldModelDefinitionOutline;

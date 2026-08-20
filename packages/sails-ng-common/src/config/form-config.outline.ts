@@ -7,6 +7,10 @@ import { FormBehaviourConfigFrame } from './form-behaviour.outline';
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
+ *
+ * @extensionPoint Hook form registrations provide objects conforming to this contract; component definitions must use registered component, model, and layout class names.
+ * @remarks The generated JSON Schema validates the serializable frame. Runtime construction also applies defaults and visitor transformations.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
  */
 export interface FormConfigFrame {
   /**

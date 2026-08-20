@@ -101,6 +101,12 @@ export interface TabFormComponentDefinitionFrame extends FormComponentDefinition
     layout?: TabFieldLayoutDefinitionFrame;
 }
 
+/**
+ * Groups child form definitions into a tabbed container.
+ *
+ * @extensionPoint Use `TabComponent` in FormConfig to organise tab-content definitions and navigation.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface TabFormComponentDefinitionOutline extends TabFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TabFieldComponentDefinitionOutline;
     model?: never;

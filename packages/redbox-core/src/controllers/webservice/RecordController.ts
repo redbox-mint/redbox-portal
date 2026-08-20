@@ -70,9 +70,12 @@ declare const HarvestRunService: HarvestRunServiceContract;
 
 export namespace Controllers {
   /**
-   * RecordController API version
+   * Implements the legacy webservice record operations exposed by the core route registry.
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
+   * @extensionPoint Register a subclass as `RecordController` through `registerRedboxWebserviceControllers` to replace the webservice implementation without changing its route contract.
+   * @remarks The extension catalogue reports actions and deterministic route wiring only; request and response schemas remain in the independent REST API reference.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API
    */
   export class Record extends controllers.Core.Controller {
     RecordsService!: RecordsService;

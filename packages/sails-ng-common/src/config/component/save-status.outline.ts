@@ -45,6 +45,12 @@ export interface SaveStatusFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Displays current form save progress and result state.
+ *
+ * @extensionPoint Use `SaveStatusComponent` alongside save controls without adding a submitted model value.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SaveStatusFormComponentDefinitionOutline extends SaveStatusFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SaveStatusFieldComponentDefinitionOutline;
     model?: never;
