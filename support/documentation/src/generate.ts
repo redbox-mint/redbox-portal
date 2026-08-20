@@ -163,7 +163,7 @@ async function validateExamples(
   run(
     process.execPath,
     [
-      path.join(repositoryRoot, 'node_modules/typescript/bin/tsc'),
+      path.join(repositoryRoot, 'node_modules/.bin/tsc'),
       '--project',
       'support/documentation/examples/tsconfig.json',
     ],
