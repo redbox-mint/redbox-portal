@@ -43,7 +43,8 @@ and look for errors in the files this change touches.
 
 The action-execution and RecordsService suites cover legacy characterization,
 deterministic retry scheduling, native Effect actions, supervised teardown,
-cross-layer save boundaries, audit queue payloads, and public response safety.
+cross-layer save boundaries, terminal detached audit outcomes, non-overlapping
+timeout retry policy, audit queue payloads, and public response safety.
 The Mongo suite covers bounded summary sanitization and persistence.
 
 ## Container smoke check
@@ -63,8 +64,8 @@ payloads.
 ## Recorded handoff
 
 The verification run for this change used host Node `v24.19.0` with npm
-`11.17.0`, and the running container reported Node `v26.7.0`. The focused core
-`redbox-core` suite completed with 2183 passing tests; the Mongo storage suite
+`11.17.0`, and the running container reported Node `v26.7.0`. The full core
+`redbox-core` suite completed with 2187 passing tests and 14 pending; the Mongo storage suite
 completed with 71 passing tests. `npm run compile:core`, the Mongo TypeScript
 compile, Oxlint, and `git diff --check` passed. The Tailscale smoke request
 returned `302` from `/` followed by `200 OK` for the rendered page containing
