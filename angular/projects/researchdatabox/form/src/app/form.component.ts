@@ -1196,7 +1196,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             // Actual record update via RecordService call
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
           }
-          if (response?.success) {
+          // A persisted warning is still a successful save, but it is not a
+          // complete save.  Keep the record open so the user can review the
+          // affected follow-up work before leaving the form.
+          const isComplete = response.isComplete();
+          if (response.wasPersisted()) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
@@ -1204,7 +1208,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
-            const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid);
+            const redirectLocation = isComplete
+              ? this.resolveRedirectLocation(options?.redirectLocation ?? '', oid)
+              : '';
             let modelSnapshot: Record<string, unknown> | undefined;
             if (
               !options?.closeOnSave &&
@@ -1239,7 +1245,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 oid: oid,
                 response,
                 modelSnapshot,
-                closeOnSave: options?.closeOnSave,
+                closeOnSave: isComplete ? options?.closeOnSave : undefined,
                 redirectLocation: redirectLocation || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
@@ -1250,7 +1256,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             this.form.markAllAsDirty();
             // Emit failure event
             this.eventBus.publish(
-              createFormSaveFailureEvent({ error: _get(response, 'message')?.toString() ?? 'Unknown error' })
+              createFormSaveFailureEvent({
+                error: _get(response, 'message')?.toString() ?? 'Unknown error',
+                response,
+              })
             );
           }
           this.saveResponse.set(response);
@@ -1261,15 +1270,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (error instanceof Error) {
             errorMsg = error.message;
           }
-          this.saveResponse.set({
-            success: false,
-            oid: this.trimmedParams.oid(),
-            message: errorMsg,
-          } as RecordActionResult);
+          // The record transport only throws before a request is dispatched,
+          // so nothing reached the server: this is a confirmed non-save.
+          const failure = RecordActionResult.notDispatched(errorMsg, this.trimmedParams.oid());
+          this.saveResponse.set(failure);
           // Mark form as dirty again since save failed
           this.form.markAllAsDirty();
           // emit failure event
-          this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
+          this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg, response: failure }));
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response

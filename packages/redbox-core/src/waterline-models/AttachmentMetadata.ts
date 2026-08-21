@@ -40,6 +40,45 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     const accessCount = Number(record.accessCount ?? 0);
     record.accessCount = Number.isFinite(accessCount) ? accessCount : 0;
   }
+
+  if (Object.hasOwn(record, 'attachmentId') && record.attachmentId != null) {
+    const attachmentId = String(record.attachmentId).trim();
+    if (attachmentId && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(attachmentId)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.attachmentId must be a bounded identifier'
+      );
+    }
+    record.attachmentId = attachmentId || undefined;
+  }
+
+  if (Object.hasOwn(record, 'operation') && record.operation != null
+    && !['add', 'finalize', 'delete'].includes(String(record.operation))) {
+    throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+      'AttachmentMetadata.operation is invalid'
+    );
+  }
+
+  if (Object.hasOwn(record, 'mutationState') && record.mutationState != null
+    && !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'].includes(String(record.mutationState))) {
+    throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+      'AttachmentMetadata.mutationState is invalid'
+    );
+  }
+
+  if (Object.hasOwn(record, 'generation') && record.generation != null) {
+    record.generation = String(record.generation).trim().slice(0, 128) || undefined;
+  }
+  if (Object.hasOwn(record, 'attemptCount')) {
+    const attemptCount = Number(record.attemptCount ?? 0);
+    record.attemptCount = Number.isFinite(attemptCount) && attemptCount >= 0 ? Math.floor(attemptCount) : 0;
+  }
+  if (Object.hasOwn(record, 'lastAttemptAt') && record.lastAttemptAt != null) {
+    const timestamp = new Date(record.lastAttemptAt as string | number | Date);
+    record.lastAttemptAt = Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  }
+  if (Object.hasOwn(record, 'lastSafeErrorCode') && record.lastSafeErrorCode != null) {
+    record.lastSafeErrorCode = String(record.lastSafeErrorCode).trim().slice(0, 128) || undefined;
+  }
 };
 
 const beforeCreate = (record: Record<string, unknown>, cb: (err?: Error) => void): void => {
@@ -80,6 +119,27 @@ export class AttachmentMetadataClass {
   public storageKey!: string;
 
   @Attr({ type: 'string' })
+  public attachmentId?: string;
+
+  @Attr({ type: 'string', isIn: ['add', 'finalize', 'delete'] })
+  public operation?: 'add' | 'finalize' | 'delete';
+
+  @Attr({ type: 'string', isIn: ['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'] })
+  public mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+
+  @Attr({ type: 'string' })
+  public generation?: string;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public attemptCount?: number;
+
+  @Attr({ type: 'string', columnType: 'datetime' })
+  public lastAttemptAt?: string;
+
+  @Attr({ type: 'string' })
+  public lastSafeErrorCode?: string;
+
+  @Attr({ type: 'string' })
   public contentType?: string;
 
   @Attr({ type: 'number' })
@@ -117,6 +177,13 @@ export const AttachmentMetadataWLDef = toWaterlineModelDef(AttachmentMetadataCla
 
 export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes {
   accessCount?: number;
+  attachmentId?: string;
+  operation?: 'add' | 'finalize' | 'delete';
+  mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+  generation?: string;
+  attemptCount?: number;
+  lastAttemptAt?: string | Date;
+  lastSafeErrorCode?: string;
   attachmentField?: string;
   contentLength?: number;
   contentType?: string;

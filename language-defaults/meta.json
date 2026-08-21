@@ -3084,6 +3084,16 @@
     "description": "Success message shown after saving an RDMP form",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-warning": {
+    "category": "rdmp",
+    "description": "Warning shown when a record is saved but follow-up processing is incomplete",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown": {
+    "category": "rdmp",
+    "description": "Guidance shown when a record save cannot be confirmed",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-error": {
     "category": "rdmp",
     "description": "Error message shown when saving an RDMP form fails",

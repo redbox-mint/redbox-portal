@@ -1,5 +1,6 @@
 // top
 export * from './record.model';
+export * from './record-save.model';
 export * from './report.model';
 export * from './status.model';
 export * from './template.outline';
