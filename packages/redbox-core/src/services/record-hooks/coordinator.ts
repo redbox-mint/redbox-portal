@@ -117,10 +117,11 @@ function planPhase(
 export function validateRecordHookConfiguration(
   recordType: unknown,
   modes: readonly string[],
-  resolveHook: RecordHookResolver
+  resolveHook: RecordHookResolver,
+  phases: readonly ActionExecutionPhase[] = HOOK_PHASES
 ): void {
   for (const mode of modes) {
-    for (const phase of HOOK_PHASES) {
+    for (const phase of phases) {
       planPhase(recordType, mode, phase, resolveHook);
     }
   }
@@ -324,7 +325,25 @@ export class RecordHookCoordinator {
       return fn(oid, record, hookOptions(hook), user);
     });
     const context = this.phaseContext(mode, 'post');
-    const outcome = dispatchDetachedActionPlan(actions, context, this.dependencies);
+    const operation = this.options.operation;
+    operation.detachedPending = (operation.detachedPending ?? 0) + actions.length;
+    operation.detachedResults ??= [];
+    const existingCompletion = this.dependencies.onDetachedActionComplete;
+    const dispatchDependencies: ActionExecutionDependencies = {
+      ...this.dependencies,
+      onDetachedActionComplete: (completedContext, result) => {
+        existingCompletion?.(completedContext, result);
+        operation.detachedResults?.push(result);
+        operation.detachedPending = Math.max(0, (operation.detachedPending ?? 1) - 1);
+        operation.detachedCompletedAt = result.completedAt;
+        if (operation.detachedPending === 0) {
+          const onDetachedComplete = operation.onDetachedComplete;
+          operation.onDetachedComplete = undefined;
+          onDetachedComplete?.();
+        }
+      },
+    };
+    const outcome = dispatchDetachedActionPlan(actions, context, dispatchDependencies);
     this.append(outcome.report);
     return { report: outcome.report };
   }
