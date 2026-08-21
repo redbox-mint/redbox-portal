@@ -82,6 +82,23 @@ describe('RecordSaveResponse', function () {
       expect(saveTracker.result.problems).to.have.length(0);
       expect(saveTracker.result.oid).to.equal('oid-1');
     });
+
+    it('preserves only legacy workspace fields returned by a post-save hook', function () {
+      const saveTracker = tracker();
+      saveTracker.confirmPrimaryPersistence('oid-1');
+      saveTracker.mergeLegacyHookFields({
+        workspaceOid: 'workspace-1',
+        workspaceData: { title: 'Workspace' },
+        oid: 'tampered',
+        outcome: 'not-saved',
+      });
+
+      const result = saveTracker.toResponse();
+      expect(result.workspaceOid).to.equal('workspace-1');
+      expect(result.workspaceData).to.deep.equal({ title: 'Workspace' });
+      expect(result.oid).to.equal('oid-1');
+      expect(result.outcome).to.equal('saved');
+    });
   });
 
   describe('attachment completion', function () {

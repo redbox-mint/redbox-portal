@@ -54,18 +54,24 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     record.attachmentId = attachmentId || undefined;
   }
 
-  if (Object.hasOwn(record, 'operation') && record.operation != null
-    && !['add', 'finalize', 'delete'].includes(String(record.operation))) {
-    throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
-      'AttachmentMetadata.operation is invalid'
-    );
+  if (Object.hasOwn(record, 'operation')) {
+    const operation = String(record.operation ?? '').trim();
+    if (operation && !['add', 'finalize', 'delete'].includes(operation)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.operation is invalid'
+      );
+    }
+    record.operation = operation || undefined;
   }
 
-  if (Object.hasOwn(record, 'mutationState') && record.mutationState != null
-    && !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'].includes(String(record.mutationState))) {
-    throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
-      'AttachmentMetadata.mutationState is invalid'
-    );
+  if (Object.hasOwn(record, 'mutationState')) {
+    const mutationState = String(record.mutationState ?? '').trim();
+    if (mutationState && !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'].includes(mutationState)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.mutationState is invalid'
+      );
+    }
+    record.mutationState = mutationState || undefined;
   }
 
   if (Object.hasOwn(record, 'generation') && record.generation != null) {
