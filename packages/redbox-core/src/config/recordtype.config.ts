@@ -5,25 +5,30 @@
  * Record type definitions with hooks and permissions.
  */
 
+import type { ActionExecutionPolicy } from '../action-execution/types';
+
 export interface RecordHookOptions {
     [key: string]: unknown;
 }
 
 export interface RecordHookDefinition {
+    id?: string;
     function: string;
     options?: RecordHookOptions;
+    execution?: ActionExecutionPolicy;
+}
+
+export interface RecordHookModeConfig {
+    pre?: RecordHookDefinition[];
+    post?: RecordHookDefinition[];
+    postSync?: RecordHookDefinition[];
 }
 
 export interface RecordHooksConfig {
-    onCreate?: {
-        pre?: RecordHookDefinition[];
-        post?: RecordHookDefinition[];
-        postSync?: RecordHookDefinition[];
-    };
-    onUpdate?: {
-        pre?: RecordHookDefinition[];
-        post?: RecordHookDefinition[];
-    };
+    onCreate?: RecordHookModeConfig;
+    onUpdate?: RecordHookModeConfig;
+    onDelete?: RecordHookModeConfig;
+    onTransitionWorkflow?: RecordHookModeConfig;
 }
 
 export interface RecordRelation {
