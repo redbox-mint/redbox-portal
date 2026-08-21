@@ -1198,6 +1198,7 @@ export namespace Services {
               userObj,
               createResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
+            tracker.mergeLegacyHookFields(hookResponse);
             if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
               this.logSaveOutcome(tracker, 'post-save');
@@ -1519,6 +1520,7 @@ export namespace Services {
               userObj,
               updateResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
+            tracker.mergeLegacyHookFields(hookResponse);
             if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
               this.logSaveOutcome(tracker, 'post-save');
@@ -2599,7 +2601,8 @@ export namespace Services {
             if (_.isFunction(postSaveSyncHookFunction)) {
               try {
                 sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`);
-                const hookResponse = postSaveSyncHookFunction(oid, record, options, user, _.cloneDeep(response));
+                const hookInput = _.cloneDeep(response);
+                const hookResponse = postSaveSyncHookFunction(oid, record, options, user, hookInput);
                 const returnType = options.returnType == undefined ? 'record' : options.returnType;
                 const resolvedHookResponse = await this.resolveHookResponse(hookResponse);
                 // Hooks may transform the record or report a legacy response,
@@ -2619,6 +2622,13 @@ export namespace Services {
                     ...(Object.hasOwn(returned, 'metadata') ? { metadata: returned.metadata } : {}),
                   };
                 }
+                response = {
+                  ...response,
+                  ...(typeof hookInput.workspaceOid === 'string' && hookInput.workspaceOid.trim()
+                    ? { workspaceOid: hookInput.workspaceOid }
+                    : {}),
+                  ...(Object.hasOwn(hookInput, 'workspaceData') ? { workspaceData: hookInput.workspaceData } : {}),
+                };
                 sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
                 sails.log.verbose(JSON.stringify(response));
                 sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`);
