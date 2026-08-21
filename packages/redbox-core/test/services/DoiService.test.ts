@@ -117,7 +117,7 @@ describe('DoiService', function() {
       t: sinon.stub().returnsArg(0)
     };
     (global as any).RecordsService = {
-      updateMeta: sinon.stub().resolves()
+      updateMeta: sinon.stub().resolves({ wasPersisted: () => true, isComplete: () => true })
     };
     (global as any).IntegrationAuditService = {
       startAudit: sinon.stub().returns({}),
@@ -533,6 +533,11 @@ describe('DoiService', function() {
 
   describe('trigger audit nesting', function() {
     it('should keep trigger and publish spans inside the same trace', async function() {
+      (global as any).RecordsService.updateMeta.resolves({
+        outcome: 'saved-with-warnings',
+        wasPersisted: () => true,
+        isComplete: () => false,
+      });
       (global as any).IntegrationAuditService.startAudit.onFirstCall().returns({
         traceId: 'trace-1',
         spanId: 'span-parent',

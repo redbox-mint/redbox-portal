@@ -51,7 +51,7 @@ import { DateTime } from 'luxon';
 import { isObservable } from 'rxjs';
 
 import { Readable } from 'node:stream';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import {
@@ -70,11 +70,13 @@ import {
 } from '../RecordSaveResponse';
 import type {
   RecordAttachmentCompletionItem,
-  RecordAttachmentItemStatus,
+  RecordAttachmentOperation,
+  RecordSaveIssue,
   RecordSavePhase,
   RecordSaveProblem,
   RecordSaveProblemKind,
 } from '@researchdatabox/sails-ng-common';
+import type { Services as AttachmentMetadataServices } from './AttachmentMetadataService';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -85,6 +87,15 @@ export namespace Services {
     metadata?: AnyRecord;
     authorization?: AnyRecord;
   };
+  type AttachmentMutationPlanItem = {
+    field: string;
+    attachmentId: string;
+    fileId: string;
+    operation: RecordAttachmentOperation;
+    entry: AnyRecord;
+    generation: string;
+  };
+  type AttachmentJournalService = AttachmentMetadataServices.AttachmentMetadataServiceContract;
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   /**
    * Provides the core record lifecycle, persistence, authorization, and relationship operations.
@@ -101,6 +112,7 @@ export namespace Services {
 
     searchService!: SearchService;
     protected queueService!: QueueService;
+    private readonly configuredHookFunctions = new WeakMap<object, { expression: string; fn: (...args: unknown[]) => unknown }>();
 
     constructor() {
       super();
@@ -159,11 +171,54 @@ export namespace Services {
 
     private saveProblem(
       phase: RecordSavePhase,
-      message: string,
+      _message: string,
       kind: RecordSaveProblemKind = 'system',
       code?: string,
     ): RecordSaveProblem {
-      return recordSaveProblem(kind, phase, message, code);
+      return recordSaveProblem(kind, phase, code ? `@record-save-${code}` : '@record-save-failed', code);
+    }
+
+    private saveProblemFromError(
+      error: unknown,
+      phase: RecordSavePhase,
+      _fallbackMessage: string,
+      fallbackKind: RecordSaveProblemKind = 'processing',
+      fallbackCode = 'save-precondition',
+    ): RecordSaveProblem {
+      const displayErrors = RBValidationError.isRBValidationError(error)
+        ? (error as RBValidationError).displayErrors
+        : [];
+      const displayError = displayErrors[0] as (Record<string, unknown> & {
+        source?: { pointer?: unknown };
+      }) | undefined;
+      const issue: Partial<RecordSaveIssue> = {};
+      const field = displayError?.field;
+      const pointer = displayError?.source?.pointer;
+      if (typeof field === 'string' && field.trim()) {
+        issue.field = field.trim();
+      }
+      if (typeof pointer === 'string' && pointer.trim()) {
+        issue.pointer = pointer.trim();
+      }
+      const code = typeof displayError?.code === 'string' && displayError.code.trim()
+        ? displayError.code.trim()
+        : fallbackCode;
+      const detail = typeof displayError?.detail === 'string' ? displayError.detail.trim() : '';
+      const title = typeof displayError?.title === 'string' ? displayError.title.trim() : '';
+      // Save responses are rendered by multiple clients. Only expose
+      // translation codes; arbitrary validator text belongs in server logs.
+      const message = detail.startsWith('@')
+        ? detail
+        : title.startsWith('@')
+          ? title
+          : `@record-save-${code}`;
+      return recordSaveProblem(
+        RBValidationError.isRBValidationError(error) ? RBValidationError.classify(error) : fallbackKind,
+        phase,
+        message,
+        code,
+        issue,
+      );
     }
 
     /** Deprecation logger passed to the storage mutation boundary. */
@@ -192,6 +247,40 @@ export namespace Services {
       }
     }
 
+    private async finishSave(
+      tracker: RecordSaveTracker,
+      user: AnyRecord,
+      action: RecordAuditActionType,
+      searchable: boolean,
+    ): Promise<RecordSaveResponse> {
+      const oid = String(tracker.result.oid ?? '').trim();
+      if (!tracker.result.wasPersisted() || !oid) {
+        return tracker.toResponse();
+      }
+
+      let persistedRecord: AnyRecord;
+      try {
+        persistedRecord = (await this.getMeta(oid)) as unknown as AnyRecord;
+      } catch (error) {
+        sails.log.warn(`${this.logHeader} unable to reload committed record before side effects`, error);
+        return tracker.toResponse();
+      }
+
+      if (searchable && this.searchService && typeof this.searchService.index === 'function') {
+        void Promise.resolve()
+          .then(() => this.searchService.index(oid, persistedRecord))
+          .catch((error: unknown) => {
+            sails.log.error(`${this.logHeader} index submission failed`, error);
+          });
+      }
+      void Promise.resolve()
+        .then(() => this.auditRecord(oid, persistedRecord, user, action))
+        .catch((error: unknown) => {
+          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
+        });
+      return tracker.toResponse();
+    }
+
     /**
      * Preserve the safe display code raised by attachment identity validation
      * so an invalid identity is not reported as a duplicate one.
@@ -200,7 +289,7 @@ export namespace Services {
       const code = RBValidationError.isRBValidationError(error)
         ? (error as RBValidationError).displayErrors[0]?.code
         : undefined;
-      return this.saveProblem('pre-save', 'Your changes were not saved.', 'validation', code ?? 'invalid-attachment-id');
+      return this.saveProblem('pre-save', '@record-save-invalid-attachment-id', 'validation', code ?? 'invalid-attachment-id');
     }
 
     private ensureAttachmentIds(record: AnyRecord, attachmentFields: readonly unknown[]): void {
@@ -220,14 +309,14 @@ export namespace Services {
           if (existing && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(existing)) {
             throw new RBValidationError({
               message: 'Invalid attachment identity',
-              displayErrors: [{ code: 'invalid-attachment-id', title: 'Invalid attachment identity' }],
+              displayErrors: [{ code: 'invalid-attachment-id', title: '@record-save-invalid-attachment-id' }],
             });
           }
           const attachmentId = existing || randomUUID();
           if (seen.has(attachmentId)) {
             throw new RBValidationError({
               message: 'Duplicate attachment identity',
-              displayErrors: [{ code: 'duplicate-attachment-id', title: 'Duplicate attachment' }],
+              displayErrors: [{ code: 'duplicate-attachment-id', title: '@record-save-duplicate-attachment-id' }],
             });
           }
           seen.add(attachmentId);
@@ -237,13 +326,247 @@ export namespace Services {
       }
     }
 
-    private attachmentCompletionItems(
+    private attachmentJournalService(): AttachmentJournalService | undefined {
+      const service = sails.services?.attachmentmetadataservice as unknown as AttachmentJournalService | undefined;
+      if (!service || typeof service.prepareMutations !== 'function' || typeof service.findUnresolvedByOid !== 'function') {
+        return undefined;
+      }
+      return service;
+    }
+
+    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string): string {
+      return `journal/${oid}/${attachmentId}/${generation}`;
+    }
+
+    /** Stable identity for legacy attachment rows that predate attachmentId. */
+    private legacyAttachmentId(fileId: string): string {
+      return `legacy-${createHash('sha256').update(fileId).digest('hex').slice(0, 32)}`;
+    }
+
+    private attachmentMutationPlan(
+      originalRecord: AnyRecord,
       record: AnyRecord,
       attachmentFields: readonly unknown[],
-      status: RecordAttachmentItemStatus,
-      code?: string,
-    ): RecordAttachmentCompletionItem[] {
+      oid: string,
+      generation: string,
+      unresolvedRows: readonly AnyRecord[] = [],
+    ): AttachmentMutationPlanItem[] {
+      const plan: AttachmentMutationPlanItem[] = [];
+      const planned = new Set<string>();
+      const originalMetadata = (originalRecord.metadata ?? {}) as AnyRecord;
+      const metadata = (record.metadata ?? {}) as AnyRecord;
+      const addPlanItem = (
+        field: string,
+        entry: AnyRecord,
+        operation: RecordAttachmentOperation,
+        generationOverride?: string,
+      ): void => {
+        const rawAttachmentId = String(entry.attachmentId ?? '').trim();
+        const fileId = String(entry.fileId ?? '').trim();
+        const attachmentId = rawAttachmentId || (operation === 'delete' && fileId ? this.legacyAttachmentId(fileId) : '');
+        if (!attachmentId || !fileId) {
+          return;
+        }
+        // One physical mutation may be represented both by the current
+        // pending reference and by an unresolved journal row from an earlier
+        // attempt.  De-duplicate by logical attachment/file identity so the
+        // next manual save performs one replay, not two uploads/deletes.
+        const key = `${attachmentId}:${fileId}`;
+        if (planned.has(key)) {
+          return;
+        }
+        planned.add(key);
+        const itemGeneration = String(generationOverride ?? generation).trim() || generation;
+        plan.push({
+          field,
+          attachmentId,
+          fileId,
+          operation,
+          entry: { ...entry, attachmentId, fileId, attachmentField: field, operation, generation: itemGeneration },
+          generation: itemGeneration,
+        });
+      };
+
+      // Reconcile durable work first.  Reusing the unresolved row's
+      // generation means the retry updates that journal row rather than
+      // leaving an older pending row behind on every save.
+      for (const row of unresolvedRows) {
+        const attachmentId = String(row.attachmentId ?? '').trim();
+        const fileId = String(row.mutationFileId ?? row.fileId ?? '').trim();
+        const operation = row.operation === 'delete' || row.operation === 'finalize' ? row.operation : 'add';
+        const rowGeneration = String(row.generation ?? '').trim() || generation;
+        if (!attachmentId || !fileId || (row.mutationState !== 'prepared' && row.mutationState !== 'pending'
+          && row.mutationState !== 'incomplete' && row.mutationState !== 'unknown')) {
+          continue;
+        }
+        const fieldName = String(row.attachmentField ?? '').trim();
+        const currentEntry = fieldName
+          ? ((_.get(metadata, fieldName) as unknown[] | undefined) ?? []).find((entry: unknown) =>
+            !!entry && typeof entry === 'object' && String((entry as AnyRecord).attachmentId ?? '') === attachmentId
+          ) as AnyRecord | undefined
+          : undefined;
+        addPlanItem(fieldName, { ...(currentEntry ?? {}), ...row, attachmentId, fileId }, operation, rowGeneration);
+      }
+
+      for (const field of attachmentFields) {
+        const fieldName = String(field ?? '').trim();
+        if (!fieldName) {
+          continue;
+        }
+        const originalEntries = (_.get(originalMetadata, fieldName) as unknown[] | undefined)
+          ?.filter((entry): entry is AnyRecord => !!entry && typeof entry === 'object') ?? [];
+        const currentEntries = (_.get(metadata, fieldName) as unknown[] | undefined)
+          ?.filter((entry): entry is AnyRecord => !!entry && typeof entry === 'object') ?? [];
+        const originalById = new Map(originalEntries
+          .filter(entry => String(entry.attachmentId ?? '').trim())
+          .map(entry => [String(entry.attachmentId).trim(), entry]));
+        const originalByFileId = new Map(originalEntries
+          .filter(entry => String(entry.fileId ?? '').trim())
+          .map(entry => [String(entry.fileId).trim(), entry]));
+        const currentById = new Map(currentEntries
+          .filter(entry => String(entry.attachmentId ?? '').trim())
+          .map(entry => [String(entry.attachmentId).trim(), entry]));
+        const currentByFileId = new Map(currentEntries
+          .filter(entry => String(entry.fileId ?? '').trim())
+          .map(entry => [String(entry.fileId).trim(), entry]));
+
+        for (const entry of currentEntries) {
+          const attachmentId = String(entry.attachmentId ?? '');
+          const fileId = String(entry.fileId ?? '').trim();
+          // A legacy record may not have attachmentId yet.  ensureAttachmentIds
+          // stamps the current entry before planning, so use fileId as a
+          // migration fallback even when the current entry now has a generated
+          // identity.  The stable ID still wins when both sides have one.
+          const previous = originalById.get(attachmentId) ?? originalByFileId.get(fileId);
+          if (!previous || String(previous.fileId ?? '') !== String(entry.fileId ?? '')) {
+            addPlanItem(fieldName, entry, entry.pending === true ? 'finalize' : 'add');
+          }
+        }
+        for (const entry of originalEntries) {
+          const attachmentId = String(entry.attachmentId ?? '');
+          const fileId = String(entry.fileId ?? '').trim();
+          const current = currentById.get(attachmentId) ?? (!attachmentId ? currentByFileId.get(fileId) : undefined);
+          // Reusing an attachmentId for a replacement file still requires a
+          // tombstone for the old physical object.
+          if (!current || String(current.fileId ?? '').trim() !== fileId) {
+            addPlanItem(fieldName, entry, 'delete');
+          }
+        }
+      }
+
+      return plan;
+    }
+
+    private async prepareAttachmentJournal(
+      oid: string,
+      plan: readonly AttachmentMutationPlanItem[],
+    ): Promise<void> {
+      const journal = this.attachmentJournalService();
+      if (!journal || plan.length === 0) {
+        return;
+      }
+      await journal.prepareMutations(plan.map(item => ({
+        oid,
+        fileId: item.fileId,
+        storageKey: this.attachmentJournalStorageKey(oid, item.attachmentId, item.generation),
+        attachmentId: item.attachmentId,
+        operation: item.operation,
+        mutationState: 'prepared',
+        generation: item.generation,
+        attachmentField: item.field || undefined,
+      })));
+    }
+
+    private async executeAttachmentPlan(
+      oid: string,
+      plan: readonly AttachmentMutationPlanItem[],
+    ): Promise<RecordAttachmentCompletionItem[]> {
+      const journal = this.attachmentJournalService();
       const items: RecordAttachmentCompletionItem[] = [];
+      for (const item of plan) {
+        let journalStateKnown = true;
+        if (journal) {
+          try {
+            journalStateKnown = await journal.markMutation(oid, item.attachmentId, item.generation, 'pending');
+          } catch (error) {
+            journalStateKnown = false;
+            sails.log.error(`${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`, error);
+          }
+        }
+        try {
+          const datastream = new Datastream(item.entry);
+          if (item.operation === 'delete') {
+            await this.datastreamService.removeDatastream(oid, datastream);
+          } else {
+            await this.datastreamService.addDatastream(oid, datastream);
+          }
+          if (journal) {
+            try {
+              journalStateKnown = (await journal.markMutation(oid, item.attachmentId, item.generation, 'applied')) && journalStateKnown;
+            } catch (error) {
+              journalStateKnown = false;
+              sails.log.error(`${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`, error);
+            }
+          }
+          items.push({
+            field: item.field,
+            attachmentId: item.attachmentId,
+            fileId: item.fileId,
+            operation: item.operation,
+            status: journalStateKnown ? 'completed' : 'unknown',
+            ...(journalStateKnown ? {} : { code: 'attachment-journal-failed' }),
+          });
+        } catch (error) {
+          if (journal) {
+            try {
+              await journal.markMutation(oid, item.attachmentId, item.generation, 'unknown', 'attachment-operation-unknown');
+            } catch (journalError) {
+              sails.log.error(`${this.logHeader} attachment journal unknown update failed for ${item.attachmentId}`, journalError);
+            }
+          }
+          sails.log.error(`${this.logHeader} attachment operation failed for ${item.attachmentId}`, error);
+          items.push({
+            field: item.field,
+            attachmentId: item.attachmentId,
+            fileId: item.fileId,
+            operation: item.operation,
+            status: 'unknown',
+            code: 'attachment-operation-unknown',
+          });
+        }
+      }
+      return items;
+    }
+
+    private async markAttachmentPlanState(
+      oid: string,
+      plan: readonly AttachmentMutationPlanItem[],
+      state: 'incomplete' | 'cancelled',
+      code: string,
+    ): Promise<void> {
+      const journal = this.attachmentJournalService();
+      if (!journal) {
+        return;
+      }
+      for (const item of plan) {
+        try {
+          await journal.markMutation(oid, item.attachmentId, item.generation, state, code);
+        } catch (error) {
+          sails.log.error(`${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`, error);
+        }
+      }
+    }
+
+    private incompleteAttachmentItems(
+      items: readonly RecordAttachmentCompletionItem[],
+      code: string,
+    ): RecordAttachmentCompletionItem[] {
+      return items.map(item => item.status === 'unknown'
+        ? { ...item }
+        : { ...item, status: 'incomplete', code });
+    }
+
+    private clearPendingAttachmentOids(record: AnyRecord, attachmentFields: readonly unknown[]): void {
       for (const field of attachmentFields) {
         const fieldName = String(field ?? '').trim();
         const entries = _.get(record.metadata, fieldName) as unknown;
@@ -251,21 +574,114 @@ export namespace Services {
           continue;
         }
         for (const entry of entries) {
-          if (!entry || typeof entry !== 'object') {
-            continue;
+          if (entry && typeof entry === 'object' && (entry as AnyRecord).pending === true) {
+            (entry as AnyRecord).pending = false;
           }
-          const attachment = entry as AnyRecord;
-          items.push({
-            field: fieldName,
-            attachmentId: String(attachment.attachmentId ?? ''),
-            ...(attachment.fileId ? { fileId: String(attachment.fileId) } : {}),
-            operation: attachment.pending === true ? 'finalize' : 'add',
-            status,
-            ...(code ? { code } : {}),
-          });
         }
       }
-      return items;
+    }
+
+    private markPlannedAttachmentReferencesPending(
+      record: AnyRecord,
+      plan: readonly AttachmentMutationPlanItem[],
+    ): void {
+      for (const item of plan) {
+        if (item.operation === 'delete' || !item.field) {
+          continue;
+        }
+        const entries = _.get(record.metadata, item.field) as unknown;
+        if (!Array.isArray(entries)) {
+          continue;
+        }
+        const entry = entries.find((candidate: unknown) =>
+          !!candidate && typeof candidate === 'object'
+          && String((candidate as AnyRecord).attachmentId ?? '') === item.attachmentId
+        ) as AnyRecord | undefined;
+        if (entry) {
+          entry.pending = true;
+        }
+      }
+    }
+
+    private async finalizeAttachmentReferences(
+      brand: BrandingModel,
+      oid: string,
+      record: AnyRecord,
+      user: AnyRecord,
+      attachmentFields: readonly unknown[],
+    ): Promise<boolean> {
+      const finalizedRecord = _.cloneDeep(record) as AnyRecord;
+      this.clearPendingAttachmentOids(finalizedRecord, attachmentFields);
+      // The OID is tracked by the save state owner and must not be replaceable
+      // by a hook or by the second metadata write used to clear pending refs.
+      _.unset(finalizedRecord, 'redboxOid');
+      _.unset(finalizedRecord, 'id');
+      const response = await this.storageService.updateMeta(brand, oid, finalizedRecord, user);
+      return resolveStorageMutationState(response, this.logLegacyMutationResponse) === 'applied';
+    }
+
+    private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
+      for (const mode of modes) {
+        for (const phase of ['pre', 'postSync', 'post']) {
+          const configuredHooks = _.get(recordType, `hooks.${mode}.${phase}`, undefined) as unknown;
+          if (configuredHooks === undefined) {
+            continue;
+          }
+          if (!Array.isArray(configuredHooks)) {
+            throw new RBValidationError({
+              message: `Invalid ${phase} hook configuration for ${mode}.`,
+              displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+            });
+          }
+          const hooks = configuredHooks;
+          for (const hook of hooks) {
+            this.configuredHookFunction(hook, mode, phase);
+          }
+        }
+      }
+    }
+
+    private configuredHookFunction(
+      hook: unknown,
+      mode: string,
+      phase: string,
+    ): (...args: unknown[]) => unknown {
+      if (!hook || typeof hook !== 'object') {
+        throw new RBValidationError({
+          message: `Invalid ${phase} hook configuration for ${mode}.`,
+          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+        });
+      }
+      const expression = _.get(hook, 'function', null) as unknown;
+      if (typeof expression !== 'string' || !(expression as string).trim()) {
+        throw new RBValidationError({
+          message: `Invalid ${phase} hook configuration for ${mode}.`,
+          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+        });
+      }
+      const cached = this.configuredHookFunctions.get(hook);
+      if (cached?.expression === expression) {
+        return cached.fn;
+      }
+      let evaluated: unknown;
+      try {
+        evaluated = eval(expression);
+      } catch (error) {
+        throw new RBValidationError({
+          message: `Unable to load ${phase} hook for ${mode}.`,
+          options: { cause: error },
+          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+        });
+      }
+      if (typeof evaluated !== 'function') {
+        throw new RBValidationError({
+          message: `Configured ${phase} hook for ${mode} is not callable.`,
+          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+        });
+      }
+      const fn = evaluated as (...args: unknown[]) => unknown;
+      this.configuredHookFunctions.set(hook, { expression, fn });
+      return fn;
     }
 
     private getBootstrapDataPath(): string {
@@ -520,7 +936,8 @@ export namespace Services {
     protected bindPendingAttachmentOids(
       recordMetadata: AnyRecord,
       attachmentFields: unknown[],
-      oid: string
+      oid: string,
+      clearPending = true,
     ): void {
       const fieldsToCheck = ['location', 'uploadUrl'];
       _.each(attachmentFields, (attFieldName: unknown) => {
@@ -540,7 +957,7 @@ export namespace Services {
               );
             }
           });
-          if (_.get(attFieldEntry as AnyRecord, 'pending') === true) {
+          if (clearPending && _.get(attFieldEntry as AnyRecord, 'pending') === true) {
             _.set(recordMetadata, `${attFieldKey}[${attFieldIdx}].pending`, false);
           }
         });
@@ -643,6 +1060,17 @@ export namespace Services {
       //set the initial workflow metadata to the first step
       this.setWorkflowStepRelatedMetadata(recordObj, wfStep);
 
+      // Validate every configured synchronous hook before a transition hook
+      // can execute.  A malformed hook is a pre-save processing failure, not
+      // an untyped exception escaping the create path.
+      try {
+        this.validateHookConfiguration(recordTypeObj, ['onCreate', 'onTransitionWorkflow']);
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-hook-configuration'));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+
       if (targetStep) {
         wfStep = await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStep));
         recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
@@ -663,7 +1091,7 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           sails.log.error(err);
-          tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+          tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
         }
@@ -674,6 +1102,26 @@ export namespace Services {
         this.ensureAttachmentIds(recordObj, createAttachmentFields);
       } catch (error) {
         tracker.recordPrimaryNotApplied(this.attachmentIdentityProblem(error));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+
+      const createOid = String(recordObj.redboxOid ?? '').trim() || randomUUID();
+      recordObj.redboxOid = createOid;
+      const createGeneration = tracker.context.requestId;
+      const createAttachmentPlan = this.attachmentMutationPlan(
+        { metadata: {} },
+        recordObj,
+        createAttachmentFields,
+        createOid,
+        createGeneration,
+      );
+      this.markPlannedAttachmentReferencesPending(recordObj, createAttachmentPlan);
+      try {
+        await this.prepareAttachmentJournal(createOid, createAttachmentPlan);
+      } catch (error) {
+        await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'cancelled', 'attachment-journal-failed');
+        tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'attachment-journal-failed'));
         this.logSaveOutcome(tracker, 'pre-save', error);
         return tracker.toResponse();
       }
@@ -689,67 +1137,71 @@ export namespace Services {
       }
       const primaryMutationState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
       if (primaryMutationState === 'applied') {
-        tracker.confirmPrimaryPersistence(createResponse.oid, createResponse);
-        const oid = createResponse.oid;
+        const persistedOid = String(createResponse.oid ?? '').trim() || createOid;
+        tracker.confirmPrimaryPersistence(persistedOid, createResponse);
+        const oid = persistedOid;
+        if (oid !== createOid) {
+          try {
+            await this.attachmentJournalService()?.rebindOid(createOid, oid);
+          } catch (error) {
+            // The primary record is already committed. Keep the journal rows
+            // eligible for reconciliation and still run the indexing/audit
+            // hand-off for that confirmed commit.
+            tracker.recordPostPersistenceProblem(this.saveProblem(
+              'attachments',
+              'Your record was saved, but attachment reconciliation could not be finalized.',
+              'processing',
+              'attachment-journal-failed',
+            ));
+            this.logSaveOutcome(tracker, 'attachments', error);
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
+          }
+        }
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         const recordMetadata = recordObj.metadata as AnyRecord;
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
-        if (!_.isEmpty(attachmentFields)) {
-          this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid);
-
-          try {
-            // handle datastream update
-            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
-            const emptyDatastreamRecord = _.cloneDeep(recordObj);
-            const emptyMetadata = emptyDatastreamRecord.metadata as AnyRecord;
-            _.each(attachmentFields, (attFieldName: unknown) => {
-              const attFieldKey = String(attFieldName ?? '');
-              _.set(emptyMetadata, attFieldKey, []);
-            });
-            // update the datastreams in RB, this is a terminal call
-            sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
-            await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
-          } catch (error) {
-            sails.log.error(`RecordsService - create - Failed to save record: ${error}`);
-            tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'incomplete', 'attachment-finalization-failed'));
+        if (createAttachmentPlan.length > 0) {
+          this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid, false);
+          const attachmentItems = await this.executeAttachmentPlan(oid, createAttachmentPlan);
+          tracker.setAttachmentItems(attachmentItems);
+          if (attachmentItems.some(item => item.status !== 'completed')) {
             tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but one or more attachments could not be finalized.', 'processing', 'attachment-finalization-failed'));
+            this.logSaveOutcome(tracker, 'attachments');
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
+          }
+          try {
+            if (!(await this.finalizeAttachmentReferences(brandObj, oid, recordObj, userObj, attachmentFields))) {
+              await this.markAttachmentPlanState(oid, createAttachmentPlan, 'incomplete', 'attachment-reference-finalization-failed');
+              tracker.setAttachmentItems(this.incompleteAttachmentItems(attachmentItems, 'attachment-reference-finalization-failed'));
+              tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment references could not be finalized.', 'processing', 'attachment-reference-finalization-failed'));
+              this.logSaveOutcome(tracker, 'attachments');
+              return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
+            }
+            this.clearPendingAttachmentOids(recordMetadata, attachmentFields);
+          } catch (error) {
+            await this.markAttachmentPlanState(oid, createAttachmentPlan, 'incomplete', 'attachment-reference-finalization-failed');
+            tracker.setAttachmentItems(this.incompleteAttachmentItems(attachmentItems, 'attachment-reference-finalization-failed'));
+            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment references could not be finalized.', 'processing', 'attachment-reference-finalization-failed'));
             this.logSaveOutcome(tracker, 'attachments', error);
-            return tracker.toResponse();
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
           }
-
-          // update the metadata ...
-          const attachmentMetadataResponse = await this.updateMeta(brandObj, oid, recordObj, userObj, false, false, {}, undefined, context);
-          if (!attachmentMetadataResponse.wasPersisted()) {
-            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment metadata could not be finalized.', 'processing', 'attachment-metadata-failed'));
-            this.logSaveOutcome(tracker, 'attachments');
-            return tracker.toResponse();
-          }
-          if (!attachmentMetadataResponse.isComplete()) {
-            tracker.setAttachmentItems(attachmentMetadataResponse.completion.attachments.items);
-            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment metadata could not be finalized.', 'processing', 'attachment-metadata-failed'));
-            this.logSaveOutcome(tracker, 'attachments');
-            return tracker.toResponse();
-          }
-          // Report the confirmed items so a complete create carries the same
-          // per-item completion facts an update does.
-          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'completed'));
         }
 
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
             const hookResponse = (await this.triggerPostSaveSyncTriggers(
-              createResponse['oid'],
+              oid,
               recordObj,
               recordTypeObj,
               'onCreate',
               userObj,
               createResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
-            if (hookResponse?.isSuccessful?.() === false) {
+            if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
               this.logSaveOutcome(tracker, 'post-save');
-              return tracker.toResponse();
+              return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
             }
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
               const hookMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
@@ -757,7 +1209,7 @@ export namespace Services {
               if (hookMutationState !== 'applied') {
                 tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-metadata-failed'));
                 this.logSaveOutcome(tracker, 'post-save');
-                return tracker.toResponse();
+                return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
               }
             }
           } catch (err) {
@@ -767,35 +1219,35 @@ export namespace Services {
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
             this.logSaveOutcome(tracker, 'post-save');
-            return tracker.toResponse();
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
           }
           // Fire Post-save hooks async ...
-          this.triggerPostSaveTriggers(createResponse['oid'], recordObj, recordTypeObj, 'onCreate', userObj);
+          this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj);
 
           if (!_.isEmpty(targetStep)) {
             try {
               const transitionResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
-                createResponse['oid'],
+                oid,
                 recordObj,
                 recordTypeObj,
                 wfStep,
                 userObj,
                 createResponse
               )) as unknown as StorageServiceResponse;
-              if (transitionResponse && transitionResponse.isSuccessful()) {
+              if (!this.hookResponseFailed(transitionResponse)) {
                 if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
                   const transitionMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
                   const transitionMutationState = resolveStorageMutationState(transitionMetadataResponse, this.logLegacyMutationResponse);
                   if (transitionMutationState !== 'applied') {
                     tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow metadata could not be finalized.', 'processing', 'transition-metadata-failed'));
                     this.logSaveOutcome(tracker, 'post-save');
-                    return tracker.toResponse();
+                    return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
                   }
                 }
               } else {
                 tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
                 this.logSaveOutcome(tracker, 'post-save');
-                return tracker.toResponse();
+                return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
               }
             } catch (tErr) {
               sails.log.error(
@@ -804,48 +1256,28 @@ export namespace Services {
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
               this.logSaveOutcome(tracker, 'post-save');
-              return tracker.toResponse();
+              return await this.finishSave(tracker, userObj, RecordAuditActionType.created, recordTypeObj.searchable !== false);
             }
           }
         }
 
-        const recordOid = String(_.get(recordObj, 'redboxOid', ''));
-        if (_.isEmpty(recordOid)) {
-          sails.log.warn(
-            `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
-          );
-          if (recordTypeObj.searchable !== false) {
-            void Promise.resolve(this.searchService.index(createResponse['oid'], recordObj)).catch((error: unknown) => {
-              sails.log.error(`${this.logHeader} index submission failed`, error);
-            });
-          }
-        } else {
-          if (createResponse['oid'] !== recordOid) {
-            sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
-          }
-          if (recordTypeObj.searchable !== false) {
-            void Promise.resolve(this.searchService.index(recordOid, recordObj)).catch((error: unknown) => {
-              sails.log.error(`${this.logHeader} index submission failed`, error);
-            });
-          }
-        }
-
-        try {
-          await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
-        } catch (error) {
-          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
-        }
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
         sails.log.error(JSON.stringify(createResponse));
         if (primaryMutationState === 'not-applied') {
+          await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'cancelled', 'save-not-applied');
           tracker.recordPrimaryNotApplied(this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied'));
         } else {
           tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown'));
         }
         this.logSaveOutcome(tracker, 'persistence');
       }
-      return tracker.toResponse();
+      return await this.finishSave(
+        tracker,
+        userObj,
+        RecordAuditActionType.created,
+        recordTypeObj.searchable !== false,
+      );
     }
 
     async updateMeta(
@@ -856,7 +1288,7 @@ export namespace Services {
       triggerPreSaveTriggers: boolean = true,
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
-      metadata: AnyRecord = {},
+      metadata?: AnyRecord,
       context?: RecordSaveContext,
     ): Promise<RecordSaveResponse> {
       const tracker = new RecordSaveTracker(createRecordSaveContext({
@@ -876,13 +1308,20 @@ export namespace Services {
       const origRecordObj = this.normalizeRecord(origRecord as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
       //This is done after cloning record to preserve origRecord during processing
-      if (!_.isEmpty(metadata)) {
+      if (metadata !== undefined) {
         recordObj.metadata = metadata;
       }
 
       let recordType = null;
       if (!_.isEmpty(brand)) {
         recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
+      }
+      try {
+        this.validateHookConfiguration(recordType, ['onUpdate', 'onTransitionWorkflow']);
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-hook-configuration'));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
       }
 
       if (!_.isEmpty(nextStepObj) && !_.isEmpty(nextStepObj.config)) {
@@ -925,7 +1364,7 @@ export namespace Services {
           } catch (err) {
             sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
             sails.log.error(JSON.stringify(err));
-            tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+            tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
             this.logSaveOutcome(tracker, 'pre-save', err);
             return tracker.toResponse();
           }
@@ -940,18 +1379,18 @@ export namespace Services {
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
-          recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
           recordObj = await this.triggerPreSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           sails.log.error(err);
-          tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+          tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
         }
       }
 
-      const attachmentFields = (recordMeta.attachmentFields ?? []) as unknown[];
+      const currentRecordMeta = (recordObj.metaMetadata ?? {}) as AnyRecord;
+      const attachmentFields = (currentRecordMeta.attachmentFields ?? []) as unknown[];
       try {
         this.ensureAttachmentIds(recordObj, attachmentFields);
       } catch (error) {
@@ -960,7 +1399,34 @@ export namespace Services {
         return tracker.toResponse();
       }
       if (!_.isEmpty(attachmentFields)) {
-        this.bindPendingAttachmentOids(recordObj.metadata as AnyRecord, attachmentFields, oid);
+        this.bindPendingAttachmentOids(recordObj.metadata as AnyRecord, attachmentFields, oid, false);
+      }
+
+      const updateGeneration = tracker.context.requestId;
+      let unresolvedAttachmentRows: Array<Record<string, unknown>> = [];
+      try {
+        unresolvedAttachmentRows = (await this.attachmentJournalService()?.findUnresolvedByOid(oid) ?? []) as unknown as Array<Record<string, unknown>>;
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'attachment-journal-failed'));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+      const updateAttachmentPlan = this.attachmentMutationPlan(
+        origRecordObj,
+        recordObj,
+        attachmentFields,
+        oid,
+        updateGeneration,
+        unresolvedAttachmentRows,
+      );
+      this.markPlannedAttachmentReferencesPending(recordObj, updateAttachmentPlan);
+      try {
+        await this.prepareAttachmentJournal(oid, updateAttachmentPlan);
+      } catch (error) {
+        await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'cancelled', 'attachment-journal-failed');
+        tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'attachment-journal-failed'));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
       }
 
       // unsetting the ID just to be safe
@@ -995,18 +1461,30 @@ export namespace Services {
       }
       tracker.confirmPrimaryPersistence(oid, updateResponse);
 
-      try {
-        await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}));
-        if (!_.isEmpty(attachmentFields)) {
-          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'completed'));
+      if (updateAttachmentPlan.length > 0) {
+        const attachmentItems = await this.executeAttachmentPlan(oid, updateAttachmentPlan);
+        tracker.setAttachmentItems(attachmentItems);
+        if (attachmentItems.some(item => item.status !== 'completed')) {
+          tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your changes were saved, but one or more attachments could not be finalized.', 'processing', 'attachment-finalization-failed'));
+          this.logSaveOutcome(tracker, 'attachments');
+          return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
         }
-      } catch (error) {
-        if (!_.isEmpty(attachmentFields)) {
-          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'incomplete', 'attachment-finalization-failed'));
+        try {
+          if (!(await this.finalizeAttachmentReferences(brandObj, oid, recordObj, userObj, attachmentFields))) {
+            await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'incomplete', 'attachment-reference-finalization-failed');
+            tracker.setAttachmentItems(this.incompleteAttachmentItems(attachmentItems, 'attachment-reference-finalization-failed'));
+            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your changes were saved, but attachment references could not be finalized.', 'processing', 'attachment-reference-finalization-failed'));
+            this.logSaveOutcome(tracker, 'attachments');
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
+          }
+          this.clearPendingAttachmentOids(recordObj.metadata as AnyRecord, attachmentFields);
+        } catch (error) {
+          await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'incomplete', 'attachment-reference-finalization-failed');
+          tracker.setAttachmentItems(this.incompleteAttachmentItems(attachmentItems, 'attachment-reference-finalization-failed'));
+          tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your changes were saved, but attachment references could not be finalized.', 'processing', 'attachment-reference-finalization-failed'));
+          this.logSaveOutcome(tracker, 'attachments', error);
+          return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
         }
-        tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your changes were saved, but one or more attachments could not be finalized.', 'processing', 'attachment-finalization-failed'));
-        this.logSaveOutcome(tracker, 'attachments', error);
-        return tracker.toResponse();
       }
 
       // Post-persistence phases only run once the commit is confirmed.  Using
@@ -1015,7 +1493,18 @@ export namespace Services {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
         //therefore try to set recordType if triggerPostSaveTriggers is true
         if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
-          recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
+          try {
+            recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
+          } catch (error) {
+            tracker.recordPostPersistenceProblem(this.saveProblem(
+              'post-save',
+              'Your changes were saved, but follow-up processing could not be completed.',
+              'processing',
+              'post-save-failed',
+            ));
+            this.logSaveOutcome(tracker, 'post-save', error);
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
+          }
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
@@ -1030,10 +1519,10 @@ export namespace Services {
               userObj,
               updateResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
-            if (hookResponse?.isSuccessful?.() === false) {
+            if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
               this.logSaveOutcome(tracker, 'post-save');
-              return tracker.toResponse();
+              return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
             }
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
               const hookMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
@@ -1041,7 +1530,7 @@ export namespace Services {
               if (hookMutationState !== 'applied') {
                 tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-metadata-failed'));
                 this.logSaveOutcome(tracker, 'post-save');
-                return tracker.toResponse();
+                return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
               }
             }
           } catch (err) {
@@ -1049,7 +1538,7 @@ export namespace Services {
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
             this.logSaveOutcome(tracker, 'post-save');
-            return tracker.toResponse();
+            return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
@@ -1070,7 +1559,7 @@ export namespace Services {
                 `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`
               );
               sails.log.verbose(JSON.stringify(transitionResponse));
-              if (transitionResponse && transitionResponse.isSuccessful()) {
+              if (!this.hookResponseFailed(transitionResponse)) {
                 sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
                   const transitionMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
@@ -1078,7 +1567,7 @@ export namespace Services {
                   if (transitionMutationState !== 'applied') {
                     tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow metadata could not be finalized.', 'processing', 'transition-metadata-failed'));
                     this.logSaveOutcome(tracker, 'post-save');
-                    return tracker.toResponse();
+                    return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
                   }
                 }
               } else {
@@ -1087,7 +1576,7 @@ export namespace Services {
                 );
                 tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
                 this.logSaveOutcome(tracker, 'post-save');
-                return tracker.toResponse();
+                return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
               }
             } catch (tErr) {
               sails.log.error(
@@ -1096,22 +1585,12 @@ export namespace Services {
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
               this.logSaveOutcome(tracker, 'post-save');
-              return tracker.toResponse();
+              return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
             }
           }
         }
-        if (recordType?.searchable !== false) {
-          void Promise.resolve(this.searchService.index(oid, recordObj)).catch((error: unknown) => {
-            sails.log.error(`${this.logHeader} index submission failed`, error);
-          });
-        }
-        try {
-          await this.auditRecord(oid, record, user, RecordAuditActionType.updated);
-        } catch (error) {
-          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
-        }
       }
-      return tracker.toResponse();
+      return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
     }
 
     hasPostSaveSyncHooks(recordType: unknown, mode: string): boolean {
@@ -1120,6 +1599,17 @@ export namespace Services {
         return true;
       }
       return false;
+    }
+
+    private hookResponseFailed(response: unknown): boolean {
+      if (!response || typeof response !== 'object') {
+        return true;
+      }
+      const candidate = response as AnyRecord;
+      if (typeof candidate.isSuccessful === 'function') {
+        return candidate.isSuccessful() !== true;
+      }
+      return candidate.success !== true;
     }
 
     getMeta(oid: string): Promise<RecordModel> {
@@ -1260,6 +1750,7 @@ export namespace Services {
       const preTriggerResponse = new StorageServiceResponse();
       const failedMessage = 'Failed to delete record, please check server logs.';
       try {
+        this.validateHookConfiguration(recordTypeObj, ['onDelete']);
         sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete');
         preTriggerResponse.oid = oid;
         currentRecObj = await this.triggerPreSaveTriggers(oid, currentRecObj, recordTypeObj, 'onDelete', user);
@@ -2053,9 +2544,9 @@ export namespace Services {
         for (let i = 0; i < preSaveUpdateHooks.length; i++) {
           const preSaveUpdateHook = preSaveUpdateHooks[i];
           const preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, 'function', null);
-          if (preSaveUpdateHookFunctionString != null) {
+          if (typeof preSaveUpdateHookFunctionString === 'string' && preSaveUpdateHookFunctionString.trim()) {
             try {
-              const preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString as string);
+              const preSaveUpdateHookFunction = this.configuredHookFunction(preSaveUpdateHook, mode, 'pre');
               const options = _.get(preSaveUpdateHook, 'options', {}) as AnyRecord;
               sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
               const hookResponse = preSaveUpdateHookFunction(oid, record, options, user);
@@ -2071,9 +2562,14 @@ export namespace Services {
               throw new RBValidationError({
                 message: `pre-save trigger ${preSaveUpdateHookFunctionString} failed to complete for oid ${oid} mode ${mode} user ${user}`,
                 options: { cause: err },
-                displayErrors: [{ title: 'Failed to save record', meta: { oid } }],
+                displayErrors: [{ title: '@record-save-pre-save-processing-failed', meta: { oid } }],
               });
             }
+          } else {
+            throw new RBValidationError({
+              message: `Invalid pre-save trigger configuration for ${mode}.`,
+              displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+            });
           }
         }
       }
@@ -2097,19 +2593,31 @@ export namespace Services {
           const postSaveSyncHook = postSaveSyncHooks[i];
           sails.log.debug(postSaveSyncHooks);
           const postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, 'function', null);
-          if (postSaveSyncHooksFunctionString != null) {
-            const postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString as string);
+          if (typeof postSaveSyncHooksFunctionString === 'string' && postSaveSyncHooksFunctionString.trim()) {
+            const postSaveSyncHookFunction = this.configuredHookFunction(postSaveSyncHook, mode, 'postSync');
             const options = _.get(postSaveSyncHook, 'options', {}) as AnyRecord;
             if (_.isFunction(postSaveSyncHookFunction)) {
               try {
                 sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`);
-                const hookResponse = postSaveSyncHookFunction(oid, record, options, user, response);
+                const hookResponse = postSaveSyncHookFunction(oid, record, options, user, _.cloneDeep(response));
                 const returnType = options.returnType == undefined ? 'record' : options.returnType;
-                //TODO: response from these functions is not consistent, some return the record, some return the storage response
-                if (returnType == 'record') {
-                  record = (await this.resolveHookResponse(hookResponse)) as AnyRecord;
-                } else {
-                  response = (await this.resolveHookResponse(hookResponse)) as AnyRecord;
+                const resolvedHookResponse = await this.resolveHookResponse(hookResponse);
+                // Hooks may transform the record or report a legacy response,
+                // but they cannot replace the tracked OID/outcome/completion.
+                if (returnType === 'record') {
+                  if (!resolvedHookResponse || typeof resolvedHookResponse !== 'object') {
+                    throw new Error('Post-save record hook did not return a record');
+                  }
+                  record = resolvedHookResponse as AnyRecord;
+                } else if (resolvedHookResponse && typeof resolvedHookResponse === 'object') {
+                  const returned = resolvedHookResponse as AnyRecord;
+                  response = {
+                    ...response,
+                    ...(typeof returned.success === 'boolean' ? { success: returned.success } : {}),
+                    ...(typeof returned.message === 'string' ? { message: returned.message } : {}),
+                    ...(Object.hasOwn(returned, 'data') ? { data: returned.data } : {}),
+                    ...(Object.hasOwn(returned, 'metadata') ? { metadata: returned.metadata } : {}),
+                  };
                 }
                 sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
                 sails.log.verbose(JSON.stringify(response));
@@ -2122,15 +2630,20 @@ export namespace Services {
                 throw new RBValidationError({
                   message: `post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete for oid ${oid} mode ${mode} user ${user}`,
                   options: { cause: err },
-                  displayErrors: [{ title: 'Failed to run processing after saving record', meta: { oid } }],
+                  displayErrors: [{ title: '@record-save-post-save-failed', meta: { oid } }],
                 });
               }
             } else {
-              sails.log.error(
-                `Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`
-              );
-              sails.log.error(postSaveSyncHookFunction);
+              throw new RBValidationError({
+                message: `Configured post-save sync hook for ${mode} is not callable.`,
+                displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+              });
             }
+          } else {
+            throw new RBValidationError({
+              message: `Invalid post-save sync trigger configuration for ${mode}.`,
+              displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
+            });
           }
         }
       }
@@ -2151,9 +2664,15 @@ export namespace Services {
       if (Array.isArray(postSaveCreateHooks)) {
         _.each(postSaveCreateHooks, (postSaveCreateHook: unknown) => {
           sails.log.debug(postSaveCreateHook);
-          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, 'function', null);
-          if (postSaveCreateHookFunctionString != null) {
-            const postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
+          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, 'function', null) as unknown;
+          if (typeof postSaveCreateHookFunctionString === 'string' && postSaveCreateHookFunctionString.trim()) {
+            let postSaveCreateHookFunction: (...args: unknown[]) => unknown;
+            try {
+              postSaveCreateHookFunction = this.configuredHookFunction(postSaveCreateHook, mode, 'post');
+            } catch (error) {
+              sails.log.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`, error);
+              return;
+            }
             const options = _.get(postSaveCreateHook, 'options', {}) as AnyRecord;
             if (_.isFunction(postSaveCreateHookFunction)) {
               //add try/catch just as an extra safety measure in case the function called
@@ -2177,12 +2696,9 @@ export namespace Services {
                 );
                 sails.log.error(err);
               }
-            } else {
-              sails.log.error(
-                `Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`
-              );
-              sails.log.error(postSaveCreateHookFunction);
             }
+          } else {
+            sails.log.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`);
           }
         });
       }

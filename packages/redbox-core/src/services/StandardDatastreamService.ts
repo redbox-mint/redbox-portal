@@ -22,20 +22,7 @@ type TusPartPrefixSelection = {
   prefix?: string;
   partKeys: string[];
 };
-type AttachmentMetadataServiceContract = {
-  upsert: (row: AttachmentMetadataInput) => Promise<void>;
-  findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
-  findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
-  deleteByStorageKey: (storageKey: string) => Promise<void>;
-  recordAccess: (event: {
-    oid: string;
-    fileId?: string;
-    storageKey?: string;
-    action: AttachmentAccessAction;
-    accessedBy?: string;
-    itemCount?: number;
-  }) => Promise<void>;
-};
+type AttachmentMetadataServiceContract = AttachmentMetadataServices.AttachmentMetadataServiceContract;
 
 type RecordWithMetadata = {
   metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
@@ -154,6 +141,10 @@ export namespace Services {
         oid,
         fileId,
         storageKey,
+        attachmentId: typeof metadata?.attachmentId === 'string' ? metadata.attachmentId : undefined,
+        operation: metadata?.operation === 'finalize' ? 'finalize' : 'add',
+        mutationState: metadata?.mutationState === 'pending' ? 'pending' : 'applied',
+        generation: typeof metadata?.generation === 'string' ? metadata.generation : undefined,
         contentType: diskMetadata.contentType,
         contentLength: diskMetadata.contentLength,
         etag: diskMetadata.etag,
@@ -829,11 +820,33 @@ export namespace Services {
       try {
         await primaryDisk.delete(destKey);
         this.logger.verbose(`${this.logHeader} removeDatastream() -> Delete successful: ${destKey}`);
-      } catch {
-        // Flydrive may throw if the file doesn't exist; log and continue
-        this.logger.verbose(`${this.logHeader} removeDatastream() -> File not found or error deleting: ${destKey}`);
+      } catch (error) {
+        // A missing object is an idempotent delete; all other provider errors
+        // must remain visible so the attachment journal can retain an
+        // unresolved tombstone for the next manual save.
+        if (!this.isStorageNotFoundError(error)) {
+          throw error;
+        }
+        this.logger.verbose(`${this.logHeader} removeDatastream() -> File not found: ${destKey}`);
       }
-      await this.safelyDeleteMetadata(destKey);
+      const metadataService = this.attachmentMetadataService();
+      if (metadataService?.markDeleted && typeof datastream.metadata?.attachmentId === 'string') {
+        await metadataService.markDeleted({
+          oid,
+          fileId,
+          storageKey: destKey,
+          attachmentId: datastream.metadata.attachmentId,
+          operation: 'delete',
+          mutationState: 'applied',
+          generation: typeof datastream.metadata.generation === 'string' ? datastream.metadata.generation : undefined,
+          attachmentField: typeof datastream.metadata.attachmentField === 'string' ? datastream.metadata.attachmentField : undefined,
+        });
+        // The object is confirmed absent. Retain the applied tombstone long
+        // enough for reconciliation, then reap the physical metadata row.
+        await this.safelyDeleteMetadata(destKey);
+      } else {
+        await this.safelyDeleteMetadata(destKey);
+      }
       await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'remove' });
       return { success: true };
     }

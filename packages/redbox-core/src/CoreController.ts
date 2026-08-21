@@ -509,9 +509,9 @@ export namespace Controllers.Core {
      * Defaults to v1.
      * @param req The sails request.
      * @return The API version string.
-     * @private
+     * @protected
      */
-    private getApiVersion(req: Sails.Req): ApiVersionStrings {
+    protected getApiVersion(req: Sails.Req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;

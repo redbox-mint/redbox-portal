@@ -59,7 +59,7 @@ describe('OniService', function () {
       getUserWithUsername: sinon.stub().returns(of({ email: 'creator@example.edu', text_full_name: 'Creator User' })),
     };
     (global as unknown as { RecordsService: unknown }).RecordsService = {
-      updateMeta: sinon.stub().resolves({ success: true }),
+      updateMeta: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as unknown as { IntegrationAuditService: unknown }).IntegrationAuditService = {
       startAudit: sinon.stub().returns({
@@ -610,6 +610,11 @@ describe('OniService', function () {
   });
 
   it('runs publish workflow, audits it, and persists with the record brand', async function () {
+    (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService.updateMeta.resolves({
+      outcome: 'saved-with-warnings',
+      wasPersisted: () => true,
+      isComplete: () => false,
+    });
     const record = publicationRecord();
     record.metadata.publication_error = 'Data publication failed with error: Error previous failure';
     const repository = {
