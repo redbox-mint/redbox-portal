@@ -283,15 +283,62 @@ export const recordAuthorizationSchema = withOpenApi(
     { description: 'Record authorization payload' }
 );
 
+const recordSaveIssueSchema = withOpenApi(
+    z.object({
+        code: z.string().optional(),
+        message: z.string(),
+        field: z.string().optional(),
+        pointer: z.string().optional(),
+        attachmentId: z.string().optional(),
+    }),
+    { description: 'Safe, field-addressable save issue' },
+);
+
+const recordSaveProblemSchema = withOpenApi(
+    z.object({
+        kind: z.enum(['validation', 'processing', 'authorization', 'system', 'network']),
+        phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
+        issues: z.array(recordSaveIssueSchema),
+    }),
+    { description: 'A save phase problem and its safe display issues' },
+);
+
+const recordAttachmentCompletionItemSchema = withOpenApi(
+    z.object({
+        field: z.string(),
+        attachmentId: z.string(),
+        fileId: z.string().optional(),
+        operation: z.enum(['add', 'finalize', 'delete']),
+        status: z.enum(['completed', 'incomplete', 'unknown']),
+        code: z.string().optional(),
+    }),
+    { description: 'Per-attachment completion fact' },
+);
+
+const recordSaveCompletionSchema = withOpenApi(
+    z.object({
+        attachments: z.object({
+            status: z.enum(['not-required', 'completed', 'incomplete', 'unknown']),
+            items: z.array(recordAttachmentCompletionItemSchema),
+        }),
+    }),
+    { description: 'Item-specific completion details for a record save' },
+);
+
 export const storageServiceResponseSchema = withOpenApi(
     z.object({
         success: z.boolean(),
         oid: z.string(),
         message: z.string(),
+        data: z.unknown().optional(),
         metadata: genericObjectSchema.nullable(),
         details: z.union([z.string(), genericObjectSchema]).optional(),
         totalItems: z.number().int(),
         items: z.array(genericObjectSchema),
+        outcome: z.enum(['saved', 'saved-with-warnings', 'not-saved', 'unknown']).optional(),
+        problems: z.array(recordSaveProblemSchema).optional(),
+        completion: recordSaveCompletionSchema.optional(),
+        requestId: z.string().uuid().optional(),
     }),
     { description: 'Storage service response envelope' }
 );
