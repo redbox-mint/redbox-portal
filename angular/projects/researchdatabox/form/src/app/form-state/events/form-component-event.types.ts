@@ -15,6 +15,8 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
+  /** Identifies the form instance that owns the event. */
+  readonly formScopeId?: string;
   readonly fieldId?: string;
 }
 
@@ -189,9 +191,12 @@ export interface FormSaveExecuteEvent extends FormComponentEventBase, SaveOperat
  */
 export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedirectEventConfig {
   readonly type: 'form.save.success';
+  /** Whether the completed save created a new record or updated an existing one. */
+  readonly operation?: 'create' | 'update';
   readonly savedData?: any;
   readonly oid?: string;
   readonly response?: Partial<RecordSaveResult> | null;
+  readonly requestId?: string;
   /** Snapshot of the actual form state after eligible server synchronization. */
   readonly modelSnapshot?: Record<string, unknown>;
 }
@@ -202,8 +207,11 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
  */
 export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly type: 'form.save.failure';
+  /** Whether the failed/uncertain save targeted a new or existing record. */
+  readonly operation?: 'create' | 'update';
   readonly error?: string;
   readonly response?: Partial<RecordSaveResult> | null;
+  readonly requestId?: string;
 }
 
 export interface DeleteEventConfig extends RedirectLocationEventBase {
@@ -222,11 +230,13 @@ export interface FormDeleteSuccessEvent extends FormComponentEventBase, DeleteEv
   readonly type: 'form.delete.success';
   readonly oid?: string;
   readonly response?: any;
+  readonly requestId?: string;
 }
 
 export interface FormDeleteFailureEvent extends FormComponentEventBase {
   readonly type: 'form.delete.failure';
   readonly error?: string;
+  readonly requestId?: string;
 }
 
 /**

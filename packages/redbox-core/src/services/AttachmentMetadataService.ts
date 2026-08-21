@@ -3,6 +3,7 @@ import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '.
 
 export namespace Services {
   export type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
+  export type AttachmentMutationState = NonNullable<AttachmentMetadataAttributes['mutationState']>;
   export type AttachmentMetadataInput = Omit<AttachmentMetadataAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   export type AttachmentAccessAuditInput = Omit<AttachmentAccessAuditAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   export type AttachmentAccessEvent = {
@@ -13,12 +14,29 @@ export namespace Services {
     accessedBy?: string;
     itemCount?: number;
   };
+  export type AttachmentMetadataServiceContract = {
+    upsert: (row: AttachmentMetadataInput) => Promise<void>;
+    findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
+    findUnresolvedByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
+    findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
+    prepareMutations: (rows: readonly AttachmentMetadataInput[]) => Promise<void>;
+    markMutation: (oid: string, attachmentId: string, generation: string, state: AttachmentMutationState, code?: string) => Promise<boolean>;
+    rebindOid: (fromOid: string, toOid: string) => Promise<void>;
+    markDeleted: (row: AttachmentMetadataInput) => Promise<void>;
+    deleteByStorageKey: (storageKey: string) => Promise<void>;
+    recordAccess: (event: AttachmentAccessEvent) => Promise<void>;
+  };
 
   export class AttachmentMetadataService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'upsert',
       'findByOid',
+      'findUnresolvedByOid',
       'findOneByStorageKey',
+      'prepareMutations',
+      'markMutation',
+      'rebindOid',
+      'markDeleted',
       'deleteByStorageKey',
       'recordAccess',
     ];
@@ -34,10 +52,13 @@ export namespace Services {
       const payload = this.normalizeMetadataRow(row);
       const oid = String(payload.oid ?? '').trim();
       const fileId = String(payload.fileId ?? '').trim();
-      const existing = await AttachmentMetadata.findOne({ storageKey }) as AttachmentMetadataAttributes | null
-        ?? (oid && fileId
-          ? await AttachmentMetadata.findOne({ oid, fileId }) as AttachmentMetadataAttributes | null
-          : null);
+      let existing = await AttachmentMetadata.findOne({ storageKey }) as AttachmentMetadataAttributes | null;
+      // A physical row may retain its identity if a storage prefix changes,
+      // but journal rows must never claim the physical {oid,fileId} row.
+      if (!existing && payload.isJournal !== true && oid && fileId) {
+        const sameFileRows = await AttachmentMetadata.find({ oid, fileId }) as AttachmentMetadataAttributes[] | null;
+        existing = (sameFileRows ?? []).find(candidate => candidate.isJournal !== true) ?? null;
+      }
       if (existing?.id) {
         await AttachmentMetadata.updateOne({ id: existing.id }).set(payload);
         return;
@@ -50,7 +71,92 @@ export namespace Services {
       if (!normalizedOid) {
         return [];
       }
-      return await AttachmentMetadata.find({ oid: normalizedOid }).sort([{ createdAt: 'ASC' }]) as AttachmentMetadataAttributes[];
+      const rows = await AttachmentMetadata.find({ oid: normalizedOid }).sort([{ createdAt: 'ASC' }]) as AttachmentMetadataAttributes[];
+      // Journal rows are retained for reconciliation, but prepared/pending
+      // work is not a confirmed physical attachment and must not appear in
+      // the listing API. Legacy rows without a mutationState remain visible.
+      return rows.filter(row => row.isJournal !== true
+        && row.operation !== 'delete'
+        && row.mutationState !== 'cancelled'
+        && (row.mutationState === undefined || row.mutationState === 'applied'));
+    }
+
+    public async findUnresolvedByOid(oid: string): Promise<AttachmentMetadataAttributes[]> {
+      const normalizedOid = String(oid ?? '').trim();
+      if (!normalizedOid) {
+        return [];
+      }
+      const rows = await AttachmentMetadata.find({ oid: normalizedOid }).sort([{ createdAt: 'ASC' }]) as AttachmentMetadataAttributes[];
+      return rows.filter(row => row.isJournal === true && (row.mutationState === 'prepared'
+        || row.mutationState === 'pending'
+        || row.mutationState === 'incomplete'
+        || row.mutationState === 'unknown'));
+    }
+
+    public async prepareMutations(rows: readonly AttachmentMetadataInput[]): Promise<void> {
+      for (const row of rows) {
+        const attachmentId = String(row.attachmentId ?? '').trim();
+        const generation = String(row.generation ?? '').trim();
+        await this.upsert({
+          ...row,
+          fileId: `journal-${attachmentId}-${generation}`,
+          mutationFileId: String(row.mutationFileId ?? row.fileId ?? '').trim(),
+          isJournal: true,
+          mutationState: 'prepared',
+        });
+      }
+    }
+
+    public async markMutation(
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      mutationState: AttachmentMutationState,
+      lastSafeErrorCode?: string,
+    ): Promise<boolean> {
+      const criteria = {
+        oid: String(oid ?? '').trim(),
+        attachmentId: String(attachmentId ?? '').trim(),
+        generation: String(generation ?? '').trim(),
+        isJournal: true,
+      };
+      if (!criteria.oid || !criteria.attachmentId || !criteria.generation) {
+        return false;
+      }
+      const existing = await AttachmentMetadata.findOne(criteria) as AttachmentMetadataAttributes | null;
+      if (!existing?.id) {
+        return false;
+      }
+      await AttachmentMetadata.updateOne({ id: existing.id }).set({
+        mutationState,
+        attemptCount: mutationState === 'pending'
+          ? Number(existing.attemptCount ?? 0) + 1
+          : Number(existing.attemptCount ?? 0),
+        lastAttemptAt: new Date().toISOString(),
+        ...(lastSafeErrorCode
+          ? { lastSafeErrorCode }
+          : mutationState === 'applied' ? { lastSafeErrorCode: undefined } : {}),
+      });
+      return true;
+    }
+
+    public async rebindOid(fromOid: string, toOid: string): Promise<void> {
+      const from = String(fromOid ?? '').trim();
+      const to = String(toOid ?? '').trim();
+      if (!from || !to || from === to) {
+        return;
+      }
+      await AttachmentMetadata.update({ oid: from }).set({ oid: to });
+    }
+
+    public async markDeleted(row: AttachmentMetadataInput): Promise<void> {
+      await this.upsert({
+        ...row,
+        isJournal: false,
+        operation: 'delete',
+        mutationState: 'applied',
+        lastAttemptAt: new Date().toISOString(),
+      });
     }
 
     public async findOneByStorageKey(storageKey: string): Promise<AttachmentMetadataAttributes | undefined> {
@@ -105,6 +211,7 @@ export namespace Services {
         oid: String(row.oid ?? '').trim(),
         fileId: String(row.fileId ?? '').trim(),
         storageKey: String(row.storageKey ?? '').trim(),
+        isJournal: row.isJournal === true,
         // Journal fields are only written when the caller supplies them, so an
         // ordinary metadata upsert cannot silently reset reconciliation state.
         ...this.journalRow(row),
@@ -139,6 +246,10 @@ export namespace Services {
       const generation = this.optionalIdentifier(row.generation);
       if (generation) {
         journal.generation = generation;
+      }
+      const mutationFileId = this.optionalString(row.mutationFileId);
+      if (mutationFileId) {
+        journal.mutationFileId = mutationFileId;
       }
       const attemptCount = this.optionalNumber(row.attemptCount);
       if (attemptCount !== undefined) {

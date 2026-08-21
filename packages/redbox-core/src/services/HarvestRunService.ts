@@ -481,24 +481,30 @@ export namespace Services {
           );
         }
 
-        if (shouldMerge) {
-          record['metadata'] = _.mergeWith(record.metadata, body, (objValue: unknown, srcValue: unknown) => {
+        const updatedMetadata = shouldMerge
+          ? _.mergeWith(_.cloneDeep(record.metadata), body, (objValue: unknown, srcValue: unknown) => {
             if (_.isArray(objValue)) {
               return (objValue as unknown[]).concat(srcValue as unknown[]);
             }
             return undefined;
-          });
-        } else {
-          record['metadata'] = body;
-        }
+          })
+          : body;
 
         const sourceMetadata = body?.['sourceMetadata'];
         if (!_.isEmpty(sourceMetadata)) {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
         }
 
-        await RecordsService.updateMeta(brand, oid, record, user);
-        return new APIHarvestResponse(harvestId, oid, true, shouldMerge ? 'Record merged successfully' : 'Record updated successfully');
+        const response = await RecordsService.updateMeta(brand, oid, record, user, true, true, {}, updatedMetadata);
+        if (!response.wasPersisted()) {
+          return new APIHarvestResponse(
+            harvestId,
+            oid,
+            false,
+            `Record update was not fully completed: ${response.outcome}`
+          );
+        }
+        return new APIHarvestResponse(harvestId, oid, true, String(response.message || response.outcome));
       } catch (error) {
         const result = new APIHarvestResponse(
           harvestId,
@@ -541,8 +547,8 @@ export namespace Services {
           }
         }
 
-        if (response.isSuccessful()) {
-          return new APIHarvestResponse(harvestId, response.oid, true, 'Record created successfully');
+        if (response.wasPersisted()) {
+          return new APIHarvestResponse(harvestId, response.oid, true, String(response.message || response.outcome));
         }
 
         this.logger.error(`${this.logHeader} Record creation failed for harvestId ${harvestId}`);
@@ -585,14 +591,14 @@ export namespace Services {
 
       try {
         const response = await RecordsService.create(brand, request, recordTypeModel, user);
-        if (response.isSuccessful()) {
+        if (response.wasPersisted()) {
           return {
             harvestId,
             oid: String(response.oid ?? ''),
             operation: HarvestOperation.create,
             outcome: HarvestOutcome.created,
             status: true,
-            message: 'Record created successfully',
+            message: String(response.message || response.outcome),
             details: '',
           };
         }
@@ -633,24 +639,22 @@ export namespace Services {
 
         const previousRecord = _.cloneDeep(record);
 
-        if (shouldMerge) {
-          record['metadata'] = _.mergeWith(record.metadata, metadata, (objValue: unknown, srcValue: unknown) => {
+        const updatedMetadata = shouldMerge
+          ? _.mergeWith(_.cloneDeep(record.metadata), metadata, (objValue: unknown, srcValue: unknown) => {
             if (_.isArray(objValue)) {
               return (objValue as unknown[]).concat(srcValue as unknown[]);
             }
             return undefined;
-          });
-        } else {
-          record['metadata'] = metadata;
-        }
+          })
+          : metadata;
 
         const sourceMetadata = metadata['sourceMetadata'];
         if (!_.isEmpty(sourceMetadata)) {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
         }
 
-        const response = await RecordsService.updateMeta(brand, oid, record, user);
-        if (!response.isSuccessful()) {
+        const response = await RecordsService.updateMeta(brand, oid, record, user, true, true, {}, updatedMetadata);
+        if (!response.wasPersisted()) {
           return {
             success: false,
             message: String(response.message ?? 'Failed to update meta'),
@@ -660,8 +664,8 @@ export namespace Services {
 
         return {
           success: true,
-          message: shouldMerge ? 'Record merged successfully' : 'Record updated successfully',
-          details: '',
+          message: String(response.message || response.outcome),
+          details: typeof response.details === 'string' ? response.details : '',
           previousRecord,
         };
       } catch (error) {
@@ -692,7 +696,7 @@ export namespace Services {
       user: UserModel
     ): Promise<void> {
       const response = await RecordsService.updateMeta(brand, oid, _.cloneDeep(previousRecord), user);
-      if (!response.isSuccessful()) {
+      if (!response.wasPersisted()) {
         throw new Error(String(response.message ?? `Failed to rollback updated record ${oid}.`));
       }
     }

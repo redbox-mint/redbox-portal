@@ -366,7 +366,7 @@ describe('FigshareService', function () {
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
-      updateMeta: sinon.stub().resolves({ success: true }),
+      updateMeta: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns({
@@ -1887,7 +1887,7 @@ describe('FigshareService', function () {
       metadata: { title: 'Dataset title' },
       metaMetadata: { brandId: 'named-brand', type: 'dataset' },
     });
-    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true });
+    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true, wasPersisted: () => true, isComplete: () => true });
     sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
 
     await (service as any).transitionWorkflowForRecord(
@@ -1905,6 +1905,22 @@ describe('FigshareService', function () {
     expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
     expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
     expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+  });
+
+  it('treats a persisted warning as a successful Figshare state writeback', async function () {
+    (global as any).RecordsService.updateMeta.resolves({
+      outcome: 'saved-with-warnings',
+      wasPersisted: () => true,
+      isComplete: () => false,
+    });
+
+    const persisted = await service.persistSyncRecord(
+      'oid-1',
+      { metaMetadata: { brandId: 'default' }, metadata: {} } as any,
+      { username: 'figshare-job-user' } as any,
+    );
+
+    expect(persisted).to.equal(true);
   });
 
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {

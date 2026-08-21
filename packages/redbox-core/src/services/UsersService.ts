@@ -303,7 +303,13 @@ export namespace Services {
           const metaMetadata = (recordObj.metaMetadata ?? {}) as AnyRecord;
           const brandId = String(metaMetadata.brandId ?? defaultBrandId ?? '');
           const brand = !_.isEmpty(brandId) ? BrandingService.getBrandById(brandId) : BrandingService.getDefault();
-          await RecordsService.updateMeta(brand, String(recordObj.redboxOid ?? ''), recordObj, { username: actor }, false, false);
+          const response = await RecordsService.updateMeta(brand, String(recordObj.redboxOid ?? ''), recordObj, { username: actor }, false, false);
+          if (!response.wasPersisted()) {
+            throw new Error(String(response.message ?? response.outcome));
+          }
+          if (response.outcome === 'saved-with-warnings') {
+            sails.log.warn(`User permission rewrite persisted with warnings for ${String(recordObj.redboxOid ?? '')}`, { requestId: response.requestId });
+          }
           rewrittenCount++;
         }
       }

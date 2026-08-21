@@ -40,6 +40,9 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     const accessCount = Number(record.accessCount ?? 0);
     record.accessCount = Number.isFinite(accessCount) ? accessCount : 0;
   }
+  if (Object.hasOwn(record, 'isJournal')) {
+    record.isJournal = record.isJournal === true;
+  }
 
   if (Object.hasOwn(record, 'attachmentId') && record.attachmentId != null) {
     const attachmentId = String(record.attachmentId).trim();
@@ -67,6 +70,9 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
 
   if (Object.hasOwn(record, 'generation') && record.generation != null) {
     record.generation = String(record.generation).trim().slice(0, 128) || undefined;
+  }
+  if (Object.hasOwn(record, 'mutationFileId') && record.mutationFileId != null) {
+    record.mutationFileId = String(record.mutationFileId).trim() || undefined;
   }
   if (Object.hasOwn(record, 'attemptCount')) {
     const attemptCount = Number(record.attemptCount ?? 0);
@@ -118,6 +124,9 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, unique: true, validations: { custom: requiredTrimmedStringValidation('storageKey') } })
   public storageKey!: string;
 
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public isJournal?: boolean;
+
   @Attr({ type: 'string' })
   public attachmentId?: string;
 
@@ -129,6 +138,9 @@ export class AttachmentMetadataClass {
 
   @Attr({ type: 'string' })
   public generation?: string;
+
+  @Attr({ type: 'string' })
+  public mutationFileId?: string;
 
   @Attr({ type: 'number', defaultsTo: 0 })
   public attemptCount?: number;
@@ -181,6 +193,8 @@ export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes 
   operation?: 'add' | 'finalize' | 'delete';
   mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
   generation?: string;
+  isJournal?: boolean;
+  mutationFileId?: string;
   attemptCount?: number;
   lastAttemptAt?: string | Date;
   lastSafeErrorCode?: string;

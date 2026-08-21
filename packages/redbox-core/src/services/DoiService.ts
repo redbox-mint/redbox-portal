@@ -412,7 +412,13 @@ export namespace Services {
           if (doi != null) {
             record = await this.addDoiDataToRecord(oid, record, doi, options);
             try {
-              await RecordsService.updateMeta(brand, oid, record);
+              const response = await RecordsService.updateMeta(brand, oid, record);
+              if (!response.wasPersisted()) {
+                throw new Error(String(response.message ?? response.outcome));
+              }
+              if (response.outcome === 'saved-with-warnings') {
+                sails.log.warn(`DOI metadata writeback persisted with warnings for ${oid}`, { requestId: response.requestId });
+              }
             } catch (error) {
               sails.log.error(`Failed to persist DOI metadata for record '${oid}'.`);
               sails.log.error(error);
