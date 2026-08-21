@@ -481,6 +481,87 @@ describe('FormComponent', () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it('replaces prior server errors with uniquely keyed translated save issues', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const control = new FormControl('value');
+    control.setErrors({ required: true, 'server#old': { class: 'server' } });
+    formComponent.form = new FormGroup({ title: control });
+
+    (formComponent as any).clearServerSaveProblems();
+    (formComponent as any).applyServerSaveProblems({
+      requestId: 'request-1',
+      problems: [{
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [
+          { field: 'title', message: '@record-save-failed' },
+          { pointer: '/metadata/title', message: '@record-save-invalid-hook-configuration' },
+        ],
+      }],
+    });
+
+    expect(control.errors?.['required']).toBeTrue();
+    expect(control.errors?.['server#old']).toBeUndefined();
+    expect(control.errors?.['server#0']).toEqual({ class: 'server', message: '@record-save-failed', params: {} });
+    expect(control.errors?.['server#1']).toEqual({ class: 'server', message: '@record-save-invalid-hook-configuration', params: {} });
+  });
+
+  it('leaves ambiguous repeatable pointer suffixes at form level', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const first = new FormControl('one');
+    const second = new FormControl('two');
+    formComponent.form = new FormGroup({ repeatable: new FormGroup({}) });
+    formComponent.componentDefArr = [
+      { name: 'title', compConfigJson: {} as any, model: { formControl: first } as any, lineagePaths: { dataModel: ['repeatable', 0, 'title'] } as any },
+      { name: 'title', compConfigJson: {} as any, model: { formControl: second } as any, lineagePaths: { dataModel: ['repeatable', 1, 'title'] } as any },
+    ];
+
+    (formComponent as any).applyServerSaveProblems({
+      problems: [{
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [{ pointer: '/metadata/missing/title', message: '@record-save-failed' }],
+      }],
+    });
+
+    expect(first.errors).toBeNull();
+    expect(second.errors).toBeNull();
+    expect(formComponent.form.errors?.['server#0']).toEqual({
+      class: 'server',
+      message: '@record-save-failed',
+      params: {},
+    });
+  });
+
+  it('emits the unknown outcome language key without pre-translating it', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    spyOn(formComponent.recordService, 'update').and.resolveTo({
+      outcome: 'unknown',
+      requestId: 'request-unknown',
+      isComplete: () => false,
+      wasPersisted: () => false,
+    } as any);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(failureEvents.length).toBe(1);
+      expect(failureEvents[0].error).toBe('@dmpt-form-save-unknown-update');
+      expect(failureEvents[0].requestId).toBe('request-unknown');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
   it('fails save when pending async validation times out', async () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;
@@ -502,7 +583,7 @@ describe('FormComponent', () => {
 
       expect(updateSpy).not.toHaveBeenCalled();
       expect(failureEvents.length).toBe(1);
-      expect(failureEvents[0].error).toBe('Form validation timed out. Please try again.');
+      expect(failureEvents[0].error).toBe('@dmpt-form-validation-timeout');
     } finally {
       sub.unsubscribe();
     }

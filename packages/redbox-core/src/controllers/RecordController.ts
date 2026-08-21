@@ -190,8 +190,21 @@ export namespace Controllers {
       });
     }
 
-    private saveFailureStatus(response: RecordSaveResponse | null | undefined): number {
-      return recordSaveFailureStatus(response);
+    private saveFailureStatus(req: Sails.Req, response: RecordSaveResponse | null | undefined): number {
+      return this.getApiVersion(req) === '2.0' ? recordSaveFailureStatus(response) : 500;
+    }
+
+    private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
+      return {
+        success: result.success,
+        oid: result.oid,
+        message: result.message,
+        data: result.data,
+        metadata: result.metadata,
+        details: result.details,
+        totalItems: result.totalItems,
+        items: result.items,
+      };
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
@@ -798,19 +811,18 @@ export namespace Controllers {
           } catch (error) {
             sails.log.error(`RecordController - response projection failed for oid ${createResponse.oid} (requestId ${createResponse.requestId})`, error);
             createResponse.setProjectedMetadata(null);
-            createResponse.addProblem(recordSaveProblem('system', 'response', 'Your record was saved, but the saved response could not be prepared.', 'response-projection-failed'));
+            createResponse.addProblem(recordSaveProblem('system', 'response', '@record-save-response-projection-failed', 'response-projection-failed'));
           }
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...createResponse },
-            v1: createResponse,
+            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(createResponse) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(createResponse),
+            status: this.saveFailureStatus(req, createResponse),
             displayErrors: [{ detail: createResponse.message }],
             meta: { ...createResponse },
-            v1: createResponse,
           });
         }
 
@@ -993,19 +1005,18 @@ export namespace Controllers {
           } catch (error) {
             sails.log.error(`RecordController - response projection failed for oid ${oid} (requestId ${response.requestId})`, error);
             response.setProjectedMetadata(null);
-            response.addProblem(recordSaveProblem('system', 'response', 'Your changes were saved, but the saved response could not be prepared.', 'response-projection-failed'));
+            response.addProblem(recordSaveProblem('system', 'response', '@record-save-response-projection-failed', 'response-projection-failed'));
           }
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...response },
-            v1: response,
+            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(response),
+            status: this.saveFailureStatus(req, response),
             displayErrors: [{ detail: "Failed to get record data" }],
             meta: { ...response },
-            v1: response,
           });
         }
       } catch (error) {

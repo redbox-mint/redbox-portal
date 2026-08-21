@@ -69,7 +69,7 @@ Example (pseudo-config):
 ### onUpdate
 
 - `hooks.onUpdate.pre` run before updating metadata. They can validate fields and modify the record; throwing an error stops the update.
-- The service updates datastreams (attachments) then persists metadata and runs `hooks.onUpdate.postSync` which are awaited. If `postSync` hooks indicate changes that should be persisted, RecordsService will call `storageService.updateMeta` again (see code path: when `hasPostSaveSyncHooks(...)` is true).
+- The service commits primary metadata first, then executes the attachment mutation plan (`prepared` → `pending` → `applied`) and runs `hooks.onUpdate.postSync`, which are awaited. Attachment or hook problems are reported as a persisted save warning with item-level completion facts; the journal is replayed on the next manual save. If `postSync` hooks indicate changes that should be persisted, RecordsService will call `storageService.updateMeta` again (see code path: when `hasPostSaveSyncHooks(...)` is true).
 - `hooks.onUpdate.post` are executed asynchronously.
 
 Common use-cases:
@@ -106,10 +106,16 @@ Common use-cases:
 
 The app supports hooks that return Observables, Promises, or plain values. Observables are converted to Promises internally.
 
+For record create/update endpoints, callers should inspect the typed save
+`outcome` rather than the legacy boolean `success`: `saved-with-warnings`
+means primary metadata committed but an awaited hook or attachment phase needs
+reconciliation. See [ReDBox Portal API](ReDBox-Portal-API.md#record-save-outcomes-api-v2)
+for the response and request-correlation contract.
+
 ## Error handling
 
 - If a pre-hook throws an error, the operation (create/update/delete/transition) is aborted and the error is propagated. If the thrown error has `name === 'RBValidationError'` RecordsService treats it as a validation error and surfaces the message.
-- If a postSync hook throws, RecordsService sets a `postSaveSyncWarning` marker on the response and may mark the operation as unsuccessful, depending on the context where the hook runs.
+- If a postSync hook throws, the primary metadata commit remains authoritative and the typed result is `saved-with-warnings`; indexing and persistence audit are still submitted. A pre-save hook failure or invalid hook configuration returns `not-saved` and no attachment work is started.
 - post (async) hooks have their errors caught and logged; they won't block the user operation.
 
 ## Security and best practices
