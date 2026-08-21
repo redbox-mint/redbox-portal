@@ -183,6 +183,7 @@ export { Responses };
 
 // Config types and default values
 export * from './config';
+export * from './action-execution';
 export { Config, SailsConfig } from './config';
 
 // Bootstrap functions

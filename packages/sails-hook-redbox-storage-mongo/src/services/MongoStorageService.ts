@@ -145,9 +145,8 @@ export namespace Services {
     private getErrorMessage(err: unknown): string {
       if (err instanceof Error) {
         const messageParts = [err.message];
-        const causeMessage = err.cause instanceof Error
-          ? err.cause.message
-          : (typeof err.cause === 'string' ? err.cause : undefined);
+        const causeMessage =
+          err.cause instanceof Error ? err.cause.message : typeof err.cause === 'string' ? err.cause : undefined;
         if (causeMessage != null && causeMessage !== '' && causeMessage !== err.message) {
           messageParts.push(`Cause: ${causeMessage}`);
         }
@@ -184,10 +183,7 @@ export namespace Services {
       }
 
       try {
-        const collectionInfo = this.db.collection(
-          collectionName,
-          { strict: true } as mongodb.CollectionOptions
-        );
+        const collectionInfo = this.db.collection(collectionName, { strict: true } as mongodb.CollectionOptions);
         sails.log.verbose(`${this.logHeader} Collection '${collectionName}' info:`);
         sails.log.verbose(JSON.stringify(collectionInfo));
         return true;
@@ -392,7 +388,11 @@ export namespace Services {
       batchFn();
     }
 
-    public async getRelatedRecords(oid: string, brand: BrandingModel, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+    public async getRelatedRecords(
+      oid: string,
+      brand: BrandingModel,
+      options: RecordRelationshipExpandOptions = {}
+    ): Promise<RecordRelationshipGraph> {
       const mappingContext = await this.walkRelatedRecords(String(oid ?? ''), brand, options);
       return {
         rootOid: mappingContext.rootOid,
@@ -417,9 +417,14 @@ export namespace Services {
 
       const record = (await this.getMeta(normalizedOid)) as JsonMap;
       const currentRecordTypeName = String(recordTypeName ?? _.get(record, 'metaMetadata.type', '')).trim();
-      const maxDepth = typeof options.depth === 'number' && options.depth >= 0 ? options.depth : Number.POSITIVE_INFINITY;
-      const includeRecordTypes = new Set((options.includeRecordTypes ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
-      const includeRelationIds = new Set((options.includeRelationIds ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
+      const maxDepth =
+        typeof options.depth === 'number' && options.depth >= 0 ? options.depth : Number.POSITIVE_INFINITY;
+      const includeRecordTypes = new Set(
+        (options.includeRecordTypes ?? []).map(value => String(value ?? '').trim()).filter(Boolean)
+      );
+      const includeRelationIds = new Set(
+        (options.includeRelationIds ?? []).map(value => String(value ?? '').trim()).filter(Boolean)
+      );
 
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
@@ -518,7 +523,11 @@ export namespace Services {
       return mappingContext;
     }
 
-    private addRelatedObject(mappingContext: RelatedRecordsContext, recordTypeName: string, record: MongoRecordDocument) {
+    private addRelatedObject(
+      mappingContext: RelatedRecordsContext,
+      recordTypeName: string,
+      record: MongoRecordDocument
+    ) {
       const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
       const recordOid = String((record as JsonMap).redboxOid ?? '').trim();
       if (!normalizedRecordTypeName || !recordOid) {
@@ -538,11 +547,13 @@ export namespace Services {
     }
 
     private extractRelationshipLocalValues(record: JsonMap, relationship: NormalizedRecordRelation): string[] {
-      const rawValue = _.get(record, relationship.localField, relationship.localField === 'redboxOid' ? record.redboxOid : undefined);
+      const rawValue = _.get(
+        record,
+        relationship.localField,
+        relationship.localField === 'redboxOid' ? record.redboxOid : undefined
+      );
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
-      return values
-        .map((value) => String(value ?? '').trim())
-        .filter((value) => value !== '');
+      return values.map(value => String(value ?? '').trim()).filter(value => value !== '');
     }
 
     private buildRelationshipCriteria(relationship: NormalizedRecordRelation, localValues: string[]): JsonMap {
@@ -550,9 +561,7 @@ export namespace Services {
         'metaMetadata.type': relationship.recordType,
       };
 
-      criteria[relationship.foreignField] = localValues.length === 1
-        ? localValues[0]
-        : { in: localValues };
+      criteria[relationship.foreignField] = localValues.length === 1 ? localValues[0] : { in: localValues };
 
       return criteria;
     }
@@ -570,8 +579,9 @@ export namespace Services {
           meta: (value: JsonMap) => Promise<JsonMap[]>;
         };
         if (typeof chainedQuery.limit === 'function') {
-          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> })
-            .meta({ enableExperimentalDeepTargets: true });
+          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> }).meta({
+            enableExperimentalDeepTargets: true,
+          });
         }
       }
 
@@ -581,7 +591,9 @@ export namespace Services {
       }
 
       return [...relatedRecords]
-        .sort((left, right) => String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', ''))))
+        .sort((left, right) =>
+          String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', '')))
+        )
         .slice(0, 1);
     }
 
@@ -1016,10 +1028,15 @@ export namespace Services {
               objectMode: true,
               transform(record: Record<string, unknown>, _encoding, callback) {
                 callback(null, sanitizeCsvRecord(record));
-              }
+              },
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
-            await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), sanitize, json2csv, passThrough);
+            await pipeline(
+              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              sanitize,
+              json2csv,
+              passThrough
+            );
           } catch (err) {
             sails.log.error(`${this.logHeader} Failed to export records as CSV:`);
             sails.log.error(err);
@@ -1260,12 +1277,100 @@ export namespace Services {
       }
     }
 
+    private sanitizeRecordHookExecutionSummary(value: unknown): Record<string, unknown> | undefined {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+      }
+      const source = value as Record<string, unknown>;
+      if (source.schemaVersion !== 1 || source.trigger !== 'record-hook') {
+        return undefined;
+      }
+      const safeStatuses = new Set(['succeeded', 'failed', 'timed_out', 'interrupted', 'skipped', 'dispatched']);
+      const safeKinds = new Set([
+        'configuration',
+        'validation',
+        'domain',
+        'transient',
+        'timeout',
+        'interrupted',
+        'unexpected',
+      ]);
+      const safeReasons = new Set([
+        'prior_action_failed',
+        'phase_not_reached',
+        'save_not_persisted',
+        'trigger_disabled',
+      ]);
+      const actions = Array.isArray(source.actions)
+        ? source.actions.slice(0, 100).flatMap(item => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+            const action = item as Record<string, unknown>;
+            if (
+              typeof action.actionId !== 'string' ||
+              typeof action.mode !== 'string' ||
+              typeof action.phase !== 'string' ||
+              typeof action.status !== 'string' ||
+              !safeStatuses.has(action.status)
+            )
+              return [];
+            const result: Record<string, unknown> = {
+              actionId: action.actionId.slice(0, 128),
+              mode: action.mode,
+              phase: action.phase,
+              status: action.status,
+              attempts: Number.isInteger(action.attempts) && Number(action.attempts) >= 0 ? Number(action.attempts) : 0,
+              durationMs:
+                Number.isInteger(action.durationMs) && Number(action.durationMs) >= 0 ? Number(action.durationMs) : 0,
+            };
+            if (typeof action.failureKind === 'string' && safeKinds.has(action.failureKind))
+              result.failureKind = action.failureKind;
+            if (typeof action.failureCode === 'string' && action.failureCode.length <= 128)
+              result.failureCode = action.failureCode;
+            if (typeof action.skippedReason === 'string' && safeReasons.has(action.skippedReason))
+              result.skippedReason = action.skippedReason;
+            return [result];
+          })
+        : [];
+      const counts: Record<string, number> = {};
+      if (source.counts && typeof source.counts === 'object' && !Array.isArray(source.counts)) {
+        for (const [key, count] of Object.entries(source.counts as Record<string, unknown>)) {
+          if (safeStatuses.has(key) && Number.isInteger(count) && Number(count) >= 0) counts[key] = Number(count);
+        }
+      }
+      const summary: Record<string, unknown> = {
+        schemaVersion: 1,
+        executionId: typeof source.executionId === 'string' ? source.executionId.slice(0, 128) : '',
+        trigger: 'record-hook',
+        operation: ['create', 'update', 'delete', 'transition'].includes(String(source.operation))
+          ? source.operation
+          : 'update',
+        partial: source.partial === true,
+        durationMs:
+          Number.isInteger(source.durationMs) && Number(source.durationMs) >= 0 ? Number(source.durationMs) : 0,
+        totalActions:
+          Number.isInteger(source.totalActions) && Number(source.totalActions) >= 0
+            ? Number(source.totalActions)
+            : actions.length,
+        counts,
+        actions,
+        truncated: source.truncated === true,
+      };
+      if (typeof source.requestId === 'string' && source.requestId.length <= 128) summary.requestId = source.requestId;
+      if (['pre', 'persistence', 'postSync', 'post-dispatch'].includes(String(source.completedThrough))) {
+        summary.completedThrough = source.completedThrough;
+      }
+      return summary;
+    }
+
     private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
       const payload: RecordAuditModel = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
         record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
+        executionSummary: this.sanitizeRecordHookExecutionSummary(
+          recordAudit.executionSummary
+        ) as unknown as RecordAuditModel['executionSummary'],
       };
 
       if (_.isUndefined(payload.user)) {
@@ -1274,6 +1379,10 @@ export namespace Services {
 
       if (_.isUndefined(payload.record)) {
         delete payload.record;
+      }
+
+      if (_.isUndefined(payload.executionSummary)) {
+        delete payload.executionSummary;
       }
 
       return payload;
@@ -1406,7 +1515,9 @@ export namespace Services {
       return response;
     }
 
-    private buildIntegrationAuditStartedAtCriteria(params: IntegrationAuditParams): Record<string, unknown> | undefined {
+    private buildIntegrationAuditStartedAtCriteria(
+      params: IntegrationAuditParams
+    ): Record<string, unknown> | undefined {
       const criteria: Record<string, unknown> = {};
       if (_.isDate(params.dateFrom)) {
         criteria['>='] = params.dateFrom.toISOString();

@@ -1,11 +1,17 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
+import {
+  setupServiceTestGlobals,
+  cleanupServiceTestGlobals,
+  createMockSails,
+  createQueryObject,
+  configureModelMethod,
+} from './testHelper';
 
 describe('RecordsService', function () {
   let mockSails: any;
@@ -32,20 +38,20 @@ describe('RecordsService', function () {
       exportAllPlans: sinon.stub().returns({}),
       createRecordAudit: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
       restoreRecord: sinon.stub().resolves({}),
-      destroyDeletedRecord: sinon.stub().resolves({})
+      destroyDeletedRecord: sinon.stub().resolves({}),
     };
 
     mockSearchService = {
       index: sinon.stub(),
-      remove: sinon.stub()
+      remove: sinon.stub(),
     };
 
     mockQueueService = {
-      now: sinon.stub()
+      now: sinon.stub(),
     };
 
     mockDatastreamService = {
-      listDatastreams: sinon.stub().resolves([])
+      listDatastreams: sinon.stub().resolves([]),
     };
 
     mockSails = createMockSails({
@@ -53,53 +59,53 @@ describe('RecordsService', function () {
         appPath: '/app',
         record: {
           baseUrl: {
-            redbox: 'http://localhost:9000'
+            redbox: 'http://localhost:9000',
           },
           api: {
             info: { url: '/info', method: 'GET' },
-            search: { url: '/search', method: 'GET' }
+            search: { url: '/search', method: 'GET' },
           },
           auditing: {
             enabled: true,
-            recordAuditJobName: 'RecordAudit'
+            recordAuditJobName: 'RecordAudit',
           },
-          datastreamService: 'datastreamservice'
+          datastreamService: 'datastreamservice',
         },
         storage: {
-          serviceName: 'mongostorageservice'
+          serviceName: 'mongostorageservice',
         },
         search: {
-          serviceName: 'solrsearchservice'
+          serviceName: 'solrsearchservice',
         },
         queue: {
-          serviceName: 'agendaqueueservice'
+          serviceName: 'agendaqueueservice',
         },
         redbox: {
-          apiKey: 'test-api-key'
+          apiKey: 'test-api-key',
         },
         jsonld: {
           addJsonLdContext: false,
-          contexts: {}
-        }
+          contexts: {},
+        },
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub()
+        error: sinon.stub(),
       },
       services: {
         brandingservice: {
           getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
           getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-          getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+          getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
         },
         mongostorageservice: mockStorageService,
         solrsearchservice: mockSearchService,
         agendaqueueservice: mockQueueService,
-        datastreamservice: mockDatastreamService
-      }
+        datastreamservice: mockDatastreamService,
+      },
     });
 
     mockRecord = {
@@ -107,49 +113,51 @@ describe('RecordsService', function () {
       findOne: sinon.stub(),
       create: sinon.stub(),
       update: sinon.stub(),
-      destroy: sinon.stub()
+      destroy: sinon.stub(),
     };
 
     setupServiceTestGlobals(mockSails);
     (global as any).Record = mockRecord;
     (global as any).RecordType = {
-      findOne: sinon.stub().resolves({ name: 'rdmp', packageType: 'rdmp' })
+      findOne: sinon.stub().resolves({ name: 'rdmp', packageType: 'rdmp' }),
     };
     (global as any).WorkflowStep = {
-      findOne: sinon.stub().resolves({ name: 'draft', config: {} })
+      findOne: sinon.stub().resolves({ name: 'draft', config: {} }),
     };
     (global as any).BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).FormsService = {
       getForm: sinon.stub().resolves({ name: 'default-form', attachmentFields: [] }),
-      getFormByName: sinon.stub().returns(of({ name: 'default-form', attachmentFields: [] }))
+      getFormByName: sinon.stub().returns(of({ name: 'default-form', attachmentFields: [] })),
     };
     (global as any).RolesService = {
       getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
-      getRole: sinon.stub().returns(null)
+      getRole: sinon.stub().returns(null),
     };
     (global as any).UsersService = {
       hasRole: sinon.stub().returns(true),
-      getUserWithUsername: sinon.stub().returns(of(null))
+      getUserWithUsername: sinon.stub().returns(of(null)),
     };
     (global as any).WorkflowStepsService = {
-      getFirst: sinon.stub().returns(of({
-        name: 'draft',
-        config: {
-          form: 'default-form',
-          addJsonLdContext: false,
-          authorization: { viewRoles: [], editRoles: [] },
-        },
-      })),
-      get: sinon.stub().returns(of({ name: 'draft', config: {} }))
+      getFirst: sinon.stub().returns(
+        of({
+          name: 'draft',
+          config: {
+            form: 'default-form',
+            addJsonLdContext: false,
+            authorization: { viewRoles: [], editRoles: [] },
+          },
+        })
+      ),
+      get: sinon.stub().returns(of({ name: 'draft', config: {} })),
     };
     (global as any).RecordTypesService = {
-      get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} }))
+      get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
     (global as any).TranslationService = {
-      t: sinon.stub().callsFake((key: string) => key)
+      t: sinon.stub().callsFake((key: string) => key),
     };
     (global as any).RedboxJavaStorageService = mockStorageService;
     (global as any).SolrSearchService = mockSearchService;
@@ -183,6 +191,18 @@ describe('RecordsService', function () {
   describe('constructor', function () {
     it('should set logHeader', function () {
       expect(RecordsService.logHeader).to.equal('RecordsService::');
+    });
+
+    it('registers detached-fiber teardown on the Sails lower lifecycle', function () {
+      const supervisor = (RecordsService as any).hookExecutionSupervisor;
+      const interruptAll = sinon.spy(supervisor, 'interruptAll');
+      RecordsService.init();
+      const lowerRegistration = mockSails.on.getCalls().find((call: any) => call.args[0] === 'lower');
+
+      expect(lowerRegistration).to.not.equal(undefined);
+      lowerRegistration.args[1]();
+      expect(interruptAll.calledOnce).to.equal(true);
+      interruptAll.restore();
     });
   });
 
@@ -282,11 +302,15 @@ describe('RecordsService', function () {
           editPending: ['pending-editor'],
           viewPending: ['pending-viewer'],
           editRoles: ['Admin'],
-          viewRoles: ['Researcher']
-        }
+          viewRoles: ['Researcher'],
+        },
       });
-      (global as any).UsersService.getUserWithUsername.withArgs('editor').returns(of({ name: 'Editor', email: 'editor@example.com' }));
-      (global as any).UsersService.getUserWithUsername.withArgs('viewer').returns(of({ name: 'Viewer', email: 'viewer@example.com' }));
+      (global as any).UsersService.getUserWithUsername
+        .withArgs('editor')
+        .returns(of({ name: 'Editor', email: 'editor@example.com' }));
+      (global as any).UsersService.getUserWithUsername
+        .withArgs('viewer')
+        .returns(of({ name: 'Viewer', email: 'viewer@example.com' }));
 
       const result = await RecordsService.getResolvedPermissionsSummary('record-123');
 
@@ -296,7 +320,7 @@ describe('RecordsService', function () {
         editPending: ['pending-editor'],
         viewPending: ['pending-viewer'],
         editRoles: ['Admin'],
-        viewRoles: ['Researcher']
+        viewRoles: ['Researcher'],
       });
     });
 
@@ -309,8 +333,8 @@ describe('RecordsService', function () {
           editPending: [],
           viewPending: [],
           editRoles: [],
-          viewRoles: []
-        }
+          viewRoles: [],
+        },
       });
       (global as any).UsersService.getUserWithUsername.withArgs('missing-user').returns(of(null));
 
@@ -342,8 +366,8 @@ describe('RecordsService', function () {
       mockDatastreamService.listDatastreams.resolves([
         {
           uploadDate: new Date().toISOString(),
-          metadata: { name: 'file.pdf', mimeType: 'application/pdf' }
-        }
+          metadata: { name: 'file.pdf', mimeType: 'application/pdf' },
+        },
       ]);
 
       const result = await RecordsService.getAttachments('record-123');
@@ -360,9 +384,9 @@ describe('RecordsService', function () {
           metadata: {
             name: 'file.pdf',
             mimeType: 'application/pdf',
-            dateUpdated: '2001-01-01T00:00:00.000Z'
-          }
-        }
+            dateUpdated: '2001-01-01T00:00:00.000Z',
+          },
+        },
       ]);
 
       const result = await RecordsService.getAttachments('record-123');
@@ -375,8 +399,8 @@ describe('RecordsService', function () {
       mockDatastreamService.listDatastreams.resolves([
         {
           lastModified: '2026-05-13T07:01:32.533Z',
-          metadata: { name: 'file.pdf', mimeType: 'application/pdf' }
-        }
+          metadata: { name: 'file.pdf', mimeType: 'application/pdf' },
+        },
       ]);
 
       const result = await RecordsService.getAttachments('record-123');
@@ -388,7 +412,7 @@ describe('RecordsService', function () {
     it('should filter by label when provided', async function () {
       mockDatastreamService.listDatastreams.resolves([
         { label: 'matched-file.pdf', uploadDate: new Date().toISOString(), metadata: { name: 'matched-file.pdf' } },
-        { label: 'other-file.txt', uploadDate: new Date().toISOString(), metadata: { name: 'other-file.txt' } }
+        { label: 'other-file.txt', uploadDate: new Date().toISOString(), metadata: { name: 'other-file.txt' } },
       ]);
 
       const result = await RecordsService.getAttachments('record-123', 'matched');
@@ -404,8 +428,8 @@ describe('RecordsService', function () {
       const record = {
         authorization: {
           edit: ['testuser'],
-          view: ['testuser']
-        }
+          view: ['testuser'],
+        },
       };
 
       const result = RecordsService.hasEditAccess(brand, user, [], record);
@@ -421,8 +445,8 @@ describe('RecordsService', function () {
         authorization: {
           edit: ['otheruser'],
           view: ['otheruser'],
-          editRoles: ['Admin']
-        }
+          editRoles: ['Admin'],
+        },
       };
 
       // Mock RolesService.getRole to return the admin role
@@ -439,8 +463,8 @@ describe('RecordsService', function () {
       const record = {
         authorization: {
           edit: ['otheruser'],
-          view: ['otheruser']
-        }
+          view: ['otheruser'],
+        },
       };
 
       const result = RecordsService.hasEditAccess(brand, user, [], record);
@@ -453,7 +477,7 @@ describe('RecordsService', function () {
       const user = { username: 'testuser', roles: [] };
       const record = {
         authorization_edit: ['testuser'],
-        authorization_view: ['testuser']
+        authorization_view: ['testuser'],
       };
 
       const result = RecordsService.hasEditAccess(brand, user, [], record);
@@ -469,8 +493,8 @@ describe('RecordsService', function () {
       const record = {
         authorization: {
           edit: ['owner'],
-          view: ['owner', 'viewer']
-        }
+          view: ['owner', 'viewer'],
+        },
       };
 
       const result = RecordsService.hasViewAccess(brand, user, [], record);
@@ -484,8 +508,8 @@ describe('RecordsService', function () {
       const record = {
         authorization: {
           edit: ['editor'],
-          view: ['viewer']
-        }
+          view: ['viewer'],
+        },
       };
 
       const result = RecordsService.hasViewAccess(brand, user, [], record);
@@ -499,8 +523,8 @@ describe('RecordsService', function () {
       const record = {
         authorization: {
           edit: ['owner'],
-          view: ['viewer']
-        }
+          view: ['viewer'],
+        },
       };
 
       const result = RecordsService.hasViewAccess(brand, user, [], record);
@@ -513,7 +537,7 @@ describe('RecordsService', function () {
       const user = { username: 'viewer', roles: [] };
       const record = {
         authorization_edit: ['owner'],
-        authorization_view: ['owner', 'viewer']
+        authorization_view: ['owner', 'viewer'],
       };
 
       const result = RecordsService.hasViewAccess(brand, user, [], record);
@@ -563,8 +587,8 @@ describe('RecordsService', function () {
     it('should store audit via storage service', function () {
       const job = {
         attrs: {
-          data: { id: 'record-123', action: 'updated' }
-        }
+          data: { id: 'record-123', action: 'updated' },
+        },
       };
 
       RecordsService.storeRecordAudit(job);
@@ -578,9 +602,9 @@ describe('RecordsService', function () {
       const recordType = {
         hooks: {
           onUpdate: {
-            postSync: [{ function: 'someFunction' }]
-          }
-        }
+            postSync: [{ function: 'someFunction' }],
+          },
+        },
       };
 
       const result = RecordsService.hasPostSaveSyncHooks(recordType, 'onUpdate');
@@ -590,7 +614,7 @@ describe('RecordsService', function () {
 
     it('should return false when no hooks configured', function () {
       const recordType = {
-        hooks: {}
+        hooks: {},
       };
 
       const result = RecordsService.hasPostSaveSyncHooks(recordType, 'onUpdate');
@@ -602,9 +626,9 @@ describe('RecordsService', function () {
       const recordType = {
         hooks: {
           onUpdate: {
-            postSync: []
-          }
-        }
+            postSync: [],
+          },
+        },
       };
 
       const result = RecordsService.hasPostSaveSyncHooks(recordType, 'onUpdate');
@@ -677,19 +701,24 @@ describe('RecordsService', function () {
         name: 'rdmp',
         packageType: 'rdmp',
         packageName: 'RDMP',
-        searchCore: 'default'
+        searchCore: 'default',
       };
       const workflowStep = {
-        config: { form: 'default-form' }
+        config: { form: 'default-form' },
       };
       const form = {
         configuration: {
-          attachmentFields: ['dataLocations']
-        }
+          attachmentFields: ['dataLocations'],
+        },
       };
 
       const result = (RecordsService as any).initRecordMetaMetadata(
-        'brand-1', 'testuser', recordType, workflowStep, form, '2024-01-01T00:00:00Z'
+        'brand-1',
+        'testuser',
+        recordType,
+        workflowStep,
+        form,
+        '2024-01-01T00:00:00Z'
       );
 
       expect(result).to.have.property('brandId', 'brand-1');
@@ -705,17 +734,22 @@ describe('RecordsService', function () {
         name: 'rdmp',
         packageType: 'rdmp',
         packageName: 'RDMP',
-        searchCore: 'default'
+        searchCore: 'default',
       };
       const workflowStep = {
-        config: { form: 'default-form' }
+        config: { form: 'default-form' },
       };
       const form = {
-        attachmentFields: ['dataLocations']
+        attachmentFields: ['dataLocations'],
       };
 
       const result = (RecordsService as any).initRecordMetaMetadata(
-        'brand-1', 'testuser', recordType, workflowStep, form, '2024-01-01T00:00:00Z'
+        'brand-1',
+        'testuser',
+        recordType,
+        workflowStep,
+        form,
+        '2024-01-01T00:00:00Z'
       );
 
       expect(result).to.have.property('attachmentFields', form.attachmentFields);
@@ -725,12 +759,14 @@ describe('RecordsService', function () {
   describe('bindPendingAttachmentOids', function () {
     it('rebinds pending attachment URLs and clears the pending flag', function () {
       const metadata = {
-        attachments: [{
-          pending: true,
-          location: '/record/pending-oid/attach/file-123',
-          uploadUrl: 'http://localhost/record/pending-oid/attach/file-123',
-          fileId: 'file-123'
-        }]
+        attachments: [
+          {
+            pending: true,
+            location: '/record/pending-oid/attach/file-123',
+            uploadUrl: 'http://localhost/record/pending-oid/attach/file-123',
+            fileId: 'file-123',
+          },
+        ],
       };
 
       (RecordsService as any).bindPendingAttachmentOids(metadata, ['attachments'], 'oid-100');
@@ -738,7 +774,7 @@ describe('RecordsService', function () {
       expect(metadata.attachments[0]).to.deep.include({
         pending: false,
         location: '/record/oid-100/attach/file-123',
-        uploadUrl: 'http://localhost/record/oid-100/attach/file-123'
+        uploadUrl: 'http://localhost/record/oid-100/attach/file-123',
       });
     });
   });
@@ -867,10 +903,10 @@ describe('RecordsService', function () {
       const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), 'records-bootstrap-'));
       const recordsPath = path.join(bootstrapPath, 'records');
       await fs.mkdir(recordsPath, { recursive: true });
-      await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([
-        { title: 'Party one' },
-        { title: 'Party two' }
-      ]));
+      await fs.writeFile(
+        path.join(recordsPath, 'party.json'),
+        JSON.stringify([{ title: 'Party one' }, { title: 'Party two' }])
+      );
       mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
 
       mockRecord.findOne.onFirstCall().returns(createQueryObject(null));
@@ -914,7 +950,7 @@ describe('RecordsService', function () {
       const user = { username: 'admin' };
       const record = {
         metaMetadata: { brandId: 'brand-1' },
-        metadata: {}
+        metadata: {},
       };
 
       sinon.stub(RecordsService, 'getMeta').resolves(record);
@@ -936,7 +972,7 @@ describe('RecordsService', function () {
         false,
         { metadata: {} },
         { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
-        { username: 'admin' },
+        { username: 'admin' }
       );
 
       expect(result.success).to.equal(false);
@@ -944,13 +980,15 @@ describe('RecordsService', function () {
     });
 
     it('never throws malformed configuration from fire-and-forget post hooks', function () {
-      expect(() => RecordsService.triggerPostSaveTriggers(
-        'record-123',
-        { metadata: {} },
-        { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
-        'onDelete',
-        { username: 'admin' },
-      )).not.to.throw();
+      expect(() =>
+        RecordsService.triggerPostSaveTriggers(
+          'record-123',
+          { metadata: {} },
+          { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
+          'onDelete',
+          { username: 'admin' }
+        )
+      ).not.to.throw();
     });
   });
 
@@ -969,12 +1007,14 @@ describe('RecordsService', function () {
       const recordType = {
         hooks: {
           onUpdate: {
-            pre: [{
-              function: `(() => {
+            pre: [
+              {
+                function: `(() => {
                 globalThis.hookExpressionEvaluations += 1;
                 return (_oid, record) => record;
               })()`,
-            }],
+              },
+            ],
           },
         },
       };
@@ -995,25 +1035,76 @@ describe('RecordsService', function () {
       const recordType = {
         hooks: {
           onCreate: {
-            postSync: [{
-              function: `(_oid, hookRecord, _options, _user, response) => {
+            postSync: [
+              {
+                function: `(_oid, hookRecord, _options, _user, response) => {
                 response.workspaceOid = 'workspace-1';
                 response.workspaceData = { linked: true };
                 response.oid = 'tampered';
                 return hookRecord;
               }`,
-            }],
+              },
+            ],
           },
         },
       };
 
       const result = await RecordsService.triggerPostSaveSyncTriggers(
-        'record-123', record, recordType, 'onCreate', {}, { oid: 'record-123', success: true },
+        'record-123',
+        record,
+        recordType,
+        'onCreate',
+        {},
+        { oid: 'record-123', success: true }
       );
 
       expect(result.workspaceOid).to.equal('workspace-1');
       expect(result.workspaceData).to.deep.equal({ linked: true });
       expect(result.oid).to.equal('record-123');
+    });
+
+    it('preserves standalone transition pre/postSync/post ordering and response projection', async function () {
+      const events: string[] = [];
+      (globalThis as any).__effectTransitionEvents = events;
+      const recordType = {
+        hooks: {
+          onTransitionWorkflow: {
+            pre: [
+              { function: '(_oid, record) => { globalThis.__effectTransitionEvents.push("pre"); return record; }' },
+            ],
+            postSync: [
+              {
+                function: '(_oid, record) => { globalThis.__effectTransitionEvents.push("postSync"); return record; }',
+              },
+            ],
+            post: [{ function: '() => { globalThis.__effectTransitionEvents.push("post"); }' }],
+          },
+        },
+      };
+
+      try {
+        const transitioned = await RecordsService.triggerPreSaveTransitionWorkflowTriggers(
+          'record-123',
+          { metadata: {} },
+          recordType,
+          { name: 'published' },
+          { username: 'user-1' }
+        );
+        const response = await RecordsService.triggerPostSaveTransitionWorkflowTriggers(
+          'record-123',
+          transitioned,
+          recordType,
+          { name: 'published' },
+          { username: 'user-1' },
+          { oid: 'record-123', success: true }
+        );
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(response.oid).to.equal('record-123');
+        expect(events).to.deep.equal(['pre', 'postSync', 'post']);
+      } finally {
+        delete (globalThis as any).__effectTransitionEvents;
+      }
     });
   });
 
@@ -1038,10 +1129,12 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
       });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: { attachmentFields: ['attachments'] },
-      }));
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
       (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
@@ -1056,7 +1149,7 @@ describe('RecordsService', function () {
         true,
         true,
         {},
-        { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] },
+        { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -1153,7 +1246,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] } },
         { name: 'rdmp', hooks: {}, searchable: false },
-        { username: 'user-1' },
+        { username: 'user-1' }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -1321,6 +1414,274 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('Effect hook lifecycle integration', function () {
+    function recordTypeWithHooks(hooks: any): any {
+      return { name: 'rdmp', searchable: false, hooks };
+    }
+
+    it('preserves create ordering and keeps execution metadata out of the business record', async function () {
+      const order: string[] = [];
+      (globalThis as any).__effectHookOrder = order;
+      mockStorageService.create.callsFake(async () => {
+        order.push('persistence');
+        return { success: true, oid: 'created-1', applicationState: 'applied' };
+      });
+      mockStorageService.updateMeta.callsFake(async () => {
+        order.push('postSync-persistence');
+        return { success: true, oid: 'created-1', applicationState: 'applied' };
+      });
+      const recordType = recordTypeWithHooks({
+        onCreate: {
+          pre: [{ function: '(_oid, record) => { globalThis.__effectHookOrder.push("pre"); return record; }' }],
+          postSync: [
+            { function: '(_oid, record) => { globalThis.__effectHookOrder.push("postSync"); return record; }' },
+          ],
+          post: [{ function: '() => { globalThis.__effectHookOrder.push("post"); }' }],
+        },
+      });
+
+      try {
+        const result = await RecordsService.create({ id: 'brand-1' }, { metadata: { title: 'Created' } }, recordType, {
+          username: 'user-1',
+        });
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect(order).to.deep.equal(['pre', 'persistence', 'postSync', 'postSync-persistence', 'post']);
+        const storedRecord = mockStorageService.create.firstCall.args[1];
+        expect(storedRecord).not.to.have.property('executionSummary');
+        expect(JSON.stringify(storedRecord)).not.to.include('executionId');
+        expect(Object.keys(result)).not.to.include('executionSummary');
+
+        const auditSummary = mockQueueService.now
+          .getCalls()
+          .map((call: any) => call.args[1]?.executionSummary)
+          .find((candidate: any) => candidate !== undefined);
+        expect(auditSummary.completedThrough).to.equal('post-dispatch');
+        expect(auditSummary.partial).to.equal(false);
+      } finally {
+        delete (globalThis as any).__effectHookOrder;
+      }
+    });
+
+    it('does not persist after a pre-hook failure', async function () {
+      mockStorageService.create.resetHistory();
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Rejected' } },
+        recordTypeWithHooks({
+          onCreate: { pre: [{ function: '() => { throw new Error("secret pre failure"); }' }] },
+        }),
+        { username: 'user-1' }
+      );
+
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(result.wasPersisted()).to.equal(false);
+      expect(result.outcome).to.equal('not-saved');
+      expect(JSON.stringify(result)).not.to.include('secret pre failure');
+    });
+
+    it('keeps a postSync failure persisted with warnings and queues its summary', async function () {
+      mockStorageService.create.resetHistory();
+      mockQueueService.now.resetHistory();
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Warning' } },
+        recordTypeWithHooks({
+          onCreate: { postSync: [{ function: '() => null' }] },
+        }),
+        { username: 'user-1' }
+      );
+      await Promise.resolve();
+
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems[0].phase).to.equal('post-save');
+      expect(mockQueueService.now.calledOnce).to.equal(true);
+      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      expect(summary.completedThrough).to.equal('postSync');
+      expect(summary.partial).to.equal(false);
+      expect(summary.actions[0].status).to.equal('failed');
+    });
+
+    it('recovers a transient pre-hook retry without a user-facing warning', async function () {
+      mockStorageService.create.resetHistory();
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Retry' } },
+        recordTypeWithHooks({
+          onCreate: {
+            pre: [
+              {
+                function: `(() => {
+                globalThis.__effectRetryAttempts = 0;
+                return (_oid, record) => {
+                  globalThis.__effectRetryAttempts += 1;
+                  if (globalThis.__effectRetryAttempts === 1) {
+                    throw Object.assign(new Error('transient secret'), { _tag: 'ActionTransientFailure', code: 'temporary' });
+                  }
+                  return record;
+                };
+              })()`,
+                execution: {
+                  retry: { maxAttempts: 2, retryOn: ['transient'], idempotent: true },
+                },
+              },
+            ],
+          },
+        }),
+        { username: 'user-1' }
+      );
+
+      try {
+        expect((globalThis as any).__effectRetryAttempts).to.equal(2);
+        expect(mockStorageService.create.calledOnce).to.equal(true);
+        expect(result.outcome).to.equal('saved');
+        expect(result.problems).to.deep.equal([]);
+      } finally {
+        delete (globalThis as any).__effectRetryAttempts;
+      }
+    });
+
+    it('maps pre and postSync timeouts to their existing save boundaries', async function () {
+      mockStorageService.create.resetHistory();
+      const preResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Pre timeout' } },
+        recordTypeWithHooks({
+          onCreate: { pre: [{ function: '() => new Promise(() => undefined)', execution: { timeoutMs: 10 } }] },
+        }),
+        { username: 'user-1' }
+      );
+      expect(preResult.wasPersisted()).to.equal(false);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+
+      const postResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Post timeout' } },
+        recordTypeWithHooks({
+          onCreate: { postSync: [{ function: '() => new Promise(() => undefined)', execution: { timeoutMs: 10 } }] },
+        }),
+        { username: 'user-1' }
+      );
+      expect(postResult.wasPersisted()).to.equal(true);
+      expect(postResult.outcome).to.equal('saved-with-warnings');
+    });
+
+    it('does not alter a successful response when a detached hook fails afterward', async function () {
+      mockSails.log.error.resetHistory();
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Detached' } },
+        recordTypeWithHooks({
+          onCreate: { post: [{ function: '() => { throw new Error("detached secret"); }' }] },
+        }),
+        { username: 'user-1' }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.problems).to.deep.equal([]);
+      expect(mockSails.log.error.calledWithMatch('record_hook_detached_action_failed')).to.equal(true);
+      expect(JSON.stringify(mockSails.log.error.args)).not.to.include('detached secret');
+    });
+
+    it('preserves the trigger-flag asymmetry: disabled pre hooks do not disable post hooks', async function () {
+      const calls: string[] = [];
+      (globalThis as any).__effectFlagCalls = calls;
+      const recordType = recordTypeWithHooks({
+        onUpdate: {
+          pre: [{ function: '(_oid, record) => { globalThis.__effectFlagCalls.push("pre"); return record; }' }],
+          post: [{ function: '() => { globalThis.__effectFlagCalls.push("post"); }' }],
+        },
+      });
+      (globalThis as any).RecordTypesService.get.returns(of(recordType));
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          { metaMetadata: { type: 'rdmp', brandId: 'brand-1', form: 'default-form' }, metadata: {} },
+          { username: 'user-1' },
+          false,
+          true
+        );
+        await new Promise(resolve => setImmediate(resolve));
+        expect(result.wasPersisted()).to.equal(true);
+        expect(calls).to.deep.equal(['post']);
+      } finally {
+        delete (globalThis as any).__effectFlagCalls;
+      }
+    });
+
+    it('passes execution summaries through the existing audit queue payload', async function () {
+      mockQueueService.now.resetHistory();
+      const summary = {
+        schemaVersion: 1,
+        executionId: 'execution-1',
+        trigger: 'record-hook' as const,
+        operation: 'update' as const,
+        partial: false,
+        durationMs: 3,
+        totalActions: 1,
+        counts: { succeeded: 1 },
+        actions: [],
+        truncated: false,
+      };
+      await RecordsService.auditRecord(
+        'record-123',
+        { metadata: { title: 'Audit' } },
+        { username: 'user-1' },
+        'updated',
+        summary
+      );
+
+      expect(mockQueueService.now.firstCall.args[1].executionSummary).to.deep.equal(summary);
+      expect(mockQueueService.now.firstCall.args[1].record).not.to.have.property('executionSummary');
+    });
+
+    it('lets a custom RecordsService subclass inherit the core hook coordinator', async function () {
+      const CoreRecords = RecordsService.constructor as any;
+      class ExtendedRecords extends CoreRecords {
+        public extensionMarker = true;
+      }
+      const extended = new ExtendedRecords();
+      const recordType = recordTypeWithHooks({
+        onCreate: { pre: [{ function: '(_oid, record) => ({ ...record, extended: true })' }] },
+      });
+      const result = await extended.triggerPreSaveTriggers('record-123', {}, recordType, 'onCreate', {});
+
+      expect(extended.extensionMarker).to.equal(true);
+      expect(result).to.deep.equal({ extended: true });
+    });
+  });
+
+  describe('delete hook audit boundary', function () {
+    it('writes a partial audit before detached post work starts', async function () {
+      mockQueueService.now.resetHistory();
+      const recordType = {
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onDelete: {
+            pre: [{ function: '(_oid, record) => record' }],
+            post: [{ function: '() => undefined' }],
+          },
+        },
+      };
+      const result = await RecordsService.delete('record-123', false, { metadata: {} }, recordType, {
+        username: 'user-1',
+      });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.success).to.equal(true);
+      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      expect(summary.partial).to.equal(true);
+      expect(summary.completedThrough).to.equal('persistence');
+      expect(summary.actions.every((action: any) => action.phase !== 'post')).to.equal(true);
+    });
+  });
+
   describe('finishSave operational handoff', function () {
     function persistedTracker() {
       const { RecordSaveResponse, createRecordSaveContext } = require('../../src/RecordSaveResponse');
@@ -1333,12 +1694,7 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
       const audit = sinon.stub(RecordsService, 'auditRecord');
 
-      const result = await (RecordsService as any).finishSave(
-        persistedTracker(),
-        {},
-        'updated',
-        true,
-      );
+      const result = await (RecordsService as any).finishSave(persistedTracker(), {}, 'updated', true);
 
       expect(result.oid).to.equal('tracker-oid');
       expect(mockSearchService.index.notCalled).to.equal(true);
@@ -1350,17 +1706,14 @@ describe('RecordsService', function () {
       mockSearchService.index.callsFake(() => new Promise(() => undefined));
       sinon.stub(RecordsService, 'auditRecord').callsFake(() => new Promise(() => undefined));
 
-      const result = await (RecordsService as any).finishSave(
-        persistedTracker(),
-        {},
-        'updated',
-        true,
-      );
+      const result = await (RecordsService as any).finishSave(persistedTracker(), {}, 'updated', true);
       await Promise.resolve();
 
       expect(result.oid).to.equal('tracker-oid');
       expect(mockStorageService.getMeta.calledWith('tracker-oid')).to.equal(true);
-      expect(mockSearchService.index.calledWith('tracker-oid', sinon.match({ metadata: { committed: true } }))).to.equal(true);
+      expect(
+        mockSearchService.index.calledWith('tracker-oid', sinon.match({ metadata: { committed: true } }))
+      ).to.equal(true);
     });
   });
 
