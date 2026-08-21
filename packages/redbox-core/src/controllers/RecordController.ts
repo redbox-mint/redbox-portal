@@ -204,6 +204,8 @@ export namespace Controllers {
         details: result.details,
         totalItems: result.totalItems,
         items: result.items,
+        ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
+        ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
       };
     }
 
