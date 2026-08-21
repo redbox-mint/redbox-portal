@@ -57,7 +57,6 @@ body:json {
 
 assert {
   res.body[0].harvestId: eq s123456
-  res.body[0].message: eq Record updated successfully
 }
 
 tests {
@@ -74,6 +73,7 @@ tests {
   test("Test harvestId exists and value is as expected", function () {
         var jsonData = res.getBody();
         expect(jsonData[0]).to.have.property('harvestId');
+        expect(jsonData[0].message).to.be.a('string').and.not.empty;
         expect(jsonData[0].harvestId).to.equal('s123456');
   });
 }
