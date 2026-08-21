@@ -33,6 +33,8 @@ export type FileUploadSourceType = "dropbox" | "googleDrive" | "onedrive";
 
 export interface FileUploadAttachmentValue {
     type: "attachment";
+    /** Stable logical identity used to reconcile save completion. */
+    attachmentId?: string;
     location: string;
     uploadUrl: string;
     fileId: string;

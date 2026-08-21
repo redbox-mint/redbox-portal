@@ -1,4 +1,5 @@
 import { Services } from "../services/TranslationService";
+import type { RecordSaveProblemKind } from "@researchdatabox/sails-ng-common";
 import { ErrorResponseItemV2 } from "./api";
 
 // Define ErrorOptions locally for ES6 target compatibility
@@ -7,11 +8,39 @@ interface RBErrorOptions {
 }
 
 /**
+ * Alias of the shared save problem kind so the safe-error container and the
+ * typed save result can never drift apart.
+ */
+export type RBValidationProblemKind = RecordSaveProblemKind;
+
+/** The shapes `classify` is willing to read evidence from. */
+interface ClassifiableError {
+  problemKind?: RBValidationProblemKind;
+  status?: number;
+  statusCode?: number;
+  code?: string | number;
+  displayErrors?: ErrorResponseItemV2[];
+}
+
+const authorizationCodePattern = /^(unauthori[sz]ed|forbidden|access[-_]?denied|not[-_]?authori[sz]ed)$/i;
+
+function hasFieldEvidence(displayErrors: readonly ErrorResponseItemV2[]): boolean {
+  return displayErrors.some((displayError) => {
+    const meta = displayError.meta as Record<string, unknown> | undefined;
+    const field = (displayError as ErrorResponseItemV2 & { field?: unknown }).field;
+    return typeof displayError.source?.pointer === 'string'
+      || typeof field === 'string'
+      || Array.isArray(meta?.errorFieldList);
+  });
+}
+
+/**
  * ReDBox Validation Error for containing validation errors
  * to be shown to the user.
  */
 export class RBValidationError extends Error {
   private readonly _displayErrors: ErrorResponseItemV2[] = [];
+  private readonly _problemKind?: RBValidationProblemKind;
 
   /**
    * Create a new internal RBValidation Error with optional display errors for the response.
@@ -20,10 +49,11 @@ export class RBValidationError extends Error {
    * @param build.options The error options. This is only used internally and not sent to the end user.
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
-  constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
+  constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[], problemKind?: RBValidationProblemKind } = {}) {
     super(build.message ?? "", build.options ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
+    this._problemKind = build.problemKind;
   }
 
   /**
@@ -116,5 +146,31 @@ export class RBValidationError extends Error {
    */
   get displayErrors(): ErrorResponseItemV2[] {
     return this._displayErrors;
+  }
+
+  /** Explicit classification is preferred over inferring from display text. */
+  get problemKind(): RBValidationProblemKind | undefined {
+    return this._problemKind;
+  }
+
+  /**
+   * Classify an arbitrary thrown value in the order defined by the record
+   * save design: explicit kind, then explicit status, then field evidence.
+   * `RBValidationError` means "safe to display", not "HTTP 400", so being an
+   * instance of it is deliberately not evidence of validation on its own.
+   */
+  public static classify(error: unknown): RBValidationProblemKind {
+    const candidate = (error ?? null) as ClassifiableError | null;
+    if (candidate?.problemKind) {
+      return candidate.problemKind;
+    }
+    const status = Number(candidate?.status ?? candidate?.statusCode);
+    if (Number.isFinite(status) && status >= 500) {
+      return 'system';
+    }
+    if (status === 401 || status === 403 || authorizationCodePattern.test(String(candidate?.code ?? ''))) {
+      return 'authorization';
+    }
+    return hasFieldEvidence(candidate?.displayErrors ?? []) ? 'validation' : 'system';
   }
 }

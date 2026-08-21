@@ -17,9 +17,27 @@ export {
 }
     from "./Datastream";
 export {
-    StorageServiceResponse
+    StorageServiceResponse,
+    StorageMutationResponse
 }
     from "./StorageServiceResponse";
+export {
+    RecordSaveResponse,
+    RecordSaveTracker,
+    createRecordSaveContext,
+    isCanonicalSaveRequestId,
+    readSaveRequestId,
+    recordSaveFailureStatus,
+    recordSaveProblem,
+    resolveStorageMutationState,
+}
+    from "./RecordSaveResponse";
+export type {
+    RecordSaveContext,
+    RecordSaveOperation,
+    RecordSaveRouteFamily,
+    StorageMutationLogger,
+} from "./RecordSaveResponse";
 export {
     DatastreamServiceResponse
 }

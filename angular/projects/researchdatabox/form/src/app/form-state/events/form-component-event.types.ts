@@ -6,7 +6,7 @@
  */
 
 import { FormGroupStatus } from '../../form.component';
-import { FormFieldValidationGroup, formValidationGroupMembership } from "@researchdatabox/sails-ng-common";
+import { FormFieldValidationGroup, formValidationGroupMembership, RecordSaveResult } from "@researchdatabox/sails-ng-common";
 
 /**
  * Base event interface with common properties
@@ -191,7 +191,7 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
   readonly type: 'form.save.success';
   readonly savedData?: any;
   readonly oid?: string;
-  readonly response?: any;
+  readonly response?: Partial<RecordSaveResult> | null;
   /** Snapshot of the actual form state after eligible server synchronization. */
   readonly modelSnapshot?: Record<string, unknown>;
 }
@@ -203,6 +203,7 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
 export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly type: 'form.save.failure';
   readonly error?: string;
+  readonly response?: Partial<RecordSaveResult> | null;
 }
 
 export interface DeleteEventConfig extends RedirectLocationEventBase {
