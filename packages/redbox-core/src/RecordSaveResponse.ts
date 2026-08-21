@@ -28,6 +28,9 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string;
+  /** Legacy API v1 fields populated by the RDMP workspace post-save hook. */
+  workspaceOid?: string;
+  workspaceData?: unknown;
 
   constructor(requestId: string = randomUUID()) {
     super();
@@ -131,6 +134,20 @@ export class RecordSaveTracker {
     this.response.setProjectedMetadata(metadata);
   }
 
+  /** Preserve the narrowly scoped legacy fields without exposing tracked save state to hooks. */
+  public mergeLegacyHookFields(source: unknown): void {
+    if (!source || typeof source !== 'object') {
+      return;
+    }
+    const hookFields = source as Record<string, unknown>;
+    if (typeof hookFields.workspaceOid === 'string' && hookFields.workspaceOid.trim()) {
+      this.response.workspaceOid = hookFields.workspaceOid;
+    }
+    if (Object.hasOwn(hookFields, 'workspaceData')) {
+      this.response.workspaceData = hookFields.workspaceData;
+    }
+  }
+
   /** A detached copy, so callers cannot mutate tracked state after the fact. */
   public toResponse(): RecordSaveResponse {
     const copy = new RecordSaveResponse(this.response.requestId);
@@ -150,6 +167,8 @@ export class RecordSaveTracker {
         items: this.response.completion.attachments.items.map((item) => ({ ...item })),
       },
     };
+    copy.workspaceOid = this.response.workspaceOid;
+    copy.workspaceData = this.response.workspaceData;
     return copy;
   }
 

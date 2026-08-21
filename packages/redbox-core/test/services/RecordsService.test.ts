@@ -894,6 +894,34 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('triggerPostSaveSyncTriggers', function () {
+    it('retains whitelisted legacy fields mutated on the isolated hook response', async function () {
+      const record = { metadata: { title: 'Test' } };
+      const recordType = {
+        hooks: {
+          onCreate: {
+            postSync: [{
+              function: `(_oid, hookRecord, _options, _user, response) => {
+                response.workspaceOid = 'workspace-1';
+                response.workspaceData = { linked: true };
+                response.oid = 'tampered';
+                return hookRecord;
+              }`,
+            }],
+          },
+        },
+      };
+
+      const result = await RecordsService.triggerPostSaveSyncTriggers(
+        'record-123', record, recordType, 'onCreate', {}, { oid: 'record-123', success: true },
+      );
+
+      expect(result.workspaceOid).to.equal('workspace-1');
+      expect(result.workspaceData).to.deep.equal({ linked: true });
+      expect(result.oid).to.equal('record-123');
+    });
+  });
+
   describe('updateMeta save pipeline', function () {
     it('derives and executes attachment additions from replacement metadata', async function () {
       const journal = {
