@@ -309,7 +309,10 @@ describe('MongoStorageService', function () {
 
   it('prepares batch items before dispatching create calls', async function () {
     const createStub = sandbox.stub(service, 'create').resolves({ success: true });
-    const data = [{ externalId: 'ext-1', metaMetadata: {} }, { externalId: 'ext-2', metaMetadata: {} }];
+    const data = [
+      { externalId: 'ext-1', metaMetadata: {} },
+      { externalId: 'ext-2', metaMetadata: {} },
+    ];
 
     const response = await service.createBatch('rdmp', data, 'externalId');
 
@@ -336,7 +339,11 @@ describe('MongoStorageService', function () {
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
     (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
-      of(recordTypeName === 'parent' ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId' }] } : { relatedTo: [] })
+      of(
+        recordTypeName === 'parent'
+          ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId' }] }
+          : { relatedTo: [] }
+      )
     );
     const metaQuery = { meta: sandbox.stub().resolves([{ redboxOid: 'child-1', parentId: 'oid-1' }]) };
     Record.find.returns(metaQuery);
@@ -350,8 +357,8 @@ describe('MongoStorageService', function () {
         label: undefined,
         sourceOid: 'oid-1',
         targetOid: 'child-1',
-        targetRecordType: 'child'
-      }
+        targetRecordType: 'child',
+      },
     ]);
     expect(result.relatedObjects.parent).to.have.length(1);
     expect(result.relatedObjects.child).to.have.length(1);
@@ -364,9 +371,13 @@ describe('MongoStorageService', function () {
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
     (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
-      of(recordTypeName === 'parent'
-        ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', direction: 'inbound', cardinality: 'many' }] }
-        : { relatedTo: [] })
+      of(
+        recordTypeName === 'parent'
+          ? {
+              relatedTo: [{ recordType: 'child', foreignField: 'parentId', direction: 'inbound', cardinality: 'many' }],
+            }
+          : { relatedTo: [] }
+      )
     );
     const metaQuery = { meta: sandbox.stub().resolves([{ redboxOid: 'child-1', parentId: 'oid-1' }]) };
     Record.find.returns(metaQuery);
@@ -380,8 +391,8 @@ describe('MongoStorageService', function () {
         label: undefined,
         sourceOid: 'child-1',
         targetOid: 'oid-1',
-        targetRecordType: 'parent'
-      }
+        targetRecordType: 'parent',
+      },
     ]);
     expect(result.relatedObjects.parent).to.have.length(1);
     expect(result.relatedObjects.child).to.have.length(1);
@@ -393,15 +404,17 @@ describe('MongoStorageService', function () {
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
     (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
-      of(recordTypeName === 'parent'
-        ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', cardinality: 'one' }] }
-        : { relatedTo: [] })
+      of(
+        recordTypeName === 'parent'
+          ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', cardinality: 'one' }] }
+          : { relatedTo: [] }
+      )
     );
     const metaQuery = {
       meta: sandbox.stub().resolves([
         { redboxOid: 'child-2', parentId: 'oid-1' },
-        { redboxOid: 'child-1', parentId: 'oid-1' }
-      ])
+        { redboxOid: 'child-1', parentId: 'oid-1' },
+      ]),
     };
     Record.find.returns(metaQuery);
 
@@ -414,8 +427,8 @@ describe('MongoStorageService', function () {
         label: undefined,
         sourceOid: 'oid-1',
         targetOid: 'child-1',
-        targetRecordType: 'child'
-      }
+        targetRecordType: 'child',
+      },
     ]);
     expect(result.relatedObjects.child).to.deep.equal([{ redboxOid: 'child-1', parentId: 'oid-1' }]);
     expect(metaQuery.meta.calledOnce).to.be.true;
@@ -631,17 +644,7 @@ describe('MongoStorageService', function () {
   it('applies single-item record and package type filters', async function () {
     const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
 
-    await service.getRecords(
-      '',
-      ['rdmp'],
-      0,
-      5,
-      'user',
-      [],
-      { id: 'brand-1' },
-      undefined,
-      ['package-a']
-    );
+    await service.getRecords('', ['rdmp'], 0, 5, 'user', [], { id: 'brand-1' }, undefined, ['package-a']);
 
     const query = runStub.firstCall.args[1];
     expect(query['metaMetadata.type']).to.equal('rdmp');
@@ -699,13 +702,15 @@ describe('MongoStorageService', function () {
 
   it('sanitizes formula-prefixed values after nested records are flattened', async function () {
     service.recordCol = {
-      find: pagedFind([{
-        redboxOid: '1',
-        metadata: {
-          title: '=HYPERLINK("https://example.invalid")',
-          contributors: [{ name: '+malicious' }],
+      find: pagedFind([
+        {
+          redboxOid: '1',
+          metadata: {
+            title: '=HYPERLINK("https://example.invalid")',
+            contributors: [{ name: '+malicious' }],
+          },
         },
-      }]),
+      ]),
     };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
@@ -769,8 +774,12 @@ describe('MongoStorageService', function () {
   it('stops collecting csv fields once the export has been cancelled', async function () {
     // Each page holds one record; cancellation is signalled after the first record is seen.
     const findStub = sandbox.stub();
-    findStub.onFirstCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '1', metadata: { title: 'One' } }]) });
-    findStub.onSecondCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '2', metadata: { extraField: 'present' } }]) });
+    findStub
+      .onFirstCall()
+      .returns({ toArray: sandbox.stub().resolves([{ redboxOid: '1', metadata: { title: 'One' } }]) });
+    findStub
+      .onSecondCall()
+      .returns({ toArray: sandbox.stub().resolves([{ redboxOid: '2', metadata: { extraField: 'present' } }]) });
     // A third page is never requested; if it were, this unstubbed call would throw and fail the test.
     service.recordCol = { find: findStub };
 
@@ -805,7 +814,15 @@ describe('MongoStorageService', function () {
     findStub.onThirdCall().returns({ toArray: sandbox.stub().resolves([]) });
     service.recordCol = { find: findStub };
 
-    const exportStream = service.exportAllPlans('user', [{ name: 'Admin', branding: 'brand-1' }], { id: 'brand-1' }, 'json', '2025-01-10', '2025-01-01', 'rdmp');
+    const exportStream = service.exportAllPlans(
+      'user',
+      [{ name: 'Admin', branding: 'brand-1' }],
+      { id: 'brand-1' },
+      'json',
+      '2025-01-10',
+      '2025-01-01',
+      'rdmp'
+    );
     const chunks: Buffer[] = [];
     for await (const chunk of exportStream) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -854,8 +871,9 @@ describe('MongoStorageService', function () {
     await promise;
 
     expect(stagingDisk.getStream.calledOnceWith('file-1')).to.be.true;
-    expect(mockBucket.openUploadStream.calledOnceWith('oid-1/file-1', { metadata: { name: 'doc', redboxOid: 'oid-1' } }))
-      .to.be.true;
+    expect(
+      mockBucket.openUploadStream.calledOnceWith('oid-1/file-1', { metadata: { name: 'doc', redboxOid: 'oid-1' } })
+    ).to.be.true;
   });
 
   it('uses a named disk and computes attachment add/remove requests in updateDatastream', async function () {
@@ -907,7 +925,9 @@ describe('MongoStorageService', function () {
     const addStub = sandbox.stub(service, 'addDatastream').resolves(undefined);
     const removeStub = sandbox.stub(service, 'removeDatastream').resolves(undefined);
 
-    await service.addAndRemoveDatastreams('oid-1', [{ fileId: 'new' }], [{ fileId: 'old' }], { getStream: sandbox.stub() });
+    await service.addAndRemoveDatastreams('oid-1', [{ fileId: 'new' }], [{ fileId: 'old' }], {
+      getStream: sandbox.stub(),
+    });
 
     expect(addStub.calledOnce).to.be.true;
     expect(removeStub.calledOnce).to.be.true;
@@ -1021,6 +1041,44 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(false);
     expect(response.message).to.equal('audit failed');
     expect(RecordAudit.create.calledOnceWith({ redboxOid: 'oid-1', action: 'save' })).to.be.true;
+  });
+
+  it('persists only the bounded execution-summary audit whitelist', async function () {
+    const actions = Array.from({ length: 101 }, (_, index) => ({
+      actionId: `hook-${index}`,
+      mode: 'onCreate',
+      phase: 'post',
+      status: 'dispatched',
+      attempts: 0,
+      durationMs: 0,
+      secret: 'must-not-persist',
+    }));
+    await service.createRecordAudit({
+      redboxOid: 'oid-1',
+      action: 'save',
+      user: undefined,
+      record: { safe: true },
+      executionSummary: {
+        schemaVersion: 1,
+        executionId: 'execution-1',
+        trigger: 'record-hook',
+        operation: 'create',
+        partial: false,
+        durationMs: 4,
+        totalActions: 101,
+        counts: { dispatched: 101 },
+        actions,
+        truncated: true,
+        unsafe: 'must-not-persist',
+      } as any,
+    });
+
+    const saved = RecordAudit.create.firstCall.args[0].executionSummary;
+    expect(saved.actions).to.have.length(100);
+    expect(saved.totalActions).to.equal(101);
+    expect(saved.truncated).to.equal(true);
+    expect(saved.unsafe).to.equal(undefined);
+    expect(saved.actions[0].secret).to.equal(undefined);
   });
 
   it('builds record-audit queries from oid and dates', async function () {
