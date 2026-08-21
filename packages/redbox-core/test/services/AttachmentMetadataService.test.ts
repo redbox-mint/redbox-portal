@@ -50,12 +50,13 @@ describe('AttachmentMetadataService mutation journal', function () {
       { oid: 'oid-1', fileId: 'pending', mutationState: 'pending', operation: 'add' },
       { oid: 'oid-1', fileId: 'deleted', mutationState: 'applied', operation: 'delete' },
       { oid: 'oid-1', fileId: 'legacy' },
+      { oid: 'oid-1', fileId: 'waterline-legacy', mutationState: '', operation: '', isJournal: false },
     ];
     model.find.returns({ sort: sinon.stub().resolves(rows) });
 
     const result = await service.findByOid('oid-1');
 
-    expect(result.map((row: any) => row.fileId)).to.deep.equal(['applied', 'legacy']);
+    expect(result.map((row: any) => row.fileId)).to.deep.equal(['applied', 'legacy', 'waterline-legacy']);
   });
 
   it('increments attempts when pending and preserves the count when applied', async function () {
