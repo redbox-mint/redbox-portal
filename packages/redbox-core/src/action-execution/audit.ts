@@ -1,5 +1,4 @@
 import type {
-  ActionExecutionCounts,
   ActionExecutionMode,
   ActionExecutionOperation,
   ActionExecutionPhase,
@@ -67,19 +66,17 @@ function projectAction(action: ActionExecutionReport['actions'][number]): Record
   return projected;
 }
 
-function totalCounts(reports: readonly ActionExecutionReport[]): Partial<Record<ActionExecutionStatus, number>> {
+function totalCounts(actions: readonly ActionExecutionReport['actions'][number][]): Partial<Record<ActionExecutionStatus, number>> {
   const totals: Partial<Record<ActionExecutionStatus, number>> = {};
-  for (const report of reports) {
-    for (const [status, count] of Object.entries(report.counts) as Array<[keyof ActionExecutionCounts, number]>) {
-      totals[status] = (totals[status] ?? 0) + count;
-    }
+  for (const action of actions) {
+    totals[action.status] = (totals[action.status] ?? 0) + 1;
   }
   return totals;
 }
 
 function elapsedMs(operation: ActionExecutionOperation): number {
   const lastReport = operation.reports[operation.reports.length - 1];
-  const completedAt = new Date(lastReport?.completedAt ?? operation.startedAt).getTime();
+  const completedAt = new Date(operation.detachedCompletedAt ?? lastReport?.completedAt ?? operation.startedAt).getTime();
   return Math.max(0, Math.round(completedAt - new Date(operation.startedAt).getTime()));
 }
 
@@ -96,7 +93,19 @@ export function projectRecordHookExecutionAuditSummary(
     durationMs?: number;
   } = {}
 ): RecordHookExecutionAuditSummary {
-  const allActions = operation.reports.flatMap(report => report.actions);
+  // Before detached work finishes, the operation log may honestly expose its
+  // dispatch entries. The durable audit is projected after pending detached
+  // actions reach terminal results, at which point those launch markers are
+  // replaced by the compact completed results below.
+  const includeDispatched = operation.detachedPending === undefined || operation.detachedPending > 0;
+  const phaseActions = operation.reports.flatMap(report =>
+    report.actions.filter(action => includeDispatched || action.status !== 'dispatched')
+  );
+  const detachedResults = [...(operation.detachedResults ?? [])].sort((left, right) => {
+    const phaseOrder: Record<ActionExecutionReport['context']['phase'], number> = { pre: 0, postSync: 1, post: 2 };
+    return phaseOrder[left.phase] - phaseOrder[right.phase] || left.index - right.index;
+  });
+  const allActions = [...phaseActions, ...detachedResults];
   const summary: RecordHookExecutionAuditSummary = {
     schemaVersion: 1,
     executionId: operation.executionId,
@@ -105,7 +114,7 @@ export function projectRecordHookExecutionAuditSummary(
     partial: options.partial === true,
     durationMs: options.durationMs ?? elapsedMs(operation),
     totalActions: allActions.length,
-    counts: totalCounts(operation.reports),
+    counts: totalCounts(allActions),
     actions: allActions.slice(0, MAX_AUDIT_ACTIONS).map(projectAction),
     truncated: allActions.length > MAX_AUDIT_ACTIONS,
   };
