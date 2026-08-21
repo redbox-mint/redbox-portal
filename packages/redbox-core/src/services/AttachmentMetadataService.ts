@@ -105,6 +105,9 @@ export namespace Services {
         oid: String(row.oid ?? '').trim(),
         fileId: String(row.fileId ?? '').trim(),
         storageKey: String(row.storageKey ?? '').trim(),
+        // Journal fields are only written when the caller supplies them, so an
+        // ordinary metadata upsert cannot silently reset reconciliation state.
+        ...this.journalRow(row),
         contentType: this.optionalString(row.contentType),
         contentLength: this.optionalNumber(row.contentLength),
         etag: this.optionalString(row.etag),
@@ -117,6 +120,53 @@ export namespace Services {
         lastAccessedBy: this.optionalString(row.lastAccessedBy),
         accessCount: this.optionalNumber(row.accessCount) ?? 0,
       };
+    }
+
+    private journalRow(row: AttachmentMetadataInput): Partial<AttachmentMetadataInput> {
+      const journal: Partial<AttachmentMetadataInput> = {};
+      const attachmentId = this.optionalIdentifier(row.attachmentId);
+      if (attachmentId) {
+        journal.attachmentId = attachmentId;
+      }
+      const operation = this.optionalOperation(row.operation);
+      if (operation) {
+        journal.operation = operation;
+      }
+      const mutationState = this.optionalMutationState(row.mutationState);
+      if (mutationState) {
+        journal.mutationState = mutationState;
+      }
+      const generation = this.optionalIdentifier(row.generation);
+      if (generation) {
+        journal.generation = generation;
+      }
+      const attemptCount = this.optionalNumber(row.attemptCount);
+      if (attemptCount !== undefined) {
+        journal.attemptCount = attemptCount;
+      }
+      const lastAttemptAt = this.optionalDateString(row.lastAttemptAt);
+      if (lastAttemptAt) {
+        journal.lastAttemptAt = lastAttemptAt;
+      }
+      const lastSafeErrorCode = this.optionalIdentifier(row.lastSafeErrorCode);
+      if (lastSafeErrorCode) {
+        journal.lastSafeErrorCode = lastSafeErrorCode;
+      }
+      return journal;
+    }
+
+    private optionalIdentifier(value: unknown): string | undefined {
+      const normalized = String(value ?? '').trim();
+      return normalized && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(normalized) ? normalized : undefined;
+    }
+
+    private optionalOperation(value: unknown): AttachmentMetadataAttributes['operation'] {
+      return value === 'add' || value === 'finalize' || value === 'delete' ? value : undefined;
+    }
+
+    private optionalMutationState(value: unknown): AttachmentMetadataAttributes['mutationState'] {
+      return value === 'prepared' || value === 'pending' || value === 'applied'
+        || value === 'incomplete' || value === 'unknown' || value === 'cancelled' ? value : undefined;
     }
 
     private normalizeAccessEvent(event: AttachmentAccessEvent): AttachmentAccessAuditInput {

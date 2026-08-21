@@ -5,6 +5,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import { RecordSaveResponse } from '../../../src/RecordSaveResponse';
 
 type PermissionCase = {
     name: string;
@@ -45,10 +46,11 @@ function makeThrowingRequest(
 }
 
 function successResult(oid = 'record-1') {
-    return {
-        oid,
-        isSuccessful: () => true,
-    };
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
+    result.oid = oid;
+    result.success = true;
+    result.outcome = 'saved';
+    return result;
 }
 
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {

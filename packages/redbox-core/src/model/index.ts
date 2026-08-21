@@ -3,7 +3,8 @@ export {BuildResponseFormat, BuildResponseFormatType, BuildResponseType} from ".
 export {APIErrorResponse} from "./APIErrorResponse";
 export {APIObjectActionResponse} from "./APIObjectActionResponse";
 export {APIHarvestResponse} from "./APIHarvestResponse";
-export {RBValidationError} from "./RBValidationError";
+export { RBValidationError } from "./RBValidationError";
+export type { RBValidationProblemKind } from "./RBValidationError";
 export {ListAPIResponse}from "./ListAPIResponse";
 export {ListAPISummary}from "./ListAPISummary";
 export {RequestDetails} from "./RequestDetails";

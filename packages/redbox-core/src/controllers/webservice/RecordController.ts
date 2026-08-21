@@ -63,6 +63,8 @@ import {
   legacyHarvestRoute,
 } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
+import { createRecordSaveContext, readSaveRequestId, recordSaveFailureStatus, RecordSaveResponse } from '../../RecordSaveResponse';
+import type { RecordSaveContext, RecordSaveOperation } from '../../RecordSaveResponse';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -140,6 +142,18 @@ export namespace Controllers {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
+    }
+
+    private saveContext(req: Sails.Req, operation: RecordSaveOperation): RecordSaveContext {
+      return createRecordSaveContext({
+        requestId: readSaveRequestId(req.headers),
+        routeFamily: 'api',
+        operation,
+      });
+    }
+
+    private saveFailureStatus(response: RecordSaveResponse | null | undefined): number {
+      return recordSaveFailureStatus(response);
     }
 
     private shouldIncludeRelationships(req: Sails.Req): boolean {
@@ -299,11 +313,12 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const recordResult = await this.RecordsService.getMeta(result.oid);
@@ -341,11 +356,12 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -383,11 +399,12 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -426,10 +443,11 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -562,7 +580,7 @@ export namespace Controllers {
         });
       }
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
         // check if we need to process data streams
         if (shouldProcessDatastreams) {
           sails.log.verbose(`Processing datastreams of: ${oid}`);
@@ -571,11 +589,18 @@ export namespace Controllers {
             const datastreams = _.get(record['metadata'], attField, []) as Datastream[];
             await this.DatastreamService.addDatastreams(oid, datastreams);
           }
-          return this.sendResp(req, res, { data: result });
-        } else {
-          // not processing datastreams...
-          return this.sendResp(req, res, { data: result });
         }
+        // A persisted warning is still a persisted record, so it keeps the
+        // success body; the warnings travel in the typed `meta` result.
+        if (result.wasPersisted()) {
+          return this.sendResp(req, res, { data: result, meta: { ...result }, v1: result });
+        }
+        return this.sendResp(req, res, {
+          status: this.saveFailureStatus(result),
+          displayErrors: [{ detail: 'Update Metadata failed' }],
+          meta: { ...result },
+          v1: result,
+        });
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -602,8 +627,16 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        return this.sendResp(req, res, { data: result });
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        if (result.wasPersisted()) {
+          return this.sendResp(req, res, { data: result, meta: { ...result }, v1: result });
+        }
+        return this.sendResp(req, res, {
+          status: this.saveFailureStatus(result),
+          displayErrors: [{ detail: 'Update Object Metadata failed' }],
+          meta: { ...result },
+          v1: result,
+        });
       } catch (err) {
         return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
       }
@@ -655,12 +688,14 @@ export namespace Controllers {
             }
             request['authorization'] = authorization;
 
-            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
+            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user, true, true, workflowStage, that.saveContext(req, workflowStage ? 'transition' : 'create'));
 
             const obs = from(createPromise);
             obs.subscribe(
               response => {
-                if (response.isSuccessful()) {
+                // 201 + Location applies to both persisted outcomes; a
+                // warning is still a created record.
+                if (response.wasPersisted()) {
                   if (workflowStage) {
                     WorkflowStepsService.get(recordTypeModel, workflowStage).subscribe(wfStep => {
                       that.RecordsService.setWorkflowStepRelatedMetadata(
@@ -672,6 +707,7 @@ export namespace Controllers {
                   return this.sendResp(req, res, {
                     status: 201,
                     data: response,
+                    meta: { ...response },
                     headers: {
                       Location:
                         sails.config.appUrl +
@@ -682,8 +718,10 @@ export namespace Controllers {
                   });
                 } else {
                   return this.sendResp(req, res, {
-                    status: 500,
+                    status: that.saveFailureStatus(response),
                     displayErrors: [{ detail: 'Create Record failed' }],
+                    meta: { ...response },
+                    v1: response,
                   });
                 }
               },
@@ -1296,10 +1334,11 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const recordResult = await this.RecordsService.getMeta(result.oid);
@@ -1334,10 +1373,11 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -1372,10 +1412,11 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -1410,10 +1451,11 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
-        if (!result.isSuccessful()) {
+        if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+            meta: { ...result },
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
