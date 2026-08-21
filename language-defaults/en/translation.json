@@ -622,6 +622,8 @@
   "@dmpt-form-saving": "Saving, please wait...",
   "@dmpt-form-deleting": "Deleting, please wait...",
   "@dmpt-form-save-success": "Saved successfully.",
+  "@dmpt-form-save-warning": "Your changes were saved, but some follow-up processing could not be completed. You can continue editing this record.",
+  "@dmpt-form-save-unknown": "We couldn’t confirm whether your changes were saved. Refresh the page and review the record before trying again.",
   "@dmpt-form-save-error": "Error while saving: ",
   "@dmpt-form-delete-success": "Deleted successfully.",
   "@dmpt-form-delete-error": "Error while deleting: ",

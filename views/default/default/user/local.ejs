@@ -9,6 +9,7 @@
     </div>
   </local-auth>
 </div>
-<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/polyfills<%=CacheService.getNgAppFileHash('local-auth', 'polyfills', '-') %>.js"
-   type="module"></script>
+<!-- The Angular polyfills bundle has no imports/exports. Load it as a classic
+     script so Zone is installed synchronously before the module bootstrap. -->
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/polyfills<%=CacheService.getNgAppFileHash('local-auth', 'polyfills', '-') %>.js"></script>
 <script src="<%= BrandingService.getRootContext() %>/angular/local-auth/browser/main<%=CacheService.getNgAppFileHash('local-auth', 'main', '-') %>.js" type="module"></script>

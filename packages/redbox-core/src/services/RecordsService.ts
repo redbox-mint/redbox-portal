@@ -51,6 +51,7 @@ import { DateTime } from 'luxon';
 import { isObservable } from 'rxjs';
 
 import { Readable } from 'node:stream';
+import { randomUUID } from 'node:crypto';
 import { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import {
@@ -59,6 +60,21 @@ import {
   RecordMetaWithRelationships,
   RecordTypeLookupSummary,
 } from '../RecordsService';
+import {
+  createRecordSaveContext,
+  recordSaveProblem,
+  RecordSaveContext,
+  RecordSaveResponse,
+  RecordSaveTracker,
+  resolveStorageMutationState,
+} from '../RecordSaveResponse';
+import type {
+  RecordAttachmentCompletionItem,
+  RecordAttachmentItemStatus,
+  RecordSavePhase,
+  RecordSaveProblem,
+  RecordSaveProblemKind,
+} from '@researchdatabox/sails-ng-common';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -139,6 +155,117 @@ export namespace Services {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
+    }
+
+    private saveProblem(
+      phase: RecordSavePhase,
+      message: string,
+      kind: RecordSaveProblemKind = 'system',
+      code?: string,
+    ): RecordSaveProblem {
+      return recordSaveProblem(kind, phase, message, code);
+    }
+
+    /** Deprecation logger passed to the storage mutation boundary. */
+    private readonly logLegacyMutationResponse = (message: string, details?: Record<string, unknown>): void => {
+      sails.log.warn(`${this.logHeader} ${message}`, details);
+    };
+
+    /**
+     * Structured save log.  Only safe scalars are recorded here; exception
+     * objects are logged separately so they never reach a typed issue.
+     */
+    private logSaveOutcome(tracker: RecordSaveTracker, phase: RecordSavePhase, error?: unknown): void {
+      const result = tracker.result;
+      sails.log.warn(`${this.logHeader} record-save-outcome`, {
+        event: 'record-save-outcome',
+        operation: tracker.context.operation,
+        routeFamily: tracker.context.routeFamily,
+        requestId: result.requestId,
+        oid: result.oid,
+        outcome: result.outcome,
+        phase,
+        problemKind: result.problems[result.problems.length - 1]?.kind,
+      });
+      if (error !== undefined) {
+        sails.log.error(`${this.logHeader} save failure detail (requestId ${result.requestId})`, error);
+      }
+    }
+
+    /**
+     * Preserve the safe display code raised by attachment identity validation
+     * so an invalid identity is not reported as a duplicate one.
+     */
+    private attachmentIdentityProblem(error: unknown): RecordSaveProblem {
+      const code = RBValidationError.isRBValidationError(error)
+        ? (error as RBValidationError).displayErrors[0]?.code
+        : undefined;
+      return this.saveProblem('pre-save', 'Your changes were not saved.', 'validation', code ?? 'invalid-attachment-id');
+    }
+
+    private ensureAttachmentIds(record: AnyRecord, attachmentFields: readonly unknown[]): void {
+      const seen = new Set<string>();
+      for (const field of attachmentFields) {
+        const fieldName = String(field ?? '').trim();
+        const entries = _.get(record.metadata, fieldName) as unknown;
+        if (!Array.isArray(entries)) {
+          continue;
+        }
+        for (const entry of entries) {
+          if (!entry || typeof entry !== 'object') {
+            continue;
+          }
+          const attachment = entry as AnyRecord;
+          const existing = String(attachment.attachmentId ?? '').trim();
+          if (existing && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(existing)) {
+            throw new RBValidationError({
+              message: 'Invalid attachment identity',
+              displayErrors: [{ code: 'invalid-attachment-id', title: 'Invalid attachment identity' }],
+            });
+          }
+          const attachmentId = existing || randomUUID();
+          if (seen.has(attachmentId)) {
+            throw new RBValidationError({
+              message: 'Duplicate attachment identity',
+              displayErrors: [{ code: 'duplicate-attachment-id', title: 'Duplicate attachment' }],
+            });
+          }
+          seen.add(attachmentId);
+          // IDs are reconciliation metadata and do not represent a user edit.
+          attachment.attachmentId = attachmentId;
+        }
+      }
+    }
+
+    private attachmentCompletionItems(
+      record: AnyRecord,
+      attachmentFields: readonly unknown[],
+      status: RecordAttachmentItemStatus,
+      code?: string,
+    ): RecordAttachmentCompletionItem[] {
+      const items: RecordAttachmentCompletionItem[] = [];
+      for (const field of attachmentFields) {
+        const fieldName = String(field ?? '').trim();
+        const entries = _.get(record.metadata, fieldName) as unknown;
+        if (!Array.isArray(entries)) {
+          continue;
+        }
+        for (const entry of entries) {
+          if (!entry || typeof entry !== 'object') {
+            continue;
+          }
+          const attachment = entry as AnyRecord;
+          items.push({
+            field: fieldName,
+            attachmentId: String(attachment.attachmentId ?? ''),
+            ...(attachment.fileId ? { fileId: String(attachment.fileId) } : {}),
+            operation: attachment.pending === true ? 'finalize' : 'add',
+            status,
+            ...(code ? { code } : {}),
+          });
+        }
+      }
+      return items;
     }
 
     private getBootstrapDataPath(): string {
@@ -427,8 +554,13 @@ export namespace Services {
       user: AnyRecord = {},
       triggerPreSaveTriggers = true,
       triggerPostSaveTriggers = true,
-      targetStep = null
-    ) {
+      targetStep = null,
+      context?: RecordSaveContext,
+    ): Promise<RecordSaveResponse> {
+      const tracker = new RecordSaveTracker(createRecordSaveContext({
+        ...(context ?? {}),
+        operation: context?.operation ?? 'create',
+      }));
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
       let recordObj = this.normalizeRecord(record);
@@ -460,14 +592,36 @@ export namespace Services {
         recordObj.authorization_viewRoles = recordObj.authorization_viewRoles ?? authorization.viewRoles;
         recordObj.authorization_editRoles = recordObj.authorization_editRoles ?? authorization.editRoles;
 
-        const createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
-        if (createResponse.isSuccessful()) {
-          if (this.searchService && typeof this.searchService.index === 'function' && recordTypeObj.searchable !== false) {
-            this.searchService.index(createResponse['oid'], recordObj);
-          }
-          await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
+        let createResponse: StorageServiceResponse;
+        try {
+          createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
+        } catch (error) {
+          tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown'));
+          this.logSaveOutcome(tracker, 'persistence', error);
+          return tracker.toResponse();
         }
-        return createResponse;
+        const mutationState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
+        if (mutationState === 'applied') {
+          tracker.confirmPrimaryPersistence(createResponse.oid);
+          if (this.searchService && typeof this.searchService.index === 'function' && recordTypeObj.searchable !== false) {
+            void Promise.resolve(this.searchService.index(createResponse.oid, recordObj)).catch((error: unknown) => {
+              sails.log.error(`${this.logHeader} index submission failed`, error);
+            });
+          }
+          try {
+            await this.auditRecord(createResponse.oid, recordObj, userObj, RecordAuditActionType.created);
+          } catch (error) {
+            sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
+          }
+        } else if (mutationState === 'not-applied') {
+          tracker.recordPrimaryNotApplied(this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied'));
+        } else {
+          tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown'));
+        }
+        if (!tracker.result.wasPersisted()) {
+          this.logSaveOutcome(tracker, 'persistence');
+        }
+        return tracker.toResponse();
       }
 
       let wfStep = await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj));
@@ -501,8 +655,7 @@ export namespace Services {
         this.setWorkflowStepRelatedMetadata(recordObj, wfStep);
       }
 
-      let createResponse = new StorageServiceResponse();
-      const failedMessage = 'Failed to created record, please check server logs.';
+      let createResponse: StorageServiceResponse = new StorageServiceResponse();
       // trigger the pre-save
       if (triggerPreSaveTriggers) {
         try {
@@ -510,20 +663,33 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           sails.log.error(err);
-          createResponse.success = false;
-          createResponse.message = RBValidationError.displayMessage({
-            t: TranslationService,
-            errors: [this.asError(err)],
-            defaultMessage: failedMessage,
-          });
-          return createResponse;
+          tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+          this.logSaveOutcome(tracker, 'pre-save', err);
+          return tracker.toResponse();
         }
+      }
+
+      const createAttachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
+      try {
+        this.ensureAttachmentIds(recordObj, createAttachmentFields);
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(this.attachmentIdentityProblem(error));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
       }
 
       // save the record ...
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
-      createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
-      if (createResponse.isSuccessful()) {
+      try {
+        createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
+      } catch (error) {
+        tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown'));
+        this.logSaveOutcome(tracker, 'persistence', error);
+        return tracker.toResponse();
+      }
+      const primaryMutationState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
+      if (primaryMutationState === 'applied') {
+        tracker.confirmPrimaryPersistence(createResponse.oid, createResponse);
         const oid = createResponse.oid;
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         const recordMetadata = recordObj.metadata as AnyRecord;
@@ -545,21 +711,34 @@ export namespace Services {
             await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
           } catch (error) {
             sails.log.error(`RecordsService - create - Failed to save record: ${error}`);
-            throw new RBValidationError({
-              message: `Failed to save record oid ${oid}`,
-              options: { cause: error },
-              displayErrors: [{ title: 'Failed to save record', meta: { oid } }],
-            });
+            tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'incomplete', 'attachment-finalization-failed'));
+            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but one or more attachments could not be finalized.', 'processing', 'attachment-finalization-failed'));
+            this.logSaveOutcome(tracker, 'attachments', error);
+            return tracker.toResponse();
           }
 
           // update the metadata ...
-          createResponse = await this.updateMeta(brandObj, oid, recordObj, userObj, false, false);
+          const attachmentMetadataResponse = await this.updateMeta(brandObj, oid, recordObj, userObj, false, false, {}, undefined, context);
+          if (!attachmentMetadataResponse.wasPersisted()) {
+            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment metadata could not be finalized.', 'processing', 'attachment-metadata-failed'));
+            this.logSaveOutcome(tracker, 'attachments');
+            return tracker.toResponse();
+          }
+          if (!attachmentMetadataResponse.isComplete()) {
+            tracker.setAttachmentItems(attachmentMetadataResponse.completion.attachments.items);
+            tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your record was saved, but attachment metadata could not be finalized.', 'processing', 'attachment-metadata-failed'));
+            this.logSaveOutcome(tracker, 'attachments');
+            return tracker.toResponse();
+          }
+          // Report the confirmed items so a complete create carries the same
+          // per-item completion facts an update does.
+          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'completed'));
         }
 
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
-            createResponse = (await this.triggerPostSaveSyncTriggers(
+            const hookResponse = (await this.triggerPostSaveSyncTriggers(
               createResponse['oid'],
               recordObj,
               recordTypeObj,
@@ -567,31 +746,35 @@ export namespace Services {
               userObj,
               createResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
+            if (hookResponse?.isSuccessful?.() === false) {
+              tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
+              this.logSaveOutcome(tracker, 'post-save');
+              return tracker.toResponse();
+            }
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
-              await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+              const hookMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+              const hookMutationState = resolveStorageMutationState(hookMetadataResponse, this.logLegacyMutationResponse);
+              if (hookMutationState !== 'applied') {
+                tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-metadata-failed'));
+                this.logSaveOutcome(tracker, 'post-save');
+                return tracker.toResponse();
+              }
             }
           } catch (err) {
             sails.log.error(
               `${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`
             );
             sails.log.error(JSON.stringify(err));
-            createResponse.success = false;
-            createResponse.message = RBValidationError.displayMessage({
-              t: TranslationService,
-              errors: [this.asError(err)],
-              defaultMessage: failedMessage,
-            });
-            const metadata = { postSaveSyncWarning: 'true' };
-            createResponse.metadata = metadata;
-            sails.log.error('RecordsService create - error - createResponse ' + JSON.stringify(createResponse));
-            return createResponse;
+            tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
+            this.logSaveOutcome(tracker, 'post-save');
+            return tracker.toResponse();
           }
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], recordObj, recordTypeObj, 'onCreate', userObj);
 
           if (!_.isEmpty(targetStep)) {
             try {
-              createResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+              const transitionResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
                 createResponse['oid'],
                 recordObj,
                 recordTypeObj,
@@ -599,25 +782,29 @@ export namespace Services {
                 userObj,
                 createResponse
               )) as unknown as StorageServiceResponse;
-              if (createResponse && createResponse.isSuccessful()) {
+              if (transitionResponse && transitionResponse.isSuccessful()) {
                 if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
-                  await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+                  const transitionMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+                  const transitionMutationState = resolveStorageMutationState(transitionMetadataResponse, this.logLegacyMutationResponse);
+                  if (transitionMutationState !== 'applied') {
+                    tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow metadata could not be finalized.', 'processing', 'transition-metadata-failed'));
+                    this.logSaveOutcome(tracker, 'post-save');
+                    return tracker.toResponse();
+                  }
                 }
               } else {
-                return createResponse;
+                tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
+                this.logSaveOutcome(tracker, 'post-save');
+                return tracker.toResponse();
               }
             } catch (tErr) {
               sails.log.error(
                 'RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
               );
               sails.log.error(tErr);
-              createResponse.success = false;
-              createResponse.message = RBValidationError.displayMessage({
-                t: TranslationService,
-                errors: [this.asError(tErr)],
-                defaultMessage: failedMessage,
-              });
-              return createResponse;
+              tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your record was saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
+              this.logSaveOutcome(tracker, 'post-save');
+              return tracker.toResponse();
             }
           }
         }
@@ -628,24 +815,37 @@ export namespace Services {
             `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
           );
           if (recordTypeObj.searchable !== false) {
-            this.searchService.index(createResponse['oid'], recordObj);
+            void Promise.resolve(this.searchService.index(createResponse['oid'], recordObj)).catch((error: unknown) => {
+              sails.log.error(`${this.logHeader} index submission failed`, error);
+            });
           }
         } else {
           if (createResponse['oid'] !== recordOid) {
             sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
           }
           if (recordTypeObj.searchable !== false) {
-            this.searchService.index(recordOid, recordObj);
+            void Promise.resolve(this.searchService.index(recordOid, recordObj)).catch((error: unknown) => {
+              sails.log.error(`${this.logHeader} index submission failed`, error);
+            });
           }
         }
 
-        await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
+        try {
+          await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
+        } catch (error) {
+          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
+        }
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
         sails.log.error(JSON.stringify(createResponse));
-        createResponse.message = failedMessage;
+        if (primaryMutationState === 'not-applied') {
+          tracker.recordPrimaryNotApplied(this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied'));
+        } else {
+          tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown'));
+        }
+        this.logSaveOutcome(tracker, 'persistence');
       }
-      return createResponse;
+      return tracker.toResponse();
     }
 
     async updateMeta(
@@ -656,8 +856,13 @@ export namespace Services {
       triggerPreSaveTriggers: boolean = true,
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
-      metadata: AnyRecord = {}
-    ): Promise<StorageServiceResponse> {
+      metadata: AnyRecord = {},
+      context?: RecordSaveContext,
+    ): Promise<RecordSaveResponse> {
+      const tracker = new RecordSaveTracker(createRecordSaveContext({
+        ...(context ?? {}),
+        operation: context?.operation ?? (_.isEmpty(nextStep) ? 'update' : 'transition'),
+      }));
       const brandObj = brand as BrandingModel;
       let recordObj = this.normalizeRecord(record);
       const recordMeta = recordObj.metaMetadata as AnyRecord;
@@ -666,7 +871,6 @@ export namespace Services {
       let updateResponse: StorageServiceResponse = new StorageServiceResponse();
       const preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
-      const failedMessage = 'Failed to update record, please check server logs.';
       let hasPermissionToTransition = true;
       const origRecord = _.cloneDeep(recordObj);
       const origRecordObj = this.normalizeRecord(origRecord as AnyRecord);
@@ -721,13 +925,9 @@ export namespace Services {
           } catch (err) {
             sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
             sails.log.error(JSON.stringify(err));
-            preTriggerResponse.success = false;
-            preTriggerResponse.message = RBValidationError.displayMessage({
-              t: TranslationService,
-              errors: [this.asError(err)],
-              defaultMessage: failedMessage,
-            });
-            return preTriggerResponse;
+            tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+            this.logSaveOutcome(tracker, 'pre-save', err);
+            return tracker.toResponse();
           }
         }
       }
@@ -745,34 +945,23 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           sails.log.error(err);
-          updateResponse.success = false;
-          updateResponse.message = RBValidationError.displayMessage({
-            t: TranslationService,
-            errors: [this.asError(err)],
-            defaultMessage: failedMessage,
-          });
-          return updateResponse;
+          tracker.recordPrimaryNotApplied(this.saveProblem('pre-save', 'Your changes were not saved.', RBValidationError.isRBValidationError(err) ? 'validation' : 'processing', 'save-precondition'));
+          this.logSaveOutcome(tracker, 'pre-save', err);
+          return tracker.toResponse();
         }
       }
 
-      sails.log.verbose(
-        `RecordService - updateMeta - origRecord.metadata.dataLocations ` +
-        JSON.stringify(origRecordObj.metadata?.dataLocations)
-      );
-      sails.log.verbose(
-        `RecordService - updateMeta - record.metadata.dataLocations ` +
-        JSON.stringify(recordObj.metadata?.dataLocations)
-      );
-      updateResponse = (await firstValueFrom(
-        this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {})
-      )) as StorageServiceResponse;
-      sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
-
-      if (!_.isEmpty(recordMeta.attachmentFields)) {
-        const recordMetadata = recordObj.metadata as AnyRecord;
-        this.bindPendingAttachmentOids(recordMetadata, recordMeta.attachmentFields as unknown[], oid);
+      const attachmentFields = (recordMeta.attachmentFields ?? []) as unknown[];
+      try {
+        this.ensureAttachmentIds(recordObj, attachmentFields);
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(this.attachmentIdentityProblem(error));
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
       }
-      // End of potential dead code
+      if (!_.isEmpty(attachmentFields)) {
+        this.bindPendingAttachmentOids(recordObj.metadata as AnyRecord, attachmentFields, oid);
+      }
 
       // unsetting the ID just to be safe
       _.unset(recordObj, 'id');
@@ -783,10 +972,46 @@ export namespace Services {
         recordMeta.lastSavedBy = _.get(userObj, 'username');
       }
       recordMeta.lastSaveDate = DateTime.local().toISO();
-      // update
-      updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-      sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
-      if (updateResponse.isSuccessful()) {
+      // Primary metadata is the commit boundary.  Physical attachment work
+      // must not run until this mutation is explicitly confirmed applied.
+      try {
+        updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+      } catch (error) {
+        tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'We could not confirm whether your changes were saved.', 'system', 'save-unknown'));
+        this.logSaveOutcome(tracker, 'persistence', error);
+        return tracker.toResponse();
+      }
+      const primaryUpdateMutationState = resolveStorageMutationState(updateResponse, this.logLegacyMutationResponse);
+      sails.log.verbose('RecordService - updateMeta - mutation state ' + primaryUpdateMutationState);
+      if (primaryUpdateMutationState === 'not-applied') {
+        tracker.recordPrimaryNotApplied(this.saveProblem('persistence', 'Your changes were not saved.', 'processing', 'save-not-applied'));
+        this.logSaveOutcome(tracker, 'persistence');
+        return tracker.toResponse();
+      }
+      if (primaryUpdateMutationState === 'unknown') {
+        tracker.recordPrimaryUnknown(this.saveProblem('persistence', 'We could not confirm whether your changes were saved.', 'system', 'save-unknown'));
+        this.logSaveOutcome(tracker, 'persistence');
+        return tracker.toResponse();
+      }
+      tracker.confirmPrimaryPersistence(oid, updateResponse);
+
+      try {
+        await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}));
+        if (!_.isEmpty(attachmentFields)) {
+          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'completed'));
+        }
+      } catch (error) {
+        if (!_.isEmpty(attachmentFields)) {
+          tracker.setAttachmentItems(this.attachmentCompletionItems(recordObj, attachmentFields, 'incomplete', 'attachment-finalization-failed'));
+        }
+        tracker.recordPostPersistenceProblem(this.saveProblem('attachments', 'Your changes were saved, but one or more attachments could not be finalized.', 'processing', 'attachment-finalization-failed'));
+        this.logSaveOutcome(tracker, 'attachments', error);
+        return tracker.toResponse();
+      }
+
+      // Post-persistence phases only run once the commit is confirmed.  Using
+      // isComplete() here would conflate "persisted" with "no warnings yet".
+      if (tracker.result.wasPersisted()) {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
         //therefore try to set recordType if triggerPostSaveTriggers is true
         if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
@@ -797,7 +1022,7 @@ export namespace Services {
           // Trigger Post-save sync hooks ...
           try {
             sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
-            updateResponse = (await this.triggerPostSaveSyncTriggers(
+            const hookResponse = (await this.triggerPostSaveSyncTriggers(
               updateResponse['oid'],
               recordObj,
               recordType,
@@ -805,22 +1030,26 @@ export namespace Services {
               userObj,
               updateResponse as unknown as AnyRecord
             )) as unknown as StorageServiceResponse;
+            if (hookResponse?.isSuccessful?.() === false) {
+              tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
+              this.logSaveOutcome(tracker, 'post-save');
+              return tracker.toResponse();
+            }
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
-              await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+              const hookMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+              const hookMutationState = resolveStorageMutationState(hookMetadataResponse, this.logLegacyMutationResponse);
+              if (hookMutationState !== 'applied') {
+                tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-metadata-failed'));
+                this.logSaveOutcome(tracker, 'post-save');
+                return tracker.toResponse();
+              }
             }
           } catch (err) {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
-            updateResponse.success = false;
-            updateResponse.message = RBValidationError.displayMessage({
-              t: TranslationService,
-              errors: [this.asError(err)],
-              defaultMessage: failedMessage,
-            });
-            const metadataRes = { postSaveSyncWarning: 'true' };
-            updateResponse.metadata = metadataRes;
-            sails.log.error('RecordsService - updateMeta - error - updateResponse ' + JSON.stringify(updateResponse));
-            return updateResponse;
+            tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but follow-up processing could not be completed.', 'processing', 'post-save-failed'));
+            this.logSaveOutcome(tracker, 'post-save');
+            return tracker.toResponse();
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
@@ -828,7 +1057,7 @@ export namespace Services {
 
           if (hasPermissionToTransition && !_.isEmpty(nextStepObj)) {
             try {
-              updateResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+              const transitionResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
                 updateResponse['oid'],
                 recordObj,
                 recordType,
@@ -840,44 +1069,49 @@ export namespace Services {
               sails.log.verbose(
                 `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`
               );
-              sails.log.verbose(JSON.stringify(updateResponse));
-              if (updateResponse && updateResponse.isSuccessful()) {
+              sails.log.verbose(JSON.stringify(transitionResponse));
+              if (transitionResponse && transitionResponse.isSuccessful()) {
                 sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
-                  await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+                  const transitionMetadataResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+                  const transitionMutationState = resolveStorageMutationState(transitionMetadataResponse, this.logLegacyMutationResponse);
+                  if (transitionMutationState !== 'applied') {
+                    tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow metadata could not be finalized.', 'processing', 'transition-metadata-failed'));
+                    this.logSaveOutcome(tracker, 'post-save');
+                    return tracker.toResponse();
+                  }
                 }
               } else {
                 sails.log.verbose(
                   `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`
                 );
-                return updateResponse;
+                tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
+                this.logSaveOutcome(tracker, 'post-save');
+                return tracker.toResponse();
               }
             } catch (tErr) {
               sails.log.error(
                 'RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
               );
               sails.log.error(tErr);
-              updateResponse.success = false;
-              updateResponse.message = RBValidationError.displayMessage({
-                t: TranslationService,
-                errors: [this.asError(tErr)],
-                defaultMessage: failedMessage,
-              });
-              return updateResponse;
+              tracker.recordPostPersistenceProblem(this.saveProblem('post-save', 'Your changes were saved, but workflow processing could not be completed.', 'processing', 'transition-failed'));
+              this.logSaveOutcome(tracker, 'post-save');
+              return tracker.toResponse();
             }
           }
         }
         if (recordType?.searchable !== false) {
-          this.searchService.index(oid, recordObj);
+          void Promise.resolve(this.searchService.index(oid, recordObj)).catch((error: unknown) => {
+            sails.log.error(`${this.logHeader} index submission failed`, error);
+          });
         }
-        await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
-      } else {
-        sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
-        sails.log.error(JSON.stringify(updateResponse));
-        updateResponse.success = false;
-        updateResponse.message = failedMessage;
+        try {
+          await this.auditRecord(oid, record, user, RecordAuditActionType.updated);
+        } catch (error) {
+          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
+        }
       }
-      return updateResponse;
+      return tracker.toResponse();
     }
 
     hasPostSaveSyncHooks(recordType: unknown, mode: string): boolean {
