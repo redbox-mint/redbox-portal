@@ -75,10 +75,13 @@ export namespace Services {
       // Journal rows are retained for reconciliation, but prepared/pending
       // work is not a confirmed physical attachment and must not appear in
       // the listing API. Legacy rows without a mutationState remain visible.
-      return rows.filter(row => row.isJournal !== true
-        && row.operation !== 'delete'
-        && row.mutationState !== 'cancelled'
-        && (row.mutationState === undefined || row.mutationState === 'applied'));
+      return rows.filter(row => {
+        const mutationState = String(row.mutationState ?? '').trim();
+        return row.isJournal !== true
+          && row.operation !== 'delete'
+          && mutationState !== 'cancelled'
+          && (!mutationState || mutationState === 'applied');
+      });
     }
 
     public async findUnresolvedByOid(oid: string): Promise<AttachmentMetadataAttributes[]> {
