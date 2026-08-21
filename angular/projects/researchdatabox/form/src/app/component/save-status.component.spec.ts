@@ -106,6 +106,8 @@ describe('SaveStatusComponent', () => {
     await fixture.whenStable();
 
     eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'create',
+      requestId: '88888888-8888-4888-8888-888888888888',
       response: { outcome: 'saved-with-warnings' },
     }));
     fixture.detectChanges();
@@ -113,6 +115,8 @@ describe('SaveStatusComponent', () => {
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
     expect(el?.textContent).toContain('follow-up processing');
+    expect(el?.textContent).toContain('The record was saved');
+    expect(el?.textContent).toContain('88888888-8888-4888-8888-888888888888');
   });
 
   it('should keep an unknown save outcome visible through SaveStatusComponent', async () => {
@@ -126,6 +130,8 @@ describe('SaveStatusComponent', () => {
 
     eventBus.publish(createFormSaveFailureEvent({
       error: 'The save could not be confirmed.',
+      operation: 'update',
+      requestId: '99999999-9999-4999-8999-999999999999',
       response: { outcome: 'unknown' },
     }));
     fixture.detectChanges();
@@ -133,6 +139,22 @@ describe('SaveStatusComponent', () => {
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
     expect(el?.textContent).toContain('couldn’t confirm');
+    expect(el?.textContent).toContain('99999999-9999-4999-8999-999999999999');
+  });
+
+  it('should ignore a scoped save event when no save operation is pending', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      formScopeId: formComponent.eventScopeId,
+      operation: 'update',
+      response: { outcome: 'saved' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-success')).toBeFalsy();
   });
 
   it('should keep save success visible for the configured duration before hiding it', fakeAsync(() => {
@@ -169,13 +191,13 @@ describe('SaveStatusComponent', () => {
     const store = TestBed.inject(Store);
     store.dispatch(FormActions.submitForm({ force: true }));
     tick();
-    store.dispatch(FormActions.submitFormFailure({ error: 'Boom' }));
+    store.dispatch(FormActions.submitFormFailure({ error: '@record-save-save-not-applied' }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger');
-    expect(el?.textContent).toContain('Boom');
+    expect(el?.textContent).toContain('The changes were not saved');
   }));
 
   it('should keep save failure visible until another save starts', fakeAsync(() => {

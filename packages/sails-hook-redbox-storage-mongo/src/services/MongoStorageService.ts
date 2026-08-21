@@ -242,7 +242,10 @@ export namespace Services {
     ): Promise<StorageServiceResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
       const response = new StorageMutationResponse();
-      record.redboxOid = this.getUuid();
+      // RecordsService may pre-assign the OID so attachment journal rows can
+      // be prepared before the primary metadata commit. Preserve it when
+      // supplied, while retaining the historical generated-OID behavior.
+      record.redboxOid = record.redboxOid ?? this.getUuid();
       response.oid = String(record.redboxOid);
 
       try {
@@ -276,7 +279,7 @@ export namespace Services {
         const updated = await Record.updateOne({ redboxOid: oid }).set(record);
         // Waterline adapters may resolve an update with no matched record.
         // A missing result is a certified non-write, not an applied mutation.
-        if (updated == null) {
+        if (updated == null || (Array.isArray(updated) && updated.length === 0)) {
           response.success = false;
           response.applicationState = 'not-applied';
           response.message = 'Record was not found';

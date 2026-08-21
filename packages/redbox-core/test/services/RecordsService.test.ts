@@ -76,6 +76,10 @@ describe('RecordsService', function () {
         },
         redbox: {
           apiKey: 'test-api-key'
+        },
+        jsonld: {
+          addJsonLdContext: false,
+          contexts: {}
         }
       },
       log: {
@@ -131,7 +135,14 @@ describe('RecordsService', function () {
       getUserWithUsername: sinon.stub().returns(of(null))
     };
     (global as any).WorkflowStepsService = {
-      getFirst: sinon.stub().returns(of({ name: 'draft', config: { form: 'default-form', addJsonLdContext: false } })),
+      getFirst: sinon.stub().returns(of({
+        name: 'draft',
+        config: {
+          form: 'default-form',
+          addJsonLdContext: false,
+          authorization: { viewRoles: [], editRoles: [] },
+        },
+      })),
       get: sinon.stub().returns(of({ name: 'draft', config: {} }))
     };
     (global as any).RecordTypesService = {
@@ -823,6 +834,29 @@ describe('RecordsService', function () {
       (RecordsService.getMeta as any).restore();
       (RecordsService.hasEditAccess as any).restore();
     });
+
+    it('rejects malformed delete hooks before deleting the record', async function () {
+      const result = await RecordsService.delete(
+        'record-123',
+        false,
+        { metadata: {} },
+        { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
+        { username: 'admin' },
+      );
+
+      expect(result.success).to.equal(false);
+      expect(mockStorageService.delete.notCalled).to.equal(true);
+    });
+
+    it('never throws malformed configuration from fire-and-forget post hooks', function () {
+      expect(() => RecordsService.triggerPostSaveTriggers(
+        'record-123',
+        { metadata: {} },
+        { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
+        'onDelete',
+        { username: 'admin' },
+      )).not.to.throw();
+    });
   });
 
   describe('triggerPreSaveTriggers', function () {
@@ -833,6 +867,167 @@ describe('RecordsService', function () {
       const result = await RecordsService.triggerPreSaveTriggers('oid-1', record, recordType, 'onCreate', {});
 
       expect(result).to.deep.equal(record);
+    });
+
+    it('reuses the callable resolved during hook configuration validation', async function () {
+      (global as any).hookExpressionEvaluations = 0;
+      const recordType = {
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function: `(() => {
+                globalThis.hookExpressionEvaluations += 1;
+                return (_oid, record) => record;
+              })()`,
+            }],
+          },
+        },
+      };
+
+      try {
+        (RecordsService as any).validateHookConfiguration(recordType, ['onUpdate']);
+        await RecordsService.triggerPreSaveTriggers('record-123', { metadata: {} }, recordType, 'onUpdate', {});
+        expect((global as any).hookExpressionEvaluations).to.equal(1);
+      } finally {
+        delete (global as any).hookExpressionEvaluations;
+      }
+    });
+  });
+
+  describe('updateMeta save pipeline', function () {
+    it('derives and executes attachment additions from replacement metadata', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
+      });
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      }));
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        {
+          metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+          metadata: { attachments: [] },
+          authorization: {},
+        },
+        { username: 'user-1' },
+        true,
+        true,
+        {},
+        { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] },
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(journal.prepareMutations.calledOnce).to.equal(true);
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.callCount).to.equal(2);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.attachments[0].pending).to.equal(true);
+      expect(mockStorageService.updateMeta.secondCall.args[2].metadata.attachments[0].pending).to.equal(false);
+    });
+  });
+
+  describe('create save pipeline', function () {
+    it('journals attachments before persistence and retains the confirmed oid', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.create.resolves({
+        success: true,
+        oid: 'new-record-123',
+        applicationState: 'applied',
+      });
+      mockStorageService.updateMeta.resolves({ success: true, oid: 'new-record-123', applicationState: 'applied' });
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'new-record-123',
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
+      });
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.oid).to.equal('new-record-123');
+      expect(journal.prepareMutations.calledBefore(mockStorageService.create)).to.equal(true);
+      expect(mockStorageService.create.calledBefore(mockDatastreamService.addDatastream)).to.equal(true);
+      expect(journal.rebindOid.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+  });
+
+  describe('finishSave operational handoff', function () {
+    function persistedTracker() {
+      const { RecordSaveTracker, createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const tracker = new RecordSaveTracker(createRecordSaveContext());
+      tracker.confirmPrimaryPersistence('tracker-oid', { message: '@record-save-post-save-failed' });
+      return tracker;
+    }
+
+    it('does not substitute fallback metadata when the committed snapshot cannot be loaded', async function () {
+      mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
+      const audit = sinon.stub(RecordsService, 'auditRecord');
+
+      const result = await (RecordsService as any).finishSave(
+        persistedTracker(),
+        {},
+        'updated',
+        true,
+      );
+
+      expect(result.oid).to.equal('tracker-oid');
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(audit.notCalled).to.equal(true);
+    });
+
+    it('uses the tracker oid and does not await index or audit submissions', async function () {
+      mockStorageService.getMeta.resolves({ redboxOid: 'tracker-oid', metadata: { committed: true } });
+      mockSearchService.index.callsFake(() => new Promise(() => undefined));
+      sinon.stub(RecordsService, 'auditRecord').callsFake(() => new Promise(() => undefined));
+
+      const result = await (RecordsService as any).finishSave(
+        persistedTracker(),
+        {},
+        'updated',
+        true,
+      );
+      await Promise.resolve();
+
+      expect(result.oid).to.equal('tracker-oid');
+      expect(mockStorageService.getMeta.calledWith('tracker-oid')).to.equal(true);
+      expect(mockSearchService.index.calledWith('tracker-oid', sinon.match({ metadata: { committed: true } }))).to.equal(true);
     });
   });
 

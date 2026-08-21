@@ -23,7 +23,7 @@ describe('TriggerService', function() {
 
     (global as any).RecordsService = {
       getMeta: sinon.stub(),
-      updateMeta: sinon.stub()
+      updateMeta: sinon.stub().resolves({ wasPersisted: () => true, isComplete: () => true })
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key) => key)
@@ -254,6 +254,11 @@ describe('TriggerService', function() {
       
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
       (global as any).RecordsService.getMeta.resolves(relatedMeta);
+      (global as any).RecordsService.updateMeta.resolves({
+        outcome: 'saved-with-warnings',
+        wasPersisted: () => true,
+        isComplete: () => false,
+      });
       
       await TriggerService.runTemplatesOnRelatedRecord('oid', relatedRecord, options, {});
       

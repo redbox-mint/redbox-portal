@@ -201,6 +201,8 @@ describe('HarvestRunService', function () {
       message: 'Created',
       details: '',
       isSuccessful: () => true,
+      isComplete: () => true,
+      wasPersisted: () => true,
     });
 
     const response = await service.submitChunk(
@@ -561,9 +563,12 @@ describe('HarvestRunService', function () {
     }));
     recordsService.create.resolves({
       oid: 'record-2',
-      message: 'Created',
+      message: '',
       details: '',
       isSuccessful: () => true,
+      outcome: 'saved-with-warnings',
+      isComplete: () => false,
+      wasPersisted: () => true,
     });
 
     const response = await service.submitChunk(
@@ -587,6 +592,8 @@ describe('HarvestRunService', function () {
     expect((global as any).HarvestRecordEvent.createEach.calledOnce).to.equal(true);
     expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0]).to.have.length(1);
     expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].harvestId).to.equal('harvest-2');
+    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].oid).to.equal('record-2');
+    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].message).to.equal('saved-with-warnings');
     expect(response.chunk.status).to.equal('processed');
     expect(response.chunk.responseSummary).to.deep.include({ totalProcessed: 2, created: 2, failed: 0 });
   });
@@ -755,6 +762,8 @@ describe('HarvestRunService', function () {
       message: 'Updated',
       details: '',
       isSuccessful: () => true,
+      isComplete: () => true,
+      wasPersisted: () => true,
     });
 
     const response = await service.submitChunk(
@@ -819,6 +828,8 @@ describe('HarvestRunService', function () {
       message: 'Created',
       details: '',
       isSuccessful: () => true,
+      isComplete: () => true,
+      wasPersisted: () => true,
     });
     recordsService.getMeta.resolves({
       redboxOid: 'record-1',

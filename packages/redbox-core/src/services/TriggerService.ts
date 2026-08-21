@@ -573,7 +573,13 @@ export namespace Services {
                 }
                 const brand: BrandingModel = BrandingService.getBrandById(brandId);
                 sails.log.verbose(`runTemplatesOnRelatedRecord Brand: ${JSON.stringify(brand)}`);
-                await RecordsService.updateMeta(brand, oid, record, user, runPreSaveTriggers, runPostSaveTriggers);
+                const response = await RecordsService.updateMeta(brand, oid, record, user, runPreSaveTriggers, runPostSaveTriggers);
+                if (!response.wasPersisted()) {
+                  throw new Error(String(response.message ?? response.outcome));
+                }
+                if (response.outcome === 'saved-with-warnings') {
+                  sails.log.warn(`Related-record template persisted with warnings for ${oid}`, { requestId: response.requestId });
+                }
               } else {
                 sails.log.verbose(`runTemplatesOnRelatedRecord did't find related record using oid: ${oid} - object retrived is: ${JSON.stringify(record)}`);
               }

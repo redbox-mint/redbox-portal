@@ -134,7 +134,7 @@ describe('UsersService', function () {
     };
     (global as any).RecordsService = {
       provideUserAccessAndRemovePendingAccess: sinon.stub(),
-      updateMeta: sinon.stub().resolves({ isSuccessful: () => true })
+      updateMeta: sinon.stub().resolves({ isSuccessful: () => true, wasPersisted: () => true, isComplete: () => true })
     };
     (global as any).FormVocabularyService = {};
 
@@ -815,6 +815,11 @@ describe('UsersService', function () {
 
   describe('linkAccounts', function () {
     it('should create links and rewrite authorization references', async function () {
+      (global as any).RecordsService.updateMeta.resolves({
+        outcome: 'saved-with-warnings',
+        wasPersisted: () => true,
+        isComplete: () => false,
+      });
       mockUser.findOne.onFirstCall().returns(createQueryObject({
         id: 'primary-1',
         username: 'primary-user',

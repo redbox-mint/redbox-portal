@@ -457,6 +457,28 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('removeDatastream', function () {
+    it('reaps an applied physical delete tombstone once object absence is confirmed', async function () {
+      const metadataService = {
+        markDeleted: sinon.stub().resolves(),
+        deleteByStorageKey: sinon.stub().resolves(),
+        recordAccess: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = metadataService;
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const ds = new Datastream({
+        fileId: 'file-to-delete',
+        attachmentId: 'attachment-1',
+        generation: 'generation-1',
+      });
+
+      await service.removeDatastream('oid-123', ds);
+
+      expect(metadataService.markDeleted.calledOnce).to.equal(true);
+      expect(metadataService.deleteByStorageKey.calledOnceWithExactly('attachments/oid-123/file-to-delete')).to.equal(true);
+      expect(metadataService.markDeleted.calledBefore(metadataService.deleteByStorageKey)).to.equal(true);
+    });
+
     it('should delete the file from primary disk', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();

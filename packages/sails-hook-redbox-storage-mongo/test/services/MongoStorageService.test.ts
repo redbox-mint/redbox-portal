@@ -240,6 +240,17 @@ describe('MongoStorageService', function () {
     expect(setStub.calledOnceWith({ keep: true })).to.be.true;
   });
 
+  it('classifies an updateOne no-match result as not-applied', async function () {
+    const setStub = sandbox.stub().resolves([]);
+    Record.updateOne.returns({ set: setStub });
+
+    const response = await service.updateMeta(null, 'missing-oid', { keep: true });
+
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('not-applied');
+    expect(response.message).to.equal('Record was not found');
+  });
+
   it('returns an unsuccessful response when updateMeta fails', async function () {
     const setStub = sandbox.stub().rejects(new Error('update failed'));
     Record.updateOne.returns({ set: setStub });
