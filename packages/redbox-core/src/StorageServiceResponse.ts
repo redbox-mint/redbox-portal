@@ -17,13 +17,20 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { ActionResult, StorageMutationApplicationState } from '@researchdatabox/sails-ng-common';
+
 /**
  * Response class for StorageService methods.
+ *
+ * This remains the generic response used by all storage operations.  Save
+ * specific fields live on StorageMutationResponse/RecordSaveResponse so
+ * existing storage services do not need to manufacture attachment state.
  */
-export class StorageServiceResponse {
+export class StorageServiceResponse implements ActionResult {
   success: boolean = false;
   oid: string = '';
   message: string = '';
+  data?: unknown;
   metadata: Record<string, unknown> | null = null;
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
@@ -36,4 +43,13 @@ export class StorageServiceResponse {
     return this.success === true;
   }
 }
+
+/**
+ * Storage facts for a primary metadata mutation.  `unknown` is intentional:
+ * a rejected or timed-out call is not proof that the provider did not write.
+ */
+export class StorageMutationResponse extends StorageServiceResponse {
+  applicationState?: StorageMutationApplicationState;
+}
+
 export default StorageServiceResponse

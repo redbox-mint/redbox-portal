@@ -20,14 +20,56 @@
 import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
-import { RecordAttachment } from '@researchdatabox/sails-ng-common';
+import {
+  emptyRecordSaveCompletion,
+  isRecordSaveOutcome,
+  RecordAttachment,
+  RecordSaveIssue,
+  RecordSaveProblem,
+  RecordSaveResult,
+} from '@researchdatabox/sails-ng-common';
+
+/** Per-request options for a record save. */
+interface SaveRequestOptions {
+  headers: HttpHeaders;
+  context?: HttpContext;
+  responseType: 'json';
+  observe: 'body';
+}
+
+const saveRequestIdByteLength = 16;
+
+function createSaveRequestId(): string {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+
+  if (typeof cryptoApi?.getRandomValues !== 'function') {
+    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
+  }
+
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
+  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
+}
 
 export interface RecordTypeConf {
   name: string;
@@ -666,30 +708,178 @@ export class RecordService extends HttpClientService {
   }
 
   public async create(record: any, recordType: string, targetStep: string = '') {
-    const httpOptions = this.getHttpOptions();
+    const requestId = createSaveRequestId();
+    const httpOptions = this.getSaveHttpOptions(requestId);
     const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${this.getTargetStepParam(targetStep, '?')}`;
-    const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
-    let result: unknown = await firstValueFrom(result$);
-    return result as RecordActionResult;
+    try {
+      const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
+      const result: unknown = await firstValueFrom(result$);
+      return RecordActionResult.fromResponse(result, 200, requestId);
+    } catch (error) {
+      return RecordActionResult.fromHttpError(error, requestId);
+    }
   }
 
   public async update(oid: string, record: any, targetStep: string = '') {
-    const httpOptions = this.getHttpOptions();
+    const requestId = createSaveRequestId();
+    const httpOptions = this.getSaveHttpOptions(requestId);
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${this.getTargetStepParam(targetStep, '?')}`;
-    const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
-    let result: unknown = await firstValueFrom(result$);
-    return result as RecordActionResult;
+    try {
+      const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
+      const result: unknown = await firstValueFrom(result$);
+      return RecordActionResult.fromResponse(result, 200, requestId);
+    } catch (error) {
+      return RecordActionResult.fromHttpError(error, requestId);
+    }
   }
 
   protected getTargetStepParam(targetStep: string, delim: string) {
     return _isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
   }
+
+  /**
+   * Build immutable per-request options.  `HttpHeaders.set` returns a new
+   * instance, so the shared request options are never mutated between saves.
+   */
+  private getSaveHttpOptions(requestId: string): SaveRequestOptions {
+    const base = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+    const headers = (base.headers instanceof HttpHeaders ? base.headers : new HttpHeaders(base.headers ?? {}))
+      .set('X-ReDBox-Api-Version', '2.0')
+      .set('X-ReDBox-Save-Request-Id', requestId);
+    return { headers, context: base.context, responseType: 'json', observe: 'body' };
+  }
 }
 
-export class RecordActionResult {
+export class RecordActionResult implements RecordSaveResult {
   success: boolean = false;
   oid: string = '';
   message: string = '';
   data: any = null;
   metadata: Record<string, unknown> | null = null;
+  outcome: RecordSaveResult['outcome'] = 'not-saved';
+  problems: RecordSaveProblem[] = [];
+  completion = emptyRecordSaveCompletion();
+  requestId: string = '';
+
+  public wasPersisted(): boolean {
+    return this.outcome === 'saved' || this.outcome === 'saved-with-warnings';
+  }
+
+  public isComplete(): boolean {
+    return this.outcome === 'saved';
+  }
+
+  public isSuccessful(): boolean {
+    return this.success === true;
+  }
+
+  public static fromResponse(payload: unknown, status = 200, requestId = ''): RecordActionResult {
+    type SaveMeta = Partial<RecordSaveResult> & {
+      success?: boolean;
+      oid?: string;
+      message?: string;
+      metadata?: Record<string, unknown> | null;
+    };
+    type SaveEnvelope = { meta?: SaveMeta; data?: unknown; errors?: unknown[] } & SaveMeta;
+    const body = (payload && typeof payload === 'object' ? payload : {}) as SaveEnvelope;
+    const meta: SaveMeta = body.meta && typeof body.meta === 'object' ? body.meta : body;
+    const result = new RecordActionResult();
+    result.requestId = typeof meta.requestId === 'string' && meta.requestId ? meta.requestId : requestId;
+    result.oid = typeof meta.oid === 'string' ? meta.oid : '';
+    result.message = typeof meta.message === 'string' ? meta.message : '';
+    result.data = body.data ?? null;
+    result.metadata = meta.metadata && typeof meta.metadata === 'object' ? meta.metadata as Record<string, unknown> : null;
+
+    if (isRecordSaveOutcome(meta.outcome)) {
+      result.outcome = meta.outcome;
+      result.success = meta.success === true || result.wasPersisted();
+      result.problems = Array.isArray(meta.problems) ? meta.problems as RecordSaveProblem[] : [];
+      if (meta.completion && typeof meta.completion === 'object') {
+        result.completion = meta.completion as RecordSaveResult['completion'];
+      }
+      return result;
+    }
+
+    const issues = (Array.isArray(body.errors) ? body.errors : []).map(RecordActionResult.toSafeIssue);
+
+    // Policies short-circuit before the controller persists anything, so an
+    // untyped 400/403 is safe to synthesise as a confirmed non-save.
+    if (status === 400 || status === 403) {
+      result.outcome = 'not-saved';
+      result.problems = [{
+        kind: status === 403 ? 'authorization' : 'validation',
+        phase: 'pre-save',
+        issues,
+      }];
+      return result;
+    }
+
+    // Legacy 2xx envelope from a server that predates the typed contract.
+    if (meta.success === true) {
+      result.success = true;
+      const hasLegacyWarning = (meta.metadata as Record<string, unknown> | null)?.['postSaveSyncWarning'] === 'true';
+      result.outcome = hasLegacyWarning ? 'saved-with-warnings' : 'saved';
+      result.completion = {
+        attachments: { status: hasLegacyWarning ? 'unknown' : 'completed', items: [] },
+      };
+      return result;
+    }
+
+    // Anything else is uninterpretable once the request has been dispatched.
+    // Claiming `not-saved` here would assert a certainty the client does not
+    // have, so uncertainty is preserved instead.
+    result.outcome = 'unknown';
+    result.problems = [{
+      kind: status === 0 ? 'network' : 'system',
+      phase: 'transport',
+      issues: issues.length > 0 ? issues : [{ message: 'The save result could not be confirmed.', code: 'save-unknown' }],
+    }];
+    return result;
+  }
+
+  public static fromHttpError(error: unknown, requestId: string): RecordActionResult {
+    const httpError = error instanceof HttpErrorResponse ? error : null;
+    return RecordActionResult.fromResponse(httpError?.error, httpError?.status ?? 0, requestId);
+  }
+
+  /**
+   * A failure raised before the request was dispatched. Nothing reached the
+   * server, so this is a confirmed non-save rather than an unknown one.
+   */
+  public static notDispatched(message: string, oid = '', requestId = ''): RecordActionResult {
+    const result = new RecordActionResult();
+    result.oid = oid;
+    result.message = message;
+    result.requestId = requestId;
+    result.outcome = 'not-saved';
+    result.problems = [{ kind: 'system', phase: 'transport', issues: [{ message }] }];
+    return result;
+  }
+
+  /**
+   * Map a v2 error envelope item onto a safe issue.  Only explicitly safe
+   * fields are copied; anything else stays out of form state.
+   */
+  private static toSafeIssue(value: unknown): RecordSaveIssue {
+    const item = (value && typeof value === 'object' ? value : {}) as {
+      detail?: unknown;
+      title?: unknown;
+      code?: unknown;
+      field?: unknown;
+      pointer?: unknown;
+      source?: { pointer?: unknown };
+    };
+    const pointer = typeof item.pointer === 'string' ? item.pointer
+      : typeof item.source?.pointer === 'string' ? item.source.pointer
+      : undefined;
+    const message = typeof item.detail === 'string' ? item.detail
+      : typeof item.title === 'string' ? item.title
+      : 'The submitted value is invalid.';
+    return {
+      message,
+      ...(typeof item.code === 'string' ? { code: item.code } : {}),
+      ...(typeof item.field === 'string' ? { field: item.field } : {}),
+      ...(pointer ? { pointer } : {}),
+    };
+  }
 }

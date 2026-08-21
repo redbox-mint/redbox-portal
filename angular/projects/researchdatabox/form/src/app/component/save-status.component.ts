@@ -1,7 +1,9 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { SaveStatusComponentName } from '@researchdatabox/sails-ng-common';
+import { isRecordSaveOutcome, RecordSaveOutcome, SaveStatusComponentName } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
+
+type SaveStatusMessageType = 'saving' | 'deleting' | 'error' | 'warning' | 'unknown' | 'success' | null;
 
 @Component({
   selector: 'redbox-form-save-status',
@@ -20,6 +22,14 @@ import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '
         <div class="rb-form-save-status alert alert-danger" role="alert" aria-atomic="true">
           {{ errorPrefix() | i18next }} {{ errorMessage() }}
         </div>
+      } @else if (messageType() === 'warning') {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-warning' | i18next }}
+        </div>
+      } @else if (messageType() === 'unknown') {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-unknown' | i18next }}
+        </div>
       } @else if (messageType() === 'success') {
         <div class="rb-form-save-status alert alert-success" role="status" aria-live="polite" aria-atomic="true">
           {{ successMessage() | i18next }}
@@ -37,11 +47,15 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   protected readonly formStateFacade = inject(FormStateFacade);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly deleteSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_DELETE_SUCCESS);
-  private readonly messageState = signal<'saving' | 'deleting' | 'error' | 'success' | null>(null);
+  private readonly saveSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_SUCCESS);
+  private readonly saveFailureEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_FAILURE);
+  private readonly messageState = signal<SaveStatusMessageType>(null);
   private readonly lastOperation = signal<'save' | 'delete' | null>(null);
   private readonly pendingOperation = signal<'save' | 'delete' | null>(null);
   private lastHandledDeleteSuccessAt: number | null = null;
   private lastHandledSavedAt: string | null = null;
+  private lastHandledSaveSuccessAt: number | null = null;
+  private lastHandledSaveFailureAt: number | null = null;
   private successTimeoutId: number | null = null;
 
   constructor() {
@@ -50,6 +64,8 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
     effect((onCleanup) => {
       const lastSavedAt = this.formStateFacade.lastSavedAt();
       const deleteSuccessEvent = this.deleteSuccessEvent();
+      const saveSuccessEvent = this.saveSuccessEvent();
+      const saveFailureEvent = this.saveFailureEvent();
       const errorMessage = this.formStateFacade.error();
       const isSaving = this.formStateFacade.isSaving();
       const isDeleting = this.formStateFacade.isDeleting();
@@ -70,6 +86,49 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         return;
       }
 
+      if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt) {
+        if (this.pendingOperation() !== 'delete') {
+          return;
+        }
+        this.lastHandledDeleteSuccessAt = deleteSuccessEvent.timestamp;
+        this.lastOperation.set('delete');
+        this.pendingOperation.set(null);
+        this.showSuccessMessage(onCleanup);
+        return;
+      }
+
+      if (saveSuccessEvent && saveSuccessEvent.timestamp !== this.lastHandledSaveSuccessAt) {
+        if (this.pendingOperation() !== 'save') {
+          return;
+        }
+        this.lastHandledSaveSuccessAt = saveSuccessEvent.timestamp;
+        this.lastOperation.set('save');
+        this.pendingOperation.set(null);
+        const outcome = this.saveOutcome(saveSuccessEvent.response);
+        if (outcome === 'saved-with-warnings') {
+          this.clearSuccessTimeout();
+          this.messageState.set('warning');
+        } else {
+          this.showSuccessMessage(onCleanup);
+        }
+        return;
+      }
+
+      if (saveFailureEvent && saveFailureEvent.timestamp !== this.lastHandledSaveFailureAt) {
+        if (this.pendingOperation() !== 'save') {
+          return;
+        }
+        this.lastHandledSaveFailureAt = saveFailureEvent.timestamp;
+        const outcome = this.saveOutcome(saveFailureEvent.response);
+        if (outcome === 'unknown') {
+          this.lastOperation.set('save');
+          this.pendingOperation.set(null);
+          this.clearSuccessTimeout();
+          this.messageState.set('unknown');
+          return;
+        }
+      }
+
       if (errorMessage) {
         const operation = this.pendingOperation();
         if (!operation) {
@@ -79,17 +138,6 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         this.pendingOperation.set(null);
         this.clearSuccessTimeout();
         this.messageState.set('error');
-        return;
-      }
-
-      if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt) {
-        if (this.pendingOperation() !== 'delete') {
-          return;
-        }
-        this.lastHandledDeleteSuccessAt = deleteSuccessEvent.timestamp;
-        this.lastOperation.set('delete');
-        this.pendingOperation.set(null);
-        this.showSuccessMessage(onCleanup);
         return;
       }
 
@@ -108,9 +156,13 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected readonly errorMessage = computed(() => this.formStateFacade.error() ?? '');
-  protected readonly messageType = computed<'saving' | 'deleting' | 'error' | 'success' | null>(() => this.messageState());
+  protected readonly messageType = computed<SaveStatusMessageType>(() => this.messageState());
   protected readonly errorPrefix = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-error' : '@dmpt-form-save-error');
   protected readonly successMessage = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-success' : '@dmpt-form-save-success');
+
+  private saveOutcome(response: { outcome?: unknown } | null | undefined): RecordSaveOutcome | undefined {
+    return isRecordSaveOutcome(response?.outcome) ? response.outcome : undefined;
+  }
 
   private get successDisplayDurationMs(): number {
     const configuredDuration = (this.componentDefinition?.config as Record<string, unknown> | undefined)?.['successDisplayDurationMs'];

@@ -3,7 +3,12 @@ import { Store } from '@ngrx/store';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
-import { createFormDeleteSuccessEvent, FormComponentEventBus } from '../form-state';
+import {
+  createFormDeleteSuccessEvent,
+  createFormSaveFailureEvent,
+  createFormSaveSuccessEvent,
+  FormComponentEventBus,
+} from '../form-state';
 import { SaveStatusComponent } from './save-status.component';
 import { SimpleInputComponent } from './simple-input.component';
 
@@ -89,6 +94,45 @@ describe('SaveStatusComponent', () => {
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-success');
     expect(el).toBeTruthy();
+  });
+
+  it('should keep a persisted warning visible through SaveStatusComponent', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      response: { outcome: 'saved-with-warnings' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('follow-up processing');
+  });
+
+  it('should keep an unknown save outcome visible through SaveStatusComponent', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveFailureEvent({
+      error: 'The save could not be confirmed.',
+      response: { outcome: 'unknown' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('couldn’t confirm');
   });
 
   it('should keep save success visible for the configured duration before hiding it', fakeAsync(() => {
