@@ -143,6 +143,37 @@ describe('Effect action execution', function () {
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
   });
 
+  it('does not retry a non-cooperative timeout into an overlapping invocation', async function () {
+    let invocations = 0;
+    const operation = createActionExecutionOperation('onCreate');
+    const cancellation = { value: true };
+    const outcome = await runActionPlan(
+      [
+        {
+          actionId: 'promise-timeout-retry',
+          mode: 'onCreate',
+          phase: 'pre',
+          index: 0,
+          policy: {
+            timeoutMs: 5,
+            retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
+          },
+          cooperativeCancellation: () => cancellation.value,
+          invoke: () =>
+            legacyHookToEffect(() => {
+              invocations += 1;
+              return new Promise(() => undefined);
+            }, cancellation),
+        },
+      ],
+      createPhaseContext(operation, 'pre')
+    );
+
+    expect(invocations).to.equal(1);
+    expect(outcome.report.actions[0].attempts).to.equal(1);
+    expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
+  });
+
   it('dispatches detached actions without waiting for completion', function () {
     const operation = createActionExecutionOperation('onCreate');
     const events: string[] = [];
@@ -360,6 +391,35 @@ describe('Effect action execution', function () {
         entry => entry.name === 'record_hook_detached_action_failed' && entry.fields?.failure_kind === 'interrupted'
       )
     ).to.equal(true);
+  });
+
+  it('unregisters detached fibers after they complete', async function () {
+    const registered: unknown[] = [];
+    const unregistered: unknown[] = [];
+    const operation = createActionExecutionOperation('onCreate');
+    dispatchDetachedActionPlan(
+      [
+        {
+          actionId: 'completes',
+          mode: 'onCreate',
+          phase: 'post',
+          index: 0,
+          invoke: () => Effect.succeed(undefined),
+        },
+      ],
+      createPhaseContext(operation, 'post'),
+      {
+        supervisor: {
+          register: fiber => registered.push(fiber),
+          unregister: fiber => unregistered.push(fiber),
+        },
+      }
+    );
+
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    expect(registered).to.have.length(1);
+    expect(unregistered).to.deep.equal(registered);
   });
 
   it('fails the action when a post-sync hook returns the wrong shape and still reports the phase', async function () {

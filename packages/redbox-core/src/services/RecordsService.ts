@@ -176,7 +176,17 @@ export namespace Services {
         (summary.counts.failed ?? 0) > 0 ||
         (summary.counts.timed_out ?? 0) > 0 ||
         (summary.counts.interrupted ?? 0) > 0;
-      fields.status = summary.partial ? 'partial' : hasFailure ? 'failed' : 'completed';
+      fields.status =
+        summary.partial
+          ? 'partial'
+          : (operation.detachedPending ?? 0) > 0
+            ? 'dispatched'
+            : hasFailure
+              ? 'failed'
+              : 'completed';
+      if ((operation.detachedPending ?? 0) > 0) {
+        fields.detached_pending = operation.detachedPending;
+      }
       fields.duration_ms = summary.durationMs;
       fields.total_actions = summary.totalActions;
       sails.log.info(`${this.logHeader}record_hook_operation_completed`, fields);
@@ -334,19 +344,29 @@ export namespace Services {
             sails.log.error(`${this.logHeader} index submission failed`, error);
           });
       }
-      void Promise.resolve()
-        .then(() =>
-          this.auditRecord(
-            oid,
-            persistedRecord,
-            user,
-            action,
-            operation ? projectRecordHookExecutionAuditSummary(operation) : undefined
+      const submitAudit = (): void => {
+        if (operation && (operation.detachedPending ?? 0) > 0) {
+          this.completeHookOperation(operation);
+        }
+        void Promise.resolve()
+          .then(() =>
+            this.auditRecord(
+              oid,
+              persistedRecord,
+              user,
+              action,
+              operation ? projectRecordHookExecutionAuditSummary(operation) : undefined
+            )
           )
-        )
-        .catch((error: unknown) => {
-          sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
-        });
+          .catch((error: unknown) => {
+            sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
+          });
+      };
+      if (operation && (operation.detachedPending ?? 0) > 0) {
+        operation.onDetachedComplete = submitAudit;
+      } else {
+        submitAudit();
+      }
       return tracker;
     }
 
@@ -780,8 +800,7 @@ export namespace Services {
     private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
       try {
         validateRecordHookConfiguration(recordType, modes, (hook, mode, phase) =>
-          this.configuredHookFunction(hook, mode, phase)
-        );
+          this.configuredHookFunction(hook, mode, phase), ['pre']);
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
           throw error;

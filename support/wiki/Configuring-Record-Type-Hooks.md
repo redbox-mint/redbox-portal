@@ -27,7 +27,7 @@ Typical record-type hook configuration (JSON/YAML) looks like:
 - `options` is a free-form object used by your hook code. For `postSync` hooks the `options.returnType` value controls what is expected from the function:
   - `returnType: "record"` (default) — the hook should return/resolve to the updated record object.
   - Any other value — the hook should return/resolve to a storage service response object and that response will be used by the caller.
-- `id` is an optional stable identifier used in logs and audit summaries. If it is omitted, ReDBox derives a deterministic identifier from the mode, phase, array index, and a short digest of the function expression.
+- `id` is an optional stable identifier used in logs and audit summaries. For durable identity across hook reordering, configure it explicitly. If it is omitted, ReDBox derives a deterministic identifier from the mode, phase, array index, and a short digest of the function expression; moving the hook in the array changes that generated identity.
 - `execution` is optional policy metadata. It is consumed by the runner and is never added to the legacy `options` object passed to hooks.
 
 ## Retry and timeout policy
@@ -61,7 +61,9 @@ in-memory mutations, so only enable them for idempotent work.
 
 Timeouts interrupt native Effect actions and unsubscribe Observables. An already
 started legacy Promise cannot be cancelled; a timed-out Promise may continue its
-side effect after the save response has returned.
+side effect after the save response has returned. ReDBox therefore does not retry
+non-cooperative timeout or interruption failures, even when `idempotent: true`,
+because doing so could overlap the still-running legacy side effect.
 
 ## How hooks are executed (summary)
 
@@ -147,10 +149,11 @@ internal: they are not added to HTTP save responses. A phase report can contain
 `post` actions are reported as `dispatched` at the save boundary and complete or
 fail later under the same correlation ID.
 
-Save-time validation still rejects malformed hook configuration before any
-primary mutation. For a direct public fire-and-forget call, malformed `post`
-entries retain the legacy per-entry behaviour: they are logged and skipped while
-later valid entries continue to dispatch.
+Save-time validation rejects malformed `pre` configuration before any primary
+mutation. `postSync` configuration is validated at its awaited post-persistence
+phase boundary, while malformed `post` entries retain the legacy per-entry
+behaviour: they are logged and skipped while later valid entries continue to
+dispatch. This keeps detached-post configuration from blocking persistence.
 
 The application logger emits concise events such as
 `record_hook_action_completed`, `record_hook_action_retry_scheduled`,
@@ -173,14 +176,21 @@ for the response and request-correlation contract.
 
 Create and update audits include a versioned, bounded `executionSummary` with
 aggregate counts and at most the first 100 action entries. Delete audits are
-truthfully marked `partial` at the existing audit-before-post boundary; detached
-completion is available in correlated logs rather than through a second audit
-update. The summary is audit metadata and is never embedded in the business
-record snapshot.
+truthfully marked `partial` at the existing audit-before-post boundary. Create
+and update audit submission waits asynchronously for detached actions to reach
+terminal results, so their persisted summaries contain actual post outcomes
+(`succeeded`, `failed`, `timed_out`, or `interrupted`) rather than `dispatched`
+placeholders. The summary is audit metadata and is never embedded in the
+business-record snapshot.
 
 Create/update summaries also expose `completedThrough` (`pre`, `persistence`,
 `postSync`, or `post-dispatch`) so early exits are distinguishable from a fully
 dispatched operation.
+
+The current observability surface is structured correlation logging rather than
+native Effect spans. Operation, phase, action, and attempt identifiers are
+available for log aggregation; Effect/OpenTelemetry span integration remains a
+follow-up.
 
 ### Service extension boundary
 

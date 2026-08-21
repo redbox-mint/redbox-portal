@@ -216,6 +216,12 @@ function shouldRetry(action: ActionExecutionAction, attemptNumber: number, failu
   if (!retry || attemptNumber >= retry.maxAttempts) {
     return false;
   }
+  // An opaque Promise keeps running after Effect times out. Retrying it here
+  // would overlap the original side effect with a second invocation. The
+  // idempotent acknowledgement alone is not enough to make that safe.
+  if ((failure.kind === 'timeout' || failure.kind === 'interrupted') && failure.cancellationCooperative === false) {
+    return false;
+  }
   return (retry.retryOn ?? ['transient']).includes(failure.kind);
 }
 
@@ -358,6 +364,11 @@ export function createActionExecutionSupervisor(): ActionExecutionDependencies['
         fibers.add(fiber as Fiber.Fiber<unknown, unknown>);
       }
     },
+    unregister(fiber: unknown): void {
+      if (fiber !== null && typeof fiber === 'object') {
+        fibers.delete(fiber as Fiber.Fiber<unknown, unknown>);
+      }
+    },
     interruptAll(): void {
       const active = Array.from(fibers);
       fibers.clear();
@@ -466,8 +477,9 @@ export function runSequentialActionPlan(
 
 /**
  * Detached dispatch strategy, used for `post`. Each action is forked in
- * configuration order and its completion is logged later; the returned report
- * describes only the dispatch and is never revised.
+ * configuration order and its terminal result is delivered through the
+ * optional completion callback; the dispatch report itself remains an honest
+ * record of launch rather than being rewritten after the fact.
  */
 export function dispatchDetachedActionPlan(
   actions: readonly ActionExecutionAction[],
@@ -499,13 +511,36 @@ export function dispatchDetachedActionPlan(
     // each action still happens in configuration order.
     const fiber = Effect.runFork(
       executeAction(action, dependencies, context, true).pipe(
+        Effect.tap(executed =>
+          Effect.sync(() => dependencies.onDetachedActionComplete?.(context, executed.result))
+        ),
         Effect.onExit(exit => {
-          if (exit._tag === 'Failure' && Cause.isInterruptedOnly(exit.cause)) {
+          if (exit._tag === 'Failure') {
+            const interrupted = Cause.isInterruptedOnly(exit.cause);
             const interruptedFields = commonFields(context, action, 1);
-            interruptedFields.status = 'interrupted';
-            interruptedFields.failure_kind = 'interrupted';
-            interruptedFields.failure_code = 'action-interrupted';
-            interruptedFields.cancellation_cooperative = isCooperativelyCancellable(action);
+            const failure = interrupted
+              ? normalizeActionFailure(
+                  new ActionInterruptedFailure(isCooperativelyCancellable(action)),
+                  isCooperativelyCancellable(action)
+                )
+              : normalizeActionFailure(failureCause(exit.cause), isCooperativelyCancellable(action));
+            const result: ActionExecutionResult = {
+              actionId: action.actionId,
+              mode: action.mode,
+              phase: action.phase,
+              index: action.index,
+              status: statusForFailure(failure),
+              attempts: 1,
+              startedAt: iso(now(dependencies)),
+              completedAt: iso(now(dependencies)),
+              durationMs: 0,
+              failure,
+            };
+            dependencies.onDetachedActionComplete?.(context, result);
+            interruptedFields.status = result.status;
+            interruptedFields.failure_kind = failure.kind;
+            interruptedFields.failure_code = failure.code;
+            interruptedFields.cancellation_cooperative = failure.cancellationCooperative;
             interruptedFields.duration_ms = 0;
             dependencies.logger?.warn?.('record_hook_detached_action_failed', interruptedFields);
           }
@@ -514,6 +549,16 @@ export function dispatchDetachedActionPlan(
       )
     );
     dependencies.supervisor?.register?.(fiber);
+    // Awaiting the fiber from a separate watcher avoids retaining completed
+    // fibers in the supervisor set while keeping shutdown interruption cheap.
+    if (dependencies.supervisor?.unregister) {
+      Effect.runFork(
+        Fiber.await(fiber).pipe(
+          Effect.flatMap(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber))),
+          Effect.catchAll(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber)))
+        )
+      );
+    }
   }
 
   return { report: makeReport(context, results, startedAt, dependencies, 'dispatched'), values: [] };

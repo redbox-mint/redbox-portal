@@ -966,7 +966,7 @@ describe('RecordsService', function () {
       (RecordsService.hasEditAccess as any).restore();
     });
 
-    it('rejects malformed delete hooks before deleting the record', async function () {
+    it('does not reject malformed detached delete hooks before deleting the record', async function () {
       const result = await RecordsService.delete(
         'record-123',
         false,
@@ -975,8 +975,8 @@ describe('RecordsService', function () {
         { username: 'admin' }
       );
 
-      expect(result.success).to.equal(false);
-      expect(mockStorageService.delete.notCalled).to.equal(true);
+      expect(result.success).to.equal(true);
+      expect(mockStorageService.delete.calledWith('record-123')).to.equal(true);
     });
 
     it('never throws malformed configuration from fire-and-forget post hooks', function () {
@@ -1459,6 +1459,10 @@ describe('RecordsService', function () {
           .find((candidate: any) => candidate !== undefined);
         expect(auditSummary.completedThrough).to.equal('post-dispatch');
         expect(auditSummary.partial).to.equal(false);
+        expect(auditSummary.counts.dispatched).to.equal(undefined);
+        expect(auditSummary.actions.some((action: any) => action.phase === 'post' && action.status === 'succeeded')).to.equal(
+          true
+        );
       } finally {
         delete (globalThis as any).__effectHookOrder;
       }
@@ -1585,6 +1589,55 @@ describe('RecordsService', function () {
       expect(result.problems).to.deep.equal([]);
       expect(mockSails.log.error.calledWithMatch('record_hook_detached_action_failed')).to.equal(true);
       expect(JSON.stringify(mockSails.log.error.args)).not.to.include('detached secret');
+    });
+
+    it('queues the terminal detached outcome instead of a dispatch-only audit result', async function () {
+      mockQueueService.now.resetHistory();
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Detached audit' } },
+        recordTypeWithHooks({
+          onCreate: { post: [{ function: '() => { throw new Error("detached audit secret"); }' }] },
+        }),
+        { username: 'user-1' }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.outcome).to.equal('saved');
+      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      expect(summary.completedThrough).to.equal('post-dispatch');
+      expect(summary.counts.dispatched).to.equal(undefined);
+      expect(summary.counts.failed).to.equal(1);
+      expect(summary.actions[0].status).to.equal('failed');
+      expect(summary.actions[0].durationMs).to.be.at.least(0);
+    });
+
+    it('does not let malformed detached post configuration block persistence', async function () {
+      const calls: string[] = [];
+      (globalThis as any).__effectDetachedCompatibility = calls;
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Malformed detached hook' } },
+          recordTypeWithHooks({
+            onCreate: {
+              post: [
+                { function: '({ invalid: true })' },
+                { function: '() => { globalThis.__effectDetachedCompatibility.push("valid"); }' },
+              ],
+            },
+          }),
+          { username: 'user-1' }
+        );
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect(result.outcome).to.equal('saved');
+        expect(calls).to.deep.equal(['valid']);
+      } finally {
+        delete (globalThis as any).__effectDetachedCompatibility;
+      }
     });
 
     it('preserves the trigger-flag asymmetry: disabled pre hooks do not disable post hooks', async function () {

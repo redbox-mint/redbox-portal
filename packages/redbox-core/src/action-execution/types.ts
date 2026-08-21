@@ -105,6 +105,8 @@ export interface ActionExecutionDependencies {
   uuid?: () => string;
   logger?: ActionExecutionLogger;
   supervisor?: ActionExecutionSupervisor;
+  /** Receives the terminal result of each detached action. */
+  onDetachedActionComplete?: (context: ActionExecutionContext, result: ActionExecutionResult) => void;
 }
 
 export interface ActionExecutionLogger {
@@ -116,6 +118,7 @@ export interface ActionExecutionLogger {
 
 export interface ActionExecutionSupervisor {
   register?: (fiber: unknown) => void;
+  unregister?: (fiber: unknown) => void;
   interruptAll?: () => void;
 }
 
@@ -146,6 +149,11 @@ export interface ActionExecutionOperation {
   reports: ActionExecutionReport[];
   startedAt: string;
   completedThrough?: 'pre' | 'persistence' | 'postSync' | 'post-dispatch';
+  /** In-memory lifecycle state for detached actions; never persisted directly. */
+  detachedPending?: number;
+  detachedResults?: ActionExecutionResult[];
+  onDetachedComplete?: () => void;
+  detachedCompletedAt?: string;
 }
 
 export const EMPTY_ACTION_COUNTS: ActionExecutionCounts = {
