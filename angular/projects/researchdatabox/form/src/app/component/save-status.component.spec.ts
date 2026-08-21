@@ -16,11 +16,17 @@ let formConfig: FormConfigFrame;
 
 describe('SaveStatusComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({
+    const { translationService } = await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
         "SaveStatusComponent": SaveStatusComponent,
       }
+    });
+    Object.assign(translationService.translationMap, {
+      '@dmpt-form-save-error': 'Error while saving: ',
+      '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
+      '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
+      '@record-save-save-not-applied': 'The changes were not saved.',
     });
     formConfig = {
       name: 'testing',
@@ -116,7 +122,7 @@ describe('SaveStatusComponent', () => {
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
     expect(el?.textContent).toContain('follow-up processing');
     expect(el?.textContent).toContain('The record was saved');
-    expect(el?.textContent).toContain('88888888-8888-4888-8888-888888888888');
+    expect(el?.textContent).not.toContain('88888888-8888-4888-8888-888888888888');
   });
 
   it('should keep an unknown save outcome visible through SaveStatusComponent', async () => {

@@ -1364,20 +1364,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     const problems = Array.isArray(response?.problems) ? response.problems : [];
     let firstMappedField: string | null = null;
+    const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {
-          const existingFormErrors = this.form.errors ?? {};
-          this.form.setErrors({
-            ...existingFormErrors,
-            [`server#${issueIndex}`]: {
-              class: 'server',
-              message: issue.message,
-              params: {},
-            },
-          });
+          formLevelErrors[`server#${issueIndex}`] = {
+            class: 'server',
+            message: issue.message,
+            params: {},
+          };
           issueIndex++;
           continue;
         }
@@ -1398,6 +1395,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     this.form.markAsDirty();
     this.broadcastFormStatus();
+    if (Object.keys(formLevelErrors).length > 0) {
+      this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
+      this.broadcastFormStatus(false);
+    }
     if (firstMappedField) {
       const entry = this.componentDefArr.find(candidate => {
         const name = candidate.name ?? candidate.compConfigJson?.name;
