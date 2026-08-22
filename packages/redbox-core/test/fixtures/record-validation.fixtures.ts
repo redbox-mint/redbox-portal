@@ -7,6 +7,7 @@ import type {
   RecordValidationResolutionMetric,
   RecordValidationServiceDependencies,
 } from '../../src/services/RecordValidationService';
+import type { FormValidatorSummaryErrors } from '@researchdatabox/sails-ng-common';
 
 export interface RecordValidationFixtureOptions {
   mode?: ValidationMode;
@@ -27,6 +28,7 @@ export interface RecordValidationFixture {
     startingSteps: number;
     workflowSteps: string[];
     forms: Array<{ formName: string; brand: string }>;
+    validatorGroups: string[][];
   };
 }
 
@@ -72,6 +74,7 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     startingSteps: 0,
     workflowSteps: [] as string[],
     forms: [] as Array<{ formName: string; brand: string }>,
+    validatorGroups: [] as string[][],
   };
   const metricEvents: RecordValidationResolutionMetric[] = [];
   const recordType =
@@ -112,6 +115,10 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
       } as unknown as FormAttributes;
     },
     constructForm: async rawForm => rawForm as unknown as FormConfigOutline,
+    executeValidators: async (_form, groups): Promise<FormValidatorSummaryErrors[]> => {
+      calls.validatorGroups.push([...groups]);
+      return [];
+    },
   };
   return {
     request: {
