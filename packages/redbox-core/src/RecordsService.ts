@@ -66,6 +66,7 @@ export interface RecordsService {
   triggerPostSaveTriggers(oid: string, record: RecordInput, recordType: Record<string, unknown>, mode: string, user: UserInput): void;
   triggerPostSaveSyncTriggers(oid: string, record: AnyRecord, recordType: unknown, mode: string, user: Record<string, unknown>, response: unknown): unknown;
   hasEditAccess(brand: unknown, user: UserInput, roles: AnyRecord[], record: RecordInput): boolean;
+  hasTransitionRoleAuthorization(step: unknown, user: UserInput): boolean;
   hasViewAccess(brand: unknown, user: UserInput, roles: object[], record: RecordInput): boolean;
   appendToRecord(targetRecordOid: string, linkData: AnyRecord, fieldName: string, fieldType: string, targetRecord: RecordInput): Promise<unknown>;
   setWorkflowStepRelatedMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;

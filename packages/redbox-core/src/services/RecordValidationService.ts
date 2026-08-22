@@ -20,8 +20,13 @@ import {
   ReusableFormDefinitions,
   ValidationMode,
   ValidationOperationDefinition,
+  ValidationOperationDiscovery,
   ValidationOperationOverride,
   ValidationOperationPolicyOverride,
+  compareRecordValidationIdentifiers,
+  RECORD_VALIDATION_REFERENCE_PATTERN,
+  sanitizeValidationOperationDiscovery,
+  VALIDATION_OPERATION_NAME_PATTERN,
   sanitizeRecordSaveIssue,
   SuggestedValidationSummaryComponentName,
   ValidatorsSupport,
@@ -112,6 +117,25 @@ export interface RecordValidationRequest {
   readonly allowedRequestParameterNames?: readonly string[];
   readonly runtimeContext?: Readonly<Record<string, RecordValidationJSONValue>>;
   readonly requestId?: string;
+}
+
+/**
+ * Read-only operation discovery for one authoritative save context.
+ *
+ * Callers must supply edit and transition decisions produced by the existing
+ * record/workflow authorization layer. Operation policy can only narrow those
+ * decisions; it can never manufacture record access.
+ */
+export interface RecordValidationOperationDiscoveryRequest {
+  readonly candidate: RecordValidationCandidate;
+  readonly writeKind: RecordValidationWriteKind;
+  /** Optional narrowing to one actor-authorized transition target. */
+  readonly targetStep?: string;
+  readonly currentStep?: string;
+  readonly actor: RecordValidationActor;
+  readonly canEdit: boolean;
+  /** Actor-authorized transition targets to evaluate in this single discovery run. */
+  readonly authorizedTargetSteps?: readonly string[];
 }
 
 export interface RecordValidationExpressionContext {
@@ -270,6 +294,7 @@ export interface RecordValidationServiceDependencies {
   loadRecordType(brand: string, recordType: string): Promise<RecordTypeLike | null>;
   loadStartingWorkflowStep(recordType: RecordTypeLike): Promise<WorkflowStepLike | null>;
   loadWorkflowStep(recordType: RecordTypeLike, step: string): Promise<WorkflowStepLike | null>;
+  loadWorkflowSteps(recordType: RecordTypeLike): Promise<readonly WorkflowStepLike[]>;
   loadForm(formName: string, brand: string): Promise<FormAttributes | null>;
   constructForm(
     form: FormConfigFrame,
@@ -290,6 +315,8 @@ interface NormalizedRecordValidationRequest {
   readonly targetStep?: string;
   readonly currentStep?: string;
   readonly actorRoles: readonly string[];
+  /** Missing current workflow configuration is fatal for policy discovery. */
+  readonly requireResolvedWorkflowStep: boolean;
 }
 
 type ParsedOptionalString = { readonly ok: true; readonly value?: string } | { readonly ok: false };
@@ -331,8 +358,6 @@ type BuildResultOptions =
       readonly contractFailure?: boolean;
     };
 
-const SAFE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-const SAFE_OPERATION_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
 const SAFE_FIELD_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const SAFE_VALIDATOR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_.#-]{0,127}$/;
 const SAFE_TRANSLATION_KEY_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/;
@@ -425,7 +450,14 @@ function createDiagnostic(
 }
 
 function safeRequestId(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length <= 128 && SAFE_REFERENCE_PATTERN.test(value) ? value : undefined;
+  return typeof value === 'string' && value.length <= 128 && RECORD_VALIDATION_REFERENCE_PATTERN.test(value)
+    ? value
+    : undefined;
+}
+
+function safeLogReference(value: unknown): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized) ? normalized : 'unavailable';
 }
 
 function applyPolicyLayer(
@@ -532,7 +564,13 @@ function referencesBrowserOnlyJSONataContext(source: string): boolean {
 export namespace Services {
   /** Side-effect-free authoritative form/policy/context/group resolver. */
   export class RecordValidation extends services.Core.Service {
-    protected override _exportedMethods = ['resolve', 'registerMetricsHooks', 'clearCaches', 'getCacheStats'];
+    protected override _exportedMethods = [
+      'resolve',
+      'discoverOperations',
+      'registerMetricsHooks',
+      'clearCaches',
+      'getCacheStats',
+    ];
     private readonly metricsHooks = new Set<RecordValidationMetricsHooks>();
     private readonly formDefinitionCache = new Map<string, CachedFormDefinition>();
     private readonly expressionCache = new Map<string, jsonata.Expression>();
@@ -588,6 +626,227 @@ export namespace Services {
           formName: progress.formName,
         });
       }
+    }
+
+    /**
+     * Resolve public operation metadata without executing expressions or
+     * validators. Any incomplete/malformed context fails to an empty list so
+     * discovery cannot become an authorization oracle or leak diagnostics.
+     */
+    public async discoverOperations(
+      request: RecordValidationOperationDiscoveryRequest
+    ): Promise<ValidationOperationDiscovery[]> {
+      if (!request.canEdit || !request.actor.authenticated) return [];
+      try {
+        return await this.discoverOperationsForContext(request);
+      } catch (error: unknown) {
+        const type = error instanceof Error ? error.name : typeof error;
+        const recordType = safeLogReference(request.candidate.metaMetadata.type);
+        const form = safeLogReference(request.candidate.metaMetadata.form);
+        this.logger.warn(
+          `Record validation operation discovery could not be completed` +
+          ` (recordType=${recordType}, form=${form}, errorType=${type}).`
+        );
+        return [];
+      }
+    }
+
+    private async discoverOperationsForContext(
+      request: RecordValidationOperationDiscoveryRequest
+    ): Promise<ValidationOperationDiscovery[]> {
+      const diagnostics: RecordValidationDiagnostic[] = [];
+      const normalized = this.normalizeRequest(
+        {
+          candidate: request.candidate,
+          writeKind: request.writeKind,
+          targetStep: request.targetStep,
+          currentStep: request.currentStep,
+          actor: request.actor,
+        },
+        diagnostics,
+        true
+      );
+      if (!normalized) return [];
+      if (request.writeKind === 'transition' && !normalized.targetStep) return [];
+
+      const brand = this.requiredReference(request.candidate.metaMetadata.brandId, 'brand', diagnostics);
+      const recordTypeName = this.requiredReference(request.candidate.metaMetadata.type, 'recordType', diagnostics);
+      if (!brand || !recordTypeName) return [];
+
+      const dependencies = this.dependencies();
+      const recordType = await dependencies.loadRecordType(brand, recordTypeName);
+      if (!recordType) return [];
+      const authorizedTargets = new Set(
+        normalizeUniqueStrings(request.authorizedTargetSteps)
+          ?.filter(step => RECORD_VALIDATION_REFERENCE_PATTERN.test(step)) ?? []
+      );
+      if (normalized.targetStep && !authorizedTargets.has(normalized.targetStep)) return [];
+
+      // Load workflow configuration once, then resolve the base and all
+      // actor-authorized targets against the in-memory set. This bounds query
+      // work independently of the number of authorized transitions.
+      const workflowSteps = await dependencies.loadWorkflowSteps(recordType);
+      const workflowStepByName = new Map<string, WorkflowStepLike>();
+      for (const step of workflowSteps) {
+        const name = typeof step.name === 'string' ? step.name.trim() : '';
+        if (RECORD_VALIDATION_REFERENCE_PATTERN.test(name)) workflowStepByName.set(name, step);
+      }
+      const workflowStepLookups = new Map<string, Promise<WorkflowStepLike | null>>();
+      for (const [name, step] of workflowStepByName) {
+        workflowStepLookups.set(name, Promise.resolve(step));
+      }
+      const fallbackWorkflowSteps = new Set<string>();
+      const candidateWorkflowStep = request.candidate.workflow?.stage;
+      if (
+        typeof candidateWorkflowStep === 'string' &&
+        RECORD_VALIDATION_REFERENCE_PATTERN.test(candidateWorkflowStep.trim())
+      ) {
+        fallbackWorkflowSteps.add(candidateWorkflowStep.trim());
+      }
+      if (normalized.targetStep) fallbackWorkflowSteps.add(normalized.targetStep);
+      const loadWorkflowStep = async (step: string): Promise<WorkflowStepLike | null> => {
+        const cached = workflowStepLookups.get(step);
+        if (cached) return await cached;
+        if (!fallbackWorkflowSteps.has(step)) {
+          workflowStepLookups.set(step, Promise.resolve(null));
+          return null;
+        }
+        const lookup = dependencies.loadWorkflowStep(recordType, step);
+        workflowStepLookups.set(step, lookup);
+        return await lookup;
+      };
+      const discoveryDependencies: RecordValidationServiceDependencies = {
+        ...dependencies,
+        loadWorkflowStep: async (_recordType, step) => await loadWorkflowStep(step),
+        loadStartingWorkflowStep: async () =>
+          workflowSteps.find(step => step.starting === true) ?? dependencies.loadStartingWorkflowStep(recordType),
+      };
+      const contexts: NormalizedRecordValidationRequest[] = normalized.targetStep
+        ? [normalized]
+        : [
+            normalized,
+            ...[...authorizedTargets]
+              .sort(compareRecordValidationIdentifiers)
+              .map(targetStep => ({
+                ...normalized,
+                source: {
+                  ...normalized.source,
+                  writeKind: request.writeKind === 'create' ? 'create' as const : 'transition' as const,
+                  targetStep,
+                },
+                targetStep,
+              })),
+          ];
+
+      const resolvedContexts: Array<{
+        request: NormalizedRecordValidationRequest;
+        selection: ResolvedFormSelection;
+      }> = [];
+      for (const context of contexts) {
+        const contextDiagnostics: RecordValidationDiagnostic[] = [];
+        const selection = await this.resolveFormSelection(
+          context,
+          recordType,
+          contextDiagnostics,
+          discoveryDependencies
+        );
+        if (selection) resolvedContexts.push({ request: context, selection });
+      }
+
+      const constructedForms = new Map<string, FormConfigOutline | null>();
+      const getConstructedForm = async (formName: string): Promise<FormConfigOutline | null> => {
+        if (constructedForms.has(formName)) return constructedForms.get(formName) ?? null;
+        let constructed: FormConfigOutline | null = null;
+        try {
+          const loadedForm = await dependencies.loadForm(formName, brand);
+          const form = this.cacheResolvedForm(loadedForm, formName, brand);
+          if (form?.configuration) {
+            constructed = await dependencies.constructForm(
+              form.configuration,
+              request.candidate.metadata,
+              sails.config.reusableFormDefinitions ?? {}
+            );
+          }
+        } catch (error: unknown) {
+          const errorType = safeLogReference(error instanceof Error ? error.name : typeof error);
+          this.logger.warn(
+            `Validation operation discovery form construction was safely omitted` +
+            ` (recordType=${safeLogReference(recordTypeName)},` +
+            ` form=${safeLogReference(formName)}, errorType=${errorType}).`
+          );
+          constructed = null;
+        }
+        constructedForms.set(formName, constructed);
+        return constructed;
+      };
+
+      const merged = new Map<string, {
+        operation: ValidationOperationDiscovery;
+        metadataPrecedence: string;
+      }>();
+      for (const context of resolvedContexts) {
+        const constructedForm = await getConstructedForm(context.selection.formName);
+        const formOperations = constructedForm?.validationOperations;
+        if (!formOperations || typeof formOperations !== 'object' || Array.isArray(formOperations)) continue;
+        for (const name of Object.keys(formOperations).sort(compareRecordValidationIdentifiers)) {
+          if (!VALIDATION_OPERATION_NAME_PATTERN.test(name)) continue;
+          const operationDiagnostics: RecordValidationDiagnostic[] = [];
+          const policy = this.resolveOperationPolicy(
+            name,
+            formOperations,
+            recordType.recordValidation?.operations,
+            this.workflowOperationOverrides(context.selection.workflowConfig),
+            operationDiagnostics
+          );
+          if (!policy || operationDiagnostics.some(item => item.severity === 'error')) continue;
+          const operationRequest: NormalizedRecordValidationRequest = { ...context.request, operation: name };
+          if (!this.authorizeOperation(policy, operationRequest, operationDiagnostics)) continue;
+
+          // A target is advertised only from that target's authoritative form
+          // context. The base update/create context keeps the operation
+          // discoverable without implying that every actor-authorized target
+          // defines it.
+          const contextTargets = new Set(
+            context.request.targetStep ? [context.request.targetStep] : []
+          );
+          const policyTargets = policy.allowedTargetSteps === undefined
+            ? [...contextTargets]
+            : policy.allowedTargetSteps.filter(step => contextTargets.has(step));
+          const safeOperation = sanitizeValidationOperationDiscovery({
+            name,
+            label: policy.label,
+            description: policy.description,
+            allowedTargetSteps: policyTargets,
+          }, authorizedTargets);
+          if (!safeOperation) continue;
+          const existing = merged.get(name);
+          // Prefer the current/base form's presentation metadata. If an
+          // operation exists only on target forms, the lexically first target
+          // wins. Target lists are still unioned across every defining form.
+          const metadataPrecedence = context.request.targetStep
+            ? `1:${context.request.targetStep}:${context.selection.formName}`
+            : `0:${context.selection.formName}`;
+          const presentation = !existing || metadataPrecedence < existing.metadataPrecedence
+            ? safeOperation
+            : existing.operation;
+          const mergedTargets = [...new Set([
+            ...(existing?.operation.allowedTargetSteps ?? []),
+            ...(safeOperation.allowedTargetSteps ?? []),
+          ])].sort(compareRecordValidationIdentifiers);
+          merged.set(name, {
+            operation: {
+              ...presentation,
+              ...(mergedTargets.length > 0 ? { allowedTargetSteps: mergedTargets } : {}),
+            },
+            metadataPrecedence: existing && existing.metadataPrecedence < metadataPrecedence
+              ? existing.metadataPrecedence
+              : metadataPrecedence,
+          });
+        }
+      }
+      return [...merged.values()].map(({ operation }) => operation).sort((left, right) =>
+        compareRecordValidationIdentifiers(left.name, right.name)
+      );
     }
 
     private async resolveRequest(
@@ -871,6 +1130,8 @@ export namespace Services {
           (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as WorkflowStepLike | null,
         loadWorkflowStep: async (recordType, step) =>
           (await firstValueFrom(WorkflowStepsService.get(recordType, step))) as WorkflowStepLike | null,
+        loadWorkflowSteps: async recordType =>
+          (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) as WorkflowStepLike[],
         loadForm: async (formName, brand) => await firstValueFrom(FormsService.getFormByName(formName, true, brand)),
         constructForm: async (form, metadata, reusableFormDefinitions) =>
           await new ConstructFormConfigVisitor(this.logger).start({
@@ -893,7 +1154,8 @@ export namespace Services {
 
     private normalizeRequest(
       request: RecordValidationRequest,
-      diagnostics: RecordValidationDiagnostic[]
+      diagnostics: RecordValidationDiagnostic[],
+      requireResolvedWorkflowStep = false
     ): NormalizedRecordValidationRequest | undefined {
       const operation = this.normalizeOperation(request.validationOperation, diagnostics);
       const targetStep = this.optionalStepReference(request.targetStep, diagnostics);
@@ -906,6 +1168,7 @@ export namespace Services {
         targetStep: targetStep.value,
         currentStep: currentStep.value,
         actorRoles: normalizeRoles(request.actor.roles),
+        requireResolvedWorkflowStep: requireResolvedWorkflowStep || operation.value !== undefined,
       };
     }
 
@@ -921,7 +1184,7 @@ export namespace Services {
         return { ok: false };
       }
       const operation = value.trim();
-      if (!SAFE_OPERATION_PATTERN.test(operation)) {
+      if (!VALIDATION_OPERATION_NAME_PATTERN.test(operation)) {
         diagnostics.push(
           createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed,
@@ -951,7 +1214,7 @@ export namespace Services {
         return undefined;
       }
       const normalized = value.trim();
-      if (!SAFE_REFERENCE_PATTERN.test(normalized)) {
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized)) {
         diagnostics.push(createDiagnostic(malformedCode, `The candidate ${kind} reference is malformed.`));
         return undefined;
       }
@@ -963,7 +1226,7 @@ export namespace Services {
       diagnostics: RecordValidationDiagnostic[]
     ): ParsedOptionalString {
       if (value === undefined || value === null) return { ok: true };
-      if (typeof value !== 'string' || !SAFE_REFERENCE_PATTERN.test(value.trim())) {
+      if (typeof value !== 'string' || !RECORD_VALIDATION_REFERENCE_PATTERN.test(value.trim())) {
         diagnostics.push(
           createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed,
@@ -1028,7 +1291,7 @@ export namespace Services {
         return undefined;
       }
       const normalized = formName.trim();
-      if (!SAFE_REFERENCE_PATTERN.test(normalized)) {
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized)) {
         diagnostics.push(
           createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed,
@@ -1048,10 +1311,10 @@ export namespace Services {
             createDiagnostic(
               RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound,
               'The candidate workflow step could not be resolved.',
-              { severity: request.operation ? 'error' : 'warning' }
+              { severity: request.requireResolvedWorkflowStep ? 'error' : 'warning' }
             )
           );
-          if (request.operation) return undefined;
+          if (request.requireResolvedWorkflowStep) return undefined;
         } else {
           workflowConfig = step.config;
         }
@@ -1073,7 +1336,7 @@ export namespace Services {
         );
         return undefined;
       }
-      if (!SAFE_REFERENCE_PATTERN.test(formName)) {
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(formName)) {
         diagnostics.push(
           createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed,

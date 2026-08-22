@@ -27,6 +27,7 @@ export interface RecordValidationFixture {
     recordTypes: Array<{ brand: string; recordType: string }>;
     startingSteps: number;
     workflowSteps: string[];
+    workflowStepLists: number;
     forms: Array<{ formName: string; brand: string }>;
     validatorGroups: string[][];
   };
@@ -73,6 +74,7 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     recordTypes: [] as Array<{ brand: string; recordType: string }>,
     startingSteps: 0,
     workflowSteps: [] as string[],
+    workflowStepLists: 0,
     forms: [] as Array<{ formName: string; brand: string }>,
     validatorGroups: [] as string[][],
   };
@@ -81,11 +83,11 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     options.recordType === undefined
       ? { id: 'record-type-1', name: 'dataset', recordValidation: { mode: options.mode } }
       : options.recordType;
-  const startingStep =
+  const startingStep: Record<string, unknown> | null =
     options.startingStep === undefined
       ? { name: 'draft', starting: true, config: { form: 'dataset-2.4-draft', workflow: { stage: 'draft' } } }
       : options.startingStep;
-  const workflowSteps = {
+  const workflowSteps: Record<string, Record<string, unknown> | null> = {
     draft: { name: 'draft', config: { form: 'dataset-2.4-draft', workflow: { stage: 'draft' } } },
     review: { name: 'review', config: { form: 'dataset-2.4-review', workflow: { stage: 'review' } } },
     published: { name: 'published', config: { form: 'dataset-2.4-published', workflow: { stage: 'published' } } },
@@ -102,7 +104,18 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     },
     loadWorkflowStep: async (_recordType, step) => {
       calls.workflowSteps.push(step);
-      return (workflowSteps as Record<string, unknown>)[step] as never;
+      return workflowSteps[step] as never;
+    },
+    loadWorkflowSteps: async () => {
+      calls.workflowStepLists += 1;
+      const steps = Object.values(workflowSteps).filter((step): step is Record<string, unknown> => step !== null);
+      if (startingStep) {
+        const startingStepName = typeof startingStep.name === 'string' ? startingStep.name : '';
+        const existingIndex = steps.findIndex(step => step.name === startingStepName);
+        if (existingIndex >= 0) steps[existingIndex] = { ...steps[existingIndex], starting: true };
+        else steps.push(startingStep);
+      }
+      return steps as never;
     },
     loadForm: async (formName, brand) => {
       calls.forms.push({ formName, brand });

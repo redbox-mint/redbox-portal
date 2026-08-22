@@ -29,6 +29,7 @@ export {
     isInternalRecordValidationBypass,
     isCanonicalSaveRequestId,
     isRecordValidationBypassReason,
+    parsePublicValidationOperation,
     readSaveRequestId,
     recordSaveFailureStatus,
     recordSaveProblem,
@@ -42,6 +43,7 @@ export type {
     InternalRecordValidationBypass,
     RecordValidationBypassReason,
     StorageMutationLogger,
+    PublicValidationOperationParseResult,
 } from "./RecordSaveResponse";
 export {
     DatastreamServiceResponse

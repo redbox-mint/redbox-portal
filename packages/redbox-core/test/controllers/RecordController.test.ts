@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
+import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -57,6 +58,7 @@ describe('RecordController getWorkflowSteps', () => {
       getFormByStartingWorkflowStep: sinon.stub(),
       getFormByName: sinon.stub(),
       buildClientFormConfig: sinon.stub(),
+      discoverValidationOperations: sinon.stub(),
     };
     (global as any).FormRecordConsistencyService = {
       projectMetadataClientFormConfig: sinon.stub(),
@@ -357,6 +359,86 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendViewStub.calledOnce).to.be.true;
     expect(sendViewStub.firstCall.args[2]).to.equal('record/edit');
     expect(sendViewStub.firstCall.args[3]).to.deep.include({ title: 'Create RDMP | Site' });
+  });
+
+  it('maps only the browser operation query to validationOperation while preserving CRUD intent', function () {
+    const req = {
+      query: { operation: ' submit ' },
+      headers: {},
+      body: { operation: 'body-must-not-control-validation' },
+    } as unknown as Sails.Req;
+    const parsed = (controller as any).publicValidationOperation(req);
+    const context = (controller as any).saveContext(req, 'transition', parsed.value);
+
+    expect(parsed).to.deep.equal({ valid: true, value: 'submit' });
+    expect(context.operation).to.equal('transition');
+    expect(context.validationOperation).to.equal('submit');
+    expect((controller as any).publicValidationOperation({ query: {} })).to.deep.equal({ valid: true });
+    expect((controller as any).publicValidationOperation({
+      query: { operation: 'bad operation' },
+    })).to.deep.equal({ valid: false });
+  });
+
+  it('keeps the literal v1 failure body while exposing typed v2 failures', function () {
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000010');
+    result.outcome = 'not-saved';
+    result.problems = [{
+      kind: 'validation',
+      phase: 'pre-save',
+      issues: [{ message: '@validation-failed' }],
+    }];
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    (controller as any).sendSaveFailure(
+      { headers: { 'X-ReDBox-Api-Version': '1.0' } },
+      {},
+      result,
+      'Failed to save record'
+    );
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 500,
+      v1: { message: 'Failed to save record' },
+    });
+
+    sendResp.resetHistory();
+    (controller as any).sendSaveFailure(
+      { headers: { 'X-ReDBox-Api-Version': '2.0' } },
+      {},
+      result,
+      'Failed to save record'
+    );
+    expect(sendResp.firstCall.args[2]).to.deep.include({
+      status: 400,
+      displayErrors: [{ detail: 'Failed to save record' }],
+    });
+    expect(sendResp.firstCall.args[2]).not.to.have.property('v1');
+  });
+
+  it('preserves the form-configuration failure response before operation discovery', async function () {
+    (global as any).FormsService.getFormByStartingWorkflowStep.returns(of({
+      name: 'dataset-draft',
+      configuration: null,
+    }));
+    const req = {
+      param: sinon.stub().callsFake((name: string) =>
+        name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined
+      ),
+      query: { edit: 'true' },
+      session: { branding: 'default' },
+      user: { username: 'alice', roles: [] },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getForm(req, {} as Sails.Res);
+
+    const message = 'Form configuration not found for form dataset-draft, record type dataset, oid null';
+    expect(sendResp.calledOnceWith(req, sinon.match.any, {
+      status: 500,
+      displayErrors: [{ detail: message }],
+      v1: { message },
+    })).to.equal(true);
+    expect((global as any).FormsService.buildClientFormConfig.called).to.equal(false);
+    expect((global as any).FormsService.discoverValidationOperations.called).to.equal(false);
   });
 
   it('returns 400 when record type is missing after normalization', async () => {

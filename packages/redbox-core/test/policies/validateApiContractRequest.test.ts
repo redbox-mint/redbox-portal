@@ -125,6 +125,29 @@ describe('validateApiContractRequest policy', function () {
         expect((res.body as { message?: string }).message).to.equal('query.name');
     });
 
+    it('returns stable sanitized operation contract failures for both API versions', function () {
+        for (const apiVersion of ['1.0', '2.0']) {
+            const req = createReq({
+                method: 'POST',
+                path: '/default/rdmp/api/records/metadata/dataset',
+                originalUrl: '/default/rdmp/api/records/metadata/dataset',
+                url: '/default/rdmp/api/records/metadata/dataset',
+                route: { path: '/:branding/:portal/api/records/metadata/:recordType' },
+                params: { branding: 'default', portal: 'rdmp', recordType: 'dataset' },
+                query: { operation: 'malformed operation secret' },
+                headers: { 'x-redbox-api-version': apiVersion },
+                body: {},
+            });
+            const res = createRes();
+
+            validateApiContractRequest(req, res, () => undefined);
+
+            expect(res.statusCode).to.equal(400);
+            expect(JSON.stringify(res.body)).to.include('record-validation-operation-invalid');
+            expect(JSON.stringify(res.body)).not.to.include('malformed operation secret');
+        }
+    });
+
     it('returns 400 for invalid body', function () {
         const req = createReq({
             method: 'POST',

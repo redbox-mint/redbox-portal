@@ -36,8 +36,11 @@ import {
   harvestRunEventSchema,
   harvestRunSummarySchema,
   listApiResponseSchema,
+  recordSaveFailureResponseSchema,
+  recordSaveIssueSchema,
   storageServiceResponseSchema,
   userApiTokenApiResponseSchema,
+  validationOperationDiscoverySchema,
 } from '../../src/api-routes/schemas/common';
 import { getFormRoute, listFormsRoute } from '../../src/api-routes/groups/forms';
 import { sendNotificationRoute } from '../../src/api-routes/groups/notifications';
@@ -52,7 +55,12 @@ import {
 } from '../../src/api-routes/groups/admin';
 import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-routes/groups/appconfig';
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
-import { listRecordsRoute, updateMetaRoute } from '../../src/api-routes/groups/records';
+import {
+  createRecordRoute,
+  listRecordsRoute,
+  transitionWorkflowRoute,
+  updateMetaRoute,
+} from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
 
@@ -508,7 +516,71 @@ describe('API routes contract layer', async () => {
     expect(created.headers).to.have.property('Location');
   });
 
+  it('validates and documents the optional operation query on every record save route', function () {
+    for (const route of [createRecordRoute, updateMetaRoute, transitionWorkflowRoute]) {
+      const missing = validateApiRouteRequest({
+        params: route === createRecordRoute
+          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+          : route === transitionWorkflowRoute
+            ? { targetStep: 'review', oid: 'record-1' }
+            : { oid: 'record-1' },
+        query: {},
+        headers: {},
+        body: {},
+      } as unknown as Sails.Req, route);
+      expect(missing.valid).to.equal(true);
+
+      const supplied = validateApiRouteRequest({
+        params: route === createRecordRoute
+          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+          : route === transitionWorkflowRoute
+            ? { targetStep: 'review', oid: 'record-1' }
+            : { oid: 'record-1' },
+        query: { operation: ' Submit.v2 ' },
+        headers: {},
+        body: {},
+      } as unknown as Sails.Req, route);
+      expect(supplied.valid).to.equal(true);
+      if (supplied.valid) expect(supplied.query.operation).to.equal(' Submit.v2 ');
+
+      const malformed = validateApiRouteRequest({
+        params: route === createRecordRoute
+          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+          : route === transitionWorkflowRoute
+            ? { targetStep: 'review', oid: 'record-1' }
+            : { oid: 'record-1' },
+        query: { operation: 'bad operation with spaces' },
+        headers: {},
+        body: {},
+      } as unknown as Sails.Req, route);
+      expect(malformed.valid).to.equal(false);
+      if (!malformed.valid) {
+        expect(malformed.issues).to.deep.include({
+          path: 'query.operation',
+          message: 'record-validation-operation-invalid',
+        });
+        expect(JSON.stringify(malformed.issues)).not.to.include('bad operation with spaces');
+      }
+    }
+
+    const document = buildCoreApiOpenApiDocument();
+    for (const [path, method] of [
+      ['/{branding}/{portal}/api/records/metadata/{recordType}', 'post'],
+      ['/{branding}/{portal}/api/records/metadata/{oid}', 'put'],
+      ['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}', 'post'],
+    ] as const) {
+      const operation = asOpenApiOperation(document.paths[path]?.[method]);
+      const parameter = operation.parameters?.find(item => item.name === 'operation');
+      expect(parameter, `${method.toUpperCase()} ${path}`).to.exist;
+      expect(parameter).not.to.have.property('required', true);
+      expect(parameter?.schema?.maxLength).to.equal(64);
+      expect(parameter?.schema?.pattern).to.equal('^[A-Za-z][A-Za-z0-9._-]{0,63}$');
+      expect(operation.responses).to.include.all.keys('400', '403', '500');
+    }
+  });
+
   it('should model the legacy response envelopes', function () {
+    expect(apiErrorResponseSchema.safeParse({ message: 'Boom' }).success).to.equal(true);
     expect(apiErrorResponseSchema.safeParse({ message: 'Boom', details: 'Something failed' }).success).to.equal(true);
     expect(apiActionResponseSchema.safeParse({ message: 'Done', details: '' }).success).to.equal(true);
     expect(apiObjectActionResponseSchema.safeParse({ oid: 'record-1', message: 'Queued', details: '' }).success).to.equal(true);
@@ -636,6 +708,29 @@ describe('API routes contract layer', async () => {
       totalItems: 0,
       items: [],
     }).success).to.equal(true);
+    expect(validationOperationDiscoverySchema.safeParse({
+      name: 'submit',
+      label: 'Submit',
+      description: 'Send for review',
+      allowedTargetSteps: ['review'],
+    }).success).to.equal(true);
+    expect(validationOperationDiscoverySchema.safeParse({
+      name: 'bad operation',
+      roles: ['Admin'],
+      enabledValidationGroups: ['secret'],
+    }).success).to.equal(false);
+    expect(recordSaveIssueSchema.safeParse({
+      code: 'required',
+      message: '@validation-required',
+      class: 'RequiredValidator',
+      params: { minimum: 1 },
+      targetField: { dataModel: ['metadata', 'title'] },
+    }).success).to.equal(true);
+    expect(recordSaveIssueSchema.safeParse({
+      message: '@validation-required',
+      exceptionText: 'database password',
+      rawOutput: { title: 'sensitive value' },
+    }).success).to.equal(false);
     expect(createUserApiResponseSchema.safeParse({ id: '1', username: 'user', name: 'User', email: 'user@example.org', type: 'local', lastLogin: null }).success).to.equal(true);
     expect(userApiTokenApiResponseSchema.safeParse({ id: '1', username: 'user', token: 'secret' }).success).to.equal(true);
     expect(listApiResponseSchema(anyField()).safeParse({ summary: { numFound: 1, page: 1, start: 0 }, records: [{ id: 1 }] }).success).to.equal(true);
@@ -694,6 +789,13 @@ describe('API routes contract layer', async () => {
     expect(recordsListSchema.properties).to.have.property('records');
     expect(asOpenApiSchema(recordsListSchema.properties?.records).items?.properties).to.have.property('oid');
     expect(asOpenApiSchema(recordsListSchema.properties?.records).items?.properties).to.have.property('hasEditAccess');
+
+    const formRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/forms/get']?.get);
+    const formSchema = asOpenApiSchema(formRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const operationItem = asOpenApiSchema(asOpenApiSchema(formSchema.properties?.validationOperations).items);
+    expect(operationItem.properties).to.have.all.keys('name', 'label', 'description', 'allowedTargetSteps');
+    expect(operationItem.properties).not.to.have.property('roles');
+    expect(operationItem.properties).not.to.have.property('enabledValidationGroups');
 
     const brandingHistoryRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/branding/history']?.get);
     const brandingHistorySchema = asOpenApiSchema(brandingHistoryRoute.responses?.['200']?.content?.['application/json']?.schema);
@@ -904,6 +1006,47 @@ describe('API routes contract layer', async () => {
 
     const formNotFoundSchema = getFormRoute.responses?.[404]?.content?.['application/json']?.schema;
     expect(formNotFoundSchema?.safeParse({ message: 'Form not found', details: '' }).success).to.equal(true);
+  });
+
+  it('documents optional typed getForm discovery query parameters', function () {
+    const document = buildCoreApiOpenApiDocument();
+    const operation = document.paths['/{branding}/{portal}/api/forms/get']?.get as OpenApiOperation;
+    const queryParameters = new Map(
+      (operation.parameters ?? [])
+        .filter(parameter => !['branding', 'portal'].includes(parameter.name ?? ''))
+        .map(parameter => [parameter.name, parameter])
+    );
+
+    for (const name of ['oid', 'recordType', 'targetStep']) {
+      const parameter = queryParameters.get(name);
+      expect(parameter, name).to.exist;
+      expect((parameter as OpenApiParameter & { required?: boolean }).required).not.to.equal(true);
+      expect(parameter?.schema?.type).to.equal('string');
+      expect(parameter?.description ?? parameter?.schema?.description).to.be.a('string').and.not.equal('');
+    }
+
+    const valid = validateApiRouteRequest({
+      params: { branding: 'default', portal: 'rdmp' },
+      query: { name: 'dataset-draft', oid: 'oid-1', recordType: 'dataset', targetStep: 'review' },
+      headers: {},
+      body: {},
+    } as unknown as Sails.Req, getFormRoute);
+    expect(valid.valid).to.equal(true);
+
+    const invalid = validateApiRouteRequest({
+      params: { branding: 'default', portal: 'rdmp' },
+      query: { name: 'dataset-draft', oid: 42 },
+      headers: {},
+      body: {},
+    } as unknown as Sails.Req, getFormRoute);
+    expect(invalid.valid).to.equal(false);
+  });
+
+  it('accepts malformed-v1 request envelopes in record save failure contracts', function () {
+    expect(recordSaveFailureResponseSchema.safeParse({
+      message: 'Request validation failed',
+      details: 'The request did not match the API contract.',
+    }).success).to.equal(true);
   });
 
   it('should document vocabulary creation as a 201 response', function () {
