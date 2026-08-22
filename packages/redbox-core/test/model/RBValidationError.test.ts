@@ -98,6 +98,11 @@ describe('RBValidationError', function() {
   });
 
   describe('classify', function() {
+    it('classifies null and empty display errors as system failures', function() {
+      expect(RBValidationError.classify(null)).to.equal('system');
+      expect(RBValidationError.classify({ displayErrors: [] })).to.equal('system');
+    });
+
     it('prefers explicit classification over status and display evidence', function() {
       expect(
         RBValidationError.classify({
