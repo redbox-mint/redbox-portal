@@ -743,6 +743,102 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('attachment save helpers', function () {
+    it('assigns stable attachment IDs and rejects invalid or duplicate IDs', function () {
+      const record = {
+        metadata: {
+          attachments: [{ fileId: 'file-1' }, { attachmentId: 'valid-2', fileId: 'file-2' }],
+        },
+      };
+
+      (RecordsService as any).ensureAttachmentIds(record, ['attachments']);
+
+      expect(record.metadata.attachments[0].attachmentId).to.match(/^[0-9a-f-]{36}$/i);
+      expect(record.metadata.attachments[1].attachmentId).to.equal('valid-2');
+      expect(() => (RecordsService as any).ensureAttachmentIds(
+        { metadata: { attachments: [{ attachmentId: 'bad id', fileId: 'file-1' }] } },
+        ['attachments']
+      )).to.throw('Invalid attachment identity');
+      expect(() => (RecordsService as any).ensureAttachmentIds(
+        { metadata: { attachments: [
+          { attachmentId: 'same', fileId: 'file-1' },
+          { attachmentId: 'same', fileId: 'file-2' },
+        ] } },
+        ['attachments']
+      )).to.throw('Duplicate attachment identity');
+    });
+
+    it('plans unresolved work before replacements and deletions', function () {
+      const plan = (RecordsService as any).attachmentMutationPlan(
+        { metadata: { attachments: [{ attachmentId: 'old', fileId: 'old-file' }] } },
+        { metadata: { attachments: [
+          { attachmentId: 'new', fileId: 'new-file', pending: true },
+          { attachmentId: 'old', fileId: 'replacement-file' },
+        ] } },
+        ['attachments'],
+        'record-1',
+        'generation-1',
+        [{ attachmentId: 'retry', mutationFileId: 'retry-file', operation: 'finalize', mutationState: 'unknown', generation: 'retry-generation', attachmentField: 'attachments' }]
+      );
+
+      expect(plan.map((item: any) => `${item.operation}:${item.fileId}`)).to.deep.equal([
+        'finalize:retry-file',
+        'finalize:new-file',
+        'add:replacement-file',
+        'delete:old-file',
+      ]);
+    });
+
+    it('journals and executes add/delete attachment operations', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      const plan = [
+        { field: 'attachments', attachmentId: 'a', fileId: 'new-file', operation: 'add', generation: 'g', entry: { fileId: 'new-file' } },
+        { field: 'attachments', attachmentId: 'a', fileId: 'old-file', operation: 'delete', generation: 'g', entry: { fileId: 'old-file' } },
+      ];
+
+      await (RecordsService as any).prepareAttachmentJournal('record-1', plan);
+      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
+
+      expect(journal.prepareMutations.calledOnce).to.equal(true);
+      expect(result.map((item: any) => item.status)).to.deep.equal(['completed', 'completed']);
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+      expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
+      expect(journal.markMutation.callCount).to.equal(4);
+    });
+
+    it('reports unknown attachment work and tracks incomplete references', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().rejects(new Error('journal unavailable')),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
+      const plan = [{
+        field: 'attachments', attachmentId: 'a', fileId: 'file-1', operation: 'add', generation: 'g', entry: { fileId: 'file-1' },
+      }];
+
+      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
+
+      expect(result[0].status).to.equal('unknown');
+      expect(result[0].code).to.equal('attachment-operation-unknown');
+      expect(mockSails.log.error.called).to.equal(true);
+      expect((RecordsService as any).incompleteAttachmentItems(
+        [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
+        'reference-failed'
+      )).to.deep.equal([
+        { field: 'attachments', attachmentId: 'a', operation: 'add', status: 'incomplete', code: 'reference-failed' },
+      ]);
+    });
+  });
+
   describe('checkRedboxRunning', function () {
     it('should return true when storage plugin is configured', async function () {
       mockSails.config.storage = { serviceName: 'mongostorageservice' };
@@ -1067,6 +1163,162 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledBefore(mockDatastreamService.addDatastream)).to.equal(true);
       expect(journal.rebindOid.calledOnce).to.equal(true);
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+  });
+
+  describe('create save outcomes', function () {
+    it('returns a typed not-saved result for a storage rejection', async function () {
+      mockStorageService.create.resolves({ success: false, oid: 'new-record-123', applicationState: 'not-applied' });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: {} },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('save-not-applied');
+    });
+
+    it('returns an unknown result when storage cannot confirm a configured create', async function () {
+      mockStorageService.create.resolves({ success: false, oid: 'new-record-123' });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: {} },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('unknown');
+      expect(result.problems[0].issues[0].code).to.equal('save-unknown');
+    });
+
+    it('converts malformed create hooks into a pre-save problem', async function () {
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: {} },
+        { name: 'rdmp', hooks: { onCreate: { pre: [{ function: '({ invalid: true })' }] } }, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('invalid-hook-configuration');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('stops before persistence when the attachment journal cannot be prepared', async function () {
+      const markMutation = sinon.stub().resolves(true);
+      mockSails.services.attachmentmetadataservice = {
+        prepareMutations: sinon.stub().rejects(new Error('journal unavailable')),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation,
+      };
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { attachments: [{ fileId: 'file-1' }] } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('attachment-journal-failed');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(markMutation.calledOnce).to.equal(true);
+    });
+  });
+
+  describe('updateMeta save outcomes', function () {
+    const updateRecord = () => ({
+      metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+      metadata: {},
+      authorization: {},
+    });
+
+    beforeEach(function () {
+      (global as any).FormsService.getFormByName.returns(
+        of({ name: 'default-form', configuration: { attachmentFields: [] } })
+      );
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+    });
+
+    it('returns not-saved when update persistence is explicitly rejected', async function () {
+      mockStorageService.updateMeta.resolves({ success: false, applicationState: 'not-applied' });
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('save-not-applied');
+    });
+
+    it('returns unknown when update persistence is ambiguous', async function () {
+      mockStorageService.updateMeta.resolves({ success: false });
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+      );
+
+      expect(result.outcome).to.equal('unknown');
+      expect(result.problems[0].issues[0].code).to.equal('save-unknown');
+    });
+
+    it('returns a pre-save problem when update journal reconciliation cannot be read', async function () {
+      mockSails.services.attachmentmetadataservice = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().rejects(new Error('journal read failed')),
+      };
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('attachment-journal-failed');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('reports a warning when physical attachment work fails after metadata commits', async function () {
+      mockSails.services.attachmentmetadataservice = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
+      (global as any).FormsService.getFormByName.returns(
+        of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
+      );
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        metadata: { attachments: [{ attachmentId: 'a', fileId: 'new-file', pending: false }] },
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        { ...updateRecord(), metadata: { attachments: [{ attachmentId: 'a', fileId: 'old-file' }] } },
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { attachments: [{ attachmentId: 'a', fileId: 'new-file' }] }
+      );
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems[0].issues[0].code).to.equal('attachment-finalization-failed');
+      expect(result.completion.attachments.status).to.equal('unknown');
     });
   });
 

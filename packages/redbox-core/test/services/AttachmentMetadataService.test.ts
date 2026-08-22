@@ -14,9 +14,13 @@ describe('AttachmentMetadataService mutation journal', function () {
       updateOne: sinon.stub(),
       update: sinon.stub(),
       create: sinon.stub(),
+      destroy: sinon.stub(),
     };
     setupServiceTestGlobals(createMockSails({ services: {} }));
     (global as any).AttachmentMetadata = model;
+    (global as any).AttachmentAccessAudit = {
+      create: sinon.stub(),
+    };
 
     const { Services } = require('../../src/services/AttachmentMetadataService');
     service = new Services.AttachmentMetadataService();
@@ -24,6 +28,7 @@ describe('AttachmentMetadataService mutation journal', function () {
 
   afterEach(function () {
     delete (global as any).AttachmentMetadata;
+    delete (global as any).AttachmentAccessAudit;
     cleanupServiceTestGlobals();
     sinon.restore();
   });
@@ -178,5 +183,147 @@ describe('AttachmentMetadataService mutation journal', function () {
       mutationState: 'applied',
       generation: 'generation-1',
     });
+  });
+
+  it('updates an existing row when the storage key is already known', async function () {
+    model.findOne.resolves({ id: 'metadata-1' });
+    const set = sinon.stub().resolves();
+    model.updateOne.returns({ set });
+
+    await service.upsert({
+      oid: ' oid-1 ',
+      fileId: ' file-1 ',
+      storageKey: ' key-1 ',
+      contentType: ' text/plain ',
+      accessCount: 3,
+    });
+
+    expect(model.updateOne.calledOnceWithExactly({ id: 'metadata-1' })).to.equal(true);
+    expect(set.firstCall.args[0]).to.include({
+      oid: 'oid-1',
+      fileId: 'file-1',
+      storageKey: 'key-1',
+      contentType: 'text/plain',
+      accessCount: 3,
+    });
+    expect(model.create.notCalled).to.equal(true);
+  });
+
+  it('upgrades a matching legacy journal row without creating a duplicate', async function () {
+    model.findOne.onFirstCall().resolves(null);
+    model.findOne.onSecondCall().resolves({ id: 'legacy-journal' });
+    const set = sinon.stub().resolves();
+    model.updateOne.returns({ set });
+
+    await service.upsert({
+      oid: 'oid-1',
+      fileId: 'journal-a-g-legacy',
+      storageKey: 'journal/oid-1/a/g/new',
+      attachmentId: 'a',
+      generation: 'g',
+      mutationFileId: 'file-1',
+      operation: 'add',
+      mutationState: 'prepared',
+      isJournal: true,
+    });
+
+    expect(model.findOne.secondCall.args[0]).to.deep.equal({
+      oid: 'oid-1',
+      attachmentId: 'a',
+      generation: 'g',
+      mutationFileId: 'file-1',
+      isJournal: true,
+    });
+    expect(set.calledOnce).to.equal(true);
+    expect(model.create.notCalled).to.equal(true);
+  });
+
+  it('reuses a non-journal row for the same physical file', async function () {
+    model.findOne.resolves(null);
+    model.find.resolves([
+      { id: 'journal-row', isJournal: true },
+      { id: 'physical-row', isJournal: false },
+    ]);
+    const set = sinon.stub().resolves();
+    model.updateOne.returns({ set });
+
+    await service.upsert({
+      oid: 'oid-1',
+      fileId: 'file-1',
+      storageKey: 'new-prefix/file-1',
+    });
+
+    expect(model.find.calledOnceWithExactly({ oid: 'oid-1', fileId: 'file-1' })).to.equal(true);
+    expect(model.updateOne.calledOnceWithExactly({ id: 'physical-row' })).to.equal(true);
+    expect(model.create.notCalled).to.equal(true);
+  });
+
+  it('handles empty lookups and missing mutation rows safely', async function () {
+    expect(await service.findByOid('   ')).to.deep.equal([]);
+    expect(await service.findUnresolvedByOid('   ')).to.deep.equal([]);
+    expect(await service.findOneByStorageKey('   ')).to.be.undefined;
+    await service.deleteByStorageKey('   ');
+    expect(model.find.notCalled).to.equal(true);
+    expect(model.destroy.notCalled).to.equal(true);
+
+    expect(await service.markMutation('', 'a', 'g', 'pending')).to.equal(false);
+    model.findOne.resolves(null);
+    expect(await service.markMutation('oid-1', 'a', 'g', 'pending')).to.equal(false);
+    expect(model.updateOne.notCalled).to.equal(true);
+  });
+
+  it('rebinds journal rows only when both OIDs differ', async function () {
+    await service.rebindOid('', 'oid-2');
+    await service.rebindOid('oid-1', '');
+    await service.rebindOid('oid-1', 'oid-1');
+    expect(model.update.notCalled).to.equal(true);
+
+    const set = sinon.stub().resolves();
+    model.update.returns({ set });
+    await service.rebindOid('oid-1', 'oid-2');
+    expect(model.update.calledOnceWithExactly({ oid: 'oid-1' })).to.equal(true);
+    expect(set.calledOnceWithExactly({ oid: 'oid-2' })).to.equal(true);
+  });
+
+  it('records access audits and increments download counts', async function () {
+    const set = sinon.stub().resolves();
+    model.findOne.resolves({ id: 'metadata-1', accessCount: 2 });
+    model.updateOne.returns({ set });
+    const fetch = sinon.stub().resolves();
+    (global as any).AttachmentAccessAudit.create.returns({ fetch });
+
+    await service.recordAccess({
+      oid: ' oid-1 ',
+      fileId: ' file-1 ',
+      storageKey: ' key-1 ',
+      action: 'download',
+      accessedBy: ' user-1 ',
+      itemCount: '4' as any,
+    });
+
+    expect(set.firstCall.args[0]).to.include({ accessCount: 3, lastAccessedBy: 'user-1' });
+    expect((global as any).AttachmentAccessAudit.create.firstCall.args[0]).to.include({
+      oid: 'oid-1',
+      fileId: 'file-1',
+      storageKey: 'key-1',
+      action: 'download',
+      itemCount: 4,
+    });
+    expect(fetch.calledOnce).to.equal(true);
+  });
+
+  it('does not count list access and rethrows audit failures', async function () {
+    const fetch = sinon.stub().rejects(new Error('audit unavailable'));
+    (global as any).AttachmentAccessAudit.create.returns({ fetch });
+
+    let error: unknown;
+    try {
+      await service.recordAccess({ oid: 'oid-1', action: 'list' });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).to.be.an('error').with.property('message', 'audit unavailable');
+    expect(model.findOne.notCalled).to.equal(true);
   });
 });

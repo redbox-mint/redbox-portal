@@ -1,6 +1,10 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
-import { reduceAttachmentStatus } from '@researchdatabox/sails-ng-common';
+import {
+  emptyRecordSaveCompletion,
+  isRecordSaveOutcome,
+  reduceAttachmentStatus,
+} from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
   isCanonicalSaveRequestId,
@@ -102,6 +106,18 @@ describe('RecordSaveResponse', function () {
   });
 
   describe('attachment completion', function () {
+    it('creates the empty shared completion shape and validates outcomes', function () {
+      expect(emptyRecordSaveCompletion()).to.deep.equal({
+        attachments: { status: 'not-required', items: [] },
+      });
+      expect(isRecordSaveOutcome('saved')).to.equal(true);
+      expect(isRecordSaveOutcome('saved-with-warnings')).to.equal(true);
+      expect(isRecordSaveOutcome('not-saved')).to.equal(true);
+      expect(isRecordSaveOutcome('unknown')).to.equal(true);
+      expect(isRecordSaveOutcome('unexpected')).to.equal(false);
+      expect(isRecordSaveOutcome(null)).to.equal(false);
+    });
+
     it('reduces item facts deterministically', function () {
       expect(reduceAttachmentStatus([])).to.equal('not-required');
       expect(reduceAttachmentStatus([
