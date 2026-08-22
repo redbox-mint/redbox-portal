@@ -4844,6 +4844,16 @@
     "description": "Audit action label for record update events",
     "contentFormat": "plain"
   },
+  "@record-audit-action-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for an explicitly authorized record-validation bypass",
+    "contentFormat": "plain"
+  },
+  "@record-audit-action-batch-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for the unvalidated direct-storage batch path",
+    "contentFormat": "plain"
+  },
   "@record-audit-action-deleted": {
     "category": "view",
     "description": "Audit action label for soft delete events",
