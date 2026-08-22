@@ -21,6 +21,33 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
+  it('omits server-only validation operation policy from client form payloads', async function () {
+    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructed = await constructVisitor.start({
+      data: {
+        name: 'operation-policy-privacy',
+        componentDefinitions: [],
+        validationOperations: {
+          publish: {
+            label: '@publish',
+            description: '@publish-description',
+            enabledValidationGroups: ['publish', 'required'],
+            roles: ['Librarians'],
+            allowedTargetSteps: ['published'],
+          },
+        },
+      },
+      formMode: 'edit',
+    });
+    const visitor = new ClientFormConfigVisitor(logger);
+    const clientForm = await visitor.start({ form: constructed, formMode: 'edit' });
+
+    expect(clientForm).not.to.have.property('validationOperations');
+    expect(JSON.stringify(clientForm)).not.to.contain('Librarians');
+    expect(JSON.stringify(clientForm)).not.to.contain('"publish"');
+    expect(JSON.stringify(clientForm)).not.to.contain('"required"');
+  });
+
   describe("Repeatable Component", async () => {
     it(`should preserve repeatable zero-row config in client output`, async function () {
       const args: FormConfigFrame = {
