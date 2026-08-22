@@ -22,6 +22,8 @@ export class RecordAuditModel {
 export enum RecordAuditActionType {
     created = 'created',
     updated = 'updated',
+    validationBypassed = 'validation-bypassed',
+    batchValidationBypassed = 'batch-validation-bypassed',
     deleted = 'deleted',
     destroyed = 'destroyed',
     restored = 'restored'

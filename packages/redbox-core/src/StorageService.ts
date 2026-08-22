@@ -27,7 +27,11 @@ export interface StorageService {
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
 
-  createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
+  /**
+   * Persist an audit synchronously and report whether it was durably applied.
+   * Required because validation bypasses must fail closed before record storage.
+   */
+  createRecordAudit(record: unknown): Promise<StorageServiceResponse>;
   createIntegrationAudit?(record: unknown): Promise<StorageServiceResponse>;
   exists(oid: unknown): Promise<boolean>;
   getRecordAudit(params: unknown): Promise<unknown>;

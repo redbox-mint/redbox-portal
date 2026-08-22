@@ -24,8 +24,11 @@ export {
 export {
     RecordSaveResponse,
     RecordSaveTracker,
+    RECORD_VALIDATION_BYPASS_REASONS,
     createRecordSaveContext,
+    isInternalRecordValidationBypass,
     isCanonicalSaveRequestId,
+    isRecordValidationBypassReason,
     readSaveRequestId,
     recordSaveFailureStatus,
     recordSaveProblem,
@@ -36,6 +39,8 @@ export type {
     RecordSaveContext,
     RecordSaveOperation,
     RecordSaveRouteFamily,
+    InternalRecordValidationBypass,
+    RecordValidationBypassReason,
     StorageMutationLogger,
 } from "./RecordSaveResponse";
 export {
@@ -68,6 +73,12 @@ export type {
     RecordTypeLookupSummary,
 }
     from "./RecordsService";
+export {
+    classifyRecordWrite,
+    recordWriteRequiresFormValidation,
+}
+    from "./RecordWriteClassification";
+export type { RecordWriteClassification } from "./RecordWriteClassification";
 export {
     SearchService
 }
