@@ -3,10 +3,13 @@ import type {
   ActionExecutionOperation,
   ActionExecutionPhase,
   ActionExecutionReport,
+  ActionExecutionResult,
   ActionExecutionStatus,
   ActionFailureKind,
   ActionSkippedReason,
 } from './types';
+
+export type DetachedAuditFinalization = 'complete' | 'grace-expired';
 
 export interface RecordHookExecutionAuditAction {
   actionId: string;
@@ -28,6 +31,8 @@ export interface RecordHookExecutionAuditSummary {
   operation: 'create' | 'update' | 'delete' | 'transition';
   partial: boolean;
   completedThrough?: 'pre' | 'persistence' | 'postSync' | 'post-dispatch';
+  detachedFinalization?: DetachedAuditFinalization;
+  detachedPending?: number;
   durationMs: number;
   totalActions: number;
   counts: Partial<Record<ActionExecutionStatus, number>>;
@@ -66,7 +71,9 @@ function projectAction(action: ActionExecutionReport['actions'][number]): Record
   return projected;
 }
 
-function totalCounts(actions: readonly ActionExecutionReport['actions'][number][]): Partial<Record<ActionExecutionStatus, number>> {
+function totalCounts(
+  actions: readonly ActionExecutionReport['actions'][number][]
+): Partial<Record<ActionExecutionStatus, number>> {
   const totals: Partial<Record<ActionExecutionStatus, number>> = {};
   for (const action of actions) {
     totals[action.status] = (totals[action.status] ?? 0) + 1;
@@ -74,9 +81,22 @@ function totalCounts(actions: readonly ActionExecutionReport['actions'][number][
   return totals;
 }
 
+type ProjectableAction = ActionExecutionReport['actions'][number] | ActionExecutionResult;
+
+/**
+ * Detached dispatch and terminal reports have the same action identity. Keep
+ * this key internal so a terminal result can replace its launch marker without
+ * changing the historical phase report.
+ */
+function actionKey(action: ProjectableAction): string {
+  return [action.mode, action.phase, action.index, action.actionId].join('\u0000');
+}
+
 function elapsedMs(operation: ActionExecutionOperation): number {
   const lastReport = operation.reports[operation.reports.length - 1];
-  const completedAt = new Date(operation.detachedCompletedAt ?? lastReport?.completedAt ?? operation.startedAt).getTime();
+  const completedAt = new Date(
+    operation.detachedCompletedAt ?? lastReport?.completedAt ?? operation.startedAt
+  ).getTime();
   return Math.max(0, Math.round(completedAt - new Date(operation.startedAt).getTime()));
 }
 
@@ -90,22 +110,50 @@ export function projectRecordHookExecutionAuditSummary(
   options: {
     partial?: boolean;
     completedThrough?: RecordHookExecutionAuditSummary['completedThrough'];
+    detachedFinalization?: DetachedAuditFinalization;
     durationMs?: number;
   } = {}
 ): RecordHookExecutionAuditSummary {
   // Before detached work finishes, the operation log may honestly expose its
-  // dispatch entries. The durable audit is projected after pending detached
-  // actions reach terminal results, at which point those launch markers are
-  // replaced by the compact completed results below.
+  // dispatch entries. A terminal result replaces the matching launch marker
+  // even while other detached actions remain pending. The historical reports
+  // themselves are never mutated.
   const includeDispatched = operation.detachedPending === undefined || operation.detachedPending > 0;
-  const phaseActions = operation.reports.flatMap(report =>
-    report.actions.filter(action => includeDispatched || action.status !== 'dispatched')
-  );
   const detachedResults = [...(operation.detachedResults ?? [])].sort((left, right) => {
     const phaseOrder: Record<ActionExecutionReport['context']['phase'], number> = { pre: 0, postSync: 1, post: 2 };
     return phaseOrder[left.phase] - phaseOrder[right.phase] || left.index - right.index;
   });
-  const allActions = [...phaseActions, ...detachedResults];
+  const terminalByKey = new Map(detachedResults.map(result => [actionKey(result), result]));
+  const projectedKeys = new Set<string>();
+  const allActions: ProjectableAction[] = [];
+
+  for (const report of operation.reports) {
+    for (const action of report.actions) {
+      let projected: ProjectableAction | undefined = action;
+      if (action.status === 'dispatched') {
+        const terminal = terminalByKey.get(actionKey(action));
+        if (terminal) {
+          projected = terminal;
+        } else if (!includeDispatched) {
+          projected = undefined;
+        }
+      }
+      if (projected) {
+        allActions.push(projected);
+        projectedKeys.add(actionKey(projected));
+      }
+    }
+  }
+
+  // Defensive compatibility path: a terminal callback may be observed before
+  // its dispatch report is appended. It still contributes exactly once.
+  for (const result of detachedResults) {
+    if (!projectedKeys.has(actionKey(result))) {
+      allActions.push(result);
+      projectedKeys.add(actionKey(result));
+    }
+  }
+
   const summary: RecordHookExecutionAuditSummary = {
     schemaVersion: 1,
     executionId: operation.executionId,
@@ -123,6 +171,12 @@ export function projectRecordHookExecutionAuditSummary(
   }
   if (options.completedThrough ?? operation.completedThrough) {
     summary.completedThrough = options.completedThrough ?? operation.completedThrough;
+  }
+  if (options.detachedFinalization) {
+    summary.detachedFinalization = options.detachedFinalization;
+  }
+  if ((operation.detachedPending ?? 0) > 0) {
+    summary.detachedPending = operation.detachedPending;
   }
   return summary;
 }

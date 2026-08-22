@@ -78,10 +78,17 @@ import type { Services as AttachmentMetadataServices } from './AttachmentMetadat
 import { createActionExecutionOperation, createActionExecutionSupervisor } from '../action-execution/executor';
 import {
   projectRecordHookExecutionAuditSummary,
+  type DetachedAuditFinalization,
   type RecordHookExecutionAuditSummary,
 } from '../action-execution/audit';
 import type { ActionExecutionDependencies, ActionExecutionOperation } from '../action-execution/types';
 import { RecordHookCoordinator, validateRecordHookConfiguration } from './record-hooks/coordinator';
+
+/**
+ * Detached post hooks remain fire-and-forget to the save caller, but audit
+ * persistence gets this bounded opportunity to collect terminal outcomes.
+ */
+const DETACHED_AUDIT_GRACE_MS = 1000;
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -139,6 +146,8 @@ export namespace Services {
           error: (message, fields) => sails.log.error(`${this.logHeader}${message}`, fields),
         },
         supervisor: this.hookExecutionSupervisor,
+        schedule: (durationMs, task) => setTimeout(task, durationMs),
+        cancelSchedule: handle => clearTimeout(handle as ReturnType<typeof setTimeout>),
       };
     }
 
@@ -158,13 +167,41 @@ export namespace Services {
       });
     }
 
+    /** Emit the save-boundary event without calling it a completed operation. */
+    private dispatchHookOperation(operation: ActionExecutionOperation): void {
+      const summary = projectRecordHookExecutionAuditSummary(operation);
+      const fields: AnyRecord = {
+        event: 'record_hook_operation_dispatched',
+        execution_id: summary.executionId,
+        hook_mode: operation.mode,
+        status: 'dispatched',
+        duration_ms: summary.durationMs,
+        total_actions: summary.totalActions,
+      };
+      if (summary.requestId) {
+        fields.request_id = summary.requestId;
+      }
+      if ((operation.detachedPending ?? 0) > 0) {
+        fields.detached_pending = operation.detachedPending;
+      }
+      sails.log.info(`${this.logHeader}record_hook_operation_dispatched`, fields);
+    }
+
     /**
-     * Emit the single operation summary for one record operation. It is logged
-     * once, by whichever caller owns the operation, so a create that runs pre,
-     * post-sync, and detached phases still produces one summary event.
+     * Emit exactly one final operation summary once audit finalization has
+     * been reached. Detached completion remains independently observable in
+     * action-level logs after this point.
      */
-    private completeHookOperation(operation: ActionExecutionOperation, partial = false): void {
-      const summary = projectRecordHookExecutionAuditSummary(operation, { partial });
+    private completeHookOperation(
+      operation: ActionExecutionOperation,
+      partial = false,
+      detachedFinalization?: DetachedAuditFinalization
+    ): void {
+      if (operation.operationCompletedLogged) {
+        return;
+      }
+      operation.operationCompletedLogged = true;
+      const summary = projectRecordHookExecutionAuditSummary(operation, { partial, detachedFinalization });
       const fields: AnyRecord = {
         event: 'record_hook_operation_completed',
         execution_id: summary.executionId,
@@ -177,16 +214,12 @@ export namespace Services {
         (summary.counts.failed ?? 0) > 0 ||
         (summary.counts.timed_out ?? 0) > 0 ||
         (summary.counts.interrupted ?? 0) > 0;
-      fields.status =
-        summary.partial
-          ? 'partial'
-          : (operation.detachedPending ?? 0) > 0
-            ? 'dispatched'
-            : hasFailure
-              ? 'failed'
-              : 'completed';
+      fields.status = summary.partial ? 'partial' : hasFailure ? 'failed' : 'completed';
       if ((operation.detachedPending ?? 0) > 0) {
         fields.detached_pending = operation.detachedPending;
+      }
+      if (summary.detachedFinalization) {
+        fields.detached_finalization = summary.detachedFinalization;
       }
       fields.duration_ms = summary.durationMs;
       fields.total_actions = summary.totalActions;
@@ -325,11 +358,14 @@ export namespace Services {
       searchable: boolean
     ): Promise<RecordSaveResponse> {
       const operation = this.saveHookOperations.get(tracker);
-      if (operation) {
-        this.completeHookOperation(operation);
+      if (operation && (operation.detachedPending ?? 0) > 0) {
+        this.dispatchHookOperation(operation);
       }
       const oid = String(tracker.result.oid ?? '').trim();
       if (!tracker.result.wasPersisted() || !oid) {
+        if (operation) {
+          this.completeHookOperation(operation, true);
+        }
         return tracker.toResponse();
       }
 
@@ -338,6 +374,9 @@ export namespace Services {
         persistedRecord = (await this.getMeta(oid)) as unknown as AnyRecord;
       } catch (error) {
         sails.log.warn(`${this.logHeader} unable to reload committed record before side effects`, error);
+        if (operation) {
+          this.completeHookOperation(operation, true);
+        }
         return tracker.toResponse();
       }
 
@@ -348,9 +387,19 @@ export namespace Services {
             sails.log.error(`${this.logHeader} index submission failed`, error);
           });
       }
-      const submitAudit = (): void => {
-        if (operation && (operation.detachedPending ?? 0) > 0) {
-          this.completeHookOperation(operation);
+      const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
+        if (operation?.detachedAuditFinalized) {
+          return;
+        }
+        if (operation) {
+          operation.detachedAuditFinalized = true;
+          operation.onDetachedComplete = undefined;
+          if (operation.detachedAuditTimer !== undefined) {
+            operation.cancelDetachedAuditTimer?.(operation.detachedAuditTimer);
+            operation.detachedAuditTimer = undefined;
+            operation.cancelDetachedAuditTimer = undefined;
+          }
+          this.completeHookOperation(operation, detachedFinalization === 'grace-expired', detachedFinalization);
         }
         void Promise.resolve()
           .then(() =>
@@ -359,7 +408,12 @@ export namespace Services {
               persistedRecord,
               user,
               action,
-              operation ? projectRecordHookExecutionAuditSummary(operation) : undefined
+              operation
+                ? projectRecordHookExecutionAuditSummary(operation, {
+                    partial: detachedFinalization === 'grace-expired',
+                    detachedFinalization,
+                  })
+                : undefined
             )
           )
           .catch((error: unknown) => {
@@ -367,9 +421,25 @@ export namespace Services {
           });
       };
       if (operation && (operation.detachedPending ?? 0) > 0) {
-        operation.onDetachedComplete = submitAudit;
+        operation.onDetachedComplete = () => submitAudit('complete');
+        const dependencies = this.hookExecutionDependencies();
+        const schedule =
+          dependencies.schedule ?? ((durationMs: number, task: () => void) => setTimeout(task, durationMs));
+        operation.cancelDetachedAuditTimer =
+          dependencies.cancelSchedule ?? (handle => clearTimeout(handle as ReturnType<typeof setTimeout>));
+        const timer = schedule(DETACHED_AUDIT_GRACE_MS, () => submitAudit('grace-expired'));
+        if (operation.detachedAuditFinalized) {
+          operation.cancelDetachedAuditTimer(timer);
+        } else {
+          operation.detachedAuditTimer = timer;
+        }
+        // A detached action may have completed during the awaited snapshot
+        // reload. Do not leave a zero-pending operation waiting on a callback.
+        if ((operation.detachedPending ?? 0) === 0) {
+          submitAudit('complete');
+        }
       } else {
-        submitAudit();
+        submitAudit('complete');
       }
       return tracker.toResponse();
     }
@@ -762,8 +832,12 @@ export namespace Services {
 
     private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
       try {
-        validateRecordHookConfiguration(recordType, modes, (hook, mode, phase) =>
-          this.configuredHookFunction(hook, mode, phase), ['pre']);
+        validateRecordHookConfiguration(
+          recordType,
+          modes,
+          (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
+          ['pre']
+        );
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
           throw error;

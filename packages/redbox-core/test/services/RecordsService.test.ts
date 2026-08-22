@@ -1155,9 +1155,9 @@ describe('RecordsService', function () {
         expect(auditSummary.completedThrough).to.equal('post-dispatch');
         expect(auditSummary.partial).to.equal(false);
         expect(auditSummary.counts.dispatched).to.equal(undefined);
-        expect(auditSummary.actions.some((action: any) => action.phase === 'post' && action.status === 'succeeded')).to.equal(
-          true
-        );
+        expect(
+          auditSummary.actions.some((action: any) => action.phase === 'post' && action.status === 'succeeded')
+        ).to.equal(true);
       } finally {
         delete (globalThis as any).__effectHookOrder;
       }
@@ -1306,6 +1306,70 @@ describe('RecordsService', function () {
       expect(summary.counts.failed).to.equal(1);
       expect(summary.actions[0].status).to.equal('failed');
       expect(summary.actions[0].durationMs).to.be.at.least(0);
+    });
+
+    it('finalizes a detached audit after a bounded grace period and does so exactly once', async function () {
+      const clock = sinon.useFakeTimers();
+      mockQueueService.now.resetHistory();
+      mockSails.log.info.resetHistory();
+      (globalThis as any).__resolvePendingDetached = undefined;
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Pending detached audit' } },
+          recordTypeWithHooks({
+            onCreate: {
+              post: [
+                { function: '() => undefined' },
+                {
+                  function: '() => new Promise(resolve => { globalThis.__resolvePendingDetached = resolve; })',
+                },
+              ],
+            },
+          }),
+          { username: 'user-1' }
+        );
+        await Promise.resolve();
+
+        // The response and indexing path do not wait for the detached grace
+        // period, and the unresolved Promise has not prevented submission yet.
+        expect(result.outcome).to.equal('saved');
+        expect(mockQueueService.now.notCalled).to.equal(true);
+
+        await clock.tickAsync(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(mockQueueService.now.calledOnce).to.equal(true);
+        const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+        expect(summary.partial).to.equal(true);
+        expect(summary.detachedFinalization).to.equal('grace-expired');
+        expect(summary.detachedPending).to.equal(1);
+        expect(summary.totalActions).to.equal(2);
+        expect(summary.counts.succeeded).to.equal(1);
+        expect(summary.counts.dispatched).to.equal(1);
+        expect(summary.actions.map((action: any) => action.status)).to.deep.equal(['succeeded', 'dispatched']);
+
+        const completedEvents = mockSails.log.info
+          .getCalls()
+          .filter((call: any) => String(call.args[0]).includes('record_hook_operation_completed'));
+        const dispatchedEvents = mockSails.log.info
+          .getCalls()
+          .filter((call: any) => String(call.args[0]).includes('record_hook_operation_dispatched'));
+        expect(dispatchedEvents).to.have.length(1);
+        expect(completedEvents).to.have.length(1);
+
+        // A terminal result arriving after finalization remains observable at
+        // action level but cannot enqueue a second audit document.
+        (globalThis as any).__resolvePendingDetached?.();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(mockQueueService.now.calledOnce).to.equal(true);
+        expect(completedEvents).to.have.length(1);
+      } finally {
+        delete (globalThis as any).__resolvePendingDetached;
+        clock.restore();
+      }
     });
 
     it('does not let malformed detached post configuration block persistence', async function () {

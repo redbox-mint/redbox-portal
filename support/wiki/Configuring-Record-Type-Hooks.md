@@ -157,10 +157,14 @@ dispatch. This keeps detached-post configuration from blocking persistence.
 
 The application logger emits concise events such as
 `record_hook_action_completed`, `record_hook_action_retry_scheduled`,
-`record_hook_action_timed_out`, `record_hook_detached_action_failed`, and
-`record_hook_operation_completed`. Filter on `execution_id` to reconstruct one
-record operation. Record bodies, hook options, users, function expressions,
-returned payloads, and raw errors are excluded from production-level events.
+`record_hook_action_timed_out`, `record_hook_detached_action_failed`,
+`record_hook_operation_dispatched`, and `record_hook_operation_completed`.
+The save-boundary `record_hook_operation_dispatched` event is emitted when
+detached work is launched; exactly one
+`record_hook_operation_completed` event follows when the audit reaches its
+finalization state. Filter on `execution_id` to reconstruct one record
+operation. Record bodies, hook options, users, function expressions, returned
+payloads, and raw errors are excluded from production-level events.
 
 For record create/update endpoints, callers should inspect the typed save
 `outcome` rather than the legacy boolean `success`: `saved-with-warnings`
@@ -177,11 +181,14 @@ for the response and request-correlation contract.
 Create and update audits include a versioned, bounded `executionSummary` with
 aggregate counts and at most the first 100 action entries. Delete audits are
 truthfully marked `partial` at the existing audit-before-post boundary. Create
-and update audit submission waits asynchronously for detached actions to reach
-terminal results, so their persisted summaries contain actual post outcomes
-(`succeeded`, `failed`, `timed_out`, or `interrupted`) rather than `dispatched`
-placeholders. The summary is audit metadata and is never embedded in the
-business-record snapshot.
+and update audit submission gives detached actions a bounded asynchronous grace
+period. Actions that finish within it are persisted with terminal outcomes
+(`succeeded`, `failed`, `timed_out`, or `interrupted`); if the grace period
+expires, the audit is still written with completed results plus truthful
+`dispatched` entries, `detachedPending`, and `detachedFinalization:
+"grace-expired"`. A late detached completion only emits its structured action
+logs and never creates a second audit. The summary is audit metadata and is
+never embedded in the business-record snapshot.
 
 Create/update summaries also expose `completedThrough` (`pre`, `persistence`,
 `postSync`, or `post-dispatch`) so early exits are distinguishable from a fully
