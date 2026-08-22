@@ -103,6 +103,34 @@ describe('RecordSaveResponse', function () {
       expect(result.oid).to.equal('oid-1');
       expect(result.outcome).to.equal('saved');
     });
+
+    it('copies source metadata and ignores invalid legacy hook values', function () {
+      const saveTracker = tracker();
+      const source = new StorageServiceResponse();
+      source.message = 'saved';
+      source.data = { source: true };
+      source.metadata = { projected: true };
+      source.totalItems = 2;
+      source.items = [{ id: 'item-1' }];
+
+      saveTracker.confirmPrimaryPersistence('oid-source', source);
+      saveTracker.setProjectedMetadata({ projected: 'later' });
+      saveTracker.mergeLegacyHookFields(null);
+      saveTracker.mergeLegacyHookFields({ workspaceOid: '   ' });
+
+      const result = saveTracker.toResponse();
+      expect(result.oid).to.equal('oid-source');
+      expect(result.message).to.equal('saved');
+      expect(result.data).to.deep.equal({ source: true });
+      expect(result.metadata).to.deep.equal({ projected: 'later' });
+      expect(result.totalItems).to.equal(2);
+      expect(result.items).to.deep.equal([{ id: 'item-1' }]);
+    });
+
+    it('generates a request ID when a response is created without one', function () {
+      const result = new RecordSaveResponse();
+      expect(isCanonicalSaveRequestId(result.requestId)).to.equal(true);
+    });
   });
 
   describe('attachment completion', function () {
