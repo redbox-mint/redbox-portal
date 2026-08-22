@@ -78,6 +78,22 @@ describe('FormDebugStateService', () => {
     expect(service.debugEvents().length).toBe(1);
   });
 
+  it('serializes invalid dates without throwing', () => {
+    initService();
+    setFormDebugUrl('1');
+    service.refreshFromUrl();
+
+    const snapshot = service.safePlainObjectSnapshot({
+      validDate: new Date('2026-01-01T00:00:00.000Z'),
+      invalidDate: new Date('not a date'),
+    });
+
+    expect(snapshot).toEqual({
+      validDate: '2026-01-01T00:00:00.000Z',
+      invalidDate: null,
+    });
+  });
+
   it('filters and trims event history', () => {
     initService();
     setFormDebugUrl('1');
