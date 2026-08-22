@@ -5,6 +5,7 @@ import { FormConfigVisitorOutline } from './visitor/base.outline';
 import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
 import { FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
+import { ValidationOperationDefinition } from '../validation/record-validation.model';
 
 /**
  * The form definition.
@@ -24,6 +25,7 @@ export class FormConfig implements FormConfigOutline {
     all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
     none: { description: 'Validate none of the fields.', initialMembership: 'none' },
   };
+  public declare validationOperations?: Record<string, ValidationOperationDefinition>;
   public serverSyncOnSave: 'always' | 'preserveLocalEdits' | 'never' = 'preserveLocalEdits';
   public componentDefinitions: AvailableFormComponentDefinitionOutlines[] = [];
   public debugValue: boolean = false;

@@ -73,6 +73,29 @@ describe('WorkflowStepsService', function() {
       expect(result).to.have.length(1);
       expect((global as any).WorkflowStep.create.called).to.be.true;
     });
+
+    it('should preserve workflow-stage validation operation restrictions', async function() {
+      const recordTypes = [{ name: 'dataset', id: 'rt1' }];
+      const recordValidation = {
+        operations: {
+          publish: {
+            enabledValidationGroups: ['publish'],
+            roles: ['Librarians'],
+            allowedTargetSteps: ['published'],
+          },
+        },
+      };
+      mockSails.config.workflow.dataset.draft.config.recordValidation = recordValidation;
+      (global as any).WorkflowStep.find = sinon.stub().resolves([]);
+      (global as any).WorkflowStep.create.callsFake((data: unknown) => ({
+        exec: sinon.stub().yields(null, data)
+      }));
+
+      await service.bootstrap(recordTypes);
+
+      expect((global as any).WorkflowStep.create.firstCall.args[0].config.recordValidation)
+        .to.deep.equal(recordValidation);
+    });
   });
 
   describe('create', function() {

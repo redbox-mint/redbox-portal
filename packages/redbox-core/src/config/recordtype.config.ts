@@ -6,6 +6,7 @@
  */
 
 import type { ActionExecutionPolicy } from '../action-execution/types';
+import type { ValidationMode, ValidationOperationOverride } from '@researchdatabox/sails-ng-common';
 
 export interface RecordHookOptions {
     [key: string]: unknown;
@@ -180,6 +181,14 @@ export interface RecordTypeLabels {
     namePlural: string;
 }
 
+/** Record-type validation policy layered over form operation defaults. */
+export interface RecordTypeValidationConfig {
+    /** Rollout mode for this record type. */
+    mode?: ValidationMode;
+    /** Per-operation replacement/restriction values. */
+    operations?: Record<string, ValidationOperationOverride>;
+}
+
 export interface RecordTypeDefinition {
     packageType: string;
     packageName?: string;
@@ -190,6 +199,7 @@ export interface RecordTypeDefinition {
     transferResponsibility?: TransferResponsibilityConfig;
     searchFilters?: SearchFilterConfig[];
     dashboard?: Record<string, unknown>;
+    recordValidation?: RecordTypeValidationConfig;
 }
 
 export interface RecordTypeConfig {

@@ -6,7 +6,12 @@
  */
 
 import { FormGroupStatus } from '../../form.component';
-import { FormFieldValidationGroup, formValidationGroupMembership, RecordSaveResult } from "@researchdatabox/sails-ng-common";
+import {
+  FormFieldValidationGroup,
+  formValidationGroupsChangeInitial as sharedFormValidationGroupsChangeInitial,
+  FormValidationGroupsChangeInitial as SharedFormValidationGroupsChangeInitial,
+  RecordSaveResult,
+} from "@researchdatabox/sails-ng-common";
 
 /**
  * Base event interface with common properties
@@ -122,12 +127,13 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
  * - 'all': Every known / available validation group.
  * - 'none': An empty array / no validation groups.
  * - 'current': The existing state, allows for changes relative to the existing situation.
+ * - 'empty': Deprecated alias for 'none'.
  */
-export const formValidationGroupsChangeInitial = [...formValidationGroupMembership, "current"] as const;
+export const formValidationGroupsChangeInitial = sharedFormValidationGroupsChangeInitial;
 /**
  * The type for the available approaches for changing the enabled form validation groups.
  */
-export type FormValidationGroupsChangeInitial = typeof formValidationGroupsChangeInitial[number];
+export type FormValidationGroupsChangeInitial = SharedFormValidationGroupsChangeInitial;
 
 /**
  * Form validation groups change requested event.

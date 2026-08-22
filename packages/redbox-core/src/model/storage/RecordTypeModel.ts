@@ -1,3 +1,4 @@
+import type { RecordTypeValidationConfig } from '../../config/recordtype.config';
 
 export class RecordTypeModel {
     packageType: string = '';
@@ -7,6 +8,7 @@ export class RecordTypeModel {
     searchFilters: SearchFilter[] = [];
     transferResponsibility: unknown = null; //Legacy to be removed in a future version
     searchable = false as const;
+    recordValidation?: RecordTypeValidationConfig;
 }
 
 export class SearchFilter {

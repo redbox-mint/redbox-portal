@@ -245,6 +245,38 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it('should preserve validation operations through construction', async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const validationOperations = {
+                publish: {
+                    enabledValidationGroups: ['publish'],
+                    label: '@publish',
+                    roles: ['Librarians'],
+                    allowedTargetSteps: ['published'],
+                },
+            };
+            const actual = await visitor.start({
+                data: {
+                    name: 'operation-round-trip',
+                    componentDefinitions: [],
+                    validationOperations,
+                },
+                formMode: 'edit',
+            });
+
+            expect(actual.validationOperations).to.deep.equal(validationOperations);
+        });
+
+        it('should preserve absence of validation operations through construction', async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                data: { name: 'no-operation-policy', componentDefinitions: [] },
+                formMode: 'edit',
+            });
+
+            expect(actual).not.to.have.property('validationOperations');
+        });
+
         it("should retain checkbox tree labelTemplate config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({

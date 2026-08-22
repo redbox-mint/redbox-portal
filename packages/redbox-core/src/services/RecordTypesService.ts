@@ -87,7 +87,8 @@ export namespace Services {
         transferResponsibility: config.transferResponsibility,
         relatedTo: config.relatedTo,
         searchable: config.searchable,
-        dashboard: config.dashboard
+        dashboard: config.dashboard,
+        recordValidation: config.recordValidation,
       }));
     }
 

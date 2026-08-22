@@ -320,6 +320,35 @@ describe('FormsService', function () {
       ]);
     });
 
+    it('should preserve validation operations when bootstrapping form config from the registry', async function () {
+      const workflowStep = { id: 'step-1', config: { form: 'default-form' } };
+      const validationOperations = {
+        submit: {
+          enabledValidationGroups: ['all', 'submission'],
+          label: '@submit',
+          description: '@submit-description',
+          roles: ['Researcher'],
+          allowedTargetSteps: ['review'],
+        },
+      };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': {
+          type: 'rdmp',
+          attachmentFields: [],
+          componentDefinitions: [],
+          validationOperations,
+        }
+      });
+      mockForm.find.resolves([]);
+      mockForm.create.resolves({ id: 'form-1' });
+
+      await FormsService.bootstrap(workflowStep, 'brand-1');
+
+      expect(mockForm.create.calledOnce).to.be.true;
+      expect(mockForm.create.firstCall.args[0].configuration.validationOperations)
+        .to.deep.equal(validationOperations);
+    });
+
     it('should prefer formConfigRegistry over legacy forms', async function () {
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] }
