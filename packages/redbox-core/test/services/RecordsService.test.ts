@@ -971,6 +971,60 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata.attachments[0].pending).to.equal(true);
       expect(mockStorageService.updateMeta.secondCall.args[2].metadata.attachments[0].pending).to.equal(false);
     });
+
+    it('keeps add and delete journal identities separate for attachment replacements', async function () {
+      const preparedRows: any[] = [];
+      const journal = {
+        prepareMutations: sinon.stub().callsFake(async (rows: any[]) => preparedRows.push(...rows)),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file', pending: false }] },
+      });
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      }));
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        {
+          metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+          metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file' }] },
+          authorization: {},
+        },
+        { username: 'user-1' },
+        true,
+        true,
+        {},
+        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] },
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(preparedRows).to.have.length(2);
+      expect(preparedRows.map(row => row.operation)).to.deep.equal(['add', 'delete']);
+      expect(preparedRows.map(row => row.fileId)).to.deep.equal(['new-file', 'old-file']);
+      expect(preparedRows[0].storageKey).to.not.equal(preparedRows[1].storageKey);
+      expect(journal.markMutation.callCount).to.equal(4);
+      expect(journal.markMutation.getCall(0).args[5]).to.equal('new-file');
+      expect(journal.markMutation.getCall(2).args[5]).to.equal('old-file');
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+      expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
+    });
   });
 
   describe('create save pipeline', function () {

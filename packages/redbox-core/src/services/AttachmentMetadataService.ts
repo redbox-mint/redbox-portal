@@ -1,5 +1,6 @@
 import { Services as services } from '../CoreService';
 import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '../waterline-models';
+import { createHash } from 'node:crypto';
 
 export namespace Services {
   export type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
@@ -20,7 +21,14 @@ export namespace Services {
     findUnresolvedByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
     findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
     prepareMutations: (rows: readonly AttachmentMetadataInput[]) => Promise<void>;
-    markMutation: (oid: string, attachmentId: string, generation: string, state: AttachmentMutationState, code?: string) => Promise<boolean>;
+    markMutation: (
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      state: AttachmentMutationState,
+      code?: string,
+      mutationFileId?: string,
+    ) => Promise<boolean>;
     rebindOid: (fromOid: string, toOid: string) => Promise<void>;
     markDeleted: (row: AttachmentMetadataInput) => Promise<void>;
     deleteByStorageKey: (storageKey: string) => Promise<void>;
@@ -53,6 +61,19 @@ export namespace Services {
       const oid = String(payload.oid ?? '').trim();
       const fileId = String(payload.fileId ?? '').trim();
       let existing = await AttachmentMetadata.findOne({ storageKey }) as AttachmentMetadataAttributes | null;
+      // A journal key may be upgraded from the original attachment-only form
+      // to the mutation-specific form. Reuse that row when its mutation
+      // identity is otherwise unchanged instead of leaving an unresolved
+      // legacy row behind on the next retry.
+      if (!existing && payload.isJournal === true && payload.attachmentId && payload.generation && payload.mutationFileId) {
+        existing = await AttachmentMetadata.findOne({
+          oid,
+          attachmentId: payload.attachmentId,
+          generation: payload.generation,
+          mutationFileId: payload.mutationFileId,
+          isJournal: true,
+        }) as AttachmentMetadataAttributes | null;
+      }
       // A physical row may retain its identity if a storage prefix changes,
       // but journal rows must never claim the physical {oid,fileId} row.
       if (!existing && payload.isJournal !== true && oid && fileId) {
@@ -102,7 +123,7 @@ export namespace Services {
         const generation = String(row.generation ?? '').trim();
         await this.upsert({
           ...row,
-          fileId: `journal-${attachmentId}-${generation}`,
+          fileId: this.journalFileId(attachmentId, generation, String(row.mutationFileId ?? row.fileId ?? '').trim()),
           mutationFileId: String(row.mutationFileId ?? row.fileId ?? '').trim(),
           isJournal: true,
           mutationState: 'prepared',
@@ -116,12 +137,16 @@ export namespace Services {
       generation: string,
       mutationState: AttachmentMutationState,
       lastSafeErrorCode?: string,
+      mutationFileId?: string,
     ): Promise<boolean> {
       const criteria = {
         oid: String(oid ?? '').trim(),
         attachmentId: String(attachmentId ?? '').trim(),
         generation: String(generation ?? '').trim(),
         isJournal: true,
+        ...(String(mutationFileId ?? '').trim()
+          ? { mutationFileId: String(mutationFileId).trim() }
+          : {}),
       };
       if (!criteria.oid || !criteria.attachmentId || !criteria.generation) {
         return false;
@@ -141,6 +166,12 @@ export namespace Services {
           : mutationState === 'applied' ? { lastSafeErrorCode: undefined } : {}),
       });
       return true;
+    }
+
+    private journalFileId(attachmentId: string, generation: string, mutationFileId: string): string {
+      const identity = `${attachmentId}\u0000${generation}\u0000${mutationFileId}`;
+      const suffix = createHash('sha256').update(identity).digest('hex').slice(0, 32);
+      return `journal-${attachmentId}-${generation}-${suffix}`;
     }
 
     public async rebindOid(fromOid: string, toOid: string): Promise<void> {

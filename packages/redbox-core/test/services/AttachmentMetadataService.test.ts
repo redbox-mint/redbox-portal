@@ -91,11 +91,66 @@ describe('AttachmentMetadataService mutation journal', function () {
     expect(model.create.calledOnce).to.equal(true);
     expect(model.create.firstCall.args[0]).to.include({
       storageKey: 'journal/oid-1/a/generation-1',
-      fileId: 'journal-a-generation-1',
       mutationFileId: 'file-1',
       isJournal: true,
       mutationState: 'prepared',
     });
+    expect(model.create.firstCall.args[0].fileId).to.match(/^journal-a-generation-1-/);
+  });
+
+  it('keeps replacement mutations in separate journal rows', async function () {
+    const fetch = sinon.stub().resolves();
+    model.findOne.resolves(null);
+    model.create.returns({ fetch });
+
+    await service.prepareMutations([
+      {
+        oid: 'oid-1',
+        fileId: 'new-file',
+        storageKey: 'journal/oid-1/a/generation-1/new',
+        attachmentId: 'a',
+        operation: 'add',
+        generation: 'generation-1',
+      },
+      {
+        oid: 'oid-1',
+        fileId: 'old-file',
+        storageKey: 'journal/oid-1/a/generation-1/old',
+        attachmentId: 'a',
+        operation: 'delete',
+        generation: 'generation-1',
+      },
+    ]);
+
+    expect(model.create.callCount).to.equal(2);
+    expect(model.create.firstCall.args[0]).to.include({
+      mutationFileId: 'new-file',
+      operation: 'add',
+    });
+    expect(model.create.secondCall.args[0]).to.include({
+      mutationFileId: 'old-file',
+      operation: 'delete',
+    });
+    expect(model.create.firstCall.args[0].fileId).to.not.equal(model.create.secondCall.args[0].fileId);
+    expect(model.create.firstCall.args[0].storageKey).to.not.equal(model.create.secondCall.args[0].storageKey);
+  });
+
+  it('marks the matching mutation when an attachment has replacement work', async function () {
+    model.findOne.resolves({ id: 'journal-new', attemptCount: 0 });
+    const set = sinon.stub().resolves();
+    model.updateOne.returns({ set });
+
+    const result = await service.markMutation('oid-1', 'a', 'generation-1', 'unknown', 'upload-failed', 'new-file');
+
+    expect(result).to.equal(true);
+    expect(model.findOne.calledOnceWithExactly({
+      oid: 'oid-1',
+      attachmentId: 'a',
+      generation: 'generation-1',
+      isJournal: true,
+      mutationFileId: 'new-file',
+    })).to.equal(true);
+    expect(set.firstCall.args[0]).to.include({ mutationState: 'unknown', lastSafeErrorCode: 'upload-failed' });
   });
 
   it('writes an applied delete tombstone through the normal upsert path', async function () {
