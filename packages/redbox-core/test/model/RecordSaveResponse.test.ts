@@ -2,8 +2,11 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import {
   createRecordSaveContext,
+  isInternalRecordValidationBypass,
   isCanonicalSaveRequestId,
+  isRecordValidationBypassReason,
   readSaveRequestId,
+  RECORD_VALIDATION_BYPASS_REASONS,
   recordSaveFailureStatus,
   recordSaveProblem,
   RecordSaveResponse,
@@ -129,7 +132,7 @@ describe('RecordSaveResponse', function () {
         } as never],
       });
 
-      const serialized = JSON.parse(JSON.stringify(saveTracker.toResponse()));
+      const serialized = JSON.parse(JSON.stringify(saveTracker));
       expect(serialized.problems[0].issues[0]).to.deep.equal({
         message: '@validator-error-required',
         code: 'record-validation-failed',
@@ -199,6 +202,54 @@ describe('RecordSaveResponse', function () {
       expect(createRecordSaveContext({ requestId }).requestId).to.equal(requestId);
       expect(createRecordSaveContext({ requestId: 'nope' }).requestId).to.not.equal('nope');
       expect(isCanonicalSaveRequestId(createRecordSaveContext().requestId)).to.be.true;
+    });
+
+    it('keeps CRUD and validation operations separate in an internal save context', function () {
+      const context = createRecordSaveContext({
+        requestId,
+        routeFamily: 'internal',
+        operation: 'transition',
+        validationOperation: 'publish',
+        validationBypass: {
+          mode: 'bypass',
+          reason: 'historical-record-repair',
+          actor: { kind: 'service', id: 'RepairService' },
+        },
+      });
+
+      expect(context.operation).to.equal('transition');
+      expect(context.validationOperation).to.equal('publish');
+      expect(context.validationBypass).to.deep.equal({
+        mode: 'bypass',
+        reason: 'historical-record-repair',
+        actor: { kind: 'service', id: 'RepairService' },
+      });
+    });
+
+    it('exposes one runtime source of truth for the typed bypass reasons', function () {
+      expect(RECORD_VALIDATION_BYPASS_REASONS).to.deep.equal([
+        'historical-record-repair',
+        'trusted-data-migration',
+        'configuration-recovery',
+      ]);
+      expect(isRecordValidationBypassReason('trusted-data-migration')).to.equal(true);
+      expect(isRecordValidationBypassReason('arbitrary-reason')).to.equal(false);
+      expect(
+        isInternalRecordValidationBypass({
+          mode: 'bypass',
+          reason: 'configuration-recovery',
+          actor: { kind: 'service', id: 'RecoveryService' },
+        })
+      ).to.equal(true);
+      expect(isInternalRecordValidationBypass(null)).to.equal(false);
+      expect(isInternalRecordValidationBypass({ mode: 'bypass', actor: null })).to.equal(false);
+      expect(
+        isInternalRecordValidationBypass({
+          mode: 'bypass',
+          reason: 'configuration-recovery',
+          actor: { kind: 'service', id: 'invalid service id' },
+        })
+      ).to.equal(false);
     });
 
     it('reads only a single canonical lower-cased header value', function () {

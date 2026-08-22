@@ -17,10 +17,59 @@ import { StorageServiceResponse } from './StorageServiceResponse';
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
 export type RecordSaveOperation = 'create' | 'update' | 'transition';
 
+/** Reasons approved for the narrowly scoped internal validation bypass. */
+export const RECORD_VALIDATION_BYPASS_REASONS = [
+  'historical-record-repair',
+  'trusted-data-migration',
+  'configuration-recovery',
+] as const;
+
+export type RecordValidationBypassReason = (typeof RECORD_VALIDATION_BYPASS_REASONS)[number];
+
+const SAFE_VALIDATION_BYPASS_SERVICE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
+
+export function isRecordValidationBypassReason(value: unknown): value is RecordValidationBypassReason {
+  return typeof value === 'string' && (RECORD_VALIDATION_BYPASS_REASONS as readonly string[]).includes(value);
+}
+
+/**
+ * Deliberately awkward internal-only capability.  A string flag is not a
+ * bypass: callers must identify the responsible service and use an approved
+ * reason so the decision can be durably audited.
+ */
+export interface InternalRecordValidationBypass {
+  readonly mode: 'bypass';
+  readonly reason: RecordValidationBypassReason;
+  readonly actor: {
+    readonly kind: 'service';
+    readonly id: string;
+  };
+}
+
+/** Runtime guard for JavaScript callers crossing the internal capability boundary. */
+export function isInternalRecordValidationBypass(value: unknown): value is InternalRecordValidationBypass {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const actor = candidate.actor;
+  if (!actor || typeof actor !== 'object' || Array.isArray(actor)) return false;
+  const actorCandidate = actor as Record<string, unknown>;
+  return (
+    candidate.mode === 'bypass' &&
+    isRecordValidationBypassReason(candidate.reason) &&
+    actorCandidate.kind === 'service' &&
+    typeof actorCandidate.id === 'string' &&
+    SAFE_VALIDATION_BYPASS_SERVICE_ID.test(actorCandidate.id.trim())
+  );
+}
+
 export interface RecordSaveContext {
   requestId: string;
   routeFamily?: RecordSaveRouteFamily;
   operation?: RecordSaveOperation;
+  /** Server-owned business intent; never conflated with the CRUD operation. */
+  validationOperation?: string;
+  /** Accepted only when routeFamily is explicitly `internal`. */
+  validationBypass?: InternalRecordValidationBypass;
 }
 
 /** A typed response for record metadata save operations. */
@@ -137,6 +186,8 @@ export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}
     requestId: isCanonicalSaveRequestId(context.requestId) ? context.requestId : randomUUID(),
     routeFamily: context.routeFamily,
     operation: context.operation,
+    validationOperation: context.validationOperation,
+    validationBypass: context.validationBypass,
   };
 }
 

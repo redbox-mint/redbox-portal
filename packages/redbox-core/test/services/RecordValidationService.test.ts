@@ -7,6 +7,7 @@ import {
 import { ServiceExports } from '../../src/services';
 import {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
+  resolveValidationMode,
   Services,
   type RecordValidationRequest,
   type RecordValidationResult,
@@ -105,6 +106,48 @@ describe('RecordValidationService', function () {
         (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordValidation
       );
     }
+  });
+
+  it('resolves rollout precedence in one pure helper', function () {
+    expect(
+      resolveValidationMode(
+        { mode: 'enforce', operations: { submit: { mode: 'shadow' } } },
+        { mode: 'enforce', operations: { submit: { mode: 'shadow' } } },
+        'submit'
+      )
+    ).to.deep.equal({ mode: 'shadow', malformedModeCount: 0 });
+
+    expect(resolveValidationMode({ mode: 'invalid' } as never, { mode: 'also-invalid' } as never)).to.deep.equal({
+      mode: 'shadow',
+      malformedModeCount: 2,
+    });
+  });
+
+  it('preserves safe malformed-mode diagnostics while using the shared resolver', async function () {
+    (global as any).sails.config.recordValidation = {
+      mode: 'invalid-global',
+      timeoutMs: 5_000,
+      operations: { submit: { mode: 'enforce' } },
+    };
+    const fixture = createRecordValidationFixture({
+      recordType: {
+        id: 'record-type-1',
+        name: 'dataset',
+        recordValidation: {
+          mode: 'invalid-record-type',
+          operations: { submit: { mode: 'shadow' } },
+        },
+      } as never,
+    });
+    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+      ...fixture.request,
+      validationOperation: 'submit',
+    });
+
+    expect(result.mode).to.equal('shadow');
+    expect(
+      codes(result).filter(code => code === RECORD_VALIDATION_DIAGNOSTIC_CODES.rolloutModeMalformed)
+    ).to.have.length(2);
   });
 
   it('resolves the exact starting workflow form for create', async function () {
