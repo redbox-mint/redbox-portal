@@ -571,6 +571,102 @@ describe('FormComponent', () => {
     }
   });
 
+  it('emits a persisted warning without requesting close or redirect', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+      outcome: 'saved-with-warnings',
+      isComplete: () => false,
+      requestId: 'request-warning',
+      metadata: { postSaveSyncWarning: 'true' },
+    }));
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 5 });
+
+      expect(successEvents.length).toBe(1);
+      expect(successEvents[0].response?.outcome).toBe('saved-with-warnings');
+      expect(successEvents[0].requestId).toBe('request-warning');
+      expect(successEvents[0].closeOnSave).toBeUndefined();
+      expect(successEvents[0].redirectLocation).toBeUndefined();
+      expect(formComponent.saveResponse()?.outcome).toBe('saved-with-warnings');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('reports undefined and unmodified forms as distinct save failures', async () => {
+    const undefinedFixture = TestBed.createComponent(FormComponent);
+    const undefinedComponent = undefinedFixture.componentInstance;
+    const undefinedBus = TestBed.inject(FormComponentEventBus);
+    const undefinedFailures: any[] = [];
+    const undefinedSub = undefinedBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => undefinedFailures.push(event));
+
+    await undefinedComponent.saveForm();
+
+    expect(undefinedFailures[undefinedFailures.length - 1]?.error).toBe('@dmpt-form-not-defined');
+    undefinedSub.unsubscribe();
+
+    const modifiedFixture = TestBed.createComponent(FormComponent);
+    const modifiedComponent = modifiedFixture.componentInstance;
+    modifiedComponent.form = new FormGroup({ title: new FormControl('unchanged') });
+    const modifiedBus = TestBed.inject(FormComponentEventBus);
+    const modifiedFailures: any[] = [];
+    const modifiedSub = modifiedBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => modifiedFailures.push(event));
+
+    await modifiedComponent.saveForm();
+
+    expect(modifiedFailures[modifiedFailures.length - 1]?.error).toBe('@dmpt-form-not-modified');
+    modifiedSub.unsubscribe();
+  });
+
+  it('maps angular JSON pointers to lineage-aware focus requests', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const control = new FormControl('value');
+    formComponent.form = new FormGroup({ title: control });
+    formComponent.componentDefArr = [{
+      name: 'title',
+      compConfigJson: {},
+      model: { formControl: control },
+      lineagePaths: {
+        angularComponents: ['section', 'title'],
+        angularComponentsJsonPointer: '/section/title',
+        dataModel: ['title'],
+      },
+    } as any];
+    const bus = TestBed.inject(FormComponentEventBus);
+    const focusEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(event => focusEvents.push(event));
+
+    try {
+      (formComponent as any).applyServerSaveProblems({
+        requestId: 'request-focus',
+        problems: [{
+          kind: 'validation',
+          phase: 'pre-save',
+          issues: [{ pointer: '/section/title', message: '@record-save-failed' }],
+        }],
+      });
+
+      expect(control.errors?.['server#0']).toBeDefined();
+      expect(focusEvents.length).toBe(1);
+      expect(focusEvents[0].lineagePath).toEqual(['section', 'title']);
+      expect(focusEvents[0].requestId).toBe('request-focus');
+      expect(focusEvents[0].source).toBe('server-save-validation');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
   it('fails save when pending async validation times out', async () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;

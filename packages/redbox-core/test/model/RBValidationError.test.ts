@@ -16,6 +16,11 @@ describe('RBValidationError', function() {
       const err = new RBValidationError({ displayErrors });
       expect(err.displayErrors).to.deep.equal(displayErrors);
     });
+
+    it('should preserve an explicit problem kind', function() {
+      const err = new RBValidationError({ problemKind: 'authorization' });
+      expect(err.problemKind).to.equal('authorization');
+    });
   });
 
   describe('isRBValidationError', function() {
@@ -89,6 +94,33 @@ describe('RBValidationError', function() {
 
     it('should throw if t not provided', function() {
       expect(() => RBValidationError.displayMessage({})).to.throw('Must provide TranslationService');
+    });
+  });
+
+  describe('classify', function() {
+    it('prefers explicit classification over status and display evidence', function() {
+      expect(
+        RBValidationError.classify({
+          problemKind: 'network',
+          status: 500,
+          displayErrors: [{ source: { pointer: '/title' } }],
+        })
+      ).to.equal('network');
+    });
+
+    it('classifies server failures and authorization responses', function() {
+      expect(RBValidationError.classify({ status: 503 })).to.equal('system');
+      expect(RBValidationError.classify({ statusCode: 401 })).to.equal('authorization');
+      expect(RBValidationError.classify({ code: 'access-denied' })).to.equal('authorization');
+    });
+
+    it('uses field, pointer, and error-field metadata as validation evidence', function() {
+      expect(RBValidationError.classify({ displayErrors: [{ field: 'title' }] })).to.equal('validation');
+      expect(RBValidationError.classify({ displayErrors: [{ source: { pointer: '/title' } }] })).to.equal('validation');
+      expect(RBValidationError.classify({ displayErrors: [{ meta: { errorFieldList: ['title'] } }] })).to.equal(
+        'validation'
+      );
+      expect(RBValidationError.classify({ displayErrors: [{ title: 'not a field error' }] })).to.equal('system');
     });
   });
 });
