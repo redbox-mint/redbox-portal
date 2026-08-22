@@ -41,7 +41,7 @@ updates:
       - '/packages/sails-hook-redbox-storage-mongo'
       - '/packages/sails-ng-common'
       - '/packages/redbox-hook-dev'
-      - '/packages/agdenda-sqs-backend'
+      - '/packages/agenda-sqs-backend'
     schedule:
       interval: 'daily'
     target-branch: 'develop'
