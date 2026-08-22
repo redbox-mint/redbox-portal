@@ -188,6 +188,23 @@ describe("RecordService", () => {
     ]);
   });
 
+  it("uses a safe fallback message for an error without detail or title", () => {
+    const result = RecordActionResult.fromResponse({ errors: [{ field: "title" }] }, 500, "request-fallback");
+
+    expect(result.outcome).toBe("unknown");
+    expect(result.problems[0].issues).toEqual([{ message: "The submitted value is invalid.", field: "title" }]);
+  });
+
+  it("normalises an update transport error as an uncertain save", async () => {
+    const updatePromise = recordService.update("oid-transport", { title: "Test record" });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-transport`);
+    request.error(new ProgressEvent("network error"));
+
+    const result = await updatePromise;
+    expect(result.outcome).toBe("unknown");
+    expect(result.problems[0].kind).toBe("network");
+  });
+
   it("normalises pre-dispatch failures and non-HTTP errors", () => {
     const notDispatched = RecordActionResult.notDispatched("Could not build request", "oid-1", "request-1");
     expect(notDispatched.outcome).toBe("not-saved");
