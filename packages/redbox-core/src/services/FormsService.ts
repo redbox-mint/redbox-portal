@@ -28,13 +28,20 @@ import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
   FormConfigFrame, FormConfigOutline,
-  FormModesConfig, ReusableFormDefinitions,
+  FormModesConfig, ReusableFormDefinitions, ValidationOperationDiscovery,
+  compareRecordValidationIdentifiers,
+  RECORD_VALIDATION_REFERENCE_PATTERN,
+  sanitizeValidationOperationDiscovery,
 } from "@researchdatabox/sails-ng-common";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 import { RelatedObjectDataInlineFormConfigVisitor } from '../visitor/related-object-data-inline.visitor';
 import type { RecordsService } from '../RecordsService';
+import type {
+  RecordValidationCandidate,
+  RecordValidationOperationDiscoveryRequest,
+} from './RecordValidationService';
 
 type WorkflowStepLike = {
   id: string;
@@ -43,8 +50,18 @@ type WorkflowStepLike = {
 };
 
 type RecordLike = {
-  metaMetadata?: { form?: string; type?: string };
+  redboxOid?: string;
+  metaMetadata?: { brandId?: string; form?: string; type?: string };
   metadata?: Record<string, unknown>;
+  workflow?: { stage?: string; stageLabel?: string };
+  authorization?: {
+    edit?: string[];
+    view?: string[];
+    editRoles?: string[];
+    viewRoles?: string[];
+    editPending?: string[];
+    viewPending?: string[];
+  };
 };
 
 type FormFieldLike = {
@@ -64,6 +81,24 @@ type FormComponentNodeLike = {
   };
 };
 type RecordAccessContext = { user: UserModel; brand: BrandingModel };
+
+export interface ValidationOperationDiscoveryOptions {
+  readonly brand: BrandingModel;
+  readonly form: FormAttributes;
+  readonly recordType?: string;
+  readonly record?: RecordLike | null;
+  readonly user?: UserModel | Record<string, unknown> | null;
+  readonly editable: boolean;
+  readonly targetStep?: string;
+}
+
+export type PublicFormAttributes = FormAttributes & {
+  validationOperations?: ValidationOperationDiscovery[];
+};
+
+type RecordValidationDiscoveryService = {
+  discoverOperations(request: RecordValidationOperationDiscoveryRequest): Promise<ValidationOperationDiscovery[]>;
+};
 
 export namespace Services {
   /**
@@ -86,6 +121,8 @@ export namespace Services {
       'generateFormFromSchema',
       'getFormByStartingWorkflowStep',
       'buildClientFormConfig',
+      'discoverValidationOperations',
+      'toPublicForm',
     ];
 
     public async bootstrap(workflowStep: WorkflowStepLike, brandingId: string): Promise<unknown> {
@@ -274,6 +311,141 @@ export namespace Services {
       } as FormAttributes;
     }
 
+    /**
+     * Remove the server-owned operation policy and add only caller-filtered
+     * discovery metadata. Nested form configuration is otherwise preserved for
+     * compatibility with existing form clients.
+     */
+    public toPublicForm(
+      form: FormAttributes,
+      validationOperations?: readonly ValidationOperationDiscovery[]
+    ): PublicFormAttributes {
+      const configuration = form.configuration;
+      const { validationOperations: _internalOperations, ...publicConfiguration } = configuration ?? {};
+      const safeOperations = validationOperations
+        ?.map(operation => sanitizeValidationOperationDiscovery(operation))
+        .filter((operation): operation is ValidationOperationDiscovery => operation !== undefined);
+      return {
+        ...form,
+        ...(configuration ? { configuration: publicConfiguration as FormConfigFrame } : {}),
+        ...(safeOperations ? {
+          validationOperations: safeOperations,
+        } : {}),
+      };
+    }
+
+    /**
+     * Discover operations using the same form/type/stage policy resolver as a
+     * save, after applying existing record-edit and workflow-transition access.
+     * Missing services, actor data, or context fail safely to no operations.
+     */
+    public async discoverValidationOperations(
+      options: ValidationOperationDiscoveryOptions
+    ): Promise<ValidationOperationDiscovery[]> {
+      if (!options.editable) return [];
+      const user = (options.user ?? {}) as Record<string, unknown>;
+      const username = String(user.username ?? '').trim();
+      if (!username) return [];
+
+      try {
+        const recordsService = sails.services.recordsservice as unknown as RecordsService;
+        const validationService = sails.services.recordvalidationservice as unknown as RecordValidationDiscoveryService;
+        if (
+          !recordsService ||
+          typeof recordsService.hasEditAccess !== 'function' ||
+          typeof recordsService.hasTransitionRoleAuthorization !== 'function' ||
+          !validationService ||
+          typeof validationService.discoverOperations !== 'function'
+        ) {
+          return [];
+        }
+
+        const actorRoles = Array.isArray(user.roles) ? user.roles : [];
+        const normalizedActorRoles = [...new Set(actorRoles
+          .map(role => typeof role === 'string' ? role.trim() : String((role as Record<string, unknown>)?.name ?? '').trim())
+          .filter(Boolean))].sort(compareRecordValidationIdentifiers);
+        const record = options.record ?? null;
+        const canEdit = record
+          ? recordsService.hasEditAccess(options.brand, user, actorRoles as Record<string, unknown>[], record)
+          : true;
+        if (!canEdit) return [];
+
+        const recordTypeName = String(
+          record?.metaMetadata?.type ?? options.recordType ?? options.form.configuration?.type ?? ''
+        ).trim();
+        const brandId = String(record?.metaMetadata?.brandId ?? options.brand?.id ?? '').trim();
+        const formName = String(record?.metaMetadata?.form ?? options.form.name ?? '').trim();
+        if (!recordTypeName || !brandId || !formName) return [];
+        if (record && String(options.form.name ?? '').trim() !== formName) return [];
+        if (!record) {
+          const configuredFormType = String(options.form.configuration?.type ?? '').trim();
+          if (configuredFormType && configuredFormType !== recordTypeName) return [];
+        }
+        const recordType = await firstValueFrom(RecordTypesService.get(options.brand, recordTypeName));
+        if (!recordType) return [];
+        const workflowSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
+        if (!record) {
+          const requestedContextStep = options.targetStep
+            ? (workflowSteps ?? []).find(step => String(step?.name ?? '').trim() === options.targetStep?.trim())
+            : (workflowSteps ?? []).find(step => step?.starting === true);
+          const contextConfig = requestedContextStep?.config;
+          const contextFormName = String(
+            contextConfig && typeof contextConfig === 'object' && !Array.isArray(contextConfig)
+              ? (contextConfig as Record<string, unknown>).form ?? ''
+              : ''
+          ).trim();
+          if (!contextFormName || contextFormName !== formName) return [];
+        }
+        const authorizedTargetSteps = (workflowSteps ?? [])
+          .filter(step => recordsService.hasTransitionRoleAuthorization(step, user))
+          .map(step => String(step?.name ?? '').trim())
+          .filter(step => RECORD_VALIDATION_REFERENCE_PATTERN.test(step))
+          .sort(compareRecordValidationIdentifiers);
+        const targetStep = options.targetStep?.trim();
+        if (targetStep && !authorizedTargetSteps.includes(targetStep)) return [];
+
+        const candidate: RecordValidationCandidate = {
+          ...(record?.redboxOid ? { redboxOid: String(record.redboxOid) } : {}),
+          metadata: record?.metadata ?? {},
+          metaMetadata: {
+            ...(record?.metaMetadata ?? {}),
+            brandId,
+            type: recordTypeName,
+            form: formName,
+          },
+          ...(record?.workflow ? { workflow: record.workflow } : {}),
+        };
+        const operations = await validationService.discoverOperations({
+          candidate,
+          writeKind: targetStep ? (record ? 'transition' : 'create') : (record ? 'update' : 'create'),
+          ...(targetStep ? { targetStep } : {}),
+          actor: { authenticated: true, roles: normalizedActorRoles },
+          canEdit: true,
+          authorizedTargetSteps,
+        });
+        const transportTargets = new Set(targetStep ? [targetStep] : authorizedTargetSteps);
+        const merged = new Map<string, ValidationOperationDiscovery>();
+        for (const operation of operations) {
+          const safeOperation = sanitizeValidationOperationDiscovery(operation, transportTargets);
+          if (safeOperation) merged.set(safeOperation.name, safeOperation);
+        }
+        return [...merged.values()].sort((left, right) =>
+          compareRecordValidationIdentifiers(left.name, right.name)
+        );
+      } catch (error: unknown) {
+        const errorType = error instanceof Error ? error.name : typeof error;
+        const recordType = String(options.record?.metaMetadata?.type ?? options.recordType ?? '').trim();
+        const formName = String(options.record?.metaMetadata?.form ?? options.form.name ?? '').trim();
+        this.logger.warn(
+          `Validation operation discovery was safely omitted` +
+          ` (recordType=${RECORD_VALIDATION_REFERENCE_PATTERN.test(recordType) ? recordType : 'unavailable'},` +
+          ` form=${RECORD_VALIDATION_REFERENCE_PATTERN.test(formName) ? formName : 'unavailable'},` +
+          ` errorType=${errorType}).`
+        );
+        return [];
+      }
+    }
+
     public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, _editMode: boolean): Observable<FormAttributes> {
 
       const starting = true;
@@ -326,7 +498,7 @@ export namespace Services {
     public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: RecordLike): Promise<FormConfigFrame | Record<string, unknown>> {
 
       if (recordType == '') {
-        recordType = _.get(record, 'metaMetadata.type', '');
+        recordType = String(_.get(record, 'metaMetadata.type', ''));
         if (recordType == '') {
           return {};
         }

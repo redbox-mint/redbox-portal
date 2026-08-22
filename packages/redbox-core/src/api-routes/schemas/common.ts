@@ -2,6 +2,10 @@ import { z } from '../zod-openapi';
 import type { ZodRawShape, ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
+import {
+  VALIDATION_OPERATION_NAME_MAX_LENGTH,
+  VALIDATION_OPERATION_NAME_PATTERN,
+} from '@researchdatabox/sails-ng-common';
 
 export * from './responses';
 
@@ -24,6 +28,17 @@ export const binaryField = (description?: string): ApiSchemaField =>
   withOpenApi(z.string(), { type: 'string', format: 'binary', description });
 export const anyField = (description?: string): ApiSchemaField =>
   withOpenApi(z.unknown(), { type: 'object', description });
+
+export const validationOperationQueryField: ApiSchemaField = withOpenApi(
+  z.string({ error: 'record-validation-operation-invalid' })
+    .trim()
+    .max(VALIDATION_OPERATION_NAME_MAX_LENGTH, { error: 'record-validation-operation-invalid' })
+    .regex(VALIDATION_OPERATION_NAME_PATTERN, { error: 'record-validation-operation-invalid' }),
+  {
+    description: 'Case-sensitive server validation operation identifier',
+    example: 'submit',
+  }
+);
 
 export function objectField(
   properties: Record<string, ApiSchemaField>,
@@ -142,9 +157,20 @@ export const recordAuditQuery = objectField({
   dateTo: stringField('End date filter'),
 });
 
-export const recordUpdateQuery = objectField({
+const recordUpdateCompatibilityQueryFields = {
   merge: booleanField('Merge arrays instead of replacing them'),
   datastreams: booleanField('Process datastream metadata updates'),
+};
+
+export const recordUpdateQuery = objectField({
+  ...recordUpdateCompatibilityQueryFields,
+  operation: validationOperationQueryField,
+});
+
+export const legacyRecordUpdateQuery = objectField(recordUpdateCompatibilityQueryFields);
+
+export const recordOperationQuery = objectField({
+  operation: validationOperationQueryField,
 });
 
 export const recordHarvestQuery = objectField({
