@@ -243,6 +243,90 @@ describe('Effect action execution', function () {
     expect(summary.truncated).to.equal(true);
     expect(summary.counts.dispatched).to.equal(101);
   });
+
+  it('replaces completed detached dispatches without double-counting pending actions', function () {
+    const operation = createActionExecutionOperation('onCreate');
+    operation.detachedPending = 1;
+    operation.reports.push({
+      schemaVersion: 1,
+      executionId: operation.executionId,
+      phaseExecutionId: 'phase-post',
+      context: {
+        executionId: operation.executionId,
+        phaseExecutionId: 'phase-post',
+        trigger: 'record-hook',
+        mode: 'onCreate',
+        phase: 'post',
+      },
+      status: 'dispatched',
+      startedAt: '2026-01-01T00:00:00.000Z',
+      completedAt: '2026-01-01T00:00:00.000Z',
+      durationMs: 0,
+      actions: [
+        {
+          actionId: 'post-0',
+          mode: 'onCreate',
+          phase: 'post',
+          index: 0,
+          status: 'dispatched',
+          attempts: 0,
+          startedAt: '2026-01-01T00:00:00.000Z',
+          completedAt: '2026-01-01T00:00:00.000Z',
+          durationMs: 0,
+        },
+        {
+          actionId: 'post-1',
+          mode: 'onCreate',
+          phase: 'post',
+          index: 1,
+          status: 'dispatched',
+          attempts: 0,
+          startedAt: '2026-01-01T00:00:00.000Z',
+          completedAt: '2026-01-01T00:00:00.000Z',
+          durationMs: 0,
+        },
+      ],
+      counts: { succeeded: 0, failed: 0, timed_out: 0, interrupted: 0, skipped: 0, dispatched: 2 },
+    });
+    operation.detachedResults = [
+      {
+        actionId: 'post-0',
+        mode: 'onCreate',
+        phase: 'post',
+        index: 0,
+        status: 'succeeded',
+        attempts: 1,
+        startedAt: '2026-01-01T00:00:00.000Z',
+        completedAt: '2026-01-01T00:00:00.020Z',
+        durationMs: 20,
+      },
+    ];
+
+    const partial = projectRecordHookExecutionAuditSummary(operation);
+    expect(partial.totalActions).to.equal(2);
+    expect(partial.actions.map(action => action.status)).to.deep.equal(['succeeded', 'dispatched']);
+    expect(partial.counts.succeeded).to.equal(1);
+    expect(partial.counts.dispatched).to.equal(1);
+
+    operation.detachedPending = 0;
+    operation.detachedResults.push({
+      actionId: 'post-1',
+      mode: 'onCreate',
+      phase: 'post',
+      index: 1,
+      status: 'failed',
+      attempts: 1,
+      startedAt: '2026-01-01T00:00:00.000Z',
+      completedAt: '2026-01-01T00:00:00.030Z',
+      durationMs: 30,
+      failure: { kind: 'unexpected', code: 'hook-failed' },
+    });
+    const complete = projectRecordHookExecutionAuditSummary(operation);
+    expect(complete.totalActions).to.equal(2);
+    expect(complete.actions.map(action => action.status)).to.deep.equal(['succeeded', 'failed']);
+    expect(complete.counts.dispatched).to.equal(undefined);
+  });
+
   it('uses the Effect TestClock, injected time, and deterministic jitter for retry scheduling', async function () {
     let logicalTime = 0;
     const sleeps: number[] = [];

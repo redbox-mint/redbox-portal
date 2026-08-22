@@ -102,6 +102,9 @@ export interface ActionExecutionDependencies {
   random?: () => number;
   /** Injectable backoff sleep. Defaults to Effect's live Clock service. */
   sleep?: (durationMs: number) => Effect.Effect<void>;
+  /** Injectable wall-clock scheduling for bounded save-side handoffs. */
+  schedule?: (durationMs: number, task: () => void) => unknown;
+  cancelSchedule?: (handle: unknown) => void;
   uuid?: () => string;
   logger?: ActionExecutionLogger;
   supervisor?: ActionExecutionSupervisor;
@@ -154,6 +157,11 @@ export interface ActionExecutionOperation {
   detachedResults?: ActionExecutionResult[];
   onDetachedComplete?: () => void;
   detachedCompletedAt?: string;
+  /** In-memory guard/state for the exactly-once audit handoff. */
+  detachedAuditFinalized?: boolean;
+  detachedAuditTimer?: unknown;
+  cancelDetachedAuditTimer?: (handle: unknown) => void;
+  operationCompletedLogged?: boolean;
 }
 
 export const EMPTY_ACTION_COUNTS: ActionExecutionCounts = {

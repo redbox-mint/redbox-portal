@@ -1359,6 +1359,12 @@ export namespace Services {
       if (['pre', 'persistence', 'postSync', 'post-dispatch'].includes(String(source.completedThrough))) {
         summary.completedThrough = source.completedThrough;
       }
+      if (['complete', 'grace-expired'].includes(String(source.detachedFinalization))) {
+        summary.detachedFinalization = source.detachedFinalization;
+      }
+      if (Number.isInteger(source.detachedPending) && Number(source.detachedPending) > 0) {
+        summary.detachedPending = Number(source.detachedPending);
+      }
       return summary;
     }
 

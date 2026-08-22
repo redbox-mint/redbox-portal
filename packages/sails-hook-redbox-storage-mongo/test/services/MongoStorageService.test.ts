@@ -1069,6 +1069,8 @@ describe('MongoStorageService', function () {
         counts: { dispatched: 101 },
         actions,
         truncated: true,
+        detachedFinalization: 'grace-expired',
+        detachedPending: 1,
         unsafe: 'must-not-persist',
       } as any,
     });
@@ -1077,6 +1079,8 @@ describe('MongoStorageService', function () {
     expect(saved.actions).to.have.length(100);
     expect(saved.totalActions).to.equal(101);
     expect(saved.truncated).to.equal(true);
+    expect(saved.detachedFinalization).to.equal('grace-expired');
+    expect(saved.detachedPending).to.equal(1);
     expect(saved.unsafe).to.equal(undefined);
     expect(saved.actions[0].secret).to.equal(undefined);
   });
