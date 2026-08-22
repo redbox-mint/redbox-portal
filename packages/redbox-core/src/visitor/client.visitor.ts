@@ -411,6 +411,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
+    // Operation policy contains server-only role and validation-group internals.
+    // Authorized discovery is exposed through a separate safe contract.
+    delete item.validationOperations;
+
     // Behaviours follow the same client-delivery pattern as expressions:
     // compile JSONata on the server, strip raw source from the delivered config,
     // and leave marker flags so the Angular runtime knows which compiled keys to

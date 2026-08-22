@@ -1,13 +1,25 @@
 import jsonata from 'jsonata';
 import { DateTime } from 'luxon';
-import {decodeBase64, encodeBase64} from "./html-helpers";
-import {normaliseVisual} from "./config/names/naming-helpers";
-import {guessNameParts} from "./translation-helpers";
+import { decodeBase64, encodeBase64 } from './html-helpers';
+import { normaliseVisual } from './config/names/naming-helpers';
+import { guessNameParts } from './translation-helpers';
 
 /**
  * A function that accepts a context and evaluates a previously compiled expression.
  */
 export type JSONataEvaluate = (context: unknown) => Promise<unknown>;
+
+/** Bindings that could restore dynamic expression evaluation are never accepted. */
+export const JSONATA_PROHIBITED_BINDING_NAMES = ['eval', 'jsonata'] as const;
+
+type JSONataFunctionImplementation = Parameters<jsonata.Expression['registerFunction']>[1];
+
+export interface JSONataFunctionDefinition {
+  implementation: JSONataFunctionImplementation;
+  signature?: string;
+}
+
+export type JSONataFunctionRegistry = Readonly<Record<string, JSONataFunctionDefinition>>;
 
 /**
  * Format a date using the luxon library.
@@ -49,6 +61,28 @@ export function luxonFormatDate(
   return dateTime.isValid ? dateTime.toFormat(outputFormat) : '';
 }
 
+/** The single source of truth for functions installed by every shared compiler. */
+const JSONATA_CUSTOM_FUNCTION_REGISTRY = {
+  eval: {
+    implementation: () => {
+      throw new Error('Attempted to invoke eval');
+    },
+  },
+  luxonFormatDate: {
+    implementation: luxonFormatDate,
+    signature: '<(snlo)(sl)(sl)?:s>',
+  },
+  guessNameParts: {
+    implementation: guessNameParts,
+    signature: '<(sl):o>',
+  },
+} as const satisfies JSONataFunctionRegistry;
+
+/** Deterministic names derived from the complete shared function registry. */
+export const JSONATA_CUSTOM_FUNCTION_NAMES = Object.freeze(
+  Object.keys(JSONATA_CUSTOM_FUNCTION_REGISTRY) as (keyof typeof JSONATA_CUSTOM_FUNCTION_REGISTRY)[]
+);
+
 /**
  * Prepare a jsonata expression to be transferred from server to client.
  * @param expression The jsonata expression string.
@@ -84,25 +118,19 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   expression = normaliseVisual(expression);
   const compiled = jsonata(expression, options);
 
+  registerJSONataCustomFunctions(compiled);
+
+  return compiled;
+}
+
+/** Register the complete shared JSONata function set on a compiled expression. */
+export function registerJSONataCustomFunctions(compiled: jsonata.Expression): jsonata.Expression {
   // Register jsonata functions.
   // The function signatures are used on purpose to restrict the arguments,
   // so invalid input types are clear instead of hidden.
   // Callers of the jsonata helper functions must be prepared for possible parse errors and input type errors.
 
-  // Disable JSONata's dynamic eval function so browser/server validators only run the configured expression.
-  compiled.registerFunction('eval', () => {throw new Error('Attempted to invoke eval')});
-
-  // Register a function for formatting date time values.
-  // First param 'value': string, number, null, object (to allow Date)
-  // Second param 'format': string, null
-  // Third param 'sourceFormat': string, null, optional
-  // Return type: string
-  compiled.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
-
-  // Register a function for guessing name parts.
-  // First param 'value': string, null
-  // Return type: object
-  compiled.registerFunction('guessNameParts', guessNameParts, '<(sl):o>');
+  registerJSONataFunctions(compiled, JSONATA_CUSTOM_FUNCTION_REGISTRY);
 
   // TODO: consider registering a function for translations
   // TODO: consider replacing regex with google's re2?
@@ -110,11 +138,35 @@ export function jsonataCompile(expression: string, options?: jsonata.JsonataOpti
   return compiled;
 }
 
+/** Register a deterministic function set, including service-local extensions. */
+export function registerJSONataFunctions(
+  compiled: jsonata.Expression,
+  registry: JSONataFunctionRegistry
+): jsonata.Expression {
+  for (const [name, definition] of Object.entries(registry)) {
+    compiled.registerFunction(name, definition.implementation, definition.signature);
+  }
+  return compiled;
+}
+
+function assertSafeJSONataBindings(bindings?: Record<string, unknown>): void {
+  if (!bindings) {
+    return;
+  }
+  const prohibited = new Set<string>(JSONATA_PROHIBITED_BINDING_NAMES);
+  for (const key of Object.keys(bindings)) {
+    if (prohibited.has(key.replace(/^\$/, ''))) {
+      throw new Error(`JSONata binding '${key}' is not supported`);
+    }
+  }
+}
+
 export async function jsonataEvaluate(
   compiled: jsonata.Expression,
   context: unknown,
   bindings?: Record<string, unknown>
 ): Promise<unknown> {
+  assertSafeJSONataBindings(bindings);
   return await compiled.evaluate(context, bindings);
 }
 

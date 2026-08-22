@@ -1,9 +1,11 @@
 import {
+  JSONATA_CUSTOM_FUNCTION_NAMES,
   jsonataCompile,
   jsonataCompileAndEvaluate,
   jsonataEvaluate,
   jsonataEvaluateFunc,
 } from '../../src';
+import { jsonataParityFixtures } from '../../src/testing';
 
 describe('JSONata helpers', function () {
   let expect: Chai.ExpectStatic;
@@ -20,6 +22,39 @@ describe('JSONata helpers', function () {
       expect.fail(`Threw unexpected error ${JSON.stringify({error, type: typeof error})}`);
     }
   }
+
+  it('derives the deterministic shared function names from functions that are registered', async function () {
+    expect(JSONATA_CUSTOM_FUNCTION_NAMES).to.eql(['eval', 'luxonFormatDate', 'guessNameParts']);
+    expect(await jsonataCompileAndEvaluate('$luxonFormatDate("2026-08-22", "yyyy")', null)).to.equal('2026');
+    expect(await jsonataCompileAndEvaluate('$guessNameParts("Ada Lovelace").last', null)).to.equal('Lovelace');
+  });
+
+  it('fails at the unknown-function boundary', async function () {
+    let error: unknown;
+    try {
+      await jsonataCompileAndEvaluate('$notRegistered()', null);
+    } catch (caught) {
+      error = caught;
+    }
+    expect((error as Error)?.message).to.equal('Attempted to invoke a non-function');
+  });
+
+  for (const fixture of jsonataParityFixtures) {
+    it(`evaluates parity fixture: ${fixture.name}`, async function () {
+      expect(await jsonataCompileAndEvaluate(fixture.expression, fixture.context)).to.deep.equal(fixture.expected);
+    });
+  }
+
+  it('rejects evaluation bindings that attempt to restore eval-like functions', async function () {
+    const compiled = jsonataCompile('$eval("1 + 1")');
+    let error: unknown;
+    try {
+      await jsonataEvaluate(compiled, null, { eval: () => 2 });
+    } catch (caught) {
+      error = caught;
+    }
+    expect((error as Error)?.message).to.equal("JSONata binding 'eval' is not supported");
+  });
 
   const cases = [
     {

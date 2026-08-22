@@ -169,6 +169,7 @@ export namespace Services {
           enabledValidationGroups: formConfigRaw.enabledValidationGroups as FormConfigFrame['enabledValidationGroups'],
           validators: formConfigRaw.validators as FormConfigFrame['validators'],
           validationGroups: formConfigRaw.validationGroups as FormConfigFrame['validationGroups'],
+          validationOperations: formConfigRaw.validationOperations as FormConfigFrame['validationOperations'],
           behaviours: formConfigRaw.behaviours as FormConfigFrame['behaviours'],
           defaultLayoutComponent: formConfigRaw.defaultLayoutComponent as FormConfigFrame['defaultLayoutComponent'],
           componentDefinitions: formConfigRaw.componentDefinitions as FormConfigFrame['componentDefinitions'],

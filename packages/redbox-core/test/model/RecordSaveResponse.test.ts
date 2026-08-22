@@ -131,6 +131,35 @@ describe('RecordSaveResponse', function () {
       const result = new RecordSaveResponse();
       expect(isCanonicalSaveRequestId(result.requestId)).to.equal(true);
     });
+
+    it('serializes only bounded safe validator metadata', function () {
+      const saveTracker = tracker();
+      saveTracker.recordPrimaryNotApplied({
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [{
+          message: '@validator-error-required',
+          code: 'record-validation-failed',
+          class: 'required',
+          params: { required: true, unsafe: { token: 'secret' } } as never,
+          targetField: { dataModel: ['title'] },
+          lineagePaths: { dataModel: ['title'], angularComponentsJsonPointer: '/title' },
+          exception: new Error('raw database failure'),
+        } as never],
+      });
+
+      const serialized = JSON.parse(JSON.stringify(saveTracker.toResponse()));
+      expect(serialized.problems[0].issues[0]).to.deep.equal({
+        message: '@validator-error-required',
+        code: 'record-validation-failed',
+        class: 'required',
+        params: { required: true },
+        targetField: { dataModel: ['title'] },
+        lineagePaths: { dataModel: ['title'], angularComponentsJsonPointer: '/title' },
+      });
+      expect(JSON.stringify(serialized)).not.to.contain('raw database failure');
+      expect(JSON.stringify(serialized)).not.to.contain('secret');
+    });
   });
 
   describe('attachment completion', function () {

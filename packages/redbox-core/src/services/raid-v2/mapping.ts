@@ -1,6 +1,5 @@
 /* oxlint-disable typescript/no-explicit-any */
 import { Effect, Layer } from 'effect';
-import jsonata from 'jsonata';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import numeral from 'numeral';
@@ -9,6 +8,12 @@ import type { RaidMappingField, RaidPublishingConfigData } from '../../configmod
 import { RaidMappingError } from './errors';
 import { RaidConfigTag, RaidMappingTag, RaidRunContextTag } from './tags';
 import type { RaidOptions, RaidRecord } from './types';
+import {
+  JSONataFunctionRegistry,
+  jsonataCompile,
+  jsonataEvaluate,
+  registerJSONataFunctions,
+} from '@researchdatabox/sails-ng-common';
 
 type AnyRecord = Record<string, any>;
 
@@ -113,10 +118,19 @@ export function makeMappingLayer() {
             if (field.engine === 'jsonata') {
               value = yield* Effect.tryPromise({
                 try: async () => {
-                  const expression = jsonata(field.expression!);
-                  expression.registerFunction('contributors', () => buildContributors(record, field, mappedData, config), '<:a>');
-                  expression.registerFunction('subjects', (data: unknown, type: string) => buildSubjects(data, type, config), '<xs:a>');
-                  return expression.evaluate(context);
+                  const expression = jsonataCompile(field.expression!);
+                  const raidFunctions = {
+                    contributors: {
+                      implementation: () => buildContributors(record, field, mappedData, config),
+                      signature: '<:a>',
+                    },
+                    subjects: {
+                      implementation: (data: unknown, type: string) => buildSubjects(data, type, config),
+                      signature: '<xs:a>',
+                    },
+                  } satisfies JSONataFunctionRegistry;
+                  registerJSONataFunctions(expression, raidFunctions);
+                  return jsonataEvaluate(expression, context);
                 },
                 catch: cause => new RaidMappingError({ message: `Failed to evaluate JSONata field '${name}'`, field: name, engine: field.engine, cause })
               });
