@@ -63,7 +63,8 @@
     "include": [
       "**/src/handlebars-helpers.*",
       "**/src/config/names/**/*.*",
-      "**/src/validation/**/*.*"
+      "**/src/validation/**/*.*",
+      "**/src/record-save.model.*"
     ],
     "reporter": [
       "lcov",
