@@ -108,6 +108,7 @@ import {
   FormConfig,
   buildLineagePaths,
   jsonataEvaluateFunc,
+  JSONataEvaluate,
 } from '@researchdatabox/sails-ng-common';
 import { DataValueFormConfigVisitor } from './data-value.visitor';
 
@@ -136,6 +137,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   private form: FormConfigOutline;
   private enabledValidationGroups: string[];
   private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
+  private jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate;
 
   private validationErrors: FormValidatorSummaryErrors[];
 
@@ -149,6 +151,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     this.form = new FormConfig();
     this.enabledValidationGroups = [];
     this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
+    this.jsonataEvaluatorFactory = jsonataEvaluateFunc;
 
     this.validationErrors = [];
 
@@ -166,6 +169,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     form: FormConfigOutline;
     enabledValidationGroups?: string[];
     validatorDefinitions?: FormValidatorDefinition[];
+    validatorDefinitionsMap?: ReadonlyMap<string, FormValidatorDefinition>;
+    jsonataEvaluatorFactory?: (expression: string) => JSONataEvaluate;
   }): Promise<FormValidatorSummaryErrors[]> {
     this.formPathHelper.reset();
 
@@ -173,9 +178,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     // use the first non-null, non-undefined value - empty array is a valid value
     this.enabledValidationGroups = options.enabledValidationGroups ?? this.form.enabledValidationGroups ?? ['all'];
-    this.validatorDefinitionsMap = this.validatorSupport.createValidatorDefinitionMapping(
-      options.validatorDefinitions || []
-    );
+    this.validatorDefinitionsMap = options.validatorDefinitionsMap
+      ? new Map(options.validatorDefinitionsMap)
+      : this.validatorSupport.createValidatorDefinitionMapping(options.validatorDefinitions || []);
+    this.jsonataEvaluatorFactory = options.jsonataEvaluatorFactory ?? jsonataEvaluateFunc;
 
     this.validationErrors = [];
 
@@ -786,9 +792,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
       // ensure jsonata-expression validators can be evaluated
       this.validatorSupport.assignJsonataEvaluators(
         validators,
-        function (validator: FormValidatorConfig, index: number): unknown {
+        (validator: FormValidatorConfig, index: number): unknown => {
           const expr = validator?.config?.['expression']?.toString() ?? '';
-          return jsonataEvaluateFunc(expr);
+          return this.jsonataEvaluatorFactory(expr);
         }
       );
       const filteredValidators = this.validatorSupport.enabledValidators(

@@ -1,4 +1,5 @@
 import { firstValueFrom } from 'rxjs';
+import { createHash } from 'node:crypto';
 import {
   calculateValidationGroups,
   ExpressionsConditionKind,
@@ -8,13 +9,22 @@ import {
   FormExpressionsTargetValidationGroups,
   FormFieldValidationGroup,
   FormValidationGroupsChangeInitial,
-  jsonataCompileAndEvaluate,
+  FormValidatorDefinition,
+  FormValidatorSummaryErrors,
+  getJSONPointerByArrayPaths,
+  jsonataCompile,
+  jsonataEvaluate,
+  JSONataEvaluate,
+  RecordSaveIssue,
   RecordValidationDiagnostic,
   ReusableFormDefinitions,
   ValidationMode,
   ValidationOperationDefinition,
   ValidationOperationOverride,
   ValidationOperationPolicyOverride,
+  sanitizeRecordSaveIssue,
+  SuggestedValidationSummaryComponentName,
+  ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
@@ -23,6 +33,8 @@ import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RecordMetaMetadata, RecordWorkflow } from '../model/storage/RecordModel';
 import type { FormAttributes } from '../waterline-models/Form';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
+import { ValidatorFormConfigVisitor } from '../visitor/validator.visitor';
+import type jsonata from 'jsonata';
 
 export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   formReferenceMissing: 'record-validation-form-reference-missing',
@@ -50,6 +62,13 @@ export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   validationGroupUnknown: 'record-validation-group-unknown',
   requestParameterDropped: 'record-validation-request-parameter-dropped',
   resolutionFailed: 'record-validation-resolution-failed',
+  advisoryConfigurationMalformed: 'record-validation-advisory-configuration-malformed',
+  advisoryGroupUnknown: 'record-validation-advisory-group-unknown',
+  validationGroupOverlap: 'record-validation-group-overlap',
+  blockingExecutionFailed: 'record-validation-execution-failed',
+  advisoryExecutionFailed: 'record-validation-advisory-execution-failed',
+  blockingTimeout: 'record-validation-timeout',
+  advisoryTimeout: 'record-validation-advisory-timeout',
 } as const;
 
 export type RecordValidationDiagnosticCode =
@@ -131,6 +150,8 @@ export interface RecordValidationResolvedState {
   /** Group fold before strict-all/operation exact-group finalization. */
   readonly conditionalGroups: readonly string[];
   readonly expressionContext: RecordValidationExpressionContext;
+  /** Deterministic identity of effective form/reusable/validator configuration, never candidate data. */
+  readonly configFingerprint: string;
 }
 
 interface RecordValidationResultBase {
@@ -146,6 +167,11 @@ export interface ResolvedRecordValidationResult extends RecordValidationResultBa
   readonly formName: string;
   readonly effectiveGroups: readonly string[];
   readonly resolved: RecordValidationResolvedState;
+  /** Safe issues only; raw validator summaries never cross this boundary. */
+  readonly blockingErrors: readonly RecordSaveIssue[];
+  /** Advisory issues are observable only and never affect shouldBlock. */
+  readonly advisoryErrors: readonly RecordSaveIssue[];
+  readonly advisoryGroups: readonly string[];
 }
 
 export interface UnresolvedRecordValidationResult extends RecordValidationResultBase {
@@ -170,6 +196,12 @@ export interface RecordValidationMetricsHooks {
   resolutionCompleted(metric: RecordValidationResolutionMetric): void;
 }
 
+export interface RecordValidationCacheStats {
+  readonly formDefinitions: number;
+  readonly compiledExpressions: number;
+  readonly validatorMappings: number;
+}
+
 interface RecordTypeLike {
   readonly id?: string;
   readonly name?: string;
@@ -192,6 +224,12 @@ export interface RecordValidationServiceDependencies {
     metadata: Readonly<Record<string, unknown>>,
     reusableFormDefinitions: ReusableFormDefinitions
   ): Promise<FormConfigOutline>;
+  executeValidators?(
+    form: FormConfigOutline,
+    enabledValidationGroups: readonly string[],
+    validatorDefinitionsMap: ReadonlyMap<string, FormValidatorDefinition>,
+    jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate
+  ): Promise<FormValidatorSummaryErrors[]>;
 }
 
 interface NormalizedRecordValidationRequest {
@@ -229,6 +267,9 @@ type BuildResultOptions =
       readonly recordType?: string;
       readonly effectiveGroups: readonly string[];
       readonly resolved: RecordValidationResolvedState;
+      readonly blockingErrors: readonly RecordSaveIssue[];
+      readonly advisoryErrors: readonly RecordSaveIssue[];
+      readonly advisoryGroups: readonly string[];
     }
   | {
       readonly outcome: 'unresolved';
@@ -240,6 +281,58 @@ type BuildResultOptions =
 
 const SAFE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const SAFE_OPERATION_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
+const SAFE_FIELD_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const SAFE_VALIDATOR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_.#-]{0,127}$/;
+const SAFE_TRANSLATION_KEY_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/;
+const CACHE_LIMIT = 128;
+
+interface CachedFormDefinition {
+  readonly fingerprint: string;
+  readonly form: FormAttributes;
+}
+
+interface TimedResult<T> {
+  readonly status: 'completed';
+  readonly value: T;
+}
+
+interface TimedFailure {
+  readonly status: 'failed';
+}
+
+interface TimedOut {
+  readonly status: 'timed-out';
+}
+
+type TimeoutResult<T> = TimedResult<T> | TimedFailure | TimedOut;
+
+function stableSerialize(value: unknown, seen = new WeakSet<object>()): string {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? JSON.stringify(value) : JSON.stringify(String(value));
+  if (typeof value === 'undefined') return '"[undefined]"';
+  if (typeof value === 'function') return JSON.stringify(`[function:${Function.prototype.toString.call(value)}]`);
+  if (typeof value !== 'object') return JSON.stringify(String(value));
+  if (seen.has(value)) return '"[circular]"';
+  seen.add(value);
+  const serialized = Array.isArray(value)
+    ? `[${value.map(item => stableSerialize(item, seen)).join(',')}]`
+    : `{${Object.keys(value as Record<string, unknown>)
+        .sort()
+        .map(key => `${JSON.stringify(key)}:${stableSerialize((value as Record<string, unknown>)[key], seen)}`)
+        .join(',')}}`;
+  seen.delete(value);
+  return serialized;
+}
+
+function fingerprint(value: unknown): string {
+  return createHash('sha256').update(stableSerialize(value)).digest('hex');
+}
+
+function setBounded<K, V>(cache: Map<K, V>, key: K, value: V): void {
+  cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value as K);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -387,8 +480,11 @@ function referencesBrowserOnlyJSONataContext(source: string): boolean {
 export namespace Services {
   /** Side-effect-free authoritative form/policy/context/group resolver. */
   export class RecordValidation extends services.Core.Service {
-    protected override _exportedMethods = ['resolve', 'registerMetricsHooks'];
+    protected override _exportedMethods = ['resolve', 'registerMetricsHooks', 'clearCaches', 'getCacheStats'];
     private readonly metricsHooks = new Set<RecordValidationMetricsHooks>();
+    private readonly formDefinitionCache = new Map<string, CachedFormDefinition>();
+    private readonly expressionCache = new Map<string, jsonata.Expression>();
+    private readonly validatorMappingCache = new Map<string, ReadonlyMap<string, FormValidatorDefinition>>();
     private resolvedDependencies?: RecordValidationServiceDependencies;
 
     public constructor(
@@ -403,6 +499,22 @@ export namespace Services {
     public registerMetricsHooks(hooks: RecordValidationMetricsHooks): () => void {
       this.metricsHooks.add(hooks);
       return () => this.metricsHooks.delete(hooks);
+    }
+
+    /** Explicit invalidation surface for form/config reloads and isolated tests. */
+    public clearCaches(): void {
+      this.formDefinitionCache.clear();
+      this.expressionCache.clear();
+      this.validatorMappingCache.clear();
+    }
+
+    /** Bounded aggregate cache diagnostics; contains no keys or request-derived values. */
+    public getCacheStats(): RecordValidationCacheStats {
+      return {
+        formDefinitions: this.formDefinitionCache.size,
+        compiledExpressions: this.expressionCache.size,
+        validatorMappings: this.validatorMappingCache.size,
+      };
     }
 
     public async resolve(request: RecordValidationRequest): Promise<RecordValidationResult> {
@@ -493,7 +605,8 @@ export namespace Services {
         });
       progress.formName = selection.formName;
 
-      const form = await dependencies.loadForm(selection.formName, brand);
+      const loadedForm = await dependencies.loadForm(selection.formName, brand);
+      const form = this.cacheResolvedForm(loadedForm, selection.formName, brand);
       if (!form) {
         diagnostics.push(
           createDiagnostic(
@@ -590,14 +703,87 @@ export namespace Services {
           formName: selection.formName,
         });
       }
-      const groupResolution = await this.resolveValidationGroups(constructedForm, policy, context, diagnostics);
-      if (!groupResolution) {
+      const timeoutMs = this.timeoutMs(globalConfig?.timeoutMs);
+      const blockingRun = await this.withTimeout(
+        (async () => {
+          const groupResolution = await this.resolveValidationGroups(constructedForm, policy, context, diagnostics);
+          if (!groupResolution) return undefined;
+          const advisoryGroups = this.discoverAdvisoryGroups(
+            constructedForm,
+            groupResolution.effectiveGroups,
+            diagnostics
+          );
+          const validatorDefinitionsMap = this.validatorDefinitions(constructedForm, diagnostics);
+          if (!validatorDefinitionsMap) return undefined;
+          const summaries = await this.executeValidators(
+            constructedForm,
+            groupResolution.effectiveGroups,
+            validatorDefinitionsMap
+          );
+          return { groupResolution, advisoryGroups, validatorDefinitionsMap, summaries };
+        })(),
+        timeoutMs
+      );
+      if (blockingRun.status === 'timed-out') {
+        diagnostics.push(
+          createDiagnostic(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout, 'Blocking record validation timed out.')
+        );
         return this.buildResult(request, mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
           formName: selection.formName,
         });
+      }
+      if (blockingRun.status === 'failed') {
+        diagnostics.push(
+          createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed,
+            'Blocking record validation could not be completed.'
+          )
+        );
+        return this.buildResult(request, mode, diagnostics, {
+          outcome: 'unresolved',
+          operation,
+          recordType: recordTypeName,
+          formName: selection.formName,
+        });
+      }
+      if (!blockingRun.value) {
+        return this.buildResult(request, mode, diagnostics, {
+          outcome: 'unresolved',
+          operation,
+          recordType: recordTypeName,
+          formName: selection.formName,
+        });
+      }
+      const { groupResolution, advisoryGroups, validatorDefinitionsMap, summaries } = blockingRun.value;
+      const blockingErrors = this.mapValidatorSummaries(summaries);
+      let advisoryErrors: RecordSaveIssue[] = [];
+      if (advisoryGroups.length > 0) {
+        const advisoryRun = await this.withTimeout(
+          this.executeValidators(constructedForm, advisoryGroups, validatorDefinitionsMap),
+          timeoutMs
+        );
+        if (advisoryRun.status === 'timed-out') {
+          diagnostics.push(
+            createDiagnostic(
+              RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout,
+              'Advisory record validation timed out.',
+              { severity: 'warning' }
+            )
+          );
+        } else if (advisoryRun.status === 'failed') {
+          diagnostics.push(
+            createDiagnostic(
+              RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryExecutionFailed,
+              'Advisory record validation could not be completed.',
+              { severity: 'warning' }
+            )
+          );
+        } else {
+          advisoryErrors = this.mapValidatorSummaries(advisoryRun.value);
+        }
       }
       const resolved: RecordValidationResolvedState = {
         constructedForm,
@@ -608,6 +794,13 @@ export namespace Services {
         operationPolicy: policy,
         conditionalGroups: groupResolution.conditionalGroups,
         expressionContext: context,
+        configFingerprint: fingerprint({
+          formName: selection.formName,
+          brand,
+          form: form.configuration,
+          reusableFormDefinitions: sails.config.reusableFormDefinitions ?? {},
+          validatorDefinitions: sails.config.validators?.definitions ?? [],
+        }),
       };
       return this.buildResult(request, mode, diagnostics, {
         outcome: 'resolved',
@@ -615,6 +808,9 @@ export namespace Services {
         recordType: recordTypeName,
         effectiveGroups: groupResolution.effectiveGroups,
         resolved,
+        blockingErrors,
+        advisoryErrors,
+        advisoryGroups,
       });
     }
 
@@ -636,6 +832,13 @@ export namespace Services {
             formMode: 'edit',
             record: metadata,
             reusableFormDefs: reusableFormDefinitions,
+          }),
+        executeValidators: async (form, enabledValidationGroups, validatorDefinitionsMap, evaluatorFactory) =>
+          await new ValidatorFormConfigVisitor(this.logger).start({
+            form,
+            enabledValidationGroups: [...enabledValidationGroups],
+            validatorDefinitionsMap,
+            jsonataEvaluatorFactory: evaluatorFactory,
           }),
       };
       this.resolvedDependencies = { ...defaults, ...this.dependencyOverrides };
@@ -1100,7 +1303,7 @@ export namespace Services {
             );
             return undefined;
           }
-          const matches = Boolean(await jsonataCompileAndEvaluate(config.condition, context));
+          const matches = Boolean(await this.evaluateJSONata(config.condition, context));
           if (!matches) return undefined;
         }
         if (typeof config.template !== 'string') {
@@ -1121,7 +1324,7 @@ export namespace Services {
           );
           return undefined;
         }
-        const value = await jsonataCompileAndEvaluate(config.template, context);
+        const value = await this.evaluateJSONata(config.template, context);
         const change = parseGroupChange(value);
         if (!change) {
           diagnostics.push(
@@ -1140,6 +1343,198 @@ export namespace Services {
           )
         );
         return undefined;
+      }
+    }
+
+    private cacheResolvedForm(form: FormAttributes | null, formName: string, brand: string): FormAttributes | null {
+      if (!form) return null;
+      const key = `${brand}\u0000${formName}`;
+      const currentFingerprint = fingerprint({
+        id: form.id,
+        name: form.name,
+        branding: form.branding,
+        configuration: form.configuration,
+      });
+      const cached = this.formDefinitionCache.get(key);
+      if (cached?.fingerprint === currentFingerprint) {
+        this.formDefinitionCache.delete(key);
+        this.formDefinitionCache.set(key, cached);
+        return cached.form;
+      }
+      const entry = { fingerprint: currentFingerprint, form };
+      setBounded(this.formDefinitionCache, key, entry);
+      return form;
+    }
+
+    private discoverAdvisoryGroups(
+      form: FormConfigOutline,
+      blockingGroups: readonly string[],
+      diagnostics: RecordValidationDiagnostic[]
+    ): string[] {
+      const advisoryGroups: string[] = [];
+      const visited = new WeakSet<object>();
+      const walk = (value: unknown): void => {
+        if (value === null || typeof value !== 'object' || visited.has(value as object)) return;
+        visited.add(value as object);
+        if (Array.isArray(value)) {
+          value.forEach(walk);
+          return;
+        }
+        const item = value as Record<string, unknown>;
+        const component = isRecord(item.component) ? item.component : undefined;
+        if (component?.class === SuggestedValidationSummaryComponentName) {
+          const config = isRecord(component.config) ? component.config : undefined;
+          const groups = normalizeUniqueStrings(config?.enabledValidationGroups);
+          if (!config || groups === undefined || groups.length === 0) {
+            diagnostics.push(
+              createDiagnostic(
+                RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryConfigurationMalformed,
+                'An advisory validation summary has malformed validation groups.',
+                { severity: 'warning' }
+              )
+            );
+          } else {
+            for (const group of groups) if (!advisoryGroups.includes(group)) advisoryGroups.push(group);
+          }
+        }
+        Object.values(item).forEach(walk);
+      };
+      walk(form);
+
+      const available = new Set(Object.keys(form.validationGroups ?? {}));
+      for (const group of advisoryGroups) {
+        if (!available.has(group)) {
+          diagnostics.push(
+            createDiagnostic(
+              RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryGroupUnknown,
+              'An advisory validation group is not declared by the form.',
+              { severity: 'warning', group }
+            )
+          );
+        }
+      }
+      const validGroups = advisoryGroups.filter(group => available.has(group));
+      const overlap =
+        blockingGroups.length === 0 ? validGroups : validGroups.filter(group => blockingGroups.includes(group));
+      for (const group of overlap) {
+        diagnostics.push(
+          createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.validationGroupOverlap,
+            'A validation group is configured as both blocking and advisory.',
+            { group }
+          )
+        );
+      }
+      return validGroups;
+    }
+
+    private validatorDefinitions(
+      form: FormConfigOutline,
+      diagnostics: RecordValidationDiagnostic[]
+    ): ReadonlyMap<string, FormValidatorDefinition> | undefined {
+      const definitions = sails.config.validators?.definitions;
+      const cacheKey = fingerprint({ formIdentity: form.name, definitions });
+      const cached = this.validatorMappingCache.get(cacheKey);
+      if (cached) {
+        this.validatorMappingCache.delete(cacheKey);
+        this.validatorMappingCache.set(cacheKey, cached);
+        return cached;
+      }
+      try {
+        const mapping = new ValidatorsSupport().createValidatorDefinitionMapping(definitions ?? []);
+        setBounded(this.validatorMappingCache, cacheKey, mapping);
+        return mapping;
+      } catch {
+        diagnostics.push(
+          createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed,
+            'Validator definitions could not be prepared.'
+          )
+        );
+        return undefined;
+      }
+    }
+
+    private async executeValidators(
+      form: FormConfigOutline,
+      groups: readonly string[],
+      mapping: ReadonlyMap<string, FormValidatorDefinition>
+    ): Promise<FormValidatorSummaryErrors[]> {
+      const execute = this.dependencies().executeValidators;
+      if (!execute) throw new Error('Record validation executor is unavailable.');
+      return await execute(form, groups, mapping, expression => this.jsonataEvaluator(expression));
+    }
+
+    private jsonataEvaluator(expression: string): JSONataEvaluate {
+      const compiled = this.compiledExpression(expression);
+      return async (value: unknown) => await jsonataEvaluate(compiled, value);
+    }
+
+    private compiledExpression(expression: string): jsonata.Expression {
+      const key = fingerprint(expression);
+      const cached = this.expressionCache.get(key);
+      if (cached) {
+        this.expressionCache.delete(key);
+        this.expressionCache.set(key, cached);
+        return cached;
+      }
+      const compiled = jsonataCompile(expression);
+      setBounded(this.expressionCache, key, compiled);
+      return compiled;
+    }
+
+    private async evaluateJSONata(expression: string, context: unknown): Promise<unknown> {
+      return await jsonataEvaluate(this.compiledExpression(expression), context);
+    }
+
+    private mapValidatorSummaries(summaries: readonly FormValidatorSummaryErrors[]): RecordSaveIssue[] {
+      const issues: RecordSaveIssue[] = [];
+      for (const summary of summaries) {
+        for (const error of summary.errors ?? []) {
+          const pointer = summary.lineagePaths?.angularComponentsJsonPointer;
+          const dataPointer = summary.lineagePaths?.dataModel
+            ? getJSONPointerByArrayPaths(summary.lineagePaths.dataModel)
+            : undefined;
+          const safe = sanitizeRecordSaveIssue({
+            message: SAFE_TRANSLATION_KEY_PATTERN.test(error.message)
+              ? error.message
+              : '@validator-error-record-validation',
+            ...(typeof summary.id === 'string' && SAFE_FIELD_PATTERN.test(summary.id) ? { field: summary.id } : {}),
+            ...(typeof pointer === 'string'
+              ? { pointer }
+              : typeof dataPointer === 'string'
+                ? { pointer: dataPointer }
+                : {}),
+            ...(typeof error.class === 'string' && SAFE_VALIDATOR_CLASS_PATTERN.test(error.class)
+              ? { class: error.class }
+              : {}),
+            params: error.params,
+            targetField: error.targetField,
+            lineagePaths: summary.lineagePaths,
+          });
+          issues.push(safe);
+        }
+      }
+      return issues;
+    }
+
+    private timeoutMs(value: unknown): number {
+      return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : 5_000;
+    }
+
+    private async withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<TimeoutResult<T>> {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const settledWork: Promise<TimedResult<T> | TimedFailure> = work.then(
+        value => ({ status: 'completed', value }),
+        () => ({ status: 'failed' })
+      );
+      const timeout = new Promise<TimedOut>(resolve => {
+        timer = setTimeout(() => resolve({ status: 'timed-out' }), timeoutMs);
+      });
+      try {
+        return await Promise.race([settledWork, timeout]);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
 
@@ -1166,9 +1561,10 @@ export namespace Services {
       options: BuildResultOptions
     ): RecordValidationResult {
       const hasConfigurationError = diagnostics.some(item => item.severity === 'error');
+      const hasBlockingErrors = options.outcome === 'resolved' && options.blockingErrors.length > 0;
       const shouldBlock =
         (options.outcome === 'unresolved' && options.contractFailure === true) ||
-        (mode === 'enforce' && hasConfigurationError);
+        (mode === 'enforce' && (hasConfigurationError || hasBlockingErrors));
       const formName = options.outcome === 'resolved' ? options.resolved.formName : options.formName;
       const common = {
         shouldBlock,
@@ -1185,6 +1581,9 @@ export namespace Services {
               formName: options.resolved.formName,
               effectiveGroups: [...options.effectiveGroups],
               resolved: options.resolved,
+              blockingErrors: [...options.blockingErrors],
+              advisoryErrors: [...options.advisoryErrors],
+              advisoryGroups: [...options.advisoryGroups],
             }
           : { ...common, status: 'unresolved' };
       const requestId = safeRequestId(request.requestId);

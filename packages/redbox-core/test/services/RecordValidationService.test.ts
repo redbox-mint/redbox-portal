@@ -1,4 +1,9 @@
-import { ValidatorsSupport, type FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import {
+  ValidatorsSupport,
+  formValidatorsSharedDefinitions,
+  type FormConfigFrame,
+  type FormValidatorSummaryErrors,
+} from '@researchdatabox/sails-ng-common';
 import { ServiceExports } from '../../src/services';
 import {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
@@ -29,6 +34,40 @@ function requireResolved(result: RecordValidationResult): ResolvedRecordValidati
 
 function codes(result: { diagnostics: readonly { code: string }[] }): string[] {
   return result.diagnostics.map(item => item.code);
+}
+
+function suggestedSummary(groups: unknown): Record<string, unknown> {
+  return {
+    name: 'suggestions',
+    component: {
+      class: 'SuggestedValidationSummaryComponent',
+      config: { enabledValidationGroups: groups },
+    },
+  };
+}
+
+function validatorSummary(overrides: Partial<FormValidatorSummaryErrors> = {}): FormValidatorSummaryErrors {
+  return {
+    id: 'contributors',
+    message: '@field-contributors',
+    errors: [
+      {
+        class: 'required',
+        message: '@validator-error-required',
+        params: { minimum: 1, actual: { private: 'raw-value' } as never },
+        targetField: { angularComponents: ['contributors', 0, 'name'] },
+      },
+    ],
+    lineagePaths: {
+      formConfig: ['componentDefinitions', 2, 'component', 'config', 'elementTemplate'],
+      dataModel: ['contributors', 0, 'name'],
+      angularComponents: ['contributors', 0, 'name'],
+      angularComponentsJsonPointer: '/contributors/0/name',
+      layout: ['contributors-layout', 0, 'name-layout'],
+      layoutJsonPointer: '/contributors-layout/0/name-layout',
+    },
+    ...overrides,
+  };
 }
 
 describe('RecordValidationService', function () {
@@ -74,8 +113,8 @@ describe('RecordValidationService', function () {
     const result = await service.resolve({ ...fixture.request, writeKind: 'create' });
 
     expect(result.status).to.equal('resolved');
-    expect(result).not.to.have.property('blockingErrors');
-    expect(result).not.to.have.property('advisoryErrors');
+    expect(result).to.have.property('blockingErrors').that.deep.equals([]);
+    expect(result).to.have.property('advisoryErrors').that.deep.equals([]);
     expect(result.formName).to.equal('dataset-2.4-draft');
     expect(fixture.calls.startingSteps).to.equal(1);
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
@@ -909,5 +948,309 @@ describe('RecordValidationService', function () {
     }).resolve(fixture.request);
     expect(result.status).to.equal('resolved');
     expect(result.shouldBlock).to.equal(false);
+  });
+
+  it('discovers advisory groups and executes blocking and advisory visitors separately', async function () {
+    const form = validationForm({
+      validationGroups: {
+        ...validationForm().validationGroups,
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [suggestedSummary(['advisory']) as never],
+    });
+    const fixture = createRecordValidationFixture({ form });
+    fixture.dependencies.executeValidators = async (_form, groups) => {
+      fixture.calls.validatorGroups.push([...groups]);
+      return groups.includes('advisory') ? [validatorSummary()] : [];
+    };
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+
+    expect(result.advisoryGroups).to.deep.equal(['advisory']);
+    expect(fixture.calls.validatorGroups).to.deep.equal([['base'], ['advisory']]);
+    expect(result.blockingErrors).to.deep.equal([]);
+    expect(result.advisoryErrors).to.have.length(1);
+    expect(result.shouldBlock).to.equal(false);
+    expect(result).not.to.have.any.keys('problems', 'outcome');
+  });
+
+  it('uses the existing constructor and ValidatorFormConfigVisitor for both production passes', async function () {
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+      definitions: formValidatorsSharedDefinitions,
+    };
+    const form = validationForm({
+      validationGroups: {
+        all: { description: 'all', initialMembership: 'all' },
+        none: { description: 'none', initialMembership: 'none' },
+        base: { description: 'base', initialMembership: 'none' },
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [
+        {
+          name: 'blockingTitle',
+          component: { class: 'SimpleInputComponent' },
+          model: {
+            class: 'SimpleInputModel',
+            config: { validators: [{ class: 'required', groups: { include: ['base'] } }] },
+          },
+        } as never,
+        {
+          name: 'advisoryDescription',
+          component: { class: 'SimpleInputComponent' },
+          model: {
+            class: 'SimpleInputModel',
+            config: { validators: [{ class: 'required', groups: { include: ['advisory'] } }] },
+          },
+        } as never,
+        suggestedSummary(['advisory']) as never,
+      ],
+    });
+    const fixture = createRecordValidationFixture({ form, candidate: { metadata: {} } });
+    const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
+    const result = requireResolved(
+      await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
+    );
+
+    expect(result.blockingErrors.map(issue => issue.field)).to.deep.equal(['blockingTitle']);
+    expect(result.advisoryErrors.map(issue => issue.field)).to.deep.equal(['advisoryDescription']);
+    expect(result.blockingErrors[0].pointer).to.equal('/blockingTitle');
+    expect(result.advisoryErrors[0].pointer).to.equal('/advisoryDescription');
+  });
+
+  it('maps summaries to bounded safe issues while preserving nested lineage and targets', async function () {
+    configure('enforce');
+    const fixture = createRecordValidationFixture();
+    fixture.dependencies.executeValidators = async () => [
+      validatorSummary({
+        errors: [
+          {
+            class: 'required',
+            message: 'unsafe raw validator output: secret-record-value',
+            params: { safe: 'yes', nested: { secret: 'raw-value' } as never },
+            targetField: { angularComponents: ['contributors', 0, 'name'] },
+          },
+        ],
+      }),
+    ];
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+
+    expect(result.shouldBlock).to.equal(true);
+    expect(result.blockingErrors).to.deep.equal([
+      {
+        message: '@validator-error-record-validation',
+        field: 'contributors',
+        pointer: '/contributors/0/name',
+        class: 'required',
+        params: { safe: 'yes' },
+        targetField: { angularComponents: ['contributors', 0, 'name'] },
+        lineagePaths: validatorSummary().lineagePaths,
+      },
+    ]);
+    expect(JSON.stringify(result)).not.to.match(/secret-record-value|raw-value/);
+  });
+
+  it('diagnoses overlap safely and fails closed only in enforce mode', async function () {
+    const form = validationForm({ componentDefinitions: [suggestedSummary(['base']) as never] });
+    const shadow = createRecordValidationFixture({ form });
+    const shadowResult = requireResolved(
+      await new Services.RecordValidation(shadow.dependencies).resolve(shadow.request)
+    );
+    expect(codes(shadowResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.validationGroupOverlap);
+    expect(shadowResult.shouldBlock).to.equal(false);
+
+    configure('enforce');
+    const enforce = createRecordValidationFixture({ form });
+    const enforceResult = requireResolved(
+      await new Services.RecordValidation(enforce.dependencies).resolve(enforce.request)
+    );
+    expect(enforceResult.shouldBlock).to.equal(true);
+  });
+
+  it('keeps malformed and unknown advisory configuration observable but non-blocking', async function () {
+    configure('enforce');
+    const form = validationForm({
+      componentDefinitions: [
+        suggestedSummary('private-malformed-value') as never,
+        suggestedSummary(['missing']) as never,
+      ],
+    });
+    const fixture = createRecordValidationFixture({ form });
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+
+    expect(result.shouldBlock).to.equal(false);
+    expect(result.advisoryGroups).to.deep.equal([]);
+    expect(codes(result)).to.include.members([
+      RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryConfigurationMalformed,
+      RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryGroupUnknown,
+    ]);
+    expect(JSON.stringify(result.diagnostics)).not.to.contain('private-malformed-value');
+  });
+
+  it('keeps advisory exceptions diagnostic-only and never returns advisory issues as blockers', async function () {
+    configure('enforce');
+    const form = validationForm({
+      validationGroups: {
+        ...validationForm().validationGroups,
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [suggestedSummary(['advisory']) as never],
+    });
+    const fixture = createRecordValidationFixture({ form });
+    fixture.dependencies.executeValidators = async (_form, groups) => {
+      if (groups.includes('advisory')) throw new Error('private downstream request and record value');
+      return [];
+    };
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    expect(result.shouldBlock).to.equal(false);
+    expect(result.advisoryErrors).to.deep.equal([]);
+    expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryExecutionFailed);
+    expect(JSON.stringify(result)).not.to.match(/private downstream|record value/);
+  });
+
+  it('applies one configured timeout to blocking execution and classifies it by mode', async function () {
+    configure('enforce');
+    (
+      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
+    ).sails.config.recordValidation.timeoutMs = 10;
+    const fixture = createRecordValidationFixture();
+    fixture.dependencies.executeValidators = async () => await new Promise(() => undefined);
+    const enforce = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    expect(enforce).to.deep.include({ status: 'unresolved', shouldBlock: true });
+    expect(codes(enforce)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
+
+    configure('shadow');
+    (
+      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
+    ).sails.config.recordValidation.timeoutMs = 10;
+    const shadowFixture = createRecordValidationFixture();
+    shadowFixture.dependencies.executeValidators = fixture.dependencies.executeValidators;
+    const shadow = await new Services.RecordValidation(shadowFixture.dependencies).resolve(shadowFixture.request);
+    expect(shadow).to.deep.include({ status: 'unresolved', shouldBlock: false });
+  });
+
+  it('keeps advisory timeout diagnostic-only and absorbs a late rejection', async function () {
+    configure('enforce');
+    (
+      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
+    ).sails.config.recordValidation.timeoutMs = 10;
+    const form = validationForm({
+      validationGroups: {
+        ...validationForm().validationGroups,
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [suggestedSummary(['advisory']) as never],
+    });
+    const fixture = createRecordValidationFixture({ form });
+    fixture.dependencies.executeValidators = async (_form, groups) => {
+      if (!groups.includes('advisory')) return [];
+      return await new Promise<FormValidatorSummaryErrors[]>((_resolve, reject) =>
+        setTimeout(() => reject(new Error('late private advisory failure')), 25)
+      );
+    };
+    const unhandled: unknown[] = [];
+    const listener = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', listener);
+    try {
+      const result = requireResolved(
+        await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      );
+      expect(result.shouldBlock).to.equal(false);
+      expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout);
+      await new Promise(resolve => setTimeout(resolve, 35));
+      expect(unhandled).to.deep.equal([]);
+    } finally {
+      process.off('unhandledRejection', listener);
+    }
+  });
+
+  it('caches forms, compiled expressions, and validator mappings with deterministic invalidation', async function () {
+    const expression = {
+      name: 'conditional',
+      config: {
+        target: 'form.enabledValidationGroups',
+        conditionKind: 'jsonata',
+        condition: 'formData.activate',
+        template: '{"initial":"current"}',
+      },
+    };
+    const form = validationForm({ componentDefinitions: [{ name: 'field', expressions: [expression] } as never] });
+    const fixture = createRecordValidationFixture({ form });
+    const service = new Services.RecordValidation(fixture.dependencies);
+    const first = requireResolved(await service.resolve(fixture.request));
+    const second = requireResolved(
+      await service.resolve({
+        ...fixture.request,
+        candidate: { ...fixture.request.candidate, metadata: { title: 'different request data', activate: true } },
+      })
+    );
+    expect(first.resolved.configFingerprint).to.equal(second.resolved.configFingerprint);
+    expect(service.getCacheStats()).to.deep.equal({ formDefinitions: 1, compiledExpressions: 2, validatorMappings: 1 });
+
+    expression.config.template = '{"groups":{"include":["conditional"]}}';
+    const changed = requireResolved(await service.resolve(fixture.request));
+    expect(changed.resolved.configFingerprint).not.to.equal(first.resolved.configFingerprint);
+    expect(changed.resolved.conditionalGroups).to.deep.equal(['base', 'conditional']);
+    service.clearCaches();
+    expect(service.getCacheStats()).to.deep.equal({ formDefinitions: 0, compiledExpressions: 0, validatorMappings: 0 });
+  });
+
+  it('invalidates validator mappings when definitions change and keeps every cache bounded', async function () {
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+      definitions: formValidatorsSharedDefinitions,
+    };
+    const expression = {
+      name: 'conditional',
+      config: {
+        target: 'form.enabledValidationGroups',
+        conditionKind: 'jsonata',
+        condition: 'formData.activate',
+        template: '{"initial":"current"}',
+      },
+    };
+    const form = validationForm({ componentDefinitions: [{ name: 'field', expressions: [expression] } as never] });
+    const fixture = createRecordValidationFixture({ form });
+    const service = new Services.RecordValidation(fixture.dependencies);
+    expect((await service.resolve(fixture.request)).status).to.equal('resolved');
+
+    const firstDefinition = formValidatorsSharedDefinitions[0];
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+      definitions: [firstDefinition, firstDefinition],
+    };
+    const invalidated = await service.resolve(fixture.request);
+    expect(invalidated.status).to.equal('unresolved');
+    expect(codes(invalidated)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed);
+
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+      definitions: formValidatorsSharedDefinitions,
+    };
+    for (let index = 0; index < 140; index += 1) {
+      expression.config.template = `{"initial":"current","groups":{"include":${index % 2 ? '["conditional"]' : '[]'}},"nonce":${index}}`;
+      await service.resolve(fixture.request);
+    }
+    const stats = service.getCacheStats();
+    expect(stats.formDefinitions).to.be.at.most(128);
+    expect(stats.compiledExpressions).to.be.at.most(128);
+    expect(stats.validatorMappings).to.be.at.most(128);
+  });
+
+  it('never caches validation results or request/user data', async function () {
+    let runs = 0;
+    const fixture = createRecordValidationFixture();
+    fixture.dependencies.executeValidators = async () => {
+      runs += 1;
+      return runs === 1 ? [validatorSummary()] : [];
+    };
+    const service = new Services.RecordValidation(fixture.dependencies);
+    const first = requireResolved(await service.resolve(fixture.request));
+    const second = requireResolved(
+      await service.resolve({
+        ...fixture.request,
+        actor: { authenticated: true, roles: ['DifferentRole'] },
+        candidate: { ...fixture.request.candidate, metadata: { title: 'private second value' } },
+      })
+    );
+    expect(runs).to.equal(2);
+    expect(first.blockingErrors).to.have.length(1);
+    expect(second.blockingErrors).to.deep.equal([]);
+    expect(JSON.stringify(service.getCacheStats())).not.to.match(/private|DifferentRole/);
   });
 });
