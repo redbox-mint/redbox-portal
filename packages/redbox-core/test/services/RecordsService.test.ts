@@ -5,6 +5,7 @@ import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import type { StorageService } from '../../src/StorageService';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -156,6 +157,15 @@ describe('RecordsService', function () {
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
+    (global as any).RecordValidationService = {
+      resolve: sinon.stub().resolves({
+        status: 'unresolved',
+        shouldBlock: false,
+        mode: 'shadow',
+        diagnostics: [],
+      }),
+    };
+    mockSails.services.recordvalidationservice = (global as any).RecordValidationService;
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
@@ -182,6 +192,7 @@ describe('RecordsService', function () {
     delete (global as any).UsersService;
     delete (global as any).WorkflowStepsService;
     delete (global as any).RecordTypesService;
+    delete (global as any).RecordValidationService;
     delete (global as any).TranslationService;
     delete (global as any).RedboxJavaStorageService;
     delete (global as any).SolrSearchService;
@@ -922,6 +933,52 @@ describe('RecordsService', function () {
         expect(firstCreateArgs[1].metadata.title).to.equal('Party one');
         expect(firstCreateArgs[1].redboxOid).to.equal('bootstrap-party-1');
         expect(firstCreateArgs[2].name).to.equal('party');
+        expect(firstCreateArgs[7]).to.deep.include({ routeFamily: 'internal', operation: 'create' });
+        expect(firstCreateArgs[7].validationBypass).to.deep.equal({
+          mode: 'bypass',
+          reason: 'trusted-data-migration',
+          actor: { kind: 'service', id: 'RecordsService.bootstrapData' },
+        });
+      } finally {
+        await fs.rm(bootstrapPath, { recursive: true, force: true });
+      }
+    });
+
+    it('seeds in enforce mode through a direct durable internal bypass audit', async function () {
+      const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), 'records-bootstrap-enforce-'));
+      const recordsPath = path.join(bootstrapPath, 'records');
+      await fs.mkdir(recordsPath, { recursive: true });
+      await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: 'Enforced seed' }]));
+      mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      mockSails.config.record.auditing.enabled = false;
+      mockRecord.findOne.returns(createQueryObject(null));
+      (global as any).RecordTypesService.get = sinon
+        .stub()
+        .returns(of({ name: 'party', hooks: {}, searchable: false }));
+      (global as any).RecordValidationService.resolve.resolves({
+        status: 'unresolved',
+        shouldBlock: true,
+        mode: 'enforce',
+        diagnostics: [],
+      });
+
+      try {
+        await RecordsService.bootstrapData();
+
+        expect(mockStorageService.create.calledOnce).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+        const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+        expect(audit.action).to.equal('validation-bypassed');
+        expect(audit.record.validationBypass).to.deep.include({
+          reason: 'trusted-data-migration',
+          operation: 'create',
+        });
+        expect(audit.record.validationBypass.actor).to.deep.equal({
+          kind: 'service',
+          id: 'RecordsService.bootstrapData',
+        });
       } finally {
         await fs.rm(bootstrapPath, { recursive: true, force: true });
       }
@@ -1032,7 +1089,8 @@ describe('RecordsService', function () {
 
   describe('triggerPostSaveSyncTriggers', function () {
     it('retains whitelisted legacy fields mutated on the isolated hook response', async function () {
-      const record = { metadata: { title: 'Test' } };
+      const record = { metadata: { title: 'Test' }, callerOwned: true };
+      const originalRecord = structuredClone(record);
       const recordType = {
         hooks: {
           onCreate: {
@@ -1042,7 +1100,7 @@ describe('RecordsService', function () {
                 response.workspaceOid = 'workspace-1';
                 response.workspaceData = { linked: true };
                 response.oid = 'tampered';
-                return hookRecord;
+                return { ...hookRecord, hookOnly: true };
               }`,
               },
             ],
@@ -1062,6 +1120,7 @@ describe('RecordsService', function () {
       expect(result.workspaceOid).to.equal('workspace-1');
       expect(result.workspaceData).to.deep.equal({ linked: true });
       expect(result.oid).to.equal('record-123');
+      expect(record).to.deep.equal(originalRecord);
     });
 
     it('preserves standalone transition pre/postSync/post ordering and response projection', async function () {
@@ -1105,6 +1164,42 @@ describe('RecordsService', function () {
         expect(events).to.deep.equal(['pre', 'postSync', 'post']);
       } finally {
         delete (globalThis as any).__effectTransitionEvents;
+      }
+    });
+
+    it('dispatches standalone transition post hooks after a postSync soft-failure response', async function () {
+      const events: string[] = [];
+      (globalThis as any).__softTransitionEvents = events;
+      const recordType = {
+        hooks: {
+          onTransitionWorkflow: {
+            postSync: [
+              {
+                options: { returnType: 'response' },
+                function:
+                  '() => { globalThis.__softTransitionEvents.push("postSync"); return { success: false, message: "soft failure" }; }',
+              },
+            ],
+            post: [{ function: '() => { globalThis.__softTransitionEvents.push("post"); }' }],
+          },
+        },
+      };
+
+      try {
+        const response = await RecordsService.triggerPostSaveTransitionWorkflowTriggers(
+          'record-123',
+          { metadata: {} },
+          recordType,
+          { name: 'published' },
+          { username: 'user-1' },
+          { oid: 'record-123', success: true }
+        );
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(response.success).to.equal(false);
+        expect(events).to.deep.equal(['postSync', 'post']);
+      } finally {
+        delete (globalThis as any).__softTransitionEvents;
       }
     });
   });
@@ -1242,6 +1337,9 @@ describe('RecordsService', function () {
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
       });
+      (global as any).FormsService.getFormByName.returns(
+        of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
+      );
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -1412,6 +1510,1383 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('saved-with-warnings');
       expect(result.problems[0].issues[0].code).to.equal('attachment-finalization-failed');
       expect(result.completion.attachments.status).to.equal('unknown');
+    });
+  });
+
+  describe('authoritative record validation integration', function () {
+    const baseRecord = (title = 'Original') => ({
+      redboxOid: 'record-123',
+      metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+      metadata: { title },
+      workflow: { stage: 'draft' },
+      authorization: { edit: ['user-1'], view: [], editRoles: [], viewRoles: [] },
+    });
+
+    const allowResult = (overrides: any = {}) => ({
+      status: 'resolved',
+      shouldBlock: false,
+      mode: 'shadow',
+      formName: 'default-form',
+      effectiveGroups: [],
+      resolved: {},
+      blockingErrors: [],
+      advisoryErrors: [],
+      advisoryGroups: [],
+      diagnostics: [],
+      ...overrides,
+    });
+
+    const blockingResult = (overrides: any = {}) =>
+      allowResult({
+        shouldBlock: true,
+        mode: 'enforce',
+        blockingErrors: [{ message: '@validator-required', field: 'title', class: 'RequiredValidator' }],
+        ...overrides,
+      });
+
+    it('validates the final pre-hook create candidate before attachment preparation or storage', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      });
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metadata.title).to.equal('Mutated by pre-hook');
+        expect(request.writeKind).to.equal('create');
+        return blockingResult();
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Original', attachments: [{ fileId: 'file-secret', pending: true }] } },
+        {
+          name: 'rdmp',
+          hooks: {
+            onCreate: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Mutated by pre-hook" } })',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        },
+        { username: 'user-1' }
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-failed');
+      expect(journal.prepareMutations.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(mockDatastreamService.addDatastream?.notCalled ?? true).to.equal(true);
+    });
+
+    it('exposes current attachmentFields to create hooks and refreshes them after a form change', async function () {
+      (globalThis as any).__createHookAttachmentFields = undefined;
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: { attachmentFields: ['beforeHookAttachment'] },
+      });
+      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+        of({
+          name: formName,
+          configuration: {
+            attachmentFields: formName === 'after-hook-form' ? ['afterHookAttachment'] : ['beforeHookAttachment'],
+          },
+        })
+      );
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metaMetadata.form).to.equal('after-hook-form');
+        expect(request.candidate.metaMetadata.attachmentFields).to.deep.equal(['afterHookAttachment']);
+        return allowResult();
+      });
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Attachment visibility' } },
+          {
+            name: 'rdmp',
+            hooks: {
+              onCreate: {
+                pre: [
+                  {
+                    function:
+                      '(_oid, record) => { globalThis.__createHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-hook-form" } }; }',
+                  },
+                ],
+              },
+            },
+            searchable: false,
+          },
+          { username: 'user-1' }
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((globalThis as any).__createHookAttachmentFields).to.deep.equal(['beforeHookAttachment']);
+        expect(mockStorageService.create.firstCall.args[1].metaMetadata.attachmentFields).to.deep.equal([
+          'afterHookAttachment',
+        ]);
+      } finally {
+        delete (globalThis as any).__createHookAttachmentFields;
+      }
+    });
+
+    it('uses the requested target workflow and form for targeted create while preserving validationOperation', async function () {
+      (global as any).WorkflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: {
+            form: 'published-form',
+            workflow: { stage: 'published', stageLabel: 'Published' },
+            authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+          },
+        })
+      );
+      let formResolutionCandidate: any;
+      (global as any).FormsService.getForm.callsFake(async (...args: any[]) => {
+        formResolutionCandidate = structuredClone(args[4]);
+        return { name: 'published-form', configuration: { attachmentFields: [] } };
+      });
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metadata.transitionHookSawStage).to.equal('published');
+        return allowResult();
+      });
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Targeted' } },
+        {
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "create-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } })',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        },
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        true,
+        'published',
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationOperation: 'publish',
+        })
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal('published-form');
+      expect(formResolutionCandidate.workflow.stage).to.equal('published');
+      expect(formResolutionCandidate.metaMetadata.form).to.equal('published-form');
+      const request = resolve.firstCall.args[0];
+      expect(request.writeKind).to.equal('create');
+      expect(request.validationOperation).to.equal('publish');
+      expect(request.targetStep).to.equal('published');
+      expect(request.candidate.metaMetadata.form).to.equal('published-form');
+      expect(request.candidate.workflow.stage).to.equal('published');
+      expect(request.candidate.workflow.hookMarker).to.equal('create-preserved');
+      expect(mockStorageService.create.firstCall.args[1].workflow.hookMarker).to.equal('create-preserved');
+    });
+
+    it('rejects unauthorized targeted creates and does not broaden object-form transition roles', async function () {
+      const configuredObjectRole = { name: 'Publisher' };
+      const cases = [
+        {
+          transitionRoles: ['Publisher'],
+          actorRoles: [{ name: 'Researcher' }],
+        },
+        {
+          transitionRoles: [configuredObjectRole],
+          // Historical matching does not authorize distinct role objects just
+          // because their `name` properties happen to be equal.
+          actorRoles: [{ name: 'Publisher' }],
+        },
+      ];
+
+      for (const testCase of cases) {
+        (global as any).WorkflowStepsService.get.returns(
+          of({
+            name: 'published',
+            config: {
+              form: 'published-form',
+              workflow: { stage: 'published' },
+              authorization: { transitionRoles: testCase.transitionRoles, viewRoles: [], editRoles: [] },
+            },
+          })
+        );
+        mockStorageService.create.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Unauthorized target' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1', roles: testCase.actorRoles },
+          true,
+          true,
+          'published'
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+      }
+    });
+
+    it('keeps shadow validation failures response-neutral and preserves successful create', async function () {
+      (global as any).RecordValidationService.resolve.resolves(
+        allowResult({
+          blockingErrors: [{ message: '@validator-required', field: 'title' }],
+        })
+      );
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: '' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.problems).to.deep.equal([]);
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('preserves replacement semantics and validates the full update candidate after pre-hooks', async function () {
+      const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'old' }, systemMarker: 'keep' };
+      mockStorageService.getMeta.resolves(stored);
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                { function: '(_oid, record) => ({ ...record, metadata: { ...record.metadata, hookValue: true } })' },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metadata).to.deep.equal({ title: 'Replacement', hookValue: true });
+        expect(request.candidate.systemMarker).to.equal(undefined);
+        return blockingResult();
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { title: 'Replacement' }
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('preserves caller-completed merge metadata when building the authoritative update candidate', async function () {
+      const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
+      mockStorageService.getMeta.resolves(stored);
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metadata).to.deep.equal({ title: 'Merged', retained: 'keep' });
+        return blockingResult();
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { title: 'Merged', retained: 'keep' }
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('requires authoritative validation when the pre-update snapshot throws or is unusable', async function () {
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(blockingResult());
+      const snapshotSetups = [
+        () => mockStorageService.getMeta.rejects(new Error('snapshot unavailable')),
+        () => mockStorageService.getMeta.resolves(null),
+        () => mockStorageService.getMeta.resolves([]),
+        () => mockStorageService.getMeta.resolves({}),
+        () => mockStorageService.getMeta.resolves({ redboxOid: 'record-123', authorization: {} }),
+      ];
+
+      for (const setupSnapshot of snapshotSetups) {
+        mockStorageService.getMeta.reset();
+        mockStorageService.updateMeta.resetHistory();
+        resolve.resetHistory();
+        setupSnapshot();
+
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord(),
+          { username: 'user-1' },
+          false,
+          false
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(resolve.calledOnce).to.equal(true);
+        expect(resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal('default-form');
+        expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      }
+    });
+
+    it('keeps currentStep identical when the stored snapshot is unavailable', async function () {
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+
+      mockStorageService.getMeta.resolves(baseRecord());
+      await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Changed with snapshot'),
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      mockStorageService.getMeta.reset();
+      mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
+      await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Changed without snapshot'),
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(resolve.callCount).to.equal(2);
+      expect(resolve.firstCall.args[0].currentStep).to.equal('draft');
+      expect(resolve.secondCall.args[0].currentStep).to.equal('draft');
+    });
+
+    it('normalizes explicit null users into an unauthenticated validation actor', async function () {
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+
+      const createResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Null-user create' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        null as any
+      );
+      expect(createResult.outcome).to.equal('saved');
+      expect(resolve.firstCall.args[0].actor).to.deep.equal({ authenticated: false, roles: [] });
+
+      mockStorageService.getMeta.resolves(baseRecord());
+      const updateResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Null-user update'),
+        null as any,
+        false,
+        false
+      );
+      expect(updateResult.outcome).to.equal('saved');
+      expect(resolve.secondCall.args[0].actor).to.deep.equal({ authenticated: false, roles: [] });
+    });
+
+    it('validates against stored fields without writing them back or exposing them to pre-save hooks', async function () {
+      const stored = { ...baseRecord(), storageOnly: { revision: 17 } };
+      const requested = baseRecord('Caller mutation') as any;
+      delete requested.storageOnly;
+      mockStorageService.getMeta.resolves(stored);
+      (globalThis as any).__partialUpdateHookInput = undefined;
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__partialUpdateHookInput = structuredClone(record); return { ...record, hookOwned: true }; }',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.storageOnly).to.deep.equal({ revision: 17 });
+        expect(request.candidate.hookOwned).to.equal(true);
+        return allowResult();
+      });
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          requested,
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((globalThis as any).__partialUpdateHookInput).not.to.have.property('storageOnly');
+        const persistedMutation = mockStorageService.updateMeta.firstCall.args[2];
+        expect(persistedMutation).not.to.have.property('storageOnly');
+        expect(persistedMutation.hookOwned).to.equal(true);
+      } finally {
+        delete (globalThis as any).__partialUpdateHookInput;
+      }
+    });
+
+    it('exposes current attachmentFields to update hooks and refreshes them after a form change', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      (globalThis as any).__updateHookAttachmentFields = undefined;
+      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+        of({
+          name: formName,
+          configuration: {
+            attachmentFields:
+              formName === 'after-update-hook-form' ? ['afterUpdateAttachment'] : ['beforeUpdateAttachment'],
+          },
+        })
+      );
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__updateHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-update-hook-form" } }; }',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Changed'),
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((globalThis as any).__updateHookAttachmentFields).to.deep.equal(['beforeUpdateAttachment']);
+        expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata).to.deep.include({
+          form: 'after-update-hook-form',
+          attachmentFields: ['afterUpdateAttachment'],
+        });
+      } finally {
+        delete (globalThis as any).__updateHookAttachmentFields;
+      }
+    });
+
+    it('skips authoritative validation for authorization-only writes but validates form-context changes', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+
+      const authorizationCandidate = structuredClone(stored);
+      authorizationCandidate.authorization.edit.push('editor-2');
+      const authorizationResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        authorizationCandidate,
+        { username: 'user-1' },
+        false,
+        false
+      );
+      expect(authorizationResult.wasPersisted()).to.equal(true);
+      expect(resolve.notCalled).to.equal(true);
+
+      mockStorageService.updateMeta.resetHistory();
+      const formCandidate = structuredClone(stored);
+      formCandidate.metaMetadata.form = 'new-form';
+      await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        formCandidate,
+        { username: 'user-1' },
+        false,
+        false
+      );
+      expect(resolve.calledOnce).to.equal(true);
+      expect(resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal('new-form');
+    });
+
+    it('skips validation for non-form system metadata writes on the real update path', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const systemCandidate = structuredClone(stored) as any;
+      systemCandidate.metaMetadata.sourceMetadata = 'harvest-system-state';
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        systemCandidate,
+        { username: 'harvest-service' },
+        false,
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+
+    it('keeps soft delete and restore on their dedicated non-update storage boundaries', async function () {
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const record = baseRecord();
+
+      const deleteResult = await RecordsService.delete(
+        'record-123',
+        false,
+        record,
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+      expect(deleteResult.success).to.equal(true);
+
+      mockStorageService.restoreRecord.resolves({
+        success: true,
+        isSuccessful: () => true,
+        metadata: record,
+      });
+      (global as any).BrandingService.getBrandById = sinon.stub().resolves({ id: 'brand-1' });
+      const restoreResult = await RecordsService.restoreRecord('record-123', { username: 'user-1' });
+
+      expect(restoreResult.success).to.equal(true);
+      expect(resolve.notCalled).to.equal(true);
+      expect(mockStorageService.delete.calledOnceWithExactly('record-123', false)).to.equal(true);
+      expect(mockStorageService.restoreRecord.calledOnceWithExactly('record-123')).to.equal(true);
+    });
+
+    it('validates an authorized transition against its target step and target form', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "update-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } })',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      resolve.callsFake(async (request: any) => {
+        expect(request.writeKind).to.equal('transition');
+        expect(request.targetStep).to.equal('published');
+        expect(request.currentStep).to.equal('draft');
+        expect(request.candidate.metaMetadata.form).to.equal('published-form');
+        expect(request.candidate.workflow.stage).to.equal('published');
+        expect(request.candidate.workflow.hookMarker).to.equal('update-preserved');
+        expect(request.candidate.metadata.transitionHookSawStage).to.equal('published');
+        expect(request.actor.roles).to.deep.equal(['Publisher']);
+        return blockingResult();
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        true,
+        nextStep
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects target-step transition roles safely before hooks, validation, attachments, or storage', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'] },
+        },
+      };
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1', roles: [{ name: 'Researcher' }] },
+        true,
+        true,
+        nextStep
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('keeps the primary update and skips an invalid postSync secondary mutation', async function () {
+      const stored = baseRecord();
+      const primaryCandidate = baseRecord('Primary');
+      mockStorageService.getMeta.resolves(stored);
+      const persistedCandidates: any[] = [];
+      mockStorageService.updateMeta.callsFake(async (_brand: any, _oid: string, candidate: any) => {
+        persistedCandidates.push(structuredClone(candidate));
+        return { success: true, oid: 'record-123', applicationState: 'applied' };
+      });
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              postSync: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Invalid secondary" } })',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.onFirstCall().resolves(allowResult());
+      resolve.onSecondCall().resolves(blockingResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        primaryCandidate,
+        { username: 'user-1' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'post-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-post-sync-failed');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(persistedCandidates[0].metadata.title).to.equal('Primary');
+      expect(resolve.secondCall.args[0].candidate.metadata.title).to.equal('Invalid secondary');
+    });
+
+    it('preserves an actionable post-save validation cause and phase for secondary candidates', async function () {
+      const { RECORD_VALIDATION_DIAGNOSTIC_CODES } = require('../../src/services/RecordValidationService');
+      mockStorageService.getMeta.resolves(baseRecord());
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              postSync: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Timed out secondary" } })',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.onFirstCall().resolves(allowResult());
+      resolve.onSecondCall().resolves({
+        status: 'unresolved',
+        shouldBlock: true,
+        mode: 'enforce',
+        diagnostics: [
+          {
+            code: RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout,
+            severity: 'error',
+            message: 'safe timeout',
+          },
+        ],
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Primary'),
+        { username: 'user-1' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'post-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-timeout');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+
+    it('dispatches transition post hooks only after awaited secondary persistence', async function () {
+      const events: string[] = [];
+      (globalThis as any).__transitionPersistenceOrder = events;
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.callsFake(async () => {
+        events.push(mockStorageService.updateMeta.callCount === 1 ? 'primary' : 'secondary');
+        return { success: true, oid: 'record-123', applicationState: 'applied' };
+      });
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              postSync: [
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__transitionPersistenceOrder.push("postSync"); return { ...record, metadata: { ...record.metadata, transitioned: true } }; }',
+                },
+              ],
+              post: [
+                {
+                  function: '() => { globalThis.__transitionPersistenceOrder.push("post"); }',
+                },
+              ],
+            },
+          },
+          searchable: false,
+        })
+      );
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          stored,
+          { username: 'publisher', roles: [{ name: 'Publisher' }] },
+          true,
+          true,
+          nextStep
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(events).to.deep.equal(['primary', 'postSync', 'secondary', 'post']);
+      } finally {
+        delete (globalThis as any).__transitionPersistenceOrder;
+      }
+    });
+
+    it('requires detached post-hook writes to enter RecordsService validation independently', async function () {
+      mockStorageService.getMeta.resolves(baseRecord());
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+      let detachedWrite: Promise<any> | undefined;
+      (globalThis as any).__detachedValidatedWrite = () => {
+        detachedWrite = RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Detached mutation'),
+          { username: 'internal-service' },
+          false,
+          false
+        );
+        return detachedWrite;
+      };
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Created' } },
+          {
+            name: 'rdmp',
+            hooks: { onCreate: { post: [{ function: '() => globalThis.__detachedValidatedWrite()' }] } },
+            searchable: false,
+          },
+          { username: 'user-1' }
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+        await detachedWrite;
+
+        expect(result.outcome).to.equal('saved');
+        expect(resolve.callCount).to.equal(2);
+        expect(resolve.secondCall.args[0].writeKind).to.equal('update');
+        expect(resolve.secondCall.args[0].candidate.metadata.title).to.equal('Detached mutation');
+      } finally {
+        delete (globalThis as any).__detachedValidatedWrite;
+      }
+    });
+
+    it('validates internal writes by default and accepts only an audited complete internal bypass', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(blockingResult());
+
+      const strictResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Internal strict' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'migration-service' }
+      );
+      expect(strictResult.outcome).to.equal('not-saved');
+
+      resolve.resetHistory();
+      mockStorageService.create.resetHistory();
+      mockStorageService.createRecordAudit.resetHistory();
+      const bypassResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'sensitive-record-value' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'migration-service', token: 'secret-token' },
+        true,
+        true,
+        undefined,
+        createRecordSaveContext({
+          requestId: '9f851760-1978-4fb4-a667-c29c42b7e50d',
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: {
+            mode: 'bypass',
+            reason: 'trusted-data-migration',
+            actor: { kind: 'service', id: 'MigrationService' },
+          },
+        })
+      );
+
+      expect(bypassResult.outcome).to.equal('saved');
+      expect(resolve.notCalled).to.equal(true);
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(audit.action).to.equal('validation-bypassed');
+      expect(audit.record.validationBypass).to.deep.include({
+        mode: 'bypass',
+        reason: 'trusted-data-migration',
+        requestId: '9f851760-1978-4fb4-a667-c29c42b7e50d',
+      });
+      expect(audit.record.validationBypass.actor).to.deep.equal({ kind: 'service', id: 'MigrationService' });
+      expect(audit.record.validationBypass.recordContext).to.deep.include({
+        form: 'default-form',
+        recordType: 'rdmp',
+        brand: 'brand-1',
+      });
+      expect(audit.record.validationBypass.recordContext.oid).to.be.a('string').and.not.be.empty;
+      expect(JSON.stringify(audit)).not.to.include('sensitive-record-value');
+      expect(JSON.stringify(audit)).not.to.include('secret-token');
+    });
+
+    it('rejects incomplete, unauditable, and HTTP-forged bypasses without persistence', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const validBypass = {
+        mode: 'bypass',
+        reason: 'configuration-recovery',
+        actor: { kind: 'service', id: 'RecoveryService' },
+      };
+      const contexts = [
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: null as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: 'bypass' as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: { ...validBypass, mode: 'skip' } as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: { ...validBypass, reason: 'because-I-said-so' } as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: { ...validBypass, actor: { kind: 'service', id: '' } } as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: { ...validBypass, actor: null } as any,
+        }),
+        createRecordSaveContext({
+          routeFamily: 'api',
+          operation: 'create',
+          validationBypass: validBypass as any,
+        }),
+      ];
+
+      for (const context of contexts) {
+        mockStorageService.create.resetHistory();
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Rejected bypass' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'service' },
+          true,
+          true,
+          undefined,
+          context
+        );
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code).to.match(/record-validation-bypass-(invalid|forbidden)/);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+      }
+
+      mockStorageService.createRecordAudit.rejects(new Error('secret audit backend failure'));
+      const unauditable = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Rejected audit' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'service' },
+        true,
+        true,
+        undefined,
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: validBypass,
+        })
+      );
+      expect(unauditable.outcome).to.equal('not-saved');
+      expect(unauditable.problems[0].issues[0].code).to.equal('record-validation-bypass-audit-failed');
+      expect(JSON.stringify(unauditable)).not.to.include('secret audit backend failure');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+
+      mockStorageService.createRecordAudit.resetBehavior();
+      mockStorageService.createRecordAudit.resolves(undefined);
+      mockStorageService.create.resetHistory();
+      const missingAuditConfirmation = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Missing audit confirmation' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'service' },
+        true,
+        true,
+        undefined,
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'create',
+          validationBypass: validBypass,
+        })
+      );
+      expect(missingAuditConfirmation.outcome).to.equal('not-saved');
+      expect(missingAuditConfirmation.problems[0].issues[0].code).to.equal('record-validation-bypass-audit-failed');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('does not accept bypass-shaped HTTP record data as a validation capability', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(blockingResult());
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        {
+          metadata: { title: 'HTTP payload' },
+          validationBypass: {
+            mode: 'bypass',
+            reason: 'trusted-data-migration',
+            actor: { kind: 'service', id: 'ForgedBrowserService' },
+          },
+        },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        true,
+        true,
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'create' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-failed');
+      expect(resolve.calledOnce).to.equal(true);
+      expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('maps every authoritative failure class to stable safe response problems', async function () {
+      const { RECORD_VALIDATION_DIAGNOSTIC_CODES } = require('../../src/services/RecordValidationService');
+      const cases = [
+        {
+          name: 'blocking validator',
+          result: blockingResult({
+            blockingErrors: [
+              {
+                message: 'raw secret validator value',
+                field: 'title',
+                class: 'RequiredValidator',
+                lineagePaths: { dataModel: ['title'] },
+              },
+            ],
+          }),
+          kind: 'validation',
+          code: 'record-validation-failed',
+        },
+        {
+          name: 'form resolution',
+          result: {
+            status: 'unresolved',
+            shouldBlock: true,
+            mode: 'enforce',
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.formNotFound,
+                severity: 'error',
+                message: 'secret form detail',
+              },
+            ],
+          },
+          kind: 'system',
+          code: 'record-validation-form-resolution-failed',
+        },
+        {
+          name: 'expression/configuration',
+          result: {
+            status: 'unresolved',
+            shouldBlock: true,
+            mode: 'enforce',
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionEvaluationFailed,
+                severity: 'error',
+                message: 'secret expression detail',
+              },
+            ],
+          },
+          kind: 'system',
+          code: 'record-validation-configuration-failed',
+        },
+        {
+          name: 'configuration takes precedence over simultaneous field failures',
+          result: blockingResult({
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionResultMalformed,
+                severity: 'error',
+                message: 'secret malformed result',
+              },
+            ],
+          }),
+          kind: 'system',
+          code: 'record-validation-configuration-failed',
+        },
+        {
+          name: 'timeout',
+          result: {
+            status: 'unresolved',
+            shouldBlock: true,
+            mode: 'enforce',
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout,
+                severity: 'error',
+                message: 'secret timeout detail',
+              },
+            ],
+          },
+          kind: 'system',
+          code: 'record-validation-timeout',
+        },
+        {
+          name: 'operation authorization',
+          result: {
+            status: 'unresolved',
+            shouldBlock: true,
+            mode: 'shadow',
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized,
+                severity: 'error',
+                message: 'secret role detail',
+              },
+            ],
+          },
+          kind: 'authorization',
+          code: 'record-validation-operation-unauthorized',
+        },
+        {
+          name: 'operation syntax',
+          result: {
+            status: 'unresolved',
+            shouldBlock: true,
+            mode: 'shadow',
+            diagnostics: [
+              {
+                code: RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown,
+                severity: 'error',
+                message: 'secret operation detail',
+              },
+            ],
+          },
+          kind: 'validation',
+          code: 'record-validation-operation-invalid',
+        },
+      ];
+
+      for (const testCase of cases) {
+        mockStorageService.create.resetHistory();
+        (global as any).RecordValidationService.resolve.resolves(testCase.result);
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'private payload' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' }
+        );
+        expect(result.outcome, testCase.name).to.equal('not-saved');
+        expect(result.problems[0].kind, testCase.name).to.equal(testCase.kind);
+        expect(result.problems[0].phase, testCase.name).to.equal('pre-save');
+        expect(result.problems[0].issues[0].code, testCase.name).to.equal(testCase.code);
+        expect(JSON.stringify(result), testCase.name).not.to.include('secret');
+        expect(JSON.stringify(result), testCase.name).not.to.include('private payload');
+        expect(mockStorageService.create.notCalled, testCase.name).to.equal(true);
+        (global as any).RecordValidationService.resolve.reset();
+      }
+    });
+
+    it('keeps unexpected validation failures response-neutral in shadow and fails closed in enforce', async function () {
+      const failures = [
+        () => (global as any).RecordValidationService.resolve.throws(new Error('secret synchronous failure')),
+        () =>
+          (global as any).RecordValidationService.resolve.callsFake(() =>
+            Promise.reject(new Error('secret rejected validation failure'))
+          ),
+        () =>
+          (global as any).RecordValidationService.resolve.callsFake(() => Promise.reject('secret string rejection')),
+        () =>
+          (global as any).RecordValidationService.resolve.callsFake(() =>
+            Promise.reject({ secret: 'secret object rejection' })
+          ),
+      ];
+      for (const configureFailure of failures) {
+        configureFailure();
+        mockSails.config.recordValidation = { mode: 'shadow' };
+        const shadowResult = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'private payload' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' }
+        );
+        expect(shadowResult.outcome).to.equal('saved');
+        expect(shadowResult.problems).to.deep.equal([]);
+
+        mockSails.config.recordValidation = { mode: 'enforce' };
+        mockStorageService.create.resetHistory();
+        const enforceResult = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'private payload' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' }
+        );
+        expect(enforceResult.outcome).to.equal('not-saved');
+        expect(enforceResult.problems[0].issues[0].code).to.equal('record-validation-configuration-failed');
+        expect(JSON.stringify(enforceResult)).not.to.include('secret');
+        expect(mockStorageService.create.notCalled).to.equal(true);
+        (global as any).RecordValidationService.resolve.reset();
+      }
+      await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+    });
+
+    it('handles an unavailable validation service by the effective shadow/enforce rollout mode', async function () {
+      delete (global as any).RecordValidationService;
+      delete mockSails.services.recordvalidationservice;
+
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      const shadowResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Shadow write' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+      expect(shadowResult.outcome).to.equal('saved');
+      expect(shadowResult.problems).to.deep.equal([]);
+
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      mockStorageService.create.resetHistory();
+      const enforceResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Enforce write' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+      expect(enforceResult.outcome).to.equal('not-saved');
+      expect(enforceResult.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+      expect(enforceResult.problems[0].issues[0].code).to.equal('record-validation-configuration-failed');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('uses a validation service that becomes available after RecordsService initialization', async function () {
+      delete (global as any).RecordValidationService;
+      delete mockSails.services.recordvalidationservice;
+      mockSails.config.recordValidation = { mode: 'shadow' };
+
+      const beforeRegistration = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Before registration' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+      expect(beforeRegistration.outcome).to.equal('saved');
+
+      const lateService = { resolve: sinon.stub().resolves(blockingResult()) };
+      mockSails.services.recordvalidationservice = lateService;
+      mockStorageService.create.resetHistory();
+      const afterRegistration = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'After registration' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+
+      expect(afterRegistration.outcome).to.equal('not-saved');
+      expect(lateService.resolve.calledOnce).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('uses record-type and operation rollout overrides when validation resolution is unavailable', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      delete (global as any).RecordValidationService;
+      delete mockSails.services.recordvalidationservice;
+      mockSails.config.recordValidation = {
+        mode: 'shadow',
+        operations: { publish: { mode: 'enforce' } },
+      };
+
+      const operationOverride = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Operation override' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        true,
+        true,
+        undefined,
+        createRecordSaveContext({ validationOperation: 'publish' })
+      );
+      expect(operationOverride.outcome).to.equal('not-saved');
+
+      mockStorageService.create.resetHistory();
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      const recordTypeOverride = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Record type override' } },
+        { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } },
+        { username: 'user-1' }
+      );
+      expect(recordTypeOverride.outcome).to.equal('not-saved');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('fails closed for brand-less append/remove writes under record-type enforce when validation is unavailable', async function () {
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      (global as any).RecordTypesService.get.returns(
+        of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
+      );
+      delete (global as any).RecordValidationService;
+      delete mockSails.services.recordvalidationservice;
+
+      const appendStored = baseRecord();
+      mockStorageService.getMeta.resolves(appendStored);
+      const appendResult = await RecordsService.appendToRecord(
+        'record-123',
+        'record-456',
+        'metadata.relatedRecords',
+        'array',
+        structuredClone(appendStored)
+      );
+
+      expect(appendResult.outcome).to.equal('not-saved');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledWith(null, 'rdmp')).to.equal(true);
+
+      const rejectingService = { resolve: sinon.stub().rejects(new Error('validation unavailable')) };
+      mockSails.services.recordvalidationservice = rejectingService;
+      mockStorageService.updateMeta.resetHistory();
+      const removeStored = {
+        ...baseRecord(),
+        metadata: { title: 'Original', relatedRecords: ['record-456', 'record-789'] },
+      };
+      mockStorageService.getMeta.reset();
+      mockStorageService.getMeta.resolves(removeStored);
+      const removeResult = await RecordsService.removeFromRecord(
+        'record-123',
+        'record-456',
+        'metadata.relatedRecords',
+        structuredClone(removeStored)
+      );
+
+      expect(removeResult.outcome).to.equal('not-saved');
+      expect(rejectingService.resolve.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+  });
     });
   });
 
@@ -1775,6 +3250,40 @@ describe('RecordsService', function () {
   });
 
   describe('delete hook audit boundary', function () {
+    it('threads a postSync replacement to detached hooks without mutating the caller-owned record', async function () {
+      const callerRecord = { metadata: { title: 'Original' } };
+      const callerSnapshot = structuredClone(callerRecord);
+      (globalThis as any).__deletePostRecord = undefined;
+      const recordType = {
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onDelete: {
+            postSync: [{ function: '(_oid, record) => ({ ...record, hookReplacement: true })' }],
+            post: [
+              {
+                function:
+                  '(_oid, record) => { globalThis.__deletePostRecord = structuredClone(record); return undefined; }',
+              },
+            ],
+          },
+        },
+      };
+
+      try {
+        const result = await RecordsService.delete('record-123', false, callerRecord, recordType, {
+          username: 'user-1',
+        });
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(result.success).to.equal(true);
+        expect(callerRecord).to.deep.equal(callerSnapshot);
+        expect((globalThis as any).__deletePostRecord).to.deep.include({ hookReplacement: true });
+      } finally {
+        delete (globalThis as any).__deletePostRecord;
+      }
+    });
+
     it('writes a partial audit before detached post work starts', async function () {
       mockQueueService.now.resetHistory();
       const recordType = {
@@ -1836,12 +3345,92 @@ describe('RecordsService', function () {
   });
 
   describe('createBatch', function () {
-    it('should call storage service createBatch', async function () {
+    it('publishes createRecordAudit as a required StorageService capability', function () {
+      type IsRequired<T, K extends keyof T> = {} extends Pick<T, K> ? false : true;
+      const createRecordAuditIsRequired: IsRequired<StorageService, 'createRecordAudit'> = true;
+
+      expect(createRecordAuditIsRequired).to.equal(true);
+    });
+
+    it('durably audits the v1 direct-storage bypass and never reports the batch as validated', async function () {
       const records = [{ title: 'Rec 1' }, { title: 'Rec 2' }];
+      const storageResult = { accepted: 2 };
+      mockSails.config.record.auditing.enabled = false;
+      mockStorageService.createBatch.resolves(storageResult);
+
+      const result = await RecordsService.createBatch('rdmp', records, 'harvestId');
+
+      expect(result).to.equal(storageResult);
+      expect(mockStorageService.createBatch.calledWith('rdmp', records, 'harvestId')).to.be.true;
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(audit.action).to.equal('batch-validation-bypassed');
+      expect(audit.record.validationBypass).to.deep.include({
+        mode: 'direct-storage-v1',
+        reason: 'create-batch-v1-direct-storage',
+        validationStatus: 'unvalidated',
+        argumentContract: 'typed-three-argument',
+        recordType: 'rdmp',
+        candidateCount: 2,
+      });
+      expect(JSON.stringify(audit)).not.to.include('Rec 1');
+      expect(JSON.stringify(result)).not.to.include('validated');
+    });
+
+    it('documents and forwards the legacy records-only argument contract', async function () {
+      const records = [{ title: 'Legacy' }];
 
       await RecordsService.createBatch(records);
 
-      expect(mockStorageService.createBatch.calledWith(records)).to.be.true;
+      expect(mockStorageService.createBatch.calledOnceWithExactly(records, undefined, undefined)).to.equal(true);
+      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(audit.record.validationBypass).to.deep.include({
+        argumentContract: 'legacy-records-only',
+        candidateCount: 1,
+      });
+      expect(audit.record.validationBypass).not.to.have.property('recordType');
+    });
+
+    it('fails closed when the direct-batch bypass audit is missing, rejected, or unconfirmed', async function () {
+      const failures = [
+        () => {
+          mockStorageService.createRecordAudit = undefined;
+        },
+        () => {
+          mockStorageService.createRecordAudit.rejects(new Error('audit rejected'));
+        },
+        () => {
+          mockStorageService.createRecordAudit.resolves(undefined);
+        },
+      ];
+
+      for (const configureFailure of failures) {
+        mockStorageService.createBatch.resetHistory();
+        if (!mockStorageService.createRecordAudit) {
+          mockStorageService.createRecordAudit = sinon.stub();
+        } else {
+          mockStorageService.createRecordAudit.reset();
+        }
+        configureFailure();
+
+        let error: unknown;
+        try {
+          await RecordsService.createBatch('rdmp', [{ title: 'Blocked' }], 'harvestId');
+        } catch (caught) {
+          error = caught;
+        }
+        expect(error).to.be.instanceOf(Error);
+        expect((error as Error).name).to.equal('RBValidationError');
+        expect((error as any).problemKind).to.equal('system');
+        expect((error as any).displayErrors).to.deep.equal([
+          {
+            title: '@record-save-record-validation-batch-bypass-audit-failed',
+            code: 'record-validation-batch-bypass-audit-failed',
+          },
+        ]);
+        expect(mockStorageService.createBatch.notCalled).to.equal(true);
+      }
     });
   });
 

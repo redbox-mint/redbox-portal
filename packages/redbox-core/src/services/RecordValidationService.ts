@@ -27,6 +27,7 @@ import {
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
+import type { RecordValidationConfig } from '../config/recordValidation.config';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
@@ -200,6 +201,57 @@ export interface RecordValidationCacheStats {
   readonly formDefinitions: number;
   readonly compiledExpressions: number;
   readonly validatorMappings: number;
+}
+
+export interface RecordValidationModeResolution {
+  readonly mode: ValidationMode;
+  /** Number only: malformed configuration values must not enter diagnostics. */
+  readonly malformedModeCount: number;
+}
+
+type ValidationModeConfigLike = {
+  readonly mode?: unknown;
+  readonly operations?: unknown;
+};
+
+function operationMode(config: ValidationModeConfigLike | null | undefined, operation: string | undefined): unknown {
+  if (!operation || !config?.operations || typeof config.operations !== 'object' || Array.isArray(config.operations)) {
+    return undefined;
+  }
+  const operations = config.operations as Record<string, unknown>;
+  if (!Object.hasOwn(operations, operation)) return undefined;
+  const override = operations[operation];
+  return override && typeof override === 'object' && !Array.isArray(override)
+    ? (override as Record<string, unknown>).mode
+    : undefined;
+}
+
+/**
+ * Resolve rollout mode with one shared precedence rule:
+ * global -> global operation -> record type -> record-type operation.
+ */
+export function resolveValidationMode(
+  globalConfig: Pick<RecordValidationConfig, 'mode' | 'operations'> | ValidationModeConfigLike | null | undefined,
+  recordTypeConfig: RecordTypeValidationConfig | ValidationModeConfigLike | null | undefined,
+  operation?: string
+): RecordValidationModeResolution {
+  const configuredValues = [
+    globalConfig?.mode,
+    operationMode(globalConfig, operation),
+    recordTypeConfig?.mode,
+    operationMode(recordTypeConfig, operation),
+  ];
+  let mode: ValidationMode = 'shadow';
+  let malformedModeCount = 0;
+  for (const configured of configuredValues) {
+    if (configured === undefined) continue;
+    if (configured === 'shadow' || configured === 'enforce') {
+      mode = configured;
+    } else {
+      malformedModeCount += 1;
+    }
+  }
+  return { mode, malformedModeCount };
 }
 
 interface RecordTypeLike {
@@ -544,11 +596,14 @@ export namespace Services {
       progress: ResolutionProgress
     ): Promise<RecordValidationResult> {
       const globalConfig = sails.config.recordValidation;
-      let mode = this.readMode(globalConfig?.mode, 'shadow', diagnostics);
-      progress.mode = mode;
       const normalized = this.normalizeRequest(request, diagnostics);
-      if (!normalized)
+      const initialModeResolution = resolveValidationMode(globalConfig, undefined, normalized?.operation);
+      this.addMalformedModeDiagnostics(initialModeResolution.malformedModeCount, diagnostics);
+      let mode = initialModeResolution.mode;
+      progress.mode = mode;
+      if (!normalized) {
         return this.buildResult(request, mode, diagnostics, { outcome: 'unresolved', contractFailure: true });
+      }
       const operation = normalized.operation;
       progress.operation = operation;
 
@@ -579,21 +634,12 @@ export namespace Services {
         });
       }
 
-      if (operation) {
-        const globalOperation =
-          globalConfig?.operations && Object.hasOwn(globalConfig.operations, operation)
-            ? globalConfig.operations[operation]
-            : undefined;
-        const recordTypeOperation =
-          recordType.recordValidation?.operations && Object.hasOwn(recordType.recordValidation.operations, operation)
-            ? recordType.recordValidation.operations[operation]
-            : undefined;
-        mode = this.readMode(globalOperation?.mode, mode, diagnostics);
-        mode = this.readMode(recordType.recordValidation?.mode, mode, diagnostics);
-        mode = this.readMode(recordTypeOperation?.mode, mode, diagnostics);
-      } else {
-        mode = this.readMode(recordType.recordValidation?.mode, mode, diagnostics);
-      }
+      const effectiveModeResolution = resolveValidationMode(globalConfig, recordType.recordValidation, operation);
+      this.addMalformedModeDiagnostics(
+        Math.max(0, effectiveModeResolution.malformedModeCount - initialModeResolution.malformedModeCount),
+        diagnostics
+      );
+      mode = effectiveModeResolution.mode;
       progress.mode = mode;
 
       const selection = await this.resolveFormSelection(normalized, recordType, diagnostics, dependencies);
@@ -1538,20 +1584,15 @@ export namespace Services {
       }
     }
 
-    private readMode(
-      value: unknown,
-      fallback: ValidationMode,
-      diagnostics: RecordValidationDiagnostic[]
-    ): ValidationMode {
-      if (value === undefined) return fallback;
-      if (value === 'shadow' || value === 'enforce') return value;
-      diagnostics.push(
-        createDiagnostic(
-          RECORD_VALIDATION_DIAGNOSTIC_CODES.rolloutModeMalformed,
-          'A record-validation rollout mode is malformed.'
-        )
-      );
-      return fallback;
+    private addMalformedModeDiagnostics(malformedModeCount: number, diagnostics: RecordValidationDiagnostic[]): void {
+      for (let index = 0; index < malformedModeCount; index += 1) {
+        diagnostics.push(
+          createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.rolloutModeMalformed,
+            'A record-validation rollout mode is malformed.'
+          )
+        );
+      }
     }
 
     private buildResult(
