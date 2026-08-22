@@ -37,6 +37,7 @@ import * as RaidServiceModule from './RaidService';
 import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
+import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
 import * as SassCompilerServiceModule from './SassCompilerService';
@@ -90,6 +91,7 @@ export { RaidServiceModule as RaidService };
 export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
 export { RecordTypesServiceModule as RecordTypesService };
+export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
 export { SassCompilerServiceModule as SassCompilerService };
@@ -254,6 +256,11 @@ export const ServiceExports = {
   get RecordTypesService() {
     return getOrCreateService('RecordTypesService', () =>
       new RecordTypesServiceModule.Services.RecordTypes().exports()
+    );
+  },
+  get RecordValidationService() {
+    return getOrCreateService('RecordValidationService', () =>
+      new RecordValidationServiceModule.Services.RecordValidation().exports()
     );
   },
   get ReportsService() {

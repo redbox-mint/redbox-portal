@@ -26,6 +26,14 @@ export interface ValidationOperationOverride extends Partial<ValidationOperation
   mode?: ValidationMode;
 }
 
+/**
+ * Workflow stages may refine operation policy, but rollout mode is deliberately
+ * not stage-scoped. Enforcement remains a `(record type, operation)` decision.
+ */
+export type ValidationOperationPolicyOverride = Omit<ValidationOperationOverride, 'mode'> & {
+  mode?: never;
+};
+
 /** Safe operation metadata suitable for discovery responses. */
 export interface ValidationOperationDiscovery {
   name: string;
