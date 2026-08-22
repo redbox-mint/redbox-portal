@@ -334,8 +334,9 @@ export namespace Services {
       return service;
     }
 
-    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string): string {
-      return `journal/${oid}/${attachmentId}/${generation}`;
+    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string, mutationFileId: string): string {
+      const mutationKey = createHash('sha256').update(mutationFileId).digest('hex').slice(0, 32);
+      return `journal/${oid}/${attachmentId}/${generation}/${mutationKey}`;
     }
 
     /** Stable identity for legacy attachment rows that predate attachmentId. */
@@ -468,7 +469,7 @@ export namespace Services {
       await journal.prepareMutations(plan.map(item => ({
         oid,
         fileId: item.fileId,
-        storageKey: this.attachmentJournalStorageKey(oid, item.attachmentId, item.generation),
+        storageKey: this.attachmentJournalStorageKey(oid, item.attachmentId, item.generation, item.fileId),
         attachmentId: item.attachmentId,
         operation: item.operation,
         mutationState: 'prepared',
@@ -487,7 +488,14 @@ export namespace Services {
         let journalStateKnown = true;
         if (journal) {
           try {
-            journalStateKnown = await journal.markMutation(oid, item.attachmentId, item.generation, 'pending');
+            journalStateKnown = await journal.markMutation(
+              oid,
+              item.attachmentId,
+              item.generation,
+              'pending',
+              undefined,
+              item.fileId,
+            );
           } catch (error) {
             journalStateKnown = false;
             sails.log.error(`${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`, error);
@@ -502,7 +510,14 @@ export namespace Services {
           }
           if (journal) {
             try {
-              journalStateKnown = (await journal.markMutation(oid, item.attachmentId, item.generation, 'applied')) && journalStateKnown;
+              journalStateKnown = (await journal.markMutation(
+                oid,
+                item.attachmentId,
+                item.generation,
+                'applied',
+                undefined,
+                item.fileId,
+              )) && journalStateKnown;
             } catch (error) {
               journalStateKnown = false;
               sails.log.error(`${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`, error);
@@ -519,7 +534,14 @@ export namespace Services {
         } catch (error) {
           if (journal) {
             try {
-              await journal.markMutation(oid, item.attachmentId, item.generation, 'unknown', 'attachment-operation-unknown');
+              await journal.markMutation(
+                oid,
+                item.attachmentId,
+                item.generation,
+                'unknown',
+                'attachment-operation-unknown',
+                item.fileId,
+              );
             } catch (journalError) {
               sails.log.error(`${this.logHeader} attachment journal unknown update failed for ${item.attachmentId}`, journalError);
             }
@@ -550,7 +572,7 @@ export namespace Services {
       }
       for (const item of plan) {
         try {
-          await journal.markMutation(oid, item.attachmentId, item.generation, state, code);
+          await journal.markMutation(oid, item.attachmentId, item.generation, state, code, item.fileId);
         } catch (error) {
           sails.log.error(`${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`, error);
         }
