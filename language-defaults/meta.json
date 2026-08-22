@@ -3084,6 +3084,131 @@
     "description": "Success message shown after saving an RDMP form",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-warning-create": {
+    "category": "rdmp",
+    "description": "Warning shown after record creation when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-warning-update": {
+    "category": "rdmp",
+    "description": "Warning shown after an update when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-create": {
+    "category": "rdmp",
+    "description": "Guidance shown when record creation cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-update": {
+    "category": "rdmp",
+    "description": "Guidance shown when an update cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@record-save-failed": {
+    "category": "rdmp",
+    "description": "Generic record save failure message",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for invalid attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-duplicate-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for duplicate attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-unknown": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence cannot be confirmed",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-not-applied": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence was not applied",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-precondition": {
+    "category": "rdmp",
+    "description": "Record save error when a save precondition fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-hook-configuration": {
+    "category": "rdmp",
+    "description": "Record save error for invalid hook configuration",
+    "contentFormat": "plain"
+  },
+  "@record-save-pre-save-processing-failed": {
+    "category": "rdmp",
+    "description": "Record save error when pre-save validation or processing fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-journal-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment journal failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-reference-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment reference finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-response-projection-failed": {
+    "category": "rdmp",
+    "description": "Record save warning when the saved response projection fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-not-dispatched": {
+    "category": "rdmp",
+    "description": "Record save error when the request could not be dispatched",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-invalid": {
+    "category": "rdmp",
+    "description": "Error shown when an invalid form cannot be saved",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-defined": {
+    "category": "rdmp",
+    "description": "Error shown when no form is available to save",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-modified": {
+    "category": "rdmp",
+    "description": "Message shown when a save is requested without changes",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-validation-timeout": {
+    "category": "rdmp",
+    "description": "Error shown when form validation does not settle before saving",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-error": {
     "category": "rdmp",
     "description": "Error message shown when saving an RDMP form fails",
@@ -3097,6 +3222,16 @@
   "@dmpt-form-delete-error": {
     "category": "rdmp",
     "description": "Error message shown when deleting an RDMP form fails",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-missing-oid": {
+    "category": "rdmp",
+    "description": "Delete error shown when the record identifier is missing",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-failed": {
+    "category": "rdmp",
+    "description": "Generic record deletion error",
     "contentFormat": "plain"
   },
   "auth-update-error": {

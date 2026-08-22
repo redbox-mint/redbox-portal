@@ -42,7 +42,7 @@ type FormDebugBridgeMessage = {
 @Injectable({ providedIn: 'root' })
 export class FormDebugStateService implements OnDestroy {
   private readonly document = inject(DOCUMENT);
-  private readonly debugScope = this.readDebugScopeFromUrl();
+  private debugScope: string;
   private debugBroadcastChannel?: BroadcastChannel;
 
   isDebugEnabled = signal<boolean>(false);
@@ -99,6 +99,7 @@ export class FormDebugStateService implements OnDestroy {
   private debugEventCounter = 0;
 
   constructor() {
+    this.debugScope = this.readDebugScopeFromUrl();
     this.initBroadcastBridge();
     this.refreshFromUrl();
   }
@@ -108,6 +109,7 @@ export class FormDebugStateService implements OnDestroy {
   }
 
   refreshFromUrl(): void {
+    this.debugScope = this.readDebugScopeFromUrl();
     this.isDebugEnabled.set(this.readDebugEnabledFromUrl());
     const isPopout = this.readDebugPopoutFromUrl();
     this.isDebugPopoutWindow.set(isPopout);
@@ -418,7 +420,7 @@ export class FormDebugStateService implements OnDestroy {
       if (!data || data.scope !== this.debugScope) {
         return;
       }
-      if (!this.isDebugPopoutWindow()) {
+      if (!this.readDebugPopoutFromUrl()) {
         return;
       }
       this.appendDebugEvent(data.event);
@@ -515,7 +517,7 @@ export class FormDebugStateService implements OnDestroy {
       return value;
     }
     if (value instanceof Date) {
-      return value.toISOString();
+      return Number.isNaN(value.getTime()) ? null : value.toISOString();
     }
     if (value instanceof ElementRef) {
       return undefined;

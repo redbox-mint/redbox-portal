@@ -394,9 +394,12 @@ export namespace Services {
       const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
       const metadata = currentRec.metadata;
       const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec as Record<string, unknown>, user, true, true, nextStepResp, metadata as Record<string, unknown>);
-      const isSuccessful = recordUpdateResult.isSuccessful();
-      if (isSuccessful) {
-        sails.log.info(`FigService - updated ${msgPartial}`);
+      if (recordUpdateResult.wasPersisted()) {
+        if (recordUpdateResult.outcome === 'saved-with-warnings') {
+          sails.log.warn(`FigService - updated ${msgPartial} with warnings`, { requestId: recordUpdateResult.requestId });
+        } else {
+          sails.log.info(`FigService - updated ${msgPartial}`);
+        }
       } else {
         throw new Error(`Failed to update ${msgPartial}: ${JSON.stringify(recordUpdateResult)}`);
       }
@@ -474,9 +477,12 @@ export namespace Services {
         const brandName = getBrandName(record);
         const brand = BrandingService.getBrand(brandName);
         const response = await RecordsService.updateMeta(brand, oid, record as Record<string, unknown>, user, false, false);
-        if (response != null && typeof response.isSuccessful === 'function' && !response.isSuccessful()) {
+        if (response != null && typeof response.wasPersisted === 'function' && !response.wasPersisted()) {
           sails.log.error(`FigService - failed to persist Figshare sync state for ${oid}: ${JSON.stringify(response)}`);
           return false;
+        }
+        if (response?.outcome === 'saved-with-warnings') {
+          sails.log.warn(`FigService - persisted Figshare sync state with warnings for ${oid}`, { requestId: response.requestId });
         }
         return true;
       } catch (error) {

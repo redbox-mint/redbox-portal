@@ -2,6 +2,7 @@ import StorageServiceResponse from "./StorageServiceResponse";
 import { DatastreamRequestContext } from './DatastreamService';
 import { RecordModel, UserModel } from "./model";
 import { NormalizedRecordRelation } from "./config/recordtype.config";
+import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
 
 type AnyRecord = Record<string, unknown>;
 type RecordInput = RecordModel | Record<string, unknown>;
@@ -75,8 +76,8 @@ export interface RecordsService {
   getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
-  create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown): Promise<StorageServiceResponse>;
-  updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord): Promise<StorageServiceResponse>;
+  create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, context?: RecordSaveContext): Promise<RecordSaveResponse>;
+  updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord, context?: RecordSaveContext): Promise<RecordSaveResponse>;
   delete(oid: string, permanentlyDelete: boolean, record: RecordInput, recordType: unknown, user: UserInput): Promise<StorageServiceResponse>;
   destroyDeletedRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getMeta(oid: string): Promise<RecordModel>;

@@ -16,6 +16,7 @@ import {
   DatastreamService,
   StorageService,
   StorageServiceResponse,
+  StorageMutationResponse,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -240,19 +241,24 @@ export namespace Services {
       _user?: unknown
     ): Promise<StorageServiceResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
-      const response = new StorageServiceResponse();
-      record.redboxOid = this.getUuid();
+      const response = new StorageMutationResponse();
+      // RecordsService may pre-assign the OID so attachment journal rows can
+      // be prepared before the primary metadata commit. Preserve it when
+      // supplied, while retaining the historical generated-OID behavior.
+      record.redboxOid = record.redboxOid ?? this.getUuid();
       response.oid = String(record.redboxOid);
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
         await Record.create(record);
         response.success = true;
+        response.applicationState = 'applied';
         sails.log.verbose(`${this.logHeader} Record created...`);
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to create Record:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
+        response.applicationState = 'unknown';
         response.message = this.getErrorMessage(err);
         return response;
       }
@@ -262,7 +268,7 @@ export namespace Services {
     }
 
     public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel): Promise<StorageServiceResponse> {
-      const response = new StorageServiceResponse();
+      const response = new StorageMutationResponse();
       response.oid = oid;
       try {
         _.unset(record, 'dateCreated');
@@ -270,8 +276,17 @@ export namespace Services {
         _.unset(record, '_id');
         _.unset(record, 'id');
 
-        await Record.updateOne({ redboxOid: oid }).set(record);
-        response.success = true;
+        const updated = await Record.updateOne({ redboxOid: oid }).set(record);
+        // Waterline adapters may resolve an update with no matched record.
+        // A missing result is a certified non-write, not an applied mutation.
+        if (updated == null || (Array.isArray(updated) && updated.length === 0)) {
+          response.success = false;
+          response.applicationState = 'not-applied';
+          response.message = 'Record was not found';
+        } else {
+          response.success = true;
+          response.applicationState = 'applied';
+        }
       } catch (err) {
         const errorMessage = this.getErrorMessage(err);
         sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${errorMessage}`);
@@ -286,6 +301,7 @@ export namespace Services {
           })}`
         );
         response.success = false;
+        response.applicationState = 'unknown';
         response.message = errorMessage;
       }
       return response;

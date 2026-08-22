@@ -28,6 +28,15 @@ import {
   FormValidationBroadcastEvent,
 } from './form-state';
 
+function persistedSaveResponse(overrides: Record<string, unknown> = {}): any {
+  return {
+    success: true,
+    outcome: 'saved',
+    isComplete: () => true,
+    wasPersisted: () => true,
+    ...overrides,
+  };
+}
 
 describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
@@ -402,7 +411,7 @@ describe('FormComponent', () => {
     });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     let saveCompleted = false;
     const savePromise = formComponent.saveForm().then(() => {
@@ -436,7 +445,7 @@ describe('FormComponent', () => {
     formComponent.form.updateValueAndValidity({ emitEvent: false });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     const savePromise = formComponent.saveForm();
     await Promise.resolve();
@@ -458,7 +467,7 @@ describe('FormComponent', () => {
     });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     await formComponent.saveForm();
 
@@ -473,12 +482,189 @@ describe('FormComponent', () => {
     });
     formComponent.form.updateValueAndValidity();
     formComponent.oid.set('oid-123');
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     await formComponent.saveForm({force: true, targetStep: 'review'});
 
     expect(formComponent.form.invalid).toBeTrue();
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it('replaces prior server errors with uniquely keyed translated save issues', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const control = new FormControl('value');
+    control.setErrors({ required: true, 'server#old': { class: 'server' } });
+    formComponent.form = new FormGroup({ title: control });
+
+    (formComponent as any).clearServerSaveProblems();
+    (formComponent as any).applyServerSaveProblems({
+      requestId: 'request-1',
+      problems: [{
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [
+          { field: 'title', message: '@record-save-failed' },
+          { pointer: '/metadata/title', message: '@record-save-invalid-hook-configuration' },
+        ],
+      }],
+    });
+
+    expect(control.errors?.['required']).toBeTrue();
+    expect(control.errors?.['server#old']).toBeUndefined();
+    expect(control.errors?.['server#0']).toEqual({ class: 'server', message: '@record-save-failed', params: {} });
+    expect(control.errors?.['server#1']).toEqual({ class: 'server', message: '@record-save-invalid-hook-configuration', params: {} });
+  });
+
+  it('leaves ambiguous repeatable pointer suffixes at form level', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const first = new FormControl('one');
+    const second = new FormControl('two');
+    formComponent.form = new FormGroup({ repeatable: new FormGroup({}) });
+    formComponent.componentDefArr = [
+      { name: 'title', compConfigJson: {} as any, model: { formControl: first } as any, lineagePaths: { dataModel: ['repeatable', 0, 'title'] } as any },
+      { name: 'title', compConfigJson: {} as any, model: { formControl: second } as any, lineagePaths: { dataModel: ['repeatable', 1, 'title'] } as any },
+    ];
+
+    (formComponent as any).applyServerSaveProblems({
+      problems: [{
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [{ pointer: '/metadata/missing/title', message: '@record-save-failed' }],
+      }],
+    });
+
+    expect(first.errors).toBeNull();
+    expect(second.errors).toBeNull();
+    expect(formComponent.form.errors?.['server#0']).toEqual({
+      class: 'server',
+      message: '@record-save-failed',
+      params: {},
+    });
+  });
+
+  it('emits the unknown outcome language key without pre-translating it', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    spyOn(formComponent.recordService, 'update').and.resolveTo({
+      outcome: 'unknown',
+      requestId: 'request-unknown',
+      isComplete: () => false,
+      wasPersisted: () => false,
+    } as any);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const failureEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(failureEvents.length).toBe(1);
+      expect(failureEvents[0].error).toBe('@dmpt-form-save-unknown-update');
+      expect(failureEvents[0].requestId).toBe('request-unknown');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('emits a persisted warning without requesting close or redirect', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+      outcome: 'saved-with-warnings',
+      isComplete: () => false,
+      requestId: 'request-warning',
+      metadata: { postSaveSyncWarning: 'true' },
+    }));
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 5 });
+
+      expect(successEvents.length).toBe(1);
+      expect(successEvents[0].response?.outcome).toBe('saved-with-warnings');
+      expect(successEvents[0].requestId).toBe('request-warning');
+      expect(successEvents[0].closeOnSave).toBeUndefined();
+      expect(successEvents[0].redirectLocation).toBeUndefined();
+      expect(formComponent.saveResponse()?.outcome).toBe('saved-with-warnings');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('reports undefined and unmodified forms as distinct save failures', async () => {
+    const undefinedFixture = TestBed.createComponent(FormComponent);
+    const undefinedComponent = undefinedFixture.componentInstance;
+    const undefinedBus = TestBed.inject(FormComponentEventBus);
+    const undefinedFailures: any[] = [];
+    const undefinedSub = undefinedBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => undefinedFailures.push(event));
+
+    await undefinedComponent.saveForm();
+
+    expect(undefinedFailures[undefinedFailures.length - 1]?.error).toBe('@dmpt-form-not-defined');
+    undefinedSub.unsubscribe();
+
+    const modifiedFixture = TestBed.createComponent(FormComponent);
+    const modifiedComponent = modifiedFixture.componentInstance;
+    modifiedComponent.form = new FormGroup({ title: new FormControl('unchanged') });
+    const modifiedBus = TestBed.inject(FormComponentEventBus);
+    const modifiedFailures: any[] = [];
+    const modifiedSub = modifiedBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => modifiedFailures.push(event));
+
+    await modifiedComponent.saveForm();
+
+    expect(modifiedFailures[modifiedFailures.length - 1]?.error).toBe('@dmpt-form-not-modified');
+    modifiedSub.unsubscribe();
+  });
+
+  it('maps angular JSON pointers to lineage-aware focus requests', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const control = new FormControl('value');
+    formComponent.form = new FormGroup({ title: control });
+    formComponent.componentDefArr = [{
+      name: 'title',
+      compConfigJson: {},
+      model: { formControl: control },
+      lineagePaths: {
+        angularComponents: ['section', 'title'],
+        angularComponentsJsonPointer: '/section/title',
+        dataModel: ['title'],
+      },
+    } as any];
+    const bus = TestBed.inject(FormComponentEventBus);
+    const focusEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(event => focusEvents.push(event));
+
+    try {
+      (formComponent as any).applyServerSaveProblems({
+        requestId: 'request-focus',
+        problems: [{
+          kind: 'validation',
+          phase: 'pre-save',
+          issues: [{ pointer: '/section/title', message: '@record-save-failed' }],
+        }],
+      });
+
+      expect(control.errors?.['server#0']).toBeDefined();
+      expect(focusEvents.length).toBe(1);
+      expect(focusEvents[0].lineagePath).toEqual(['section', 'title']);
+      expect(focusEvents[0].requestId).toBe('request-focus');
+      expect(focusEvents[0].source).toBe('server-save-validation');
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('fails save when pending async validation times out', async () => {
@@ -492,7 +678,7 @@ describe('FormComponent', () => {
     });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
     const bus = TestBed.inject(FormComponentEventBus);
     const failureEvents: any[] = [];
     const sub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failureEvents.push(event));
@@ -502,7 +688,7 @@ describe('FormComponent', () => {
 
       expect(updateSpy).not.toHaveBeenCalled();
       expect(failureEvents.length).toBe(1);
-      expect(failureEvents[0].error).toBe('Form validation timed out. Please try again.');
+      expect(failureEvents[0].error).toBe('@dmpt-form-validation-timeout');
     } finally {
       sub.unsubscribe();
     }
@@ -518,7 +704,7 @@ describe('FormComponent', () => {
     });
     formComponent.oid.set('oid-123');
     formComponent.form.markAsDirty();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     const savePromise = formComponent.saveForm();
     await Promise.resolve();
@@ -566,7 +752,7 @@ describe('FormComponent', () => {
     expect(formComponent.form!.pending).toBeTrue();
 
     const broadcastSpy = spyOn(formComponent, 'broadcastFormStatus').and.callThrough();
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     const bus = TestBed.inject(FormComponentEventBus);
     const successEvents: FormSaveSuccessEvent[] = [];
@@ -665,7 +851,7 @@ describe('FormComponent', () => {
     };
 
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
     formComponent.form?.markAsDirty();
 
     expect(formComponent.form?.valid).toBeTrue();
@@ -747,7 +933,7 @@ describe('FormComponent', () => {
     };
 
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo({ success: true } as any);
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
 
     expect(formComponent.form?.valid).toBeTrue();
 
@@ -859,10 +1045,7 @@ describe('FormComponent', () => {
       const location = fixture.debugElement.injector.get(Location);
       const replaceStateSpy = spyOn(location, 'replaceState').and.stub();
       (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
-      spyOn(formComponent.recordService, 'create').and.resolveTo({
-        success: true,
-        oid: 'oid-123'
-      } as any);
+      spyOn(formComponent.recordService, 'create').and.resolveTo(persistedSaveResponse({ oid: 'oid-123' }));
 
       await formComponent.saveForm({force: true});
 
@@ -873,7 +1056,7 @@ describe('FormComponent', () => {
       expect(events[0].type).toEqual(FormComponentEventType.FORM_SAVE_SUCCESS);
       expect(events[0].savedData).toEqual({text_create: 'create value'});
       expect(events[0].oid).toEqual('oid-123');
-      expect(events[0].response).toEqual({success: true, oid: 'oid-123'});
+      expect(events[0].response).toEqual(jasmine.objectContaining({ success: true, oid: 'oid-123', outcome: 'saved' }));
       expect(events[0].modelSnapshot).toEqual({text_create: 'create value'});
       expect(events[0].closeOnSave).toEqual(undefined);
       expect(events[0].redirectLocation).toEqual(undefined);
@@ -923,7 +1106,10 @@ describe('FormComponent', () => {
       expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '');
       control.setValue('edited during save');
       control.markAsDirty();
-      resolveUpdate({ success: true, oid: 'oid-123', metadata: { text_never_sync: 'server value' } });
+      resolveUpdate(persistedSaveResponse({
+        oid: 'oid-123',
+        metadata: { text_never_sync: 'server value' },
+      }));
       await savePromise;
 
       expect(control.value).toBe('edited during save');

@@ -40,6 +40,57 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
     const accessCount = Number(record.accessCount ?? 0);
     record.accessCount = Number.isFinite(accessCount) ? accessCount : 0;
   }
+  if (Object.hasOwn(record, 'isJournal')) {
+    record.isJournal = record.isJournal === true;
+  }
+
+  if (Object.hasOwn(record, 'attachmentId') && record.attachmentId != null) {
+    const attachmentId = String(record.attachmentId).trim();
+    if (attachmentId && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(attachmentId)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.attachmentId must be a bounded identifier'
+      );
+    }
+    record.attachmentId = attachmentId || undefined;
+  }
+
+  if (Object.hasOwn(record, 'operation')) {
+    const operation = String(record.operation ?? '').trim();
+    if (operation && !['add', 'finalize', 'delete'].includes(operation)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.operation is invalid'
+      );
+    }
+    record.operation = operation || undefined;
+  }
+
+  if (Object.hasOwn(record, 'mutationState')) {
+    const mutationState = String(record.mutationState ?? '').trim();
+    if (mutationState && !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'].includes(mutationState)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.mutationState is invalid'
+      );
+    }
+    record.mutationState = mutationState || undefined;
+  }
+
+  if (Object.hasOwn(record, 'generation') && record.generation != null) {
+    record.generation = String(record.generation).trim().slice(0, 128) || undefined;
+  }
+  if (Object.hasOwn(record, 'mutationFileId') && record.mutationFileId != null) {
+    record.mutationFileId = String(record.mutationFileId).trim() || undefined;
+  }
+  if (Object.hasOwn(record, 'attemptCount')) {
+    const attemptCount = Number(record.attemptCount ?? 0);
+    record.attemptCount = Number.isFinite(attemptCount) && attemptCount >= 0 ? Math.floor(attemptCount) : 0;
+  }
+  if (Object.hasOwn(record, 'lastAttemptAt') && record.lastAttemptAt != null) {
+    const timestamp = new Date(record.lastAttemptAt as string | number | Date);
+    record.lastAttemptAt = Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  }
+  if (Object.hasOwn(record, 'lastSafeErrorCode') && record.lastSafeErrorCode != null) {
+    record.lastSafeErrorCode = String(record.lastSafeErrorCode).trim().slice(0, 128) || undefined;
+  }
 };
 
 const beforeCreate = (record: Record<string, unknown>, cb: (err?: Error) => void): void => {
@@ -79,6 +130,33 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, unique: true, validations: { custom: requiredTrimmedStringValidation('storageKey') } })
   public storageKey!: string;
 
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public isJournal?: boolean;
+
+  @Attr({ type: 'string' })
+  public attachmentId?: string;
+
+  @Attr({ type: 'string', isIn: ['add', 'finalize', 'delete'] })
+  public operation?: 'add' | 'finalize' | 'delete';
+
+  @Attr({ type: 'string', isIn: ['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'] })
+  public mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+
+  @Attr({ type: 'string' })
+  public generation?: string;
+
+  @Attr({ type: 'string' })
+  public mutationFileId?: string;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public attemptCount?: number;
+
+  @Attr({ type: 'string', columnType: 'datetime' })
+  public lastAttemptAt?: string;
+
+  @Attr({ type: 'string' })
+  public lastSafeErrorCode?: string;
+
   @Attr({ type: 'string' })
   public contentType?: string;
 
@@ -117,6 +195,15 @@ export const AttachmentMetadataWLDef = toWaterlineModelDef(AttachmentMetadataCla
 
 export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes {
   accessCount?: number;
+  attachmentId?: string;
+  operation?: 'add' | 'finalize' | 'delete';
+  mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+  generation?: string;
+  isJournal?: boolean;
+  mutationFileId?: string;
+  attemptCount?: number;
+  lastAttemptAt?: string | Date;
+  lastSafeErrorCode?: string;
   attachmentField?: string;
   contentLength?: number;
   contentType?: string;

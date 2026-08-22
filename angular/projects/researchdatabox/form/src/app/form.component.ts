@@ -47,6 +47,7 @@ import {
 } from 'rxjs';
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import {
+  AbstractControl,
   FormControlStatus,
   FormGroup,
   PristineChangeEvent,
@@ -80,6 +81,8 @@ import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
   FormValidatorTargetFieldConfig,
+  RecordSaveIssue,
+  RecordSaveResult,
   isMatchingLineagePaths,
   JSONataQuerySource,
   LineagePathsOptional,
@@ -98,6 +101,8 @@ import {
   createFormRedirectRequestedEvent,
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
+  createFieldFocusRequestEvent,
+  createLineageFieldFocusRequestEvent,
   createFormValidationBroadcastEvent,
   DeleteEventConfig,
   FormComponentEvent,
@@ -541,6 +546,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Listen for execute save command and invoke saveForm (Task 15)
     this.subMaps['saveExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_EXECUTE)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe(async evt => {
         const force = evt.force;
         const targetStep = evt.targetStep;
@@ -555,6 +561,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       });
     this.subMaps['saveSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe((evt) => {
         if (evt.closeOnSave) {
           this.eventBus.publish(
@@ -563,12 +570,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               historyDelta: evt?.redirectLocation ? undefined : -1,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
+              formScopeId: this.eventScopeId,
             })
           );
         }
       });
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe(async (evt) => {
         await this.deleteRecord({
           closeOnDelete: evt.closeOnDelete,
@@ -578,6 +587,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       });
     this.subMaps['deleteSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_SUCCESS)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe((evt) => {
         if (evt.closeOnDelete) {
           this.eventBus.publish(
@@ -586,6 +596,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               historyDelta: evt?.redirectLocation ? undefined : -1,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
+              formScopeId: this.eventScopeId,
             })
           );
         }
@@ -657,6 +668,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.subMaps['redirectRequestedSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_REDIRECT_REQUESTED)
+      .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe(evt => {
         const redirectOptions = {
           historyDelta: evt?.historyDelta,
@@ -676,6 +688,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.subMaps['formGroupChangesSub']?.unsubscribe();
       this.subMaps['formGroupChangesSub'] = this.form.events.subscribe(
         (formGroupEvent: StatusChangeEvent | PristineChangeEvent | ValueChangeEvent<unknown> | unknown) => {
+          if (formGroupEvent instanceof ValueChangeEvent) {
+            this.clearServerErrorsFromControl(formGroupEvent.source);
+          }
           if (formGroupEvent instanceof StatusChangeEvent || formGroupEvent instanceof PristineChangeEvent) {
             // Angular has already recalculated the form for these events. Re-running
             // validation here restarts form-level async validators and can leave
@@ -1138,6 +1153,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const forceSave = options?.force ?? false;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
+    this.clearServerSaveProblems();
 
     if (this.form && options?.enabledValidationGroups) {
       if (!this.resetTemporaryValidationGroupsOnNextChange) {
@@ -1159,15 +1175,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
     const formIsModified = this.form?.dirty || forceSave;
+    const saveOperation: 'create' | 'update' = _isEmpty(this.trimmedParams.oid()) ? 'create' : 'update';
     if (this.form?.pending) {
       const validationSettled = await this.waitForPendingValidation();
       if (this.isDestroyed) {
         return;
       }
       if (!validationSettled) {
-        const message = 'Form validation timed out. Please try again.';
+        const message = '@dmpt-form-validation-timeout';
         this.loggerService.warn(`${this.logName}: ${message}`);
-        this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
+        this.eventBus.publish(createFormSaveFailureEvent({ error: message, formScopeId: this.eventScopeId }));
         return;
       }
     }
@@ -1196,7 +1213,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             // Actual record update via RecordService call
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
           }
-          if (response?.success) {
+          // A persisted warning is still a successful save, but it is not a
+          // complete save.  Keep the record open so the user can review the
+          // affected follow-up work before leaving the form.
+          const isComplete = response.isComplete();
+          if (response.wasPersisted()) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
@@ -1204,7 +1225,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
-            const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid);
+            const redirectLocation = isComplete
+              ? this.resolveRedirectLocation(options?.redirectLocation ?? '', oid)
+              : '';
             let modelSnapshot: Record<string, unknown> | undefined;
             if (
               !options?.closeOnSave &&
@@ -1238,38 +1261,58 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 savedData: currentFormValue,
                 oid: oid,
                 response,
+                operation: saveOperation,
+                formScopeId: this.eventScopeId,
+                requestId: response.requestId,
                 modelSnapshot,
-                closeOnSave: options?.closeOnSave,
+                closeOnSave: isComplete ? options?.closeOnSave : undefined,
                 redirectLocation: redirectLocation || undefined,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
-            // Mark form as dirty again since save failed
-            this.form.markAllAsDirty();
+            // Preserve the user's edits, but only mark controls that the server
+            // explicitly identified.  A transport/unknown response must not
+            // make every control appear invalid.
+            this.applyServerSaveProblems(response);
+            const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
+              ? '@dmpt-form-save-unknown-create'
+              : '@dmpt-form-save-unknown-update';
+            const failureMessage = response.outcome === 'unknown'
+              ? unknownMessageKey
+              : (String(_get(response, 'message') ?? '').startsWith('@')
+                  ? String(_get(response, 'message'))
+                  : '@record-save-failed');
             // Emit failure event
             this.eventBus.publish(
-              createFormSaveFailureEvent({ error: _get(response, 'message')?.toString() ?? 'Unknown error' })
+              createFormSaveFailureEvent({
+                error: failureMessage,
+                response,
+                operation: saveOperation,
+                formScopeId: this.eventScopeId,
+                requestId: response.requestId,
+              })
             );
           }
           this.saveResponse.set(response);
         } catch (error: unknown) {
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
           // Emit an response with the error message object as string
-          let errorMsg = 'Unknown error occurred';
-          if (error instanceof Error) {
-            errorMsg = error.message;
-          }
-          this.saveResponse.set({
-            success: false,
-            oid: this.trimmedParams.oid(),
-            message: errorMsg,
-          } as RecordActionResult);
-          // Mark form as dirty again since save failed
-          this.form.markAllAsDirty();
+          const errorMsg = '@record-save-not-dispatched';
+          // The record transport only throws before a request is dispatched,
+          // so nothing reached the server: this is a confirmed non-save.
+          const failure = RecordActionResult.notDispatched(errorMsg, this.trimmedParams.oid());
+          this.saveResponse.set(failure);
+          this.applyServerSaveProblems(failure);
           // emit failure event
-          this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: errorMsg,
+            response: failure,
+            operation: saveOperation,
+            formScopeId: this.eventScopeId,
+            requestId: failure.requestId,
+          }));
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -1277,15 +1320,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);
         // Handle form errors, e.g., show a message to the user
         this.eventBus.publish(
-          createFormSaveFailureEvent({ error: 'Form is invalid. Please correct the errors and try again.' })
+          createFormSaveFailureEvent({
+            error: '@dmpt-form-invalid',
+            formScopeId: this.eventScopeId,
+          })
         );
       }
     } else {
       this.saveResponse.set(undefined); // Reset save response
       // TODO: Do we need to discriminate between not defined and not modified events?
-      const message = !this.form ? 'Form is not defined.' : 'Form has not been modified.';
+      const message = !this.form ? '@dmpt-form-not-defined' : '@dmpt-form-not-modified';
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
-      this.eventBus.publish(createFormSaveFailureEvent({ error: message }));
+      this.eventBus.publish(createFormSaveFailureEvent({ error: message, formScopeId: this.eventScopeId }));
     }
   }
 
@@ -1304,6 +1350,187 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         catchError(() => of(false))
       )
     );
+  }
+
+  /**
+   * Apply only field-addressable server problems to controls.  Form-level and
+   * uncertain problems still make the form dirty, but never mark every field
+   * dirty as though each one had failed validation.
+   */
+  private applyServerSaveProblems(response: Partial<RecordSaveResult> | null | undefined): void {
+    if (!this.form) {
+      return;
+    }
+
+    const problems = Array.isArray(response?.problems) ? response.problems : [];
+    let firstMappedField: string | null = null;
+    const formLevelErrors: Record<string, unknown> = {};
+    let issueIndex = 0;
+    for (const problem of problems) {
+      for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
+        const resolved = this.resolveServerIssue(issue);
+        if (!resolved) {
+          formLevelErrors[`server#${issueIndex}`] = {
+            class: 'server',
+            message: issue.message,
+            params: {},
+          };
+          issueIndex++;
+          continue;
+        }
+        firstMappedField ??= resolved.field;
+        const existingErrors = resolved.control.errors ?? {};
+        resolved.control.setErrors({
+          ...existingErrors,
+          [`server#${issueIndex}`]: {
+            class: 'server',
+            message: issue.message,
+            params: {},
+          },
+        });
+        resolved.control.markAsDirty();
+        resolved.control.markAsTouched();
+        issueIndex++;
+      }
+    }
+    this.form.markAsDirty();
+    this.broadcastFormStatus();
+    if (Object.keys(formLevelErrors).length > 0) {
+      this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
+      this.broadcastFormStatus(false);
+    }
+    if (firstMappedField) {
+      const entry = this.componentDefArr.find(candidate => {
+        const name = candidate.name ?? candidate.compConfigJson?.name;
+        return name === firstMappedField;
+      });
+      const lineagePath = entry?.lineagePaths?.angularComponents ?? [];
+      const focusOptions = {
+        fieldId: firstMappedField,
+        targetElementId: firstMappedField,
+        requestId: response?.requestId ?? this.eventScopeId,
+        source: 'server-save-validation',
+        sourceId: this.eventScopeId,
+        formScopeId: this.eventScopeId,
+      } as const;
+      this.eventBus.publish(lineagePath.length > 0
+        ? createLineageFieldFocusRequestEvent({ ...focusOptions, lineagePath })
+        : createFieldFocusRequestEvent(focusOptions));
+    }
+  }
+
+  private resolveServerIssue(issue: RecordSaveIssue): { field: string; control: AbstractControl } | null {
+    if (!this.form) {
+      return null;
+    }
+    const pointer = typeof issue.pointer === 'string' ? issue.pointer : '';
+    const explicitField = typeof issue.field === 'string' ? issue.field.trim() : '';
+    const pointerSegments = this.serverIssueSegments(pointer);
+    const candidates = this.serverControlCandidates();
+    const unique = (matches: Array<{ field: string; control: AbstractControl }>) => {
+      const byControl = [...new Map(matches.map(match => [match.control, match])).values()];
+      return byControl.length === 1 ? byControl[0] : null;
+    };
+
+    if (pointerSegments.length > 0) {
+      const pointerPath = `/${pointerSegments.map(segment => String(segment).replace(/~/g, '~0').replace(/\//g, '~1')).join('/')}`;
+      const angularMatch = unique(candidates.filter(candidate => candidate.angularPointer === pointerPath));
+      if (angularMatch) {
+        return angularMatch;
+      }
+      const dataMatch = unique(candidates.filter(candidate => candidate.dataPath.join('.') === pointerSegments.join('.')));
+      if (dataMatch) {
+        return dataMatch;
+      }
+      const direct = this.form.get(pointerSegments);
+      if (direct) {
+        return { field: pointerSegments.join('.'), control: direct };
+      }
+    }
+
+    if (explicitField) {
+      const exact = unique(candidates.filter(candidate => candidate.field === explicitField));
+      if (exact) {
+        return exact;
+      }
+      const direct = this.form.get(this.serverIssueSegments(explicitField));
+      if (direct) {
+        return { field: explicitField, control: direct };
+      }
+    }
+
+    const finalSegment = (pointerSegments.at(-1) ?? this.serverIssueSegments(explicitField).at(-1)) || '';
+    return finalSegment
+      ? unique(candidates.filter(candidate => candidate.dataPath.at(-1) === finalSegment || candidate.field === finalSegment))
+      : null;
+  }
+
+  private serverControlCandidates(): Array<{
+    field: string;
+    control: AbstractControl;
+    angularPointer: string;
+    dataPath: Array<string | number>;
+  }> {
+    const candidates: Array<{
+      field: string;
+      control: AbstractControl;
+      angularPointer: string;
+      dataPath: Array<string | number>;
+    }> = [];
+    const visit = (entries: readonly FormFieldCompMapEntry[]): void => {
+      for (const entry of entries) {
+        const field = entry.name ?? entry.compConfigJson?.name ?? '';
+        if (field && entry.model?.formControl) {
+          candidates.push({
+            field,
+            control: entry.model.formControl,
+            angularPointer: entry.lineagePaths?.angularComponentsJsonPointer ?? '',
+            dataPath: entry.lineagePaths?.dataModel ?? [field],
+          });
+        }
+        for (const [mapField, control] of Object.entries(entry.formControlMap ?? {})) {
+          candidates.push({
+            field: mapField,
+            control,
+            angularPointer: `${entry.lineagePaths?.angularComponentsJsonPointer ?? ''}/${mapField}`,
+            dataPath: [...(entry.lineagePaths?.dataModel ?? []), mapField],
+          });
+        }
+        visit(entry.component?.formFieldCompMapEntries ?? []);
+      }
+    };
+    visit(this.componentDefArr);
+    return candidates;
+  }
+
+  private serverIssueSegments(source: string): Array<string | number> {
+    return source
+      .replace(/^\/?(?:metadata|metaMetadata|data|record)(?:[/.]|$)/, '')
+      .replace(/^\//, '')
+      .split(/[/.]/)
+      .filter(Boolean)
+      .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
+      .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
+  }
+
+  private clearServerSaveProblems(): void {
+    if (this.form) {
+      this.clearServerErrorsFromControl(this.form, true);
+    }
+  }
+
+  private clearServerErrorsFromControl(control: AbstractControl, recursive = false): void {
+    const errors = control.errors ?? {};
+    const retainedErrors = Object.fromEntries(Object.entries(errors).filter(([key]) => !key.startsWith('server#')));
+    if (Object.keys(retainedErrors).length !== Object.keys(errors).length) {
+      control.setErrors(Object.keys(retainedErrors).length > 0 ? retainedErrors : null, { emitEvent: false });
+    }
+    if (recursive) {
+      const children = (control as AbstractControl & { controls?: Record<string, AbstractControl> | AbstractControl[] }).controls;
+      for (const child of Array.isArray(children) ? children : Object.values(children ?? {})) {
+        this.clearServerErrorsFromControl(child, true);
+      }
+    }
   }
 
   private resetTemporaryValidationGroups(): void {
@@ -1334,23 +1561,29 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public async deleteRecord(options?: DeleteEventConfig) {
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
-      this.eventBus.publish(createFormDeleteFailureEvent({ error: 'Cannot delete a record without an oid' }));
+      this.eventBus.publish(createFormDeleteFailureEvent({
+        error: '@dmpt-form-delete-missing-oid',
+        formScopeId: this.eventScopeId,
+      }));
       return;
     }
 
     try {
       const response = await this.recordService.delete(oid);
       if (!response || !_get(response, 'success', false)) {
-        const errorMessage = _get(response, 'message')?.toString() ?? 'Delete failed: invalid response from server';
+        const responseMessage = String(_get(response, 'message') ?? '');
+        const errorMessage = responseMessage.startsWith('@') ? responseMessage : '@dmpt-form-delete-failed';
 
         this.eventBus.publish(
-          createFormDeleteFailureEvent({ error: errorMessage })
+          createFormDeleteFailureEvent({ error: errorMessage, formScopeId: this.eventScopeId })
         );
       } else {
         this.eventBus.publish(
           createFormDeleteSuccessEvent({
             oid,
             response,
+            formScopeId: this.eventScopeId,
+            requestId: typeof response?.requestId === 'string' ? response.requestId : undefined,
             closeOnDelete: options?.closeOnDelete,
             redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,
@@ -1359,8 +1592,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-      this.eventBus.publish(createFormDeleteFailureEvent({ error: errorMsg }));
+      this.eventBus.publish(createFormDeleteFailureEvent({
+        error: '@dmpt-form-delete-failed',
+        formScopeId: this.eventScopeId,
+      }));
     }
   }
 

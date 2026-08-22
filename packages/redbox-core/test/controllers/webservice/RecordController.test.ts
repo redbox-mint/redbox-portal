@@ -5,6 +5,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import { RecordSaveResponse } from '../../../src/RecordSaveResponse';
 
 type PermissionCase = {
     name: string;
@@ -45,10 +46,11 @@ function makeThrowingRequest(
 }
 
 function successResult(oid = 'record-1') {
-    return {
-        oid,
-        isSuccessful: () => true,
-    };
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
+    result.oid = oid;
+    result.success = true;
+    result.outcome = 'saved';
+    return result;
 }
 
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {
@@ -375,7 +377,7 @@ describe('Webservice RecordController body source', () => {
     });
 
     describe('metadata handlers', () => {
-        it('uses req.apiRequest body in updateMeta', async () => {
+        it('passes req.apiRequest metadata separately so attachment diffs use the persisted baseline', async () => {
             const body = {
                 title: 'Validated title',
                 tags: ['incoming'],
@@ -393,7 +395,7 @@ describe('Webservice RecordController body source', () => {
             recordsService.updateMeta.resolves(successResult());
             const req = makeThrowingRequest({
                 params: { oid: 'record-1' },
-                query: { merge: true, datastreams: false },
+                query: { merge: true, datastreams: true },
                 body,
                 files: {},
             });
@@ -403,10 +405,50 @@ describe('Webservice RecordController body source', () => {
 
             expect(recordsService.updateMeta.calledOnce).to.be.true;
             const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
-            expect(updatedRecord.metadata.tags).to.deep.equal(['existing', 'incoming']);
-            expect(updatedRecord.metadata.nested.value).to.equal(2);
+            const updatedMetadata = recordsService.updateMeta.firstCall.args[7] as any;
+            expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
+            expect(updatedMetadata.tags).to.deep.equal(['existing', 'incoming']);
+            expect(updatedMetadata.nested.value).to.equal(2);
             expect(sendRespStub.calledOnce).to.be.true;
         });
+
+        for (const apiVersion of ['1.0', '2.0']) {
+            it(`returns the ${apiVersion} failure status and envelope for a confirmed non-save`, async () => {
+                const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000001');
+                result.outcome = 'not-saved';
+                result.success = false;
+                result.message = '@dmpt-form-save-error';
+                result.problems = [{
+                    kind: 'validation',
+                    phase: 'pre-save',
+                    issues: [{ message: '@dmpt-form-save-error', code: 'validation-failed' }],
+                }];
+                recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+                recordsService.updateMeta.resolves(result);
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: { merge: false, datastreams: false },
+                    body: { title: 'Rejected' },
+                    files: {},
+                }, {
+                    headers: { 'x-redbox-api-version': apiVersion },
+                });
+                const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+                await controller.updateMeta(req, {} as Sails.Res);
+
+                const envelope = sendRespStub.firstCall.args[2];
+                expect(envelope.status).to.equal(apiVersion === '2.0' ? 400 : 500);
+                expect(envelope.meta.outcome).to.equal('not-saved');
+                if (apiVersion === '1.0') {
+                    expect(envelope.v1).to.include({ success: false, message: '@dmpt-form-save-error' });
+                    expect(envelope.v1).not.to.have.property('outcome');
+                    expect(envelope.v1).not.to.have.property('problems');
+                } else {
+                    expect(envelope.v1).to.equal(undefined);
+                }
+            });
+        }
 
         it('uses req.apiRequest body in updateObjectMeta', async () => {
             const body = {

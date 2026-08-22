@@ -4,7 +4,7 @@ import { TestBed } from "@angular/core/testing";
 import { ConfigService } from "./config.service";
 import { getStubConfigService } from "./helper.spec";
 import { LoggerService } from "./logger.service";
-import { RecordService } from "./record.service";
+import { RecordActionResult, RecordService } from "./record.service";
 import { UtilityService } from "./utility.service";
 
 describe("RecordService", () => {
@@ -37,6 +37,186 @@ describe("RecordService", () => {
 
   afterEach(() => {
     httpTestingController.verify();
+  });
+
+  it("creates a UUID save request header", async () => {
+    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    const requestId = request.request.headers.get("X-ReDBox-Save-Request-Id");
+
+    expect(request.request.method).toBe("POST");
+    expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+
+    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    await expectAsync(createPromise).toBeResolvedTo(jasmine.objectContaining({
+      outcome: "saved",
+      oid: "oid-123"
+    }));
+  });
+
+  it("requests API v2 and keeps the CSRF context on saves", async () => {
+    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+
+    expect(request.request.method).toBe("PUT");
+    expect(request.request.headers.get("X-ReDBox-Api-Version")).toBe("2.0");
+    expect(request.request.context).toBeTruthy();
+
+    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    await updatePromise;
+  });
+
+  it("normalises a persisted warning without losing the oid", async () => {
+    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+    request.flush({
+      data: { oid: "oid-123" },
+      meta: {
+        outcome: "saved-with-warnings",
+        success: true,
+        oid: "oid-123",
+        requestId: "11111111-1111-4111-8111-111111111111",
+        problems: [{ kind: "processing", phase: "post-save", issues: [{ message: "hook failed" }] }],
+        completion: { attachments: { status: "incomplete", items: [] } },
+      },
+    });
+
+    const result = await updatePromise;
+    expect(result.outcome).toBe("saved-with-warnings");
+    expect(result.wasPersisted()).toBeTrue();
+    expect(result.isComplete()).toBeFalse();
+    expect(result.oid).toBe("oid-123");
+    expect(result.requestId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(result.problems.length).toBe(1);
+  });
+
+  it("synthesises a confirmed non-save for a policy-level 403", async () => {
+    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    request.flush({ errors: [{ detail: "Not allowed" }] }, { status: 403, statusText: "Forbidden" });
+
+    const result = await createPromise;
+    expect(result.outcome).toBe("not-saved");
+    expect(result.wasPersisted()).toBeFalse();
+    expect(result.problems[0].kind).toBe("authorization");
+    expect(result.problems[0].issues[0].message).toBe("Not allowed");
+  });
+
+  it("maps a validation 400 onto safe field issues", async () => {
+    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    request.flush(
+      { errors: [{ detail: "Title is required", code: "required", source: { pointer: "/metadata/title" } }] },
+      { status: 400, statusText: "Bad Request" }
+    );
+
+    const result = await createPromise;
+    expect(result.outcome).toBe("not-saved");
+    expect(result.problems[0].kind).toBe("validation");
+    expect(result.problems[0].issues[0].pointer).toBe("/metadata/title");
+    expect(result.problems[0].issues[0].code).toBe("required");
+  });
+
+  it("keeps a dispatched save uncertain when the response cannot be interpreted", async () => {
+    const requestIds: string[] = [];
+
+    const networkPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const networkRequest = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    requestIds.push(networkRequest.request.headers.get("X-ReDBox-Save-Request-Id")!);
+    networkRequest.error(new ProgressEvent("network error"));
+    const networkResult = await networkPromise;
+    expect(networkResult.outcome).toBe("unknown");
+    expect(networkResult.problems[0].kind).toBe("network");
+    expect(networkResult.requestId).toBe(requestIds[0]);
+
+    const serverPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const serverRequest = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    requestIds.push(serverRequest.request.headers.get("X-ReDBox-Save-Request-Id")!);
+    serverRequest.flush("gateway exploded", { status: 502, statusText: "Bad Gateway" });
+    const serverResult = await serverPromise;
+    // A 5xx without a typed result proves nothing about persistence.
+    expect(serverResult.outcome).toBe("unknown");
+    expect(serverResult.problems[0].kind).toBe("system");
+
+    expect(requestIds[0]).not.toBe(requestIds[1]);
+  });
+
+  it("treats a legacy success envelope as a complete save", async () => {
+    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+    request.flush({ success: true, oid: "oid-123", message: "ok" });
+
+    const result = await updatePromise;
+    expect(result.outcome).toBe("saved");
+    expect(result.isComplete()).toBeTrue();
+    expect(result.completion.attachments.status).toBe("completed");
+  });
+
+  it("normalises a legacy post-save warning as persisted but incomplete", () => {
+    const result = RecordActionResult.fromResponse({
+      success: true,
+      oid: "oid-warning",
+      metadata: { postSaveSyncWarning: "true" }
+    }, 200, "request-warning");
+
+    expect(result.outcome).toBe("saved-with-warnings");
+    expect(result.wasPersisted()).toBeTrue();
+    expect(result.isComplete()).toBeFalse();
+    expect(result.isSuccessful()).toBeTrue();
+    expect(result.completion.attachments.status).toBe("unknown");
+    expect(result.requestId).toBe("request-warning");
+  });
+
+  it("keeps malformed dispatched responses uncertain and maps safe issue fields", () => {
+    const result = RecordActionResult.fromResponse({
+      errors: [
+        { title: "Title is invalid", field: "title" },
+        { detail: "Pointer is invalid", pointer: "/metadata/description", code: "invalid" },
+        { detail: "Nested pointer is invalid", source: { pointer: "/metadata/summary" } },
+        { detail: "Ignored unsafe fields", field: 42, pointer: null }
+      ]
+    }, 500, "request-malformed");
+
+    expect(result.outcome).toBe("unknown");
+    expect(result.isSuccessful()).toBeFalse();
+    expect(result.problems[0].kind).toBe("system");
+    expect(result.problems[0].issues).toEqual([
+      { message: "Title is invalid", field: "title" },
+      { message: "Pointer is invalid", code: "invalid", pointer: "/metadata/description" },
+      { message: "Nested pointer is invalid", pointer: "/metadata/summary" },
+      { message: "Ignored unsafe fields" }
+    ]);
+  });
+
+  it("uses a safe fallback message for an error without detail or title", () => {
+    const result = RecordActionResult.fromResponse({ errors: [{ field: "title" }] }, 500, "request-fallback");
+
+    expect(result.outcome).toBe("unknown");
+    expect(result.problems[0].issues).toEqual([{ message: "The submitted value is invalid.", field: "title" }]);
+  });
+
+  it("normalises an update transport error as an uncertain save", async () => {
+    const updatePromise = recordService.update("oid-transport", { title: "Test record" });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-transport`);
+    request.error(new ProgressEvent("network error"));
+
+    const result = await updatePromise;
+    expect(result.outcome).toBe("unknown");
+    expect(result.problems[0].kind).toBe("network");
+  });
+
+  it("normalises pre-dispatch failures and non-HTTP errors", () => {
+    const notDispatched = RecordActionResult.notDispatched("Could not build request", "oid-1", "request-1");
+    expect(notDispatched.outcome).toBe("not-saved");
+    expect(notDispatched.oid).toBe("oid-1");
+    expect(notDispatched.message).toBe("Could not build request");
+    expect(notDispatched.requestId).toBe("request-1");
+    expect(notDispatched.problems[0].phase).toBe("transport");
+
+    const nonHttpError = RecordActionResult.fromHttpError(new Error("request failed"), "request-2");
+    expect(nonHttpError.outcome).toBe("unknown");
+    expect(nonHttpError.requestId).toBe("request-2");
+    expect(nonHttpError.problems[0].kind).toBe("network");
   });
 
   it("unwraps attachment responses from the backend data envelope", async () => {

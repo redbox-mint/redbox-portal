@@ -48,6 +48,14 @@ import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../co
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
+import {
+  createRecordSaveContext,
+  readSaveRequestId,
+  recordSaveFailureStatus,
+  recordSaveProblem,
+  RecordSaveResponse,
+} from '../RecordSaveResponse';
+import type { RecordSaveContext, RecordSaveOperation } from '../RecordSaveResponse';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -172,6 +180,33 @@ export namespace Controllers {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
+    }
+
+    private saveContext(req: Sails.Req, operation: RecordSaveOperation): RecordSaveContext {
+      return createRecordSaveContext({
+        requestId: readSaveRequestId(req.headers),
+        routeFamily: 'browser',
+        operation,
+      });
+    }
+
+    private saveFailureStatus(req: Sails.Req, response: RecordSaveResponse | null | undefined): number {
+      return this.getApiVersion(req) === '2.0' ? recordSaveFailureStatus(response) : 500;
+    }
+
+    private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
+      return {
+        success: result.success,
+        oid: result.oid,
+        message: result.message,
+        data: result.data,
+        metadata: result.metadata,
+        details: result.details,
+        totalItems: result.totalItems,
+        items: result.items,
+        ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
+        ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
+      };
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
@@ -765,22 +800,29 @@ export namespace Controllers {
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
-        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
+        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep, this.saveContext(req, targetStep ? 'transition' : 'create'));
 
-        if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-          const savedRecord = await this.recordsService.getMeta(createResponse.oid);
-          const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, targetStep);
-          if (postSaveMetadata !== null) {
-            createResponse.metadata = postSaveMetadata;
+        if (createResponse.wasPersisted()) {
+          let savedRecord: RecordModel | null = null;
+          try {
+            savedRecord = await this.recordsService.getMeta(createResponse.oid);
+            const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, targetStep);
+            if (postSaveMetadata !== null) {
+              createResponse.metadata = postSaveMetadata;
+            }
+          } catch (error) {
+            sails.log.error(`RecordController - response projection failed for oid ${createResponse.oid} (requestId ${createResponse.requestId})`, error);
+            createResponse.setProjectedMetadata(null);
+            createResponse.addProblem(recordSaveProblem('system', 'response', '@record-save-response-projection-failed', 'response-projection-failed'));
           }
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...createResponse },
-            v1: createResponse,
+            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(createResponse) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(req, createResponse),
             displayErrors: [{ detail: createResponse.message }],
             meta: { ...createResponse },
           });
@@ -949,26 +991,34 @@ export namespace Controllers {
         if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
-        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
+        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata, this.saveContext(req, nextStepResp ? 'transition' : 'update'));
         sails.log.verbose(JSON.stringify(response));
-        if (response && response.isSuccessful()) {
+        // Both persisted outcomes are HTTP 200; warnings stay inside the
+        // typed `meta` result rather than becoming an error response.
+        if (response.wasPersisted()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          const savedRecord = await this.recordsService.getMeta(oid);
-          const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, nextStepResp);
-          if (postSaveMetadata !== null) {
-            response.metadata = postSaveMetadata;
+          let savedRecord: RecordModel | null = null;
+          try {
+            savedRecord = await this.recordsService.getMeta(oid);
+            const postSaveMetadata = await this.getPostSaveMetadata(req, brand, savedRecord, nextStepResp);
+            if (postSaveMetadata !== null) {
+              response.metadata = postSaveMetadata;
+            }
+          } catch (error) {
+            sails.log.error(`RecordController - response projection failed for oid ${oid} (requestId ${response.requestId})`, error);
+            response.setProjectedMetadata(null);
+            response.addProblem(recordSaveProblem('system', 'response', '@record-save-response-projection-failed', 'response-projection-failed'));
           }
           return this.sendResp(req, res, {
             data: savedRecord,
-            meta: response ? { ...response } : undefined,
-            v1: response,
+            meta: { ...response },
+            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: 500,
+            status: this.saveFailureStatus(req, response),
             displayErrors: [{ detail: "Failed to get record data" }],
-            meta: response ? { ...response } : undefined,
-            v1: response,
+            meta: { ...response },
           });
         }
       } catch (error) {
