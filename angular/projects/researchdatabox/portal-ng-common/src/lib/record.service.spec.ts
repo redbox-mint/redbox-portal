@@ -4,7 +4,7 @@ import { TestBed } from "@angular/core/testing";
 import { ConfigService } from "./config.service";
 import { getStubConfigService } from "./helper.spec";
 import { LoggerService } from "./logger.service";
-import { RecordService } from "./record.service";
+import { RecordActionResult, RecordService } from "./record.service";
 import { UtilityService } from "./utility.service";
 
 describe("RecordService", () => {
@@ -150,6 +150,56 @@ describe("RecordService", () => {
     expect(result.outcome).toBe("saved");
     expect(result.isComplete()).toBeTrue();
     expect(result.completion.attachments.status).toBe("completed");
+  });
+
+  it("normalises a legacy post-save warning as persisted but incomplete", () => {
+    const result = RecordActionResult.fromResponse({
+      success: true,
+      oid: "oid-warning",
+      metadata: { postSaveSyncWarning: "true" }
+    }, 200, "request-warning");
+
+    expect(result.outcome).toBe("saved-with-warnings");
+    expect(result.wasPersisted()).toBeTrue();
+    expect(result.isComplete()).toBeFalse();
+    expect(result.isSuccessful()).toBeTrue();
+    expect(result.completion.attachments.status).toBe("unknown");
+    expect(result.requestId).toBe("request-warning");
+  });
+
+  it("keeps malformed dispatched responses uncertain and maps safe issue fields", () => {
+    const result = RecordActionResult.fromResponse({
+      errors: [
+        { title: "Title is invalid", field: "title" },
+        { detail: "Pointer is invalid", pointer: "/metadata/description", code: "invalid" },
+        { detail: "Nested pointer is invalid", source: { pointer: "/metadata/summary" } },
+        { detail: "Ignored unsafe fields", field: 42, pointer: null }
+      ]
+    }, 500, "request-malformed");
+
+    expect(result.outcome).toBe("unknown");
+    expect(result.isSuccessful()).toBeFalse();
+    expect(result.problems[0].kind).toBe("system");
+    expect(result.problems[0].issues).toEqual([
+      { message: "Title is invalid", field: "title" },
+      { message: "Pointer is invalid", code: "invalid", pointer: "/metadata/description" },
+      { message: "Nested pointer is invalid", pointer: "/metadata/summary" },
+      { message: "Ignored unsafe fields" }
+    ]);
+  });
+
+  it("normalises pre-dispatch failures and non-HTTP errors", () => {
+    const notDispatched = RecordActionResult.notDispatched("Could not build request", "oid-1", "request-1");
+    expect(notDispatched.outcome).toBe("not-saved");
+    expect(notDispatched.oid).toBe("oid-1");
+    expect(notDispatched.message).toBe("Could not build request");
+    expect(notDispatched.requestId).toBe("request-1");
+    expect(notDispatched.problems[0].phase).toBe("transport");
+
+    const nonHttpError = RecordActionResult.fromHttpError(new Error("request failed"), "request-2");
+    expect(nonHttpError.outcome).toBe("unknown");
+    expect(nonHttpError.requestId).toBe("request-2");
+    expect(nonHttpError.problems[0].kind).toBe("network");
   });
 
   it("unwraps attachment responses from the backend data envelope", async () => {
