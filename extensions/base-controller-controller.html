@@ -45,11 +45,11 @@ The options object contains specific stuff that belongs to the controllers logic
 
 The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
 They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.</p>
-  <p class="action-row"><a class="button" href="https://github.com/redbox-mint/redbox-portal/blob/d1658821ff502fd02e2a08b8699219765e10a045/packages/redbox-core/src/CoreController.ts#L44">Open the source file</a><span class="source-path"><code>packages/redbox-core/src/CoreController.ts:44</code></span></p>
+  <p class="action-row"><a class="button" href="https://github.com/redbox-mint/redbox-portal/blob/64afb0bf1a8196f6ffa400e629a5dc1b7293cd12/packages/redbox-core/src/CoreController.ts#L44">Open the source file</a><span class="source-path"><code>packages/redbox-core/src/CoreController.ts:44</code></span></p>
 </div>
 <aside class="callout"><p class="callout-title">How to change this contract</p><p>Hook controllers extend this class, retain inherited <code>_exportedMethods</code>, and export replacements under the same controller registry name.</p></aside>
 <section><h2>Members</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Member</th><th scope="col">Contract</th><th scope="col">Default</th><th scope="col">Purpose</th></tr></thead><tbody><tr><td data-label="Member"><code>exports</code></td><td data-label="Contract"><code>(): Record&lt;string, unknown&gt;</code></td><td data-label="Default"><code></code></td><td data-label="Purpose">Returns an object that contains all exported methods of the controller.
-These methods must be defined in either the &quot;_defaultExportedMethods&quot; or &quot;_exportedMethods&quot; arrays.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/d1658821ff502fd02e2a08b8699219765e10a045/packages/redbox-core/src/CoreController.ts#L187">Open the source</a></p></td></tr><tr><td data-label="Member"><code>sendResp</code></td><td data-label="Contract"><code>(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response</code></td><td data-label="Default"><code></code></td><td data-label="Purpose">Send a response built from the properties.
+These methods must be defined in either the &quot;_defaultExportedMethods&quot; or &quot;_exportedMethods&quot; arrays.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/64afb0bf1a8196f6ffa400e629a5dc1b7293cd12/packages/redbox-core/src/CoreController.ts#L187">Open the source</a></p></td></tr><tr><td data-label="Member"><code>sendResp</code></td><td data-label="Contract"><code>(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response</code></td><td data-label="Default"><code></code></td><td data-label="Purpose">Send a response built from the properties.
 
 Defaults / Conventions:
 - The default response format is 'json'.
@@ -66,7 +66,7 @@ Defaults / Conventions:
   the displayError.code will be used as a translation message identifier for displayError.title.
 - Both displayError.title and displayError.detail will be treated as translation message identifiers.
 - API v1 will return 'v1' if it is set.
-- API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/d1658821ff502fd02e2a08b8699219765e10a045/packages/redbox-core/src/CoreController.ts#L573">Open the source</a></p></td></tr></tbody></table></div></section><section><h2>Example</h2><p class="section-note">The build tools test this example each time they make this page.</p><pre><code>import { defineRedboxHook } from '../../../packages/redbox-core/src/hooks';
+- API v1 will return 'data' as the body on 'status' 200, if no 'v1' is supplied.<p class="cell-link"><a href="https://github.com/redbox-mint/redbox-portal/blob/64afb0bf1a8196f6ffa400e629a5dc1b7293cd12/packages/redbox-core/src/CoreController.ts#L573">Open the source</a></p></td></tr></tbody></table></div></section><section><h2>Example</h2><p class="section-note">The build tools test this example each time they make this page.</p><pre><code>import { defineRedboxHook } from '../../../packages/redbox-core/src/hooks';
 import { Services as RecordsServiceNamespace } from '../../../packages/redbox-core/src/services/RecordsService';
 import { Controllers as RecordControllerNamespace } from '../../../packages/redbox-core/src/controllers/RecordController';
 
