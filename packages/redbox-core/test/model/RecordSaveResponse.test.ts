@@ -276,6 +276,18 @@ describe('RecordSaveResponse', function () {
       expect(recordSaveFailureStatus(processing)).to.equal(500);
     });
 
+    it('uses deterministic severity instead of the first problem', function () {
+      const authorizationAfterValidation = new RecordSaveResponse(requestId);
+      authorizationAfterValidation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
+      authorizationAfterValidation.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
+      expect(recordSaveFailureStatus(authorizationAfterValidation)).to.equal(403);
+
+      const systemAfterAuthorization = new RecordSaveResponse(requestId);
+      systemAfterAuthorization.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
+      systemAfterAuthorization.addProblem(recordSaveProblem('system', 'pre-save', 'configuration failure'));
+      expect(recordSaveFailureStatus(systemAfterAuthorization)).to.equal(500);
+    });
+
     it('keeps an ambiguous primary mutation on a 5xx', function () {
       const unknownResult = new RecordSaveResponse(createRecordSaveContext({ requestId }));
       unknownResult.outcome = 'unknown';

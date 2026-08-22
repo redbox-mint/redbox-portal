@@ -4,17 +4,24 @@ import {
   type FormConfigFrame,
   type FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
-import { ServiceExports } from '../../src/services';
-import {
+import { createRequire } from 'node:module';
+import type {
+  RecordValidationRequest,
+  RecordValidationResult,
+  ResolvedRecordValidationResult,
+} from '../../src/services/RecordValidationService';
+
+const testRequire = createRequire(import.meta.url);
+const { ServiceExports } = testRequire('../../src/services') as typeof import('../../src/services');
+const {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
   resolveValidationMode,
   Services,
-  type RecordValidationRequest,
-  type RecordValidationResult,
-  type ResolvedRecordValidationResult,
-} from '../../src/services/RecordValidationService';
-import { createRecordValidationFixture, validationForm } from '../fixtures/record-validation.fixtures';
-import { createMockSails } from './testHelper';
+} = testRequire('../../src/services/RecordValidationService') as
+  typeof import('../../src/services/RecordValidationService');
+const { createRecordValidationFixture, validationForm } = testRequire('../fixtures/record-validation.fixtures') as
+  typeof import('../fixtures/record-validation.fixtures');
+const { createMockSails } = testRequire('./testHelper') as typeof import('./testHelper');
 
 let expect: Chai.ExpectStatic;
 
@@ -95,6 +102,7 @@ describe('RecordValidationService', function () {
   it('is registered through the core service export convention', function () {
     expect(ServiceExports).to.have.property('RecordValidationService');
     expect(ServiceExports.RecordValidationService).to.have.property('resolve').that.is.a('function');
+    expect(ServiceExports.RecordValidationService).to.have.property('discoverOperations').that.is.a('function');
     expect(ServiceExports.RecordValidationService).to.have.property('registerMetricsHooks').that.is.a('function');
   });
 
@@ -544,6 +552,411 @@ describe('RecordValidationService', function () {
     expect(codes(targetFailure)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized);
   });
 
+  it('discovers deterministic, authorization-filtered operation metadata without policy leaks', async function () {
+    const form = validationForm({
+      validationOperations: {
+        publish: {
+          enabledValidationGroups: ['submit'],
+          label: ' Publish ',
+          description: 'Publish this record',
+          roles: ['Librarian'],
+          allowedTargetSteps: ['published', 'private-stage'],
+        },
+        draft: {
+          enabledValidationGroups: ['base'],
+          label: 'Save draft',
+          roles: ['Researcher', 'Librarian'],
+        },
+        hidden: {
+          enabledValidationGroups: ['all'],
+          roles: ['Admin'],
+        },
+        'bad operation': {
+          enabledValidationGroups: ['all'],
+        },
+      },
+    });
+    Object.assign(form.validationOperations!.publish, { exceptionText: 'database password' });
+    const fixture = createRecordValidationFixture({
+      form,
+      workflowSteps: {
+        archived: { name: 'archived', config: { form: 'dataset-2.4-archived' } },
+      },
+    });
+    fixture.dependencies.loadForm = async (formName, brand) => {
+      fixture.calls.forms.push({ formName, brand });
+      return {
+        id: `form-${formName}`,
+        name: formName,
+        branding: brand,
+        configuration: { ...form, name: formName },
+      } as never;
+    };
+    const service = new Services.RecordValidation(fixture.dependencies);
+    const operations = await service.discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Librarian'] },
+      canEdit: true,
+      authorizedTargetSteps: ['archived', 'published'],
+    });
+
+    expect(operations).to.deep.equal([
+      { name: 'draft', label: 'Save draft', allowedTargetSteps: ['archived', 'published'] },
+      {
+        name: 'publish',
+        label: 'Publish',
+        description: 'Publish this record',
+        allowedTargetSteps: ['published'],
+      },
+    ]);
+    const transported = JSON.stringify(operations);
+    for (const forbidden of [
+      'roles',
+      'enabledValidationGroups',
+      'exceptionText',
+      'database password',
+      'validators',
+    ]) {
+      expect(transported).not.to.include(forbidden);
+    }
+    expect(fixture.calls.validatorGroups).to.deep.equal([]);
+  });
+
+  it('falls back once for a hidden current workflow step omitted from the bulk list', async function () {
+    const fixture = createRecordValidationFixture();
+    const loadWorkflowSteps = fixture.dependencies.loadWorkflowSteps;
+    fixture.dependencies.loadWorkflowSteps = async recordType =>
+      (await loadWorkflowSteps(recordType)).filter(step => step.name !== 'draft');
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: [],
+    });
+
+    expect(operations).to.deep.equal([{ name: 'submit' }]);
+    expect(fixture.calls.workflowStepLists).to.equal(1);
+    expect(fixture.calls.workflowSteps).to.deep.equal(['draft']);
+  });
+
+  it('advertises targets only when their effective forms define the operation', async function () {
+    const baseForm = validationForm({
+      validationOperations: {
+        save: { enabledValidationGroups: ['base'] },
+      },
+    });
+    const reviewForm = validationForm({
+      name: 'dataset-2.4-review',
+      validationOperations: {
+        submit: { enabledValidationGroups: ['submit'] },
+      },
+    });
+    const publishedForm = validationForm({
+      name: 'dataset-2.4-published',
+      validationOperations: {
+        publish: { enabledValidationGroups: ['submit'] },
+      },
+    });
+    const fixture = createRecordValidationFixture({ form: baseForm });
+    const forms = new Map([
+      [String(baseForm.name), baseForm],
+      [String(reviewForm.name), reviewForm],
+      [String(publishedForm.name), publishedForm],
+    ]);
+    fixture.dependencies.loadForm = async (formName, brand) => {
+      fixture.calls.forms.push({ formName, brand });
+      const configuration = forms.get(formName);
+      return configuration ? {
+        id: `form-${formName}`,
+        name: formName,
+        branding: brand,
+        configuration,
+      } as never : null;
+    };
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: ['review', 'published'],
+    });
+
+    expect(operations).to.deep.equal([
+      { name: 'publish', allowedTargetSteps: ['published'] },
+      { name: 'save' },
+      { name: 'submit', allowedTargetSteps: ['review'] },
+    ]);
+  });
+
+  it('uses explicit deterministic presentation precedence for operations shared by forms', async function () {
+    const baseForm = validationForm({
+      validationOperations: {
+        shared: { enabledValidationGroups: ['base'], label: 'Current form label' },
+      },
+    });
+    const reviewForm = validationForm({
+      name: 'dataset-2.4-review',
+      validationOperations: {
+        shared: { enabledValidationGroups: ['submit'], label: 'Review label' },
+        targetOnly: { enabledValidationGroups: ['submit'], label: 'Review target label' },
+      },
+    });
+    const publishedForm = validationForm({
+      name: 'dataset-2.4-published',
+      validationOperations: {
+        shared: { enabledValidationGroups: ['submit'], label: 'Published label' },
+        targetOnly: { enabledValidationGroups: ['submit'], label: 'Published target label' },
+      },
+    });
+    const fixture = createRecordValidationFixture({ form: baseForm });
+    const forms = new Map([
+      [String(baseForm.name), baseForm],
+      [String(reviewForm.name), reviewForm],
+      [String(publishedForm.name), publishedForm],
+    ]);
+    fixture.dependencies.loadForm = async (formName, brand) => {
+      fixture.calls.forms.push({ formName, brand });
+      const configuration = forms.get(formName);
+      return configuration ? {
+        id: `form-${formName}`,
+        name: formName,
+        branding: brand,
+        configuration,
+      } as never : null;
+    };
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: ['review', 'published'],
+    });
+
+    expect(operations).to.deep.equal([
+      {
+        name: 'shared',
+        label: 'Current form label',
+        allowedTargetSteps: ['published', 'review'],
+      },
+      {
+        name: 'targetOnly',
+        label: 'Published target label',
+        allowedTargetSteps: ['published', 'review'],
+      },
+    ]);
+  });
+
+  it('logs one sanitized diagnostic per failed constructed form during discovery', async function () {
+    const fixture = createRecordValidationFixture({
+      workflowSteps: {
+        review: { name: 'review', config: { form: 'dataset-2.4-draft' } },
+        published: { name: 'published', config: { form: 'dataset-2.4-draft' } },
+      },
+    });
+    fixture.dependencies.constructForm = async () => {
+      throw new Error('secret compiler exception for oid-1');
+    };
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: ['review', 'published'],
+    });
+
+    const warn = (global as any).sails.log.warn as sinon.SinonStub;
+    expect(operations).to.deep.equal([]);
+    expect(warn.callCount).to.equal(1);
+    expect(String(warn.firstCall.args[0])).to.include('errorType=Error');
+    expect(String(warn.firstCall.args[0])).not.to.include('secret compiler exception');
+    expect(String(warn.firstCall.args[0])).not.to.include('oid-1');
+  });
+
+  it('bounds workflow queries and constructs each distinct discovered form once', async function () {
+    const form = validationForm({
+      validationOperations: {
+        submit: { enabledValidationGroups: ['submit'], roles: ['Researcher'] },
+      },
+    });
+    const fixture = createRecordValidationFixture({
+      form,
+      workflowSteps: {
+        review: { name: 'review', config: { form: 'dataset-shared-target' } },
+        published: { name: 'published', config: { form: 'dataset-shared-target' } },
+      },
+    });
+    const constructions: string[] = [];
+    fixture.dependencies.loadForm = async (formName, brand) => {
+      fixture.calls.forms.push({ formName, brand });
+      return {
+        id: `form-${formName}`,
+        name: formName,
+        branding: brand,
+        configuration: { ...form, name: formName },
+      } as never;
+    };
+    fixture.dependencies.constructForm = async rawForm => {
+      constructions.push(String(rawForm.name));
+      return rawForm as never;
+    };
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: ['review', 'published'],
+    });
+
+    expect(operations).to.deep.equal([{
+      name: 'submit',
+      allowedTargetSteps: ['published', 'review'],
+    }]);
+    expect(fixture.calls.workflowStepLists).to.equal(1);
+    expect(fixture.calls.workflowSteps).to.deep.equal([]);
+    expect(fixture.calls.forms).to.deep.equal([
+      { formName: 'dataset-2.4-draft', brand: 'brand-1' },
+      { formName: 'dataset-shared-target', brand: 'brand-1' },
+    ]);
+    expect(constructions).to.deep.equal(['dataset-2.4-draft', 'dataset-shared-target']);
+  });
+
+  it('uses explicit discovery intent without applying a fabricated discovery operation', async function () {
+    const form = validationForm({
+      validationOperations: {
+        discovery: { enabledValidationGroups: ['all'], roles: ['Admin'] },
+        submit: { enabledValidationGroups: ['submit'], roles: ['Researcher'] },
+      },
+    });
+    const fixture = createRecordValidationFixture({ form });
+
+    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+      candidate: fixture.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: [],
+    });
+
+    expect(operations).to.deep.equal([{ name: 'submit' }]);
+  });
+
+  it('discovers the effective form, record-type, and current-stage operation policy', async function () {
+    const form = validationForm({
+      validationOperations: {
+        submit: {
+          enabledValidationGroups: ['submit'],
+          label: 'Form submit',
+          roles: ['Researcher', 'Librarian'],
+          allowedTargetSteps: ['review', 'published'],
+        },
+      },
+    });
+    const fixture = createRecordValidationFixture({
+      form,
+      recordType: {
+        id: 'record-type-1',
+        name: 'dataset',
+        recordValidation: {
+          operations: {
+            submit: {
+              label: 'Record type submit',
+              description: 'Record type description',
+              roles: ['Librarian'],
+              allowedTargetSteps: ['published'],
+            },
+          },
+        },
+      },
+      workflowSteps: {
+        draft: {
+          name: 'draft',
+          config: {
+            form: 'dataset-2.4-draft',
+            recordValidation: {
+              operations: {
+                submit: {
+                  label: 'Stage submit',
+                  allowedTargetSteps: ['published'],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const service = new Services.RecordValidation(fixture.dependencies);
+    fixture.dependencies.loadForm = async (formName, brand) => {
+      fixture.calls.forms.push({ formName, brand });
+      return {
+        id: `form-${formName}`,
+        name: formName,
+        branding: brand,
+        configuration: { ...form, name: formName },
+      } as never;
+    };
+    const request = {
+      candidate: fixture.request.candidate,
+      writeKind: 'update' as const,
+      actor: { authenticated: true, roles: ['Librarian'] },
+      canEdit: true,
+      authorizedTargetSteps: ['review', 'published'],
+    };
+
+    expect(await service.discoverOperations(request)).to.deep.equal([{
+      name: 'submit',
+      label: 'Stage submit',
+      description: 'Record type description',
+      allowedTargetSteps: ['published'],
+    }]);
+    expect(await service.discoverOperations({
+      ...request,
+      actor: { authenticated: true, roles: ['Researcher'] },
+    })).to.deep.equal([]);
+  });
+
+  it('fails operation discovery safely when edit, actor, target, or policy authorization is absent', async function () {
+    const fixture = createRecordValidationFixture();
+    const service = new Services.RecordValidation(fixture.dependencies);
+    const base = {
+      candidate: fixture.request.candidate,
+      writeKind: 'transition' as const,
+      targetStep: 'published',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: ['published'],
+    };
+
+    expect(await service.discoverOperations({ ...base, canEdit: false })).to.deep.equal([]);
+    expect(await service.discoverOperations({
+      ...base,
+      actor: { authenticated: false, roles: ['Researcher'] },
+    })).to.deep.equal([]);
+    expect(await service.discoverOperations({ ...base, authorizedTargetSteps: ['review'] })).to.deep.equal([]);
+    expect(await service.discoverOperations({
+      ...base,
+      actor: { authenticated: true, roles: ['Guest'] },
+    })).to.deep.equal([]);
+
+    const missingStage = createRecordValidationFixture({
+      startingStep: null,
+      workflowSteps: { draft: null },
+    });
+    expect(await new Services.RecordValidation(missingStage.dependencies).discoverOperations({
+      candidate: missingStage.request.candidate,
+      writeKind: 'update',
+      actor: { authenticated: true, roles: ['Researcher'] },
+      canEdit: true,
+      authorizedTargetSteps: [],
+    })).to.deep.equal([]);
+  });
+
   it('diagnoses malformed policy arrays and fails closed only when enforced', async function () {
     const form = validationForm({
       validationOperations: {
@@ -576,6 +989,25 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture();
     const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
     expect(requireResolved(result).effectiveGroups).to.deep.equal(['base']);
+  });
+
+  it('never treats client group arrays in record metadata as validation authority', async function () {
+    const fixture = createRecordValidationFixture({
+      candidate: {
+        metadata: {
+          title: 'Final title',
+          enabledValidationGroups: ['none'],
+          validationGroups: ['client-selected-group'],
+        },
+      },
+    });
+    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve({
+      ...fixture.request,
+      validationOperation: 'submit',
+    }));
+
+    expect(result.effectiveGroups).to.deep.equal(['submit']);
+    expect(fixture.calls.validatorGroups).to.deep.equal([['submit']]);
   });
 
   it('preserves an empty operation group array as the shared all-validators sentinel', async function () {

@@ -53,6 +53,14 @@ function successResult(oid = 'record-1') {
     return result;
 }
 
+function notSavedResult() {
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000099');
+    result.success = false;
+    result.outcome = 'not-saved';
+    result.message = '@record-save-failed';
+    return result;
+}
+
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {
     return Object.keys(authorization).reduce((acc, key) => {
         acc[key] = [...authorization[key]];
@@ -79,6 +87,8 @@ describe('Webservice RecordController body source', () => {
         getDeletedRecords: sinon.SinonStub;
         restoreRecord: sinon.SinonStub;
         destroyDeletedRecord: sinon.SinonStub;
+        hasEditAccess: sinon.SinonStub;
+        setWorkflowStepRelatedMetadata: sinon.SinonStub;
     };
 
     before(async () => {
@@ -142,6 +152,8 @@ describe('Webservice RecordController body source', () => {
             getDeletedRecords: sinon.stub(),
             restoreRecord: sinon.stub(),
             destroyDeletedRecord: sinon.stub(),
+            hasEditAccess: sinon.stub().returns(true),
+            setWorkflowStepRelatedMetadata: sinon.stub(),
         };
         controller.RecordsService = recordsService as never;
         controller.DatastreamService = {
@@ -374,6 +386,39 @@ describe('Webservice RecordController body source', () => {
                 expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal(permissionRecord.authorization);
             });
         }
+
+        it('preserves the literal v1 error body for all permission mutation failures', async function () {
+            const cases = [...userPermissionCases, ...rolePermissionCases];
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            for (const testCase of cases) {
+                recordsService.getMeta.resetHistory();
+                recordsService.updateMeta.resetHistory();
+                sendRespStub.resetHistory();
+                recordsService.getMeta.resolves({
+                    authorization: cloneAuthorization(testCase.initialAuthorization),
+                });
+                recordsService.updateMeta.resolves(notSavedResult());
+                const req = makeThrowingRequest({
+                    params: { oid: 'record-1' },
+                    query: {},
+                    body: testCase.body,
+                    files: {},
+                }, {
+                    headers: { 'x-redbox-api-version': '1.0' },
+                });
+
+                await (controller as any)[testCase.method](req, {} as Sails.Res);
+
+                const envelope = sendRespStub.firstCall.args[2];
+                expect(envelope.status, testCase.name).to.equal(500);
+                expect(envelope.displayErrors, testCase.name).to.equal(undefined);
+                expect(envelope.meta, testCase.name).to.equal(undefined);
+                expect(envelope.v1, testCase.name).to.deep.equal({
+                    message: 'Failed to update record with oid record-1.',
+                });
+            }
+        });
     });
 
     describe('metadata handlers', () => {
@@ -382,6 +427,7 @@ describe('Webservice RecordController body source', () => {
                 title: 'Validated title',
                 tags: ['incoming'],
                 nested: { value: 2 },
+                enabledValidationGroups: ['client-selected-group'],
             };
             const record = {
                 metadata: {
@@ -395,7 +441,7 @@ describe('Webservice RecordController body source', () => {
             recordsService.updateMeta.resolves(successResult());
             const req = makeThrowingRequest({
                 params: { oid: 'record-1' },
-                query: { merge: true, datastreams: true },
+                query: { merge: true, datastreams: true, operation: ' submit ' },
                 body,
                 files: {},
             });
@@ -409,6 +455,10 @@ describe('Webservice RecordController body source', () => {
             expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
             expect(updatedMetadata.tags).to.deep.equal(['existing', 'incoming']);
             expect(updatedMetadata.nested.value).to.equal(2);
+            const context = recordsService.updateMeta.firstCall.args[8] as any;
+            expect(context.operation).to.equal('update');
+            expect(context.validationOperation).to.equal('submit');
+            expect(context).not.to.have.property('enabledValidationGroups');
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
@@ -439,13 +489,14 @@ describe('Webservice RecordController body source', () => {
 
                 const envelope = sendRespStub.firstCall.args[2];
                 expect(envelope.status).to.equal(apiVersion === '2.0' ? 400 : 500);
-                expect(envelope.meta.outcome).to.equal('not-saved');
                 if (apiVersion === '1.0') {
-                    expect(envelope.v1).to.include({ success: false, message: '@dmpt-form-save-error' });
-                    expect(envelope.v1).not.to.have.property('outcome');
-                    expect(envelope.v1).not.to.have.property('problems');
+                    expect(envelope.displayErrors).to.equal(undefined);
+                    expect(envelope.meta).to.equal(undefined);
+                    expect(envelope.v1).to.deep.equal({ message: 'Update Metadata failed' });
                 } else {
+                    expect(envelope.meta.outcome).to.equal('not-saved');
                     expect(envelope.v1).to.equal(undefined);
+                    expect(envelope.displayErrors).to.deep.equal([{ detail: 'Update Metadata failed' }]);
                 }
             });
         }
@@ -476,6 +527,32 @@ describe('Webservice RecordController body source', () => {
             expect(sendRespStub.calledOnce).to.be.true;
         });
 
+        it('preserves the literal v1 error body for an object-metadata failure', async () => {
+            recordsService.getMeta.resolves({
+                redboxOid: 'record-1',
+                metadata: {},
+                metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+            });
+            recordsService.updateMeta.resolves(notSavedResult());
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: { type: 'dataset' },
+                files: {},
+            }, {
+                headers: { 'x-redbox-api-version': '1.0' },
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.updateObjectMeta(req, {} as Sails.Res);
+
+            const envelope = sendRespStub.firstCall.args[2];
+            expect(envelope.status).to.equal(500);
+            expect(envelope.displayErrors).to.equal(undefined);
+            expect(envelope.meta).to.equal(undefined);
+            expect(envelope.v1).to.deep.equal({ message: 'Update Object Metadata failed' });
+        });
+
         it('uses req.apiRequest body in create', async () => {
             const body = {
                 authorization: {
@@ -486,12 +563,13 @@ describe('Webservice RecordController body source', () => {
                 },
                 metadata: {
                     title: 'Validated record',
+                    enabledValidationGroups: ['client-selected-group'],
                 },
             };
             recordsService.create.resolves(successResult('created-record'));
             const req = makeThrowingRequest({
                 params: { recordType: 'dataset' },
-                query: {},
+                query: { operation: 'publish' },
                 body,
                 files: {},
             });
@@ -504,11 +582,174 @@ describe('Webservice RecordController body source', () => {
             const createRequest = recordsService.create.firstCall.args[1] as any;
             expect(createRequest.metadata).to.deep.equal(body.metadata);
             expect(createRequest.authorization).to.deep.equal(body.authorization);
+            const context = recordsService.create.firstCall.args[7] as any;
+            expect(context.operation).to.equal('create');
+            expect(context.validationOperation).to.equal('publish');
+            expect(context).not.to.have.property('enabledValidationGroups');
             expect(sendRespStub.calledOnce).to.be.true;
             expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
             expect(sendRespStub.firstCall.args[2]?.headers?.Location).to.equal(
                 'https://portal.example/default/default/api/records/metadata/created-record'
             );
+        });
+
+        it('keeps omitted operations optional on create and update', async () => {
+            recordsService.create.resolves(successResult('created-record'));
+            const createReq = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body: { metadata: { title: 'Created' } },
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.create(createReq, {} as Sails.Res);
+            await flushPromises();
+
+            expect((recordsService.create.firstCall.args[7] as any).validationOperation).to.equal(undefined);
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+            recordsService.updateMeta.resolves(successResult());
+            const updateReq = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: {},
+                body: { title: 'Updated' },
+                files: {},
+            });
+            await controller.updateMeta(updateReq, {} as Sails.Res);
+
+            expect((recordsService.updateMeta.firstCall.args[8] as any).validationOperation).to.equal(undefined);
+            expect(sendRespStub.callCount).to.equal(2);
+        });
+
+        it('maps transition operation independently and preserves v2 authorization status', async () => {
+            const record = {
+                redboxOid: 'record-1',
+                metadata: { title: 'Record' },
+                metaMetadata: { type: 'dataset', brandId: 'brand-1', form: 'dataset-draft' },
+                workflow: { stage: 'draft' },
+            };
+            recordsService.getMeta.resolves(record);
+            (global as any).WorkflowStepsService.get.returns(of({ name: 'published', config: { form: 'dataset-published' } }));
+            const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000002');
+            result.outcome = 'not-saved';
+            result.problems = [{
+                kind: 'authorization',
+                phase: 'pre-save',
+                issues: [{ code: 'record-validation-operation-unauthorized', message: '@record-save-record-validation-operation-unauthorized' }],
+            }];
+            recordsService.updateMeta.resolves(result);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1', targetStep: 'published' },
+                query: { operation: 'publish' },
+                body: {},
+                files: {},
+            }, {
+                headers: { 'x-redbox-api-version': '2.0' },
+                user: { username: 'tester', roles: [{ name: 'Publisher' }] },
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.transitionWorkflow(req, {} as Sails.Res);
+
+            const context = recordsService.updateMeta.firstCall.args[8] as any;
+            expect(context).to.include({ operation: 'transition', validationOperation: 'publish' });
+            expect(recordsService.updateMeta.firstCall.args[6]).to.deep.include({ name: 'published' });
+            expect(sendRespStub.firstCall.args[2].status).to.equal(403);
+            expect(sendRespStub.firstCall.args[2].meta.problems[0].kind).to.equal('authorization');
+        });
+
+        it('preserves the literal v1 transition failure as an HTTP 200 result body', async () => {
+            const record = {
+                redboxOid: 'record-1',
+                metadata: { title: 'Record' },
+                metaMetadata: { type: 'dataset', brandId: 'brand-1', form: 'dataset-draft' },
+                workflow: { stage: 'draft' },
+            };
+            recordsService.getMeta.resolves(record);
+            (global as any).WorkflowStepsService.get.returns(of({
+                name: 'published',
+                config: { form: 'dataset-published' },
+            }));
+            const result = notSavedResult();
+            result.problems = [{
+                kind: 'authorization',
+                phase: 'pre-save',
+                issues: [{ message: '@not-authorised' }],
+            }];
+            recordsService.updateMeta.resolves(result);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1', targetStep: 'published' },
+                query: { operation: 'publish' },
+                body: {},
+                files: {},
+            }, {
+                headers: { 'x-redbox-api-version': '1.0' },
+                user: { username: 'tester', roles: [{ name: 'Publisher' }] },
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.transitionWorkflow(req, {} as Sails.Res);
+
+            expect(sendRespStub.calledOnce).to.equal(true);
+            expect(sendRespStub.firstCall.args[2]).to.deep.equal({ data: result });
+        });
+
+        it('keeps an omitted transition operation optional', async () => {
+            recordsService.getMeta.resolves({
+                redboxOid: 'record-1',
+                metadata: { title: 'Record' },
+                metaMetadata: { type: 'dataset', brandId: 'brand-1', form: 'dataset-draft' },
+                workflow: { stage: 'draft' },
+            });
+            (global as any).WorkflowStepsService.get.returns(of({
+                name: 'review',
+                config: { form: 'dataset-review' },
+            }));
+            recordsService.updateMeta.resolves(successResult('record-1'));
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1', targetStep: 'review' },
+                query: {},
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.transitionWorkflow(req, {} as Sails.Res);
+
+            const context = recordsService.updateMeta.firstCall.args[8] as any;
+            expect(context).to.include({ operation: 'transition' });
+            expect(context.validationOperation).to.equal(undefined);
+            expect(sendRespStub.calledOnce).to.equal(true);
+        });
+
+        it('keeps operation contract failures sanitized and v1-compatible', async () => {
+            const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000003');
+            result.outcome = 'not-saved';
+            result.problems = [{
+                kind: 'validation',
+                phase: 'pre-save',
+                issues: [{ code: 'record-validation-operation-invalid', message: '@record-save-record-validation-operation-invalid' }],
+            }];
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+            recordsService.updateMeta.resolves(result);
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1' },
+                query: { operation: 'UnknownCaseSensitiveName' },
+                body: { title: 'Rejected' },
+                files: {},
+            }, {
+                headers: { 'x-redbox-api-version': '1.0' },
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.updateMeta(req, {} as Sails.Res);
+
+            const envelope = sendRespStub.firstCall.args[2];
+            expect(envelope.status).to.equal(500);
+            expect(envelope.displayErrors).to.equal(undefined);
+            expect(envelope.meta).to.equal(undefined);
+            expect(envelope.v1).to.deep.equal({ message: 'Update Metadata failed' });
+            expect(JSON.stringify(envelope)).not.to.include('UnknownCaseSensitiveName');
         });
     });
 

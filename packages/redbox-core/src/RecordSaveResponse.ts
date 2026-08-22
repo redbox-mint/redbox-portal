@@ -11,6 +11,7 @@ import {
   RecordSaveResult,
   RecordSaveOutcome,
   StorageMutationApplicationState,
+  VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 import { StorageServiceResponse } from './StorageServiceResponse';
 
@@ -70,6 +71,20 @@ export interface RecordSaveContext {
   validationOperation?: string;
   /** Accepted only when routeFamily is explicitly `internal`. */
   validationBypass?: InternalRecordValidationBypass;
+}
+
+export type PublicValidationOperationParseResult =
+  | { readonly valid: true; readonly value?: string }
+  | { readonly valid: false };
+
+/** Narrow and trim the public operation field before it enters save context. */
+export function parsePublicValidationOperation(value: unknown): PublicValidationOperationParseResult {
+  if (value === undefined || value === null) return { valid: true };
+  if (typeof value !== 'string') return { valid: false };
+  const normalized = value.trim();
+  return VALIDATION_OPERATION_NAME_PATTERN.test(normalized)
+    ? { valid: true, value: normalized }
+    : { valid: false };
 }
 
 /** A typed response for record metadata save operations. */
@@ -205,8 +220,14 @@ export function recordSaveContextFromHeaders(
   headers: Record<string, unknown> | undefined,
   routeFamily: RecordSaveRouteFamily,
   operation: RecordSaveOperation,
+  validationOperation?: string,
 ): RecordSaveContext {
-  return createRecordSaveContext({ requestId: readSaveRequestId(headers), routeFamily, operation });
+  return createRecordSaveContext({
+    requestId: readSaveRequestId(headers),
+    routeFamily,
+    operation,
+    validationOperation,
+  });
 }
 
 export function legacyRecordSaveBody(result: RecordSaveResponse): Record<string, unknown> {
@@ -234,14 +255,13 @@ export function recordSaveFailureStatus(result: Pick<RecordSaveResult, 'outcome'
     // `unknown` is deliberately a 5xx: the client must not assume a non-write.
     return 500;
   }
-  switch (result.problems[0]?.kind) {
-    case 'validation':
-      return 400;
-    case 'authorization':
-      return 403;
-    default:
-      return 500;
-  }
+  // Select the most severe transport classification independently of problem
+  // insertion order: system-like failures outrank authorization, which
+  // outranks ordinary validation failures.
+  if (result.problems.some(problem => problem.kind !== 'validation' && problem.kind !== 'authorization')) return 500;
+  if (result.problems.some(problem => problem.kind === 'authorization')) return 403;
+  if (result.problems.some(problem => problem.kind === 'validation')) return 400;
+  return 500;
 }
 
 export function recordSaveFailureStatusForVersion(

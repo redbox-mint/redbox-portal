@@ -17,9 +17,12 @@ import {
   recordDownloadQuery,
   recordHarvestQuery,
   harvestRouteResponseSchema,
+  legacyRecordUpdateQuery,
   recordListQuery,
   recordListItemSchema,
   recordMetadataSchema,
+  recordOperationQuery,
+  recordSaveFailureResponseSchema,
   recordUpdateQuery,
   recordTypeParams,
   recordAuthorizationSchema,
@@ -63,6 +66,7 @@ export const createRecordRoute = apiRoute(
       'portal',
       'recordType',
     ]),
+    query: recordOperationQuery,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
@@ -79,6 +83,9 @@ export const createRecordRoute = apiRoute(
           Location: stringField('Location of the created record'),
         },
       },
+      400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
     },
   }
 );
@@ -103,7 +110,12 @@ export const updateMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update record metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record metadata updated') },
+    responses: {
+      200: responseField(storageServiceResponseSchema, 'Record metadata updated'),
+      400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 
@@ -138,7 +150,7 @@ export const legacyHarvestRoute = apiRoute(
   'legacyHarvest',
   {
     params: recordTypeParams,
-    query: recordUpdateQuery,
+    query: legacyRecordUpdateQuery,
     body: { content: { 'application/json': { schema: objectField({}, [], 'Legacy harvest payload', true) } } },
     legacyParamFallbacks: {
       merge: bodyFallback,
@@ -568,6 +580,7 @@ export const transitionWorkflowRoute = apiRoute(
   'transitionWorkflow',
   {
     params: objectField({ targetStep: stringField(), oid: stringField() }, ['targetStep', 'oid']),
+    query: recordOperationQuery,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },
@@ -576,7 +589,12 @@ export const transitionWorkflowRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Transition workflow step',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Workflow transition complete') },
+    responses: {
+      200: responseField(storageServiceResponseSchema, 'Workflow transition complete'),
+      400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 

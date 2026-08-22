@@ -8,6 +8,11 @@ import {
     RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
     RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN,
     RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS,
+    RECORD_VALIDATION_REFERENCE_PATTERN,
+    VALIDATION_OPERATION_DESCRIPTION_MAX_LENGTH,
+    VALIDATION_OPERATION_LABEL_MAX_LENGTH,
+    VALIDATION_OPERATION_NAME_MAX_LENGTH,
+    VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 
 function withOpenApi<T extends ZodType>(schema: T, metadata: Record<string, unknown>): T {
@@ -80,8 +85,10 @@ const messageDetailsSchema = z.object({
     details: z.string(),
 });
 
-export const apiErrorResponseSchema = withOpenApi(messageDetailsSchema, {
-    description: 'Legacy API error response with message and details fields',
+export const apiErrorResponseSchema = withOpenApi(messageDetailsSchema.extend({
+    details: z.string().optional(),
+}), {
+    description: 'Legacy API error response with a message and optional details',
 });
 
 export const apiActionResponseSchema = withOpenApi(messageDetailsSchema, {
@@ -342,7 +349,7 @@ export const recordSaveIssueSchema = withOpenApi(
         params: recordSaveValidatorParametersSchema.optional(),
         targetField: recordSaveTargetFieldSchema.optional(),
         lineagePaths: recordSaveLineagePathsSchema.optional(),
-    }),
+    }).strict(),
     { description: 'Safe, field-addressable save issue with bounded validator metadata' },
 );
 
@@ -393,6 +400,11 @@ export const storageServiceResponseSchema = withOpenApi(
         requestId: z.string().uuid().optional(),
     }),
     { description: 'Storage service response envelope' }
+);
+
+export const recordSaveFailureResponseSchema = withOpenApi(
+    z.union([storageServiceResponseSchema, errorResponseV2Schema, apiErrorResponseSchema]),
+    { description: 'Versioned record-save failure response with safe validation metadata' }
 );
 
 export const linkedUserSummarySchema = withOpenApi(
@@ -662,12 +674,31 @@ export const recordTypeSchema = withOpenApi(
     { description: 'Record type configuration' }
 );
 
+export const validationOperationDiscoverySchema = withOpenApi(
+    z.object({
+        name: z.string()
+            .max(VALIDATION_OPERATION_NAME_MAX_LENGTH)
+            .regex(VALIDATION_OPERATION_NAME_PATTERN),
+        label: z.string().max(VALIDATION_OPERATION_LABEL_MAX_LENGTH).optional(),
+        description: z.string().max(VALIDATION_OPERATION_DESCRIPTION_MAX_LENGTH).optional(),
+        allowedTargetSteps: z.array(
+            z.string().max(128).regex(RECORD_VALIDATION_REFERENCE_PATTERN)
+        ).optional(),
+    }).strict(),
+    {
+        description:
+            'Caller-authorized validation operation metadata. allowedTargetSteps are actor-authorized transition ' +
+            'targets applicable to the operation; unrestricted policies include every actor-authorized target.'
+    }
+);
+
 export const formSchema = withOpenApi(
     z.object({
         id: z.string().optional(),
         name: z.string(),
         branding: z.union([z.string(), z.number(), brandingConfigSchema]).optional(),
         configuration: jsonObjectSchema.optional(),
+        validationOperations: z.array(validationOperationDiscoverySchema).optional(),
     }).passthrough(),
     { description: 'Form definition' }
 );

@@ -50,6 +50,7 @@ import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStor
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 import {
   legacyRecordSaveBody,
+  parsePublicValidationOperation,
   recordSaveContextFromHeaders,
   recordSaveFailureStatusForVersion,
   recordSaveProblem,
@@ -180,6 +181,9 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
+    private publicValidationOperation(req: Sails.Req) {
+      return parsePublicValidationOperation(req.query?.operation);
+    }
     private getReqBrand(req: Sails.Req): BrandingModel {
       return BrandingService.getBrand(req.session.branding as string ?? '');
     }
@@ -683,7 +687,7 @@ export namespace Controllers {
         const reusableFormDefs = sails.config.reusableFormDefinitions;
         const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, currentRec);
         const formConfig = form?.configuration;
-        if (!formConfig) {
+        if (!form || !formConfig) {
           const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
           return this.sendResp(req, res, {
             status: 500,
@@ -701,6 +705,15 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
+        const validationOperations = await FormsService.discoverValidationOperations({
+          brand,
+          form,
+          recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
+          record: currentRec,
+          user: req.user,
+          editable: editMode,
+          targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,
+        });
         const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
         const prehydrate = await prehydrateService.build({
           branding: brand,
@@ -716,7 +729,8 @@ export namespace Controllers {
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
-              contextVariables: contextVariablesMap
+              contextVariables: contextVariablesMap,
+              validationOperations,
             },
             prehydrate,
           });
@@ -754,6 +768,13 @@ export namespace Controllers {
 
     private async createInternal(req: Sails.Req, res: Sails.Res) {
       try {
+        const parsedOperation = this.publicValidationOperation(req);
+        if (!parsedOperation.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ code: 'record-validation-operation-invalid' }],
+          });
+        }
         const brand: BrandingModel = this.getReqBrand(req);
         const metadata = req.body;
         const record: AnyRecord = {
@@ -771,7 +792,21 @@ export namespace Controllers {
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
-        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep, recordSaveContextFromHeaders(req.headers, 'browser', targetStep ? 'transition' : 'create'));
+        const createResponse = await this.recordsService.create(
+          brand,
+          record,
+          recordType,
+          user,
+          true,
+          true,
+          targetStep,
+          recordSaveContextFromHeaders(
+            req.headers,
+            'browser',
+            targetStep ? 'transition' : 'create',
+            parsedOperation.value,
+          )
+        );
 
         if (createResponse.wasPersisted()) {
           let savedRecord: RecordModel | null = null;
@@ -935,6 +970,13 @@ export namespace Controllers {
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
+      const parsedOperation = this.publicValidationOperation(req);
+      if (!parsedOperation.valid) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'record-validation-operation-invalid' }],
+        });
+      }
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
@@ -962,7 +1004,22 @@ export namespace Controllers {
         if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
-        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata, recordSaveContextFromHeaders(req.headers, 'browser', nextStepResp ? 'transition' : 'update'));
+        response = await this.recordsService.updateMeta(
+          brand,
+          oid,
+          currentRec,
+          user,
+          true,
+          true,
+          nextStepResp,
+          metadata,
+          recordSaveContextFromHeaders(
+            req.headers,
+            'browser',
+            nextStepResp ? 'transition' : 'update',
+            parsedOperation.value,
+          )
+        );
         sails.log.verbose(JSON.stringify(response));
         // Both persisted outcomes are HTTP 200; warnings stay inside the
         // typed `meta` result rather than becoming an error response.
