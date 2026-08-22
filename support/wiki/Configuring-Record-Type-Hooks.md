@@ -27,6 +27,43 @@ Typical record-type hook configuration (JSON/YAML) looks like:
 - `options` is a free-form object used by your hook code. For `postSync` hooks the `options.returnType` value controls what is expected from the function:
   - `returnType: "record"` (default) — the hook should return/resolve to the updated record object.
   - Any other value — the hook should return/resolve to a storage service response object and that response will be used by the caller.
+- `id` is an optional stable identifier used in logs and audit summaries. For durable identity across hook reordering, configure it explicitly. If it is omitted, ReDBox derives a deterministic identifier from the mode, phase, array index, and a short digest of the function expression; moving the hook in the array changes that generated identity.
+- `execution` is optional policy metadata. It is consumed by the runner and is never added to the legacy `options` object passed to hooks.
+
+## Retry and timeout policy
+
+The default policy is one attempt with no timeout. Policy values are validated before any selected hook phase starts:
+
+```json
+{
+  "id": "mint-after-save",
+  "function": "sails.services.mintservice.afterSave",
+  "options": { "returnType": "response" },
+  "execution": {
+    "timeoutMs": 30000,
+    "retry": {
+      "maxAttempts": 3,
+      "retryOn": ["transient"],
+      "schedule": { "type": "exponential", "delayMs": 250, "maxDelayMs": 2000, "jitter": true },
+      "idempotent": true
+    }
+  }
+}
+```
+
+`maxAttempts` includes the first invocation and is limited to 5. `timeoutMs` is a
+per-attempt timeout from 1 ms through 10 minutes. Retry is opt-in, requires the
+literal `idempotent: true`, and defaults to the `transient` failure kind when
+`retryOn` is omitted. Fixed or exponential delays are limited to 60 seconds;
+values outside these limits are configuration errors rather than being clamped.
+Retries receive the same live argument objects. They do not roll back partial
+in-memory mutations, so only enable them for idempotent work.
+
+Timeouts interrupt native Effect actions and unsubscribe Observables. An already
+started legacy Promise cannot be cancelled; a timed-out Promise may continue its
+side effect after the save response has returned. ReDBox therefore does not retry
+non-cooperative timeout or interruption failures, even when `idempotent: true`,
+because doing so could overlap the still-running legacy side effect.
 
 ## How hooks are executed (summary)
 
@@ -106,6 +143,29 @@ Common use-cases:
 
 The app supports hooks that return Observables, Promises, or plain values. Observables are converted to Promises internally.
 
+Every awaited phase is executed through a normalized Effect runner. Reports remain
+internal: they are not added to HTTP save responses. A phase report can contain
+`succeeded`, `failed`, `timed_out`, `interrupted`, or `skipped` actions. Detached
+`post` actions are reported as `dispatched` at the save boundary and complete or
+fail later under the same correlation ID.
+
+Save-time validation rejects malformed `pre` configuration before any primary
+mutation. `postSync` configuration is validated at its awaited post-persistence
+phase boundary, while malformed `post` entries retain the legacy per-entry
+behaviour: they are logged and skipped while later valid entries continue to
+dispatch. This keeps detached-post configuration from blocking persistence.
+
+The application logger emits concise events such as
+`record_hook_action_completed`, `record_hook_action_retry_scheduled`,
+`record_hook_action_timed_out`, `record_hook_detached_action_failed`,
+`record_hook_operation_dispatched`, and `record_hook_operation_completed`.
+The save-boundary `record_hook_operation_dispatched` event is emitted when
+detached work is launched; exactly one
+`record_hook_operation_completed` event follows when the audit reaches its
+finalization state. Filter on `execution_id` to reconstruct one record
+operation. Record bodies, hook options, users, function expressions, returned
+payloads, and raw errors are excluded from production-level events.
+
 For record create/update endpoints, callers should inspect the typed save
 `outcome` rather than the legacy boolean `success`: `saved-with-warnings`
 means primary metadata committed but an awaited hook or attachment phase needs
@@ -117,6 +177,35 @@ for the response and request-correlation contract.
 - If a pre-hook throws an error, the operation (create/update/delete/transition) is aborted and the error is propagated. If the thrown error has `name === 'RBValidationError'` RecordsService treats it as a validation error and surfaces the message.
 - If a postSync hook throws, the primary metadata commit remains authoritative and the typed result is `saved-with-warnings`; indexing and persistence audit are still submitted. A pre-save hook failure or invalid hook configuration returns `not-saved` and no attachment work is started.
 - post (async) hooks have their errors caught and logged; they won't block the user operation.
+
+Create and update audits include a versioned, bounded `executionSummary` with
+aggregate counts and at most the first 100 action entries. Delete audits are
+truthfully marked `partial` at the existing audit-before-post boundary. Create
+and update audit submission gives detached actions a bounded asynchronous grace
+period. Actions that finish within it are persisted with terminal outcomes
+(`succeeded`, `failed`, `timed_out`, or `interrupted`); if the grace period
+expires, the audit is still written with completed results plus truthful
+`dispatched` entries, `detachedPending`, and `detachedFinalization:
+"grace-expired"`. A late detached completion only emits its structured action
+logs and never creates a second audit. The summary is audit metadata and is
+never embedded in the business-record snapshot.
+
+Create/update summaries also expose `completedThrough` (`pre`, `persistence`,
+`postSync`, or `post-dispatch`) so early exits are distinguishable from a fully
+dispatched operation.
+
+The current observability surface is structured correlation logging rather than
+native Effect spans. Operation, phase, action, and attempt identifiers are
+available for log aggregation; Effect/OpenTelemetry span integration remains a
+follow-up.
+
+### Service extension boundary
+
+A custom service that subclasses the core `RecordsService` inherits the
+Effect-backed hook coordinator and its lifecycle guarantees. A full replacement
+service registered in place of the core service does not automatically receive
+these guarantees; it must call the coordinator or implement equivalent
+execution, logging, supervision, and audit integration itself.
 
 ## Security and best practices
 
