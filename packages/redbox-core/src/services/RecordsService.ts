@@ -561,7 +561,7 @@ export namespace Services {
       return [...normalizedRoles];
     }
 
-    private hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
+    public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
       const configured = _.get(step, 'config.authorization.transitionRoles') as unknown;
       if (!Array.isArray(configured) || configured.length === 0) return true;
       const actorRoles = Array.isArray(user?.roles) ? user.roles : [];
@@ -1538,6 +1538,7 @@ export namespace Services {
       'getRecordAudit',
       'getResolvedPermissionsSummary',
       'hasEditAccess',
+      'hasTransitionRoleAuthorization',
       'hasViewAccess',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',

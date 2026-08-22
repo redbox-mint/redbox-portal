@@ -50,6 +50,7 @@ import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStor
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
+  parsePublicValidationOperation,
   readSaveRequestId,
   recordSaveFailureStatus,
   recordSaveProblem,
@@ -182,16 +183,17 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
-    private saveContext(req: Sails.Req, operation: RecordSaveOperation): RecordSaveContext {
+    private saveContext(
+      req: Sails.Req,
+      operation: RecordSaveOperation,
+      validationOperation?: string
+    ): RecordSaveContext {
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'browser',
         operation,
+        validationOperation,
       });
-    }
-
-    private saveFailureStatus(req: Sails.Req, response: RecordSaveResponse | null | undefined): number {
-      return this.getApiVersion(req) === '2.0' ? recordSaveFailureStatus(response) : 500;
     }
 
     private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
@@ -207,6 +209,29 @@ export namespace Controllers {
         ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
         ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
       };
+    }
+
+    private sendSaveFailure(
+      req: Sails.Req,
+      res: Sails.Res,
+      result: RecordSaveResponse,
+      detail: string
+    ) {
+      if (this.getApiVersion(req) === '1.0') {
+        return this.sendResp(req, res, {
+          status: 500,
+          v1: { message: detail },
+        });
+      }
+      return this.sendResp(req, res, {
+        status: recordSaveFailureStatus(result),
+        displayErrors: [{ detail }],
+        meta: { ...result },
+      });
+    }
+
+    private publicValidationOperation(req: Sails.Req) {
+      return parsePublicValidationOperation(req.query?.operation);
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
@@ -712,7 +737,7 @@ export namespace Controllers {
         const reusableFormDefs = sails.config.reusableFormDefinitions;
         const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, currentRec);
         const formConfig = form?.configuration;
-        if (!formConfig) {
+        if (!form || !formConfig) {
           const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
           return this.sendResp(req, res, {
             status: 500,
@@ -730,6 +755,15 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
+        const validationOperations = await FormsService.discoverValidationOperations({
+          brand,
+          form,
+          recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
+          record: currentRec,
+          user: req.user,
+          editable: editMode,
+          targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,
+        });
         const prehydrateService = sails.services.formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
         const prehydrate = await prehydrateService.build({
           branding: brand,
@@ -745,7 +779,8 @@ export namespace Controllers {
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
-              contextVariables: contextVariablesMap
+              contextVariables: contextVariablesMap,
+              validationOperations,
             },
             prehydrate,
           });
@@ -783,6 +818,13 @@ export namespace Controllers {
 
     private async createInternal(req: Sails.Req, res: Sails.Res) {
       try {
+        const parsedOperation = this.publicValidationOperation(req);
+        if (!parsedOperation.valid) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ code: 'record-validation-operation-invalid' }],
+          });
+        }
         const brand: BrandingModel = this.getReqBrand(req);
         const metadata = req.body;
         const record: AnyRecord = {
@@ -800,7 +842,16 @@ export namespace Controllers {
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
-        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep, this.saveContext(req, targetStep ? 'transition' : 'create'));
+        const createResponse = await this.recordsService.create(
+          brand,
+          record,
+          recordType,
+          user,
+          true,
+          true,
+          targetStep,
+          this.saveContext(req, targetStep ? 'transition' : 'create', parsedOperation.value)
+        );
 
         if (createResponse.wasPersisted()) {
           let savedRecord: RecordModel | null = null;
@@ -821,11 +872,7 @@ export namespace Controllers {
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(createResponse) } : {}),
           });
         } else {
-          return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, createResponse),
-            displayErrors: [{ detail: createResponse.message }],
-            meta: { ...createResponse },
-          });
+          return this.sendSaveFailure(req, res, createResponse, createResponse.message);
         }
 
       } catch (error) {
@@ -964,6 +1011,13 @@ export namespace Controllers {
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
+      const parsedOperation = this.publicValidationOperation(req);
+      if (!parsedOperation.valid) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'record-validation-operation-invalid' }],
+        });
+      }
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
@@ -991,7 +1045,17 @@ export namespace Controllers {
         if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
-        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata, this.saveContext(req, nextStepResp ? 'transition' : 'update'));
+        response = await this.recordsService.updateMeta(
+          brand,
+          oid,
+          currentRec,
+          user,
+          true,
+          true,
+          nextStepResp,
+          metadata,
+          this.saveContext(req, nextStepResp ? 'transition' : 'update', parsedOperation.value)
+        );
         sails.log.verbose(JSON.stringify(response));
         // Both persisted outcomes are HTTP 200; warnings stay inside the
         // typed `meta` result rather than becoming an error response.
@@ -1015,11 +1079,7 @@ export namespace Controllers {
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
           });
         } else {
-          return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, response),
-            displayErrors: [{ detail: "Failed to get record data" }],
-            meta: { ...response },
-          });
+          return this.sendSaveFailure(req, res, response, 'Failed to get record data');
         }
       } catch (error) {
         const errorMessage = this.getErrorMessage(error);

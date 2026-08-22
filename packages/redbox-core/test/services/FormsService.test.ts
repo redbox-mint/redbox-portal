@@ -103,6 +103,8 @@ describe('FormsService', function () {
     delete (global as any).Form;
     delete (global as any).WorkflowStep;
     delete (global as any).RecordType;
+    delete (global as any).RecordTypesService;
+    delete (global as any).WorkflowStepsService;
     sinon.restore();
   });
 
@@ -247,6 +249,209 @@ describe('FormsService', function () {
 
       expect(result?.configuration?.type).to.equal('party');
       expect(mockFormResult.configuration.type).to.equal('');
+    });
+  });
+
+  describe('validation operation discovery', function () {
+    it('removes internal operation policy and transports only safe discovery fields', function () {
+      const form = {
+        id: 'form-1',
+        name: 'dataset-draft',
+        branding: 'brand-1',
+        configuration: {
+          name: 'dataset-draft',
+          validationOperations: {
+            submit: {
+              enabledValidationGroups: ['secret-group'],
+              roles: ['SecretRole'],
+              allowedTargetSteps: ['private-stage'],
+            },
+          },
+          componentDefinitions: [],
+        },
+      };
+
+      const publicForm = FormsService.toPublicForm(form, [{
+        name: 'submit',
+        label: 'Submit',
+        description: 'Send for review',
+        allowedTargetSteps: ['review'],
+      }]);
+
+      expect(publicForm.configuration).not.to.have.property('validationOperations');
+      expect(publicForm.validationOperations).to.deep.equal([{
+        name: 'submit',
+        label: 'Submit',
+        description: 'Send for review',
+        allowedTargetSteps: ['review'],
+      }]);
+      expect(form.configuration.validationOperations.submit.roles).to.deep.equal(['SecretRole']);
+      const metadata = JSON.stringify(publicForm.validationOperations);
+      expect(metadata).not.to.include('SecretRole');
+      expect(metadata).not.to.include('secret-group');
+      expect(metadata).not.to.include('private-stage');
+    });
+
+    it('uses one discovery call for the actor-authorized target set and sanitizes the result', async function () {
+      const discoverOperations = sinon.stub();
+      discoverOperations.resolves([
+        { name: 'draft', label: 'Save draft', roles: ['SecretRole'] },
+        {
+          name: 'submit',
+          label: ' Submit ',
+          allowedTargetSteps: ['review', 'private'],
+          roles: ['SecretRole'],
+          enabledValidationGroups: ['secret-group'],
+          exceptionText: 'database password',
+        },
+      ]);
+      mockSails.services = {
+        recordsservice: {
+          hasEditAccess: sinon.stub().returns(true),
+          hasTransitionRoleAuthorization: sinon.stub().callsFake((step: any) => step.name !== 'private'),
+        },
+        recordvalidationservice: { discoverOperations },
+      };
+      (global as any).RecordTypesService = {
+        get: sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' })),
+      };
+      (global as any).WorkflowStepsService = {
+        getAllForRecordType: sinon.stub().returns(of([
+          { name: 'review', config: { authorization: { transitionRoles: ['Researcher'] } } },
+          { name: 'private', config: { authorization: { transitionRoles: ['Admin'] } } },
+        ])),
+      };
+      const operations = await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form: { name: 'dataset-draft', branding: 'brand-1', configuration: { type: 'dataset' } },
+        recordType: 'dataset',
+        record: {
+          redboxOid: 'record-1',
+          metadata: { title: 'Record' },
+          metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+          workflow: { stage: 'draft' },
+          authorization: { edit: ['alice'] },
+        },
+        user: { username: 'alice', roles: [{ name: 'Researcher' }] },
+        editable: true,
+      });
+
+      expect(operations).to.deep.equal([
+        { name: 'draft', label: 'Save draft' },
+        { name: 'submit', label: 'Submit', allowedTargetSteps: ['review'] },
+      ]);
+      expect(discoverOperations.callCount).to.equal(1);
+      expect(discoverOperations.firstCall.args[0]).to.deep.include({
+        writeKind: 'update',
+        authorizedTargetSteps: ['review'],
+      });
+      expect(discoverOperations.firstCall.args[0].candidate.metaMetadata).to.deep.include({
+        type: 'dataset',
+        form: 'dataset-draft',
+      });
+      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('dataset');
+      expect((global as any).WorkflowStepsService.getAllForRecordType.calledOnce).to.equal(true);
+      expect(JSON.stringify(discoverOperations.args)).not.to.include('private-stage');
+      expect(JSON.stringify(operations)).not.to.include('SecretRole');
+      expect(JSON.stringify(operations)).not.to.include('secret-group');
+      expect(JSON.stringify(operations)).not.to.include('database password');
+      expect(JSON.stringify(operations)).not.to.include('private');
+    });
+
+    it('fails closed when a record form is attached to a different requested form payload', async function () {
+      const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
+      mockSails.services = {
+        recordsservice: {
+          hasEditAccess: sinon.stub().returns(true),
+          hasTransitionRoleAuthorization: sinon.stub().returns(true),
+        },
+        recordvalidationservice: { discoverOperations },
+      };
+
+      const operations = await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form: { name: 'forged-form', branding: 'brand-1', configuration: { type: 'dataset' } },
+        record: {
+          redboxOid: 'record-1',
+          metadata: {},
+          metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        },
+        user: { username: 'alice', roles: [] },
+        editable: true,
+      });
+
+      expect(operations).to.deep.equal([]);
+      expect(discoverOperations.called).to.equal(false);
+    });
+
+    it('omits discovery when the actor lacks edit access or context is missing', async function () {
+      const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
+      mockSails.services = {
+        recordsservice: {
+          hasEditAccess: sinon.stub().returns(false),
+          hasTransitionRoleAuthorization: sinon.stub().returns(true),
+        },
+        recordvalidationservice: { discoverOperations },
+      };
+      const form = { name: 'dataset-draft', branding: 'brand-1', configuration: { type: 'dataset' } };
+      const record = {
+        metadata: {},
+        metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      };
+
+      expect(await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form,
+        record,
+        user: { username: 'alice', roles: [] },
+        editable: true,
+      })).to.deep.equal([]);
+      expect(await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form,
+        record: null,
+        user: null,
+        editable: true,
+      })).to.deep.equal([]);
+      expect(discoverOperations.called).to.equal(false);
+    });
+
+    it('does not mix a caller-supplied record type or unrelated form into create discovery', async function () {
+      const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
+      mockSails.services = {
+        recordsservice: {
+          hasEditAccess: sinon.stub().returns(true),
+          hasTransitionRoleAuthorization: sinon.stub().returns(true),
+        },
+        recordvalidationservice: { discoverOperations },
+      };
+      const getRecordType = sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' }));
+      (global as any).RecordTypesService = { get: getRecordType };
+      (global as any).WorkflowStepsService = {
+        getAllForRecordType: sinon.stub().returns(of([
+          { name: 'draft', starting: true, config: { form: 'dataset-draft' } },
+          { name: 'review', config: { form: 'dataset-review' } },
+        ])),
+      };
+      const user = { username: 'alice', roles: [{ name: 'Researcher' }] };
+
+      expect(await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form: { name: 'dataset-draft', branding: 'brand-1', configuration: { type: 'dataset' } },
+        recordType: 'unrelated-type',
+        user,
+        editable: true,
+      })).to.deep.equal([]);
+      expect(getRecordType.called).to.equal(false);
+
+      expect(await FormsService.discoverValidationOperations({
+        brand: { id: 'brand-1' },
+        form: { name: 'unrelated-form', branding: 'brand-1', configuration: { type: 'dataset' } },
+        recordType: 'dataset',
+        user,
+        editable: true,
+      })).to.deep.equal([]);
+      expect(discoverOperations.called).to.equal(false);
     });
   });
 
