@@ -8,6 +8,8 @@ export interface RecordValidationConfig {
   timeoutMs: number;
   /** Optional global rollout overrides keyed by validation operation name. */
   operations?: Record<string, RecordValidationOperationRolloutConfig>;
+  /** Server-owned names that expressions may read from sanitized request parameters. */
+  allowedRequestParameters?: string[];
 }
 
 export interface RecordValidationOperationRolloutConfig {

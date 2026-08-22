@@ -1,11 +1,11 @@
 /**
  * Workflow Config Interface
  * (sails.config.workflow)
- * 
+ *
  * Workflow stage definitions for record types.
  */
 
-import type { ValidationOperationOverride } from '@researchdatabox/sails-ng-common';
+import type { ValidationOperationPolicyOverride } from '@researchdatabox/sails-ng-common';
 
 export interface WorkflowStageAuthorization {
     viewRoles: string[];
@@ -72,7 +72,7 @@ export interface WorkflowStageConfig {
 }
 
 export interface WorkflowStageValidationConfig {
-    operations?: Record<string, ValidationOperationOverride>;
+    operations?: Record<string, ValidationOperationPolicyOverride>;
 }
 
 export interface WorkflowStageDefinition {
