@@ -43,8 +43,11 @@ and look for errors in the files this change touches.
 
 The action-execution and RecordsService suites cover legacy characterization,
 deterministic retry scheduling, native Effect actions, supervised teardown,
-cross-layer save boundaries, terminal detached audit outcomes, non-overlapping
-timeout retry policy, audit queue payloads, and public response safety.
+cross-layer save boundaries, bounded detached audit finalization, replacement
+projection for partially completed detached work, non-overlapping timeout retry
+policy, audit queue payloads, and public response safety. Operation logs emit a
+single final `record_hook_operation_completed` event per execution; the
+save-boundary event is `record_hook_operation_dispatched`.
 The Mongo suite covers bounded summary sanitization and persistence.
 
 ## Container smoke check
@@ -57,7 +60,8 @@ curl -fsS -D - -o /tmp/redbox-home.html http://<tailscale-ip>:1500/
 The compose interpolation maps `APP_URL` to `sails_appUrl`. A healthy stack
 redirects `/` to the branded home route and returns `200 OK` for the rendered
 ReDBox page. Container logs should include structured
-`record_hook_action_completed` and `record_hook_operation_completed` events;
+`record_hook_action_completed`, `record_hook_operation_dispatched`, and one
+`record_hook_operation_completed` event per execution;
 raw hook arguments and execution summaries must not appear in business-record
 payloads.
 
@@ -65,7 +69,7 @@ payloads.
 
 The verification run for this change used host Node `v24.19.0` with npm
 `11.17.0`, and the running container reported Node `v26.7.0`. The full core
-`redbox-core` suite completed with 2187 passing tests and 14 pending; the Mongo storage suite
+`redbox-core` suite completed with 2189 passing tests and 14 pending; the Mongo storage suite
 completed with 71 passing tests. `npm run compile:core`, the Mongo TypeScript
 compile, Oxlint, and `git diff --check` passed. The Tailscale smoke request
 returned `302` from `/` followed by `200 OK` for the rendered page containing
