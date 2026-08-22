@@ -491,6 +491,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('enabledValidationGroups', item, currentData);
     this.sharedProps.setPropOverride('validators', item, currentData);
     this.sharedProps.setPropOverride('validationGroups', item, currentData);
+    this.sharedProps.setPropOverride('validationOperations', item, currentData);
     this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
     this.sharedProps.setPropOverride('debugValue', item, currentData);
     this.sharedProps.setPropOverride('expressions', item, currentData);

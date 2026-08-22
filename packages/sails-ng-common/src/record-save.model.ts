@@ -6,6 +6,8 @@
  * remains safe to consume from either side of the application.
  */
 
+import { LineagePath, LineagePathsOptional, LineagePathsPartial } from './config/names/naming-helpers';
+
 export interface ActionResult {
   /** True when the requested primary action was completed. */
   success: boolean;
@@ -36,6 +38,30 @@ export type RecordSavePhase =
   | 'response'
   | 'transport';
 
+export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
+export type RecordSaveValidatorParameterValue =
+  | RecordSaveValidatorParameterPrimitive
+  | RecordSaveValidatorParameterPrimitive[];
+export type RecordSaveValidatorParameters = Record<string, RecordSaveValidatorParameterValue>;
+
+export const RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS = {
+  maxEntries: 16,
+  maxKeyLength: 64,
+  maxStringLength: 256,
+  maxArrayLength: 16,
+  maxSerializedLength: 4_096,
+} as const;
+
+export const RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH = 128;
+export const RECORD_SAVE_MESSAGE_MAX_LENGTH = 1_024;
+export const RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]*$/;
+
+export const RECORD_SAVE_LINEAGE_LIMITS = {
+  maxSegments: 64,
+  maxSegmentLength: 128,
+  maxPointerLength: 2_048,
+} as const;
+
 export interface RecordSaveIssue {
   /** A safe, stable identifier suitable for translation or support lookup. */
   code?: string;
@@ -45,6 +71,161 @@ export interface RecordSaveIssue {
   field?: string;
   /** JSON pointer into Angular or record metadata, when available. */
   pointer?: string;
+  /** Validator implementation class, when this is a validator failure. */
+  class?: string;
+  /** Bounded scalar parameters used to render a configured validator message. */
+  params?: RecordSaveValidatorParameters;
+  /** Validator-configured field ownership override. */
+  targetField?: LineagePathsPartial;
+  /** Lineage of the field or form control that produced the issue. */
+  lineagePaths?: LineagePathsOptional;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function safeValidatorParameterPrimitive(value: unknown): RecordSaveValidatorParameterPrimitive | undefined {
+  if (value === null || typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    return value.slice(0, RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxStringLength);
+  }
+  return undefined;
+}
+
+/** Remove nested, executable, excessive, and otherwise unsafe validator parameters. */
+export function sanitizeRecordSaveValidatorParameters(value: unknown): RecordSaveValidatorParameters | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+  const result: RecordSaveValidatorParameters = {};
+  let acceptedEntries = 0;
+  for (const [key, rawValue] of Object.entries(value)) {
+    if (acceptedEntries >= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxEntries) {
+      break;
+    }
+    if (
+      !RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN.test(key) ||
+      key.length > RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxKeyLength
+    ) {
+      continue;
+    }
+
+    let safeValue: RecordSaveValidatorParameterValue | undefined;
+    if (Array.isArray(rawValue)) {
+      const safeArray: RecordSaveValidatorParameterPrimitive[] = [];
+      for (const item of rawValue.slice(0, RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxArrayLength)) {
+        const safeItem = safeValidatorParameterPrimitive(item);
+        if (safeItem !== undefined) {
+          safeArray.push(safeItem);
+        }
+      }
+      safeValue = rawValue.length === 0 || safeArray.length > 0 ? safeArray : undefined;
+    } else {
+      safeValue = safeValidatorParameterPrimitive(rawValue);
+    }
+
+    if (safeValue === undefined) {
+      continue;
+    }
+    const candidate = { ...result, [key]: safeValue };
+    if (JSON.stringify(candidate).length <= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxSerializedLength) {
+      result[key] = safeValue;
+      acceptedEntries += 1;
+    }
+  }
+  return acceptedEntries > 0 ? result : undefined;
+}
+
+function sanitizeLineagePath(value: unknown): LineagePath | undefined {
+  if (!Array.isArray(value) || value.length > RECORD_SAVE_LINEAGE_LIMITS.maxSegments) {
+    return undefined;
+  }
+  const result: LineagePath = [];
+  for (const segment of value) {
+    if (typeof segment === 'string') {
+      if (segment.length > RECORD_SAVE_LINEAGE_LIMITS.maxSegmentLength) {
+        return undefined;
+      }
+      result.push(segment);
+    } else if (typeof segment === 'number' && Number.isSafeInteger(segment) && segment >= 0) {
+      result.push(segment);
+    } else {
+      return undefined;
+    }
+  }
+  return result;
+}
+
+function sanitizeLineagePathProperties(value: unknown): LineagePathsPartial | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+  const result: LineagePathsPartial = {};
+  for (const key of ['formConfig', 'dataModel', 'angularComponents', 'layout'] as const) {
+    if (value[key] !== undefined) {
+      const path = sanitizeLineagePath(value[key]);
+      if (path !== undefined) {
+        result[key] = path;
+      }
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function sanitizeLineagePaths(value: unknown): LineagePathsOptional | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+  const result: LineagePathsOptional = sanitizeLineagePathProperties(value) ?? {};
+  for (const key of ['angularComponentsJsonPointer', 'layoutJsonPointer'] as const) {
+    const pointer = value[key];
+    if (typeof pointer === 'string' && pointer.length <= RECORD_SAVE_LINEAGE_LIMITS.maxPointerLength) {
+      result[key] = pointer;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Copy only the public issue allowlist and normalize bounded validator/lineage
+ * metadata. This is suitable for a response serialization boundary.
+ */
+export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
+  const item = isPlainRecord(value) ? value : {};
+  const issue: RecordSaveIssue = {
+    message: typeof item.message === 'string' ? item.message.slice(0, RECORD_SAVE_MESSAGE_MAX_LENGTH) : '',
+  };
+  for (const key of ['code', 'field', 'pointer'] as const) {
+    if (typeof item[key] === 'string') {
+      issue[key] = item[key];
+    }
+  }
+  if (typeof item.class === 'string' && item.class.length <= RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH) {
+    issue.class = item.class;
+  }
+  const params = sanitizeRecordSaveValidatorParameters(item.params);
+  if (params !== undefined) {
+    issue.params = params;
+  }
+  const targetField = sanitizeLineagePathProperties(item.targetField);
+  if (targetField !== undefined) {
+    issue.targetField = targetField;
+  }
+  const lineagePaths = sanitizeLineagePaths(item.lineagePaths);
+  if (lineagePaths !== undefined) {
+    issue.lineagePaths = lineagePaths;
+  }
+  return issue;
 }
 
 export interface RecordSaveProblem {
@@ -120,4 +301,3 @@ export function isRecordSaveOutcome(value: unknown): value is RecordSaveOutcome 
     || value === 'not-saved'
     || value === 'unknown';
 }
-

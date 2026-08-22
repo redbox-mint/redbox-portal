@@ -20,7 +20,13 @@ describe('RecordTypesService', function() {
         transferResponsibility: false,
         relatedTo: [],
         searchable: true,
-        dashboard: {}
+        dashboard: {},
+        recordValidation: {
+          mode: 'shadow',
+          operations: {
+            publish: { mode: 'enforce', enabledValidationGroups: ['publish'] }
+          }
+        }
       }
     };
     mockSails.config.appmode = { bootstrapAlways: false };
@@ -77,6 +83,12 @@ describe('RecordTypesService', function() {
       expect(result).to.have.length(1);
       expect(result[0]).to.have.property('name', 'dataset');
       expect((global as any).RecordType.create.called).to.be.true;
+      expect((global as any).RecordType.create.firstCall.args[0].recordValidation).to.deep.equal({
+        mode: 'shadow',
+        operations: {
+          publish: { mode: 'enforce', enabledValidationGroups: ['publish'] }
+        }
+      });
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function() {

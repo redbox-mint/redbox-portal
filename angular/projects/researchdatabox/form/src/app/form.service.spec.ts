@@ -22,8 +22,13 @@ import {
   FormValidationGroups,
   FormValidatorConfig,
   FormValidatorSummaryErrors,
-  LineagePaths
+  jsonataCompileAndEvaluate,
+  LineagePaths,
 } from "@researchdatabox/sails-ng-common";
+import {
+  jsonataParityFixtures,
+  validationGroupCalculationFixtures,
+} from '@researchdatabox/sails-ng-common/dist/src/testing';
 import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from "./service/vocab-tree.service";
 import { setUpDynamicAssets } from "./helpers.spec";
@@ -445,6 +450,28 @@ describe('The FormService', () => {
         expect(results).toEqual(expected);
       });
     });
+
+    validationGroupCalculationFixtures
+      .filter((fixture) => fixture.operationEnabledValidationGroups === undefined)
+      .forEach((fixture) => {
+        it(`should match shared fixture: ${fixture.name}`, function () {
+          const result = service.calculateValidationGroups(
+            fixture.currentValidationGroups,
+            fixture.validationGroups,
+            fixture.initial,
+            fixture.groups,
+          );
+          expect(result).toEqual(fixture.expectedGroups);
+        });
+      });
+  });
+
+  describe('JSONata browser/server parity', () => {
+    for (const fixture of jsonataParityFixtures) {
+      it(`should match shared fixture: ${fixture.name}`, async () => {
+        expect(await jsonataCompileAndEvaluate(fixture.expression, fixture.context)).toEqual(fixture.expected);
+      });
+    }
   });
 
   it("should download form components and form config meta", async function () {

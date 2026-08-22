@@ -2,6 +2,13 @@ import { z } from '../zod-openapi';
 import type { ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
+import {
+    RECORD_SAVE_LINEAGE_LIMITS,
+    RECORD_SAVE_MESSAGE_MAX_LENGTH,
+    RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
+    RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN,
+    RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS,
+} from '@researchdatabox/sails-ng-common';
 
 function withOpenApi<T extends ZodType>(schema: T, metadata: Record<string, unknown>): T {
     return (schema as unknown as { openapi: (metadata: Record<string, unknown>) => T }).openapi(metadata);
@@ -283,14 +290,60 @@ export const recordAuthorizationSchema = withOpenApi(
     { description: 'Record authorization payload' }
 );
 
-const recordSaveIssueSchema = withOpenApi(
+const recordSaveLineageSegmentSchema = z.union([
+    z.string().max(RECORD_SAVE_LINEAGE_LIMITS.maxSegmentLength),
+    z.number().int().nonnegative(),
+]);
+
+const recordSaveLineagePathSchema = z.array(recordSaveLineageSegmentSchema).max(RECORD_SAVE_LINEAGE_LIMITS.maxSegments);
+
+const recordSaveTargetFieldSchema = z.object({
+    formConfig: recordSaveLineagePathSchema.optional(),
+    dataModel: recordSaveLineagePathSchema.optional(),
+    angularComponents: recordSaveLineagePathSchema.optional(),
+    layout: recordSaveLineagePathSchema.optional(),
+});
+
+const recordSaveLineagePathsSchema = recordSaveTargetFieldSchema.extend({
+    angularComponentsJsonPointer: z.string().max(RECORD_SAVE_LINEAGE_LIMITS.maxPointerLength).optional(),
+    layoutJsonPointer: z.string().max(RECORD_SAVE_LINEAGE_LIMITS.maxPointerLength).optional(),
+});
+
+const recordSaveValidatorParameterPrimitiveSchema = z.union([
+    z.string().max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxStringLength),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+]);
+
+const recordSaveValidatorParametersSchema = z
+    .record(
+        z.string()
+            .max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxKeyLength)
+            .regex(RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN),
+        z.union([
+            recordSaveValidatorParameterPrimitiveSchema,
+            z.array(recordSaveValidatorParameterPrimitiveSchema)
+                .max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxArrayLength),
+        ]),
+    )
+    .refine((value) => Object.keys(value).length <= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxEntries
+        && JSON.stringify(value).length <= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxSerializedLength, {
+        message: 'Validator parameters exceed the safe response bounds',
+    });
+
+export const recordSaveIssueSchema = withOpenApi(
     z.object({
         code: z.string().optional(),
-        message: z.string(),
+        message: z.string().max(RECORD_SAVE_MESSAGE_MAX_LENGTH),
         field: z.string().optional(),
         pointer: z.string().optional(),
+        class: z.string().max(RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH).optional(),
+        params: recordSaveValidatorParametersSchema.optional(),
+        targetField: recordSaveTargetFieldSchema.optional(),
+        lineagePaths: recordSaveLineagePathsSchema.optional(),
     }),
-    { description: 'Safe, field-addressable save issue' },
+    { description: 'Safe, field-addressable save issue with bounded validator metadata' },
 );
 
 const recordSaveProblemSchema = withOpenApi(

@@ -129,5 +129,7 @@ export * from './config/component/question-tree.outline';
 // validation
 export * from './validation/helpers';
 export * from './validation/form.model';
+export * from './validation/record-validation.model';
+export * from './validation/validation-groups';
 export * from './validation/validators';
 export * from './validation/validators-support';

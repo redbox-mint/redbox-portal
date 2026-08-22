@@ -3,6 +3,7 @@ import { Effect, Layer } from 'effect';
 import { makeMappingLayer } from '../../../src/services/raid-v2/mapping';
 import { RaidConfigTag, RaidMappingTag, RaidRunContextTag } from '../../../src/services/raid-v2/tags';
 import type { RaidPublishingConfigData } from '../../../src/configmodels/RaidPublishing';
+import { raid } from '../../../src/config/raid.config';
 
 const config: RaidPublishingConfigData = {
   enabled: true,
@@ -31,7 +32,7 @@ describe('RAiD Effect mapping', () => {
     const program = Effect.gen(function* () {
       const mapper = yield* RaidMappingTag;
       return yield* mapper.map({ metadata: { title: 'A title' } }, {
-        title: { dest: 'title[0].text', engine: 'jsonata', expression: 'record.metadata.title' },
+        title: raid.mapping.dmp.title_text,
         type: { dest: 'title[0].type', engine: 'jsonata', expression: 'types.title.Primary' },
         url: { dest: 'alternateUrl[0].url', engine: 'handlebars', template: 'https://example.test/{{runContext.oid}}' }
       }, {});
@@ -41,6 +42,43 @@ describe('RAiD Effect mapping', () => {
       title: [{ text: 'A title', type: { id: 'primary', schemaUri: 'title-schema' } }],
       alternateUrl: [{ url: 'https://example.test/oid-1' }]
     });
+  });
+
+  it('evaluates shared and RAiD-local JSONata functions through the centralized helper', async () => {
+    const program = Effect.gen(function* () {
+      const mapper = yield* RaidMappingTag;
+      return yield* mapper.map({ metadata: {} }, {
+        formatted: {
+          dest: 'date.startDate',
+          engine: 'jsonata',
+          expression: '$luxonFormatDate("2026-08-22", "yyyy-LL-dd")',
+        },
+        subjects: {
+          dest: 'subject',
+          engine: 'jsonata',
+          expression: '$subjects([{"notation":"4601","label":"Applied computing"}], "for")',
+        },
+      }, {});
+    }).pipe(Effect.provide(layer));
+
+    expect(await Effect.runPromise(program)).to.deep.equal({
+      date: { startDate: '2026-08-22' },
+      subject: [{
+        id: 'for/4601',
+        schemaUri: 'for-schema',
+        keyword: [{ text: 'Applied computing' }],
+      }],
+    });
+  });
+
+  it('ships no RAiD mapping expression that uses dynamic eval', function () {
+    const expressions = Object.values(raid.mapping)
+      .flatMap(fields => Object.values(fields))
+      .map(field => field.expression)
+      .filter((expression): expression is string => typeof expression === 'string');
+
+    expect(expressions).not.to.be.empty;
+    expect(expressions.filter(expression => /\$eval\s*\(/.test(expression))).to.deep.equal([]);
   });
 
   it('rejects legacy lodash templates', async () => {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   emptyRecordSaveCompletion,
   reduceAttachmentStatus,
+  sanitizeRecordSaveIssue,
   RecordAttachmentCompletionItem,
   RecordSaveIssue,
   RecordSavePhase,
@@ -123,7 +124,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
 }
 
 function cloneProblem(problem: RecordSaveProblem): RecordSaveProblem {
-  return { ...problem, issues: problem.issues.map((issue) => ({ ...issue })) };
+  return { ...problem, issues: problem.issues.map(sanitizeRecordSaveIssue) };
 }
 
 export function isCanonicalSaveRequestId(value: unknown): value is string {
@@ -231,6 +232,6 @@ export function recordSaveProblem(
   return {
     kind,
     phase,
-    issues: [{ ...issue, ...(code ? { code } : {}), message }],
+    issues: [sanitizeRecordSaveIssue({ ...issue, ...(code ? { code } : {}), message })],
   };
 }

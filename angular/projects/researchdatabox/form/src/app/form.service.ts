@@ -48,6 +48,7 @@ import {
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
   buildLineagePaths as buildLineagePathsHelper,
+  calculateValidationGroups as calculateSharedValidationGroups,
   DynamicScriptResponse,
   FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
@@ -58,6 +59,7 @@ import {
   FormModesConfig,
   FormStatus,
   FormValidationGroups,
+  FormValidationGroupsChangeInitial,
   FormValidatorComponentErrors,
   FormValidatorConfig,
   FormValidatorDefinition,
@@ -82,7 +84,6 @@ import {
 import { HttpClient } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
-import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from './service/vocab-tree.service';
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
@@ -1143,43 +1144,26 @@ export class FormService extends HttpClientService {
     initial?: FormValidationGroupsChangeInitial,
     groups?: FormFieldValidationGroup
   ): string[] {
-    let enabledNames = [...currentValidationGroups];
-    // Initial is 'current' by default.
-    initial = initial ?? "current";
-    switch (initial) {
-      case "all":
-        enabledNames = Object.keys(validationGroups);
-        break;
-      case "none":
-        enabledNames = [];
-        break;
-      case "current":
-        // No change to the enabled validation groups.
-        break;
-      default:
-        // For an unknown initial state, default to 'current'.
-        this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
-    }
+    const result = calculateSharedValidationGroups(
+      currentValidationGroups,
+      validationGroups,
+      initial,
+      groups,
+    );
 
-    // Add enabled group names.
-    for (const name of groups?.include ?? []) {
-      if (!enabledNames.includes(name)) {
-        enabledNames.push(name);
-      }
-    }
-
-    // Remove disabled group names.
-    for (const name of groups?.exclude ?? []) {
-      const index = enabledNames.indexOf(name);
-      if (index > -1) {
-        enabledNames.splice(index, 1);
+    for (const diagnostic of result.diagnostics) {
+      const message = `${this.logName}: ${diagnostic.message} (${diagnostic.code})`;
+      if (diagnostic.severity === 'error') {
+        this.loggerService.error(message);
+      } else {
+        this.loggerService.warn(message);
       }
     }
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
 
-    return enabledNames;
+    return result.enabledValidationGroups;
   }
 
   /**
