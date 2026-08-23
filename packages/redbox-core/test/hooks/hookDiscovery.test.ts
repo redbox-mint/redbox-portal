@@ -5,7 +5,7 @@ import os from 'os';
 import path from 'path';
 import sinon from 'sinon';
 
-const require = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 
 describe('hookDiscovery', function () {
   before(async function () {
@@ -45,7 +45,7 @@ describe('hookDiscovery', function () {
       getHookPrecedenceOrder,
       getHookProcessingOrder,
       readHookLoadPriority,
-    } = require('../../src/hooks/hookDiscovery'));
+    } = testRequire('../../src/hooks/hookDiscovery'));
 
     appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-discovery-')));
     writeJson(path.join(appPath, 'package.json'), {

@@ -5,7 +5,7 @@ import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
-const testRequire = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
 const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
