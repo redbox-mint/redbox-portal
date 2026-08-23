@@ -111,6 +111,38 @@ import {
   JSONataEvaluate,
 } from '@researchdatabox/sails-ng-common';
 import { DataValueFormConfigVisitor } from './data-value.visitor';
+import { cloneDeep as _cloneDeep } from 'lodash';
+
+export interface RichHtmlSanitizedTransformation {
+  readonly kind: 'rich-html-sanitized';
+  readonly dataModelPath: readonly (string | number)[];
+  /** Exact string observed at the schema-owned path before sanitation. */
+  readonly sourceValue: string;
+  readonly value: string;
+  /** Advisory emitted only through the typed transformation channel. */
+  readonly advisorySummary: FormValidatorSummaryErrors;
+}
+
+export type FormValueTransformation = RichHtmlSanitizedTransformation;
+
+export interface ValidatorFormConfigResult {
+  readonly summaries: readonly FormValidatorSummaryErrors[];
+  readonly transformations: readonly FormValueTransformation[];
+}
+
+type ValidatorFormConfigOptions = {
+  form: FormConfigOutline;
+  enabledValidationGroups?: string[];
+  /** Validators belonging only to these groups are omitted from this pass. */
+  excludedOnlyValidationGroups?: string[];
+  validatorDefinitions?: FormValidatorDefinition[];
+  validatorDefinitionsMap?: ReadonlyMap<string, FormValidatorDefinition>;
+  jsonataEvaluatorFactory?: (expression: string) => JSONataEvaluate;
+  /** Shared wall-clock deadline check supplied by the save boundary. */
+  checkDeadline?: () => void;
+  /** Traverse schema-owned values for transformations without executing validators. */
+  transformationOnly?: boolean;
+};
 
 declare const sails: {
   config?: {
@@ -136,10 +168,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
   private form: FormConfigOutline;
   private enabledValidationGroups: string[];
+  private excludedOnlyValidationGroups: string[];
   private validatorDefinitionsMap: Map<string, FormValidatorDefinition>;
   private jsonataEvaluatorFactory: (expression: string) => JSONataEvaluate;
+  private checkDeadline: () => void;
+  private transformationOnly: boolean;
 
   private validationErrors: FormValidatorSummaryErrors[];
+  private transformations: FormValueTransformation[];
 
   private formPathHelper: FormPathHelper;
 
@@ -150,10 +186,14 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     this.form = new FormConfig();
     this.enabledValidationGroups = [];
+    this.excludedOnlyValidationGroups = [];
     this.validatorDefinitionsMap = new Map<string, FormValidatorDefinition>();
     this.jsonataEvaluatorFactory = jsonataEvaluateFunc;
+    this.checkDeadline = () => undefined;
+    this.transformationOnly = false;
 
     this.validationErrors = [];
+    this.transformations = [];
 
     this.formPathHelper = new FormPathHelper(logger, this);
   }
@@ -165,29 +205,46 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
    * @param options.enabledValidationGroups The validation groups to enable.
    * @param options.validatorDefinitions The validation definitions to make available.
    */
-  async start(options: {
-    form: FormConfigOutline;
-    enabledValidationGroups?: string[];
-    validatorDefinitions?: FormValidatorDefinition[];
-    validatorDefinitionsMap?: ReadonlyMap<string, FormValidatorDefinition>;
-    jsonataEvaluatorFactory?: (expression: string) => JSONataEvaluate;
-  }): Promise<FormValidatorSummaryErrors[]> {
+  async start(options: ValidatorFormConfigOptions): Promise<FormValidatorSummaryErrors[]> {
+    const result = await this.startWithResult(options);
+    return [
+      ...result.summaries,
+      ...result.transformations.map(transformation => _cloneDeep(transformation.advisorySummary)),
+    ];
+  }
+
+  /**
+   * Run validation and return schema-owned value transformations separately
+   * from validator summaries so save boundaries can apply them immutably.
+   */
+  async startWithResult(options: ValidatorFormConfigOptions): Promise<ValidatorFormConfigResult> {
     this.formPathHelper.reset();
 
     this.form = options.form;
 
     // use the first non-null, non-undefined value - empty array is a valid value
     this.enabledValidationGroups = options.enabledValidationGroups ?? this.form.enabledValidationGroups ?? ['all'];
+    this.excludedOnlyValidationGroups = options.excludedOnlyValidationGroups ?? [];
     this.validatorDefinitionsMap = options.validatorDefinitionsMap
       ? new Map(options.validatorDefinitionsMap)
       : this.validatorSupport.createValidatorDefinitionMapping(options.validatorDefinitions || []);
     this.jsonataEvaluatorFactory = options.jsonataEvaluatorFactory ?? jsonataEvaluateFunc;
+    this.checkDeadline = options.checkDeadline ?? (() => undefined);
+    this.transformationOnly = options.transformationOnly === true;
 
     this.validationErrors = [];
+    this.transformations = [];
 
     await this.form.accept(this);
 
-    return this.validationErrors;
+    return {
+      summaries: [...this.validationErrors],
+      transformations: this.transformations.map(transformation => ({
+        ...transformation,
+        dataModelPath: [...transformation.dataModelPath],
+        advisorySummary: _cloneDeep(transformation.advisorySummary),
+      })),
+    };
   }
 
   /* Form Config */
@@ -206,7 +263,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     const dataValueVisitor = new DataValueFormConfigVisitor(this.logger);
     const value = await dataValueVisitor.start({ form: item });
     const itemName = item?.name ?? '';
-    this.validationErrors.push(...(await this.validateFormComponent(itemName, value, item?.validators)));
+    if (!this.transformationOnly) {
+      this.validationErrors.push(...(await this.validateFormComponent(itemName, value, item?.validators)));
+    }
   }
 
   /* SimpleInput */
@@ -239,6 +298,56 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     await this.acceptFormComponentDefinition(item);
+
+    const values = item.model?.config?.value;
+    const elementTemplate = item.component?.config?.elementTemplate;
+    if (!Array.isArray(values) || !elementTemplate) return;
+    for (const [index, rowValue] of values.entries()) {
+      this.checkDeadline();
+      const rowTemplate = _cloneDeep(elementTemplate);
+      this.hydrateRepeatableRow(rowTemplate, rowValue);
+      const templateLineage = this.formPathHelper.lineagePathsForRepeatableFieldComponentDefinition(rowTemplate);
+      await this.formPathHelper.acceptFormPath(rowTemplate, {
+        ...templateLineage,
+        formConfig: ['component', ...(templateLineage.formConfig ?? [])],
+        dataModel: [...(templateLineage.dataModel ?? []), index],
+        angularComponents: [...(templateLineage.angularComponents ?? []), index],
+        layout: [...(templateLineage.layout ?? []), index],
+      });
+      this.checkDeadline();
+    }
+  }
+
+  /** Populate only schema-owned row controls; submitted objects never become form definitions. */
+  private hydrateRepeatableRow(definition: FormComponentDefinitionOutline, parentValue: unknown): void {
+    const definitionRecord = definition as unknown as Record<string, unknown>;
+    const component = definitionRecord.component as Record<string, unknown> | undefined;
+    const model = definitionRecord.model as Record<string, unknown> | undefined;
+    const name = typeof definitionRecord.name === 'string' ? definitionRecord.name : '';
+    const consumesNamedValue = Boolean(name) && (model !== undefined || component?.class === 'GroupComponent');
+    const value = consumesNamedValue && parentValue !== null && typeof parentValue === 'object' && !Array.isArray(parentValue)
+      ? (parentValue as Record<string, unknown>)[name]
+      : parentValue;
+    if (model) {
+      const config = model.config && typeof model.config === 'object' && !Array.isArray(model.config)
+        ? model.config as Record<string, unknown>
+        : {};
+      model.config = config;
+      config.value = value;
+    }
+    const componentConfig = component?.config;
+    if (!componentConfig || typeof componentConfig !== 'object' || Array.isArray(componentConfig)) return;
+    const config = componentConfig as Record<string, unknown>;
+    // A nested repeatable owns its elementTemplate expansion when its visitor
+    // sees the nested array value.
+    if (component.class === 'RepeatableComponent') return;
+    for (const key of ['componentDefinitions', 'tabs', 'panels'] as const) {
+      const children = config[key];
+      if (!Array.isArray(children)) continue;
+      for (const child of children) {
+        this.hydrateRepeatableRow(child as FormComponentDefinitionOutline, value);
+      }
+    }
   }
 
   /* Validation Summary */
@@ -566,8 +675,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     _item: RichTextEditorFieldComponentDefinitionOutline
   ): Promise<void> {}
 
-  async visitRichTextEditorFieldModelDefinition(item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {
-    const value = item?.config?.value;
+  async visitRichTextEditorFieldModelDefinition(_item: RichTextEditorFieldModelDefinitionOutline): Promise<void> {}
+
+  private sanitizeRichTextValue(item: RichTextEditorFormComponentDefinitionOutline): void {
+    const value = item.model?.config?.value;
     if (typeof value !== 'string' || !value) {
       return;
     }
@@ -590,39 +701,50 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
     if (mode === 'reject') {
       // Report validation error, do NOT mutate
-      this.validationErrors.push({
-        id: componentName,
-        message: componentName,
-        errors: [
-          {
-            class: 'htmlUnsafe',
-            message: '@validator-error-html-unsafe',
-            params: { actual: value },
-          },
-        ],
-        lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
-      });
-    } else {
-      // Default: sanitize in-place, report as warning
-      if (item.config) {
-        item.config.value = sanitized;
+      if (!this.transformationOnly) {
+        this.validationErrors.push({
+          id: componentName,
+          message: componentName,
+          errors: [
+            {
+              class: 'htmlUnsafe',
+              message: '@validator-error-html-unsafe',
+              params: { actual: value },
+            },
+          ],
+          lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+        });
       }
-      this.validationErrors.push({
-        id: componentName,
-        message: componentName,
-        errors: [
-          {
-            class: 'htmlSanitized',
-            message: '@validator-warning-html-sanitized',
-            params: {},
-          },
-        ],
-        lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+    } else {
+      // Default: sanitize before validators and report through the typed
+      // transformation channel, never through an ordinary validator class.
+      if (item.model?.config) {
+        item.model.config.value = sanitized;
+      }
+      const dataModelPath = this.formPathHelper.formPath.dataModel;
+      this.transformations.push({
+        kind: 'rich-html-sanitized',
+        dataModelPath,
+        sourceValue: value,
+        value: sanitized,
+        advisorySummary: {
+          id: componentName,
+          message: componentName,
+          errors: [
+            {
+              class: 'htmlSanitized',
+              message: '@validator-warning-html-sanitized',
+              params: {},
+            },
+          ],
+          lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
+        },
       });
     }
   }
 
   async visitRichTextEditorFormComponentDefinition(item: RichTextEditorFormComponentDefinitionOutline): Promise<void> {
+    this.sanitizeRichTextValue(item);
     await this.acceptFormComponentDefinition(item);
   }
 
@@ -768,13 +890,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
   }
 
   protected async acceptFormComponentDefinition(item: FormComponentDefinitionOutline) {
-    const validationErrors = await this.validateFormComponent(
-      item?.name,
-      item?.model?.config?.value,
-      item?.model?.config?.validators,
-      item?.layout?.config?.label
-    );
-    this.validationErrors.push(...validationErrors);
+    if (!this.transformationOnly) {
+      const validationErrors = await this.validateFormComponent(
+        item?.name,
+        item?.model?.config?.value,
+        item?.model?.config?.validators,
+        item?.layout?.config?.label
+      );
+      this.validationErrors.push(...validationErrors);
+    }
     await this.formPathHelper.acceptFormComponentDefinition(item);
   }
 
@@ -789,18 +913,22 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     const availableValidatorGroups = this.form?.validationGroups ?? {};
     const result: FormValidatorSummaryErrors[] = [];
     if (Array.isArray(validators) && validators.length > 0) {
-      // ensure jsonata-expression validators can be evaluated
-      this.validatorSupport.assignJsonataEvaluators(
-        validators,
-        (validator: FormValidatorConfig, index: number): unknown => {
-          const expr = validator?.config?.['expression']?.toString() ?? '';
-          return this.jsonataEvaluatorFactory(expr);
-        }
-      );
+      // Select the validators for this pass before preparing executable
+      // configuration. In particular, an advisory-only JSONata expression
+      // must not compile or execute during the blocking pass.
       const filteredValidators = this.validatorSupport.enabledValidators(
         availableValidatorGroups,
         this.enabledValidationGroups,
         validators
+      ).filter(validator => !this.isValidatorExclusiveToGroups(availableValidatorGroups, validator));
+
+      // ensure jsonata-expression validators can be evaluated
+      this.validatorSupport.assignJsonataEvaluators(
+        filteredValidators,
+        (validator: FormValidatorConfig, index: number): unknown => {
+          const expr = validator?.config?.['expression']?.toString() ?? '';
+          return this.jsonataEvaluatorFactory(expr);
+        }
       );
 
       const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
@@ -814,14 +942,18 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
 
       // async
       for (const formValidatorFn of formValidatorFns.asyncDefs) {
+        this.checkDeadline();
         const funcResult = await formValidatorFn(recordFormControl);
+        this.checkDeadline();
         const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
         summaryErrors.errors.push(...compErrors);
       }
 
       // sync
       for (const formValidatorFn of formValidatorFns.syncDefs) {
+        this.checkDeadline();
         const funcResult = formValidatorFn(recordFormControl);
+        this.checkDeadline();
         const compErrors = this.validatorSupport.getFormValidatorComponentErrors(funcResult);
         summaryErrors.errors.push(...compErrors);
       }
@@ -833,6 +965,31 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     }
 
     return result;
+  }
+
+  private isValidatorExclusiveToGroups(
+    availableGroups: NonNullable<FormConfigOutline['validationGroups']>,
+    validator: FormValidatorConfig
+  ): boolean {
+    if (this.excludedOnlyValidationGroups.length === 0) return false;
+    // An initial-all group includes ordinary validators by default and can
+    // therefore never prove that a validator is advisory-only.
+    const excluded = new Set(
+      this.excludedOnlyValidationGroups.filter(
+        groupName => availableGroups[groupName]?.initialMembership !== 'all'
+      )
+    );
+    if (excluded.size === 0) return false;
+    const includes = validator?.groups?.include ?? [];
+    const excludes = validator?.groups?.exclude ?? [];
+    this.validatorSupport.checkValidationGroups(availableGroups, includes);
+    this.validatorSupport.checkValidationGroups(availableGroups, excludes);
+    const memberships = Object.entries(availableGroups).flatMap(([groupName, groupConfig]) => {
+      const membership = groupConfig?.initialMembership ?? 'none';
+      const belongs = membership === 'all' ? !excludes.includes(groupName) : includes.includes(groupName);
+      return belongs ? [groupName] : [];
+    });
+    return memberships.length > 0 && memberships.every(groupName => excluded.has(groupName));
   }
 
   private normalizeHtmlForComparison(value: string): string {

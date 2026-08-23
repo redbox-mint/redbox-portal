@@ -24,6 +24,205 @@ describe("Validator Visitor", async () => {
         (global as any).DomSanitizerService = DomSanitizerService;
         (globalThis as any).DomSanitizerService = DomSanitizerService;
     });
+    it('validates every repeatable elementTemplate row with indexed Angular and data lineage', async function () {
+        const formConfig: FormConfigFrame = {
+            name: 'repeatable-server-validation',
+            componentDefinitions: [
+                {
+                    name: 'contributors',
+                    component: {
+                        class: 'RepeatableComponent',
+                        config: {
+                            elementTemplate: {
+                                name: '',
+                                component: {
+                                    class: 'GroupComponent',
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: 'name',
+                                                component: { class: 'SimpleInputComponent' },
+                                                model: {
+                                                    class: 'SimpleInputModel',
+                                                    config: { validators: [{ class: 'required' }] },
+                                                },
+                                                layout: { class: 'DefaultLayout', config: { label: 'Contributor name' } },
+                                            },
+                                        ],
+                                    },
+                                },
+                                layout: { class: 'DefaultLayout', config: {} },
+                            },
+                        },
+                    },
+                    model: { class: 'RepeatableModel', config: {} },
+                    layout: { class: 'DefaultLayout', config: {} },
+                },
+            ],
+        };
+        const constructed = await new ConstructFormConfigVisitor(logger).start({
+            data: formConfig,
+            formMode: 'edit',
+            record: { contributors: [{ name: 'Ada' }, { name: '' }] },
+        });
+        const actual = await new ValidatorFormConfigVisitor(logger).start({
+            form: constructed,
+            enabledValidationGroups: [],
+            validatorDefinitions: formValidatorsSharedDefinitions,
+        });
+
+        expect(actual).to.have.length(1);
+        expect(actual[0]).to.deep.include({ id: 'name', message: 'Contributor name' });
+        expect(actual[0].lineagePaths).to.deep.equal({
+            formConfig: [
+                'componentDefinitions', '0', 'component', 'config', 'elementTemplate',
+                'component', 'config', 'componentDefinitions', '0',
+            ],
+            dataModel: ['contributors', 1, 'name'],
+            angularComponents: ['contributors', 1, 'name'],
+            angularComponentsJsonPointer: '/contributors/1/name',
+            layout: ['contributors-layout', 1, 'name-layout'],
+            layoutJsonPointer: '/contributors-layout/1/name-layout',
+        });
+    });
+    it('checks the shared deadline around every repeatable row', async function () {
+        const formConfig: FormConfigFrame = {
+            name: 'repeatable-deadline',
+            componentDefinitions: [{
+                name: 'rows',
+                component: {
+                    class: 'RepeatableComponent',
+                    config: {
+                        elementTemplate: {
+                            name: '',
+                            component: {
+                                class: 'GroupComponent',
+                                config: {
+                                    componentDefinitions: [{
+                                        name: 'value',
+                                        component: { class: 'SimpleInputComponent' },
+                                        model: { class: 'SimpleInputModel', config: {} },
+                                    }],
+                                },
+                            },
+                        },
+                    },
+                },
+                model: { class: 'RepeatableModel', config: {} },
+            }],
+        };
+        const constructed = await new ConstructFormConfigVisitor(logger).start({
+            data: formConfig,
+            formMode: 'edit',
+            record: { rows: [{ value: 'one' }, { value: 'two' }] },
+        });
+        let checks = 0;
+
+        let failure: unknown;
+        try {
+            await new ValidatorFormConfigVisitor(logger).startWithResult({
+                form: constructed,
+                transformationOnly: true,
+                checkDeadline: () => {
+                    checks += 1;
+                    if (checks === 2) throw new Error('deadline');
+                },
+            });
+        } catch (error) {
+            failure = error;
+        }
+
+        expect(failure).to.be.instanceOf(Error);
+        expect((failure as Error).message).to.equal('deadline');
+        expect(checks).to.equal(2);
+    });
+    it('does not treat an initial-all advisory group as proof that every validator is advisory-only', async function () {
+        const formConfig: FormConfigFrame = {
+            name: 'malformed-advisory-all',
+            validationGroups: {
+                advisory: { description: 'malformed advisory', initialMembership: 'all' },
+            },
+            componentDefinitions: [{
+                name: 'title',
+                component: { class: 'SimpleInputComponent' },
+                model: {
+                    class: 'SimpleInputModel',
+                    config: { validators: [{ class: 'required' }] },
+                },
+            }],
+        };
+        const constructed = await new ConstructFormConfigVisitor(logger).start({
+            data: formConfig,
+            formMode: 'edit',
+            record: { title: '' },
+        });
+
+        const actual = await new ValidatorFormConfigVisitor(logger).start({
+            form: constructed,
+            enabledValidationGroups: [],
+            excludedOnlyValidationGroups: ['advisory'],
+            validatorDefinitions: formValidatorsSharedDefinitions,
+        });
+
+        expect(actual.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
+    });
+    it('prepares JSONata evaluators only after selecting validators for the current pass', async function () {
+        const formConfig: FormConfigFrame = {
+            name: 'selected-jsonata-preparation',
+            validationGroups: {
+                base: { description: 'blocking', initialMembership: 'none' },
+                advisory: { description: 'advisory', initialMembership: 'none' },
+            },
+            componentDefinitions: [{
+                name: 'title',
+                component: { class: 'SimpleInputComponent' },
+                model: {
+                    class: 'SimpleInputModel',
+                    config: {
+                        validators: [{
+                            class: 'jsonata-expression',
+                            groups: { include: ['advisory'] },
+                            config: { expression: ')' },
+                        }],
+                    },
+                },
+            }],
+        };
+        const constructed = await new ConstructFormConfigVisitor(logger).start({
+            data: formConfig,
+            formMode: 'edit',
+            record: { title: 'safe blocking value' },
+        });
+        let preparations = 0;
+        const evaluatorFactory = () => {
+            preparations += 1;
+            throw new Error('invalid advisory JSONata');
+        };
+
+        const blocking = await new ValidatorFormConfigVisitor(logger).start({
+            form: constructed,
+            enabledValidationGroups: ['base'],
+            excludedOnlyValidationGroups: ['advisory'],
+            validatorDefinitions: formValidatorsSharedDefinitions,
+            jsonataEvaluatorFactory: evaluatorFactory,
+        });
+        expect(blocking).to.deep.equal([]);
+        expect(preparations).to.equal(0);
+
+        let advisoryFailure: unknown;
+        try {
+            await new ValidatorFormConfigVisitor(logger).start({
+                form: constructed,
+                enabledValidationGroups: ['advisory'],
+                validatorDefinitions: formValidatorsSharedDefinitions,
+                jsonataEvaluatorFactory: evaluatorFactory,
+            });
+        } catch (error) {
+            advisoryFailure = error;
+        }
+        expect(advisoryFailure).to.be.instanceOf(Error);
+        expect(preparations).to.equal(1);
+    });
     it(`should run only expected validators for initial membership none`, async function () {
         const formConfig: FormConfigFrame = {
             name: "default-1.0-draft",
@@ -605,19 +804,59 @@ describe("Validator Visitor", async () => {
             (globalThis as any).sails = (global as any).sails;
 
             const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = await visitor.start({
+            const validation = await visitor.startWithResult({
                 form: constructed,
                 enabledValidationGroups: ["all"],
                 validatorDefinitions: formValidatorsSharedDefinitions
             });
-
             const richTextField = constructed.componentDefinitions[0] as any;
             expect(richTextField.model.config.value).to.not.contain('<script>');
             expect(richTextField.model.config.value).to.not.contain('onerror');
             expect(richTextField.model.config.value).to.contain('<p>Safe</p>');
 
-            expect(actual).to.have.length(1);
-            expect(actual[0].errors[0].class).to.equal('htmlSanitized');
+            expect(validation.summaries).to.deep.equal([]);
+            expect(validation.transformations).to.have.length(1);
+            expect(validation.transformations[0]).to.deep.include({
+              kind: 'rich-html-sanitized',
+              dataModelPath: ['rich_text'],
+              sourceValue: dirtyHtml,
+              value: richTextField.model.config.value,
+            });
+            expect(validation.transformations[0].advisorySummary.errors[0].class).to.equal('htmlSanitized');
+        });
+
+        it('runs ordinary validators against the sanitized rich-text value', async function () {
+            const formConfig: FormConfigFrame = {
+                name: 'sanitize-before-validation',
+                componentDefinitions: [{
+                    name: 'rich_text',
+                    component: { class: 'RichTextEditorComponent' },
+                    model: {
+                        class: 'RichTextEditorModel',
+                        config: {
+                            defaultValue: '<script>alert(1)</script>',
+                            validators: [{ class: 'required' }],
+                        },
+                    },
+                }],
+            };
+            const constructed = await new ConstructFormConfigVisitor(logger).start({
+                data: formConfig,
+                formMode: 'edit',
+                reusableFormDefs: reusableFormDefinitions,
+            });
+            (global as any).sails = buildSails('sanitize');
+            (globalThis as any).sails = (global as any).sails;
+
+            const validation = await new ValidatorFormConfigVisitor(logger).startWithResult({
+                form: constructed,
+                enabledValidationGroups: [],
+                validatorDefinitions: formValidatorsSharedDefinitions,
+            });
+
+            expect((constructed.componentDefinitions[0] as any).model.config.value).to.equal('');
+            expect(validation.summaries.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
+            expect(validation.transformations).to.have.length(1);
         });
 
         it("should reject dirty HTML when mode is 'reject'", async function () {
