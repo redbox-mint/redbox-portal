@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormService } from '../form.service';
+import { FormComponentEventBus } from '../form-state';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { SimpleInputComponent } from './simple-input.component';
 import { SaveButtonComponent } from './save-button.component';
@@ -85,23 +86,42 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     expect(control?.errors).toBeNull();
   });
 
-  it('should not disable save when only suggested validators fail and the form is dirty', async () => {
-    const { fixture, formComponent } = await createFormAndWaitForReady(baseSuggestedFormConfig({
+  it('should not disable an operation save when only suggested validators fail', async () => {
+    const config = baseSuggestedFormConfig({
       suggestedValue: '',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
       includeSaveButton: true,
-    }));
+    });
+    const saveConfig = config.componentDefinitions[2].component?.config as Record<string, unknown>;
+    saveConfig['operation'] = 'submit';
+    saveConfig['enabledValidationGroups'] = ['all', 'submit'];
+    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus
+      .select$('form.save.requested')
+      .subscribe(event => events.push(event));
+    spyOn(formComponent, 'saveForm').and.stub();
 
-    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
-    control?.setValue('still valid for hard validators');
-    control?.setValue('');
-    formComponent.form!.markAsDirty();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    try {
+      const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+      control?.setValue('still valid for hard validators');
+      control?.setValue('');
+      formComponent.form!.markAsDirty();
+      fixture.detectChanges();
+      await fixture.whenStable();
 
-    const saveButton = fixture.nativeElement.querySelector('redbox-form-save-button button') as HTMLButtonElement | null;
-    expect(formComponent.form!.valid).toBeTrue();
-    expect(saveButton?.disabled).toBeFalse();
+      const saveButton = fixture.nativeElement.querySelector('redbox-form-save-button button') as HTMLButtonElement;
+      expect(formComponent.form!.valid).toBeTrue();
+      expect(saveButton.disabled).toBeFalse();
+
+      saveButton.click();
+      await fixture.whenStable();
+      expect(events[0].operation).toBe('submit');
+      expect(events[0].enabledValidationGroups).toEqual(['all', 'submit']);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('should support includeTabLabel through inherited label rendering', async () => {

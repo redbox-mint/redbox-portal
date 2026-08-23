@@ -66,6 +66,59 @@ describe("RecordService", () => {
     await updatePromise;
   });
 
+  it("sends operation intent on create, update, and target-step transition requests", async () => {
+    const createPromise = recordService.create({ title: "Draft" }, "rdmp", "", "draft");
+    const createRequest = httpTestingController.expectOne(request =>
+      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
+      request.params.get("operation") === "draft" &&
+      !request.params.has("targetStep")
+    );
+    expect(createRequest.request.method).toBe("POST");
+    expect(createRequest.request.params.keys()).toEqual(["operation"]);
+    createRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-created" } });
+    await createPromise;
+
+    const updatePromise = recordService.update("oid-123", { title: "Saved" }, "", "save");
+    const updateRequest = httpTestingController.expectOne(request =>
+      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+      request.params.get("operation") === "save" &&
+      !request.params.has("targetStep")
+    );
+    expect(updateRequest.request.method).toBe("PUT");
+    updateRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    await updatePromise;
+
+    const transitionPromise = recordService.update(
+      "oid-123",
+      { title: "Submitted" },
+      "review",
+      "submit"
+    );
+    const transitionRequest = httpTestingController.expectOne(request =>
+      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+      request.params.get("targetStep") === "review" &&
+      request.params.get("operation") === "submit"
+    );
+    expect(transitionRequest.request.method).toBe("PUT");
+    expect(transitionRequest.request.params.has("enabledValidationGroups")).toBeFalse();
+    transitionRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    await transitionPromise;
+  });
+
+  it("keeps no-operation save requests compatible", async () => {
+    const updatePromise = recordService.update("oid-123", { title: "Legacy" }, "review");
+    const request = httpTestingController.expectOne(request =>
+      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+      request.params.get("targetStep") === "review" &&
+      !request.params.has("operation")
+    );
+    expect(request.request.method).toBe("PUT");
+    expect(request.request.params.has("operation")).toBeFalse();
+
+    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    await updatePromise;
+  });
+
   it("normalises a persisted warning without losing the oid", async () => {
     const updatePromise = recordService.update("oid-123", { title: "Test record" });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
@@ -115,6 +168,45 @@ describe("RecordService", () => {
     expect(result.problems[0].kind).toBe("validation");
     expect(result.problems[0].issues[0].pointer).toBe("/metadata/title");
     expect(result.problems[0].issues[0].code).toBe("required");
+  });
+
+  it("preserves safe validator ownership and lineage from validation errors", async () => {
+    const createPromise = recordService.create({ title: "Test record" }, "rdmp", "", "submit");
+    const request = httpTestingController.expectOne(request =>
+      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
+      request.params.get("operation") === "submit"
+    );
+    request.flush(
+      {
+        errors: [{
+          detail: "@validator-error-required",
+          code: "record-validation-failed",
+          class: "required",
+          params: { required: true },
+          targetField: { dataModel: ["title"] },
+          lineagePaths: {
+            dataModel: ["contributors", 0, "name"],
+            angularComponents: ["contributors", 0, "name"],
+          },
+          rawException: "must not survive",
+        }],
+      },
+      { status: 400, statusText: "Bad Request" }
+    );
+
+    const issue = (await createPromise).problems[0].issues[0];
+    expect(issue).toEqual({
+      message: "@validator-error-required",
+      code: "record-validation-failed",
+      class: "required",
+      params: { required: true },
+      targetField: { dataModel: ["title"] },
+      lineagePaths: {
+        dataModel: ["contributors", 0, "name"],
+        angularComponents: ["contributors", 0, "name"],
+      },
+    });
+    expect(JSON.stringify(issue)).not.toContain("must not survive");
   });
 
   it("keeps a dispatched save uncertain when the response cannot be interpreted", async () => {

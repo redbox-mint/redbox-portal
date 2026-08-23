@@ -172,6 +172,8 @@ export interface SaveRedirectEventConfig extends RedirectLocationEventBase {
 export interface SaveOperationEventConfig {
   readonly force?: boolean;
   readonly enabledValidationGroups?: string[];
+  /** Server-owned validation intent; client validation groups remain UX-only. */
+  readonly operation?: string;
   readonly targetStep?: string;
 }
 

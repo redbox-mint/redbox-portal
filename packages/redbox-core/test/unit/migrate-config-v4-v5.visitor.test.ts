@@ -1537,7 +1537,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(modelConfig.disabled).to.be.true;
   });
 
-  it('migrates SaveButton targetStep into the v5 component config', async function () {
+  it('migrates SaveButton operation intent without dropping legacy validation groups', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(logger);
     const migrated = await visitor.start({
       data: {
@@ -1547,7 +1547,9 @@ describe('Migrate v4 to v5 Visitor', async () => {
             class: 'SaveButton',
             definition: {
               name: 'save-and-submit',
+              operation: 'submit',
               targetStep: 'queued',
+              enabledValidationGroups: ['all', 'transitionDraftToSubmitted'],
             },
           },
         ],
@@ -1557,7 +1559,10 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('SaveButtonComponent');
-    expect((migratedField.component.config as Record<string, unknown>)?.targetStep).to.equal('queued');
+    const migratedConfig = migratedField.component.config as Record<string, unknown>;
+    expect(migratedConfig.operation).to.equal('submit');
+    expect(migratedConfig.targetStep).to.equal('queued');
+    expect(migratedConfig.enabledValidationGroups).to.deep.equal(['all', 'transitionDraftToSubmitted']);
   });
 
   it('migrates the legacy workspace selector and preserves its configuration', async function () {

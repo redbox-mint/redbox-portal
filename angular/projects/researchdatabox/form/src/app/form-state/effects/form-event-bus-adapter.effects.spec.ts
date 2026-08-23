@@ -513,6 +513,7 @@ describe('FormEventBusAdapterEffects', () => {
         ...createFormSaveRequestedEvent({
           force: true,
           enabledValidationGroups: ["none"],
+          operation: 'submit',
           targetStep: 'next',
           closeOnSave: true,
           redirectLocation: 'redirect-location/one',
@@ -527,6 +528,7 @@ describe('FormEventBusAdapterEffects', () => {
       expect(promoted[0]).toEqual(jasmine.objectContaining({
         force: true,
         enabledValidationGroups: ["none"],
+        operation: 'submit',
         targetStep: 'next',
         closeOnSave: true,
         redirectLocation: 'redirect-location/one',
