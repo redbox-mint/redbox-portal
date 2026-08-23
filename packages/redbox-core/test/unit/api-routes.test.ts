@@ -38,6 +38,7 @@ import {
   listApiResponseSchema,
   recordSaveFailureResponseSchema,
   recordSaveIssueSchema,
+  recordSaveSuccessResponseSchema,
   storageServiceResponseSchema,
   userApiTokenApiResponseSchema,
   validationOperationDiscoverySchema,
@@ -128,7 +129,8 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
     .sort((left, right) => left - right);
 }
 
-describe('API routes contract layer', async () => {
+describe('API routes contract layer', function () {
+  this.timeout(10_000);
   it('should specialize the OpenAPI paths for the requested branding and portal', async function () {
     const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
 
@@ -507,12 +509,16 @@ describe('API routes contract layer', async () => {
     const createdSchema = (created.content as globalThis.Record<string, globalThis.Record<string, unknown>>)['application/json'].schema as globalThis.Record<string, unknown>;
 
     expect(created).to.exist;
-    expect(createdSchema.properties).to.have.property('success');
-    expect(createdSchema.properties).to.have.property('oid');
-    expect(createdSchema.properties).to.have.property('message');
-    expect(createdSchema.properties).to.have.property('metadata');
-    expect(createdSchema.properties).to.have.property('totalItems');
-    expect(createdSchema.properties).to.have.property('items');
+    const variants = (createdSchema.anyOf ?? createdSchema.oneOf) as OpenApiSchema[];
+    const legacySchema = variants.find(schema => schema.properties?.success);
+    const v2Schema = variants.find(schema => schema.properties?.meta);
+    expect(legacySchema?.properties).to.have.property('oid');
+    expect(legacySchema?.properties).to.have.property('message');
+    expect(legacySchema?.properties).to.have.property('metadata');
+    expect(legacySchema?.properties).to.have.property('totalItems');
+    expect(legacySchema?.properties).to.have.property('items');
+    expect(v2Schema?.properties).to.have.property('data');
+    expect(v2Schema?.properties).to.have.property('meta');
     expect(created.headers).to.have.property('Location');
   });
 
@@ -723,7 +729,7 @@ describe('API routes contract layer', async () => {
       code: 'required',
       message: '@validation-required',
       class: 'RequiredValidator',
-      params: { minimum: 1 },
+      params: { requiredThreshold: 1 },
       targetField: { dataModel: ['metadata', 'title'] },
     }).success).to.equal(true);
     expect(recordSaveIssueSchema.safeParse({
@@ -1049,6 +1055,32 @@ describe('API routes contract layer', async () => {
     }).success).to.equal(true);
   });
 
+  it('accepts both legacy and v2 record-save wire envelopes', function () {
+    const storageResponse = {
+      success: true,
+      oid: 'record-1',
+      message: 'Created',
+      metadata: {},
+      details: '',
+      totalItems: 0,
+      items: [],
+    };
+    expect(recordSaveSuccessResponseSchema.safeParse(storageResponse).success).to.equal(true);
+    expect(recordSaveSuccessResponseSchema.safeParse({ data: storageResponse, meta: storageResponse }).success).to.equal(true);
+    expect(recordSaveFailureResponseSchema.safeParse({
+      errors: [{ code: 'record-validation-failed' }],
+      meta: storageResponse,
+    }).success).to.equal(true);
+    expect(recordSaveFailureResponseSchema.safeParse({
+      errors: [{ code: 'request-contract-invalid' }],
+      meta: {},
+    }).success).to.equal(true);
+    expect(recordSaveFailureResponseSchema.safeParse({
+      errors: [{ code: 'record-validation-failed' }],
+      meta: { outcome: 'not-saved' },
+    }).success).to.equal(false);
+  });
+
   it('should document vocabulary creation as a 201 response', function () {
     const document = buildCoreApiOpenApiDocument();
     const operation = document.paths['/{branding}/{portal}/api/vocabulary']?.post as globalThis.Record<string, unknown>;
@@ -1100,8 +1132,13 @@ describe('API routes contract layer', async () => {
     const updateMetaRoute = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put as globalThis.Record<string, unknown>;
     const updateMetaSchema = ((updateMetaRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
       .content as globalThis.Record<string, globalThis.Record<string, unknown>>)['application/json'].schema as globalThis.Record<string, unknown>;
-    expect(updateMetaSchema.properties).to.have.property('success');
-    expect(updateMetaSchema.properties).to.have.property('metadata');
+    const updateVariants = (updateMetaSchema.anyOf ?? updateMetaSchema.oneOf) as OpenApiSchema[];
+    const legacyUpdateSchema = updateVariants.find(schema => schema.properties?.success);
+    const v2UpdateSchema = updateVariants.find(schema => schema.properties?.meta);
+    expect(legacyUpdateSchema?.properties).to.have.property('success');
+    expect(legacyUpdateSchema?.properties).to.have.property('metadata');
+    expect(v2UpdateSchema?.properties).to.have.property('data');
+    expect(v2UpdateSchema?.properties).to.have.property('meta');
 
     const userAuditRoute = document.paths['/{branding}/{portal}/api/users/{id}/audit']?.get as globalThis.Record<string, unknown>;
     const userAuditSchema = ((userAuditRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']

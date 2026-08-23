@@ -55,6 +55,13 @@ export const RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS = {
 export const RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH = 128;
 export const RECORD_SAVE_MESSAGE_MAX_LENGTH = 1_024;
 export const RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]*$/;
+export const RECORD_SAVE_PUBLIC_FIELD_LIMITS = {
+  maxCodeLength: 128,
+  maxFieldLength: 128,
+  maxPointerLength: 2_048,
+  maxAttachmentIdLength: 128,
+} as const;
+export const RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 export const RECORD_SAVE_LINEAGE_LIMITS = {
   maxSegments: 64,
@@ -91,24 +98,46 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function safeValidatorParameterPrimitive(value: unknown): RecordSaveValidatorParameterPrimitive | undefined {
-  if (value === null || typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : undefined;
-  }
-  if (typeof value === 'string') {
-    return value.slice(0, RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxStringLength);
-  }
-  return undefined;
+type PublicValidatorParameterRule = 'boolean' | 'number' | 'source-type';
+
+/**
+ * Validator parameters are not a generic public bag. This allowlist contains
+ * only bounded derived facts needed by shipped translations; submitted values,
+ * configured patterns/expressions/descriptions, and provider details stay
+ * server-side.
+ */
+const PUBLIC_VALIDATOR_PARAMETER_RULES: Readonly<Record<string, Readonly<Record<string, PublicValidatorParameterRule>>>> = {
+  min: { requiredThreshold: 'number' },
+  max: { requiredThreshold: 'number' },
+  minLength: { actualLength: 'number', requiredLength: 'number' },
+  maxLength: { actualLength: 'number', requiredLength: 'number' },
+  required: { required: 'boolean' },
+  requiredTrue: { required: 'boolean' },
+  'different-values': { controlCount: 'number', valueCount: 'number' },
+  'typeahead-source': { multiSelect: 'boolean', sourceType: 'source-type' },
+};
+
+function safeValidatorParameterForRule(
+  value: unknown,
+  rule: PublicValidatorParameterRule
+): RecordSaveValidatorParameterPrimitive | undefined {
+  if (rule === 'number') return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  if (rule === 'boolean') return typeof value === 'boolean' ? value : undefined;
+  return value === 'static' || value === 'vocabulary' || value === 'query' || value === 'service'
+    ? value
+    : undefined;
 }
 
-/** Remove nested, executable, excessive, and otherwise unsafe validator parameters. */
-export function sanitizeRecordSaveValidatorParameters(value: unknown): RecordSaveValidatorParameters | undefined {
+/** Remove non-allowlisted, executable, excessive, and otherwise unsafe validator parameters. */
+export function sanitizeRecordSaveValidatorParameters(
+  value: unknown,
+  validatorClass?: unknown
+): RecordSaveValidatorParameters | undefined {
   if (!isPlainRecord(value)) {
     return undefined;
   }
+  const rules = typeof validatorClass === 'string' ? PUBLIC_VALIDATOR_PARAMETER_RULES[validatorClass] : undefined;
+  if (!rules) return undefined;
   const result: RecordSaveValidatorParameters = {};
   let acceptedEntries = 0;
   for (const [key, rawValue] of Object.entries(value)) {
@@ -121,20 +150,8 @@ export function sanitizeRecordSaveValidatorParameters(value: unknown): RecordSav
     ) {
       continue;
     }
-
-    let safeValue: RecordSaveValidatorParameterValue | undefined;
-    if (Array.isArray(rawValue)) {
-      const safeArray: RecordSaveValidatorParameterPrimitive[] = [];
-      for (const item of rawValue.slice(0, RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxArrayLength)) {
-        const safeItem = safeValidatorParameterPrimitive(item);
-        if (safeItem !== undefined) {
-          safeArray.push(safeItem);
-        }
-      }
-      safeValue = rawValue.length === 0 || safeArray.length > 0 ? safeArray : undefined;
-    } else {
-      safeValue = safeValidatorParameterPrimitive(rawValue);
-    }
+    const rule = rules[key];
+    const safeValue = rule ? safeValidatorParameterForRule(rawValue, rule) : undefined;
 
     if (safeValue === undefined) {
       continue;
@@ -207,15 +224,38 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
   const issue: RecordSaveIssue = {
     message: typeof item.message === 'string' ? item.message.slice(0, RECORD_SAVE_MESSAGE_MAX_LENGTH) : '',
   };
-  for (const key of ['code', 'field', 'pointer', 'attachmentId'] as const) {
-    if (typeof item[key] === 'string') {
-      issue[key] = item[key];
-    }
-  }
-  if (typeof item.class === 'string' && item.class.length <= RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH) {
+  const code = item.code;
+  if (
+    typeof code === 'string' &&
+    code.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxCodeLength &&
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(code)
+  ) issue.code = code;
+  const field = item.field;
+  if (
+    typeof field === 'string' &&
+    field.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength &&
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(field)
+  ) issue.field = field;
+  const pointer = item.pointer;
+  if (
+    typeof pointer === 'string' &&
+    pointer.startsWith('/') &&
+    pointer.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength
+  ) issue.pointer = pointer;
+  const attachmentId = item.attachmentId;
+  if (
+    typeof attachmentId === 'string' &&
+    attachmentId.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxAttachmentIdLength &&
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(attachmentId)
+  ) issue.attachmentId = attachmentId;
+  if (
+    typeof item.class === 'string' &&
+    item.class.length <= RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH &&
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(item.class)
+  ) {
     issue.class = item.class;
   }
-  const params = sanitizeRecordSaveValidatorParameters(item.params);
+  const params = sanitizeRecordSaveValidatorParameters(item.params, issue.class);
   if (params !== undefined) {
     issue.params = params;
   }

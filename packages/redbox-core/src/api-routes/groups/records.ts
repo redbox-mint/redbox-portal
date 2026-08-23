@@ -23,6 +23,7 @@ import {
   recordMetadataSchema,
   recordOperationQuery,
   recordSaveFailureResponseSchema,
+  recordSaveSuccessResponseSchema,
   recordUpdateQuery,
   recordTypeParams,
   recordAuthorizationSchema,
@@ -78,7 +79,7 @@ export const createRecordRoute = apiRoute(
     responses: {
       201: {
         description: 'Record created',
-        content: { 'application/json': { schema: storageServiceResponseSchema } },
+        content: { 'application/json': { schema: recordSaveSuccessResponseSchema } },
         headers: {
           Location: stringField('Location of the created record'),
         },
@@ -111,7 +112,7 @@ export const updateMetaRoute = apiRoute(
     tags: ['Records'],
     summary: 'Update record metadata',
     responses: {
-      200: responseField(storageServiceResponseSchema, 'Record metadata updated'),
+      200: responseField(recordSaveSuccessResponseSchema, 'Record metadata updated'),
       400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
       403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
       500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
@@ -178,7 +179,12 @@ export const updateObjectMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update object metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Object metadata updated') },
+    responses: {
+      200: responseField(recordSaveSuccessResponseSchema, 'Object metadata updated'),
+      400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: responseField(recordSaveFailureResponseSchema, 'Record authorization failure'),
+      500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 
@@ -590,7 +596,7 @@ export const transitionWorkflowRoute = apiRoute(
     tags: ['Records'],
     summary: 'Transition workflow step',
     responses: {
-      200: responseField(storageServiceResponseSchema, 'Workflow transition complete'),
+      200: responseField(recordSaveSuccessResponseSchema, 'Workflow transition complete'),
       400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
       403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
       500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),

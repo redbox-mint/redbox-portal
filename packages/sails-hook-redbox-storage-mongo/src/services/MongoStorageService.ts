@@ -277,7 +277,19 @@ export namespace Services {
         _.unset(record, '_id');
         _.unset(record, 'id');
 
-        const updated = await Record.updateOne({ redboxOid: oid }).set(record);
+        const activeBrandId = String(brand?.id ?? '').trim();
+        const candidateSuppliesMetaMetadata = Object.prototype.hasOwnProperty.call(record, 'metaMetadata');
+        const candidateBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '').trim();
+        if (activeBrandId && candidateSuppliesMetaMetadata && candidateBrandId !== activeBrandId) {
+          response.success = false;
+          response.applicationState = 'not-applied';
+          response.message = 'Record was not found';
+          return response;
+        }
+        const criteria = activeBrandId
+          ? { redboxOid: oid, 'metaMetadata.brandId': activeBrandId }
+          : { redboxOid: oid };
+        const updated = await Record.updateOne(criteria).set(record);
         // Waterline adapters may resolve an update with no matched record.
         // A missing result is a certified non-write, not an applied mutation.
         if (updated == null || (Array.isArray(updated) && updated.length === 0)) {

@@ -29,9 +29,10 @@ export interface StorageService {
 
   /**
    * Persist an audit synchronously and report whether it was durably applied.
-   * Required because validation bypasses must fail closed before record storage.
+   * Legacy/out-of-tree storage hooks may omit this method; operations requiring
+   * durable validation audit then fail closed before record storage.
    */
-  createRecordAudit(record: unknown): Promise<StorageServiceResponse>;
+  createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
   createIntegrationAudit?(record: unknown): Promise<StorageServiceResponse>;
   exists(oid: unknown): Promise<boolean>;
   getRecordAudit(params: unknown): Promise<unknown>;

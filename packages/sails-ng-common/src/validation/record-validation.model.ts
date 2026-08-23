@@ -124,5 +124,7 @@ export interface RecordValidationDiagnostic {
   group?: string;
   field?: string;
   pointer?: string;
+  /** Safe configured expression name; never an expression source or value. */
+  expressionName?: string;
   validatorClass?: string;
 }

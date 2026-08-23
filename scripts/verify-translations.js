@@ -132,6 +132,45 @@ const metadata = readJson('language-defaults/meta.json');
 const english = flatten(readJson('language-defaults/en/translation.json'));
 readJson('language-defaults/language-names.json');
 
+function requireEnglishMetadata(keys, sourceDescription) {
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(english, key)) {
+      errors.push(`language-defaults/en/translation.json: '${key}' required by ${sourceDescription} is missing`);
+    }
+    if (!Object.prototype.hasOwnProperty.call(metadata, key)) {
+      errors.push(`language-defaults/meta.json: '${key}' required by ${sourceDescription} is missing`);
+    }
+  }
+}
+
+const recordsServiceSource = fs.readFileSync(
+  path.join(repositoryRoot, 'packages/redbox-core/src/services/RecordsService.ts'),
+  'utf8'
+);
+const saveCodesBlock = recordsServiceSource.match(
+  /const RECORD_VALIDATION_SAVE_CODES = \{([\s\S]*?)\}\s+as const;/
+);
+if (!saveCodesBlock) {
+  errors.push('packages/redbox-core/src/services/RecordsService.ts: record-validation save-code registry was not found');
+} else {
+  const saveTranslationKeys = [...saveCodesBlock[1].matchAll(/['"](record-validation-[a-z-]+)['"]/g)]
+    .map(match => `@record-save-${match[1]}`);
+  requireEnglishMetadata(saveTranslationKeys, 'RECORD_VALIDATION_SAVE_CODES');
+}
+
+const validatorTranslationKeys = new Set();
+for (const relativePath of [
+  'packages/redbox-core/src/services/RecordValidationService.ts',
+  'packages/redbox-core/src/visitor/validator.visitor.ts',
+  'packages/sails-ng-common/src/validation/validators.ts',
+]) {
+  const source = fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
+  for (const match of source.matchAll(/['"](@validator-(?:error|warning)-[A-Za-z0-9._:-]+)['"]/g)) {
+    validatorTranslationKeys.add(match[1]);
+  }
+}
+requireEnglishMetadata(validatorTranslationKeys, 'authoritative validator messages');
+
 for (const relativePath of fs.readdirSync(defaultsRoot, { withFileTypes: true })) {
   if (!relativePath.isDirectory()) continue;
   const localeRoot = path.join(defaultsRoot, relativePath.name);
