@@ -4854,6 +4854,11 @@
     "description": "Audit action label for the unvalidated direct-storage batch path",
     "contentFormat": "plain"
   },
+  "@record-audit-action-validation-mode-changed": {
+    "category": "view",
+    "description": "Audit action label for an authoritative record-validation rollout mode change",
+    "contentFormat": "plain"
+  },
   "@record-audit-action-deleted": {
     "category": "view",
     "description": "Audit action label for soft delete events",

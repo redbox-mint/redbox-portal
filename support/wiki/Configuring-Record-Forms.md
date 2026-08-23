@@ -176,10 +176,84 @@ The settings in this section control the behaviour of the entire form.
 | name                    | The label name of the form. This should match the < form-name > value.                                                                                                                                                           | Yes                      | rdmp-1.0-draft                       |
 | type                    | The type of form (e.g. `rdmp`, `project`, `survey`).                                                                                                                                                                              | Yes                      | rdmp                                 |
 | enabledValidationGroups | The validation groups to enable. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to ["all"]) | ["minimumCreate"]                    |
-| skipValidationOnSave    | Determines whether validation is skipped on save. Set to `false` to enforce validation.                                                                                                                                          | No                       | false                                |
+| skipValidationOnSave    | Legacy browser behavior migrated to validation groups. It does not bypass authoritative server validation.                                                                                                                       | No                       | false                                |
 | editCssClasses          | The CSS classes to apply to each element for styling. These are used in edit mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | viewCssClasses          | The CSS classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
+
+## Authoritative server validation operations
+
+Every metadata-changing save is validated by the server against the complete
+candidate and the exact resolved form. `enabledValidationGroups` still drives
+interactive Angular feedback, but a client cannot make it authoritative by
+sending a different group array.
+
+Forms declare server-owned business intents in `validationOperations`:
+
+```javascript
+validationOperations: {
+  submit: {
+    enabledValidationGroups: ['submit'],
+    label: 'Submit for review',
+    description: 'Validate submission requirements.',
+    roles: ['Researcher'],
+    allowedTargetSteps: ['review']
+  },
+  publish: {
+    enabledValidationGroups: ['publish'],
+    roles: ['Librarian'],
+    allowedTargetSteps: ['published']
+  }
+}
+```
+
+| Property | Meaning |
+|---|---|
+| operation key | Case-sensitive safe name, up to 64 characters |
+| `enabledValidationGroups` | Exact blocking group set applied last for this operation |
+| `label` / `description` | Optional safe discovery text shown to authorized clients |
+| `roles` | Optional restriction intersected with record edit authorization |
+| `allowedTargetSteps` | Optional restriction intersected with authorized transitions |
+
+An omitted operation uses the final form-derived blocking groups. An empty
+enabled-group array retains the established ReDBox meaning of all validators;
+use the declared `none` group to intentionally run none. Advisory groups from
+`SuggestedValidationSummaryComponent` are executed separately and never block.
+
+Record-type configuration may replace groups, restrict policy, and select
+rollout mode:
+
+```javascript
+recordValidation: {
+  mode: 'shadow',
+  operations: {
+    submit: { mode: 'enforce' }
+  }
+}
+```
+
+A workflow stage may refine `recordValidation.operations` groups, roles, and
+allowed target steps, but cannot change mode. Mode precedence is global,
+global operation, record type, then record-type operation.
+
+Save buttons add `operation` while retaining temporary client groups:
+
+```javascript
+config: {
+  label: 'Submit',
+  operation: 'submit',
+  targetStep: 'review',
+  enabledValidationGroups: ['submit']
+}
+```
+
+Server conditional-group expressions run only with deterministic form-ready
+state. Browser event routes such as JSONPointer `::field.value.changed`,
+browser-only JSONata bindings, and expressions with `runOnFormReady: false`
+are not authoritative and produce configuration diagnostics.
+
+See [Migrating Save Buttons to Validation Operations](Migrating-Save-Buttons-to-Validation-Operations)
+and [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations).
 
 ### Messages
 

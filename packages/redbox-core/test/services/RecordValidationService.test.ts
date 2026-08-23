@@ -1359,10 +1359,11 @@ describe('RecordValidationService', function () {
     ).not.to.throw();
   });
 
-  it('emits one safe logger/metrics foundation event per resolution', async function () {
+  it('emits duration, mode/outcome, error, timeout, and configuration telemetry per resolution', async function () {
     const fixture = createRecordValidationFixture();
     const result = await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve({
       ...fixture.request,
+      validationOperation: 'submit',
       requestParameters: { secret: 'never-observed' },
     });
     expect(result.status).to.equal('resolved');
@@ -1371,10 +1372,31 @@ describe('RecordValidationService', function () {
       requestId: 'request-1',
       recordType: 'dataset',
       formName: 'dataset-2.4-draft',
+      operation: 'submit',
       mode: 'shadow',
       status: 'resolved',
+      outcome: 'valid',
+      shouldBlock: false,
+      wouldBlock: false,
+      blockingErrorCount: 0,
+      advisoryErrorCount: 0,
+      timeoutKind: 'none',
+      configurationDiagnosticCount: 0,
     });
+    expect(fixture.metricEvents[0].durationMs).to.be.a('number').and.at.least(0);
     expect(JSON.stringify(fixture.metricEvents)).not.to.contain('never-observed');
+
+    const log = (global as any).sails.log.info.lastCall.args[1];
+    expect(log).to.deep.include({
+      event: 'record_validation_completed',
+      request_id: 'request-1',
+      record_type: 'dataset',
+      form: 'dataset-2.4-draft',
+      validation_operation: 'submit',
+      mode: 'shadow',
+      outcome: 'valid',
+    });
+    expect(JSON.stringify(log)).not.to.contain('never-observed');
 
     const failing = createRecordValidationFixture();
     failing.dependencies.loadForm = async () => null;
@@ -1383,7 +1405,64 @@ describe('RecordValidationService', function () {
       recordType: 'dataset',
       formName: 'dataset-2.4-draft',
       status: 'unresolved',
+      outcome: 'configuration-error',
+      wouldBlock: true,
     });
+    expect(failing.metricEvents[0].configurationDiagnosticCount).to.equal(1);
+  });
+
+  it('keeps diagnostics, logs, metrics, and shadow reports free of raw values and request parameters', async function () {
+    const fixture = createRecordValidationFixture({
+      candidate: { metadata: { title: 'raw-secret-title', nested: { token: 'raw-secret-token' } } },
+    });
+    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
+    await service.resolve({
+      ...fixture.request,
+      requestParameters: { secret: 'raw-secret-parameter' },
+      runtimeContext: { credential: 'raw-secret-runtime' },
+      actor: { authenticated: true, roles: ['Researcher', 'raw-secret-role'] },
+    });
+
+    const observable = JSON.stringify({
+      metric: fixture.metricEvents,
+      logs: (global as any).sails.log.info.args,
+      report: service.getShadowReport(),
+    });
+    expect(observable).not.to.match(/raw-secret-title|raw-secret-token|raw-secret-parameter|raw-secret-runtime|raw-secret-role/);
+    expect(service.getShadowReport()).to.deep.include({ totalRuns: 1, overflowRuns: 0, maxSeries: 1_000 });
+    expect(service.getShadowReport().rows[0]).to.deep.include({
+      recordType: 'dataset',
+      operation: 'strict-all',
+      formName: 'dataset-2.4-draft',
+      code: RECORD_VALIDATION_DIAGNOSTIC_CODES.requestParameterDropped,
+      runs: 1,
+    });
+  });
+
+  it('builds a bounded shadow report by record type, operation, form, and diagnostic code', async function () {
+    (global as any).sails.config.recordValidation.shadowReportMaxSeries = 1;
+    const fixture = createRecordValidationFixture();
+    const loadForm = fixture.dependencies.loadForm;
+    let formUnavailable = false;
+    fixture.dependencies.loadForm = async (formName, brand) =>
+      formUnavailable ? null : await loadForm(formName, brand);
+    const service = new Services.RecordValidation(fixture.dependencies);
+    await service.resolve({ ...fixture.request, validationOperation: 'submit' });
+    formUnavailable = true;
+    await service.resolve({ ...fixture.request, validationOperation: 'submit' });
+
+    const report = service.getShadowReport();
+    expect(report).to.deep.include({ totalRuns: 2, overflowRuns: 1, maxSeries: 1 });
+    expect(report.rows).to.have.length(1);
+    expect(report.rows[0]).to.deep.include({
+      recordType: 'dataset',
+      operation: 'submit',
+      formName: 'dataset-2.4-draft',
+      code: 'none',
+      runs: 1,
+      wouldReject: 0,
+    });
+    expect(report.rows[0].averageDurationMs).to.be.a('number').and.at.least(0);
   });
 
   it('delivers metrics registered through the exported service surface', async function () {
@@ -1425,6 +1504,17 @@ describe('RecordValidationService', function () {
     expect(result.shouldBlock).to.equal(false);
   });
 
+  it('does not let observability failures change resolver behavior', async function () {
+    const fixture = createRecordValidationFixture();
+    (global as any).sails.log.info.throws(new Error('private logger failure'));
+
+    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+
+    expect(result.status).to.equal('resolved');
+    expect(result.shouldBlock).to.equal(false);
+    expect((global as any).sails.log.warn.calledWith('Record validation observability failed.')).to.equal(true);
+  });
+
   it('discovers advisory groups and executes blocking and advisory visitors separately', async function () {
     const form = validationForm({
       validationGroups: {
@@ -1438,7 +1528,9 @@ describe('RecordValidationService', function () {
       fixture.calls.validatorGroups.push([...groups]);
       return groups.includes('advisory') ? [validatorSummary()] : [];
     };
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(
+      await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve(fixture.request)
+    );
 
     expect(result.advisoryGroups).to.deep.equal(['advisory']);
     expect(fixture.calls.validatorGroups).to.deep.equal([['base'], ['advisory']]);
@@ -1446,6 +1538,12 @@ describe('RecordValidationService', function () {
     expect(result.advisoryErrors).to.have.length(1);
     expect(result.shouldBlock).to.equal(false);
     expect(result).not.to.have.any.keys('problems', 'outcome');
+    expect(fixture.metricEvents[0]).to.deep.include({
+      outcome: 'valid',
+      blockingErrorCount: 0,
+      advisoryErrorCount: 1,
+      wouldBlock: false,
+    });
   });
 
   it('uses the existing constructor and ValidatorFormConfigVisitor for both production passes', async function () {
@@ -1588,9 +1686,15 @@ describe('RecordValidationService', function () {
     ).sails.config.recordValidation.timeoutMs = 10;
     const fixture = createRecordValidationFixture();
     fixture.dependencies.executeValidators = async () => await new Promise(() => undefined);
-    const enforce = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const enforce = await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve(fixture.request);
     expect(enforce).to.deep.include({ status: 'unresolved', shouldBlock: true });
     expect(codes(enforce)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
+    expect(fixture.metricEvents[0]).to.deep.include({
+      outcome: 'timed-out',
+      timeoutKind: 'blocking',
+      wouldBlock: true,
+      configurationDiagnosticCount: 0,
+    });
 
     configure('shadow');
     (
@@ -1598,8 +1702,15 @@ describe('RecordValidationService', function () {
     ).sails.config.recordValidation.timeoutMs = 10;
     const shadowFixture = createRecordValidationFixture();
     shadowFixture.dependencies.executeValidators = fixture.dependencies.executeValidators;
-    const shadow = await new Services.RecordValidation(shadowFixture.dependencies).resolve(shadowFixture.request);
+    const shadow = await new Services.RecordValidation(shadowFixture.dependencies, shadowFixture.metrics).resolve(
+      shadowFixture.request
+    );
     expect(shadow).to.deep.include({ status: 'unresolved', shouldBlock: false });
+    expect(shadowFixture.metricEvents[0]).to.deep.include({
+      outcome: 'timed-out',
+      timeoutKind: 'blocking',
+      wouldBlock: true,
+    });
   });
 
   it('keeps advisory timeout diagnostic-only and absorbs a late rejection', async function () {
@@ -1626,10 +1737,15 @@ describe('RecordValidationService', function () {
     process.on('unhandledRejection', listener);
     try {
       const result = requireResolved(
-        await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+        await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve(fixture.request)
       );
       expect(result.shouldBlock).to.equal(false);
       expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout);
+      expect(fixture.metricEvents[0]).to.deep.include({
+        outcome: 'valid',
+        timeoutKind: 'advisory',
+        wouldBlock: false,
+      });
       await new Promise(resolve => setTimeout(resolve, 35));
       expect(unhandled).to.deep.equal([]);
     } finally {
