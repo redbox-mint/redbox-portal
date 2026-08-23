@@ -6,7 +6,7 @@ import os from 'os';
 import path from 'path';
 import * as sinon from 'sinon';
 
-const require = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 
 describe('hook static assets middleware', function () {
   let appPath: string;
@@ -26,7 +26,7 @@ describe('hook static assets middleware', function () {
   }
 
   beforeEach(function () {
-    ({ http, resolveHookStaticAssetPath } = require('../../src/config/http.config'));
+    ({ http, resolveHookStaticAssetPath } = testRequire('../../src/config/http.config'));
 
     originalSails = (global as { sails?: unknown }).sails;
     appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-assets-')));
