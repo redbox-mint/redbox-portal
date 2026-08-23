@@ -48,3 +48,48 @@ API v1 keeps its existing success body shape. The typed result is available in
 the v2 `meta` envelope; v1 callers should continue to use the legacy body and
 legacy save failures retain their historical 500 status. Clients using the v2
 contract must not infer complete follow-up processing from `success` alone.
+
+### Authoritative validation operations
+
+Record create, metadata update, and workflow transition accept the optional
+case-sensitive `operation` query parameter:
+
+```text
+POST /:branding/:portal/api/records/metadata/:recordType?operation=submit
+PUT  /:branding/:portal/api/records/metadata/:oid?operation=submit
+POST /:branding/:portal/api/records/workflow/step/:targetStep/:oid?operation=publish
+```
+
+Request bodies are unchanged. The operation identifies server-owned business
+intent; it is independent of CRUD method and workflow target. The server loads
+the exact candidate form, resolves the operation and authorization policy, and
+applies its exact blocking validation groups. If `operation` is omitted, the
+server uses the authoritative form-derived groups. Unknown or malformed names
+are rejected even while record validation is in shadow mode.
+
+Client `enabledValidationGroups` values are not an API authority input and
+cannot weaken validation. Existing integrations may omit `operation`, but
+workflow-specific clients should use a name advertised by the authorized form
+or workflow metadata.
+
+API v2 validation failures use typed `not-saved` problems:
+
+- blocking form errors: `kind: validation`, `phase: pre-save`, code
+  `record-validation-failed`;
+- form/configuration/expression/execution failures: `kind: system`,
+  `phase: pre-save`, with a stable safe code;
+- operation authorization: `kind: authorization` with
+  `record-validation-operation-unauthorized`;
+- invalid postSync candidate: primary save remains committed and the result is
+  `saved-with-warnings`, `kind: system`, `phase: post-save`.
+
+Issue objects may include safe validator class, bounded parameters, target
+field, pointer, and lineage metadata. They never contain raw validator output,
+record values, request parameters, or exception text. API v1 retains its
+legacy body and status behavior.
+
+The generated OpenAPI product documents the operation query and additive issue
+schema. See [Generated Reference Documentation](Generated-Reference-Documentation)
+for regeneration commands and
+[Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
+for rollout and repair procedures.
