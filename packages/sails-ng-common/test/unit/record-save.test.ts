@@ -54,7 +54,13 @@ describe('record-save contracts', function () {
         field: 'title',
         pointer: '/metadata/title',
         class: 'minLength',
-        params: { actualLength: 2, requiredLength: 3, validatorClasses: ['minLength', 'required'] },
+        params: {
+          actualLength: 2,
+          requiredLength: 3,
+          validatorClasses: ['minLength', 'required'],
+          actual: 'submitted-secret',
+          expression: '$configuredSecret',
+        },
         targetField: { dataModel: ['title'] },
         lineagePaths: {
           formConfig: ['componentDefinitions', 0],
@@ -69,7 +75,7 @@ describe('record-save contracts', function () {
       field: 'title',
       pointer: '/metadata/title',
       class: 'minLength',
-      params: { actualLength: 2, requiredLength: 3, validatorClasses: ['minLength', 'required'] },
+      params: { actualLength: 2, requiredLength: 3 },
       targetField: { dataModel: ['title'] },
       lineagePaths: {
         formConfig: ['componentDefinitions', 0],
@@ -105,22 +111,22 @@ describe('record-save contracts', function () {
   });
 
   it('returns undefined when no safe validator parameters survive', function () {
-    expect(sanitizeRecordSaveValidatorParameters({ nested: { secret: true }, invalid: () => true }))
+    expect(sanitizeRecordSaveValidatorParameters({ nested: { secret: true }, invalid: () => true }, 'required'))
       .to.equal(undefined);
     expect(sanitizeRecordSaveIssue({ message: 'safe', targetField: { unknown: ['secret'] }, lineagePaths: {} }))
       .to.deep.equal({ message: 'safe' });
   });
 
-  it('filters invalid parameter entries before applying the entry bound', function () {
-    const invalidEntries = Object.fromEntries(
-      Array.from({ length: RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxEntries }, (_unused, index) => [
-        `invalid key ${index}`,
-        index,
-      ])
-    );
-    const params = sanitizeRecordSaveValidatorParameters({ ...invalidEntries, validAfterInvalid: true });
+  it('uses validator-specific parameter allowlists', function () {
+    const params = sanitizeRecordSaveValidatorParameters({
+      actualLength: 2,
+      requiredLength: 10,
+      actual: 'submitted-secret',
+      expression: '$configured-secret',
+      description: 'configured-secret-description',
+    }, 'minLength');
 
-    expect(params).to.deep.equal({ validAfterInvalid: true });
+    expect(params).to.deep.equal({ actualLength: 2, requiredLength: 10 });
   });
 
   it('bounds the public issue message', function () {
@@ -128,25 +134,9 @@ describe('record-save contracts', function () {
     expect(issue.message).to.have.length(RECORD_SAVE_MESSAGE_MAX_LENGTH);
   });
 
-  it('bounds parameter entries, arrays, strings, and serialized size', function () {
-    const values = Object.fromEntries(
-      Array.from({ length: 30 }, (_unused, index) => [`item${index}`, 'x'.repeat(1_000)])
-    );
-    const params = sanitizeRecordSaveValidatorParameters({
-      arrayValue: Array.from({ length: 30 }, () => 'value'),
-      ...values,
-    });
-
-    expect(Object.keys(params ?? {})).to.have.length.at.most(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxEntries);
-    expect(JSON.stringify(params).length).to.be.at.most(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxSerializedLength);
-    for (const value of Object.values(params ?? {})) {
-      if (typeof value === 'string') {
-        expect(value.length).to.be.at.most(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxStringLength);
-      }
-      if (Array.isArray(value)) {
-        expect(value.length).to.be.at.most(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxArrayLength);
-      }
-    }
+  it('does not publish arbitrary parameters for unknown or expression validators', function () {
+    expect(sanitizeRecordSaveValidatorParameters({ actual: 'secret' }, 'jsonata-expression')).to.equal(undefined);
+    expect(sanitizeRecordSaveValidatorParameters({ safeLooking: true }, 'third-party-validator')).to.equal(undefined);
   });
 
   it('drops an excessive validator class identifier', function () {
@@ -156,5 +146,16 @@ describe('record-save contracts', function () {
     });
 
     expect(issue).to.deep.equal({ message: '@validator-error' });
+  });
+
+  it('bounds and validates every public issue locator', function () {
+    expect(sanitizeRecordSaveIssue({
+      message: 'safe',
+      code: `bad code ${'x'.repeat(200)}`,
+      field: '../secret',
+      pointer: 'not-a-pointer',
+      attachmentId: `attachment/${'x'.repeat(200)}`,
+      class: 'bad class',
+    })).to.deep.equal({ message: 'safe' });
   });
 });

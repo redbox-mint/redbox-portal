@@ -50,6 +50,7 @@ import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStor
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
+  normalizeRecordValidationRequestFacts,
   parsePublicValidationOperation,
   readSaveRequestId,
   recordSaveFailureStatus,
@@ -186,13 +187,61 @@ export namespace Controllers {
     private saveContext(
       req: Sails.Req,
       operation: RecordSaveOperation,
-      validationOperation?: string
+      validationOperation?: string,
+      targetStep?: string
     ): RecordSaveContext {
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'browser',
         operation,
+        targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
+        validationRequestParameters: normalizeRecordValidationRequestFacts(
+          req.params,
+          req.query
+        ),
+      });
+    }
+
+    /** Read routing intent only from the explicit server-owned source. */
+    private requestString(
+      source: Readonly<globalThis.Record<string, unknown>> | undefined,
+      name: string
+    ): string | undefined {
+      const value = source?.[name];
+      return typeof value === 'string' ? value.trim() || undefined : undefined;
+    }
+
+    private recordBelongsToBrand(record: AnyRecord, brand: BrandingModel): boolean {
+      const activeBrandId = String(brand?.id ?? '').trim();
+      const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '').trim();
+      return Boolean(activeBrandId) && recordBrandId === activeBrandId;
+    }
+
+    private sendUnexpectedSaveFailure(
+      req: Sails.Req,
+      res: Sails.Res,
+      action: 'update' | 'transition',
+      error: unknown,
+      meta?: RecordSaveResponse
+    ) {
+      const rawType = error instanceof Error ? error.name : typeof error;
+      const errorType = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(rawType) ? rawType : 'UnknownError';
+      sails.log.error('record_save_request_failed', {
+        event: 'record_save_request_failed',
+        action,
+        error_type: errorType,
+      });
+      if (this.getApiVersion(req) === '1.0') {
+        return this.sendResp(req, res, {
+          status: 500,
+          v1: { message: TranslationService.t('@record-save-failed') },
+        });
+      }
+      return this.sendResp(req, res, {
+        status: 500,
+        displayErrors: [{ code: 'record-save-failed', title: '@record-save-failed' }],
+        ...(meta ? { meta: { ...meta } } : {}),
       });
     }
 
@@ -830,15 +879,15 @@ export namespace Controllers {
         const record: AnyRecord = {
           metaMetadata: {}
         };
-        const recType = req.param('recordType');
-        const targetStep = req.param('targetStep');
+        const recType = this.requestString(req.params, 'recordType');
+        const targetStep = this.requestString(req.query, 'targetStep');
         record.authorization = {
           view: [req.user!['username']],
           edit: [req.user!['username']]
         };
         record.metadata = metadata;
 
-        const recordType = await firstValueFrom(RecordTypesService.get(brand, recType));
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, recType ?? ''));
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
@@ -850,7 +899,7 @@ export namespace Controllers {
           true,
           true,
           targetStep,
-          this.saveContext(req, targetStep ? 'transition' : 'create', parsedOperation.value)
+          this.saveContext(req, targetStep ? 'transition' : 'create', parsedOperation.value, targetStep)
         );
 
         if (createResponse.wasPersisted()) {
@@ -1019,9 +1068,9 @@ export namespace Controllers {
         });
       }
       const brand: BrandingModel = this.getReqBrand(req);
-      const oid = req.param('oid');
-      const targetStep = req.param('targetStep');
-      const shouldMerge = req.param('merge', 'false')?.toString() === 'true';
+      const oid = this.requestString(req.params, 'oid') ?? '';
+      const targetStep = this.requestString(req.query, 'targetStep');
+      const shouldMerge = this.requestString(req.query, 'merge') === 'true';
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
@@ -1029,6 +1078,9 @@ export namespace Controllers {
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       const currentRec = await firstValueFrom(this.getRecord(oid));
+      if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+      }
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
@@ -1054,7 +1106,7 @@ export namespace Controllers {
           true,
           nextStepResp,
           metadata,
-          this.saveContext(req, nextStepResp ? 'transition' : 'update', parsedOperation.value)
+          this.saveContext(req, targetStep ? 'transition' : 'update', parsedOperation.value, targetStep)
         );
         sails.log.verbose(JSON.stringify(response));
         // Both persisted outcomes are HTTP 200; warnings stay inside the
@@ -1082,14 +1134,7 @@ export namespace Controllers {
           return this.sendSaveFailure(req, res, response, 'Failed to get record data');
         }
       } catch (error) {
-        const errorMessage = this.getErrorMessage(error);
-        sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onUpdate... or Error updating meta:');
-        return this.sendResp(req, res, {
-          errors: [this.asError(error)],
-          displayErrors: [{ detail: errorMessage }],
-          meta: response ? { ...response } : undefined,
-          v1: errorMessage,
-        });
+        return this.sendUnexpectedSaveFailure(req, res, 'update', error, response);
       }
     }
 
@@ -1145,57 +1190,54 @@ export namespace Controllers {
       return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
     }
 
-    public stepTo(req: Sails.Req, res: Sails.Res) {
+    public async stepTo(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const metadata = req.body;
-      const oid = req.param('oid');
-      const targetStep = req.param('targetStep');
-      let origRecord: RecordModel | null = null;
-      return this.getRecord(oid).pipe(flatMap(currentRec => {
-        origRecord = _.cloneDeep(currentRec);
-        return this.hasEditAccess(brand, req.user, currentRec as AnyRecord)
-          .pipe(flatMap(hasEditAccess => {
-            if (!hasEditAccess) {
-              return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
-            }
-            return RecordTypesService.get(brand, origRecord!.metaMetadata.type);
-          })
-            , flatMap(recType => {
-              return WorkflowStepsService.get(recType, targetStep)
-                .pipe(flatMap(nextStep => {
-                  currentRec.metadata = metadata;
-                  sails.log.verbose("Current rec:");
-                  sails.log.verbose(currentRec);
-                  sails.log.verbose("Next step:");
-                  sails.log.verbose(nextStep);
-                  this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep as globalThis.Record<string, unknown>);
-                  return this.updateMetadata(brand, oid, currentRec as AnyRecord, req.user);
-                }));
-            }))
-      }))
-        .subscribe((response: unknown) => {
-          const responseValue = response as Observable<unknown>;
-          return responseValue.subscribe((innerResp: unknown) => {
-            const r = innerResp as AnyRecord & { isSuccessful?: () => boolean; success?: boolean };
-            sails.log.error(r);
-            if (r && r.isSuccessful?.()) {
-              r.success = true;
-              this.sendResp(req, res, { data: r });
-            } else {
-              this.sendResp(req, res, {
-                status: 500,
-                meta: r as AnyRecord,
-                v1: r
-              });
-            }
-          }, (error: Error) => {
-            this.sendResp(req, res, {
-              errors: [this.asError(error)],
-              displayErrors: [{ title: "Error updating meta", detail: error.message }],
-              v1: error.message
-            });
-          });
+      const oid = this.requestString(req.params, 'oid') ?? '';
+      const targetStep = this.requestString(req.params, 'targetStep');
+      const parsedOperation = parsePublicValidationOperation(req.query?.operation);
+      if (!parsedOperation.valid) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ code: 'record-validation-operation-invalid' }],
         });
+      }
+      try {
+        const currentRec = await firstValueFrom(this.getRecord(oid));
+        if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+        }
+        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
+        if (!hasEditAccess) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ code: 'not-authorised', detail: TranslationService.t('edit-error-no-permissions') }],
+          });
+        }
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
+        const nextStep = await firstValueFrom(WorkflowStepsService.get(recordType, targetStep ?? ''));
+        const response = await this.recordsService.updateMeta(
+          brand,
+          oid,
+          currentRec as AnyRecord,
+          req.user ?? {},
+          true,
+          true,
+          nextStep,
+          metadata,
+          this.saveContext(req, 'transition', parsedOperation.value, targetStep)
+        );
+        if (response.wasPersisted()) {
+          return this.sendResp(req, res, {
+            data: response,
+            meta: { ...response },
+            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
+          });
+        }
+        return this.sendSaveFailure(req, res, response, 'Error updating meta');
+      } catch (error) {
+        return this.sendUnexpectedSaveFailure(req, res, 'transition', error);
+      }
     }
 
     public async search(req: Sails.Req, res: Sails.Res) {
