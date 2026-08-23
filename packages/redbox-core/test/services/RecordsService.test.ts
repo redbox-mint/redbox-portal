@@ -1395,7 +1395,7 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves({
         redboxOid: 'record-123',
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
-        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file', pending: false }] },
+        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }] },
       });
       (global as any).FormsService.getFormByName.returns(of({
         name: 'default-form',
@@ -1429,7 +1429,6 @@ describe('RecordsService', function () {
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
     });
-  });
 
     it('reconciles attachments against the independently loaded storage snapshot', async function () {
       const journal = {
@@ -1483,8 +1482,6 @@ describe('RecordsService', function () {
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(journal.prepareMutations.firstCall.args[0].map((item: any) => item.operation).sort())
         .to.deep.equal(['delete', 'finalize']);
-    });
-  });
     });
   });
 
@@ -1634,6 +1631,9 @@ describe('RecordsService', function () {
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
       });
+      (global as any).FormsService.getFormByName.returns(
+        of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
+      );
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -5130,8 +5130,6 @@ describe('RecordsService', function () {
       expect(removeResult.outcome).to.equal('not-saved');
       expect(rejectingService.resolve.calledOnce).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
-    });
-  });
     });
   });
 
