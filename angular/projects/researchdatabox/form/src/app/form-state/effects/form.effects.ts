@@ -191,7 +191,7 @@ export class FormEffects {
    * Publish Execute Command on Submit
    *
    * Listens to submitForm and publishes form.save.execute to the EventBus carrying
-   * { force, enabledValidationGroups, targetStep }. Non-dispatching effect.
+   * { force, enabledValidationGroups, operation, targetStep }. Non-dispatching effect.
    * Per R5.1, R15.3 (Task 14)
    *
    * TODO: Determine if we need to execute additional pluggable logic here in future.
@@ -206,6 +206,7 @@ export class FormEffects {
             createFormSaveExecuteEvent({
               force: action.force,
               enabledValidationGroups: action.enabledValidationGroups,
+              operation: action.operation,
               targetStep: action.targetStep,
               closeOnSave: action.closeOnSave,
               redirectLocation: action.redirectLocation,

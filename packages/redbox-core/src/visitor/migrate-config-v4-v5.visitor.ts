@@ -1513,6 +1513,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.config.redirectLocation = this.buildLegacyUrlTemplate(item.config.redirectLocation);
     }
     this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, field?.definition);
+    this.sharedProps.setPropOverride('operation', item.config, field?.definition);
     this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
     this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);

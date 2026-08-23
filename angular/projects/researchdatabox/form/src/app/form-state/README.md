@@ -102,6 +102,7 @@ export class FormExampleComponent {
     // Submit with optional parameters
     this.facade.submit({ 
       force: false, 
+      operation: 'submit',
       targetStep: 'review',
       enabledValidationGroups: ["all"]
     });
@@ -188,6 +189,7 @@ facade.reload(oid: string, recordType: string, formName: string): void
 // Submit form with optional parameters
 facade.submit(options?: { 
   force?: boolean, 
+  operation?: string,
   targetStep?: string,
   enabledValidationGroups?: string[]
 }): void

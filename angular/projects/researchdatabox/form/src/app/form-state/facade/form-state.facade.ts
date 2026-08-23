@@ -13,7 +13,7 @@ import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
-import {DeleteEventConfig} from "../events";
+import {DeleteEventConfig, SaveOperationEventConfig} from "../events";
 
 /**
  * FormStateFacade
@@ -96,16 +96,18 @@ export class FormStateFacade {
   /**
    * Submit form data
    * @param options.force Force submit even if validation fails
+   * @param options.operation Optional server-owned validation intent
    * @param options.targetStep Optional target workflow step
    * @param options.enabledValidationGroups The validation groups that are currently enabled. This information comes from the top-level form.
    */
-  submit(options?: { force?: boolean; targetStep?: string; enabledValidationGroups?: string[] }): void {
+  submit(options?: SaveOperationEventConfig): void {
     if (this.isBusy()) {
       return;
     }
     this.store.dispatch(
       FormActions.submitForm({
         force: options?.force ?? false,
+        operation: options?.operation,
         targetStep: options?.targetStep,
         enabledValidationGroups: options?.enabledValidationGroups ?? [],
       })

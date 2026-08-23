@@ -34,12 +34,14 @@ import {
   RecordSaveIssue,
   RecordSaveProblem,
   RecordSaveResult,
+  sanitizeRecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
 
 /** Per-request options for a record save. */
 interface SaveRequestOptions {
   headers: HttpHeaders;
   context?: HttpContext;
+  params?: HttpParams;
   responseType: 'json';
   observe: 'body';
 }
@@ -707,10 +709,10 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  public async create(record: any, recordType: string, targetStep: string = '') {
+  public async create(record: any, recordType: string, targetStep: string = '', operation?: string) {
     const requestId = createSaveRequestId();
-    const httpOptions = this.getSaveHttpOptions(requestId);
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}${this.getTargetStepParam(targetStep, '?')}`;
+    const httpOptions = this.getSaveHttpOptions(requestId, targetStep, operation);
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${recordType}`;
     try {
       const result$ = this.http.post(url, record, httpOptions).pipe(map(res => res));
       const result: unknown = await firstValueFrom(result$);
@@ -720,10 +722,10 @@ export class RecordService extends HttpClientService {
     }
   }
 
-  public async update(oid: string, record: any, targetStep: string = '') {
+  public async update(oid: string, record: any, targetStep: string = '', operation?: string) {
     const requestId = createSaveRequestId();
-    const httpOptions = this.getSaveHttpOptions(requestId);
-    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}${this.getTargetStepParam(targetStep, '?')}`;
+    const httpOptions = this.getSaveHttpOptions(requestId, targetStep, operation);
+    const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}`;
     try {
       const result$ = this.http.put(url, record, httpOptions).pipe(map(res => res));
       const result: unknown = await firstValueFrom(result$);
@@ -733,20 +735,34 @@ export class RecordService extends HttpClientService {
     }
   }
 
-  protected getTargetStepParam(targetStep: string, delim: string) {
-    return _isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
+  private getSaveRequestParams(targetStep: string, operation?: string): HttpParams | undefined {
+    let params = new HttpParams();
+    if (!_isEmpty(targetStep)) {
+      params = params.set('targetStep', targetStep);
+    }
+    if (typeof operation === 'string' && operation.length > 0) {
+      params = params.set('operation', operation);
+    }
+    return params.keys().length > 0 ? params : undefined;
   }
 
   /**
    * Build immutable per-request options.  `HttpHeaders.set` returns a new
    * instance, so the shared request options are never mutated between saves.
    */
-  private getSaveHttpOptions(requestId: string): SaveRequestOptions {
+  private getSaveHttpOptions(requestId: string, targetStep: string = '', operation?: string): SaveRequestOptions {
     const base = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
     const headers = (base.headers instanceof HttpHeaders ? base.headers : new HttpHeaders(base.headers ?? {}))
       .set('X-ReDBox-Api-Version', '2.0')
       .set('X-ReDBox-Save-Request-Id', requestId);
-    return { headers, context: base.context, responseType: 'json', observe: 'body' };
+    const params = this.getSaveRequestParams(targetStep, operation);
+    return {
+      headers,
+      context: base.context,
+      ...(params ? { params } : {}),
+      responseType: 'json',
+      observe: 'body',
+    };
   }
 }
 
@@ -867,6 +883,10 @@ export class RecordActionResult implements RecordSaveResult {
       code?: unknown;
       field?: unknown;
       pointer?: unknown;
+      class?: unknown;
+      params?: unknown;
+      targetField?: unknown;
+      lineagePaths?: unknown;
       source?: { pointer?: unknown };
     };
     const pointer = typeof item.pointer === 'string' ? item.pointer
@@ -875,11 +895,15 @@ export class RecordActionResult implements RecordSaveResult {
     const message = typeof item.detail === 'string' ? item.detail
       : typeof item.title === 'string' ? item.title
       : 'The submitted value is invalid.';
-    return {
+    return sanitizeRecordSaveIssue({
       message,
       ...(typeof item.code === 'string' ? { code: item.code } : {}),
       ...(typeof item.field === 'string' ? { field: item.field } : {}),
       ...(pointer ? { pointer } : {}),
-    };
+      class: item.class,
+      params: item.params,
+      targetField: item.targetField,
+      lineagePaths: item.lineagePaths,
+    });
   }
 }
