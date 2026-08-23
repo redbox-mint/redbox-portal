@@ -934,8 +934,8 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
       const formValidatorFns = createFormValidatorFns(this.validatorDefinitionsMap, filteredValidators);
       const recordFormControl = this.createFormControlFromRecordValue(value);
       const summaryErrors: FormValidatorSummaryErrors = {
-        id: itemName,
-        message: message || null,
+        id: typeof itemName === 'string' && itemName.length > 0 ? itemName : null,
+        message: typeof message === 'string' && message.length > 0 ? message : null,
         errors: [],
         lineagePaths: buildLineagePaths(this.formPathHelper.formPath),
       };
