@@ -239,6 +239,16 @@ describe('RecordsService', function () {
   });
 
   describe('record validation rollout audit', function () {
+    it('resolves durable storage when bootstrap runs before the Sails ready event', async function () {
+      RecordsService.storageService = undefined;
+
+      const result = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
+
+      expect(result.status).to.equal('audited');
+      expect(RecordsService.storageService).to.equal(mockStorageService);
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+    });
+
     it('durably records only normalized rollout modes and skips an unchanged fingerprint', async function () {
       mockSails.config.recordValidation = {
         mode: 'shadow',

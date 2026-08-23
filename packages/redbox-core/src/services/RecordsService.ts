@@ -1081,6 +1081,14 @@ export namespace Services {
       status: 'unchanged' | 'audited';
       fingerprint: string;
     }> {
+      // Core bootstrap runs before Sails emits `ready`, so the lifecycle hooks
+      // registered by init() have not necessarily populated storageService yet.
+      // Resolve it synchronously here because rollout auditing is itself a
+      // bootstrap operation and must fail closed only when durable storage is
+      // genuinely unavailable.
+      if (!this.storageService) {
+        this.getStorageService(this);
+      }
       const snapshot = this.rolloutSnapshot(Array.isArray(recordTypes) ? recordTypes : []);
       const fingerprint = this.rolloutFingerprint(snapshot);
       const createAudit = this.storageService?.createRecordAudit;
