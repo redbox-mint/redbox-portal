@@ -143,6 +143,23 @@ Common use-cases:
 
 The app supports hooks that return Observables, Promises, or plain values. Observables are converted to Promises internally.
 
+For create, update, and transition, the final record returned by pre hooks is
+the authoritative pre-save validation candidate and is the record passed to
+persistence. For a targeted create or transition, ReDBox normalizes a missing,
+malformed, or conflicting hook-produced `metaMetadata.form` back to the exact
+form selected by the resolved workflow target before validation and
+persistence. The target itself must resolve before any hook runs. Hook output
+that conflicts with the authoritative brand, record type, or workflow step is
+rejected before persistence. On updates, the stored record type is checked
+before hooks and selects the hook set; candidate metadata cannot invoke another
+record type's hooks. PostSync record mutations are validated again before their
+follow-up metadata write. A hook may return a partial top-level replacement;
+the service merges it with the complete pre-hook candidate while preserving a
+supplied section as a replacement for that section. Validation, secondary
+persistence, and subsequent hooks all receive that same complete merged
+candidate. Hook options such as disabling legacy pre/post trigger execution do
+not bypass this service-boundary validation.
+
 Every awaited phase is executed through a normalized Effect runner. Reports remain
 internal: they are not added to HTTP save responses. A phase report can contain
 `succeeded`, `failed`, `timed_out`, `interrupted`, or `skipped` actions. Detached

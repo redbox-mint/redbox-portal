@@ -11,12 +11,20 @@ import {
   RecordSaveResult,
   RecordSaveOutcome,
   StorageMutationApplicationState,
+  RECORD_VALIDATION_REFERENCE_PATTERN,
   VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
 export type RecordSaveOperation = 'create' | 'update' | 'transition';
+export type RecordValidationContextJSONValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly RecordValidationContextJSONValue[]
+  | { readonly [key: string]: RecordValidationContextJSONValue };
 
 /** Reasons approved for the narrowly scoped internal validation bypass. */
 export const RECORD_VALIDATION_BYPASS_REASONS = [
@@ -67,10 +75,69 @@ export interface RecordSaveContext {
   requestId: string;
   routeFamily?: RecordSaveRouteFamily;
   operation?: RecordSaveOperation;
+  /** Server-owned workflow target copied from the matched route, not inferred from a resolved step object. */
+  targetStep?: string;
   /** Server-owned business intent; never conflated with the CRUD operation. */
   validationOperation?: string;
+  /** Explicit, JSON-only request facts; the validation config allowlist narrows these again. */
+  validationRequestParameters?: Readonly<Record<string, RecordValidationContextJSONValue>>;
+  /** Server-owned, JSON-only execution facts. Never place sessions, headers, or tokens here. */
+  validationRuntimeContext?: Readonly<Record<string, RecordValidationContextJSONValue>>;
   /** Accepted only when routeFamily is explicitly `internal`. */
   validationBypass?: InternalRecordValidationBypass;
+}
+
+export const RECORD_VALIDATION_REQUEST_FACT_NAMES = [
+  'recordType',
+  'targetStep',
+  'merge',
+  'datastreams',
+] as const;
+
+/**
+ * Project the same bounded request facts for browser and API transports.
+ * Sources are checked in order and accessors are never invoked.
+ */
+export function normalizeRecordValidationRequestFacts(
+  ...sources: readonly unknown[]
+): Readonly<Record<string, RecordValidationContextJSONValue>> {
+  const result: Record<string, RecordValidationContextJSONValue> = {};
+  for (const name of RECORD_VALIDATION_REQUEST_FACT_NAMES) {
+    for (const source of sources) {
+      if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+      const descriptor = Object.getOwnPropertyDescriptor(source, name);
+      if (!descriptor || !('value' in descriptor) || descriptor.value === undefined) continue;
+      const value = descriptor.value;
+      if (name === 'recordType' || name === 'targetStep') {
+        const normalized = typeof value === 'string' ? value.trim() : '';
+        if (RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized)) {
+          result[name] = normalized;
+          break;
+        }
+      } else if (value === true || value === false) {
+        result[name] = value;
+        break;
+      } else if (value === 'true' || value === 'false') {
+        result[name] = value === 'true';
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+/** Shared transport-neutral runtime facts; public callers cannot add objects. */
+export function recordValidationRuntimeFacts(
+  context: Pick<RecordSaveContext, 'routeFamily' | 'operation' | 'validationRuntimeContext'>,
+  writeKind: RecordSaveOperation
+): Readonly<Record<string, RecordValidationContextJSONValue>> {
+  const routeFamily = context.routeFamily ?? 'internal';
+  return {
+    ...(routeFamily === 'internal' ? context.validationRuntimeContext ?? {} : {}),
+    routeFamily,
+    writeKind,
+    saveOperation: context.operation ?? writeKind,
+  };
 }
 
 export type PublicValidationOperationParseResult =
@@ -263,7 +330,10 @@ export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}
     requestId: isCanonicalSaveRequestId(context.requestId) ? context.requestId : randomUUID(),
     routeFamily: context.routeFamily,
     operation: context.operation,
+    targetStep: context.targetStep,
     validationOperation: context.validationOperation,
+    validationRequestParameters: context.validationRequestParameters,
+    validationRuntimeContext: context.validationRuntimeContext,
     validationBypass: context.validationBypass,
   };
 }

@@ -3109,6 +3109,81 @@
     "description": "Generic record save failure message",
     "contentFormat": "plain"
   },
+  "@record-save-record-validation-failed": {
+    "category": "validator",
+    "description": "Record save error when blocking server-side validation fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-form-resolution-failed": {
+    "category": "validator",
+    "description": "Record save error when the authoritative form cannot be resolved",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-configuration-failed": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation configuration is invalid",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-timeout": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation exceeds its time budget",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-invalid": {
+    "category": "validator",
+    "description": "Record save error for a malformed or unknown validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot use the requested validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-transition-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot perform the requested transition",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-edit-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot edit the target record",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-snapshot-unavailable": {
+    "category": "validator",
+    "description": "Record save error when the current record snapshot cannot be loaded safely",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-authority-context-divergence": {
+    "category": "validator",
+    "description": "Record save error when hook output conflicts with authoritative record context",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-post-sync-failed": {
+    "category": "validator",
+    "description": "Record save warning when persisted validation state cannot be synchronized",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-invalid": {
+    "category": "validator",
+    "description": "Record save error for malformed authoritative validation bypass metadata",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-forbidden": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation bypass is not permitted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Record save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-batch-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Batch save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
   "@record-save-invalid-attachment-id": {
     "category": "rdmp",
     "description": "Record save error for invalid attachment identity data",
@@ -6232,6 +6307,66 @@
   "@validator-error-any-of": {
     "category": "validator",
     "description": "Error message for a failed any-of validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-record-validation": {
+    "category": "validator",
+    "description": "Safe fallback error message for an authoritative field validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-jsonata-expression": {
+    "category": "validator",
+    "description": "Error message for a failed JSONata expression validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-source-type": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported source type",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-static-options": {
+    "category": "validator",
+    "description": "Typeahead configuration error for missing static options",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-vocab-ref": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid vocabulary reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-query-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid query reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-service-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid service reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-provider": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid provider",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-multi-select-unsupported": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported multiple-selection mode",
+    "contentFormat": "plain"
+  },
+  "@validator-error-map-enabled-modes": {
+    "category": "validator",
+    "description": "Map field configuration error when no supported input mode is enabled",
+    "contentFormat": "plain"
+  },
+  "@validator-error-html-unsafe": {
+    "category": "validator",
+    "description": "HTML field validation error for unsafe markup",
+    "contentFormat": "plain"
+  },
+  "@validator-warning-html-sanitized": {
+    "category": "validator",
+    "description": "HTML field validation warning when unsafe markup is removed",
     "contentFormat": "plain"
   },
   "@lookup-placeholder-party": {
