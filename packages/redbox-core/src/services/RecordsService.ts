@@ -2886,7 +2886,7 @@ export namespace Services {
         oid
       );
       this.saveHookOperations.set(tracker, hookOperation);
-      const brandObj = brand as BrandingModel;
+      let brandObj = brand as BrandingModel;
       const requestedRecord = _.cloneDeep(record) as AnyRecord;
       let originalRecord: AnyRecord | undefined;
       try {
@@ -2898,6 +2898,10 @@ export namespace Services {
         }
       } catch (error) {
         sails.log.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`, error);
+      }
+      const storedBrandId = String(this.recordObject(originalRecord?.metaMetadata).brandId ?? '').trim();
+      if (!String(brandObj?.id ?? '').trim() && storedBrandId) {
+        brandObj = BrandingService.getBrandById(storedBrandId);
       }
       // Keep the caller/hook mutation object separate until the authoritative
       // candidate has been merged, normalized, and validated.
