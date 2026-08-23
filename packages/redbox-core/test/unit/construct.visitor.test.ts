@@ -593,6 +593,9 @@ describe("Construct Visitor", async () => {
                             closeOnSave: true,
                             redirectDelaySeconds: 5,
                             redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                            operation: 'submit',
+                            targetStep: 'review',
+                            enabledValidationGroups: ['all', 'submission'],
                           }
                         }
                       },
@@ -621,6 +624,9 @@ describe("Construct Visitor", async () => {
               closeOnSave: true,
               redirectDelaySeconds: 5,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+              operation: 'submit',
+              targetStep: 'review',
+              enabledValidationGroups: ['all', 'submission'],
             });
             expect(actual.componentDefinitions?.[2]?.component?.class).to.equal("CancelButtonComponent");
             expect(actual.componentDefinitions?.[2]?.component?.config).to.containSubset({

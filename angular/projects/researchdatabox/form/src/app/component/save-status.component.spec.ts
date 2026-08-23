@@ -79,7 +79,11 @@ describe('SaveStatusComponent', () => {
 
     spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
     const store = TestBed.inject(Store);
-    store.dispatch(FormActions.submitForm({ force: true }));
+    store.dispatch(FormActions.submitForm({
+      force: true,
+      operation: 'publish',
+      enabledValidationGroups: ['all', 'publish'],
+    }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
@@ -107,7 +111,11 @@ describe('SaveStatusComponent', () => {
     const store = TestBed.inject(Store);
     const eventBus = TestBed.inject(FormComponentEventBus);
     spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
-    store.dispatch(FormActions.submitForm({ force: true }));
+    store.dispatch(FormActions.submitForm({
+      force: true,
+      operation: 'publish',
+      enabledValidationGroups: ['all', 'publish'],
+    }));
     fixture.detectChanges();
     await fixture.whenStable();
 

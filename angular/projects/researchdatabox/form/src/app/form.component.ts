@@ -119,6 +119,14 @@ import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.
 import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
 import { FormServerSyncService } from './form-server-sync.service';
 
+interface ServerControlCandidate {
+  field: string;
+  control: AbstractControl;
+  angularPointer: string;
+  dataPath: Array<string | number>;
+  lineagePaths?: LineagePathsOptional;
+}
+
 /**
  * The ReDBox Form
  *
@@ -549,13 +557,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
       .subscribe(async evt => {
         const force = evt.force;
+        const operation = evt.operation;
         const targetStep = evt.targetStep;
         const enabledValidationGroups = evt.enabledValidationGroups;
         const closeOnSave = evt?.closeOnSave;
         const redirectLocation = evt?.redirectLocation;
         const redirectDelaySeconds = evt?.redirectDelaySeconds;
         await this.saveForm({
-          force, targetStep, enabledValidationGroups,
+          force, operation, targetStep, enabledValidationGroups,
           closeOnSave, redirectLocation, redirectDelaySeconds,
         });
       });
@@ -1151,6 +1160,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
     const forceSave = options?.force ?? false;
+    const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
     this.clearServerSaveProblems();
@@ -1208,10 +1218,20 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
-            response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
+            response = await this.recordService.create(
+              currentFormValue,
+              this.trimmedParams.recordType(),
+              targetStep,
+              operation
+            );
           } else {
             // Actual record update via RecordService call
-            response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep);
+            response = await this.recordService.update(
+              this.trimmedParams.oid(),
+              currentFormValue,
+              targetStep,
+              operation
+            );
           }
           // A persisted warning is still a successful save, but it is not a
           // complete save.  Keep the record open so the user can review the
@@ -1363,7 +1383,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
 
     const problems = Array.isArray(response?.problems) ? response.problems : [];
-    let firstMappedField: string | null = null;
+    let firstMappedCandidate: ServerControlCandidate | null = null;
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
@@ -1378,15 +1398,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           issueIndex++;
           continue;
         }
-        firstMappedField ??= resolved.field;
+        firstMappedCandidate ??= resolved;
         const existingErrors = resolved.control.errors ?? {};
         resolved.control.setErrors({
           ...existingErrors,
-          [`server#${issueIndex}`]: {
-            class: 'server',
-            message: issue.message,
-            params: {},
-          },
+          [`server#${issueIndex}`]: this.serverIssueError(issue),
         });
         resolved.control.markAsDirty();
         resolved.control.markAsTouched();
@@ -1399,15 +1415,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
       this.broadcastFormStatus(false);
     }
-    if (firstMappedField) {
-      const entry = this.componentDefArr.find(candidate => {
-        const name = candidate.name ?? candidate.compConfigJson?.name;
-        return name === firstMappedField;
-      });
-      const lineagePath = entry?.lineagePaths?.angularComponents ?? [];
+    if (firstMappedCandidate) {
+      const lineagePath = firstMappedCandidate.lineagePaths?.angularComponents ?? [];
       const focusOptions = {
-        fieldId: firstMappedField,
-        targetElementId: firstMappedField,
+        fieldId: firstMappedCandidate.field,
+        targetElementId: firstMappedCandidate.field,
         requestId: response?.requestId ?? this.eventScopeId,
         source: 'server-save-validation',
         sourceId: this.eventScopeId,
@@ -1419,7 +1431,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  private resolveServerIssue(issue: RecordSaveIssue): { field: string; control: AbstractControl } | null {
+  private serverIssueError(issue: RecordSaveIssue): Record<string, unknown> {
+    return {
+      class: issue.class ?? 'server',
+      message: issue.message,
+      params: issue.params ?? {},
+      ...(issue.targetField ? { targetField: issue.targetField } : {}),
+    };
+  }
+
+  private resolveServerIssue(issue: RecordSaveIssue): ServerControlCandidate | null {
     if (!this.form) {
       return null;
     }
@@ -1427,10 +1448,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const explicitField = typeof issue.field === 'string' ? issue.field.trim() : '';
     const pointerSegments = this.serverIssueSegments(pointer);
     const candidates = this.serverControlCandidates();
-    const unique = (matches: Array<{ field: string; control: AbstractControl }>) => {
+    const unique = (matches: ServerControlCandidate[]) => {
       const byControl = [...new Map(matches.map(match => [match.control, match])).values()];
       return byControl.length === 1 ? byControl[0] : null;
     };
+
+    if (issue.targetField) {
+      const targetMatch = unique(candidates.filter(candidate =>
+        candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.targetField!)
+      ));
+      if (targetMatch) {
+        return targetMatch;
+      }
+    }
 
     if (pointerSegments.length > 0) {
       const pointerPath = `/${pointerSegments.map(segment => String(segment).replace(/~/g, '~0').replace(/\//g, '~1')).join('/')}`;
@@ -1444,7 +1474,21 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
       const direct = this.form.get(pointerSegments);
       if (direct) {
-        return { field: pointerSegments.join('.'), control: direct };
+        return {
+          field: pointerSegments.join('.'),
+          control: direct,
+          angularPointer: '',
+          dataPath: pointerSegments,
+        };
+      }
+    }
+
+    if (issue.lineagePaths) {
+      const lineageMatch = unique(candidates.filter(candidate =>
+        candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.lineagePaths!)
+      ));
+      if (lineageMatch) {
+        return lineageMatch;
       }
     }
 
@@ -1455,7 +1499,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
       const direct = this.form.get(this.serverIssueSegments(explicitField));
       if (direct) {
-        return { field: explicitField, control: direct };
+        return {
+          field: explicitField,
+          control: direct,
+          angularPointer: '',
+          dataPath: this.serverIssueSegments(explicitField),
+        };
       }
     }
 
@@ -1465,18 +1514,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       : null;
   }
 
-  private serverControlCandidates(): Array<{
-    field: string;
-    control: AbstractControl;
-    angularPointer: string;
-    dataPath: Array<string | number>;
-  }> {
-    const candidates: Array<{
-      field: string;
-      control: AbstractControl;
-      angularPointer: string;
-      dataPath: Array<string | number>;
-    }> = [];
+  private serverControlCandidates(): ServerControlCandidate[] {
+    const candidates: ServerControlCandidate[] = [];
     const visit = (entries: readonly FormFieldCompMapEntry[]): void => {
       for (const entry of entries) {
         const field = entry.name ?? entry.compConfigJson?.name ?? '';
@@ -1486,6 +1525,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             control: entry.model.formControl,
             angularPointer: entry.lineagePaths?.angularComponentsJsonPointer ?? '',
             dataPath: entry.lineagePaths?.dataModel ?? [field],
+            lineagePaths: entry.lineagePaths,
           });
         }
         for (const [mapField, control] of Object.entries(entry.formControlMap ?? {})) {
@@ -1494,6 +1534,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             control,
             angularPointer: `${entry.lineagePaths?.angularComponentsJsonPointer ?? ''}/${mapField}`,
             dataPath: [...(entry.lineagePaths?.dataModel ?? []), mapField],
+            lineagePaths: {
+              ...(entry.lineagePaths ?? {}),
+              angularComponents: [...(entry.lineagePaths?.angularComponents ?? []), mapField],
+              dataModel: [...(entry.lineagePaths?.dataModel ?? []), mapField],
+            },
           });
         }
         visit(entry.component?.formFieldCompMapEntries ?? []);

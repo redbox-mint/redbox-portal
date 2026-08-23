@@ -1259,6 +1259,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
+    this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);

@@ -194,6 +194,7 @@ describe('FormStateFacade', () => {
       expect(store.dispatch).toHaveBeenCalledWith(
         FormActions.submitForm({
           force: false,
+          operation: undefined,
           targetStep: undefined,
           enabledValidationGroups: [],
         })
@@ -201,11 +202,17 @@ describe('FormStateFacade', () => {
     });
 
     it('should dispatch submitForm on submit() with custom options (AC20, R7.1)', () => {
-      facade.submit({ force: true, targetStep: 'review', enabledValidationGroups: ["all"],});
+      facade.submit({
+        force: true,
+        operation: 'submit',
+        targetStep: 'review',
+        enabledValidationGroups: ["all"],
+      });
 
       expect(store.dispatch).toHaveBeenCalledWith(
         FormActions.submitForm({
           force: true,
+          operation: 'submit',
           targetStep: 'review',
           enabledValidationGroups: ["all"],
         })
