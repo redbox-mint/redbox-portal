@@ -5,13 +5,13 @@ meta {
 }
 
 put {
-  url: {{host}}/default/rdmp/recordmeta/{{dataPublicationOid}}?targetStep=reviewing
+  url: {{host}}/default/rdmp/recordmeta/{{dataPublicationOid}}?targetStep=queued
   body: json
   auth: none
 }
 
 params:query {
-  targetStep: reviewing
+  targetStep: queued
 }
 
 headers {
