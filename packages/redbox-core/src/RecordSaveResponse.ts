@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { cloneDeep as _cloneDeep } from 'lodash';
 import {
   emptyRecordSaveCompletion,
   reduceAttachmentStatus,
@@ -185,7 +186,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   }
 
   public setAttachmentItems(items: readonly RecordAttachmentCompletionItem[]): void {
-    const copiedItems = items.map((item) => ({ ...item }));
+    const copiedItems = _cloneDeep(items) as RecordAttachmentCompletionItem[];
     this.completion = {
       attachments: {
         status: reduceAttachmentStatus(copiedItems),
@@ -198,7 +199,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   }
 
   public setProjectedMetadata(metadata: Record<string, unknown> | null): void {
-    this.metadata = metadata;
+    this.metadata = _cloneDeep(metadata);
   }
 
   /**
@@ -237,12 +238,12 @@ export class RecordSaveTracker {
       // Preserve only compatibility-safe action fields.  Adapter diagnostics
       // stay in logs rather than crossing the save-result boundary.
       this.response.message = typeof source.message === 'string' ? source.message : '';
-      this.response.data = source.data;
-      this.response.metadata = source.metadata ?? null;
+      this.response.data = _cloneDeep(source.data);
+      this.response.metadata = _cloneDeep(source.metadata ?? null);
       this.response.totalItems = source.totalItems;
-      this.response.items = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
+      this.response.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.response.outcome = 'saved';
+    this.response.outcome = this.response.problems.length > 0 ? 'saved-with-warnings' : 'saved';
     this.response.success = true;
   }
 
@@ -255,6 +256,11 @@ export class RecordSaveTracker {
   }
 
   public recordPostPersistenceProblem(problem: RecordSaveProblem): void {
+    this.response.addProblem(problem);
+  }
+
+  /** Track a nonblocking warning before or after the primary commit. */
+  public recordWarning(problem: RecordSaveProblem): void {
     this.response.addProblem(problem);
   }
 
@@ -276,7 +282,7 @@ export class RecordSaveTracker {
       this.response.workspaceOid = hookFields.workspaceOid;
     }
     if (Object.hasOwn(hookFields, 'workspaceData')) {
-      this.response.workspaceData = hookFields.workspaceData;
+      this.response.workspaceData = _cloneDeep(hookFields.workspaceData);
     }
   }
 
@@ -286,21 +292,21 @@ export class RecordSaveTracker {
     copy.success = this.response.success;
     copy.oid = this.response.oid;
     copy.message = this.response.message;
-    copy.data = this.response.data;
-    copy.metadata = this.response.metadata;
-    copy.details = this.response.details;
+    copy.data = _cloneDeep(this.response.data);
+    copy.metadata = _cloneDeep(this.response.metadata);
+    copy.details = _cloneDeep(this.response.details);
     copy.totalItems = this.response.totalItems;
-    copy.items = this.response.items.map((item) => ({ ...item }));
+    copy.items = _cloneDeep(this.response.items);
     copy.outcome = this.response.outcome;
     copy.problems = this.response.problems.map(cloneProblem);
     copy.completion = {
       attachments: {
         status: this.response.completion.attachments.status,
-        items: this.response.completion.attachments.items.map((item) => ({ ...item })),
+        items: _cloneDeep(this.response.completion.attachments.items),
       },
     };
     copy.workspaceOid = this.response.workspaceOid;
-    copy.workspaceData = this.response.workspaceData;
+    copy.workspaceData = _cloneDeep(this.response.workspaceData);
     return copy;
   }
 

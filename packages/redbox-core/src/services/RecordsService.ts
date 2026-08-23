@@ -61,6 +61,7 @@ import type {
 import {
   createRecordSaveContext,
   isInternalRecordValidationBypass,
+  recordValidationRuntimeFacts,
   recordSaveProblem,
   type InternalRecordValidationBypass,
   type RecordSaveContext,
@@ -100,6 +101,7 @@ import {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
   resolveValidationMode,
   type Services as RecordValidationServices,
+  type RecordValidationCandidate,
   type RecordValidationRequest,
   type RecordValidationResult,
   type RecordValidationWriteKind,
@@ -156,6 +158,9 @@ const RECORD_VALIDATION_SAVE_CODES = {
   operationInvalid: 'record-validation-operation-invalid',
   operationUnauthorized: 'record-validation-operation-unauthorized',
   transitionUnauthorized: 'record-validation-transition-unauthorized',
+  editUnauthorized: 'record-validation-edit-unauthorized',
+  snapshotUnavailable: 'record-validation-snapshot-unavailable',
+  authorityDivergence: 'record-validation-authority-context-divergence',
   postSync: 'record-validation-post-sync-failed',
   bypassInvalid: 'record-validation-bypass-invalid',
   bypassForbidden: 'record-validation-bypass-forbidden',
@@ -170,6 +175,14 @@ export namespace Services {
     readonly name?: string;
     readonly config?: AnyRecord;
   } & AnyRecord;
+  type WorkflowTargetDiagnosticCode =
+    | typeof RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed
+    | typeof RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound
+    | typeof RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepFormMissing
+    | typeof RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed;
+  type ParsedWorkflowTarget =
+    | { readonly ok: true; readonly name?: string }
+    | { readonly ok: false; readonly diagnosticCode: WorkflowTargetDiagnosticCode };
   type RecordValidationResolver = Pick<RecordValidationServices.RecordValidation, 'resolve'>;
   type BootstrapRecordMetadata = Record<string, unknown>;
   type RecordWithMeta = AnyRecord & {
@@ -187,7 +200,11 @@ export namespace Services {
   };
   type AttachmentJournalService = AttachmentMetadataServices.AttachmentMetadataServiceContract;
   type ValidationBoundaryResult =
-    | { readonly allowed: true }
+    | {
+        readonly allowed: true;
+        readonly candidate: RecordWithMeta;
+        readonly warnings: readonly RecordSaveProblem[];
+      }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
@@ -197,17 +214,24 @@ export namespace Services {
     readonly writeKind: RecordValidationWriteKind;
     readonly recordType?: RecordTypeLike | null;
     readonly targetStep?: WorkflowStepLike;
+    readonly authoritativeStep?: WorkflowStepLike;
+    readonly requiresTransitionAuthorization?: boolean;
+    readonly evaluateFormValidators?: boolean;
     readonly phase?: Extract<RecordSavePhase, 'pre-save' | 'post-save'>;
+    readonly brand: BrandingModel;
   };
   type PersistPostSyncCandidateOptions = Omit<ValidateCandidateOptions, 'candidate' | 'original' | 'phase'> & {
     readonly brand: BrandingModel;
     readonly oid: string;
     readonly beforeCandidate: AnyRecord;
     readonly candidate: AnyRecord;
-    readonly persistenceCandidate: AnyRecord;
   };
   type PostSyncPersistenceResult =
-    | { readonly status: StorageMutationApplicationState }
+    | {
+        readonly status: StorageMutationApplicationState;
+        readonly candidate: RecordWithMeta;
+        readonly warnings: readonly RecordSaveProblem[];
+      }
     | { readonly status: 'validation-failed'; readonly problem: RecordSaveProblem };
   type RunPostSaveSyncOptions = {
     readonly oid: string | null;
@@ -273,12 +297,35 @@ export namespace Services {
       return createActionExecutionOperation(mode, requestId, recordOid, this.hookExecutionDependencies());
     }
 
-    private hookCoordinator(operation: ActionExecutionOperation): RecordHookCoordinator {
+    private hookCoordinator(
+      operation: ActionExecutionOperation,
+      enforceAuthoritativeOid = false
+    ): RecordHookCoordinator {
       return new RecordHookCoordinator({
         operation,
         dependencies: this.hookExecutionDependencies(),
         resolveHook: (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
+        ...(enforceAuthoritativeOid && operation.mode !== 'onDelete'
+          ? { normalizeRecord: (candidate: AnyRecord) =>
+              this.normalizeHookCandidateIdentity(candidate, operation.recordOid) }
+          : {}),
       });
+    }
+
+    /** Keep the public route identity authoritative between sequential hooks. */
+    private normalizeHookCandidateIdentity(candidate: AnyRecord, authoritativeOid?: string): AnyRecord {
+      const normalizedCandidate = { ...candidate };
+      if (!authoritativeOid) return normalizedCandidate;
+      if (!this.normalizeUpdateCandidateIdentity(normalizedCandidate, authoritativeOid)) {
+        throw new RBValidationError({
+          message: 'A record hook attempted to replace the authoritative public OID.',
+          displayErrors: [{
+            title: `@record-save-${RECORD_VALIDATION_SAVE_CODES.authorityDivergence}`,
+            code: RECORD_VALIDATION_SAVE_CODES.authorityDivergence,
+          }],
+        });
+      }
+      return normalizedCandidate;
     }
 
     /** Emit the save-boundary event without calling it a completed operation. */
@@ -411,6 +458,126 @@ export namespace Services {
         candidate[key] = _.cloneDeep(value);
       }
       return this.normalizeRecord(candidate);
+    }
+
+    private cloneValidationCandidate(candidate: RecordValidationCandidate | AnyRecord): RecordWithMeta {
+      return this.normalizeRecord({ ..._.cloneDeep(candidate) });
+    }
+
+    /** Bind only the public record identity to the route OID. Storage IDs are independent. */
+    private normalizeUpdateCandidateIdentity(candidate: AnyRecord, oid: string): boolean {
+      const expected = oid.trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(expected)) return false;
+      const suppliedOid = candidate.redboxOid;
+      if (
+        suppliedOid !== undefined &&
+        suppliedOid !== null &&
+        suppliedOid !== '' &&
+        (typeof suppliedOid !== 'string' || suppliedOid.trim() !== expected)
+      ) return false;
+      candidate.redboxOid = expected;
+      return true;
+    }
+
+    /** `redboxOid` alone selects an explicit create OID; storage IDs are generated independently. */
+    private normalizeCreateCandidateIdentity(candidate: AnyRecord): string | undefined {
+      const suppliedOid = candidate.redboxOid;
+      if (suppliedOid !== undefined && (typeof suppliedOid !== 'string' || !suppliedOid.trim())) return undefined;
+      const oid = typeof suppliedOid === 'string' && suppliedOid.trim() ? suppliedOid.trim() : randomUUID();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(oid)) return undefined;
+      candidate.redboxOid = oid;
+      return oid;
+    }
+
+    private async updateStorageCandidate(
+      brand: BrandingModel,
+      oid: string,
+      candidate: AnyRecord,
+      user: AnyRecord
+    ): Promise<StorageServiceResponse> {
+      const storageCandidate = _.cloneDeep(candidate) as AnyRecord;
+      if (!this.normalizeUpdateCandidateIdentity(storageCandidate, oid)) {
+        throw new Error('The storage update candidate identity diverged from the route OID.');
+      }
+      // Waterline/Mongo primary keys are immutable storage identity, not
+      // aliases for the public OID. The Mongo adapter already removes these;
+      // doing so at this boundary keeps every storage adapter on the same safe
+      // contract while the authoritative in-memory snapshot retains them.
+      _.unset(storageCandidate, 'id');
+      _.unset(storageCandidate, '_id');
+      return await this.storageService.updateMeta(brand, oid, storageCandidate, user);
+    }
+
+    private async createStorageCandidate(
+      brand: BrandingModel,
+      createOid: string,
+      candidate: AnyRecord,
+      recordType: RecordTypeLike,
+      user: AnyRecord
+    ): Promise<StorageServiceResponse> {
+      const storageCandidate = _.cloneDeep(candidate) as AnyRecord;
+      if (!this.normalizeUpdateCandidateIdentity(storageCandidate, createOid)) {
+        throw new Error('The storage create candidate identity diverged from the preselected OID.');
+      }
+      _.unset(storageCandidate, 'id');
+      _.unset(storageCandidate, '_id');
+      const adapterResponse = await this.storageService.create(brand, storageCandidate, recordType, user);
+      return this.routeBoundStorageResponse(adapterResponse, createOid);
+    }
+
+    /** Present storage mutation facts to save hooks with the authoritative public OID rebound. */
+    private routeBoundStorageResponse(response: StorageServiceResponse, oid: string): StorageServiceResponse {
+      return Object.assign(new StorageServiceResponse(), response, { oid });
+    }
+
+    private normalizeAuthoritativeCandidateContext(
+      candidate: AnyRecord,
+      original: AnyRecord | undefined,
+      recordType: RecordTypeLike | null | undefined,
+      brand: BrandingModel,
+      authoritativeStep?: WorkflowStepLike,
+      routeOid?: string
+    ): boolean {
+      if (routeOid !== undefined && !this.normalizeUpdateCandidateIdentity(candidate, routeOid)) return false;
+      const candidateMeta = this.recordObject(candidate.metaMetadata);
+      const originalMeta = this.recordObject(original?.metaMetadata);
+      candidate.metaMetadata = candidateMeta;
+      const activeBrandId = String(brand?.id ?? '').trim();
+      if (original) {
+        const storedBrandId = String(originalMeta.brandId ?? '').trim();
+        if (activeBrandId && storedBrandId !== activeBrandId) return false;
+      }
+      const normalizeReference = (property: 'brandId' | 'type', expectedValue: unknown): boolean => {
+        const expected = String(expectedValue ?? '').trim();
+        if (!expected) return true;
+        const supplied = String(candidateMeta[property] ?? '').trim();
+        if (supplied && supplied !== expected) return false;
+        candidateMeta[property] = expected;
+        return true;
+      };
+      if (!normalizeReference('brandId', originalMeta.brandId ?? activeBrandId)) return false;
+      if (!normalizeReference('type', originalMeta.type ?? recordType?.name)) return false;
+
+      const authoritativeStepName = this.workflowStepName(authoritativeStep);
+      const expectedWorkflowStep = authoritativeStepName ?? this.candidateWorkflowStep(original ?? {});
+      if (expectedWorkflowStep) {
+        const suppliedWorkflowStep = this.candidateWorkflowStep(candidate);
+        if (suppliedWorkflowStep && suppliedWorkflowStep !== expectedWorkflowStep) return false;
+        const workflow = this.recordObject(candidate.workflow);
+        workflow.stage = expectedWorkflowStep;
+        candidate.workflow = workflow;
+      }
+
+      if (authoritativeStep) {
+        const expectedForm = String(_.get(authoritativeStep, 'config.form', '')).trim();
+        if (RECORD_VALIDATION_REFERENCE_PATTERN.test(expectedForm)) {
+          // Workflow-selected create/transition forms are authoritative. A
+          // hook may replace the surrounding object, but the persisted record
+          // is normalized back to the exact form that validation will use.
+          candidateMeta.form = expectedForm;
+        }
+      }
+      return true;
     }
 
     private async refreshAttachmentFields(
@@ -549,12 +716,14 @@ export namespace Services {
         hasDiagnostic([
           RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMissing,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed,
+          RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceDivergence,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.formNotFound,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMissing,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMalformed,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeNotFound,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMissing,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMalformed,
+          RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMissing,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound,
           RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepFormMissing,
@@ -576,6 +745,18 @@ export namespace Services {
       return this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.configuration);
     }
 
+    private validationAdvisoryProblems(
+      result: RecordValidationResult,
+      phase: Extract<RecordSavePhase, 'pre-save' | 'post-save'>
+    ): readonly RecordSaveProblem[] {
+      if (result.status !== 'resolved' || result.advisoryErrors.length === 0) return [];
+      return [{
+        kind: 'validation',
+        phase,
+        issues: result.advisoryErrors.map(sanitizeRecordSaveIssue),
+      }];
+    }
+
     /**
      * Determine the same rollout layer used by RecordValidationService when
      * that service cannot produce a result. A definite shadow decision keeps
@@ -583,9 +764,16 @@ export namespace Services {
      */
     private fallbackValidationMode(
       recordType: RecordTypeLike | null | undefined,
-      validationOperation: string | undefined
+      validationOperation: string | undefined,
+      recordTypeName?: unknown
     ): ValidationMode {
-      return resolveValidationMode(sails.config.recordValidation, recordType?.recordValidation, validationOperation)
+      const configuredName = typeof recordTypeName === 'string' ? recordTypeName.trim() : '';
+      const configured = configuredName ? sails.config.recordtype?.[configuredName]?.recordValidation : undefined;
+      return resolveValidationMode(
+        sails.config.recordValidation,
+        recordType?.recordValidation ?? configured,
+        validationOperation
+      )
         .mode;
     }
 
@@ -597,6 +785,17 @@ export namespace Services {
         if (name) normalizedRoles.add(name);
       }
       return [...normalizedRoles];
+    }
+
+    private hasPublicEditAuthorization(
+      context: RecordSaveContext,
+      brand: BrandingModel,
+      user: AnyRecord,
+      record: AnyRecord | undefined
+    ): boolean {
+      if (context.routeFamily !== 'api' && context.routeFamily !== 'browser') return true;
+      const roles = Array.isArray(user.roles) ? user.roles as AnyRecord[] : [];
+      return Boolean(record && this.hasEditAccess(brand, user, roles, record));
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -625,6 +824,83 @@ export namespace Services {
     private candidateWorkflowStep(record: AnyRecord): string | undefined {
       const normalized = String(_.get(record, 'workflow.stage', '')).trim();
       return normalized || undefined;
+    }
+
+    private parseRequestedWorkflowTarget(
+      contextTarget: unknown,
+      fallbackTarget: unknown,
+      required: boolean
+    ): ParsedWorkflowTarget {
+      const parse = (value: unknown): string | undefined | null => {
+        if (value === undefined || value === null) return undefined;
+        if (typeof value !== 'string') return null;
+        const normalized = value.trim();
+        return RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized) ? normalized : null;
+      };
+      const trustedTarget = parse(contextTarget);
+      const suppliedTarget = parse(fallbackTarget);
+      if (trustedTarget === null || suppliedTarget === null) {
+        return {
+          ok: false,
+          diagnosticCode: RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed,
+        };
+      }
+      if (trustedTarget && suppliedTarget && trustedTarget !== suppliedTarget) {
+        return {
+          ok: false,
+          diagnosticCode: RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed,
+        };
+      }
+      const name = trustedTarget ?? suppliedTarget;
+      if (required && !name) {
+        return {
+          ok: false,
+          diagnosticCode: RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed,
+        };
+      }
+      return { ok: true, ...(name ? { name } : {}) };
+    }
+
+    private resolvedWorkflowTargetDiagnostic(
+      step: unknown,
+      expectedName: string
+    ): WorkflowTargetDiagnosticCode | undefined {
+      if (!step || typeof step !== 'object' || Array.isArray(step)) {
+        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound;
+      }
+      const candidate = step as WorkflowStepLike;
+      const stepName = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(stepName) || stepName !== expectedName) {
+        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound;
+      }
+      if (!candidate.config || typeof candidate.config !== 'object' || Array.isArray(candidate.config)) {
+        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed;
+      }
+      const form = candidate.config.form;
+      if (typeof form !== 'string' || !form.trim()) {
+        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepFormMissing;
+      }
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(form.trim())) {
+        return RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed;
+      }
+      return undefined;
+    }
+
+    private workflowTargetProblem(
+      context: RecordSaveContext,
+      recordType: RecordTypeLike | null | undefined,
+      recordTypeName: unknown,
+      diagnosticCode: WorkflowTargetDiagnosticCode
+    ): RecordSaveProblem {
+      sails.log.warn(`${this.logHeader} requested workflow target rejected`, {
+        event: 'record_validation_workflow_target_rejected',
+        request_id: context.requestId,
+        mode: this.fallbackValidationMode(recordType, context.validationOperation, recordTypeName),
+        operation: context.operation ?? 'unavailable',
+        record_type: safeValidationLogReference(recordTypeName),
+        diagnostic_code: diagnosticCode,
+      });
+      return this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.formResolution);
     }
 
     private bypassErrorCode(context: RecordSaveContext, bypass: unknown): string | undefined {
@@ -812,6 +1088,10 @@ export namespace Services {
     }> {
       const snapshot = this.rolloutSnapshot(Array.isArray(recordTypes) ? recordTypes : []);
       const fingerprint = this.rolloutFingerprint(snapshot);
+      const createAudit = this.storageService?.createRecordAudit;
+      if (typeof createAudit !== 'function') {
+        throw new Error('Durable record-validation rollout audit storage is unavailable.');
+      }
       const params = new RecordAuditParams();
       params.oid = RECORD_VALIDATION_ROLLOUT_AUDIT_OID;
       const previousFingerprint = this.previousRolloutFingerprint(await this.storageService.getRecordAudit(params));
@@ -831,7 +1111,7 @@ export namespace Services {
         { service: 'RecordsService.auditRecordValidationRollout' },
         RecordAuditActionType.validationModeChanged
       );
-      const response = await this.storageService.createRecordAudit(audit);
+      const response = await createAudit.call(this.storageService, audit);
       if (!this.auditPersistenceSucceeded(response)) {
         throw new Error('Durable record-validation rollout audit was not confirmed.');
       }
@@ -847,7 +1127,67 @@ export namespace Services {
     }
 
     private async validateCandidate(options: ValidateCandidateOptions): Promise<ValidationBoundaryResult> {
-      const { candidate, original, user, context, writeKind, recordType, targetStep, phase = 'pre-save' } = options;
+      const {
+        candidate,
+        original,
+        user,
+        context,
+        writeKind,
+        recordType,
+        targetStep,
+        authoritativeStep,
+        requiresTransitionAuthorization = false,
+        evaluateFormValidators = true,
+        phase = 'pre-save',
+        brand,
+      } = options;
+      const candidateToValidate = this.cloneValidationCandidate(candidate);
+      const publicRoute = context.routeFamily === 'api' || context.routeFamily === 'browser';
+      if (publicRoute && writeKind !== 'create' && !this.isUsableRecordSnapshot(original)) {
+        sails.log.warn(`${this.logHeader} public record save snapshot unavailable`, {
+          event: 'record_validation_snapshot_unavailable',
+          request_id: context.requestId,
+          mode: this.fallbackValidationMode(
+            recordType,
+            context.validationOperation,
+            _.get(candidateToValidate, 'metaMetadata.type')
+          ),
+          write_kind: writeKind,
+        });
+        return {
+          allowed: false,
+          problem: this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.snapshotUnavailable),
+        };
+      }
+      if (!this.normalizeAuthoritativeCandidateContext(
+        candidateToValidate,
+        original,
+        recordType,
+        brand,
+        authoritativeStep
+      )) {
+        return {
+          allowed: false,
+          problem: this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
+        };
+      }
+      if (!this.hasPublicEditAuthorization(
+        context,
+        brand,
+        user,
+        writeKind === 'create' ? candidateToValidate : original
+      )) {
+        return {
+          allowed: false,
+          problem: this.validationProblem('authorization', phase, RECORD_VALIDATION_SAVE_CODES.editUnauthorized),
+        };
+      }
+      if (requiresTransitionAuthorization && targetStep && !this.hasTransitionRoleAuthorization(targetStep, user)) {
+        return {
+          allowed: false,
+          problem: this.validationProblem('authorization', phase, RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized),
+        };
+      }
       const bypass = context.validationBypass;
       if (bypass !== undefined) {
         if (!isInternalRecordValidationBypass(bypass)) {
@@ -862,14 +1202,14 @@ export namespace Services {
           return { allowed: false, problem: this.validationProblem('system', phase, bypassError) };
         }
         try {
-          await this.auditValidationBypass(context, bypass, candidate, phase);
-          return { allowed: true };
+          await this.auditValidationBypass(context, bypass, candidateToValidate, phase);
+          return { allowed: true, candidate: candidateToValidate, warnings: [] };
         } catch (error) {
           sails.log.error(`${this.logHeader} durable validation-bypass audit failed`, {
             event: 'record_validation_bypass_audit_failed',
             request_id: context.requestId,
-            record_type: safeValidationLogReference(_.get(candidate, 'metaMetadata.type')),
-            form: safeValidationLogReference(_.get(candidate, 'metaMetadata.form')),
+            record_type: safeValidationLogReference(_.get(candidateToValidate, 'metaMetadata.type')),
+            form: safeValidationLogReference(_.get(candidateToValidate, 'metaMetadata.form')),
             validation_operation: safeValidationLogReference(
               context.validationOperation ?? RECORD_VALIDATION_STRICT_ALL_OPERATION
             ),
@@ -890,34 +1230,64 @@ export namespace Services {
         }
         const request: RecordValidationRequest = {
           candidate: {
-            ...(typeof candidate.redboxOid === 'string' ? { redboxOid: candidate.redboxOid } : {}),
-            metadata: (candidate.metadata ?? {}) as AnyRecord,
-            metaMetadata: (candidate.metaMetadata ?? {}) as AnyRecord,
-            workflow: candidate.workflow as AnyRecord | undefined,
-            previousWorkflow: candidate.previousWorkflow as AnyRecord | undefined,
+            ..._.cloneDeep(candidateToValidate),
+            ...(typeof candidateToValidate.redboxOid === 'string'
+              ? { redboxOid: candidateToValidate.redboxOid }
+              : {}),
+            metadata: (candidateToValidate.metadata ?? {}) as AnyRecord,
+            metaMetadata: (candidateToValidate.metaMetadata ?? {}) as AnyRecord,
+            ...(candidateToValidate.workflow !== undefined
+              ? { workflow: candidateToValidate.workflow as AnyRecord }
+              : {}),
+            ...(candidateToValidate.previousWorkflow !== undefined
+              ? { previousWorkflow: candidateToValidate.previousWorkflow as AnyRecord }
+              : {}),
           },
           writeKind,
           validationOperation: context.validationOperation,
+          evaluateFormValidators,
           targetStep: this.workflowStepName(targetStep),
           currentStep: original
             ? this.candidateWorkflowStep(original)
             : targetStep
               ? undefined
-              : this.candidateWorkflowStep(candidate),
+              : this.candidateWorkflowStep(candidateToValidate),
           actor: {
             authenticated: Boolean(String(user?.username ?? '').trim()),
             roles: this.actorRoles(user),
           },
+          requestParameters: context.validationRequestParameters,
+          runtimeContext: recordValidationRuntimeFacts(context, writeKind),
+          phase,
           requestId: context.requestId,
         };
         const result = await recordValidationService.resolve(request);
-        if (!result.shouldBlock) return { allowed: true };
+        if (!result.shouldBlock) {
+          // Resolved results always select their transformed candidate. An
+          // unresolved shadow result may omit it only when transformation did
+          // not complete, in which case legacy availability behavior retains
+          // the already detached authoritative candidate explicitly.
+          const selectedCandidate = result.transformedCandidate ?? candidateToValidate;
+          const validatedCandidate = this.cloneValidationCandidate(selectedCandidate);
+          const expectedOid = String(candidateToValidate.redboxOid ?? '').trim();
+          if (expectedOid && !this.normalizeUpdateCandidateIdentity(validatedCandidate, expectedOid)) {
+            return {
+              allowed: false,
+              problem: this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
+            };
+          }
+          return {
+            allowed: true,
+            candidate: validatedCandidate,
+            warnings: this.validationAdvisoryProblems(result, phase),
+          };
+        }
         return { allowed: false, problem: this.validationFailureProblem(result, phase) };
       } catch (error) {
         const safeFailureContext = {
           request_id: context.requestId,
-          record_type: safeValidationLogReference(_.get(candidate, 'metaMetadata.type')),
-          form: safeValidationLogReference(_.get(candidate, 'metaMetadata.form')),
+          record_type: safeValidationLogReference(_.get(candidateToValidate, 'metaMetadata.type')),
+          form: safeValidationLogReference(_.get(candidateToValidate, 'metaMetadata.form')),
           validation_operation: safeValidationLogReference(
             context.validationOperation ?? RECORD_VALIDATION_STRICT_ALL_OPERATION
           ),
@@ -928,12 +1298,20 @@ export namespace Services {
           event: 'record_validation_failed_unexpectedly',
           ...safeFailureContext,
         });
-        if (this.fallbackValidationMode(recordType, context.validationOperation) === 'shadow') {
+        // The core resolver contains post-transformation failures and returns
+        // its typed safe candidate. A thrown replacement/unavailable service
+        // has not crossed that boundary, so retain the established shadow-mode
+        // availability behavior for backward compatibility.
+        if (this.fallbackValidationMode(
+          recordType,
+          context.validationOperation,
+          _.get(candidateToValidate, 'metaMetadata.type')
+        ) === 'shadow') {
           sails.log.warn(`${this.logHeader} authoritative validation unavailable in shadow mode`, {
             event: 'record_validation_unavailable',
             ...safeFailureContext,
           });
-          return { allowed: true };
+          return { allowed: true, candidate: candidateToValidate, warnings: [] };
         }
         return {
           allowed: false,
@@ -1455,11 +1833,7 @@ export namespace Services {
     ): Promise<boolean> {
       const finalizedRecord = _.cloneDeep(record) as AnyRecord;
       this.clearPendingAttachmentOids(finalizedRecord, attachmentFields);
-      // The OID is tracked by the save state owner and must not be replaceable
-      // by a hook or by the second metadata write used to clear pending refs.
-      _.unset(finalizedRecord, 'redboxOid');
-      _.unset(finalizedRecord, 'id');
-      const response = await this.storageService.updateMeta(brand, oid, finalizedRecord, user);
+      const response = await this.updateStorageCandidate(brand, oid, finalizedRecord, user);
       return resolveStorageMutationState(response, this.logLegacyMutationResponse) === 'applied';
     }
 
@@ -1471,30 +1845,89 @@ export namespace Services {
         oid,
         beforeCandidate,
         candidate,
-        persistenceCandidate,
         user,
         context,
         writeKind,
         recordType,
         targetStep,
+        authoritativeStep,
+        requiresTransitionAuthorization,
       } = options;
-      const classification = classifyRecordWrite(beforeCandidate, candidate);
-      if (recordWriteRequiresFormValidation(classification) || context.validationBypass !== undefined) {
+      // Callers pass a freshly merged postSync candidate. Normalize that exact
+      // object so persistence and every subsequently dispatched hook observe
+      // the same authoritative record that validation receives.
+      let authoritativeCandidate = this.cloneValidationCandidate(candidate);
+      if (!this.normalizeAuthoritativeCandidateContext(
+        authoritativeCandidate,
+        beforeCandidate,
+        recordType,
+        brand,
+        authoritativeStep,
+        oid
+      )) {
+        return {
+          status: 'validation-failed',
+          problem: this.validationProblem('system', 'post-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
+        };
+      }
+      if (!this.hasPublicEditAuthorization(
+        context,
+        brand,
+        user,
+        writeKind === 'create' ? authoritativeCandidate : beforeCandidate
+      )) {
+        return {
+          status: 'validation-failed',
+          problem: this.validationProblem('authorization', 'post-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized),
+        };
+      }
+      if (requiresTransitionAuthorization && targetStep && !this.hasTransitionRoleAuthorization(targetStep, user)) {
+        return {
+          status: 'validation-failed',
+          problem: this.validationProblem(
+            'authorization',
+            'post-save',
+            RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized
+          ),
+        };
+      }
+      authoritativeCandidate.redboxOid = oid;
+      let warnings: readonly RecordSaveProblem[] = [];
+      const classification = classifyRecordWrite(beforeCandidate, authoritativeCandidate);
+      const requiresFormValidation = recordWriteRequiresFormValidation(classification);
+      if (
+        requiresFormValidation ||
+        context.validationBypass !== undefined ||
+        context.validationOperation !== undefined
+      ) {
         const validation = await this.validateCandidate({
-          candidate: { ...candidate, redboxOid: oid },
+          candidate: authoritativeCandidate,
           original: beforeCandidate,
           user,
           context,
           writeKind,
           recordType,
           targetStep,
+          authoritativeStep,
+          requiresTransitionAuthorization,
+          evaluateFormValidators: requiresFormValidation,
           phase: 'post-save',
+          brand,
         });
         if (!validation.allowed) return { status: 'validation-failed', problem: validation.problem };
+        authoritativeCandidate = validation.candidate;
+        warnings = validation.warnings;
       }
 
-      const response = await this.storageService.updateMeta(brand, oid, persistenceCandidate, user);
-      return { status: resolveStorageMutationState(response, this.logLegacyMutationResponse) };
+      // Persist the same complete, normalized candidate that crossed the
+      // post-sync authorization and validation boundary. A partial hook
+      // replacement must never be written in place of this candidate.
+      const response = await this.updateStorageCandidate(brand, oid, authoritativeCandidate, user);
+      return {
+        status: resolveStorageMutationState(response, this.logLegacyMutationResponse),
+        candidate: authoritativeCandidate,
+        warnings,
+      };
     }
 
     private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
@@ -1869,9 +2302,27 @@ export namespace Services {
       );
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
-      let recordObj = this.normalizeRecord(record);
+      let recordObj = this.normalizeRecord(_.cloneDeep(record) as AnyRecord);
       const userObj = this.recordObject(user);
-      const recordTypeName = String(recordTypeObj?.name ?? _.get(recordObj, 'metaMetadata.type', '')).trim();
+      const configuredRecordTypeName = typeof recordTypeObj?.name === 'string' ? recordTypeObj.name.trim() : '';
+      const isPublicRoute = tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser';
+      if (isPublicRoute && !RECORD_VALIDATION_REFERENCE_PATTERN.test(configuredRecordTypeName)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.formResolution)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      const recordTypeName = configuredRecordTypeName || String(_.get(recordObj, 'metaMetadata.type', '')).trim();
+      const targetWasRequested =
+        tracker.context.operation === 'transition' ||
+        tracker.context.targetStep !== undefined ||
+        (targetStep !== undefined && targetStep !== null);
+      const parsedTarget = this.parseRequestedWorkflowTarget(
+        tracker.context.targetStep,
+        targetStep,
+        targetWasRequested
+      );
       const hookOperation = this.createHookExecutionOperation(
         'onCreate',
         tracker.context.requestId,
@@ -1879,8 +2330,34 @@ export namespace Services {
       );
       this.saveHookOperations.set(tracker, hookOperation);
 
+      if (!parsedTarget.ok) {
+        tracker.recordPrimaryNotApplied(
+          this.workflowTargetProblem(
+            tracker.context,
+            recordTypeObj,
+            recordTypeName,
+            parsedTarget.diagnosticCode
+          )
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      const targetStepName = parsedTarget.name;
+
       // Bootstrap-safe path when no configured RecordType/workflow exists.
-      if (!recordTypeObj?.name) {
+      if (!configuredRecordTypeName) {
+        if (targetStepName) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(
+              tracker.context,
+              recordTypeObj,
+              recordTypeName,
+              RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
         if (!this.storageService || typeof this.storageService.create !== 'function') {
           throw new Error('RecordsService storageService is not initialized');
         }
@@ -1904,8 +2381,14 @@ export namespace Services {
         recordObj.authorization_viewRoles = recordObj.authorization_viewRoles ?? authorization.viewRoles;
         recordObj.authorization_editRoles = recordObj.authorization_editRoles ?? authorization.editRoles;
 
-        const createOid = String(recordObj.redboxOid ?? '').trim() || randomUUID();
-        recordObj.redboxOid = createOid;
+        const createOid = this.normalizeCreateCandidateIdentity(recordObj);
+        if (!createOid) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
         hookOperation.recordOid = createOid;
         const validation = await this.validateCandidate({
           candidate: recordObj,
@@ -1913,17 +2396,19 @@ export namespace Services {
           context: tracker.context,
           writeKind: 'create',
           recordType: recordTypeObj,
-          targetStep: targetStep ? { name: String(targetStep) } : undefined,
+          brand: brandObj,
         });
         if (!validation.allowed) {
           tracker.recordPrimaryNotApplied(validation.problem);
           this.logSaveOutcome(tracker, 'pre-save');
           return tracker.toResponse();
         }
+        for (const warning of validation.warnings) tracker.recordWarning(warning);
+        recordObj = validation.candidate;
 
         let createResponse: StorageServiceResponse;
         try {
-          createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
+          createResponse = await this.createStorageCandidate(brandObj, createOid, recordObj, recordTypeObj, userObj);
         } catch (error) {
           tracker.recordPrimaryUnknown(
             this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown')
@@ -1933,19 +2418,19 @@ export namespace Services {
         }
         const mutationState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
         if (mutationState === 'applied') {
-          tracker.confirmPrimaryPersistence(createResponse.oid);
+          tracker.confirmPrimaryPersistence(createOid);
           hookOperation.completedThrough = 'persistence';
           if (
             this.searchService &&
             typeof this.searchService.index === 'function' &&
             recordTypeObj.searchable !== false
           ) {
-            void Promise.resolve(this.searchService.index(createResponse.oid, recordObj)).catch((error: unknown) => {
+            void Promise.resolve(this.searchService.index(createOid, recordObj)).catch((error: unknown) => {
               sails.log.error(`${this.logHeader} index submission failed`, error);
             });
           }
           try {
-            await this.auditRecord(createResponse.oid, recordObj, userObj, RecordAuditActionType.created);
+            await this.auditRecord(createOid, recordObj, userObj, RecordAuditActionType.created);
           } catch (error) {
             sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
           }
@@ -1964,12 +2449,35 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      // Select the public identity before any configured hook can observe or
+      // replace the candidate. From here on, hooks may omit redboxOid (it will
+      // be rebound), but they cannot redirect this create to another record.
+      const createOid = this.normalizeCreateCandidateIdentity(recordObj);
+      if (!createOid) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      hookOperation.recordOid = createOid;
+
       const startingWfStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj))) as WorkflowStepLike;
-      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
       const wfStep = (
-        targetStep ? await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStep)) : startingWfStep
+        targetStepName ? await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStepName)) : startingWfStep
       ) as WorkflowStepLike;
-      if (targetStep) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+      if (targetStepName) {
+        const targetDiagnostic = this.resolvedWorkflowTargetDiagnostic(wfStep, targetStepName);
+        if (targetDiagnostic) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(tracker.context, recordTypeObj, recordTypeName, targetDiagnostic)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+      }
+      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+      if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
       const formName = String(_.get(wfStep, 'config.form', ''));
 
       const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
@@ -1986,6 +2494,21 @@ export namespace Services {
       );
       _.set(recordObj, 'metaMetadata', metaMetadata);
 
+      if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+
       // Validate every configured synchronous hook before a transition hook
       // can execute.  A malformed hook is a pre-save processing failure, not
       // an untyped exception escaping the create path.
@@ -1999,7 +2522,7 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      if (targetStep) {
+      if (targetStepName) {
         if (!this.hasTransitionRoleAuthorization(wfStep, userObj)) {
           tracker.recordPrimaryNotApplied(
             this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
@@ -2009,7 +2532,7 @@ export namespace Services {
         }
         try {
           recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
-            null,
+            createOid,
             recordObj,
             recordTypeObj,
             wfStep,
@@ -2032,7 +2555,7 @@ export namespace Services {
       if (triggerPreSaveTriggers) {
         try {
           recordObj = await this.triggerPreSaveTriggers(
-            null,
+            createOid,
             recordObj,
             recordTypeObj,
             'onCreate',
@@ -2049,22 +2572,40 @@ export namespace Services {
         }
       }
 
-      const createOid = String(recordObj.redboxOid ?? '').trim() || randomUUID();
-      recordObj.redboxOid = createOid;
-      hookOperation.recordOid = createOid;
+      if (!this.normalizeAuthoritativeCandidateContext(
+        recordObj,
+        undefined,
+        recordTypeObj,
+        brandObj,
+        wfStep,
+        createOid
+      )) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      await this.refreshAttachmentFields(recordObj, undefined, brandObj);
+
       const validation = await this.validateCandidate({
         candidate: recordObj,
         user: userObj,
         context: tracker.context,
         writeKind: 'create',
         recordType: recordTypeObj,
-        targetStep: targetStep ? wfStep : undefined,
+        targetStep: targetStepName ? wfStep : undefined,
+        authoritativeStep: wfStep,
+        requiresTransitionAuthorization: Boolean(targetStepName),
+        brand: brandObj,
       });
       if (!validation.allowed) {
         tracker.recordPrimaryNotApplied(validation.problem);
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+      for (const warning of validation.warnings) tracker.recordWarning(warning);
+      recordObj = validation.candidate;
 
       const createAttachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
       try {
@@ -2098,7 +2639,7 @@ export namespace Services {
       // save the record ...
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
       try {
-        createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
+        createResponse = await this.createStorageCandidate(brandObj, createOid, recordObj, recordTypeObj, userObj);
       } catch (error) {
         tracker.recordPrimaryUnknown(
           this.saveProblem('persistence', 'The record save could not be confirmed.', 'system', 'save-unknown')
@@ -2108,34 +2649,9 @@ export namespace Services {
       }
       const primaryMutationState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
       if (primaryMutationState === 'applied') {
-        const persistedOid = String(createResponse.oid ?? '').trim() || createOid;
-        tracker.confirmPrimaryPersistence(persistedOid, createResponse);
+        tracker.confirmPrimaryPersistence(createOid, createResponse);
         hookOperation.completedThrough = 'persistence';
-        const oid = persistedOid;
-        if (oid !== createOid) {
-          try {
-            await this.attachmentJournalService()?.rebindOid(createOid, oid);
-          } catch (error) {
-            // The primary record is already committed. Keep the journal rows
-            // eligible for reconciliation and still run the indexing/audit
-            // hand-off for that confirmed commit.
-            tracker.recordPostPersistenceProblem(
-              this.saveProblem(
-                'attachments',
-                'Your record was saved, but attachment reconciliation could not be finalized.',
-                'processing',
-                'attachment-journal-failed'
-              )
-            );
-            this.logSaveOutcome(tracker, 'attachments', error);
-            return await this.finishSave(
-              tracker,
-              userObj,
-              RecordAuditActionType.created,
-              recordTypeObj.searchable !== false
-            );
-          }
-        }
+        const oid = createOid;
         sails.log.verbose(`RecordsService - create - oid ${oid}`);
         const recordMetadata = recordObj.metadata as AnyRecord;
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
@@ -2229,7 +2745,8 @@ export namespace Services {
               response: createResponse as unknown as AnyRecord,
               operation: hookOperation,
             });
-            recordObj = hookOutcome.record;
+            const postSyncCandidate = this.mergeValidationCandidate(beforePostSync, hookOutcome.record);
+            recordObj = postSyncCandidate;
             const hookResponse = hookOutcome.response as unknown as StorageServiceResponse;
             tracker.mergeLegacyHookFields(hookResponse);
             if (this.hookResponseFailed(hookResponse)) {
@@ -2256,13 +2773,14 @@ export namespace Services {
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSync,
-                candidate: recordObj,
-                persistenceCandidate: recordObj,
+                candidate: postSyncCandidate,
                 user: userObj,
                 context: tracker.context,
                 writeKind: 'create',
                 recordType: recordTypeObj,
-                targetStep: targetStep ? wfStep : undefined,
+                targetStep: targetStepName ? wfStep : undefined,
+                authoritativeStep: wfStep,
+                requiresTransitionAuthorization: Boolean(targetStepName),
               });
               if (hookMutationState.status === 'validation-failed') {
                 tracker.recordPostPersistenceProblem(hookMutationState.problem);
@@ -2274,6 +2792,8 @@ export namespace Services {
                   recordTypeObj.searchable !== false
                 );
               }
+              for (const warning of hookMutationState.warnings) tracker.recordWarning(warning);
+              recordObj = hookMutationState.candidate;
               if (hookMutationState.status !== 'applied') {
                 tracker.recordPostPersistenceProblem(
                   this.saveProblem(
@@ -2298,7 +2818,8 @@ export namespace Services {
             );
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(
-              this.saveProblem(
+              this.saveProblemFromError(
+                err,
                 'post-save',
                 'Your record was saved, but follow-up processing could not be completed.',
                 'processing',
@@ -2317,7 +2838,7 @@ export namespace Services {
           this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj, hookOperation);
           hookOperation.completedThrough = 'post-dispatch';
 
-          if (!_.isEmpty(targetStep)) {
+          if (targetStepName) {
             try {
               const beforeTransitionPostSync = _.cloneDeep(recordObj) as AnyRecord;
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -2329,7 +2850,11 @@ export namespace Services {
                 response: createResponse as unknown as AnyRecord,
                 operation: hookOperation,
               });
-              recordObj = transitionOutcome.record;
+              const transitionCandidate = this.mergeValidationCandidate(
+                beforeTransitionPostSync,
+                transitionOutcome.record
+              );
+              recordObj = transitionCandidate;
               const transitionResponse = transitionOutcome.response as unknown as StorageServiceResponse;
               let transitionProblem: RecordSaveProblem | undefined;
               if (!this.hookResponseFailed(transitionResponse)) {
@@ -2338,23 +2863,28 @@ export namespace Services {
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionPostSync,
-                    candidate: recordObj,
-                    persistenceCandidate: recordObj,
+                    candidate: transitionCandidate,
                     user: userObj,
                     context: tracker.context,
                     writeKind: 'transition',
                     recordType: recordTypeObj,
                     targetStep: wfStep,
+                    authoritativeStep: wfStep,
+                    requiresTransitionAuthorization: true,
                   });
                   if (transitionMutationState.status === 'validation-failed') {
                     transitionProblem = transitionMutationState.problem;
-                  } else if (transitionMutationState.status !== 'applied') {
-                    transitionProblem = this.saveProblem(
-                      'post-save',
-                      'Your record was saved, but workflow metadata could not be finalized.',
-                      'processing',
-                      'transition-metadata-failed'
-                    );
+                  } else {
+                    for (const warning of transitionMutationState.warnings) tracker.recordWarning(warning);
+                    recordObj = transitionMutationState.candidate;
+                    if (transitionMutationState.status !== 'applied') {
+                      transitionProblem = this.saveProblem(
+                        'post-save',
+                        'Your record was saved, but workflow metadata could not be finalized.',
+                        'processing',
+                        'transition-metadata-failed'
+                      );
+                    }
                   }
                 }
               } else {
@@ -2393,7 +2923,8 @@ export namespace Services {
               );
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(
-                this.saveProblem(
+                this.saveProblemFromError(
+                  tErr,
                   'post-save',
                   'Your record was saved, but workflow processing could not be completed.',
                   'processing',
@@ -2439,14 +2970,16 @@ export namespace Services {
       metadata?: AnyRecord,
       context?: RecordSaveContext
     ): Promise<RecordSaveResponse> {
+      const transitionRequested =
+        context?.operation === 'transition' || (context?.operation === undefined && !_.isEmpty(nextStep));
       const tracker = new RecordSaveTracker(
         createRecordSaveContext({
           ...(context ?? {}),
-          operation: context?.operation ?? (_.isEmpty(nextStep) ? 'update' : 'transition'),
+          operation: context?.operation ?? (transitionRequested ? 'transition' : 'update'),
         })
       );
       const hookOperation = this.createHookExecutionOperation(
-        _.isEmpty(nextStep) ? 'onUpdate' : 'onTransitionWorkflow',
+        transitionRequested ? 'onTransitionWorkflow' : 'onUpdate',
         tracker.context.requestId,
         oid
       );
@@ -2464,26 +2997,138 @@ export namespace Services {
       } catch (error) {
         sails.log.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`, error);
       }
-      // Keep the legacy caller/hook mutation object separate from the merged
-      // authoritative candidate. Only this partial object reaches storage.
+      // Keep the caller/hook mutation object separate until the authoritative
+      // candidate has been merged, normalized, and validated.
       let recordObj = this.normalizeRecord(requestedRecord);
       const userObj = this.recordObject(user);
-      const nextStepObj = (nextStep ?? {}) as WorkflowStepLike;
+      let nextStepObj = (nextStep ?? {}) as WorkflowStepLike;
       let updateResponse: StorageServiceResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
+      if (
+        !this.normalizeUpdateCandidateIdentity(recordObj, oid) ||
+        (originalRecord !== undefined && !this.normalizeUpdateCandidateIdentity(originalRecord, oid))
+      ) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (
+        (tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser') &&
+        !originalRecord
+      ) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.snapshotUnavailable)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (
+        (tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser') &&
+        (!String(brandObj?.id ?? '').trim() ||
+          String(this.recordObject(originalRecord?.metaMetadata).brandId ?? '').trim() !== String(brandObj.id).trim())
+      ) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, originalRecord)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
       const origRecordObj = this.normalizeRecord(_.cloneDeep(requestedRecord) as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
       //This is done after cloning record to preserve origRecord during processing
       if (metadata !== undefined) {
-        recordObj.metadata = metadata;
+        recordObj.metadata = _.cloneDeep(metadata);
       }
 
       const requestedMeta = this.recordObject(recordObj.metaMetadata);
       const originalMeta = this.recordObject(originalRecord?.metaMetadata);
-      const recordTypeName = String(requestedMeta.type ?? originalMeta.type ?? '').trim();
+      const storedRecordTypeName = String(originalMeta.type ?? '').trim();
+      if (originalRecord && !RECORD_VALIDATION_REFERENCE_PATTERN.test(storedRecordTypeName)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.formResolution)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      const recordTypeName = originalRecord
+        ? storedRecordTypeName
+        : String(requestedMeta.type ?? '').trim();
+      const parsedTarget = this.parseRequestedWorkflowTarget(
+        tracker.context.targetStep,
+        this.workflowStepName(nextStepObj),
+        transitionRequested
+      );
+      if (!parsedTarget.ok) {
+        tracker.recordPrimaryNotApplied(
+          this.workflowTargetProblem(tracker.context, undefined, recordTypeName, parsedTarget.diagnosticCode)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      const requestedTargetName = parsedTarget.name;
+      if (transitionRequested) {
+        if (!requestedTargetName) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(
+              tracker.context,
+              undefined,
+              recordTypeName,
+              RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+      }
+
+      // A stored record's brand, type, and current workflow are immutable
+      // authority inputs. Reject divergence before candidate-selected hooks or
+      // any other side-effecting pre-save work can run.
+      if (!this.normalizeAuthoritativeCandidateContext(recordObj, originalRecord, undefined, brandObj, undefined, oid)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+
       let recordType: RecordTypeLike | null = null;
       if (recordTypeName) {
         recordType = (await firstValueFrom(RecordTypesService.get(brandObj, recordTypeName))) as RecordTypeLike | null;
+      }
+      if (transitionRequested && requestedTargetName) {
+        try {
+          if (!recordType) throw new Error('The authoritative record type is unavailable.');
+          nextStepObj = (await firstValueFrom(
+            WorkflowStepsService.get(recordType, requestedTargetName)
+          )) as WorkflowStepLike;
+        } catch {
+          nextStepObj = {};
+        }
+        const targetDiagnostic = this.resolvedWorkflowTargetDiagnostic(nextStepObj, requestedTargetName);
+        if (targetDiagnostic) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(tracker.context, recordType, recordTypeName, targetDiagnostic)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
       }
       try {
         this.validateHookConfiguration(recordType, ['onUpdate', 'onTransitionWorkflow']);
@@ -2495,7 +3140,7 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      if (!_.isEmpty(nextStepObj) && !_.isEmpty(nextStepObj.config)) {
+      if (transitionRequested) {
         if (!this.hasTransitionRoleAuthorization(nextStepObj, userObj)) {
           tracker.recordPrimaryNotApplied(
             this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
@@ -2513,7 +3158,7 @@ export namespace Services {
             this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
             await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
             recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
-              updateResponse['oid'],
+              oid,
               recordObj,
               recordType,
               nextStepObj,
@@ -2551,35 +3196,59 @@ export namespace Services {
         }
       }
 
-      let authoritativeCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
-      const candidateMeta = authoritativeCandidate.metaMetadata as AnyRecord;
-      const candidateRecordTypeName = String(candidateMeta.type ?? '').trim();
-      if (candidateRecordTypeName && candidateRecordTypeName !== String(recordType?.name ?? '').trim()) {
-        recordType = (await firstValueFrom(
-          RecordTypesService.get(brandObj, candidateRecordTypeName)
-        )) as RecordTypeLike | null;
+      const authoritativeStep = transitionRequested ? nextStepObj : undefined;
+      if (!this.normalizeAuthoritativeCandidateContext(
+        recordObj,
+        originalRecord,
+        recordType,
+        brandObj,
+        authoritativeStep,
+        oid
+      )) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence)
+        );
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
       }
+      await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+
+      let authoritativeCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
       const classification = originalRecord
         ? classifyRecordWrite(originalRecord, authoritativeCandidate)
         : 'record-metadata';
-      const recordMeta = (recordObj.metaMetadata ?? {}) as AnyRecord;
-      recordObj.metaMetadata = recordMeta;
-      if (recordWriteRequiresFormValidation(classification) || tracker.context.validationBypass !== undefined) {
+      const requiresFormValidation = recordWriteRequiresFormValidation(classification);
+      if (
+        requiresFormValidation ||
+        tracker.context.validationBypass !== undefined ||
+        tracker.context.validationOperation !== undefined
+      ) {
         const validation = await this.validateCandidate({
           candidate: authoritativeCandidate,
           original: originalRecord,
           user: userObj,
           context: tracker.context,
-          writeKind: _.isEmpty(nextStepObj) ? 'update' : 'transition',
+          writeKind: transitionRequested ? 'transition' : 'update',
           recordType,
-          targetStep: _.isEmpty(nextStepObj) ? undefined : nextStepObj,
+          targetStep: transitionRequested ? nextStepObj : undefined,
+          authoritativeStep,
+          requiresTransitionAuthorization: Boolean(authoritativeStep),
+          evaluateFormValidators: requiresFormValidation,
+          brand: brandObj,
         });
         if (!validation.allowed) {
           tracker.recordPrimaryNotApplied(validation.problem);
           this.logSaveOutcome(tracker, 'pre-save');
           return tracker.toResponse();
         }
+        for (const warning of validation.warnings) tracker.recordWarning(warning);
+        authoritativeCandidate = validation.candidate;
       }
+      // From this point onward timestamps, attachment preparation, persistence,
+      // and post-save hooks all use the exact candidate returned by validation.
+      recordObj = authoritativeCandidate;
+      const recordMeta = (recordObj.metaMetadata ?? {}) as AnyRecord;
+      recordObj.metaMetadata = recordMeta;
 
       if (!_.isUndefined(userObj) && !_.isEmpty(_.get(userObj, 'username', ''))) {
         recordMeta.lastSavedBy = _.get(userObj, 'username');
@@ -2611,7 +3280,7 @@ export namespace Services {
         return tracker.toResponse();
       }
       const updateAttachmentPlan = this.attachmentMutationPlan(
-        origRecordObj,
+        originalRecord ?? origRecordObj,
         recordObj,
         attachmentFields,
         oid,
@@ -2630,14 +3299,12 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      // unsetting the ID just to be safe
-      _.unset(recordObj, 'id');
-      _.unset(recordObj, 'redboxOid');
       sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
       // Primary metadata is the commit boundary.  Physical attachment work
       // must not run until this mutation is explicitly confirmed applied.
       try {
-        updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
+        const adapterResponse = await this.updateStorageCandidate(brandObj, oid, recordObj, userObj);
+        updateResponse = this.routeBoundStorageResponse(adapterResponse, oid);
       } catch (error) {
         tracker.recordPrimaryUnknown(
           this.saveProblem(
@@ -2758,7 +3425,7 @@ export namespace Services {
         if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
           try {
             recordType = (await firstValueFrom(
-              RecordTypesService.get(brandObj, candidateMeta.type as string)
+              RecordTypesService.get(brandObj, recordMeta.type as string)
             )) as RecordTypeLike | null;
           } catch (error) {
             tracker.recordPostPersistenceProblem(
@@ -2785,7 +3452,7 @@ export namespace Services {
             sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
             const beforePostSyncCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
             const hookOutcome = await this.runPostSaveSyncTriggers({
-              oid: updateResponse['oid'],
+              oid,
               record: recordObj,
               recordType,
               mode: 'onUpdate',
@@ -2817,17 +3484,19 @@ export namespace Services {
             hookOperation.completedThrough = 'postSync';
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
               const postSyncCandidate = this.mergeValidationCandidate(beforePostSyncCandidate, recordObj);
+              recordObj = postSyncCandidate;
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSyncCandidate,
                 candidate: postSyncCandidate,
-                persistenceCandidate: recordObj,
                 user: userObj,
                 context: tracker.context,
-                writeKind: _.isEmpty(nextStepObj) ? 'update' : 'transition',
+                writeKind: transitionRequested ? 'transition' : 'update',
                 recordType,
-                targetStep: _.isEmpty(nextStepObj) ? undefined : nextStepObj,
+                targetStep: transitionRequested ? nextStepObj : undefined,
+                authoritativeStep,
+                requiresTransitionAuthorization: Boolean(authoritativeStep),
               });
               if (hookMutationState.status === 'validation-failed') {
                 tracker.recordPostPersistenceProblem(hookMutationState.problem);
@@ -2839,6 +3508,8 @@ export namespace Services {
                   recordType?.searchable !== false
                 );
               }
+              for (const warning of hookMutationState.warnings) tracker.recordWarning(warning);
+              recordObj = hookMutationState.candidate;
               if (hookMutationState.status !== 'applied') {
                 tracker.recordPostPersistenceProblem(
                   this.saveProblem(
@@ -2856,7 +3527,7 @@ export namespace Services {
                   recordType?.searchable !== false
                 );
               }
-              authoritativeCandidate = postSyncCandidate;
+              authoritativeCandidate = hookMutationState.candidate;
             } else {
               authoritativeCandidate = beforePostSyncCandidate;
             }
@@ -2864,7 +3535,8 @@ export namespace Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(
-              this.saveProblem(
+              this.saveProblemFromError(
+                err,
                 'post-save',
                 'Your changes were saved, but follow-up processing could not be completed.',
                 'processing',
@@ -2882,7 +3554,7 @@ export namespace Services {
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(
-            updateResponse['oid'],
+            oid,
             recordObj,
             recordType,
             'onUpdate',
@@ -2891,11 +3563,11 @@ export namespace Services {
           );
           hookOperation.completedThrough = 'post-dispatch';
 
-          if (!_.isEmpty(nextStepObj)) {
+          if (transitionRequested) {
             try {
               const beforeTransitionCandidate = this.mergeValidationCandidate(authoritativeCandidate, recordObj);
               const transitionOutcome = await this.runPostSaveSyncTriggers({
-                oid: updateResponse['oid'],
+                oid,
                 record: recordObj,
                 recordType,
                 mode: 'onTransitionWorkflow',
@@ -2915,27 +3587,33 @@ export namespace Services {
                 sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
                   const transitionCandidate = this.mergeValidationCandidate(beforeTransitionCandidate, recordObj);
+                  recordObj = transitionCandidate;
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionCandidate,
                     candidate: transitionCandidate,
-                    persistenceCandidate: recordObj,
                     user: userObj,
                     context: tracker.context,
                     writeKind: 'transition',
                     recordType,
                     targetStep: nextStepObj,
+                    authoritativeStep: nextStepObj,
+                    requiresTransitionAuthorization: true,
                   });
                   if (transitionMutationState.status === 'validation-failed') {
                     transitionProblem = transitionMutationState.problem;
-                  } else if (transitionMutationState.status !== 'applied') {
-                    transitionProblem = this.saveProblem(
-                      'post-save',
-                      'Your changes were saved, but workflow metadata could not be finalized.',
-                      'processing',
-                      'transition-metadata-failed'
-                    );
+                  } else {
+                    for (const warning of transitionMutationState.warnings) tracker.recordWarning(warning);
+                    recordObj = transitionMutationState.candidate;
+                    if (transitionMutationState.status !== 'applied') {
+                      transitionProblem = this.saveProblem(
+                        'post-save',
+                        'Your changes were saved, but workflow metadata could not be finalized.',
+                        'processing',
+                        'transition-metadata-failed'
+                      );
+                    }
                   }
                 }
               } else {
@@ -2950,7 +3628,7 @@ export namespace Services {
                 );
               }
               this.triggerPostSaveTriggers(
-                updateResponse['oid'],
+                oid,
                 recordObj,
                 recordType,
                 'onTransitionWorkflow',
@@ -2973,7 +3651,8 @@ export namespace Services {
               );
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(
-                this.saveProblem(
+                this.saveProblemFromError(
+                  tErr,
                   'post-save',
                   'Your changes were saved, but workflow processing could not be completed.',
                   'processing',
@@ -4072,11 +4751,15 @@ export namespace Services {
         operation ??
         this.createHookExecutionOperation(mode as ActionExecutionOperation['mode'], undefined, oid ?? undefined);
       try {
-        const outcome = await this.hookCoordinator(execution).runPre(oid, record, recordType, mode, user);
+        const outcome = await this.hookCoordinator(execution, operation !== undefined)
+          .runPre(oid, record, recordType, mode, user);
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
         if (outcome.terminalCause !== undefined) {
+          if (RBValidationError.isRBValidationError(outcome.terminalCause)) {
+            throw outcome.terminalCause;
+          }
           throw new RBValidationError({
             message: `pre-save trigger failed to complete for oid ${oid} mode ${mode}`,
             options: { cause: outcome.terminalCause },
@@ -4100,7 +4783,7 @@ export namespace Services {
       const { oid, record, recordType, mode, user, response, operation } = options;
       const execution = operation ?? this.createHookExecutionOperation(mode, undefined, oid ?? undefined);
       try {
-        const outcome = await this.hookCoordinator(execution).runPostSync(
+        const outcome = await this.hookCoordinator(execution, operation !== undefined).runPostSync(
           oid,
           record,
           recordType,
@@ -4112,6 +4795,9 @@ export namespace Services {
           this.completeHookOperation(execution);
         }
         if (outcome.terminalCause !== undefined) {
+          if (RBValidationError.isRBValidationError(outcome.terminalCause)) {
+            throw outcome.terminalCause;
+          }
           throw new RBValidationError({
             message: `post-save trigger failed to complete for oid ${oid} mode ${mode}`,
             options: { cause: outcome.terminalCause },
@@ -4172,7 +4858,7 @@ export namespace Services {
         operation ??
         this.createHookExecutionOperation(mode as ActionExecutionOperation['mode'], undefined, oid ?? undefined);
       try {
-        this.hookCoordinator(execution).dispatchPost(oid, record, recordType, mode, user);
+        this.hookCoordinator(execution, operation !== undefined).dispatchPost(oid, record, recordType, mode, user);
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
