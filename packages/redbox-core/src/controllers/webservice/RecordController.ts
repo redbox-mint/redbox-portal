@@ -326,10 +326,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const recordResult = await this.RecordsService.getMeta(result.oid);
@@ -386,10 +391,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -446,10 +456,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -506,10 +521,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -685,11 +705,15 @@ export namespace Controllers {
             ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
           });
         }
+        const apiVersion = this.getApiVersion(req);
         return this.sendResp(req, res, {
-          status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-          displayErrors: [{ detail: 'Update Metadata failed' }],
-          meta: { ...result },
-          ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
+          status: recordSaveFailureStatusForVersion(apiVersion, result),
+          ...(apiVersion === '1.0'
+            ? { v1: { message: 'Update Metadata failed' } }
+            : {
+                displayErrors: [{ detail: 'Update Metadata failed' }],
+                meta: { ...result },
+              }),
         });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -742,11 +766,15 @@ export namespace Controllers {
             ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
           });
         }
+        const apiVersion = this.getApiVersion(req);
         return this.sendResp(req, res, {
-          status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-          displayErrors: [{ detail: 'Update Object Metadata failed' }],
-          meta: { ...result },
-          ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
+          status: recordSaveFailureStatusForVersion(apiVersion, result),
+          ...(apiVersion === '1.0'
+            ? { v1: { message: 'Update Object Metadata failed' } }
+            : {
+                displayErrors: [{ detail: 'Update Object Metadata failed' }],
+                meta: { ...result },
+              }),
         });
       } catch (err) {
         return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
@@ -861,11 +889,15 @@ export namespace Controllers {
                     },
                   });
                 } else {
+                  const apiVersion = that.getApiVersion(req);
                   return this.sendResp(req, res, {
-                    status: recordSaveFailureStatusForVersion(that.getApiVersion(req), response),
-                    displayErrors: [{ detail: 'Create Record failed' }],
-                    meta: { ...response },
-                    ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(response) } : {}),
+                    status: recordSaveFailureStatusForVersion(apiVersion, response),
+                    ...(apiVersion === '1.0'
+                      ? { v1: { message: 'Create Record failed' } }
+                      : {
+                          displayErrors: [{ detail: 'Create Record failed' }],
+                          meta: { ...response },
+                        }),
                   });
                 }
               },
@@ -1542,10 +1574,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const recordResult = await this.RecordsService.getMeta(result.oid);
@@ -1598,10 +1635,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -1654,10 +1696,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);
@@ -1710,10 +1757,15 @@ export namespace Controllers {
           }),
         );
         if (!result.wasPersisted()) {
+          const apiVersion = this.getApiVersion(req);
           return this.sendResp(req, res, {
-            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
-            displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
-            meta: { ...result },
+            status: recordSaveFailureStatusForVersion(apiVersion, result),
+            ...(apiVersion === '1.0'
+              ? { v1: { message: `Failed to update record with oid ${oid}.` } }
+              : {
+                  displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
+                  meta: { ...result },
+                }),
           });
         }
         const resultRecord = await this.RecordsService.getMeta(result['oid']);

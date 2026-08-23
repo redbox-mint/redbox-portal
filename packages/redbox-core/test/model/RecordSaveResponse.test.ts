@@ -119,7 +119,7 @@ describe('RecordSaveResponse', function () {
     });
 
     it('serializes only bounded safe validator metadata', function () {
-      const saveTracker = tracker();
+      const saveTracker = response();
       saveTracker.recordPrimaryNotApplied({
         kind: 'validation',
         phase: 'pre-save',
