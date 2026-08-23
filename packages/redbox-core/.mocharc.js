@@ -3,7 +3,11 @@ process.env.TS_NODE_PROJECT = process.env.TS_NODE_PROJECT || 'test/tsconfig.json
 module.exports = {
     extension: ['ts'],
     spec: ['test/**/*.test.ts'],
-    require: ['ts-node/register', 'test/setup.ts'],
+    // Node 24's native TypeScript stripping conflicts with ts-node's CommonJS
+    // loader. Preload Chai as well so legacy fire-and-forget dynamic imports do
+    // not race the suite's static Chai imports while Mocha loads test files.
+    "node-option": ['no-experimental-strip-types'],
+    require: ['ts-node/register/transpile-only', 'chai', 'test/setup.ts'],
     timeout: 5000
 };
 

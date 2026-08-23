@@ -5,9 +5,8 @@ import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 import * as sinon from 'sinon';
-import { fileURLToPath } from 'url';
 
-const require = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 
 describe('CoreController hook view resolution', function () {
   let appPath: string;
@@ -55,7 +54,7 @@ describe('CoreController hook view resolution', function () {
   }
 
   beforeEach(function () {
-    const { Controllers } = require('../../src/CoreController') as typeof import('../../src/CoreController');
+    const { Controllers } = testRequire('../../src/CoreController') as typeof import('../../src/CoreController');
     class TestController extends Controllers.Core.Controller { }
 
     originalSails = (global as { sails?: unknown }).sails;
@@ -83,7 +82,7 @@ describe('CoreController hook view resolution', function () {
         trace: sinon.stub(),
       },
     };
-    (global as { _?: unknown })._ = require('lodash');
+    (global as { _?: unknown })._ = testRequire('lodash');
     controller = new TestController();
   });
 
@@ -189,7 +188,7 @@ describe('CoreController hook view resolution', function () {
   });
 
   it('guards optional branding locals in the core layout head extension point', function () {
-    const viewsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../views');
+    const viewsRoot = path.resolve(__dirname, '../../../../views');
     const layout = fs.readFileSync(
       path.join(viewsRoot, 'default/default/layout.ejs'),
       'utf8'
