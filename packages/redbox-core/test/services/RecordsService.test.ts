@@ -227,6 +227,94 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('record validation rollout audit', function () {
+    it('durably records only normalized rollout modes and skips an unchanged fingerprint', async function () {
+      mockSails.config.recordValidation = {
+        mode: 'shadow',
+        timeoutMs: 5_000,
+        shadowReportMaxSeries: 1_000,
+        operations: { publish: { mode: 'enforce', secret: 'must-not-audit' } },
+      };
+      const recordTypes = [
+        {
+          name: 'dataset',
+          recordValidation: {
+            mode: 'shadow',
+            operations: {
+              submit: { mode: 'enforce', enabledValidationGroups: ['private-group'], roles: ['private-role'] },
+            },
+          },
+          privateConfiguration: 'must-not-audit',
+        },
+      ];
+
+      const first = await RecordsService.auditRecordValidationRollout(recordTypes);
+
+      expect(first.status).to.equal('audited');
+      expect(first.fingerprint).to.match(/^[a-f0-9]{64}$/);
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(audit.redboxOid).to.equal('record-validation-rollout');
+      expect(audit.action).to.equal('validation-mode-changed');
+      expect(audit.record.recordValidationRollout).to.deep.include({
+        schemaVersion: 1,
+        fingerprint: first.fingerprint,
+        changeType: 'baseline',
+      });
+      expect(audit.record.recordValidationRollout.snapshot.global).to.deep.equal({
+        mode: 'shadow',
+        operations: [{ operation: 'publish', mode: 'enforce' }],
+        malformedOperationCount: 0,
+      });
+      expect(audit.record.recordValidationRollout.snapshot.recordTypes).to.deep.equal([
+        {
+          recordType: 'dataset',
+          rollout: {
+            mode: 'shadow',
+            operations: [{ operation: 'submit', mode: 'enforce' }],
+            malformedOperationCount: 0,
+          },
+        },
+      ]);
+      expect(JSON.stringify(audit)).not.to.match(/must-not-audit|private-group|private-role|privateConfiguration/);
+
+      mockStorageService.createRecordAudit.resetHistory();
+      mockStorageService.getRecordAudit.resolves([audit]);
+      const unchanged = await RecordsService.auditRecordValidationRollout(recordTypes);
+      expect(unchanged).to.deep.equal({ status: 'unchanged', fingerprint: first.fingerprint });
+      expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
+    });
+
+    it('links mode changes to the previous fingerprint and fails closed without durable confirmation', async function () {
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      const baseline = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
+      const baselineAudit = mockStorageService.createRecordAudit.firstCall.args[0];
+      mockStorageService.getRecordAudit.resolves([baselineAudit]);
+      mockStorageService.createRecordAudit.resetHistory();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+
+      const changed = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
+      expect(changed.status).to.equal('audited');
+      const changedAudit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(changedAudit.record.recordValidationRollout).to.deep.include({
+        changeType: 'mode-change',
+        previousFingerprint: baseline.fingerprint,
+      });
+
+      mockStorageService.getRecordAudit.resolves([changedAudit]);
+      mockStorageService.createRecordAudit.resolves(undefined);
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      let failure: unknown;
+      try {
+        await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).to.be.instanceOf(Error);
+      expect((failure as Error).message).to.equal('Durable record-validation rollout audit was not confirmed.');
+    });
+  });
+
   describe('getDeletedRecordMeta', function () {
     it('returns deleted record metadata from storage', async function () {
       const result = await RecordsService.getDeletedRecordMeta('deleted-record-123');
@@ -2569,6 +2657,16 @@ describe('RecordsService', function () {
       expect(audit.record.validationBypass.recordContext.oid).to.be.a('string').and.not.be.empty;
       expect(JSON.stringify(audit)).not.to.include('sensitive-record-value');
       expect(JSON.stringify(audit)).not.to.include('secret-token');
+      const bypassLogCall = mockSails.log.warn.getCalls().find((call: any) =>
+        call.args[1]?.event === 'record_validation_bypassed'
+      );
+      expect(bypassLogCall?.args[1]).to.deep.include({
+        request_id: '9f851760-1978-4fb4-a667-c29c42b7e50d',
+        record_type: 'rdmp',
+        form: 'default-form',
+        validation_operation: 'strict-all',
+      });
+      expect(JSON.stringify(bypassLogCall?.args[1])).not.to.match(/sensitive-record-value|secret-token/);
     });
 
     it('rejects incomplete, unauditable, and HTTP-forged bypasses without persistence', async function () {
@@ -2651,6 +2749,7 @@ describe('RecordsService', function () {
       expect(unauditable.outcome).to.equal('not-saved');
       expect(unauditable.problems[0].issues[0].code).to.equal('record-validation-bypass-audit-failed');
       expect(JSON.stringify(unauditable)).not.to.include('secret audit backend failure');
+      expect(JSON.stringify(mockSails.log.error.args)).not.to.include('secret audit backend failure');
       expect(mockStorageService.create.notCalled).to.equal(true);
 
       mockStorageService.createRecordAudit.resetBehavior();
@@ -2884,6 +2983,8 @@ describe('RecordsService', function () {
         expect(mockStorageService.create.notCalled).to.equal(true);
         (global as any).RecordValidationService.resolve.reset();
       }
+      expect(JSON.stringify(mockSails.log.error.args)).not.to.match(/secret|private payload/);
+      expect(JSON.stringify(mockSails.log.warn.args)).not.to.match(/secret|private payload/);
       await new Promise(resolveImmediate => setImmediate(resolveImmediate));
     });
 

@@ -25,6 +25,8 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Configuring Form Expressions](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Form-Expressions)**: Event-driven expressions for dynamic form behavior using JSONata.
 - **[Form Configuration Recipes](https://github.com/redbox-mint/redbox-portal/wiki/Form-Configuration-Recipes)**: Reusable copy-and-adapt patterns for form config (e.g. populating fields from a related record).
 - **[Form Event Bus Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Form-Event-Bus-Architecture)**: Technical documentation of the event bus system for developers.
+- **[Authoritative Server-Side Form Validation](https://github.com/redbox-mint/redbox-portal/wiki/Server-Side-Form-Validation-Operations)**: Rollout configuration, privacy-safe telemetry, historical repair, bypass, signoff, and rollback runbook.
+- **[Migrating Save Buttons to Validation Operations](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-Save-Buttons-to-Validation-Operations)**: Add server-owned operation intent while retaining interactive validation groups.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[Translation Updates Runbook](https://github.com/redbox-mint/redbox-portal/wiki/Translation-Updates-Runbook)**: Translation key, metadata, plural, locale, and verification guidance.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.

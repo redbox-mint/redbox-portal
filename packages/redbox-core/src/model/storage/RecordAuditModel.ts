@@ -24,6 +24,7 @@ export enum RecordAuditActionType {
     updated = 'updated',
     validationBypassed = 'validation-bypassed',
     batchValidationBypassed = 'batch-validation-bypassed',
+    validationModeChanged = 'validation-mode-changed',
     deleted = 'deleted',
     destroyed = 'destroyed',
     restored = 'restored'
