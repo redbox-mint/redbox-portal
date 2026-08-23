@@ -5,7 +5,17 @@ import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import {
+  formValidatorsSharedDefinitions,
+  type FormConfigFrame,
+  type RecordSaveIssue,
+} from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
+import type { FormAttributes } from '../../src/waterline-models/Form';
+import {
+  Services as RecordValidationServices,
+  type RecordValidationServiceDependencies,
+} from '../../src/services/RecordValidationService';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -1772,6 +1782,128 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('saved');
       expect(result.problems).to.deep.equal([]);
       expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('keeps advisory failures response-neutral in enforce mode', async function () {
+      const advisoryErrors: RecordSaveIssue[] = [{
+        message: '@validator-error-recommended',
+        field: 'description',
+        class: 'required',
+      }];
+      (global as any).RecordValidationService.resolve.resolves(
+        allowResult({ mode: 'enforce', advisoryErrors })
+      );
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Valid primary record' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.problems).to.deep.equal([]);
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('runs omitted-operation validation through the real service and ignores client group bypass data', async function () {
+      const authoritativeForm: FormConfigFrame = {
+        name: 'default-form',
+        type: 'rdmp',
+        attachmentFields: ['attachments'],
+        enabledValidationGroups: ['required-fields'],
+        validationGroups: {
+          all: { description: 'All validators', initialMembership: 'all' },
+          none: { description: 'No validators', initialMembership: 'none' },
+          'required-fields': { description: 'Required fields', initialMembership: 'none' },
+        },
+        componentDefinitions: [{
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              validators: [{ class: 'required', groups: { include: ['required-fields'] } }],
+            },
+          },
+        }],
+      };
+      const dependencies: Partial<RecordValidationServiceDependencies> = {
+        loadRecordType: async () => ({
+          id: 'record-type-1',
+          name: 'rdmp',
+          recordValidation: { mode: 'enforce' },
+        }),
+        loadStartingWorkflowStep: async () => ({
+          name: 'draft',
+          starting: true,
+          config: { form: 'default-form' },
+        }),
+        loadWorkflowStep: async (_recordType, step) => ({
+          name: step,
+          config: { form: 'default-form' },
+        }),
+        loadWorkflowSteps: async () => [],
+        loadForm: async (formName, brand) => ({
+          id: `form-${formName}`,
+          name: formName,
+          branding: brand,
+          configuration: authoritativeForm,
+        } as FormAttributes),
+      };
+      mockSails.config.recordValidation = {
+        mode: 'enforce',
+        timeoutMs: 5_000,
+        allowedRequestParameters: [],
+      };
+      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+      mockSails.config.reusableFormDefinitions = {};
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: authoritativeForm,
+      });
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'default-form',
+        configuration: authoritativeForm,
+      }));
+      const attachmentJournal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = attachmentJournal;
+      const validationService = new RecordValidationServices.RecordValidation(dependencies);
+      const resolve = sinon.spy(validationService, 'resolve');
+      mockSails.services.recordvalidationservice = validationService;
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        {
+          metadata: {
+            title: '',
+            enabledValidationGroups: ['none'],
+            validationGroups: ['none'],
+            attachments: [{ fileId: 'pending-file', pending: true }],
+          },
+        },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' }
+      );
+
+      expect(resolve.calledOnce).to.equal(true);
+      expect(resolve.firstCall.args[0].validationOperation).to.equal(undefined);
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0].issues[0]).to.deep.include({
+        code: 'record-validation-failed',
+        field: 'title',
+        pointer: '/title',
+        class: 'required',
+      });
+      expect(attachmentJournal.prepareMutations.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(mockDatastreamService.addDatastream?.notCalled ?? true).to.equal(true);
     });
 
     it('preserves replacement semantics and validates the full update candidate after pre-hooks', async function () {
