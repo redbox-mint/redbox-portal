@@ -15,7 +15,7 @@
   "author": "QCIF Engineering",
   "license": "GPL-3.0",
   "devDependencies": {
-    "@tsconfig/node24": "24.0.4",
+    "@tsconfig/node24": "24.0.5",
     "typescript": "5.9.3",
     "@types/node": "26.2.0"
   },
