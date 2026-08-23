@@ -252,7 +252,8 @@ describe('MongoStorageService', function () {
   });
 
   it('scopes branded updates to the stored record brand', async function () {
-    const setStub = sandbox.stub().resolves({});
+    const metaStub = sandbox.stub().resolves({});
+    const setStub = sandbox.stub().returns({ meta: metaStub });
     Record.updateOne.returns({ set: setStub });
 
     const response = await service.updateMeta(
@@ -266,6 +267,7 @@ describe('MongoStorageService', function () {
       redboxOid: 'oid-1',
       'metaMetadata.brandId': 'brand-1',
     })).to.equal(true);
+    expect(metaStub.calledOnceWith({ enableExperimentalDeepTargets: true })).to.equal(true);
   });
 
   it('refuses a candidate that names a different active brand without issuing an update', async function () {
