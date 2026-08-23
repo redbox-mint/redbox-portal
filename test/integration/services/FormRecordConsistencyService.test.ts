@@ -5,6 +5,7 @@ import {
 } from '@researchdatabox/redbox-core';
 import {
   AvailableFormComponentDefinitionFrames,
+  FORM_VALIDATOR_EMAIL_REGEXP,
   FormConfigFrame,
   FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
@@ -1039,6 +1040,37 @@ describe('The FormRecordConsistencyService', function () {
               params: {
                 actualLength: 9,
                 requiredLength: 50,
+              },
+            },
+          ],
+        },
+        {
+          id: null,
+          message: null,
+          lineagePaths: {
+            formConfig: [
+              'componentDefinitions',
+              '2',
+              'component',
+              'config',
+              'componentDefinitions',
+              '3',
+              'component',
+              'config',
+              'elementTemplate',
+            ],
+            dataModel: ['group_2', 'repeatable_2', 0],
+            angularComponents: ['group_2', 'repeatable_2', 0],
+            angularComponentsJsonPointer: '/group_2/repeatable_2/0',
+          },
+          errors: [
+            {
+              class: 'email',
+              message: '@validator-error-email',
+              params: {
+                actual: 'not an email',
+                description: 'email must be in format (name)@(domain.tld)',
+                requiredPattern: FORM_VALIDATOR_EMAIL_REGEXP,
               },
             },
           ],
