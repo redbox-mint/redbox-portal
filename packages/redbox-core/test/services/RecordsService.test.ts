@@ -141,6 +141,7 @@ describe('RecordsService', function () {
     (global as any).BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).FormsService = {
       getForm: sinon.stub().resolves({ name: 'default-form', attachmentFields: [] }),
@@ -5107,7 +5108,8 @@ describe('RecordsService', function () {
 
       expect(appendResult.outcome).to.equal('not-saved');
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
-      expect((global as any).RecordTypesService.get.calledWith(null, 'rdmp')).to.equal(true);
+      expect((global as any).BrandingService.getBrandById.calledWith('brand-1')).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledWithMatch({ id: 'brand-1' }, 'rdmp')).to.equal(true);
 
       const rejectingService = { resolve: sinon.stub().rejects(new Error('validation unavailable')) };
       mockSails.services.recordvalidationservice = rejectingService;
