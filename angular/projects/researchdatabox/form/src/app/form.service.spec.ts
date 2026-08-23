@@ -22,8 +22,9 @@ import {
   FormValidationGroups,
   FormValidatorConfig,
   FormValidatorSummaryErrors,
-  jsonataCompileAndEvaluate,
+  type JSONataEvaluate,
   LineagePaths,
+  calculateValidationGroups as calculateSharedValidationGroups,
 } from "@researchdatabox/sails-ng-common";
 import {
   jsonataParityFixtures,
@@ -451,25 +452,44 @@ describe('The FormService', () => {
       });
     });
 
-    validationGroupCalculationFixtures
-      .filter((fixture) => fixture.operationEnabledValidationGroups === undefined)
-      .forEach((fixture) => {
-        it(`should match shared fixture: ${fixture.name}`, function () {
-          const result = service.calculateValidationGroups(
+    for (const fixture of validationGroupCalculationFixtures) {
+      it(`should execute shared fixture: ${fixture.name}`, function () {
+        const sharedResult = calculateSharedValidationGroups(
+          fixture.currentValidationGroups,
+          fixture.validationGroups,
+          fixture.initial,
+          fixture.groups,
+          fixture.operationEnabledValidationGroups,
+        );
+
+        expect(sharedResult.enabledValidationGroups).toEqual(fixture.expectedGroups);
+        expect(sharedResult.diagnostics.map(diagnostic => diagnostic.code)).toEqual(
+          fixture.expectedDiagnosticCodes ?? []
+        );
+
+        if (fixture.operationEnabledValidationGroups === undefined) {
+          expect(service.calculateValidationGroups(
             fixture.currentValidationGroups,
             fixture.validationGroups,
             fixture.initial,
             fixture.groups,
-          );
-          expect(result).toEqual(fixture.expectedGroups);
-        });
+          )).toEqual(fixture.expectedGroups);
+        }
       });
+    }
   });
 
   describe('JSONata browser/server parity', () => {
     for (const fixture of jsonataParityFixtures) {
       it(`should match shared fixture: ${fixture.name}`, async () => {
-        expect(await jsonataCompileAndEvaluate(fixture.expression, fixture.context)).toEqual(fixture.expected);
+        const [validator] = service.prepareValidatorConfigs([{
+          class: 'jsonata-expression',
+          config: { expression: fixture.expression },
+        }]);
+        const evaluator = validator.config?.['evaluator'] as JSONataEvaluate | undefined;
+
+        expect(evaluator).toEqual(jasmine.any(Function));
+        expect(await evaluator!(fixture.context)).toEqual(fixture.expected);
       });
     }
   });
