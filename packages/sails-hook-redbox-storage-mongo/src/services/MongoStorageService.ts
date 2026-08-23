@@ -286,7 +286,10 @@ export namespace Services {
         const criteria = activeBrandId
           ? { redboxOid: oid, 'metaMetadata.brandId': activeBrandId }
           : { redboxOid: oid };
-        const updated = await Record.updateOne(criteria).set(record);
+        const updateQuery = Record.updateOne(criteria).set(record);
+        const updated = activeBrandId
+          ? await updateQuery.meta({ enableExperimentalDeepTargets: true })
+          : await updateQuery;
         // Waterline adapters may resolve an update with no matched record.
         // A missing result is a certified non-write, not an applied mutation.
         if (updated == null || (Array.isArray(updated) && updated.length === 0)) {
