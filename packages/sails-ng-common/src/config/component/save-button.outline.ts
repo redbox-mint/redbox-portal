@@ -18,6 +18,11 @@ export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
 export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
   /**
+   * Server-owned validation intent to apply to this save.
+   * This is independent of targetStep and does not make client validation groups authoritative.
+   */
+  operation?: string;
+  /**
    * Try to transition to this workflow step as part of the save process on the server.
    */
   targetStep?: string;

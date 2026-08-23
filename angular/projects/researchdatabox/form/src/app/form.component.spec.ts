@@ -190,12 +190,17 @@ describe('FormComponent', () => {
     const spy = spyOn(formComponent, 'saveForm').and.stub();
 
     // Publish execute command after subscription is in place
-    bus.publish(createFormSaveExecuteEvent({ force: true, enabledValidationGroups: ["none"], targetStep: 'S1' }));
+    bus.publish(createFormSaveExecuteEvent({
+      force: true,
+      enabledValidationGroups: ["none"],
+      operation: 'submit',
+      targetStep: 'S1',
+    }));
     fixture.detectChanges();
     await fixture.whenStable();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({
-      force: true, targetStep: 'S1', enabledValidationGroups: ["none"],
+      force: true, operation: 'submit', targetStep: 'S1', enabledValidationGroups: ["none"],
       closeOnSave: undefined, redirectLocation: undefined, redirectDelaySeconds: undefined,
     });
   });
@@ -426,7 +431,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined);
     expect(saveCompleted).toBeTrue();
     expect(validatorRuns).toBe(1);
   });
@@ -456,7 +461,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined);
   });
 
   it('saves without delay when validation is already settled', async () => {
@@ -471,7 +476,7 @@ describe('FormComponent', () => {
 
     await formComponent.saveForm();
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '');
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '', undefined);
   });
 
   it('does not save invalid forms when forced', async () => {
@@ -540,6 +545,118 @@ describe('FormComponent', () => {
     expect(formComponent.form.errors?.['server#0']).toEqual({
       class: 'server',
       message: '@record-save-failed',
+      params: {},
+    });
+  });
+
+  it('maps server validator ownership and metadata to the configured target field', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const source = new FormControl('source');
+    const target = new FormControl('target');
+    formComponent.form = new FormGroup({ source, target });
+    formComponent.componentDefArr = [
+      {
+        name: 'source',
+        compConfigJson: { name: 'source' } as any,
+        model: { formControl: source } as any,
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0],
+          dataModel: ['source'],
+          angularComponents: ['source'],
+          angularComponentsJsonPointer: '/source',
+        } as any,
+      },
+      {
+        name: 'target',
+        compConfigJson: { name: 'target' } as any,
+        model: { formControl: target } as any,
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 1],
+          dataModel: ['target'],
+          angularComponents: ['details', 'target'],
+          angularComponentsJsonPointer: '/details/target',
+        } as any,
+      },
+    ];
+    const bus = TestBed.inject(FormComponentEventBus);
+    const focusEvents: any[] = [];
+    const sub = bus.select$(FormComponentEventType.FIELD_FOCUS_REQUEST).subscribe(event => focusEvents.push(event));
+
+    try {
+      (formComponent as any).applyServerSaveProblems({
+        requestId: 'request-target',
+        problems: [{
+          kind: 'validation',
+          phase: 'pre-save',
+          issues: [{
+            pointer: '/source',
+            message: '@validator-error-min-length',
+            class: 'minLength',
+            params: { requiredLength: 3, actualLength: 2 },
+            targetField: { formConfig: ['componentDefinitions', 1] },
+            lineagePaths: { angularComponents: ['source'] },
+          }],
+        }],
+      });
+
+      expect(source.errors).toBeNull();
+      expect(target.errors?.['server#0']).toEqual({
+        class: 'minLength',
+        message: '@validator-error-min-length',
+        params: { requiredLength: 3, actualLength: 2 },
+        targetField: { formConfig: ['componentDefinitions', 1] },
+      });
+      expect(focusEvents.length).toBe(1);
+      expect(focusEvents[0].lineagePath).toEqual(['details', 'target']);
+      expect(focusEvents[0].requestId).toBe('request-target');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('uses server lineage to select one nested repeatable field without a pointer', function () {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const first = new FormControl('one');
+    const second = new FormControl('two');
+    formComponent.form = new FormGroup({ repeatable: new FormGroup({}) });
+    formComponent.componentDefArr = [
+      {
+        name: 'title',
+        compConfigJson: { name: 'title' } as any,
+        model: { formControl: first } as any,
+        lineagePaths: {
+          dataModel: ['repeatable', 0, 'title'],
+          angularComponents: ['repeatable', 0, 'title'],
+        } as any,
+      },
+      {
+        name: 'title',
+        compConfigJson: { name: 'title' } as any,
+        model: { formControl: second } as any,
+        lineagePaths: {
+          dataModel: ['repeatable', 1, 'title'],
+          angularComponents: ['repeatable', 1, 'title'],
+        } as any,
+      },
+    ];
+
+    (formComponent as any).applyServerSaveProblems({
+      problems: [{
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [{
+          message: '@validator-error-required',
+          lineagePaths: { dataModel: ['repeatable', 1, 'title'] },
+        }],
+      }],
+    });
+
+    expect(first.errors).toBeNull();
+    expect(second.errors?.['server#0']).toEqual({
+      class: 'server',
+      message: '@validator-error-required',
       params: {},
     });
   });
@@ -664,6 +781,53 @@ describe('FormComponent', () => {
       expect(focusEvents[0].source).toBe('server-save-validation');
     } finally {
       sub.unsubscribe();
+    }
+  });
+
+  it('treats saved-with-warnings as a persisted operation save without closing the form', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    const response = persistedSaveResponse({
+      outcome: 'saved-with-warnings',
+      requestId: 'request-warning',
+      isComplete: () => false,
+    });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const failureEvents: any[] = [];
+    const successSub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
+    const failureSub = bus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm({
+        force: true,
+        operation: 'publish',
+        targetStep: 'published',
+        enabledValidationGroups: ['all', 'publish'],
+        closeOnSave: true,
+      });
+
+      expect(updateSpy).toHaveBeenCalledOnceWith(
+        'oid-123',
+        { title: 'changed' },
+        'published',
+        'publish'
+      );
+      expect(successEvents.length).toBe(1);
+      expect(successEvents[0].response?.outcome).toBe('saved-with-warnings');
+      expect(successEvents[0].closeOnSave).toBeUndefined();
+      expect(failureEvents).toEqual([]);
+    } finally {
+      successSub.unsubscribe();
+      failureSub.unsubscribe();
+    }
+  });
     }
   });
 
@@ -1103,7 +1267,7 @@ describe('FormComponent', () => {
       formComponent.form!.markAsDirty();
       const savePromise = formComponent.saveForm();
 
-      expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '');
+      expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '', undefined);
       control.setValue('edited during save');
       control.markAsDirty();
       resolveUpdate(persistedSaveResponse({

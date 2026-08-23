@@ -47,6 +47,7 @@ describe('SaveButtonComponent', () => {
             config: {
               label: '@save-button-default',
               labelSaving: "@save-button-saving",
+              operation: 'submit-for-review',
               targetStep: 'next_step',
               forceSave: true,
             }
@@ -189,6 +190,7 @@ describe('SaveButtonComponent', () => {
       expect(events.length).toBe(1);
       expect(events[0].type).toBe('form.save.requested');
       expect(events[0].force).toBe(true);
+      expect(events[0].operation).toBe('submit-for-review');
       expect(events[0].targetStep).toBe('next_step');
       expect(events[0].closeOnSave).toBe(true);
       expect(events[0].redirectLocation).toBe('redirect-location/one');
@@ -244,8 +246,31 @@ describe('SaveButtonComponent', () => {
 
       expect(events.length).toBe(1);
       expect(events[0].force).toBe(true);
+      expect(events[0].operation).toBe('submit-for-review');
       expect(events[0].targetStep).toBe('next_step');
       expect(events[0].enabledValidationGroups).toEqual(["none"]);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('keeps save buttons without an operation compatible', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    delete saveButtonConfig['operation'];
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(event => events.push(event));
+    try {
+      const saveButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(events.length).toBe(1);
+      expect(events[0].operation).toBeUndefined();
+      expect(events[0].enabledValidationGroups).toEqual(['none']);
     } finally {
       sub.unsubscribe();
     }
