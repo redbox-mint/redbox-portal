@@ -44,10 +44,15 @@ Every result includes a `requestId`, safe `problems`, and attachment
 `incomplete`, or `unknown` journal entries without relying on a changed file
 ID. Delete operations retain an applied tombstone in `AttachmentMetadata`.
 
-API v1 keeps its existing success body shape. The typed result is available in
-the v2 `meta` envelope; v1 callers should continue to use the legacy body and
-legacy save failures retain their historical 500 status. Clients using the v2
-contract must not infer complete follow-up processing from `success` alone.
+API v1 keeps its existing success body shape. API v2 success responses use
+`{ data, meta }`, where `data` is the saved storage response and `meta` is the
+typed save result; v2 failures use `{ errors, meta }`. Early policy/contract
+failures may carry an empty `meta: {}` because no save result exists yet; when
+save-result metadata is present it retains the rich typed schema. The generated
+OpenAPI contract documents both negotiated alternatives. V1 callers should
+continue to use the legacy body and legacy save failures retain their historical
+500 status. Clients using the v2 contract must not infer complete follow-up
+processing from `success` alone.
 
 ### Authoritative validation operations
 
@@ -64,13 +69,20 @@ Request bodies are unchanged. The operation identifies server-owned business
 intent; it is independent of CRUD method and workflow target. The server loads
 the exact candidate form, resolves the operation and authorization policy, and
 applies its exact blocking validation groups. If `operation` is omitted, the
-server uses the authoritative form-derived groups. Unknown or malformed names
-are rejected even while record validation is in shadow mode.
+server runs every blocking validator rather than retaining the form's
+conditional/default group subset. Unknown or malformed names are rejected even
+while record validation is in shadow mode.
 
 Client `enabledValidationGroups` values are not an API authority input and
 cannot weaken validation. Existing integrations may omit `operation`, but
 workflow-specific clients should use a name advertised by the authorized form
 or workflow metadata.
+
+Public create, metadata update, and transition routes always enforce normal
+object edit authorization. A targeted create also enforces the selected target
+step's transition roles, and a transition enforces both current-record edit
+access and the target role. Validation-operation roles and target allowlists
+can only narrow those permissions.
 
 API v2 validation failures use typed `not-saved` problems:
 

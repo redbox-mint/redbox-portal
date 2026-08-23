@@ -54,7 +54,9 @@ function successResult(oid = 'record-1') {
 }
 
 function notSavedResult() {
-    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000099');
+    const result = new RecordSaveResponse(createRecordSaveContext({
+        requestId: '00000000-0000-4000-8000-000000000099',
+    }));
     result.success = false;
     result.outcome = 'not-saved';
     result.message = '@record-save-failed';
@@ -435,7 +437,7 @@ describe('Webservice RecordController body source', () => {
                     tags: ['existing'],
                     nested: { value: 1 },
                 },
-                metaMetadata: { attachmentFields: [] },
+                metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
             };
             recordsService.getMeta.resolves(record);
             recordsService.updateMeta.resolves(successResult());
@@ -473,7 +475,7 @@ describe('Webservice RecordController body source', () => {
                     phase: 'pre-save',
                     issues: [{ message: '@dmpt-form-save-error', code: 'validation-failed' }],
                 }];
-                recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+                recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
                 recordsService.updateMeta.resolves(result);
                 const req = makeThrowingRequest({
                     params: { oid: 'record-1' },
@@ -507,7 +509,7 @@ describe('Webservice RecordController body source', () => {
                 source: 'validated',
             };
             const record = {
-                metaMetadata: { kind: 'original' },
+                metaMetadata: { kind: 'original', brandId: 'brand-1' },
             };
             recordsService.getMeta.resolves(record);
             recordsService.updateMeta.resolves(successResult());
@@ -593,6 +595,31 @@ describe('Webservice RecordController body source', () => {
             );
         });
 
+        it('preserves targeted-create intent when the requested workflow step has not resolved yet', async () => {
+            recordsService.create.resolves(notSavedResult());
+            const req = makeThrowingRequest({
+                params: { recordType: 'dataset' },
+                query: {},
+                body: {
+                    workflowStage: 'missing-step',
+                    metadata: { title: 'Target must resolve at the service boundary' },
+                },
+                files: {},
+            });
+            sinon.stub(controller as any, 'sendResp');
+
+            await controller.create(req, {} as Sails.Res);
+            await flushPromises();
+
+            expect(recordsService.create.calledOnce).to.equal(true);
+            expect(recordsService.create.firstCall.args[6]).to.equal('missing-step');
+            expect(recordsService.create.firstCall.args[7]).to.include({
+                routeFamily: 'api',
+                operation: 'transition',
+                targetStep: 'missing-step',
+            });
+        });
+
         it('keeps omitted operations optional on create and update', async () => {
             recordsService.create.resolves(successResult('created-record'));
             const createReq = makeThrowingRequest({
@@ -607,7 +634,7 @@ describe('Webservice RecordController body source', () => {
             await flushPromises();
 
             expect((recordsService.create.firstCall.args[7] as any).validationOperation).to.equal(undefined);
-            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
             recordsService.updateMeta.resolves(successResult());
             const updateReq = makeThrowingRequest({
                 params: { oid: 'record-1' },
@@ -630,7 +657,9 @@ describe('Webservice RecordController body source', () => {
             };
             recordsService.getMeta.resolves(record);
             (global as any).WorkflowStepsService.get.returns(of({ name: 'published', config: { form: 'dataset-published' } }));
-            const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000002');
+            const result = new RecordSaveResponse(createRecordSaveContext({
+                requestId: '00000000-0000-4000-8000-000000000002',
+            }));
             result.outcome = 'not-saved';
             result.problems = [{
                 kind: 'authorization',
@@ -652,10 +681,37 @@ describe('Webservice RecordController body source', () => {
             await controller.transitionWorkflow(req, {} as Sails.Res);
 
             const context = recordsService.updateMeta.firstCall.args[8] as any;
-            expect(context).to.include({ operation: 'transition', validationOperation: 'publish' });
+            expect(context).to.include({
+                operation: 'transition',
+                targetStep: 'published',
+                validationOperation: 'publish',
+            });
             expect(recordsService.updateMeta.firstCall.args[6]).to.deep.include({ name: 'published' });
             expect(sendRespStub.firstCall.args[2].status).to.equal(403);
             expect(sendRespStub.firstCall.args[2].meta.problems[0].kind).to.equal('authorization');
+        });
+
+        it('does not transition a record owned by another brand', async () => {
+            recordsService.getMeta.resolves({
+                redboxOid: 'record-1',
+                metadata: { title: 'Foreign record' },
+                metaMetadata: { type: 'dataset', brandId: 'brand-2', form: 'dataset-draft' },
+                workflow: { stage: 'draft' },
+            });
+            const req = makeThrowingRequest({
+                params: { oid: 'record-1', targetStep: 'published' },
+                query: { operation: 'publish' },
+                body: {},
+                files: {},
+            });
+            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+            await controller.transitionWorkflow(req, {} as Sails.Res);
+
+            expect(sendRespStub.firstCall.args[2].status).to.equal(404);
+            expect(recordsService.hasEditAccess.notCalled).to.equal(true);
+            expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
+            expect(recordsService.updateMeta.notCalled).to.equal(true);
         });
 
         it('preserves the literal v1 transition failure as an HTTP 200 result body', async () => {
@@ -691,7 +747,19 @@ describe('Webservice RecordController body source', () => {
             await controller.transitionWorkflow(req, {} as Sails.Res);
 
             expect(sendRespStub.calledOnce).to.equal(true);
-            expect(sendRespStub.firstCall.args[2]).to.deep.equal({ data: result });
+            expect(sendRespStub.firstCall.args[2]).to.deep.equal({
+                data: result,
+                v1: {
+                    success: false,
+                    oid: '',
+                    message: '@record-save-failed',
+                    data: undefined,
+                    metadata: null,
+                    details: undefined,
+                    totalItems: 0,
+                    items: [],
+                },
+            });
         });
 
         it('keeps an omitted transition operation optional', async () => {
@@ -717,20 +785,22 @@ describe('Webservice RecordController body source', () => {
             await controller.transitionWorkflow(req, {} as Sails.Res);
 
             const context = recordsService.updateMeta.firstCall.args[8] as any;
-            expect(context).to.include({ operation: 'transition' });
+            expect(context).to.include({ operation: 'transition', targetStep: 'review' });
             expect(context.validationOperation).to.equal(undefined);
             expect(sendRespStub.calledOnce).to.equal(true);
         });
 
         it('keeps operation contract failures sanitized and v1-compatible', async () => {
-            const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000003');
+            const result = new RecordSaveResponse(createRecordSaveContext({
+                requestId: '00000000-0000-4000-8000-000000000003',
+            }));
             result.outcome = 'not-saved';
             result.problems = [{
                 kind: 'validation',
                 phase: 'pre-save',
                 issues: [{ code: 'record-validation-operation-invalid', message: '@record-save-record-validation-operation-invalid' }],
             }];
-            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [] } });
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
             recordsService.updateMeta.resolves(result);
             const req = makeThrowingRequest({
                 params: { oid: 'record-1' },

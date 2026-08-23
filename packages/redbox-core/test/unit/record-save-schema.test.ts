@@ -30,7 +30,7 @@ describe('record-save issue response schema', function () {
     expect(result.success).to.equal(true);
   });
 
-  it('rejects nested or excessive validator parameters', function () {
+  it('rejects nested, unknown, or excessive validator parameters', function () {
     expect(
       recordSaveIssueSchema.safeParse({
         message: '@validator-error',
@@ -41,7 +41,7 @@ describe('record-save issue response schema', function () {
     expect(
       recordSaveIssueSchema.safeParse({
         message: '@validator-error',
-        params: Object.fromEntries(Array.from({ length: 17 }, (_unused, index) => [`item${index}`, index])),
+        params: { submittedValue: 'secret' },
       }).success
     ).to.equal(false);
   });

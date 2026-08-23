@@ -65,6 +65,7 @@ import {
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 import {
   legacyRecordSaveBody,
+  normalizeRecordValidationRequestFacts,
   parsePublicValidationOperation,
   recordSaveContextFromHeaders,
   recordSaveFailureStatusForVersion,
@@ -232,8 +233,9 @@ export namespace Controllers {
         if (_.isEmpty(record)) {
           return null;
         }
-        const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '');
-        if (recordBrandId && brand?.id && recordBrandId !== brand.id) {
+        const recordBrandId = String(_.get(record, 'metaMetadata.brandId', '') ?? '').trim();
+        const activeBrandId = String(brand?.id ?? '').trim();
+        if (!activeBrandId || recordBrandId !== activeBrandId) {
           return null;
         }
         return record;
@@ -305,7 +307,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -348,7 +367,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -391,7 +427,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -434,7 +487,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -590,7 +660,15 @@ export namespace Controllers {
           true,
           {},
           updatedMetadata,
-          recordSaveContextFromHeaders(req.headers, 'api', 'update', validationOperation),
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationOperation,
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
         );
         // Attachment work is part of RecordsService's ordered save pipeline.
         // Keep accepting the legacy query parameter for route compatibility,
@@ -639,7 +717,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (result.wasPersisted()) {
           return this.sendResp(req, res, {
             data: result,
@@ -725,7 +820,16 @@ export namespace Controllers {
                 req.headers,
                 'api',
                 workflowStage ? 'transition' : 'create',
-                validationOperation,
+                {
+                  targetStep: workflowStage,
+                  validationOperation,
+                  validationRequestParameters: normalizeRecordValidationRequestFacts(
+                    req.apiRequest?.params,
+                    req.apiRequest?.query,
+                    req.params,
+                    req.query,
+                  ),
+                },
               ),
             );
 
@@ -1303,11 +1407,11 @@ export namespace Controllers {
           });
         }
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-        const record = await this.RecordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
           return this.sendResp(req, res, {
-            status: 500,
-            displayErrors: [{ detail: `Missing OID: ${oid}` }],
+            status: 404,
+            displayErrors: [{ detail: 'Record not found.' }],
           });
         }
         if (
@@ -1334,13 +1438,25 @@ export namespace Controllers {
           true,
           nextStep,
           undefined,
-          recordSaveContextFromHeaders(req.headers, 'api', 'transition', validationOperation),
+          recordSaveContextFromHeaders(req.headers, 'api', 'transition', {
+            targetStep: targetStepName,
+            validationOperation,
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
         );
         // This route historically returned the transition result as a normal
         // v1 response even when the underlying save was refused. Preserve
         // that literal status/body contract; only v2 uses typed failures.
         if (this.getApiVersion(req) === '1.0') {
-          return this.sendResp(req, res, { data: response });
+          return this.sendResp(req, res, {
+            data: response,
+            v1: legacyRecordSaveBody(response),
+          });
         }
         if (response.wasPersisted()) {
           return this.sendResp(req, res, {
@@ -1407,7 +1523,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -1446,7 +1579,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -1485,7 +1635,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
@@ -1524,7 +1691,24 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          recordSaveContextFromHeaders(req.headers, 'api', 'update', {
+            validationRequestParameters: normalizeRecordValidationRequestFacts(
+              req.apiRequest?.params,
+              req.apiRequest?.query,
+              req.params,
+              req.query,
+            ),
+          }),
+        );
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
             status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),

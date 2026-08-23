@@ -5,9 +5,9 @@ import { ApiSchemaField } from '../types';
 import {
     RECORD_SAVE_LINEAGE_LIMITS,
     RECORD_SAVE_MESSAGE_MAX_LENGTH,
+    RECORD_SAVE_PUBLIC_FIELD_LIMITS,
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN,
     RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
-    RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN,
-    RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS,
     RECORD_VALIDATION_REFERENCE_PATTERN,
     VALIDATION_OPERATION_DESCRIPTION_MAX_LENGTH,
     VALIDATION_OPERATION_LABEL_MAX_LENGTH,
@@ -316,36 +316,27 @@ const recordSaveLineagePathsSchema = recordSaveTargetFieldSchema.extend({
     layoutJsonPointer: z.string().max(RECORD_SAVE_LINEAGE_LIMITS.maxPointerLength).optional(),
 });
 
-const recordSaveValidatorParameterPrimitiveSchema = z.union([
-    z.string().max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxStringLength),
-    z.number().finite(),
-    z.boolean(),
-    z.null(),
-]);
-
-const recordSaveValidatorParametersSchema = z
-    .record(
-        z.string()
-            .max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxKeyLength)
-            .regex(RECORD_SAVE_VALIDATOR_PARAMETER_KEY_PATTERN),
-        z.union([
-            recordSaveValidatorParameterPrimitiveSchema,
-            z.array(recordSaveValidatorParameterPrimitiveSchema)
-                .max(RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxArrayLength),
-        ]),
-    )
-    .refine((value) => Object.keys(value).length <= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxEntries
-        && JSON.stringify(value).length <= RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS.maxSerializedLength, {
-        message: 'Validator parameters exceed the safe response bounds',
-    });
+const recordSaveValidatorParametersSchema = z.object({
+    requiredThreshold: z.number().finite().optional(),
+    actualLength: z.number().finite().optional(),
+    requiredLength: z.number().finite().optional(),
+    required: z.boolean().optional(),
+    controlCount: z.number().finite().optional(),
+    valueCount: z.number().finite().optional(),
+    multiSelect: z.boolean().optional(),
+    sourceType: z.enum(['static', 'vocabulary', 'query', 'service']).optional(),
+}).strict();
 
 export const recordSaveIssueSchema = withOpenApi(
     z.object({
-        code: z.string().optional(),
+        code: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxCodeLength)
+            .regex(RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN).optional(),
         message: z.string().max(RECORD_SAVE_MESSAGE_MAX_LENGTH),
-        field: z.string().optional(),
-        pointer: z.string().optional(),
-        class: z.string().max(RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH).optional(),
+        field: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength)
+            .regex(RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN).optional(),
+        pointer: z.string().startsWith('/').max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength).optional(),
+        class: z.string().max(RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH)
+            .regex(RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN).optional(),
         params: recordSaveValidatorParametersSchema.optional(),
         targetField: recordSaveTargetFieldSchema.optional(),
         lineagePaths: recordSaveLineagePathsSchema.optional(),
@@ -402,9 +393,28 @@ export const storageServiceResponseSchema = withOpenApi(
     { description: 'Storage service response envelope' }
 );
 
+export const recordSaveSuccessResponseSchema = withOpenApi(
+    z.union([
+        storageServiceResponseSchema,
+        z.object({ data: storageServiceResponseSchema, meta: storageServiceResponseSchema }),
+    ]),
+    { description: 'Legacy v1 record-save response or the v2 {data, meta} envelope' }
+);
+
 export const recordSaveFailureResponseSchema = withOpenApi(
-    z.union([storageServiceResponseSchema, errorResponseV2Schema, apiErrorResponseSchema]),
-    { description: 'Versioned record-save failure response with safe validation metadata' }
+    z.union([
+        apiErrorResponseSchema,
+        z.object({
+            errors: z.array(errorResponseItemV2Schema),
+            meta: z.union([
+                storageServiceResponseSchema,
+                z.object({}).strict(),
+            ]),
+        }),
+    ]),
+    {
+        description: 'Legacy v1 error or v2 {errors, meta}; early policy failures may use empty meta while save-boundary failures retain typed result metadata',
+    }
 );
 
 export const linkedUserSummarySchema = withOpenApi(

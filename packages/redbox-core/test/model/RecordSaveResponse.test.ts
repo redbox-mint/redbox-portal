@@ -5,7 +5,9 @@ import {
   isInternalRecordValidationBypass,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
+  normalizeRecordValidationRequestFacts,
   readSaveRequestId,
+  recordValidationRuntimeFacts,
   RECORD_VALIDATION_BYPASS_REASONS,
   recordSaveFailureStatus,
   recordSaveProblem,
@@ -209,6 +211,7 @@ describe('RecordSaveResponse', function () {
         requestId,
         routeFamily: 'internal',
         operation: 'transition',
+        targetStep: 'published',
         validationOperation: 'publish',
         validationBypass: {
           mode: 'bypass',
@@ -218,6 +221,7 @@ describe('RecordSaveResponse', function () {
       });
 
       expect(context.operation).to.equal('transition');
+      expect(context.targetStep).to.equal('published');
       expect(context.validationOperation).to.equal('publish');
       expect(context.validationBypass).to.deep.equal({
         mode: 'bypass',
@@ -259,6 +263,32 @@ describe('RecordSaveResponse', function () {
       expect(readSaveRequestId({ 'x-redbox-save-request-id': 'x'.repeat(5000) })).to.be.undefined;
       expect(readSaveRequestId(undefined)).to.be.undefined;
     });
+
+    it('normalizes the same bounded request and runtime facts for every transport', function () {
+      expect(normalizeRecordValidationRequestFacts(
+        { recordType: ' dataset ', targetStep: '../unsafe', merge: 'true', token: 'secret' },
+        { targetStep: 'review', datastreams: false }
+      )).to.deep.equal({ recordType: 'dataset', targetStep: 'review', merge: true, datastreams: false });
+
+      expect(recordValidationRuntimeFacts({
+        routeFamily: 'browser',
+        operation: 'transition',
+        validationRuntimeContext: { rawRequest: 'must-not-pass' },
+      }, 'transition')).to.deep.equal({
+        routeFamily: 'browser',
+        writeKind: 'transition',
+        saveOperation: 'transition',
+      });
+      expect(recordValidationRuntimeFacts({
+        routeFamily: 'internal',
+        validationRuntimeContext: { service: 'repair' },
+      }, 'update')).to.deep.equal({
+        service: 'repair',
+        routeFamily: 'internal',
+        writeKind: 'update',
+        saveOperation: 'update',
+      });
+    });
   });
 
   describe('recordSaveFailureStatus', function () {
@@ -277,12 +307,12 @@ describe('RecordSaveResponse', function () {
     });
 
     it('uses deterministic severity instead of the first problem', function () {
-      const authorizationAfterValidation = new RecordSaveResponse(requestId);
+      const authorizationAfterValidation = new RecordSaveResponse(createRecordSaveContext({ requestId }));
       authorizationAfterValidation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
       authorizationAfterValidation.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       expect(recordSaveFailureStatus(authorizationAfterValidation)).to.equal(403);
 
-      const systemAfterAuthorization = new RecordSaveResponse(requestId);
+      const systemAfterAuthorization = new RecordSaveResponse(createRecordSaveContext({ requestId }));
       systemAfterAuthorization.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       systemAfterAuthorization.addProblem(recordSaveProblem('system', 'pre-save', 'configuration failure'));
       expect(recordSaveFailureStatus(systemAfterAuthorization)).to.equal(500);

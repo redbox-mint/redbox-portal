@@ -3,7 +3,12 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordController';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
-import { RecordSaveResponse } from '../../src/RecordSaveResponse';
+import {
+  createRecordSaveContext,
+  normalizeRecordValidationRequestFacts,
+  recordSaveContextFromHeaders,
+  RecordSaveResponse,
+} from '../../src/RecordSaveResponse';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -363,55 +368,27 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('maps only the browser operation query to validationOperation while preserving CRUD intent', function () {
     const req = {
+      params: { targetStep: 'route-step' },
       query: { operation: ' submit ' },
       headers: {},
-      body: { operation: 'body-must-not-control-validation' },
+      body: { operation: 'body-must-not-control-validation', targetStep: 'body-step' },
+      param: sinon.stub().callsFake((name: string) => (name === 'operation' ? 'body-operation' : 'body-step')),
     } as unknown as Sails.Req;
     const parsed = (controller as any).publicValidationOperation(req);
-    const context = (controller as any).saveContext(req, 'transition', parsed.value);
+    const context = recordSaveContextFromHeaders(req.headers, 'browser', 'transition', {
+      validationOperation: parsed.value,
+      validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
+    });
 
     expect(parsed).to.deep.equal({ valid: true, value: 'submit' });
     expect(context.operation).to.equal('transition');
     expect(context.validationOperation).to.equal('submit');
+    expect(context.validationRequestParameters).to.deep.equal({ targetStep: 'route-step' });
+    expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
     expect((controller as any).publicValidationOperation({ query: {} })).to.deep.equal({ valid: true });
     expect((controller as any).publicValidationOperation({
       query: { operation: 'bad operation' },
     })).to.deep.equal({ valid: false });
-  });
-
-  it('keeps the literal v1 failure body while exposing typed v2 failures', function () {
-    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000010');
-    result.outcome = 'not-saved';
-    result.problems = [{
-      kind: 'validation',
-      phase: 'pre-save',
-      issues: [{ message: '@validation-failed' }],
-    }];
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-
-    (controller as any).sendSaveFailure(
-      { headers: { 'X-ReDBox-Api-Version': '1.0' } },
-      {},
-      result,
-      'Failed to save record'
-    );
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 500,
-      v1: { message: 'Failed to save record' },
-    });
-
-    sendResp.resetHistory();
-    (controller as any).sendSaveFailure(
-      { headers: { 'X-ReDBox-Api-Version': '2.0' } },
-      {},
-      result,
-      'Failed to save record'
-    );
-    expect(sendResp.firstCall.args[2]).to.deep.include({
-      status: 400,
-      displayErrors: [{ detail: 'Failed to save record' }],
-    });
-    expect(sendResp.firstCall.args[2]).not.to.have.property('v1');
   });
 
   it('preserves the form-configuration failure response before operation discovery', async function () {
@@ -633,6 +610,202 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.rejects(new Error('projection failed'));
     expect(await (controller as any).getPostSaveMetadata(req, brand, savedRecord, null)).to.equal(null);
     expect((global as any).sails.log.error.calledOnce).to.be.true;
+  });
+
+  it('routes browser stepTo through the authoritative transition save boundary', async () => {
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      metadata: { title: 'Before' },
+      workflow: { stage: 'draft' },
+      authorization: { edit: ['tester'] },
+    };
+    const nextStep = {
+      name: 'review',
+      config: {
+        form: 'dataset-review',
+        workflow: { stage: 'review' },
+        authorization: { transitionRoles: ['Researcher'] },
+      },
+    };
+    const saved = new RecordSaveResponse(createRecordSaveContext({
+      requestId: '00000000-0000-4000-8000-000000000123',
+    }));
+    saved.oid = 'oid-1';
+    saved.outcome = 'saved';
+    saved.success = true;
+    const updateMeta = sinon.stub().resolves(saved);
+    const legacyPremutation = sinon.stub();
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves(currentRecord),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta,
+      setWorkflowStepRelatedMetadata: legacyPremutation,
+    } as any;
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    (global as any).WorkflowStepsService.get = sinon.stub().returns(of(nextStep));
+    const params: Record<string, unknown> = {
+      oid: 'oid-1',
+      targetStep: 'review',
+    };
+    const req = {
+      body: { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+      headers: {},
+      params,
+      query: { operation: 'submit' },
+      session: { branding: 'default' },
+      user: { username: 'tester', roles: [{ name: 'Researcher' }] },
+      param: sinon.stub().callsFake((name: string) =>
+        name === 'targetStep' ? 'body-step' : name === 'operation' ? 'body-operation' : params[name]
+      ),
+    } as unknown as Sails.Req;
+    sinon.stub(controller as any, 'getApiVersion').returns('1.0');
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.stepTo(req, {} as Sails.Res);
+
+    expect(legacyPremutation.notCalled).to.equal(true);
+    expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args.slice(0, 8)).to.deep.equal([
+      { id: 'brand-1', name: 'default' },
+      'oid-1',
+      currentRecord,
+      req.user,
+      true,
+      true,
+      nextStep,
+      { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+    ]);
+    expect(currentRecord.workflow.stage).to.equal('draft');
+    expect(currentRecord.metaMetadata.form).to.equal('dataset-draft');
+    expect(updateMeta.firstCall.args[8]).to.deep.include({
+      routeFamily: 'browser',
+      operation: 'transition',
+      targetStep: 'review',
+      validationOperation: 'submit',
+      validationRequestParameters: { targetStep: 'review' },
+    });
+    expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2].v1).to.deep.equal({
+      success: true,
+      oid: 'oid-1',
+      message: '',
+      data: undefined,
+      metadata: null,
+      details: undefined,
+      totalItems: 0,
+      items: [],
+    });
+  });
+
+  it('does not let browser update body metadata initiate a transition or validation operation', async () => {
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      metadata: { title: 'Before' },
+      workflow: { stage: 'draft' },
+      authorization: { edit: ['tester'] },
+    };
+    const saved = new RecordSaveResponse(createRecordSaveContext({
+      requestId: '00000000-0000-4000-8000-000000000124',
+    }));
+    saved.oid = 'oid-1';
+    saved.outcome = 'saved';
+    saved.success = true;
+    const updateMeta = sinon.stub().resolves(saved);
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves(currentRecord),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta,
+    } as any;
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    (global as any).WorkflowStepsService.get = sinon.stub();
+    const req = {
+      body: { title: 'After', targetStep: 'published', operation: 'publish' },
+      headers: {},
+      params: { oid: 'oid-1' },
+      query: {},
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+      param: sinon.stub().callsFake((name: string) =>
+        name === 'targetStep' ? 'published' : name === 'operation' ? 'publish' : undefined
+      ),
+    } as unknown as Sails.Req;
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+    sinon.stub(controller as any, 'sendResp');
+
+    await (controller as any).updateInternal(req, {} as Sails.Res);
+
+    expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
+    expect(updateMeta.calledOnce).to.equal(true);
+    const context = updateMeta.firstCall.args[8];
+    expect(context).to.include({ routeFamily: 'browser', operation: 'update' });
+    expect(context.targetStep).to.equal(undefined);
+    expect(context.validationOperation).to.equal(undefined);
+    expect(context.validationRequestParameters).to.deep.equal({});
+    expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
+  });
+
+  it('does not let browser create body metadata initiate a transition', async () => {
+    const saved = new RecordSaveResponse(createRecordSaveContext({
+      requestId: '00000000-0000-4000-8000-000000000125',
+    }));
+    saved.oid = 'oid-created';
+    saved.outcome = 'saved';
+    saved.success = true;
+    const create = sinon.stub().resolves(saved);
+    controller.recordsService = {
+      create,
+      getMeta: sinon.stub().resolves({ redboxOid: 'oid-created', metadata: {}, metaMetadata: {} }),
+    } as any;
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    const req = {
+      body: { title: 'Created', targetStep: 'published', operation: 'publish' },
+      headers: {},
+      params: { recordType: 'dataset' },
+      query: {},
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+      param: sinon.stub().callsFake((name: string) =>
+        name === 'targetStep' ? 'published' : name === 'operation' ? 'publish' : undefined
+      ),
+    } as unknown as Sails.Req;
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+    sinon.stub(controller as any, 'sendResp');
+
+    await (controller as any).createInternal(req, {} as Sails.Res);
+
+    expect(create.calledOnce).to.equal(true);
+    expect(create.firstCall.args[6]).to.equal(undefined);
+    const context = create.firstCall.args[7];
+    expect(context).to.include({ routeFamily: 'browser', operation: 'create' });
+    expect(context.targetStep).to.equal(undefined);
+    expect(context.validationOperation).to.equal(undefined);
+    expect(context.validationRequestParameters).to.deep.equal({ recordType: 'dataset' });
+    expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
+  });
+
+  it('sanitizes unexpected browser update and transition failures', function () {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+
+    (controller as any).sendUnexpectedSaveFailure(
+      { headers: {} },
+      {},
+      'update',
+      new Error('database password is secret')
+    );
+
+    const envelope = sendResp.firstCall.args[2];
+    expect(JSON.stringify(envelope)).not.to.include('database password');
+    expect(envelope).to.deep.equal({
+      status: 500,
+      displayErrors: [{ code: 'record-save-failed', title: '@record-save-failed' }],
+    });
+    const logPayload = (global as any).sails.log.error.firstCall.args;
+    expect(JSON.stringify(logPayload)).not.to.include('database password');
+    expect(logPayload[1]).to.deep.include({ action: 'update', error_type: 'Error' });
   });
 });
 

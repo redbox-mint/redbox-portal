@@ -251,6 +251,48 @@ describe('MongoStorageService', function () {
     expect(response.message).to.equal('Record was not found');
   });
 
+  it('scopes branded updates to the stored record brand', async function () {
+    const setStub = sandbox.stub().resolves({});
+    Record.updateOne.returns({ set: setStub });
+
+    const response = await service.updateMeta(
+      { id: 'brand-1' },
+      'oid-1',
+      { metadata: { title: 'Updated' }, metaMetadata: { brandId: 'brand-1' } }
+    );
+
+    expect(response.success).to.equal(true);
+    expect(Record.updateOne.calledOnceWith({
+      redboxOid: 'oid-1',
+      'metaMetadata.brandId': 'brand-1',
+    })).to.equal(true);
+  });
+
+  it('refuses a candidate that names a different active brand without issuing an update', async function () {
+    const response = await service.updateMeta(
+      { id: 'brand-1' },
+      'oid-1',
+      { metadata: {}, metaMetadata: { brandId: 'brand-2' } }
+    );
+
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('not-applied');
+    expect(Record.updateOne.notCalled).to.equal(true);
+  });
+
+  it('refuses branded replacement metadata without a candidate brandId', async function () {
+    const response = await service.updateMeta(
+      { id: 'brand-1' },
+      'oid-1',
+      { metadata: {}, metaMetadata: { form: 'dataset-2.4-draft' } }
+    );
+
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('not-applied');
+    expect(response.message).to.equal('Record was not found');
+    expect(Record.updateOne.notCalled).to.equal(true);
+  });
+
   it('returns an unsuccessful response when updateMeta fails', async function () {
     const setStub = sandbox.stub().rejects(new Error('update failed'));
     Record.updateOne.returns({ set: setStub });
